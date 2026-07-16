@@ -11,8 +11,9 @@ services:
     dockerfilePath: ./Dockerfile
     plan: free
     healthCheckPath: /api/health
-    # Run migrations before the new version takes traffic.
-    preDeployCommand: alembic upgrade head
+    # NOTE: pre-deploy commands need a paid instance type, so on the free plan we
+    # run `alembic upgrade head` from the container's start command instead (see
+    # the Dockerfile CMD). It's idempotent, so running it on every start is safe.
     envVars:
       - key: ENV
         value: production
