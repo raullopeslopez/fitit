@@ -13,31 +13,53 @@ export default function Workout() {
   const [previous, setPrevious] = useState(null)
   const [reps, setReps] = useState('')
   const [weight, setWeight] = useState('')
+  const [error, setError] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [logging, setLogging] = useState(false)
 
   useEffect(() => {
-    createWorkout().then(setWorkout)
+    createWorkout()
+      .then(setWorkout)
+      .catch(() => setError('Could not start a workout. Check your connection.'))
   }, [])
 
   async function handleAddExercise(event) {
     event.preventDefault()
     const name = exerciseInput.trim()
     if (!name) return
+    setError('')
+    setAdding(true)
     setCurrentExercise(name)
-    setPrevious(await getPreviousMarks(name))
+    try {
+      setPrevious(await getPreviousMarks(name))
+    } catch {
+      setError('Could not load previous marks.')
+      setPrevious(null)
+    } finally {
+      setAdding(false)
+    }
   }
 
   async function handleLogSet(event) {
     event.preventDefault()
     if (!workout || !currentExercise) return
-    const updated = await logSet(workout.id, {
-      exercise_name: currentExercise,
-      reps: Number(reps),
-      weight: Number(weight),
-      unit: 'kg',
-    })
-    setWorkout(updated)
-    setReps('')
-    setWeight('')
+    setError('')
+    setLogging(true)
+    try {
+      const updated = await logSet(workout.id, {
+        exercise_name: currentExercise,
+        reps: Number(reps),
+        weight: Number(weight),
+        unit: 'kg',
+      })
+      setWorkout(updated)
+      setReps('')
+      setWeight('')
+    } catch {
+      setError('Could not log that set.')
+    } finally {
+      setLogging(false)
+    }
   }
 
   const setsForCurrent = workout
@@ -46,51 +68,77 @@ export default function Workout() {
 
   return (
     <section>
-      <form onSubmit={handleAddExercise}>
-        <label htmlFor="exercise">Exercise</label>
-        <input
-          id="exercise"
-          value={exerciseInput}
-          onChange={(e) => setExerciseInput(e.target.value)}
-          placeholder="e.g. Bench Press"
-        />
-        <button type="submit">Add exercise</button>
+      <form className="card" onSubmit={handleAddExercise}>
+        <div className="field">
+          <label htmlFor="exercise">Exercise</label>
+          <input
+            id="exercise"
+            value={exerciseInput}
+            onChange={(e) => setExerciseInput(e.target.value)}
+            placeholder="e.g. Bench Press"
+          />
+        </div>
+        <button type="submit" className="btn-full" disabled={adding}>
+          {adding ? 'Checking…' : 'Add exercise'}
+        </button>
       </form>
 
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+
       {currentExercise && (
-        <div>
+        <div className="card">
           <h2>{currentExercise}</h2>
+
           {previous && previous.found ? (
-            <p>
+            <p className="previous">
               <strong>Last time:</strong> {previous.sets.map(formatSet).join(', ')}
             </p>
           ) : (
-            <p>No previous marks yet.</p>
+            <p className="previous muted">No previous marks yet. Set the baseline.</p>
           )}
 
           <form onSubmit={handleLogSet}>
-            <label htmlFor="reps">Reps</label>
-            <input
-              id="reps"
-              inputMode="numeric"
-              value={reps}
-              onChange={(e) => setReps(e.target.value)}
-            />
-            <label htmlFor="weight">Weight (kg)</label>
-            <input
-              id="weight"
-              inputMode="decimal"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-            />
-            <button type="submit">Log set</button>
+            <div className="row">
+              <div className="field">
+                <label htmlFor="reps">Reps</label>
+                <input
+                  id="reps"
+                  inputMode="numeric"
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="weight">Weight (kg)</label>
+                <input
+                  id="weight"
+                  inputMode="decimal"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                />
+              </div>
+            </div>
+            <button type="submit" className="btn-full" disabled={logging}>
+              {logging ? 'Logging…' : 'Log set'}
+            </button>
           </form>
 
-          <ol>
-            {setsForCurrent.map((set) => (
-              <li key={set.id}>{formatSet(set)}</li>
-            ))}
-          </ol>
+          {setsForCurrent.length > 0 ? (
+            <ol className="sets">
+              {setsForCurrent.map((set, index) => (
+                <li key={set.id}>
+                  <span>{formatSet(set)}</span>
+                  <span className="set-index">Set {index + 1}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="hint">No sets logged yet.</p>
+          )}
         </div>
       )}
     </section>

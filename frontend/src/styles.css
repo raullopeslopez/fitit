@@ -1,0 +1,205 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #14181f;
+  --muted: #6b7280;
+  --accent: #16a34a;
+  --accent-hover: #15803d;
+  --danger: #dc2626;
+  --border: #e4e7ec;
+  --ring: rgba(22, 163, 74, 0.25);
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --text: #e8eaed;
+    --muted: #9aa1ac;
+    --accent: #22c55e;
+    --accent-hover: #16a34a;
+    --danger: #f87171;
+    --border: #262b34;
+    --ring: rgba(34, 197, 94, 0.3);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.6rem;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.field {
+  margin-bottom: 0.85rem;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+}
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  transition: background 0.15s ease;
+}
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+button.secondary {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.75rem;
+}
+.btn-full {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+}
+.row > .field {
+  flex: 1;
+  margin-bottom: 0.85rem;
+}
+
+.previous {
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.previous strong {
+  color: var(--accent);
+}
+.previous.muted {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.alert {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.sets {
+  list-style: none;
+  padding: 0;
+  margin: 0.9rem 0 0;
+}
+.sets li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.2rem;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.sets li:last-child {
+  border-bottom: none;
+}
+.set-index {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.9rem 0 0;
+}
+
+.login-wrap {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.login-card {
+  width: 100%;
+  max-width: 360px;
+}
+.login-card h1 {
+  margin-bottom: 1rem;
+}
