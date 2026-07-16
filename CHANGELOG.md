@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GET /workouts/{id}`.
 - `POST /workouts/{id}/sets` — log a set: creates the exercise on first use and
   assigns the next set index. First green slice (`log_set.feature`).
+- Hardened input validation (Pydantic): `unit` restricted to `kg`/`lb`, `reps`
+  1–1000, `weight` 0–1000 (0 = bodyweight), and names trimmed + non-empty.
+- Unit test tier in `backend/tests/unit/` (schema validation), separate from the
+  Gherkin integration specs.
 
 ### To build (spec queue)
 - `GET /exercises/{id}/last` — previous marks (SLICE 2).
