@@ -45,7 +45,7 @@ jobs:
         run: uv run pytest --ignore=tests/unit -v
 
   frontend:
-    name: frontend (build)
+    name: frontend (tests + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,5 +57,7 @@ jobs:
           node-version: 22
       - name: Install deps
         run: npm install
+      - name: Tests (Vitest + Testing Library)
+        run: npm test
       - name: Build
         run: npm run build
