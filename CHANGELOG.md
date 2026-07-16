@@ -29,7 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PATCH`/`DELETE /workouts/sets/{id}` — correct a logged set (fix its values) or
   remove it (`correct_set.feature`). Third green slice. `get_or_create_exercise`
   extracted as a shared helper.
+- Single-user auth (`auth.feature`): `POST /auth/login` checks a username/password
+  from the environment (`AUTH_USERNAME`/`AUTH_PASSWORD`) and returns a JWT; all
+  `/workouts` and `/exercises` routes now require a bearer token (`/health` and
+  `/auth` stay public). Fourth green slice.
 
 ### To build (spec queue)
-- Single-user JWT auth (SLICE 4).
 - React UI: start workout → add exercise (shows previous marks) → log sets.
