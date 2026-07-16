@@ -25,4 +25,6 @@ COPY backend/ ./
 COPY --from=frontend /fe/dist ./static
 
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn app.web:web --host 0.0.0.0 --port ${PORT:-8000}"]
+# Migrate then serve. alembic upgrade head is idempotent (no-op when up to date),
+# so it's safe to run on every start (free plan can't use a pre-deploy command).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.web:web --host 0.0.0.0 --port ${PORT:-8000}"]
