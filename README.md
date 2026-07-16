@@ -55,12 +55,13 @@ backend/            FastAPI + uv
     config.py       env-driven settings (pydantic-settings)
     db.py           async SQLAlchemy engine/session
     models.py       Exercise, Workout, SetEntry
-    schemas.py      Pydantic I/O
+    schemas.py      Pydantic I/O (validation lives here)
     routers/        workouts, exercises  (unbuilt slices raise 501)
   alembic/          migrations
   tests/
+    unit/           fast unit tests (schema validation) — no app/DB
     features/       Gherkin specs (the source of truth for behavior)
-    step_defs/      pytest-bdd step definitions
+    step_defs/      pytest-bdd step definitions (integration tier)
 frontend/           Vite + React
 .github/workflows/  CI (specs + lint + migrations, frontend build)
 docker-compose.yml  db + backend + frontend for local dev
