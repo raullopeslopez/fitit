@@ -1,14 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+
+import Login from './Login.jsx'
+import { clearToken, getToken, setToken } from './auth.js'
 
 export default function App() {
-  const [status, setStatus] = useState('checking...')
+  const [token, setTokenState] = useState(getToken())
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((d) => setStatus(d.status))
-      .catch(() => setStatus('backend unreachable'))
-  }, [])
+  function handleAuthenticated(newToken) {
+    setToken(newToken)
+    setTokenState(newToken)
+  }
+
+  function handleLogout() {
+    clearToken()
+    setTokenState(null)
+  }
+
+  if (!token) {
+    return <Login onAuthenticated={handleAuthenticated} />
+  }
 
   return (
     <main
@@ -21,13 +31,8 @@ export default function App() {
       }}
     >
       <h1>Fitit</h1>
-      <p>Personal workout tracker. Log sets, see your previous marks.</p>
-      <p>
-        Backend health: <strong>{status}</strong>
-      </p>
-      <p style={{ color: '#666' }}>
-        Scaffold ready. Build the first slice (log a set) with <code>/tdd</code>.
-      </p>
+      <p>You're logged in. The workout screen is coming next.</p>
+      <button onClick={handleLogout}>Log out</button>
     </main>
   )
 }

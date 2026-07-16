@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the environment (`AUTH_USERNAME`/`AUTH_PASSWORD`) and returns a JWT; all
   `/workouts` and `/exercises` routes now require a bearer token (`/health` and
   `/auth` stay public). Fourth green slice.
+- Frontend login screen (React): a `Login` form that posts to `/auth/login`, stores
+  the JWT, and shows an error on bad credentials; `App` gates on the token. Built
+  test-first with Vitest + React Testing Library (`Login.test.jsx`, `App.test.jsx`),
+  now run in CI.
 
 ### To build (spec queue)
-- React UI: start workout → add exercise (shows previous marks) → log sets.
+- React UI (cont.): start workout → add exercise (shows previous marks) → log sets.
+- Attach the stored JWT to API calls; log out on 401.
