@@ -1,12 +1,12 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_session
-from ..models import SetEntry, Workout
+from ..models import Exercise, SetEntry, Workout
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
@@ -70,11 +70,40 @@ async def get_workout(
 async def log_set(
     workout_id: int, payload: SetIn, session: AsyncSession = Depends(get_session)
 ) -> WorkoutOut:
-    # SLICE 1 — implement with /tdd.
-    # Spec: tests/features/log_set.feature
-    # Behavior: find-or-create the exercise by name, append a SetEntry to the
-    # workout with the next set_index, return the updated workout.
-    raise HTTPException(status_code=501, detail="not implemented: log a set (SLICE 1 - /tdd)")
+    """Append a set to a workout, creating the exercise on first use.
+
+    Spec: tests/features/log_set.feature
+    """
+    workout = await session.get(Workout, workout_id)
+    if workout is None:
+        raise HTTPException(status_code=404, detail="workout not found")
+
+    exercise = await session.scalar(
+        select(Exercise).where(Exercise.name == payload.exercise_name)
+    )
+    if exercise is None:
+        exercise = Exercise(name=payload.exercise_name)
+        session.add(exercise)
+        await session.flush()
+
+    next_index = await session.scalar(
+        select(func.count()).select_from(SetEntry).where(SetEntry.workout_id == workout_id)
+    )
+    session.add(
+        SetEntry(
+            workout_id=workout_id,
+            exercise_id=exercise.id,
+            set_index=next_index,
+            reps=payload.reps,
+            weight=payload.weight,
+            unit=payload.unit,
+        )
+    )
+    await session.commit()
+
+    loaded = await load_workout(session, workout_id)
+    assert loaded is not None
+    return loaded
 
 
 @router.patch("/sets/{set_id}", response_model=SetOut)
