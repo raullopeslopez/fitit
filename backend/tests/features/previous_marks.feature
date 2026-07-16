@@ -1,6 +1,3 @@
-# SLICE 2 spec — not yet bound to step definitions.
-# Bind it (scenarios("../features/previous_marks.feature")) when you start this
-# slice with /tdd, then implement GET /exercises/{id}/last to green.
 Feature: Show previous marks
   When I add an exercise to a workout, I see what I did last time so I know the
   numbers to beat.
