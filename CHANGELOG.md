@@ -23,9 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1–1000, `weight` 0–1000 (0 = bodyweight), and names trimmed + non-empty.
 - Unit test tier in `backend/tests/unit/` (schema validation), separate from the
   Gherkin integration specs.
+- `GET /exercises/previous?name=` — previous marks: the sets from the most recent
+  workout that includes an exercise; `found` is false when it was never logged
+  (`previous_marks.feature`). Second green slice.
 
 ### To build (spec queue)
-- `GET /exercises/{id}/last` — previous marks (SLICE 2).
 - `PATCH`/`DELETE` a set — corrections (SLICE 3).
 - Single-user JWT auth (SLICE 4).
 - React UI: start workout → add exercise (shows previous marks) → log sets.
