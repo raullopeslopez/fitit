@@ -40,6 +40,15 @@ async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | N
     )
 
 
+async def get_or_create_exercise(session: AsyncSession, name: str) -> Exercise:
+    exercise = await session.scalar(select(Exercise).where(Exercise.name == name))
+    if exercise is None:
+        exercise = Exercise(name=name)
+        session.add(exercise)
+        await session.flush()
+    return exercise
+
+
 @router.post("", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
 async def create_workout(
     payload: WorkoutIn, session: AsyncSession = Depends(get_session)
@@ -78,13 +87,7 @@ async def log_set(
     if workout is None:
         raise HTTPException(status_code=404, detail="workout not found")
 
-    exercise = await session.scalar(
-        select(Exercise).where(Exercise.name == payload.exercise_name)
-    )
-    if exercise is None:
-        exercise = Exercise(name=payload.exercise_name)
-        session.add(exercise)
-        await session.flush()
+    exercise = await get_or_create_exercise(session, payload.exercise_name)
 
     next_index = await session.scalar(
         select(func.count()).select_from(SetEntry).where(SetEntry.workout_id == workout_id)
@@ -110,11 +113,38 @@ async def log_set(
 async def edit_set(
     set_id: int, payload: SetIn, session: AsyncSession = Depends(get_session)
 ) -> SetOut:
-    # SLICE 3 — implement with /tdd. Spec: tests/features/correct_set.feature
-    raise HTTPException(status_code=501, detail="not implemented: edit a set (SLICE 3 - /tdd)")
+    """Correct a logged set (full replacement of its values).
+
+    Spec: tests/features/correct_set.feature
+    """
+    set_entry = await session.get(SetEntry, set_id)
+    if set_entry is None:
+        raise HTTPException(status_code=404, detail="set not found")
+
+    exercise = await get_or_create_exercise(session, payload.exercise_name)
+
+    set_entry.exercise_id = exercise.id
+    set_entry.reps = payload.reps
+    set_entry.weight = payload.weight
+    set_entry.unit = payload.unit
+    await session.commit()
+
+    return SetOut(
+        id=set_entry.id,
+        exercise_id=set_entry.exercise_id,
+        exercise_name=exercise.name,
+        set_index=set_entry.set_index,
+        reps=set_entry.reps,
+        weight=set_entry.weight,
+        unit=set_entry.unit,
+    )
 
 
 @router.delete("/sets/{set_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_set(set_id: int, session: AsyncSession = Depends(get_session)) -> None:
-    # SLICE 3 — implement with /tdd. Spec: tests/features/correct_set.feature
-    raise HTTPException(status_code=501, detail="not implemented: delete a set (SLICE 3 - /tdd)")
+    """Remove a logged set. Spec: tests/features/correct_set.feature"""
+    set_entry = await session.get(SetEntry, set_id)
+    if set_entry is None:
+        raise HTTPException(status_code=404, detail="set not found")
+    await session.delete(set_entry)
+    await session.commit()

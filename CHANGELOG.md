@@ -26,8 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /exercises/previous?name=` — previous marks: the sets from the most recent
   workout that includes an exercise; `found` is false when it was never logged
   (`previous_marks.feature`). Second green slice.
+- `PATCH`/`DELETE /workouts/sets/{id}` — correct a logged set (fix its values) or
+  remove it (`correct_set.feature`). Third green slice. `get_or_create_exercise`
+  extracted as a shared helper.
 
 ### To build (spec queue)
-- `PATCH`/`DELETE` a set — corrections (SLICE 3).
 - Single-user JWT auth (SLICE 4).
 - React UI: start workout → add exercise (shows previous marks) → log sets.
