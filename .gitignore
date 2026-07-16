@@ -10,6 +10,9 @@ __pycache__/
 node_modules/
 frontend/dist/
 
+# Built frontend copied into the backend for the prod image (produced in Docker)
+backend/static/
+
 # Env / secrets
 .env
 *.local
