@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,16 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days — it's a personal app
     auth_username: str = "fitit"
     auth_password: str = "changeme"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_asyncpg_driver(cls, value: str) -> str:
+        # Render hands out postgres:// / postgresql:// URLs; SQLAlchemy's async
+        # engine needs the +asyncpg driver.
+        for prefix in ("postgresql://", "postgres://"):
+            if value.startswith(prefix):
+                return "postgresql+asyncpg://" + value[len(prefix) :]
+        return value
 
 
 settings = Settings()

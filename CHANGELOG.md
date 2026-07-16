@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tabular set numbers, **dark mode** via `prefers-color-scheme`, mobile-first), plus
   loading (`Checking…`/`Logging…`), empty ("no sets yet"), and error (`role="alert"`)
   states across the login and workout screens. Error handling covered by a Vitest test.
-
-### To build
-- Wire the prod deploy (single Render service: FastAPI serves the built React app).
+- Production deploy: `render.yaml` Blueprint (web service + managed Postgres,
+  migrations on pre-deploy, health check `/api/health`) and a multi-stage `Dockerfile`
+  that builds the React app and serves it + the API from one FastAPI service
+  (`app/web.py` mounts the API under `/api`, the static React app at `/`).
+  `DATABASE_URL` is coerced to the asyncpg driver so Render's connection string works.
+  Covered by unit tests (`test_web.py`, `test_config.py`).
