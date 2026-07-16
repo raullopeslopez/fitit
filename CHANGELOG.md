@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authenticated API client (`apiFetch`): attaches the stored JWT, prefixes `/api`,
   returns JSON (or `null` for 204), and on 401 clears the token and drops back to
   the login screen. Tested with Vitest (`api.test.js`).
+- Workout screen (React): starts a workout, and adding an exercise shows its
+  previous marks inline (`Last time: 60 kg x 8`, or "no previous marks yet"); logged
+  sets appear in a list. The core log-and-beat loop, wired through `apiFetch`. Tested
+  with Vitest (`Workout.test.jsx`).
 
-### To build (spec queue)
-- React UI (cont.): start workout → add exercise (shows previous marks) → log sets.
+### To build
+- Polish: loading/empty states, styling, mobile layout.
+- Wire the prod deploy (single Render service: FastAPI serves the built React app).

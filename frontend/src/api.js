@@ -39,3 +39,18 @@ export async function apiFetch(path, options = {}) {
   }
   return res.json()
 }
+
+export function createWorkout(name = null) {
+  return apiFetch('/workouts', { method: 'POST', body: JSON.stringify({ name }) })
+}
+
+export function getPreviousMarks(name) {
+  return apiFetch(`/exercises/previous?name=${encodeURIComponent(name)}`)
+}
+
+export function logSet(workoutId, set) {
+  return apiFetch(`/workouts/${workoutId}/sets`, {
+    method: 'POST',
+    body: JSON.stringify(set),
+  })
+}
