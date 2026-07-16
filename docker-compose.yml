@@ -22,6 +22,8 @@ services:
       ENV: local
       DATABASE_URL: postgresql+asyncpg://fitit:fitit@db:5432/fitit
       JWT_SECRET: dev-secret-change-me
+      AUTH_USERNAME: fitit
+      AUTH_PASSWORD: changeme
     ports:
       - "8000:8000"
     volumes:

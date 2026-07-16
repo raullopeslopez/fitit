@@ -34,6 +34,22 @@ expects logging a set to work, and the endpoint returns `501` until you build it
 That's your red-green starting line. Implement `POST /workouts/{id}/sets` in
 `backend/app/routers/workouts.py` until the scenario passes.
 
+## Auth
+
+Single user, credentials from the environment (`AUTH_USERNAME` / `AUTH_PASSWORD`).
+Log in for a JWT, then send it as a bearer token:
+
+```bash
+TOKEN=$(curl -s localhost:8000/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"username":"fitit","password":"changeme"}' | jq -r .access_token)
+
+curl localhost:8000/workouts -H "Authorization: Bearer $TOKEN"
+```
+
+`/health` and `/auth/login` are public; every `/workouts` and `/exercises` route
+requires the token. Set real values in your Render env group for production.
+
 ## Database migrations
 
 Schema changes are Alembic migrations (Postgres in dev/prod; tests use SQLite).
