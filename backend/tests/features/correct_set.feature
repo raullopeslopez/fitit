@@ -1,6 +1,3 @@
-# SLICE 3 spec — not yet bound to step definitions.
-# Bind it when you start this slice with /tdd, then implement PATCH/DELETE
-# /workouts/sets/{id} to green.
 Feature: Correct a logged set
   I fat-finger weights at the gym, so I can fix or delete a set.
 
