@@ -37,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the JWT, and shows an error on bad credentials; `App` gates on the token. Built
   test-first with Vitest + React Testing Library (`Login.test.jsx`, `App.test.jsx`),
   now run in CI.
+- Authenticated API client (`apiFetch`): attaches the stored JWT, prefixes `/api`,
+  returns JSON (or `null` for 204), and on 401 clears the token and drops back to
+  the login screen. Tested with Vitest (`api.test.js`).
 
 ### To build (spec queue)
 - React UI (cont.): start workout → add exercise (shows previous marks) → log sets.
-- Attach the stored JWT to API calls; log out on 401.
