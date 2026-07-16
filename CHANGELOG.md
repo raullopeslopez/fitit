@@ -17,9 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   red — the endpoint returns `501` until implemented.
 - Working endpoints: `GET /health`, `POST /exercises`, `POST /workouts`,
   `GET /workouts/{id}`.
+- `POST /workouts/{id}/sets` — log a set: creates the exercise on first use and
+  assigns the next set index. First green slice (`log_set.feature`).
 
 ### To build (spec queue)
-- `POST /workouts/{id}/sets` — log a set (SLICE 1).
 - `GET /exercises/{id}/last` — previous marks (SLICE 2).
 - `PATCH`/`DELETE` a set — corrections (SLICE 3).
 - Single-user JWT auth (SLICE 4).
