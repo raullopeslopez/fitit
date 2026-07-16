@@ -85,4 +85,14 @@ describe('Workout', () => {
       }),
     )
   })
+
+  it('shows an error when a request fails', async () => {
+    api.getPreviousMarks.mockRejectedValue(new Error('network'))
+    render(<Workout />)
+
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+  })
 })

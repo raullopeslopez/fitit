@@ -28,26 +28,14 @@ export default function App() {
   }
 
   return (
-    <main
-      style={{
-        fontFamily: 'system-ui, sans-serif',
-        maxWidth: 600,
-        margin: '2rem auto',
-        padding: '0 1rem',
-        lineHeight: 1.5,
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
+    <div className="container">
+      <header className="app-header">
         <h1>Fitit</h1>
-        <button onClick={handleLogout}>Log out</button>
+        <button className="secondary" onClick={handleLogout}>
+          Log out
+        </button>
       </header>
       <Workout />
-    </main>
+    </div>
   )
 }

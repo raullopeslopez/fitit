@@ -44,7 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   previous marks inline (`Last time: 60 kg x 8`, or "no previous marks yet"); logged
   sets appear in a list. The core log-and-beat loop, wired through `apiFetch`. Tested
   with Vitest (`Workout.test.jsx`).
+- UI polish: a `styles.css` design system (cards, inputs, buttons, green accent,
+  tabular set numbers, **dark mode** via `prefers-color-scheme`, mobile-first), plus
+  loading (`Checking…`/`Logging…`), empty ("no sets yet"), and error (`role="alert"`)
+  states across the login and workout screens. Error handling covered by a Vitest test.
 
 ### To build
-- Polish: loading/empty states, styling, mobile layout.
 - Wire the prod deploy (single Render service: FastAPI serves the built React app).
