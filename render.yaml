@@ -1,6 +1,7 @@
 databases:
   - name: fitit-db
     plan: free
+    region: frankfurt
     databaseName: fitit
     user: fitit
 
@@ -8,6 +9,7 @@ services:
   - type: web
     name: fitit
     runtime: docker
+    region: frankfurt
     dockerfilePath: ./Dockerfile
     plan: free
     healthCheckPath: /api/health
