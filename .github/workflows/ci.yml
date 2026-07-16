@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: backend (specs + lint + migrations)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fitit
+          POSTGRES_PASSWORD: fitit
+          POSTGRES_DB: fitit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitit"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install deps
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check .
+      - name: Migrations (validate against real Postgres)
+        env:
+          DATABASE_URL: postgresql+asyncpg://fitit:fitit@localhost:5432/fitit
+        run: uv run alembic upgrade head
+      - name: Specs (Gherkin / pytest-bdd)
+        run: uv run pytest
+
+  frontend:
+    name: frontend (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps
+        run: npm install
+      - name: Build
+        run: npm run build
