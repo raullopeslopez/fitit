@@ -54,3 +54,14 @@ export function logSet(workoutId, set) {
     body: JSON.stringify(set),
   })
 }
+
+export function editSet(setId, set) {
+  return apiFetch(`/workouts/sets/${setId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(set),
+  })
+}
+
+export function deleteSet(setId) {
+  return apiFetch(`/workouts/sets/${setId}`, { method: 'DELETE' })
+}

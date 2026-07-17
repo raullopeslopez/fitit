@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { createWorkout, getPreviousMarks, logSet } from './api.js'
+import { createWorkout, deleteSet, editSet, getPreviousMarks, logSet } from './api.js'
 
 function formatSet(set) {
   return `${set.weight} kg x ${set.reps}`
@@ -16,6 +16,9 @@ export default function Workout() {
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
   const [logging, setLogging] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editReps, setEditReps] = useState('')
+  const [editWeight, setEditWeight] = useState('')
 
   useEffect(() => {
     createWorkout()
@@ -59,6 +62,46 @@ export default function Workout() {
       setError('Could not log that set.')
     } finally {
       setLogging(false)
+    }
+  }
+
+  function startEdit(set) {
+    setError('')
+    setEditingId(set.id)
+    setEditReps(String(set.reps))
+    setEditWeight(String(set.weight))
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function handleSaveEdit(set) {
+    setError('')
+    try {
+      const updated = await editSet(set.id, {
+        exercise_name: set.exercise_name,
+        reps: Number(editReps),
+        weight: Number(editWeight),
+        unit: set.unit,
+      })
+      setWorkout((w) => ({
+        ...w,
+        sets: w.sets.map((s) => (s.id === updated.id ? updated : s)),
+      }))
+      setEditingId(null)
+    } catch {
+      setError('Could not update that set.')
+    }
+  }
+
+  async function handleDeleteSet(setId) {
+    setError('')
+    try {
+      await deleteSet(setId)
+      setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== setId) }))
+    } catch {
+      setError('Could not delete that set.')
     }
   }
 
@@ -131,8 +174,51 @@ export default function Workout() {
             <ol className="sets">
               {setsForCurrent.map((set, index) => (
                 <li key={set.id}>
-                  <span>{formatSet(set)}</span>
-                  <span className="set-index">Set {index + 1}</span>
+                  {editingId === set.id ? (
+                    <form
+                      className="set-edit"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        handleSaveEdit(set)
+                      }}
+                    >
+                      <input
+                        aria-label="Edit reps"
+                        inputMode="numeric"
+                        value={editReps}
+                        onChange={(e) => setEditReps(e.target.value)}
+                      />
+                      <input
+                        aria-label="Edit weight"
+                        inputMode="decimal"
+                        value={editWeight}
+                        onChange={(e) => setEditWeight(e.target.value)}
+                      />
+                      <button type="submit">Save</button>
+                      <button type="button" className="secondary" onClick={cancelEdit}>
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <span>{formatSet(set)}</span>
+                      <span className="set-index">Set {index + 1}</span>
+                      <button
+                        type="button"
+                        className="secondary set-action"
+                        onClick={() => startEdit(set)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary set-action"
+                        onClick={() => handleDeleteSet(set.id)}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
             </ol>

@@ -95,4 +95,69 @@ describe('Workout', () => {
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
+
+  async function logBenchSet() {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: false,
+      sets: [],
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet()],
+    })
+    render(<Workout />)
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+    expect(await screen.findByText(/60 kg x 8/i)).toBeInTheDocument()
+  }
+
+  it('deletes a logged set and removes it from the list', async () => {
+    api.deleteSet.mockResolvedValue(null)
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }))
+
+    await waitFor(() => expect(api.deleteSet).toHaveBeenCalledWith(10))
+    expect(screen.queryByText(/60 kg x 8/i)).not.toBeInTheDocument()
+  })
+
+  it('edits a logged set inline and shows the updated values', async () => {
+    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 10, weight: 65 }))
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /edit/i }))
+    const reps = screen.getByLabelText(/edit reps/i)
+    const weight = screen.getByLabelText(/edit weight/i)
+    await userEvent.clear(reps)
+    await userEvent.type(reps, '10')
+    await userEvent.clear(weight)
+    await userEvent.type(weight, '65')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await waitFor(() =>
+      expect(api.editSet).toHaveBeenCalledWith(10, {
+        exercise_name: 'Bench Press',
+        reps: 10,
+        weight: 65,
+        unit: 'kg',
+      }),
+    )
+    expect(await screen.findByText(/65 kg x 10/i)).toBeInTheDocument()
+  })
+
+  it('keeps the set and shows an error when delete fails', async () => {
+    api.deleteSet.mockRejectedValue(new Error('network'))
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }))
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/60 kg x 8/i)).toBeInTheDocument()
+  })
 })
