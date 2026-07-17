@@ -36,7 +36,7 @@ describe('Days', () => {
     ])
     render(<Days onOpenWorkout={() => {}} />)
 
-    expect(await screen.findByText('2026-07-16')).toBeInTheDocument()
+    expect(await screen.findByText('Thu, Jul 16, 2026')).toBeInTheDocument()
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText('Legs')).toBeInTheDocument()
     expect(screen.getByText(/2 sets/i)).toBeInTheDocument()

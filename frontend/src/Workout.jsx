@@ -8,7 +8,7 @@ import {
   listExercises,
   logSet,
 } from './api.js'
-import { formatSet } from './format.js'
+import { formatDate, formatSet } from './format.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -305,7 +305,7 @@ export default function Workout({ workoutId, onExit }) {
         </button>
         <div className="workout-title">
           <strong>{workout.name || 'Workout'}</strong>
-          <span className="set-index"> · {workout.date}</span>
+          <span className="set-index"> · {formatDate(workout.date)}</span>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { createWorkout, listDays } from './api.js'
+import { formatDate } from './format.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -75,7 +76,7 @@ export default function Days({ onOpenWorkout }) {
       ) : (
         days.map((day) => (
           <div className="card" key={day.id}>
-            <h2>{day.date}</h2>
+            <h2>{formatDate(day.date)}</h2>
             <ul className="sets">
               {day.workouts.map((w) => (
                 <li key={w.id}>
