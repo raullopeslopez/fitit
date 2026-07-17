@@ -98,15 +98,17 @@ React UI against the now-proven API.
 ## Environments
 
 - **local** — Docker Compose, config from `.env`.
-- **production** — Render (one service: FastAPI serves the built React app), managed
-  Postgres, config from Render env vars. Migrations run on pre-deploy.
+- **production** — Render hosts the web service (one service: FastAPI serves the built
+  React app); the database is [Neon](https://neon.tech) serverless Postgres. Config
+  comes from Render env vars; migrations run on container start.
 
 Config always comes from the environment, never the code.
 
-## Deploy (Render)
+## Deploy (Render + Neon)
 
-One service, one Postgres, defined in `render.yaml` (a Blueprint). The `Dockerfile`
-builds the React app, then builds a Python image that serves it:
+Render runs the app; Neon is the database. The web service is defined in `render.yaml`
+(a Blueprint). The `Dockerfile` builds the React app, then builds a Python image that
+serves it:
 
 - `/api/*` → the FastAPI app (mounted in `app/web.py`)
 - `/*` → the built React app (static files)
@@ -114,13 +116,19 @@ builds the React app, then builds a Python image that serves it:
 Steps:
 
 1. Push to GitHub (done).
-2. On Render: **New → Blueprint**, pick this repo. Render reads `render.yaml` and
-   provisions the web service + `fitit-db` Postgres.
-3. Set the two secret env vars in the dashboard — `AUTH_USERNAME` and `AUTH_PASSWORD`
-   (that's your login). `JWT_SECRET` is generated for you; `DATABASE_URL` is wired
-   from the database automatically.
-4. Deploy. `alembic upgrade head` runs before traffic switches; health check is
-   `/api/health`.
+2. On [Neon](https://neon.tech): create a project with a database named `fitit` and
+   copy its **pooled** connection string (looks like
+   `postgresql://…@ep-…-pooler.….neon.tech/fitit?sslmode=require`).
+3. On Render: **New → Blueprint**, pick this repo. Render reads `render.yaml` and
+   provisions the web service (no database — that's on Neon now).
+4. Set the secret env vars in the Render dashboard:
+   - `DATABASE_URL` → the Neon pooled connection string from step 2. `config.py`
+     coerces it to the asyncpg driver and translates Neon's `sslmode`/`channel_binding`
+     params, so paste it exactly as Neon gives it.
+   - `AUTH_USERNAME` and `AUTH_PASSWORD` → your login. (`JWT_SECRET` is generated.)
+5. Deploy. `alembic upgrade head` runs on container start against Neon (creating the
+   schema on first deploy); health check is `/api/health`.
 
-Notes: the free tier spins down when idle (first open is a slow cold start) and free
-Postgres expires after 90 days — fine for personal use, upgrade the plans for always-on.
+Notes: Render's free tier spins down when idle (first open is a slow cold start). Neon's
+free tier keeps the database around and pauses idle compute automatically — no 90-day
+expiry to worry about. Upgrade either plan for always-on.

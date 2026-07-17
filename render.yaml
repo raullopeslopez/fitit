@@ -1,10 +1,3 @@
-databases:
-  - name: fitit-db
-    plan: free
-    region: frankfurt
-    databaseName: fitit
-    user: fitit
-
 services:
   - type: web
     name: fitit
@@ -19,10 +12,12 @@ services:
     envVars:
       - key: ENV
         value: production
+      # The database lives on Neon (serverless Postgres), not Render. Set this to
+      # your Neon *pooled* connection string in the Render dashboard. config.py
+      # coerces it to the asyncpg driver and translates Neon's sslmode/channel_binding
+      # query params, so paste the connection string exactly as Neon gives it.
       - key: DATABASE_URL
-        fromDatabase:
-          name: fitit-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       # Set these two yourself in the Render dashboard (they are your login).
