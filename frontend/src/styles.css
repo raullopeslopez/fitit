@@ -66,6 +66,29 @@ h2 {
   display: flex;
   gap: 0.5rem;
 }
+.workout-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.link-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.55rem 0.2rem;
+  text-align: left;
+  font: inherit;
+}
+.link-row:hover {
+  color: var(--accent);
+}
 
 .card {
   background: var(--surface);

@@ -1,0 +1,74 @@
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+
+import Days from './Days.jsx'
+import * as api from './api.js'
+
+vi.mock('./api.js')
+
+function benchSet(overrides = {}) {
+  return {
+    id: 10,
+    exercise_id: 2,
+    exercise_name: 'Bench Press',
+    set_index: 0,
+    reps: 8,
+    weight: 60,
+    unit: 'kg',
+    ...overrides,
+  }
+}
+
+describe('Days', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    api.listDays.mockResolvedValue([])
+  })
+
+  it('lists days with their workouts', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [{ id: 5, name: 'Push', sets: [benchSet(), benchSet({ id: 11 })] }],
+      },
+      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    render(<Days onOpenWorkout={() => {}} />)
+
+    expect(await screen.findByText('2026-07-16')).toBeInTheDocument()
+    expect(screen.getByText('Push')).toBeInTheDocument()
+    expect(screen.getByText('Legs')).toBeInTheDocument()
+    expect(screen.getByText(/2 sets/i)).toBeInTheDocument()
+  })
+
+  it('opens a workout when tapped', async () => {
+    const onOpen = vi.fn()
+    api.listDays.mockResolvedValue([
+      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    render(<Days onOpenWorkout={onOpen} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
+    expect(onOpen).toHaveBeenCalledWith(4)
+  })
+
+  it('creates a workout for the chosen date and opens it', async () => {
+    const onOpen = vi.fn()
+    api.createWorkout.mockResolvedValue({ id: 9, date: '2026-07-10', name: 'Morning', sets: [] })
+    render(<Days onOpenWorkout={onOpen} />)
+
+    await userEvent.clear(screen.getByLabelText(/date/i))
+    await userEvent.type(screen.getByLabelText(/date/i), '2026-07-10')
+    await userEvent.type(screen.getByLabelText(/name/i), 'Morning')
+    await userEvent.click(screen.getByRole('button', { name: /new workout/i }))
+
+    expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-10', name: 'Morning' })
+    expect(onOpen).toHaveBeenCalledWith(9)
+  })
+
+  it('shows an empty state when there are no days', async () => {
+    render(<Days onOpenWorkout={() => {}} />)
+    expect(await screen.findByText(/no days yet/i)).toBeInTheDocument()
+  })
+})

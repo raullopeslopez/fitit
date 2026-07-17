@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react'
 
 import {
-  createWorkout,
   deleteSet,
   editSet,
   getPreviousMarks,
+  getWorkout,
   listExercises,
   logSet,
 } from './api.js'
 import { formatSet } from './format.js'
-
-function pluralize(n, word) {
-  return `${n} ${word}${n === 1 ? '' : 's'}`
-}
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -215,20 +211,24 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
   )
 }
 
-export default function Workout() {
+export default function Workout({ workoutId, onExit }) {
   const [workout, setWorkout] = useState(null)
   const [exerciseInput, setExerciseInput] = useState('')
   const [exercises, setExercises] = useState([]) // [{ name, previous }] in the order added
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
-  const [finished, setFinished] = useState(false)
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
-    createWorkout()
-      .then(setWorkout)
-      .catch(() => setError('Could not start a workout. Check your connection.'))
-  }, [])
+    getWorkout(workoutId)
+      .then((w) => {
+        setWorkout(w)
+        // Seed a card per exercise already logged in this workout, in order.
+        const names = [...new Set(w.sets.map((s) => s.exercise_name))]
+        setExercises(names.map((name) => ({ name, previous: null })))
+      })
+      .catch(() => setError('Could not load the workout.'))
+  }, [workoutId])
 
   useEffect(() => {
     // Autocomplete is best-effort; a failure here shouldn't break logging.
@@ -284,44 +284,31 @@ export default function Workout() {
     setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== setId) }))
   }
 
-  async function handleStartNew() {
-    setError('')
-    try {
-      const fresh = await createWorkout()
-      setWorkout(fresh)
-      setExercises([])
-      setFinished(false)
-    } catch {
-      setError('Could not start a workout. Check your connection.')
-    }
-  }
-
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
-  const totalSets = workout ? workout.sets.length : 0
-  const exerciseCount = workout
-    ? new Set(workout.sets.map((s) => s.exercise_name)).size
-    : 0
-
-  if (finished) {
-    return (
-      <section>
-        <div className="card summary" role="status">
-          <h2>Workout complete</h2>
-          <p>
-            {pluralize(exerciseCount, 'exercise')}, {pluralize(totalSets, 'set')}.
-          </p>
-          <button type="button" className="btn-full" onClick={handleStartNew}>
-            Start new workout
-          </button>
-        </div>
-      </section>
+  if (!workout) {
+    return error ? (
+      <p role="alert" className="alert">
+        {error}
+      </p>
+    ) : (
+      <p className="hint">Loading…</p>
     )
   }
 
   return (
     <section>
+      <div className="workout-head">
+        <button type="button" className="secondary" onClick={onExit}>
+          ← Days
+        </button>
+        <div className="workout-title">
+          <strong>{workout.name || 'Workout'}</strong>
+          <span className="set-index"> · {workout.date}</span>
+        </div>
+      </div>
+
       <form className="card" onSubmit={handleAddExercise}>
         <div className="field">
           <label htmlFor="exercise">Exercise</label>
@@ -360,12 +347,6 @@ export default function Workout() {
           onDeleteSet={deleteSetFor}
         />
       ))}
-
-      {totalSets > 0 && (
-        <button type="button" className="btn-full" onClick={() => setFinished(true)}>
-          Finish workout
-        </button>
-      )}
     </section>
   )
 }

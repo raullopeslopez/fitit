@@ -19,10 +19,14 @@ function benchSet(overrides = {}) {
   }
 }
 
+function renderWorkout(props = {}) {
+  return render(<Workout workoutId={1} onExit={() => {}} {...props} />)
+}
+
 describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    api.createWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
+    api.getWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
     api.listExercises.mockResolvedValue([])
   })
 
@@ -32,9 +36,9 @@ describe('Workout', () => {
       found: true,
       sets: [benchSet({ id: 5 })],
     })
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
 
     expect(await screen.findByText(/60 kg x 8/i)).toBeInTheDocument()
@@ -47,9 +51,9 @@ describe('Workout', () => {
       found: true,
       sets: [benchSet({ reps: 8, weight: 60, unit: 'lb' })],
     })
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
     await screen.findByText(/last time/i)
 
@@ -66,9 +70,9 @@ describe('Workout', () => {
       found: false,
       sets: [],
     })
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Face Pull')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Face Pull')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
 
     expect(await screen.findByText(/no previous marks/i)).toBeInTheDocument()
@@ -86,11 +90,10 @@ describe('Workout', () => {
       name: null,
       sets: [benchSet()],
     })
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
-
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/weight/i), '60')
     await userEvent.click(screen.getByRole('button', { name: /log set/i }))
@@ -107,16 +110,16 @@ describe('Workout', () => {
   })
 
   it('logs a set in lb and shows the unit', async () => {
-    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
       date: '2026-07-16',
       name: null,
       sets: [benchSet({ unit: 'lb', weight: 135 })],
     })
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
     await userEvent.selectOptions(screen.getByLabelText(/unit/i), 'lb')
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
@@ -136,9 +139,9 @@ describe('Workout', () => {
 
   it('shows an error when a request fails', async () => {
     api.getPreviousMarks.mockRejectedValue(new Error('network'))
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
@@ -156,8 +159,8 @@ describe('Workout', () => {
       name: null,
       sets: [benchSet()],
     })
-    render(<Workout />)
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    renderWorkout()
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/weight/i), '60')
@@ -209,11 +212,38 @@ describe('Workout', () => {
     expect(screen.getByText(/60 kg x 8/i)).toBeInTheDocument()
   })
 
+  it('does not log a set with empty reps and warns', async () => {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    renderWorkout()
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/reps/i)
+    expect(api.logSet).not.toHaveBeenCalled()
+  })
+
+  it('does not log a set with a negative weight and warns', async () => {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    renderWorkout()
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '-5')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/weight/i)
+    expect(api.logSet).not.toHaveBeenCalled()
+  })
+
   it('keeps every exercise of the session visible', async () => {
     api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
-    render(<Workout />)
+    renderWorkout()
 
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
     await screen.findByRole('heading', { name: 'Bench Press' })
 
@@ -225,98 +255,37 @@ describe('Workout', () => {
     expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
   })
 
-  it('summarizes the workout when finished', async () => {
-    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
-    api.logSet.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: [benchSet(), benchSet({ id: 11 })],
-    })
-    render(<Workout />)
-
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
-    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
-    await userEvent.type(screen.getByLabelText(/reps/i), '8')
-    await userEvent.type(screen.getByLabelText(/weight/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
-    await screen.findAllByText(/60 kg x 8/i)
-
-    await userEvent.click(screen.getByRole('button', { name: /finish workout/i }))
-
-    const summary = await screen.findByRole('status')
-    expect(summary).toHaveTextContent(/1 exercise/i)
-    expect(summary).toHaveTextContent(/2 sets/i)
-  })
-
-  it('starts a fresh workout after finishing', async () => {
-    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
-    api.logSet.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: [benchSet()],
-    })
-    render(<Workout />)
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
-    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
-    await userEvent.type(screen.getByLabelText(/reps/i), '8')
-    await userEvent.type(screen.getByLabelText(/weight/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
-    await screen.findByText(/60 kg x 8/i)
-    await userEvent.click(screen.getByRole('button', { name: /finish workout/i }))
-    await screen.findByRole('status')
-
-    api.createWorkout.mockResolvedValue({ id: 2, date: '2026-07-16', name: null, sets: [] })
-    await userEvent.click(screen.getByRole('button', { name: /start new workout/i }))
-
-    expect(await screen.findByLabelText(/exercise/i)).toBeInTheDocument()
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Bench Press' })).not.toBeInTheDocument()
-  })
-
-  async function addBench() {
-    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
-    render(<Workout />)
-    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
-    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
-    await screen.findByRole('heading', { name: 'Bench Press' })
-  }
-
-  it('does not log a set with empty reps and warns', async () => {
-    await addBench()
-    await userEvent.type(screen.getByLabelText(/weight/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(/reps/i)
-    expect(api.logSet).not.toHaveBeenCalled()
-  })
-
-  it('does not log a set with a negative weight and warns', async () => {
-    await addBench()
-    await userEvent.type(screen.getByLabelText(/reps/i), '8')
-    await userEvent.type(screen.getByLabelText(/weight/i), '-5')
-    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(/weight/i)
-    expect(api.logSet).not.toHaveBeenCalled()
-  })
-
   it('suggests known exercises for autocomplete', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Deadlift', muscle_group: null },
       { id: 2, name: 'Overhead Press', muscle_group: null },
     ])
-    const { container } = render(<Workout />)
+    const { container } = renderWorkout()
 
     await waitFor(() => {
       expect(container.querySelector('datalist option[value="Deadlift"]')).not.toBeNull()
     })
     expect(container.querySelector('datalist option[value="Overhead Press"]')).not.toBeNull()
+  })
 
-    const input = screen.getByLabelText(/exercise/i)
-    const list = input.getAttribute('list')
-    expect(list).toBeTruthy()
-    expect(container.querySelector(`datalist#${list}`)).not.toBeNull()
+  it('loads the exercises already logged in the workout', async () => {
+    api.getWorkout.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: 'Push',
+      sets: [benchSet()],
+    })
+    renderWorkout()
+
+    expect(await screen.findByRole('heading', { name: 'Bench Press' })).toBeInTheDocument()
+    expect(screen.getByText(/60 kg x 8/i)).toBeInTheDocument()
+  })
+
+  it('goes back to the days view', async () => {
+    const onExit = vi.fn()
+    renderWorkout({ onExit })
+
+    await userEvent.click(await screen.findByRole('button', { name: /days/i }))
+    expect(onExit).toHaveBeenCalled()
   })
 })

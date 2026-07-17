@@ -40,8 +40,16 @@ export async function apiFetch(path, options = {}) {
   return res.json()
 }
 
-export function createWorkout(name = null) {
-  return apiFetch('/workouts', { method: 'POST', body: JSON.stringify({ name }) })
+export function createWorkout({ name = null, date = null } = {}) {
+  return apiFetch('/workouts', { method: 'POST', body: JSON.stringify({ name, date }) })
+}
+
+export function getWorkout(id) {
+  return apiFetch(`/workouts/${id}`)
+}
+
+export function listDays() {
+  return apiFetch('/days')
 }
 
 export function getPreviousMarks(name) {
@@ -50,10 +58,6 @@ export function getPreviousMarks(name) {
 
 export function listExercises() {
   return apiFetch('/exercises')
-}
-
-export function listWorkouts() {
-  return apiFetch('/workouts')
 }
 
 export function logSet(workoutId, set) {

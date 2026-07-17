@@ -19,22 +19,21 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
   })
 
-  it('switches between the log and history views', async () => {
+  it('opens a workout from the days view and can go back', async () => {
     setToken('tok')
-    api.createWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
-    api.listExercises.mockResolvedValue([])
-    api.listWorkouts.mockResolvedValue([
-      { id: 1, date: '2026-07-15', name: 'Day A', sets: [] },
+    api.listDays.mockResolvedValue([
+      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
     ])
+    api.getWorkout.mockResolvedValue({ id: 4, date: '2026-07-15', name: 'Legs', sets: [] })
+    api.listExercises.mockResolvedValue([])
     render(<App />)
 
-    // default: the log view (add-exercise form)
+    // days view -> open a workout
+    await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
     expect(await screen.findByLabelText(/exercise/i)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'History' }))
-    expect(await screen.findByText('Day A')).toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Log' }))
-    expect(await screen.findByLabelText(/exercise/i)).toBeInTheDocument()
+    // back to the days view
+    await userEvent.click(screen.getByRole('button', { name: /days/i }))
+    expect(await screen.findByRole('button', { name: /new workout/i })).toBeInTheDocument()
   })
 })

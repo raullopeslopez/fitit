@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import History from './History.jsx'
+import Days from './Days.jsx'
 import Login from './Login.jsx'
 import Workout from './Workout.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
 
 export default function App() {
   const [token, setTokenState] = useState(getToken())
-  const [view, setView] = useState('log')
+  const [openWorkoutId, setOpenWorkoutId] = useState(null)
 
   useEffect(() => {
     // A 401 from any API call drops us back to the login screen.
@@ -23,6 +23,7 @@ export default function App() {
   function handleLogout() {
     clearToken()
     setTokenState(null)
+    setOpenWorkoutId(null)
   }
 
   if (!token) {
@@ -33,25 +34,15 @@ export default function App() {
     <div className="container">
       <header className="app-header">
         <h1>Fitit</h1>
-        <nav className="app-nav">
-          <button
-            className={view === 'log' ? '' : 'secondary'}
-            onClick={() => setView('log')}
-          >
-            Log
-          </button>
-          <button
-            className={view === 'history' ? '' : 'secondary'}
-            onClick={() => setView('history')}
-          >
-            History
-          </button>
-          <button className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
-        </nav>
+        <button className="secondary" onClick={handleLogout}>
+          Log out
+        </button>
       </header>
-      {view === 'log' ? <Workout /> : <History />}
+      {openWorkoutId ? (
+        <Workout workoutId={openWorkoutId} onExit={() => setOpenWorkoutId(null)} />
+      ) : (
+        <Days onOpenWorkout={setOpenWorkoutId} />
+      )}
     </div>
   )
 }
