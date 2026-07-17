@@ -41,6 +41,25 @@ describe('Workout', () => {
     expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press')
   })
 
+  it('prefills the log form from the previous set with Repeat', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ reps: 8, weight: 60, unit: 'lb' })],
+    })
+    render(<Workout />)
+
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await screen.findByText(/last time/i)
+
+    await userEvent.click(screen.getByRole('button', { name: /repeat/i }))
+
+    expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
+    expect(screen.getByLabelText(/weight/i)).toHaveValue('60')
+    expect(screen.getByLabelText(/unit/i)).toHaveValue('lb')
+  })
+
   it('says there are no previous marks for a new exercise', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Face Pull',

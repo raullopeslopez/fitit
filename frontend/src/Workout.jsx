@@ -38,6 +38,15 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
   const [editWeight, setEditWeight] = useState('')
   const [error, setError] = useState('')
 
+  function repeatPrevious() {
+    const last = previous?.sets?.[0]
+    if (!last) return
+    setError('')
+    setReps(String(last.reps))
+    setWeight(String(last.weight))
+    setUnit(last.unit)
+  }
+
   async function handleLogSet(event) {
     event.preventDefault()
     const valid = validateSet(reps, weight)
@@ -95,7 +104,10 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
 
       {previous && previous.found ? (
         <p className="previous">
-          <strong>Last time:</strong> {previous.sets.map(formatSet).join(', ')}
+          <strong>Last time:</strong> {previous.sets.map(formatSet).join(', ')}{' '}
+          <button type="button" className="secondary set-action" onClick={repeatPrevious}>
+            Repeat
+          </button>
         </p>
       ) : (
         <p className="previous muted">No previous marks yet. Set the baseline.</p>
