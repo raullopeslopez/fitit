@@ -18,16 +18,37 @@ class Exercise(Base):
     sets: Mapped[list["SetEntry"]] = relationship(back_populates="exercise")
 
 
+class Day(Base):
+    """A calendar date of training that groups one or more workouts."""
+
+    __tablename__ = "days"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[date] = mapped_column(Date, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    workouts: Mapped[list["Workout"]] = relationship(
+        back_populates="day",
+        cascade="all, delete-orphan",
+        order_by="Workout.id",
+    )
+
+
 class Workout(Base):
     __tablename__ = "workouts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    date: Mapped[date] = mapped_column(Date, default=date.today, index=True)
+    day_id: Mapped[int] = mapped_column(
+        ForeignKey("days.id", ondelete="CASCADE"), index=True
+    )
     name: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
+    day: Mapped["Day"] = relationship(back_populates="workouts")
     sets: Mapped[list["SetEntry"]] = relationship(
         back_populates="workout",
         cascade="all, delete-orphan",

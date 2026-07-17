@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..exercise_repo import find_exercise
-from ..models import Exercise, SetEntry, Workout
+from ..models import Day, Exercise, SetEntry, Workout
 from ..naming import normalize_exercise_name
 from ..schemas import ExerciseIn, ExerciseOut, PreviousMarks, SetOut
 
@@ -50,8 +50,9 @@ async def previous_marks(
     last_workout_id = await session.scalar(
         select(SetEntry.workout_id)
         .join(Workout, Workout.id == SetEntry.workout_id)
+        .join(Day, Day.id == Workout.day_id)
         .where(SetEntry.exercise_id == exercise.id)
-        .order_by(Workout.date.desc(), Workout.id.desc())
+        .order_by(Day.date.desc(), Workout.id.desc())
         .limit(1)
     )
     if last_workout_id is None:

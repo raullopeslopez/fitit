@@ -7,17 +7,17 @@ from sqlalchemy.orm import selectinload
 
 from ..db import get_session
 from ..exercise_repo import get_or_create_exercise
-from ..models import SetEntry, Workout
+from ..models import Day, SetEntry, Workout
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
 
-def _to_workout_out(workout: Workout) -> WorkoutOut:
+def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
     """Build the API shape from a Workout whose sets+exercises are already loaded."""
     return WorkoutOut(
         id=workout.id,
-        date=workout.date,
+        date=day_date,
         name=workout.name,
         sets=[
             SetOut(
@@ -34,14 +34,29 @@ def _to_workout_out(workout: Workout) -> WorkoutOut:
     )
 
 
+async def get_or_create_day(session: AsyncSession, day: date) -> Day:
+    existing = await session.scalar(select(Day).where(Day.date == day))
+    if existing is not None:
+        return existing
+    created = Day(date=day)
+    session.add(created)
+    await session.flush()
+    return created
+
+
 async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | None:
     result = await session.execute(
         select(Workout)
         .where(Workout.id == workout_id)
-        .options(selectinload(Workout.sets).selectinload(SetEntry.exercise))
+        .options(
+            selectinload(Workout.day),
+            selectinload(Workout.sets).selectinload(SetEntry.exercise),
+        )
     )
     workout = result.scalar_one_or_none()
-    return _to_workout_out(workout) if workout is not None else None
+    if workout is None:
+        return None
+    return _to_workout_out(workout, workout.day.date)
 
 
 @router.get("", response_model=list[WorkoutOut])
@@ -49,17 +64,22 @@ async def list_workouts(session: AsyncSession = Depends(get_session)) -> list[Wo
     """Past workouts, newest first, with their sets — powers the history view."""
     result = await session.execute(
         select(Workout)
-        .options(selectinload(Workout.sets).selectinload(SetEntry.exercise))
-        .order_by(Workout.date.desc(), Workout.id.desc())
+        .join(Workout.day)
+        .options(
+            selectinload(Workout.day),
+            selectinload(Workout.sets).selectinload(SetEntry.exercise),
+        )
+        .order_by(Day.date.desc(), Workout.id.desc())
     )
-    return [_to_workout_out(w) for w in result.scalars().all()]
+    return [_to_workout_out(w, w.day.date) for w in result.scalars().all()]
 
 
 @router.post("", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
 async def create_workout(
     payload: WorkoutIn, session: AsyncSession = Depends(get_session)
 ) -> WorkoutOut:
-    workout = Workout(name=payload.name, date=date.today())
+    day = await get_or_create_day(session, payload.date or date.today())
+    workout = Workout(name=payload.name, day_id=day.id)
     session.add(workout)
     await session.commit()
     loaded = await load_workout(session, workout.id)

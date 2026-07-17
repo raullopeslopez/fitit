@@ -1,4 +1,5 @@
-from datetime import date
+# Aliased so a model field named `date` doesn't shadow the `date` type.
+from datetime import date as Date
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -47,15 +48,22 @@ class WorkoutIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str | None = Field(default=None, max_length=80)
+    date: Date | None = None  # the training day; defaults to today when omitted
 
 
 class WorkoutOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    date: date
+    date: Date  # the day this workout belongs to
     name: str | None = None
     sets: list[SetOut] = []
+
+
+class DayOut(BaseModel):
+    id: int
+    date: Date
+    workouts: list[WorkoutOut] = []
 
 
 class PreviousMarks(BaseModel):

@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 
 from .auth import get_current_user
-from .routers import auth, exercises, workouts
+from .routers import auth, days, exercises, workouts
 
 app = FastAPI(title="Fitit API", version="0.1.0")
 
@@ -13,5 +13,6 @@ async def health() -> dict[str, str]:
 
 # /health and /auth are public; everything else requires a valid token.
 app.include_router(auth.router)
+app.include_router(days.router, dependencies=[Depends(get_current_user)])
 app.include_router(workouts.router, dependencies=[Depends(get_current_user)])
 app.include_router(exercises.router, dependencies=[Depends(get_current_user)])
