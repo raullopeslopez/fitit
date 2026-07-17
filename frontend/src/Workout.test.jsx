@@ -87,6 +87,34 @@ describe('Workout', () => {
     )
   })
 
+  it('logs a set in lb and shows the unit', async () => {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ unit: 'lb', weight: 135 })],
+    })
+    render(<Workout />)
+
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.selectOptions(screen.getByLabelText(/unit/i), 'lb')
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '135')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    await waitFor(() =>
+      expect(api.logSet).toHaveBeenCalledWith(1, {
+        exercise_name: 'Bench Press',
+        reps: 8,
+        weight: 135,
+        unit: 'lb',
+      }),
+    )
+    expect(await screen.findByText(/135 lb x 8/i)).toBeInTheDocument()
+  })
+
   it('shows an error when a request fails', async () => {
     api.getPreviousMarks.mockRejectedValue(new Error('network'))
     render(<Workout />)

@@ -135,6 +135,9 @@ button.secondary {
   flex: 1;
   margin-bottom: 0.85rem;
 }
+.row > .field-unit {
+  flex: 0 0 5rem;
+}
 
 .previous {
   border-radius: 10px;

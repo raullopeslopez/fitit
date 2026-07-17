@@ -10,7 +10,7 @@ import {
 } from './api.js'
 
 function formatSet(set) {
-  return `${set.weight} kg x ${set.reps}`
+  return `${set.weight} ${set.unit} x ${set.reps}`
 }
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
@@ -30,6 +30,7 @@ function validateSet(reps, weight) {
 function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
   const [reps, setReps] = useState('')
   const [weight, setWeight] = useState('')
+  const [unit, setUnit] = useState('kg')
   const [logging, setLogging] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
@@ -46,7 +47,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
     setError('')
     setLogging(true)
     try {
-      await onLogSet(name, { reps: valid.reps, weight: valid.weight })
+      await onLogSet(name, { reps: valid.reps, weight: valid.weight, unit })
       setReps('')
       setWeight('')
     } catch {
@@ -111,13 +112,24 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
             />
           </div>
           <div className="field">
-            <label htmlFor={`weight-${name}`}>Weight (kg)</label>
+            <label htmlFor={`weight-${name}`}>Weight</label>
             <input
               id={`weight-${name}`}
               inputMode="decimal"
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
             />
+          </div>
+          <div className="field field-unit">
+            <label htmlFor={`unit-${name}`}>Unit</label>
+            <select
+              id={`unit-${name}`}
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            >
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
           </div>
         </div>
         <button type="submit" className="btn-full" disabled={logging}>
@@ -230,12 +242,12 @@ export default function Workout() {
     }
   }
 
-  async function logSetFor(name, { reps, weight }) {
+  async function logSetFor(name, { reps, weight, unit }) {
     const updated = await logSet(workout.id, {
       exercise_name: name,
       reps,
       weight,
-      unit: 'kg',
+      unit,
     })
     setWorkout(updated)
   }
