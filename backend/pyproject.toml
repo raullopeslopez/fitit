@@ -30,6 +30,10 @@ package = false
 pythonpath = ["."]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Resolve pytest-bdd .feature paths against this repo, not whatever absolute
+# default leaks in from the environment (otherwise collection looks for the
+# features under a stale path and errors).
+bdd_features_base_dir = "tests/features"
 
 [tool.ruff]
 line-length = 100
