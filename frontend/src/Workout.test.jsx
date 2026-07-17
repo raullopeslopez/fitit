@@ -160,4 +160,20 @@ describe('Workout', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByText(/60 kg x 8/i)).toBeInTheDocument()
   })
+
+  it('keeps every exercise of the session visible', async () => {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    render(<Workout />)
+
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await screen.findByRole('heading', { name: 'Bench Press' })
+
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Squat')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await screen.findByRole('heading', { name: 'Squat' })
+
+    expect(screen.getByRole('heading', { name: 'Bench Press' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
+  })
 })
