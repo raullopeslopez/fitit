@@ -23,6 +23,7 @@ describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     api.createWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
+    api.listExercises.mockResolvedValue([])
   })
 
   it('shows previous marks when you add an exercise', async () => {
@@ -175,5 +176,23 @@ describe('Workout', () => {
 
     expect(screen.getByRole('heading', { name: 'Bench Press' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
+  })
+
+  it('suggests known exercises for autocomplete', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Deadlift', muscle_group: null },
+      { id: 2, name: 'Overhead Press', muscle_group: null },
+    ])
+    const { container } = render(<Workout />)
+
+    await waitFor(() => {
+      expect(container.querySelector('datalist option[value="Deadlift"]')).not.toBeNull()
+    })
+    expect(container.querySelector('datalist option[value="Overhead Press"]')).not.toBeNull()
+
+    const input = screen.getByLabelText(/exercise/i)
+    const list = input.getAttribute('list')
+    expect(list).toBeTruthy()
+    expect(container.querySelector(`datalist#${list}`)).not.toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
@@ -9,6 +9,13 @@ from ..naming import normalize_exercise_name
 from ..schemas import ExerciseIn, ExerciseOut, PreviousMarks, SetOut
 
 router = APIRouter(tags=["exercises"])
+
+
+@router.get("/exercises", response_model=list[ExerciseOut])
+async def list_exercises(session: AsyncSession = Depends(get_session)) -> list[Exercise]:
+    """Every known exercise, alphabetically — powers the add-exercise autocomplete."""
+    result = await session.scalars(select(Exercise).order_by(func.lower(Exercise.name)))
+    return list(result.all())
 
 
 @router.post("/exercises", response_model=ExerciseOut, status_code=status.HTTP_201_CREATED)

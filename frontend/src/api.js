@@ -48,6 +48,10 @@ export function getPreviousMarks(name) {
   return apiFetch(`/exercises/previous?name=${encodeURIComponent(name)}`)
 }
 
+export function listExercises() {
+  return apiFetch('/exercises')
+}
+
 export function logSet(workoutId, set) {
   return apiFetch(`/workouts/${workoutId}/sets`, {
     method: 'POST',

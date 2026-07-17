@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import { createWorkout, deleteSet, editSet, getPreviousMarks, logSet } from './api.js'
+import {
+  createWorkout,
+  deleteSet,
+  editSet,
+  getPreviousMarks,
+  listExercises,
+  logSet,
+} from './api.js'
 
 function formatSet(set) {
   return `${set.weight} kg x ${set.reps}`
@@ -163,6 +170,7 @@ export default function Workout() {
   const [workout, setWorkout] = useState(null)
   const [exerciseInput, setExerciseInput] = useState('')
   const [exercises, setExercises] = useState([]) // [{ name, previous }] in the order added
+  const [known, setKnown] = useState([]) // known exercise names for autocomplete
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -170,6 +178,13 @@ export default function Workout() {
     createWorkout()
       .then(setWorkout)
       .catch(() => setError('Could not start a workout. Check your connection.'))
+  }, [])
+
+  useEffect(() => {
+    // Autocomplete is best-effort; a failure here shouldn't break logging.
+    listExercises()
+      .then((list) => setKnown(list.map((e) => e.name)))
+      .catch(() => {})
   }, [])
 
   async function handleAddExercise(event) {
@@ -229,10 +244,16 @@ export default function Workout() {
           <label htmlFor="exercise">Exercise</label>
           <input
             id="exercise"
+            list="exercise-options"
             value={exerciseInput}
             onChange={(e) => setExerciseInput(e.target.value)}
             placeholder="e.g. Bench Press"
           />
+          <datalist id="exercise-options">
+            {known.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
         </div>
         <button type="submit" className="btn-full" disabled={adding}>
           {adding ? 'Checking…' : 'Add exercise'}
