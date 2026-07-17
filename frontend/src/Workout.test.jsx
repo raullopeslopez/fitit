@@ -178,6 +178,33 @@ describe('Workout', () => {
     expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
   })
 
+  async function addBench() {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    render(<Workout />)
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await screen.findByRole('heading', { name: 'Bench Press' })
+  }
+
+  it('does not log a set with empty reps and warns', async () => {
+    await addBench()
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/reps/i)
+    expect(api.logSet).not.toHaveBeenCalled()
+  })
+
+  it('does not log a set with a negative weight and warns', async () => {
+    await addBench()
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '-5')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/weight/i)
+    expect(api.logSet).not.toHaveBeenCalled()
+  })
+
   it('suggests known exercises for autocomplete', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Deadlift', muscle_group: null },

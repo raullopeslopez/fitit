@@ -13,6 +13,20 @@ function formatSet(set) {
   return `${set.weight} kg x ${set.reps}`
 }
 
+// Mirror the backend's SetIn bounds so bad input fails fast with a clear message
+// instead of a generic request error. Returns { reps, weight } or { error }.
+function validateSet(reps, weight) {
+  const r = Number(reps)
+  const w = Number(weight)
+  if (!Number.isInteger(r) || r < 1) {
+    return { error: 'Enter reps as a whole number of 1 or more.' }
+  }
+  if (!Number.isFinite(w) || w < 0) {
+    return { error: 'Enter a weight of 0 or more.' }
+  }
+  return { reps: r, weight: w }
+}
+
 function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
   const [reps, setReps] = useState('')
   const [weight, setWeight] = useState('')
@@ -24,10 +38,15 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
 
   async function handleLogSet(event) {
     event.preventDefault()
+    const valid = validateSet(reps, weight)
+    if (valid.error) {
+      setError(valid.error)
+      return
+    }
     setError('')
     setLogging(true)
     try {
-      await onLogSet(name, { reps: Number(reps), weight: Number(weight) })
+      await onLogSet(name, { reps: valid.reps, weight: valid.weight })
       setReps('')
       setWeight('')
     } catch {
@@ -45,9 +64,14 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
   }
 
   async function handleSaveEdit(set) {
+    const valid = validateSet(editReps, editWeight)
+    if (valid.error) {
+      setError(valid.error)
+      return
+    }
     setError('')
     try {
-      await onEditSet(set, { reps: Number(editReps), weight: Number(editWeight) })
+      await onEditSet(set, { reps: valid.reps, weight: valid.weight })
       setEditingId(null)
     } catch {
       setError('Could not update that set.')
