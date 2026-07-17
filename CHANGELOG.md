@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Database moved from Render's managed Postgres to [Neon](https://neon.tech)
+  serverless Postgres; Render now hosts only the web service. Dropped the
+  `databases:` block from `render.yaml` and made `DATABASE_URL` a dashboard secret.
+  `config.py` now normalizes Neon connection strings — translating libpq
+  `sslmode` to the asyncpg `ssl` param and dropping `channel_binding` (which asyncpg
+  rejects) — alongside the existing asyncpg-driver coercion (`test_config.py`).
+
 ### Added
 - Project scaffold: React (Vite) frontend, FastAPI + Postgres backend on uv,
   Docker Compose for local dev, GitHub Actions CI (specs + lint + migrations),

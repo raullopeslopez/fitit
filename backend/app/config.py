@@ -1,3 +1,5 @@
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -23,12 +25,30 @@ class Settings(BaseSettings):
 
     @field_validator("database_url")
     @classmethod
-    def _use_asyncpg_driver(cls, value: str) -> str:
-        # Render hands out postgres:// / postgresql:// URLs; SQLAlchemy's async
-        # engine needs the +asyncpg driver.
+    def _normalize_database_url(cls, value: str) -> str:
+        """Make any hosted Postgres URL something SQLAlchemy's async engine accepts.
+
+        Render/Neon hand out ``postgres://`` / ``postgresql://`` URLs; the async
+        engine needs the ``+asyncpg`` driver. Neon also appends libpq query params
+        (``sslmode``, ``channel_binding``) that asyncpg rejects, so we translate
+        ``sslmode`` to the asyncpg dialect's ``ssl`` parameter and drop
+        ``channel_binding`` (asyncpg negotiates channel binding itself).
+        """
         for prefix in ("postgresql://", "postgres://"):
             if value.startswith(prefix):
-                return "postgresql+asyncpg://" + value[len(prefix) :]
+                value = "postgresql+asyncpg://" + value[len(prefix) :]
+                break
+
+        parts = urlsplit(value)
+        if parts.query:
+            params = dict(parse_qsl(parts.query, keep_blank_values=True))
+            sslmode = params.pop("sslmode", None)
+            params.pop("channel_binding", None)
+            # libpq sslmode values (disable/allow/prefer/require/verify-ca/
+            # verify-full) map 1:1 onto the asyncpg dialect's `ssl` values.
+            if sslmode and "ssl" not in params:
+                params["ssl"] = sslmode
+            value = urlunsplit(parts._replace(query=urlencode(params)))
         return value
 
 
