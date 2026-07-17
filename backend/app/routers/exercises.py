@@ -3,7 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..exercise_repo import find_exercise
 from ..models import Exercise, SetEntry, Workout
+from ..naming import normalize_exercise_name
 from ..schemas import ExerciseIn, ExerciseOut, PreviousMarks, SetOut
 
 router = APIRouter(tags=["exercises"])
@@ -32,9 +34,11 @@ async def previous_marks(
     `found` is false (and `sets` empty) when the exercise has never been logged.
     Spec: tests/features/previous_marks.feature
     """
-    exercise = await session.scalar(select(Exercise).where(Exercise.name == name))
+    exercise = await find_exercise(session, name)
     if exercise is None:
-        return PreviousMarks(exercise_name=name, found=False, sets=[])
+        return PreviousMarks(
+            exercise_name=normalize_exercise_name(name), found=False, sets=[]
+        )
 
     last_workout_id = await session.scalar(
         select(SetEntry.workout_id)
@@ -44,7 +48,7 @@ async def previous_marks(
         .limit(1)
     )
     if last_workout_id is None:
-        return PreviousMarks(exercise_name=name, found=False, sets=[])
+        return PreviousMarks(exercise_name=exercise.name, found=False, sets=[])
 
     result = await session.execute(
         select(SetEntry)
@@ -55,7 +59,7 @@ async def previous_marks(
         .order_by(SetEntry.set_index)
     )
     return PreviousMarks(
-        exercise_name=name,
+        exercise_name=exercise.name,
         found=True,
         sets=[
             SetOut(

@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_session
-from ..models import Exercise, SetEntry, Workout
+from ..exercise_repo import get_or_create_exercise
+from ..models import SetEntry, Workout
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
@@ -38,15 +39,6 @@ async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | N
             for s in workout.sets
         ],
     )
-
-
-async def get_or_create_exercise(session: AsyncSession, name: str) -> Exercise:
-    exercise = await session.scalar(select(Exercise).where(Exercise.name == name))
-    if exercise is None:
-        exercise = Exercise(name=name)
-        session.add(exercise)
-        await session.flush()
-    return exercise
 
 
 @router.post("", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
