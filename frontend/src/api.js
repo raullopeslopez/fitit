@@ -52,6 +52,10 @@ export function listExercises() {
   return apiFetch('/exercises')
 }
 
+export function listWorkouts() {
+  return apiFetch('/workouts')
+}
+
 export function logSet(workoutId, set) {
   return apiFetch(`/workouts/${workoutId}/sets`, {
     method: 'POST',

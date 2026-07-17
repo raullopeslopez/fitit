@@ -8,10 +8,7 @@ import {
   listExercises,
   logSet,
 } from './api.js'
-
-function formatSet(set) {
-  return `${set.weight} ${set.unit} x ${set.reps}`
-}
+import { formatSet } from './format.js'
 
 function pluralize(n, word) {
   return `${n} ${word}${n === 1 ? '' : 's'}`

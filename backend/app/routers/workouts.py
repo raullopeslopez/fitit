@@ -13,15 +13,8 @@ from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
 
-async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | None:
-    result = await session.execute(
-        select(Workout)
-        .where(Workout.id == workout_id)
-        .options(selectinload(Workout.sets).selectinload(SetEntry.exercise))
-    )
-    workout = result.scalar_one_or_none()
-    if workout is None:
-        return None
+def _to_workout_out(workout: Workout) -> WorkoutOut:
+    """Build the API shape from a Workout whose sets+exercises are already loaded."""
     return WorkoutOut(
         id=workout.id,
         date=workout.date,
@@ -39,6 +32,27 @@ async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | N
             for s in workout.sets
         ],
     )
+
+
+async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | None:
+    result = await session.execute(
+        select(Workout)
+        .where(Workout.id == workout_id)
+        .options(selectinload(Workout.sets).selectinload(SetEntry.exercise))
+    )
+    workout = result.scalar_one_or_none()
+    return _to_workout_out(workout) if workout is not None else None
+
+
+@router.get("", response_model=list[WorkoutOut])
+async def list_workouts(session: AsyncSession = Depends(get_session)) -> list[WorkoutOut]:
+    """Past workouts, newest first, with their sets — powers the history view."""
+    result = await session.execute(
+        select(Workout)
+        .options(selectinload(Workout.sets).selectinload(SetEntry.exercise))
+        .order_by(Workout.date.desc(), Workout.id.desc())
+    )
+    return [_to_workout_out(w) for w in result.scalars().all()]
 
 
 @router.post("", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
