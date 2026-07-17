@@ -24,3 +24,4 @@ backend/_alembic_tmp.db
 .DS_Store
 .vscode/
 .idea/
+.gstack/
