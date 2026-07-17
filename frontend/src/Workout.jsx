@@ -13,6 +13,10 @@ function formatSet(set) {
   return `${set.weight} ${set.unit} x ${set.reps}`
 }
 
+function pluralize(n, word) {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
 function validateSet(reps, weight) {
@@ -207,6 +211,7 @@ export default function Workout() {
   const [exerciseInput, setExerciseInput] = useState('')
   const [exercises, setExercises] = useState([]) // [{ name, previous }] in the order added
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
+  const [finished, setFinished] = useState(false)
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -270,8 +275,41 @@ export default function Workout() {
     setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== setId) }))
   }
 
+  async function handleStartNew() {
+    setError('')
+    try {
+      const fresh = await createWorkout()
+      setWorkout(fresh)
+      setExercises([])
+      setFinished(false)
+    } catch {
+      setError('Could not start a workout. Check your connection.')
+    }
+  }
+
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
+
+  const totalSets = workout ? workout.sets.length : 0
+  const exerciseCount = workout
+    ? new Set(workout.sets.map((s) => s.exercise_name)).size
+    : 0
+
+  if (finished) {
+    return (
+      <section>
+        <div className="card summary" role="status">
+          <h2>Workout complete</h2>
+          <p>
+            {pluralize(exerciseCount, 'exercise')}, {pluralize(totalSets, 'set')}.
+          </p>
+          <button type="button" className="btn-full" onClick={handleStartNew}>
+            Start new workout
+          </button>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section>
@@ -313,6 +351,12 @@ export default function Workout() {
           onDeleteSet={deleteSetFor}
         />
       ))}
+
+      {totalSets > 0 && (
+        <button type="button" className="btn-full" onClick={() => setFinished(true)}>
+          Finish workout
+        </button>
+      )}
     </section>
   )
 }

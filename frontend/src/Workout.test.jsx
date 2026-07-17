@@ -206,6 +206,56 @@ describe('Workout', () => {
     expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
   })
 
+  it('summarizes the workout when finished', async () => {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet(), benchSet({ id: 11 })],
+    })
+    render(<Workout />)
+
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+    await screen.findAllByText(/60 kg x 8/i)
+
+    await userEvent.click(screen.getByRole('button', { name: /finish workout/i }))
+
+    const summary = await screen.findByRole('status')
+    expect(summary).toHaveTextContent(/1 exercise/i)
+    expect(summary).toHaveTextContent(/2 sets/i)
+  })
+
+  it('starts a fresh workout after finishing', async () => {
+    api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet()],
+    })
+    render(<Workout />)
+    await userEvent.type(screen.getByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+    await screen.findByText(/60 kg x 8/i)
+    await userEvent.click(screen.getByRole('button', { name: /finish workout/i }))
+    await screen.findByRole('status')
+
+    api.createWorkout.mockResolvedValue({ id: 2, date: '2026-07-16', name: null, sets: [] })
+    await userEvent.click(screen.getByRole('button', { name: /start new workout/i }))
+
+    expect(await screen.findByLabelText(/exercise/i)).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bench Press' })).not.toBeInTheDocument()
+  })
+
   async function addBench() {
     api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
     render(<Workout />)
