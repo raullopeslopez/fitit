@@ -76,6 +76,11 @@ class DayOut(BaseModel):
     workouts: list[WorkoutOut] = []
 
 
+class HistoryPoint(BaseModel):
+    date: Date
+    one_rm: float
+
+
 class PreviousMarks(BaseModel):
     exercise_name: str
     found: bool = False

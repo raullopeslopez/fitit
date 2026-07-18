@@ -6,7 +6,7 @@ from ..db import get_session
 from ..exercise_repo import find_exercise
 from ..models import Day, Exercise, SetEntry, Workout
 from ..naming import normalize_exercise_name
-from ..schemas import ExerciseIn, ExerciseOut, PreviousMarks, SetOut
+from ..schemas import ExerciseIn, ExerciseOut, HistoryPoint, PreviousMarks, SetOut
 
 router = APIRouter(tags=["exercises"])
 
@@ -30,6 +30,28 @@ async def create_exercise(
     await session.commit()
     await session.refresh(exercise)
     return exercise
+
+
+@router.get("/exercises/history", response_model=list[HistoryPoint])
+async def exercise_history(
+    name: str, session: AsyncSession = Depends(get_session)
+) -> list[HistoryPoint]:
+    """Best estimated 1RM (Epley) per training day for an exercise, oldest first."""
+    exercise = await find_exercise(session, name)
+    if exercise is None:
+        return []
+    rows = (
+        await session.execute(
+            select(Day.date, SetEntry.weight, SetEntry.reps)
+            .join(Workout, Workout.id == SetEntry.workout_id)
+            .join(Day, Day.id == Workout.day_id)
+            .where(SetEntry.exercise_id == exercise.id)
+        )
+    ).all()
+    best: dict = {}
+    for day, weight, reps in rows:
+        best[day] = max(best.get(day, 0.0), weight * (1 + reps / 30))
+    return [HistoryPoint(date=day, one_rm=round(best[day], 1)) for day in sorted(best)]
 
 
 @router.get("/exercises/previous", response_model=PreviousMarks)

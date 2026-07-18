@@ -341,6 +341,20 @@ button.set-action {
   width: auto;
 }
 
+.chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.4rem 0;
+}
+.chart-caption {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+}
+.chart-caption.muted {
+  color: var(--muted);
+}
+
 .hint {
   color: var(--muted);
   font-size: 0.9rem;

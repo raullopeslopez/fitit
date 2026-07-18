@@ -72,6 +72,10 @@ export function listExercises() {
   return apiFetch('/exercises')
 }
 
+export function getExerciseHistory(name) {
+  return apiFetch(`/exercises/history?name=${encodeURIComponent(name)}`)
+}
+
 export function logSet(workoutId, set) {
   return apiFetch(`/workouts/${workoutId}/sets`, {
     method: 'POST',

@@ -32,8 +32,8 @@ describe('App', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
     expect(await screen.findByLabelText(/ejercicio/i)).toBeInTheDocument()
 
-    // back to the days view
-    await userEvent.click(screen.getByRole('button', { name: /días/i }))
+    // back to the days view via the nav
+    await userEvent.click(screen.getByRole('button', { name: 'Días' }))
     expect(await screen.findByRole('button', { name: /nuevo entreno/i })).toBeInTheDocument()
   })
 })
