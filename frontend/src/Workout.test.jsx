@@ -173,6 +173,56 @@ describe('Workout', () => {
     expect(screen.getByText(/felt strong/i)).toBeInTheDocument()
   })
 
+  it('celebrates a new personal record', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet()],
+      best_one_rm: 76,
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ id: 20, reps: 3, weight: 80 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '3')
+    await userEvent.type(screen.getByLabelText(/weight/i), '80')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    // 80 * (1 + 3/30) = 88 > 76 -> personal record
+    expect(await screen.findByText(/new pr/i)).toBeInTheDocument()
+  })
+
+  it('does not celebrate a non-record set', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet()],
+      best_one_rm: 100,
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet()],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    await waitFor(() => expect(api.logSet).toHaveBeenCalled())
+    expect(screen.queryByText(/new pr/i)).not.toBeInTheDocument()
+  })
+
   it('shows an error when a request fails', async () => {
     api.getPreviousMarks.mockRejectedValue(new Error('network'))
     renderWorkout()

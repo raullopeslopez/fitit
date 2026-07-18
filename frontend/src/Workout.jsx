@@ -10,7 +10,7 @@ import {
   logSet,
   renameWorkout,
 } from './api.js'
-import { formatDate, formatSet } from './format.js'
+import { estimatedOneRm, formatDate, formatSet } from './format.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -41,6 +41,8 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
   const [logging, setLogging] = useState(false)
+  const [best, setBest] = useState(previous?.best_one_rm ?? null)
+  const [pr, setPr] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
@@ -74,6 +76,9 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
         rpe: valid.rpe,
         note: note.trim() || null,
       })
+      const oneRm = estimatedOneRm(valid.weight, valid.reps)
+      setPr(best != null && oneRm > best)
+      setBest((b) => (b == null ? oneRm : Math.max(b, oneRm)))
       setReps('')
       setWeight('')
       setRpe('')
@@ -136,6 +141,10 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
         </p>
       ) : (
         <p className="previous muted">No previous marks yet. Set the baseline.</p>
+      )}
+
+      {pr && (
+        <p className="pr-banner">🏆 New PR! Estimated 1RM {best}</p>
       )}
 
       <form onSubmit={handleLogSet}>

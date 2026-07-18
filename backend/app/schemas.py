@@ -80,6 +80,7 @@ class PreviousMarks(BaseModel):
     exercise_name: str
     found: bool = False
     sets: list[SetOut] = []
+    best_one_rm: float | None = None  # best estimated 1RM (Epley) across all sets
 
 
 class LoginIn(BaseModel):

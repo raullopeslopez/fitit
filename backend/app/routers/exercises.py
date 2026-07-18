@@ -47,6 +47,14 @@ async def previous_marks(
             exercise_name=normalize_exercise_name(name), found=False, sets=[]
         )
 
+    # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every logged set.
+    all_sets = (
+        await session.scalars(select(SetEntry).where(SetEntry.exercise_id == exercise.id))
+    ).all()
+    best_one_rm = (
+        round(max(s.weight * (1 + s.reps / 30) for s in all_sets), 1) if all_sets else None
+    )
+
     last_workout_id = await session.scalar(
         select(SetEntry.workout_id)
         .join(Workout, Workout.id == SetEntry.workout_id)
@@ -69,6 +77,7 @@ async def previous_marks(
     return PreviousMarks(
         exercise_name=exercise.name,
         found=True,
+        best_one_rm=best_one_rm,
         sets=[
             SetOut(
                 id=s.id,
