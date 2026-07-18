@@ -36,10 +36,10 @@ describe('Days', () => {
     ])
     render(<Days onOpenWorkout={() => {}} />)
 
-    expect(await screen.findByText('Thu, Jul 16, 2026')).toBeInTheDocument()
+    expect(await screen.findByText('jue, 16 jul 2026')).toBeInTheDocument()
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText('Legs')).toBeInTheDocument()
-    expect(screen.getByText(/2 sets/i)).toBeInTheDocument()
+    expect(screen.getByText(/2 series/i)).toBeInTheDocument()
   })
 
   it('opens a workout when tapped', async () => {
@@ -58,10 +58,10 @@ describe('Days', () => {
     api.createWorkout.mockResolvedValue({ id: 9, date: '2026-07-10', name: 'Morning', sets: [] })
     render(<Days onOpenWorkout={onOpen} />)
 
-    await userEvent.clear(screen.getByLabelText(/date/i))
-    await userEvent.type(screen.getByLabelText(/date/i), '2026-07-10')
-    await userEvent.type(screen.getByLabelText(/name/i), 'Morning')
-    await userEvent.click(screen.getByRole('button', { name: /new workout/i }))
+    await userEvent.clear(screen.getByLabelText(/fecha/i))
+    await userEvent.type(screen.getByLabelText(/fecha/i), '2026-07-10')
+    await userEvent.type(screen.getByLabelText(/nombre/i), 'Morning')
+    await userEvent.click(screen.getByRole('button', { name: /nuevo entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-10', name: 'Morning' })
     expect(onOpen).toHaveBeenCalledWith(9)
@@ -75,7 +75,7 @@ describe('Days', () => {
     render(<Days onOpenWorkout={() => {}} />)
     await screen.findByText('Legs')
 
-    await userEvent.click(screen.getByRole('button', { name: /delete day/i }))
+    await userEvent.click(screen.getByRole('button', { name: /borrar día/i }))
 
     await waitFor(() => expect(api.deleteDay).toHaveBeenCalledWith(7))
     expect(screen.queryByText('Legs')).not.toBeInTheDocument()
@@ -83,6 +83,6 @@ describe('Days', () => {
 
   it('shows an empty state when there are no days', async () => {
     render(<Days onOpenWorkout={() => {}} />)
-    expect(await screen.findByText(/no days yet/i)).toBeInTheDocument()
+    expect(await screen.findByText(/aún no hay días/i)).toBeInTheDocument()
   })
 })

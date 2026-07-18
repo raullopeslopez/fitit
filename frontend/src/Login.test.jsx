@@ -13,9 +13,9 @@ describe('Login', () => {
 
   it('renders username, password, and a submit button', () => {
     render(<Login onAuthenticated={() => {}} />)
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/usuario/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
   })
 
   it('logs in and reports the token on success', async () => {
@@ -23,9 +23,9 @@ describe('Login', () => {
     const onAuthenticated = vi.fn()
     render(<Login onAuthenticated={onAuthenticated} />)
 
-    await userEvent.type(screen.getByLabelText(/username/i), 'raul')
-    await userEvent.type(screen.getByLabelText(/password/i), 's3cret')
-    await userEvent.click(screen.getByRole('button', { name: /log in/i }))
+    await userEvent.type(screen.getByLabelText(/usuario/i), 'raul')
+    await userEvent.type(screen.getByLabelText(/contraseña/i), 's3cret')
+    await userEvent.click(screen.getByRole('button', { name: /entrar/i }))
 
     expect(api.login).toHaveBeenCalledWith('raul', 's3cret')
     await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith('tok-123'))
@@ -35,10 +35,10 @@ describe('Login', () => {
     api.login.mockRejectedValue(new Error('invalid credentials'))
     render(<Login onAuthenticated={() => {}} />)
 
-    await userEvent.type(screen.getByLabelText(/username/i), 'raul')
-    await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
-    await userEvent.click(screen.getByRole('button', { name: /log in/i }))
+    await userEvent.type(screen.getByLabelText(/usuario/i), 'raul')
+    await userEvent.type(screen.getByLabelText(/contraseña/i), 'wrong')
+    await userEvent.click(screen.getByRole('button', { name: /entrar/i }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/invalid/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/incorrectos/i)
   })
 })

@@ -17,7 +17,7 @@ export default function Days({ onOpenWorkout }) {
   useEffect(() => {
     listDays()
       .then(setDays)
-      .catch(() => setError('Could not load your days.'))
+      .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
 
   async function handleCreate(event) {
@@ -28,7 +28,7 @@ export default function Days({ onOpenWorkout }) {
       const workout = await createWorkout({ date, name: name.trim() || null })
       onOpenWorkout(workout.id)
     } catch {
-      setError('Could not start a workout.')
+      setError('No se pudo empezar el entreno.')
     } finally {
       setCreating(false)
     }
@@ -40,17 +40,17 @@ export default function Days({ onOpenWorkout }) {
       await deleteDay(id)
       setDays((list) => list.filter((d) => d.id !== id))
     } catch {
-      setError('Could not delete that day.')
+      setError('No se pudo borrar ese día.')
     }
   }
 
   return (
     <section>
       <form className="card" onSubmit={handleCreate}>
-        <h2>New workout</h2>
+        <h2>Nuevo entreno</h2>
         <div className="row">
           <div className="field">
-            <label htmlFor="workout-date">Date</label>
+            <label htmlFor="workout-date">Fecha</label>
             <input
               id="workout-date"
               type="date"
@@ -59,17 +59,17 @@ export default function Days({ onOpenWorkout }) {
             />
           </div>
           <div className="field">
-            <label htmlFor="workout-name">Name (optional)</label>
+            <label htmlFor="workout-name">Nombre (opcional)</label>
             <input
               id="workout-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Push"
+              placeholder="p. ej. Empuje"
             />
           </div>
         </div>
         <button type="submit" className="btn-full" disabled={creating}>
-          {creating ? 'Starting…' : '+ New workout'}
+          {creating ? 'Empezando…' : '+ Nuevo entreno'}
         </button>
       </form>
 
@@ -80,9 +80,9 @@ export default function Days({ onOpenWorkout }) {
       )}
 
       {days === null ? (
-        <p className="hint">Loading…</p>
+        <p className="hint">Cargando…</p>
       ) : days.length === 0 ? (
-        <p className="hint">No days yet. Start a workout above.</p>
+        <p className="hint">Aún no hay días. Empieza un entreno arriba.</p>
       ) : (
         days.map((day) => (
           <div className="card" key={day.id}>
@@ -93,7 +93,7 @@ export default function Days({ onOpenWorkout }) {
                 className="secondary set-action"
                 onClick={() => handleDeleteDay(day.id)}
               >
-                Delete day
+                Borrar día
               </button>
             </div>
             <ul className="sets">
@@ -104,9 +104,9 @@ export default function Days({ onOpenWorkout }) {
                     className="link-row"
                     onClick={() => onOpenWorkout(w.id)}
                   >
-                    <span>{w.name || 'Workout'}</span>
+                    <span>{w.name || 'Entreno'}</span>
                     <span className="set-index">
-                      {w.sets.length} set{w.sets.length === 1 ? '' : 's'}
+                      {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
                     </span>
                   </button>
                 </li>

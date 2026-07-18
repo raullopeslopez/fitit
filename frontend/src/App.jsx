@@ -35,7 +35,7 @@ export default function App() {
       <header className="app-header">
         <h1>Fitit</h1>
         <button className="secondary" onClick={handleLogout}>
-          Log out
+          Salir
         </button>
       </header>
       {openWorkoutId ? (

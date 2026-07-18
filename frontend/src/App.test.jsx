@@ -15,8 +15,8 @@ describe('App', () => {
 
   it('shows the login screen when there is no token', () => {
     render(<App />)
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/usuario/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
   })
 
   it('opens a workout from the days view and can go back', async () => {
@@ -30,10 +30,10 @@ describe('App', () => {
 
     // days view -> open a workout
     await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
-    expect(await screen.findByLabelText(/exercise/i)).toBeInTheDocument()
+    expect(await screen.findByLabelText(/ejercicio/i)).toBeInTheDocument()
 
     // back to the days view
-    await userEvent.click(screen.getByRole('button', { name: /days/i }))
-    expect(await screen.findByRole('button', { name: /new workout/i })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /días/i }))
+    expect(await screen.findByRole('button', { name: /nuevo entreno/i })).toBeInTheDocument()
   })
 })

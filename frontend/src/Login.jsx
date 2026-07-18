@@ -16,7 +16,7 @@ export default function Login({ onAuthenticated }) {
       const token = await login(username, password)
       onAuthenticated(token)
     } catch {
-      setError('Invalid username or password.')
+      setError('Usuario o contraseña incorrectos.')
     } finally {
       setBusy(false)
     }
@@ -28,7 +28,7 @@ export default function Login({ onAuthenticated }) {
         <h1>Fitit</h1>
         <form onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">Usuario</label>
             <input
               id="username"
               name="username"
@@ -38,7 +38,7 @@ export default function Login({ onAuthenticated }) {
             />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Contraseña</label>
             <input
               id="password"
               name="password"
@@ -54,7 +54,7 @@ export default function Login({ onAuthenticated }) {
             </p>
           )}
           <button type="submit" className="btn-full" disabled={busy}>
-            {busy ? 'Logging in…' : 'Log in'}
+            {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
       </div>

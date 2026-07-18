@@ -18,16 +18,16 @@ function validateSet(reps, weight, rpe) {
   const r = Number(reps)
   const w = Number(weight)
   if (!Number.isInteger(r) || r < 1) {
-    return { error: 'Enter reps as a whole number of 1 or more.' }
+    return { error: 'Introduce reps: un número entero de 1 o más.' }
   }
   if (!Number.isFinite(w) || w < 0) {
-    return { error: 'Enter a weight of 0 or more.' }
+    return { error: 'Introduce un peso de 0 o más.' }
   }
   let rpeValue = null
   if (rpe != null && String(rpe).trim() !== '') {
     const rp = Number(rpe)
     if (!Number.isFinite(rp) || rp < 1 || rp > 10) {
-      return { error: 'RPE must be between 1 and 10.' }
+      return { error: 'El RPE debe estar entre 1 y 10.' }
     }
     rpeValue = rp
   }
@@ -84,7 +84,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
       setRpe('')
       setNote('')
     } catch {
-      setError('Could not log that set.')
+      setError('No se pudo registrar la serie.')
     } finally {
       setLogging(false)
     }
@@ -115,7 +115,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
       })
       setEditingId(null)
     } catch {
-      setError('Could not update that set.')
+      setError('No se pudo actualizar la serie.')
     }
   }
 
@@ -124,7 +124,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
     try {
       await onDeleteSet(setId)
     } catch {
-      setError('Could not delete that set.')
+      setError('No se pudo borrar la serie.')
     }
   }
 
@@ -134,23 +134,24 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
 
       {previous && previous.found ? (
         <p className="previous">
-          <strong>Last time:</strong> {previous.sets.map(formatSet).join(', ')}{' '}
+          <strong>Última vez:</strong> {previous.sets.map(formatSet).join(', ')}{' '}
           <button type="button" className="secondary set-action" onClick={repeatPrevious}>
-            Repeat
+            Repetir
           </button>
         </p>
       ) : (
-        <p className="previous muted">No previous marks yet. Set the baseline.</p>
+        <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
       )}
 
       {pr && (
-        <p className="pr-banner">🏆 New PR! Estimated 1RM {best}</p>
+        <p className="pr-banner">🏆 ¡Nuevo récord! 1RM estimado {best}</p>
       )}
 
       <form onSubmit={handleLogSet}>
         <div className="row">
           <div className="field">
             <label htmlFor={`reps-${name}`}>Reps</label>
+            {/* "Reps" reads the same in Spanish */}
             <input
               id={`reps-${name}`}
               inputMode="numeric"
@@ -159,7 +160,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
             />
           </div>
           <div className="field">
-            <label htmlFor={`weight-${name}`}>Weight</label>
+            <label htmlFor={`weight-${name}`}>Peso</label>
             <input
               id={`weight-${name}`}
               inputMode="decimal"
@@ -168,7 +169,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
             />
           </div>
           <div className="field field-unit">
-            <label htmlFor={`unit-${name}`}>Unit</label>
+            <label htmlFor={`unit-${name}`}>Unidad</label>
             <select
               id={`unit-${name}`}
               value={unit}
@@ -190,16 +191,16 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
           </div>
         </div>
         <div className="field">
-          <label htmlFor={`note-${name}`}>Note</label>
+          <label htmlFor={`note-${name}`}>Nota</label>
           <input
             id={`note-${name}`}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="optional — how did it feel?"
+            placeholder="opcional — ¿cómo fue?"
           />
         </div>
         <button type="submit" className="btn-full" disabled={logging}>
-          {logging ? 'Logging…' : 'Log set'}
+          {logging ? 'Registrando…' : 'Registrar serie'}
         </button>
       </form>
 
@@ -222,34 +223,34 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
                   }}
                 >
                   <input
-                    aria-label="Edit reps"
+                    aria-label="Editar reps"
                     inputMode="numeric"
                     value={editReps}
                     onChange={(e) => setEditReps(e.target.value)}
                   />
                   <input
-                    aria-label="Edit weight"
+                    aria-label="Editar peso"
                     inputMode="decimal"
                     value={editWeight}
                     onChange={(e) => setEditWeight(e.target.value)}
                   />
                   <input
-                    aria-label="Edit RPE"
+                    aria-label="Editar RPE"
                     inputMode="decimal"
                     placeholder="RPE"
                     value={editRpe}
                     onChange={(e) => setEditRpe(e.target.value)}
                   />
                   <input
-                    aria-label="Edit note"
+                    aria-label="Editar nota"
                     className="set-edit-note"
-                    placeholder="note"
+                    placeholder="nota"
                     value={editNote}
                     onChange={(e) => setEditNote(e.target.value)}
                   />
-                  <button type="submit">Save</button>
+                  <button type="submit">Guardar</button>
                   <button type="button" className="secondary" onClick={() => setEditingId(null)}>
-                    Cancel
+                    Cancelar
                   </button>
                 </form>
               ) : (
@@ -258,20 +259,20 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
                     {formatSet(set)}
                     {set.rpe ? ` · RPE ${set.rpe}` : ''}
                   </span>
-                  <span className="set-index">Set {index + 1}</span>
+                  <span className="set-index">Serie {index + 1}</span>
                   <button
                     type="button"
                     className="secondary set-action"
                     onClick={() => startEdit(set)}
                   >
-                    Edit
+                    Editar
                   </button>
                   <button
                     type="button"
                     className="secondary set-action"
                     onClick={() => handleDelete(set.id)}
                   >
-                    Delete
+                    Borrar
                   </button>
                   {set.note ? <span className="set-note">{set.note}</span> : null}
                 </>
@@ -280,7 +281,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
           ))}
         </ol>
       ) : (
-        <p className="hint">No sets logged yet.</p>
+        <p className="hint">Aún no hay series.</p>
       )}
     </div>
   )
@@ -304,7 +305,7 @@ export default function Workout({ workoutId, onExit }) {
         const names = [...new Set(w.sets.map((s) => s.exercise_name))]
         setExercises(names.map((name) => ({ name, previous: null })))
       })
-      .catch(() => setError('Could not load the workout.'))
+      .catch(() => setError('No se pudo cargar el entreno.'))
   }, [workoutId])
 
   useEffect(() => {
@@ -327,7 +328,7 @@ export default function Workout({ workoutId, onExit }) {
       )
       setExerciseInput('')
     } catch {
-      setError('Could not load previous marks.')
+      setError('No se pudieron cargar las marcas anteriores.')
     } finally {
       setAdding(false)
     }
@@ -378,7 +379,7 @@ export default function Workout({ workoutId, onExit }) {
       setWorkout((w) => ({ ...w, name: updated.name }))
       setRenaming(false)
     } catch {
-      setError('Could not rename the workout.')
+      setError('No se pudo renombrar el entreno.')
     }
   }
 
@@ -388,7 +389,7 @@ export default function Workout({ workoutId, onExit }) {
       await deleteWorkout(workout.id)
       onExit()
     } catch {
-      setError('Could not delete the workout.')
+      setError('No se pudo borrar el entreno.')
     }
   }
 
@@ -401,7 +402,7 @@ export default function Workout({ workoutId, onExit }) {
         {error}
       </p>
     ) : (
-      <p className="hint">Loading…</p>
+      <p className="hint">Cargando…</p>
     )
   }
 
@@ -409,44 +410,44 @@ export default function Workout({ workoutId, onExit }) {
     <section>
       <div className="workout-head">
         <button type="button" className="secondary" onClick={onExit}>
-          ← Days
+          ← Días
         </button>
         {renaming ? (
           <form className="workout-rename" onSubmit={handleRename}>
             <input
-              aria-label="Workout name"
+              aria-label="Nombre del entreno"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
-              placeholder="Workout name"
+              placeholder="Nombre del entreno"
             />
             <button type="submit" className="secondary set-action">
-              Save name
+              Guardar nombre
             </button>
             <button
               type="button"
               className="secondary set-action"
               onClick={() => setRenaming(false)}
             >
-              Cancel
+              Cancelar
             </button>
           </form>
         ) : (
           <div className="workout-title">
-            <strong>{workout.name || 'Workout'}</strong>
+            <strong>{workout.name || 'Entreno'}</strong>
             <span className="set-index"> · {formatDate(workout.date)}</span>
             <button
               type="button"
               className="secondary set-action"
               onClick={startRename}
             >
-              Rename
+              Renombrar
             </button>
             <button
               type="button"
               className="secondary set-action"
               onClick={handleDeleteWorkout}
             >
-              Delete workout
+              Borrar entreno
             </button>
           </div>
         )}
@@ -454,13 +455,13 @@ export default function Workout({ workoutId, onExit }) {
 
       <form className="card" onSubmit={handleAddExercise}>
         <div className="field">
-          <label htmlFor="exercise">Exercise</label>
+          <label htmlFor="exercise">Ejercicio</label>
           <input
             id="exercise"
             list="exercise-options"
             value={exerciseInput}
             onChange={(e) => setExerciseInput(e.target.value)}
-            placeholder="e.g. Bench Press"
+            placeholder="p. ej. Press banca"
           />
           <datalist id="exercise-options">
             {known.map((name) => (
@@ -469,7 +470,7 @@ export default function Workout({ workoutId, onExit }) {
           </datalist>
         </div>
         <button type="submit" className="btn-full" disabled={adding}>
-          {adding ? 'Checking…' : 'Add exercise'}
+          {adding ? 'Comprobando…' : 'Añadir ejercicio'}
         </button>
       </form>
 
