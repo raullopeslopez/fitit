@@ -1,0 +1,36 @@
+#!/bin/sh
+# Fitit pre-commit: run tests for whatever layer changed. TDD is the merge gate — keep
+# main green. Bypass a genuine WIP commit with: SKIP_TESTS=1 git commit ...
+if [ "$SKIP_TESTS" = "1" ]; then
+  echo "pre-commit: SKIP_TESTS=1 set — skipping tests (WIP)."
+  exit 0
+fi
+
+ROOT=$(git rev-parse --show-toplevel)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$STAGED" ] && exit 0
+
+status=0
+
+if printf '%s\n' "$STAGED" | grep -q '^backend/'; then
+  echo "pre-commit: backend changed -> uv run pytest"
+  if ! ( cd "$ROOT/backend" && uv run pytest -q ); then
+    echo "pre-commit: backend tests FAILED."
+    status=1
+  fi
+fi
+
+if printf '%s\n' "$STAGED" | grep -q '^frontend/'; then
+  echo "pre-commit: frontend changed -> npm test"
+  if ! ( cd "$ROOT/frontend" && npm test ); then
+    echo "pre-commit: frontend tests FAILED."
+    status=1
+  fi
+fi
+
+if [ "$status" != "0" ]; then
+  echo "pre-commit: commit blocked. Fix tests, or bypass a WIP with 'SKIP_TESTS=1 git commit'."
+else
+  echo "pre-commit: tests green."
+fi
+exit $status

@@ -1,0 +1,4 @@
+# Keep shell scripts and git hooks LF so they run on any platform.
+# On Windows, autocrlf would rewrite these to CRLF and break `sh` (\r in shebang).
+*.sh          text eol=lf
+.githooks/**  text eol=lf
