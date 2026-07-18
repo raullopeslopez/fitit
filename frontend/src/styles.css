@@ -274,6 +274,12 @@ button.set-action {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.set-note {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
 .sets li {
   align-items: center;
   gap: 0.5rem;

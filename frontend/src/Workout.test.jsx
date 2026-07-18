@@ -105,6 +105,8 @@ describe('Workout', () => {
         reps: 8,
         weight: 60,
         unit: 'kg',
+        rpe: null,
+        note: null,
       }),
     )
   })
@@ -132,9 +134,43 @@ describe('Workout', () => {
         reps: 8,
         weight: 135,
         unit: 'lb',
+        rpe: null,
+        note: null,
       }),
     )
     expect(await screen.findByText(/135 lb x 8/i)).toBeInTheDocument()
+  })
+
+  it('logs a set with RPE and a note', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ rpe: 8, note: 'felt strong' })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/exercise/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /add exercise/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/weight/i), '60')
+    await userEvent.type(screen.getByLabelText(/rpe/i), '8')
+    await userEvent.type(screen.getByLabelText(/note/i), 'felt strong')
+    await userEvent.click(screen.getByRole('button', { name: /log set/i }))
+
+    await waitFor(() =>
+      expect(api.logSet).toHaveBeenCalledWith(1, {
+        exercise_name: 'Bench Press',
+        reps: 8,
+        weight: 60,
+        unit: 'kg',
+        rpe: 8,
+        note: 'felt strong',
+      }),
+    )
+    expect(await screen.findByText(/RPE 8/i)).toBeInTheDocument()
+    expect(screen.getByText(/felt strong/i)).toBeInTheDocument()
   })
 
   it('shows an error when a request fails', async () => {
@@ -197,6 +233,8 @@ describe('Workout', () => {
         reps: 10,
         weight: 65,
         unit: 'kg',
+        rpe: null,
+        note: null,
       }),
     )
     expect(await screen.findByText(/65 kg x 10/i)).toBeInTheDocument()

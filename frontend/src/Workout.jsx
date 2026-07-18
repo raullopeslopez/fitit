@@ -12,7 +12,7 @@ import { formatDate, formatSet } from './format.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
-function validateSet(reps, weight) {
+function validateSet(reps, weight, rpe) {
   const r = Number(reps)
   const w = Number(weight)
   if (!Number.isInteger(r) || r < 1) {
@@ -21,13 +21,23 @@ function validateSet(reps, weight) {
   if (!Number.isFinite(w) || w < 0) {
     return { error: 'Enter a weight of 0 or more.' }
   }
-  return { reps: r, weight: w }
+  let rpeValue = null
+  if (rpe != null && String(rpe).trim() !== '') {
+    const rp = Number(rpe)
+    if (!Number.isFinite(rp) || rp < 1 || rp > 10) {
+      return { error: 'RPE must be between 1 and 10.' }
+    }
+    rpeValue = rp
+  }
+  return { reps: r, weight: w, rpe: rpeValue }
 }
 
 function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
   const [reps, setReps] = useState('')
   const [weight, setWeight] = useState('')
   const [unit, setUnit] = useState('kg')
+  const [rpe, setRpe] = useState('')
+  const [note, setNote] = useState('')
   const [logging, setLogging] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
@@ -45,7 +55,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
 
   async function handleLogSet(event) {
     event.preventDefault()
-    const valid = validateSet(reps, weight)
+    const valid = validateSet(reps, weight, rpe)
     if (valid.error) {
       setError(valid.error)
       return
@@ -53,9 +63,17 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
     setError('')
     setLogging(true)
     try {
-      await onLogSet(name, { reps: valid.reps, weight: valid.weight, unit })
+      await onLogSet(name, {
+        reps: valid.reps,
+        weight: valid.weight,
+        unit,
+        rpe: valid.rpe,
+        note: note.trim() || null,
+      })
       setReps('')
       setWeight('')
+      setRpe('')
+      setNote('')
     } catch {
       setError('Could not log that set.')
     } finally {
@@ -140,6 +158,25 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
               <option value="lb">lb</option>
             </select>
           </div>
+          <div className="field field-unit">
+            <label htmlFor={`rpe-${name}`}>RPE</label>
+            <input
+              id={`rpe-${name}`}
+              inputMode="decimal"
+              value={rpe}
+              onChange={(e) => setRpe(e.target.value)}
+              placeholder="1–10"
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor={`note-${name}`}>Note</label>
+          <input
+            id={`note-${name}`}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="optional — how did it feel?"
+          />
         </div>
         <button type="submit" className="btn-full" disabled={logging}>
           {logging ? 'Logging…' : 'Log set'}
@@ -183,7 +220,10 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
                 </form>
               ) : (
                 <>
-                  <span>{formatSet(set)}</span>
+                  <span>
+                    {formatSet(set)}
+                    {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                  </span>
                   <span className="set-index">Set {index + 1}</span>
                   <button
                     type="button"
@@ -199,6 +239,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
                   >
                     Delete
                   </button>
+                  {set.note ? <span className="set-note">{set.note}</span> : null}
                 </>
               )}
             </li>
@@ -256,12 +297,14 @@ export default function Workout({ workoutId, onExit }) {
     }
   }
 
-  async function logSetFor(name, { reps, weight, unit }) {
+  async function logSetFor(name, { reps, weight, unit, rpe, note }) {
     const updated = await logSet(workout.id, {
       exercise_name: name,
       reps,
       weight,
       unit,
+      rpe,
+      note,
     })
     setWorkout(updated)
   }
@@ -272,6 +315,10 @@ export default function Workout({ workoutId, onExit }) {
       reps,
       weight,
       unit: set.unit,
+      // Inline edit only changes reps/weight — preserve rpe/note (edit is a
+      // full replacement on the backend).
+      rpe: set.rpe ?? null,
+      note: set.note ?? null,
     })
     setWorkout((w) => ({
       ...w,
