@@ -30,6 +30,8 @@ class SetIn(BaseModel):
     reps: int = Field(ge=1, le=1000)
     weight: float = Field(ge=0, le=1000)  # 0 is valid (bodyweight)
     unit: Unit = "kg"
+    rpe: float | None = Field(default=None, ge=1, le=10)  # perceived exertion
+    note: str | None = Field(default=None, max_length=280)
 
 
 class SetOut(BaseModel):
@@ -42,6 +44,8 @@ class SetOut(BaseModel):
     reps: int
     weight: float
     unit: str
+    rpe: float | None = None
+    note: str | None = None
 
 
 class WorkoutIn(BaseModel):

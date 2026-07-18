@@ -28,6 +28,8 @@ def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
                 reps=s.reps,
                 weight=s.weight,
                 unit=s.unit,
+                rpe=s.rpe,
+                note=s.note,
             )
             for s in workout.sets
         ],
@@ -126,6 +128,8 @@ async def log_set(
             reps=payload.reps,
             weight=payload.weight,
             unit=payload.unit,
+            rpe=payload.rpe,
+            note=payload.note or None,
         )
     )
     await session.commit()
@@ -153,6 +157,8 @@ async def edit_set(
     set_entry.reps = payload.reps
     set_entry.weight = payload.weight
     set_entry.unit = payload.unit
+    set_entry.rpe = payload.rpe
+    set_entry.note = payload.note or None
     await session.commit()
 
     return SetOut(
@@ -163,6 +169,8 @@ async def edit_set(
         reps=set_entry.reps,
         weight=set_entry.weight,
         unit=set_entry.unit,
+        rpe=set_entry.rpe,
+        note=set_entry.note,
     )
 
 

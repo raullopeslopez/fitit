@@ -68,6 +68,8 @@ class SetEntry(Base):
     reps: Mapped[int] = mapped_column(Integer)
     weight: Mapped[float] = mapped_column(Float)
     unit: Mapped[str] = mapped_column(String(4), default="kg")
+    rpe: Mapped[float | None] = mapped_column(Float, nullable=True)
+    note: Mapped[str | None] = mapped_column(String(280), nullable=True)
 
     workout: Mapped["Workout"] = relationship(back_populates="sets")
     exercise: Mapped["Exercise"] = relationship(back_populates="sets")

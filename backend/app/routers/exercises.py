@@ -78,6 +78,8 @@ async def previous_marks(
                 reps=s.reps,
                 weight=s.weight,
                 unit=s.unit,
+                rpe=s.rpe,
+                note=s.note,
             )
             for s in result.scalars().all()
         ],
