@@ -90,6 +90,23 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
     }
   }
 
+  async function handleRepeatLast() {
+    const last = sets[sets.length - 1]
+    if (!last) return
+    setError('')
+    try {
+      await onLogSet(name, {
+        reps: last.reps,
+        weight: last.weight,
+        unit: last.unit,
+        rpe: last.rpe ?? null,
+        note: last.note ?? null,
+      })
+    } catch {
+      setError('No se pudo registrar la serie.')
+    }
+  }
+
   function startEdit(set) {
     setError('')
     setEditingId(set.id)
@@ -127,6 +144,11 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
       setError('No se pudo borrar la serie.')
     }
   }
+
+  const volume = sets.reduce((total, s) => total + s.weight * s.reps, 0)
+  const bestOneRm = sets.length
+    ? Math.max(...sets.map((s) => estimatedOneRm(s.weight, s.reps)))
+    : 0
 
   return (
     <div className="card">
@@ -211,6 +233,10 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
       )}
 
       {sets.length > 0 ? (
+        <>
+        <p className="set-summary">
+          Volumen {volume} {sets[0].unit} · Mejor 1RM {bestOneRm}
+        </p>
         <ol className="sets">
           {sets.map((set, index) => (
             <li key={set.id}>
@@ -280,6 +306,10 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
             </li>
           ))}
         </ol>
+        <button type="button" className="secondary" onClick={handleRepeatLast}>
+          +1 serie
+        </button>
+        </>
       ) : (
         <p className="hint">Aún no hay series.</p>
       )}

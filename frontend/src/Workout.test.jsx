@@ -223,6 +223,28 @@ describe('Workout', () => {
     expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
   })
 
+  it('shows session volume and best estimated 1RM for the exercise', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ reps: 8, weight: 60 }), benchSet({ id: 11, reps: 5, weight: 70 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+
+    // volume = 60*8 + 70*5 = 830 ; best 1RM = max(76.0, 81.7) = 81.7
+    const summary = await screen.findByText(/volumen/i)
+    expect(summary).toHaveTextContent(/830/)
+    expect(summary).toHaveTextContent(/81\.7/)
+  })
+
   it('shows an error when a request fails', async () => {
     api.getPreviousMarks.mockRejectedValue(new Error('network'))
     renderWorkout()
@@ -288,6 +310,23 @@ describe('Workout', () => {
       }),
     )
     expect(await screen.findByText(/65 kg x 10/i)).toBeInTheDocument()
+  })
+
+  it('adds a copy of the last set with +1', async () => {
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /\+1/ }))
+
+    await waitFor(() =>
+      expect(api.logSet).toHaveBeenLastCalledWith(1, {
+        exercise_name: 'Bench Press',
+        reps: 8,
+        weight: 60,
+        unit: 'kg',
+        rpe: null,
+        note: null,
+      }),
+    )
   })
 
   it('edits RPE and note on a set inline', async () => {

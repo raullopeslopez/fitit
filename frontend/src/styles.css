@@ -307,6 +307,11 @@ button.set-action {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.set-summary {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
 .set-note {
   flex-basis: 100%;
   color: var(--muted);
