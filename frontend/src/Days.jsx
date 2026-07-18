@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
+import { downloadCsv } from './csv.js'
 import { formatDate } from './format.js'
+import { trainingStats } from './stats.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -77,6 +79,27 @@ export default function Days({ onOpenWorkout }) {
         <p role="alert" className="alert">
           {error}
         </p>
+      )}
+
+      {days && days.length > 0 && (
+        <div className="days-toolbar">
+          {(() => {
+            const { streak, total } = trainingStats(days)
+            return (
+              <p className="streak">
+                🔥 Racha: {streak} {streak === 1 ? 'día' : 'días'} · {total} entrenado
+                {total === 1 ? '' : 's'}
+              </p>
+            )
+          })()}
+          <button
+            type="button"
+            className="secondary export-btn"
+            onClick={() => downloadCsv(days)}
+          >
+            Exportar CSV
+          </button>
+        </div>
       )}
 
       {days === null ? (

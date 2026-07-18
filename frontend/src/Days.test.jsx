@@ -81,6 +81,15 @@ describe('Days', () => {
     expect(screen.queryByText('Legs')).not.toBeInTheDocument()
   })
 
+  it('shows the training streak', async () => {
+    api.listDays.mockResolvedValue([
+      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    render(<Days onOpenWorkout={() => {}} />)
+
+    expect(await screen.findByText(/racha/i)).toBeInTheDocument()
+  })
+
   it('shows an empty state when there are no days', async () => {
     render(<Days onOpenWorkout={() => {}} />)
     expect(await screen.findByText(/aún no hay días/i)).toBeInTheDocument()

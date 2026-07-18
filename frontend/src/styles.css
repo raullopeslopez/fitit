@@ -108,6 +108,22 @@ h2 {
   flex: 1;
   flex-wrap: wrap;
 }
+.days-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.streak {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.export-btn {
+  margin: 0;
+}
 .day-head {
   display: flex;
   justify-content: space-between;
