@@ -303,6 +303,10 @@ button.set-action {
   width: 4.5rem;
   padding: 0.4rem 0.5rem;
 }
+.set-edit input.set-edit-note {
+  flex: 1 1 100%;
+  width: auto;
+}
 
 .hint {
   color: var(--muted);

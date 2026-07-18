@@ -240,6 +240,29 @@ describe('Workout', () => {
     expect(await screen.findByText(/65 kg x 10/i)).toBeInTheDocument()
   })
 
+  it('edits RPE and note on a set inline', async () => {
+    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 8, weight: 60, rpe: 9, note: 'tough' }))
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /edit/i }))
+    await userEvent.type(screen.getByLabelText(/edit rpe/i), '9')
+    await userEvent.type(screen.getByLabelText(/edit note/i), 'tough')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await waitFor(() =>
+      expect(api.editSet).toHaveBeenCalledWith(10, {
+        exercise_name: 'Bench Press',
+        reps: 8,
+        weight: 60,
+        unit: 'kg',
+        rpe: 9,
+        note: 'tough',
+      }),
+    )
+    expect(await screen.findByText(/RPE 9/i)).toBeInTheDocument()
+    expect(screen.getByText(/tough/i)).toBeInTheDocument()
+  })
+
   it('keeps the set and shows an error when delete fails', async () => {
     api.deleteSet.mockRejectedValue(new Error('network'))
     await logBenchSet()

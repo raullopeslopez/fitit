@@ -42,6 +42,8 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
+  const [editRpe, setEditRpe] = useState('')
+  const [editNote, setEditNote] = useState('')
   const [error, setError] = useState('')
 
   function repeatPrevious() {
@@ -86,17 +88,24 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
     setEditingId(set.id)
     setEditReps(String(set.reps))
     setEditWeight(String(set.weight))
+    setEditRpe(set.rpe != null ? String(set.rpe) : '')
+    setEditNote(set.note || '')
   }
 
   async function handleSaveEdit(set) {
-    const valid = validateSet(editReps, editWeight)
+    const valid = validateSet(editReps, editWeight, editRpe)
     if (valid.error) {
       setError(valid.error)
       return
     }
     setError('')
     try {
-      await onEditSet(set, { reps: valid.reps, weight: valid.weight })
+      await onEditSet(set, {
+        reps: valid.reps,
+        weight: valid.weight,
+        rpe: valid.rpe,
+        note: editNote.trim() || null,
+      })
       setEditingId(null)
     } catch {
       setError('Could not update that set.')
@@ -213,6 +222,20 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
                     value={editWeight}
                     onChange={(e) => setEditWeight(e.target.value)}
                   />
+                  <input
+                    aria-label="Edit RPE"
+                    inputMode="decimal"
+                    placeholder="RPE"
+                    value={editRpe}
+                    onChange={(e) => setEditRpe(e.target.value)}
+                  />
+                  <input
+                    aria-label="Edit note"
+                    className="set-edit-note"
+                    placeholder="note"
+                    value={editNote}
+                    onChange={(e) => setEditNote(e.target.value)}
+                  />
                   <button type="submit">Save</button>
                   <button type="button" className="secondary" onClick={() => setEditingId(null)}>
                     Cancel
@@ -309,16 +332,14 @@ export default function Workout({ workoutId, onExit }) {
     setWorkout(updated)
   }
 
-  async function editSetFor(set, { reps, weight }) {
+  async function editSetFor(set, { reps, weight, rpe, note }) {
     const updated = await editSet(set.id, {
       exercise_name: set.exercise_name,
       reps,
       weight,
       unit: set.unit,
-      // Inline edit only changes reps/weight — preserve rpe/note (edit is a
-      // full replacement on the backend).
-      rpe: set.rpe ?? null,
-      note: set.note ?? null,
+      rpe,
+      note,
     })
     setWorkout((w) => ({
       ...w,
