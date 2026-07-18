@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Days from './Days.jsx'
@@ -65,6 +65,20 @@ describe('Days', () => {
 
     expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-10', name: 'Morning' })
     expect(onOpen).toHaveBeenCalledWith(9)
+  })
+
+  it('deletes a day', async () => {
+    api.deleteDay.mockResolvedValue(null)
+    api.listDays.mockResolvedValue([
+      { id: 7, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    render(<Days onOpenWorkout={() => {}} />)
+    await screen.findByText('Legs')
+
+    await userEvent.click(screen.getByRole('button', { name: /delete day/i }))
+
+    await waitFor(() => expect(api.deleteDay).toHaveBeenCalledWith(7))
+    expect(screen.queryByText('Legs')).not.toBeInTheDocument()
   })
 
   it('shows an empty state when there are no days', async () => {

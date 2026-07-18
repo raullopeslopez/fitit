@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -31,3 +31,13 @@ async def list_days(session: AsyncSession = Depends(get_session)) -> list[DayOut
         )
         for day in result.scalars().all()
     ]
+
+
+@router.delete("/{day_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_day(day_id: int, session: AsyncSession = Depends(get_session)) -> None:
+    """Delete a whole day, cascading to its workouts and their sets."""
+    day = await session.get(Day, day_id)
+    if day is None:
+        raise HTTPException(status_code=404, detail="day not found")
+    await session.delete(day)
+    await session.commit()

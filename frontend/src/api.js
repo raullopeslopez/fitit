@@ -48,8 +48,20 @@ export function getWorkout(id) {
   return apiFetch(`/workouts/${id}`)
 }
 
+export function renameWorkout(id, name) {
+  return apiFetch(`/workouts/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) })
+}
+
+export function deleteWorkout(id) {
+  return apiFetch(`/workouts/${id}`, { method: 'DELETE' })
+}
+
 export function listDays() {
   return apiFetch('/days')
+}
+
+export function deleteDay(id) {
+  return apiFetch(`/days/${id}`, { method: 'DELETE' })
 }
 
 export function getPreviousMarks(name) {

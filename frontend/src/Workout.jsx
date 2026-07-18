@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 
 import {
   deleteSet,
+  deleteWorkout,
   editSet,
   getPreviousMarks,
   getWorkout,
   listExercises,
   logSet,
+  renameWorkout,
 } from './api.js'
 import { formatDate, formatSet } from './format.js'
 
@@ -280,6 +282,8 @@ export default function Workout({ workoutId, onExit }) {
   const [exerciseInput, setExerciseInput] = useState('')
   const [exercises, setExercises] = useState([]) // [{ name, previous }] in the order added
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
+  const [renaming, setRenaming] = useState(false)
+  const [nameInput, setNameInput] = useState('')
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -352,6 +356,33 @@ export default function Workout({ workoutId, onExit }) {
     setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== setId) }))
   }
 
+  function startRename() {
+    setError('')
+    setNameInput(workout.name || '')
+    setRenaming(true)
+  }
+
+  async function handleRename(event) {
+    event.preventDefault()
+    try {
+      const updated = await renameWorkout(workout.id, nameInput.trim() || null)
+      setWorkout((w) => ({ ...w, name: updated.name }))
+      setRenaming(false)
+    } catch {
+      setError('Could not rename the workout.')
+    }
+  }
+
+  async function handleDeleteWorkout() {
+    setError('')
+    try {
+      await deleteWorkout(workout.id)
+      onExit()
+    } catch {
+      setError('Could not delete the workout.')
+    }
+  }
+
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
@@ -371,10 +402,45 @@ export default function Workout({ workoutId, onExit }) {
         <button type="button" className="secondary" onClick={onExit}>
           ← Days
         </button>
-        <div className="workout-title">
-          <strong>{workout.name || 'Workout'}</strong>
-          <span className="set-index"> · {formatDate(workout.date)}</span>
-        </div>
+        {renaming ? (
+          <form className="workout-rename" onSubmit={handleRename}>
+            <input
+              aria-label="Workout name"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              placeholder="Workout name"
+            />
+            <button type="submit" className="secondary set-action">
+              Save name
+            </button>
+            <button
+              type="button"
+              className="secondary set-action"
+              onClick={() => setRenaming(false)}
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className="workout-title">
+            <strong>{workout.name || 'Workout'}</strong>
+            <span className="set-index"> · {formatDate(workout.date)}</span>
+            <button
+              type="button"
+              className="secondary set-action"
+              onClick={startRename}
+            >
+              Rename
+            </button>
+            <button
+              type="button"
+              className="secondary set-action"
+              onClick={handleDeleteWorkout}
+            >
+              Delete workout
+            </button>
+          </div>
+        )}
       </div>
 
       <form className="card" onSubmit={handleAddExercise}>

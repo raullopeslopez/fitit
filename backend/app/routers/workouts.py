@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from ..db import get_session
 from ..exercise_repo import get_or_create_exercise
 from ..models import Day, SetEntry, Workout
-from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut
+from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -97,6 +97,42 @@ async def get_workout(
     if workout is None:
         raise HTTPException(status_code=404, detail="workout not found")
     return workout
+
+
+@router.patch("/{workout_id}", response_model=WorkoutOut)
+async def rename_workout(
+    workout_id: int, payload: WorkoutPatch, session: AsyncSession = Depends(get_session)
+) -> WorkoutOut:
+    workout = await session.get(Workout, workout_id)
+    if workout is None:
+        raise HTTPException(status_code=404, detail="workout not found")
+    workout.name = payload.name
+    await session.commit()
+    loaded = await load_workout(session, workout_id)
+    assert loaded is not None
+    return loaded
+
+
+@router.delete("/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_workout(
+    workout_id: int, session: AsyncSession = Depends(get_session)
+) -> None:
+    """Delete a workout and its sets; drop the day too if it's now empty."""
+    workout = await session.get(Workout, workout_id)
+    if workout is None:
+        raise HTTPException(status_code=404, detail="workout not found")
+    day_id = workout.day_id
+    await session.delete(workout)
+    await session.flush()
+
+    remaining = await session.scalar(
+        select(func.count()).select_from(Workout).where(Workout.day_id == day_id)
+    )
+    if remaining == 0:
+        day = await session.get(Day, day_id)
+        if day is not None:
+            await session.delete(day)
+    await session.commit()
 
 
 @router.post(

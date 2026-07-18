@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { createWorkout, listDays } from './api.js'
+import { createWorkout, deleteDay, listDays } from './api.js'
 import { formatDate } from './format.js'
 
 function todayISO() {
@@ -31,6 +31,16 @@ export default function Days({ onOpenWorkout }) {
       setError('Could not start a workout.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleDeleteDay(id) {
+    setError('')
+    try {
+      await deleteDay(id)
+      setDays((list) => list.filter((d) => d.id !== id))
+    } catch {
+      setError('Could not delete that day.')
     }
   }
 
@@ -76,7 +86,16 @@ export default function Days({ onOpenWorkout }) {
       ) : (
         days.map((day) => (
           <div className="card" key={day.id}>
-            <h2>{formatDate(day.date)}</h2>
+            <div className="day-head">
+              <h2>{formatDate(day.date)}</h2>
+              <button
+                type="button"
+                className="secondary set-action"
+                onClick={() => handleDeleteDay(day.id)}
+              >
+                Delete day
+              </button>
+            </div>
             <ul className="sets">
               {day.workouts.map((w) => (
                 <li key={w.id}>

@@ -55,6 +55,12 @@ class WorkoutIn(BaseModel):
     date: Date | None = None  # the training day; defaults to today when omitted
 
 
+class WorkoutPatch(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str | None = Field(default=None, max_length=80)
+
+
 class WorkoutOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
