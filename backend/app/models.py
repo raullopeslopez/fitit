@@ -14,6 +14,10 @@ class Exercise(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     muscle_group: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    # "strength" (weight × reps) or "cardio" (duration + optional distance).
+    kind: Mapped[str] = mapped_column(
+        String(16), default="strength", server_default="strength", nullable=False
+    )
 
     sets: Mapped[list["SetEntry"]] = relationship(back_populates="exercise")
 

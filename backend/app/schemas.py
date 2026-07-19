@@ -4,8 +4,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# The weight unit. kg only for now (design decision), lb reserved for later.
+# The weight unit for strength sets.
 Unit = Literal["kg", "lb"]
+# How an exercise is measured: strength (weight × reps) or cardio (duration + distance).
+Kind = Literal["strength", "cardio"]
 
 
 class ExerciseIn(BaseModel):
@@ -13,6 +15,7 @@ class ExerciseIn(BaseModel):
 
     name: str = Field(min_length=1, max_length=120)
     muscle_group: str | None = Field(default=None, max_length=60)
+    kind: Kind = "strength"
 
 
 class ExerciseOut(BaseModel):
@@ -21,6 +24,7 @@ class ExerciseOut(BaseModel):
     id: int
     name: str
     muscle_group: str | None = None
+    kind: str = "strength"
 
 
 class SetIn(BaseModel):
@@ -86,6 +90,7 @@ class PreviousMarks(BaseModel):
     found: bool = False
     sets: list[SetOut] = []
     best_one_rm: float | None = None  # best estimated 1RM (Epley) across all sets
+    kind: str | None = None  # the exercise's kind, or None if it doesn't exist yet
 
 
 class LoginIn(BaseModel):

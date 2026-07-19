@@ -25,7 +25,9 @@ async def create_exercise(
     existing = await session.scalar(select(Exercise).where(Exercise.name == payload.name))
     if existing is not None:
         return existing
-    exercise = Exercise(name=payload.name, muscle_group=payload.muscle_group)
+    exercise = Exercise(
+        name=payload.name, muscle_group=payload.muscle_group, kind=payload.kind
+    )
     session.add(exercise)
     await session.commit()
     await session.refresh(exercise)
@@ -66,7 +68,7 @@ async def previous_marks(
     exercise = await find_exercise(session, name)
     if exercise is None:
         return PreviousMarks(
-            exercise_name=normalize_exercise_name(name), found=False, sets=[]
+            exercise_name=normalize_exercise_name(name), found=False, sets=[], kind=None
         )
 
     # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every logged set.
@@ -86,7 +88,9 @@ async def previous_marks(
         .limit(1)
     )
     if last_workout_id is None:
-        return PreviousMarks(exercise_name=exercise.name, found=False, sets=[])
+        return PreviousMarks(
+            exercise_name=exercise.name, found=False, sets=[], kind=exercise.kind
+        )
 
     result = await session.execute(
         select(SetEntry)
@@ -100,6 +104,7 @@ async def previous_marks(
         exercise_name=exercise.name,
         found=True,
         best_one_rm=best_one_rm,
+        kind=exercise.kind,
         sets=[
             SetOut(
                 id=s.id,

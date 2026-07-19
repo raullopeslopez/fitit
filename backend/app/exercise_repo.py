@@ -16,11 +16,16 @@ async def find_exercise(session: AsyncSession, name: str) -> Exercise | None:
     )
 
 
-async def get_or_create_exercise(session: AsyncSession, name: str) -> Exercise:
-    """Return the matching exercise, creating it (with the normalized name) if new."""
+async def get_or_create_exercise(
+    session: AsyncSession, name: str, kind: str = "strength"
+) -> Exercise:
+    """Return the matching exercise, creating it (with the normalized name) if new.
+
+    `kind` only applies on creation — an existing exercise keeps its kind.
+    """
     exercise = await find_exercise(session, name)
     if exercise is None:
-        exercise = Exercise(name=normalize_exercise_name(name))
+        exercise = Exercise(name=normalize_exercise_name(name), kind=kind)
         session.add(exercise)
         await session.flush()
     return exercise
