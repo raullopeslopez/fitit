@@ -1,4 +1,18 @@
-const HEADER = ['fecha', 'entreno', 'ejercicio', 'reps', 'peso', 'unidad', 'rpe', 'nota']
+import { formatDuration } from './format.js'
+
+const HEADER = [
+  'fecha',
+  'entreno',
+  'ejercicio',
+  'reps',
+  'peso',
+  'unidad',
+  'rpe',
+  'nota',
+  'duración',
+  'distancia',
+  'unidad_dist',
+]
 
 function escape(value) {
   const s = value == null ? '' : String(value)
@@ -11,6 +25,7 @@ export function toCsv(days) {
   for (const day of days) {
     for (const workout of day.workouts) {
       for (const set of workout.sets) {
+        const isCardio = set.kind === 'cardio'
         rows.push(
           [
             day.date,
@@ -18,9 +33,12 @@ export function toCsv(days) {
             set.exercise_name,
             set.reps,
             set.weight,
-            set.unit,
+            isCardio ? '' : set.unit, // weight unit is meaningless for cardio
             set.rpe,
             set.note,
+            set.duration_seconds != null ? formatDuration(set.duration_seconds) : '',
+            set.distance,
+            set.distance_unit,
           ]
             .map(escape)
             .join(','),
