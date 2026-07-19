@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Progress from './Progress.jsx'
@@ -10,6 +10,7 @@ describe('Progress', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     api.listExercises.mockResolvedValue([])
+    api.listDays.mockResolvedValue([])
   })
 
   it('charts an exercise 1RM history', async () => {
@@ -22,9 +23,36 @@ describe('Progress', () => {
     await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench')
     await userEvent.click(screen.getByRole('button', { name: /ver progreso/i }))
 
-    expect(await screen.findByText(/88/)).toBeInTheDocument()
+    // The PR reference line labels the record.
+    expect(await screen.findByText(/PR 88/)).toBeInTheDocument()
     expect(container.querySelector('svg')).not.toBeNull()
     expect(api.getExerciseHistory).toHaveBeenCalledWith('Bench')
+  })
+
+  it('opens with the most-trained lift already charted', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [
+              { id: 1, exercise_name: 'Bench Press', reps: 5, weight: 80, unit: 'kg' },
+              { id: 2, exercise_name: 'Bench Press', reps: 5, weight: 80, unit: 'kg' },
+              { id: 3, exercise_name: 'Squat', reps: 5, weight: 100, unit: 'kg' },
+            ],
+          },
+        ],
+      },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    render(<Progress />)
+
+    // Bench Press is logged more often, so it charts without any typing.
+    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Bench Press'))
+    expect(await screen.findByRole('button', { name: 'Bench Press' })).toBeInTheDocument()
   })
 
   it('shows an empty state when there is no history', async () => {

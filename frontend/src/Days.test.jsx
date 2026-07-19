@@ -53,15 +53,28 @@ describe('Days', () => {
     expect(onOpen).toHaveBeenCalledWith(4)
   })
 
-  it('creates a workout for the chosen date and opens it', async () => {
+  it('starts today’s workout with one tap', async () => {
+    const onOpen = vi.fn()
+    api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-19', name: null, sets: [] })
+    render(<Days onOpenWorkout={onOpen} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /empezar entreno de hoy/i }))
+
+    expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
+    expect(onOpen).toHaveBeenCalledWith(3)
+  })
+
+  it('backfills a workout for a chosen date and opens it', async () => {
     const onOpen = vi.fn()
     api.createWorkout.mockResolvedValue({ id: 9, date: '2026-07-10', name: 'Morning', sets: [] })
     render(<Days onOpenWorkout={onOpen} />)
 
+    // The date+name form only appears when you choose another date.
+    await userEvent.click(screen.getByRole('button', { name: /otra fecha/i }))
     await userEvent.clear(screen.getByLabelText(/fecha/i))
     await userEvent.type(screen.getByLabelText(/fecha/i), '2026-07-10')
     await userEvent.type(screen.getByLabelText(/nombre/i), 'Morning')
-    await userEvent.click(screen.getByRole('button', { name: /nuevo entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: /crear entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-10', name: 'Morning' })
     expect(onOpen).toHaveBeenCalledWith(9)

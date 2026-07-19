@@ -38,35 +38,50 @@ export default function App() {
     return <Login onAuthenticated={handleAuthenticated} />
   }
 
+  // Días is active whenever we're in the days list or inside a workout opened
+  // from it; Progreso only on its own screen.
+  const daysActive = view === 'days'
+  const progressActive = view === 'progress' && !openWorkoutId
+
   return (
     <div className="container">
       <header className="app-header">
         <h1>Fitit</h1>
-        <nav className="app-nav">
-          <button
-            className={view === 'days' && !openWorkoutId ? '' : 'secondary'}
-            onClick={() => go('days')}
-          >
-            Días
-          </button>
-          <button
-            className={view === 'progress' && !openWorkoutId ? '' : 'secondary'}
-            onClick={() => go('progress')}
-          >
-            Progreso
-          </button>
-          <button className="secondary" onClick={handleLogout}>
-            Salir
-          </button>
-        </nav>
+        {/* Salir is a rare action — a quiet text link, not a nav-weight button. */}
+        <button type="button" className="link-btn" onClick={handleLogout}>
+          Salir
+        </button>
       </header>
-      {openWorkoutId ? (
-        <Workout workoutId={openWorkoutId} onExit={() => setOpenWorkoutId(null)} />
-      ) : view === 'progress' ? (
-        <Progress />
-      ) : (
-        <Days onOpenWorkout={setOpenWorkoutId} />
-      )}
+      <main className="app-main">
+        {openWorkoutId ? (
+          <Workout workoutId={openWorkoutId} onExit={() => setOpenWorkoutId(null)} />
+        ) : view === 'progress' ? (
+          <Progress />
+        ) : (
+          <Days onOpenWorkout={setOpenWorkoutId} />
+        )}
+      </main>
+      {/* Bottom bar puts navigation in thumb reach for one-handed gym use. */}
+      <nav className="bottom-nav" aria-label="Navegación principal">
+        <button
+          type="button"
+          className={`tab${daysActive ? ' is-active' : ''}`}
+          aria-current={daysActive ? 'page' : undefined}
+          onClick={() => go('days')}
+        >
+          <span className="tab-icon" aria-hidden="true">▮▮</span>
+          Días
+        </button>
+        <button
+          type="button"
+          className={`tab${progressActive ? ' is-active' : ''}`}
+          aria-current={progressActive ? 'page' : undefined}
+          onClick={() => go('progress')}
+        >
+          <span className="tab-icon" aria-hidden="true">↗</span>
+          Progreso
+        </button>
+      </nav>
     </div>
   )
 }
