@@ -72,6 +72,14 @@ export function listExercises() {
   return apiFetch('/exercises')
 }
 
+// Override (or clear, with null) an exercise's muscle group.
+export function setExerciseMuscle(exerciseId, muscleGroup) {
+  return apiFetch(`/exercises/${exerciseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ muscle_group: muscleGroup }),
+  })
+}
+
 export function getExerciseHistory(name) {
   return apiFetch(`/exercises/history?name=${encodeURIComponent(name)}`)
 }

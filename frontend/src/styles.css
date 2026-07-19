@@ -616,6 +616,30 @@ button.set-action {
   background: color-mix(in srgb, var(--chip, var(--accent)) 12%, transparent);
 }
 
+/* Inline muscle-group corrector — the classifier's guess is editable. */
+.muscle-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+.muscle-edit-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.muscle-edit-label {
+  margin: 0 0 0 auto;
+  font-size: 0.75rem;
+}
+.muscle-edit select {
+  width: auto;
+  min-height: 36px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
 .chart {
   width: 100%;
   height: auto;

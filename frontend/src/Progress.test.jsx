@@ -85,6 +85,36 @@ describe('Progress', () => {
     await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Press banca'))
   })
 
+  it('lets you correct a mis-guessed muscle group', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 7, name: 'Press banca', muscle_group: 'Pecho' },
+    ])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [{ id: 1, exercise_name: 'Press banca', reps: 5, weight: 80, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    api.setExerciseMuscle.mockResolvedValue({ id: 7, name: 'Press banca', muscle_group: 'Hombro' })
+    render(<Progress />)
+
+    const select = await screen.findByLabelText(/grupo/i)
+    expect(select).toHaveValue('Pecho')
+
+    await userEvent.selectOptions(select, 'Hombro')
+
+    await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
+    expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Hombro')
+  })
+
   it('shows an empty state when there is no history', async () => {
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)

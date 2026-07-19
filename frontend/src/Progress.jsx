@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { getExerciseHistory, listDays, listExercises } from './api.js'
+import { getExerciseHistory, listDays, listExercises, setExerciseMuscle } from './api.js'
 import { formatDate } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 
@@ -93,9 +93,27 @@ export default function Progress() {
 
   useEffect(() => {
     listExercises()
-      .then((list) => setExercises(list.map((e) => ({ name: e.name, muscle_group: e.muscle_group }))))
+      .then((list) =>
+        setExercises(
+          list.map((e) => ({ id: e.id, name: e.name, muscle_group: e.muscle_group })),
+        ),
+      )
       .catch(() => {})
   }, [])
+
+  // Fix a mis-guessed group; the classifier is only a default. Updates locally so
+  // the chips regroup and the chart recolours immediately.
+  async function changeMuscle(id, group) {
+    try {
+      const updated = await setExerciseMuscle(id, group || null)
+      setExercises((list) =>
+        list.map((e) => (e.id === id ? { ...e, muscle_group: updated.muscle_group } : e)),
+      )
+      setMuscle(updated.muscle_group)
+    } catch {
+      setError('No se pudo cambiar el grupo.')
+    }
+  }
 
   useEffect(() => {
     // Open on your most-trained lift, and select its muscle.
@@ -148,6 +166,7 @@ export default function Progress() {
     .map(([n]) => n)
   const shownLifts = muscle ? liftsForMuscle(muscle) : topLifts
   const chartColor = muscleColor(muscleOf(name))
+  const current = exercises.find((e) => e.name === name)
 
   return (
     <section>
@@ -219,6 +238,27 @@ export default function Progress() {
           <p className="hint">Aún no hay datos para este ejercicio.</p>
         ) : (
           <div className="card">
+            {current && (
+              <div className="muscle-edit">
+                <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+                <span className="muscle-edit-name">{current.name}</span>
+                <label htmlFor="muscle-select" className="muscle-edit-label">
+                  Grupo
+                </label>
+                <select
+                  id="muscle-select"
+                  value={current.muscle_group ?? ''}
+                  onChange={(e) => changeMuscle(current.id, e.target.value)}
+                >
+                  <option value="">Sin grupo</option>
+                  {MUSCLE_GROUPS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Chart points={points} color={chartColor} />
           </div>
         ))}
