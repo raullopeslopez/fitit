@@ -14,6 +14,16 @@
   --radius: 8px;
   --radius-control: 6px;
   --shadow: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  /* Muscle-group palette (categorical, per DESIGN.md "Color por músculo").
+     Validated colorblind-safe on the adjacent pairlist against the light chart
+     surface (#fff); amber stays reserved for effort/PR so it's not in this set. */
+  --m-pecho: #2a78d6;
+  --m-espalda: #008300;
+  --m-pierna: #e87ba4;
+  --m-hombro: #eda100;
+  --m-biceps: #1baf7a;
+  --m-triceps: #4a3aa7;
+  --m-core: #e34948;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
@@ -36,6 +46,14 @@
     --border: #24272c;
     --ring: rgba(255, 106, 44, 0.3);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
+    --m-pecho: #3987e5;
+    --m-espalda: #008300;
+    --m-pierna: #d55181;
+    --m-hombro: #c98500;
+    --m-biceps: #199e70;
+    --m-triceps: #9085e9;
+    --m-core: #e66767;
   }
 }
 
@@ -559,13 +577,19 @@ button.set-action {
   width: auto;
 }
 
+.muscle-chips,
 .lift-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin: 0 0 0.85rem;
 }
+/* Muscle chips read by their label; the coloured dot reinforces identity so
+   colour is never the sole cue (DESIGN.md "Color por músculo" / a11y). */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 9999px;
@@ -575,13 +599,21 @@ button.set-action {
   min-height: 36px;
   padding: 0.35rem 0.8rem;
 }
+.chip .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--chip, var(--muted));
+  flex: none;
+}
 .chip:hover:not(:disabled) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
   color: var(--text);
 }
 .chip.is-active {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--chip, var(--accent));
+  color: var(--text);
+  background: color-mix(in srgb, var(--chip, var(--accent)) 12%, transparent);
 }
 
 .chart {

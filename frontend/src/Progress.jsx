@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 
 import { getExerciseHistory, listDays, listExercises } from './api.js'
 import { formatDate } from './format.js'
+import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 
-function Chart({ points }) {
+function Chart({ points, color }) {
   const W = 320
   const H = 180
   const padL = 40
@@ -18,7 +19,7 @@ function Chart({ points }) {
   const x = (i) =>
     n === 1 ? padL + (W - padL - padR) / 2 : padL + (i * (W - padL - padR)) / (n - 1)
   const y = (v) => padT + (1 - (v - min) / span) * (H - padT - padB)
-  const line = points.map((p, i) => `${x(i)},${y(p.one_rm)}`).join(' ')
+  const linePts = points.map((p, i) => `${x(i)},${y(p.one_rm)}`).join(' ')
   const prY = y(max)
 
   return (
@@ -27,7 +28,7 @@ function Chart({ points }) {
         <strong>1RM estimado</strong>
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Gráfica de progreso">
-        {/* PR reference line — the record is the scale the rest reads against. */}
+        {/* PR reference line stays amber — the record is effort, not a muscle. */}
         <line
           x1={padL}
           x2={W - padR}
@@ -41,19 +42,19 @@ function Chart({ points }) {
           fontFamily="var(--font-mono)">
           PR {max}
         </text>
-        {/* y-axis floor so the numbers have a scale, not just a shape. */}
         <text x={padL - 6} y={y(min)} textAnchor="end" dominantBaseline="middle" fontSize="9"
           fill="var(--muted)" fontFamily="var(--font-mono)">
           {min}
         </text>
-        <polyline fill="none" stroke="var(--accent)" strokeWidth="2" points={line} />
+        {/* The trend line carries the muscle's colour. */}
+        <polyline fill="none" stroke={color} strokeWidth="2" points={linePts} />
         {points.map((p, i) => (
           <circle
             key={p.date}
             cx={x(i)}
             cy={y(p.one_rm)}
             r={p.one_rm === max ? 4 : 3}
-            fill={p.one_rm === max ? 'var(--pr)' : 'var(--accent)'}
+            fill={p.one_rm === max ? 'var(--pr)' : color}
           />
         ))}
       </svg>
@@ -64,9 +65,9 @@ function Chart({ points }) {
   )
 }
 
-// Most-logged lifts first, so Progreso opens with something charted instead of
-// a blank field. Derived client-side from the days feed — no extra endpoint.
-function topLifts(days, limit = 3) {
+// Sets logged per exercise, from the days feed — used to pick sensible defaults
+// and order chips by how much you actually train each lift.
+function frequencies(days) {
   const counts = {}
   for (const day of days) {
     for (const workout of day.workouts) {
@@ -75,34 +76,35 @@ function topLifts(days, limit = 3) {
       }
     }
   }
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([name]) => name)
+  return counts
 }
 
 export default function Progress() {
-  const [known, setKnown] = useState([])
-  const [lifts, setLifts] = useState([])
-  const [name, setName] = useState('')
-  const [selected, setSelected] = useState(null)
+  const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
+  const [freq, setFreq] = useState({})
+  const [name, setName] = useState('') // search box + the currently charted lift
+  const [muscle, setMuscle] = useState(null) // selected muscle filter
   const [points, setPoints] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const muscleOf = (lift) =>
+    exercises.find((e) => e.name === lift)?.muscle_group ?? null
+
   useEffect(() => {
     listExercises()
-      .then((list) => setKnown(list.map((e) => e.name)))
+      .then((list) => setExercises(list.map((e) => ({ name: e.name, muscle_group: e.muscle_group }))))
       .catch(() => {})
   }, [])
 
   useEffect(() => {
-    // Open on the user's most-trained lift already charted.
+    // Open on your most-trained lift, and select its muscle.
     listDays()
       .then((days) => {
-        const top = topLifts(days || [])
-        setLifts(top)
-        if (top.length) loadHistory(top[0])
+        const counts = frequencies(days || [])
+        setFreq(counts)
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+        if (top) loadHistory(top[0])
       })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,8 +113,8 @@ export default function Progress() {
   async function loadHistory(query) {
     const q = query.trim()
     if (!q) return
-    setSelected(q)
     setName(q)
+    setMuscle(muscleOf(q))
     setError('')
     setLoading(true)
     try {
@@ -124,12 +126,52 @@ export default function Progress() {
     }
   }
 
+  const liftsForMuscle = (m) =>
+    exercises
+      .filter((e) => e.muscle_group === m)
+      .map((e) => e.name)
+      .sort((a, b) => (freq[b] || 0) - (freq[a] || 0))
+
+  function selectMuscle(m) {
+    setMuscle(m)
+    const top = liftsForMuscle(m)[0]
+    if (top) loadHistory(top)
+  }
+
+  // Only show chips for muscles you actually have exercises in, in canonical order.
+  const musclesPresent = MUSCLE_GROUPS.filter((m) =>
+    exercises.some((e) => e.muscle_group === m),
+  )
+  const topLifts = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([n]) => n)
+  const shownLifts = muscle ? liftsForMuscle(muscle) : topLifts
+  const chartColor = muscleColor(muscleOf(name))
+
   return (
     <section>
       <form className="card" onSubmit={(e) => {
         e.preventDefault()
         loadHistory(name)
       }}>
+        {musclesPresent.length > 0 && (
+          <div className="muscle-chips">
+            {musclesPresent.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
+                style={{ '--chip': muscleColor(m) }}
+                aria-pressed={muscle === m}
+                onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
+              >
+                <span className="dot" aria-hidden="true" />
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="field">
           <label htmlFor="progress-exercise">Ejercicio</label>
           <input
@@ -140,21 +182,23 @@ export default function Progress() {
             placeholder="p. ej. Press banca"
           />
           <datalist id="progress-options">
-            {known.map((n) => (
-              <option key={n} value={n} />
+            {exercises.map((e) => (
+              <option key={e.name} value={e.name} />
             ))}
           </datalist>
         </div>
-        {lifts.length > 0 && (
+        {shownLifts.length > 0 && (
           <div className="lift-chips">
-            {lifts.map((n) => (
+            {shownLifts.map((lift) => (
               <button
-                key={n}
+                key={lift}
                 type="button"
-                className={`chip${selected === n ? ' is-active' : ''}`}
-                onClick={() => loadHistory(n)}
+                className={`chip${name === lift ? ' is-active' : ''}`}
+                style={{ '--chip': muscleColor(muscleOf(lift)) }}
+                onClick={() => loadHistory(lift)}
               >
-                {n}
+                <span className="dot" aria-hidden="true" />
+                {lift}
               </button>
             ))}
           </div>
@@ -175,7 +219,7 @@ export default function Progress() {
           <p className="hint">Aún no hay datos para este ejercicio.</p>
         ) : (
           <div className="card">
-            <Chart points={points} />
+            <Chart points={points} color={chartColor} />
           </div>
         ))}
     </section>

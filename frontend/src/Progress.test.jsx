@@ -55,6 +55,36 @@ describe('Progress', () => {
     expect(await screen.findByRole('button', { name: 'Bench Press' })).toBeInTheDocument()
   })
 
+  it('groups lifts by muscle and charts one on selecting a muscle', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
+      { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
+    ])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Full',
+            sets: [{ id: 1, exercise_name: 'Sentadilla', reps: 5, weight: 100, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 120 }])
+    render(<Progress />)
+
+    // A chip per muscle that has exercises.
+    const pecho = await screen.findByRole('button', { name: /pecho/i })
+    expect(screen.getByRole('button', { name: /pierna/i })).toBeInTheDocument()
+
+    // Selecting Pecho charts that muscle's top lift.
+    await userEvent.click(pecho)
+    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Press banca'))
+  })
+
   it('shows an empty state when there is no history', async () => {
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)

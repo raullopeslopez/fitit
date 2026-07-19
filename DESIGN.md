@@ -64,6 +64,29 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
   warm-paper inversion, reduce accent saturation ~10% for contrast on light.
 - **Contrast:** text on bg and accent-on-surface must pass WCAG AA (4.5:1 body, 3:1 large).
 
+### Color por músculo (categorical — deliberate exception)
+Explicit, user-approved exception to "one accent only": muscle groups get a full
+categorical palette so Progreso can be organized and read by muscle. Scope rules:
+- **For data encoding only**, never for brand/CTA/state. Amber stays the sole
+  brand/effort/PR accent and is **not** in this palette (so "record" keeps meaning).
+- **Color rides a mark, not text.** A muscle is shown as a colored dot/line beside
+  its name; labels/values stay in ink. Color is never the only cue.
+- **Fixed 7-group set**, assigned in canonical order (below). A colour per
+  individual muscle would be an unreadable rainbow — keep it to these 7.
+- Validated colorblind-safe on the *adjacent* pairlist in both modes via the
+  dataviz `validate_palette.js` (light surface #fff, dark #15171A). Re-run it if
+  you touch these hues.
+
+  | Grupo | dark | light |
+  |-------|------|-------|
+  | Pecho | `#3987e5` | `#2a78d6` |
+  | Espalda | `#008300` | `#008300` |
+  | Pierna | `#d55181` | `#e87ba4` |
+  | Hombro | `#c98500` | `#eda100` |
+  | Bíceps | `#199e70` | `#1baf7a` |
+  | Tríceps | `#9085e9` | `#4a3aa7` |
+  | Core | `#e66767` | `#e34948` |
+
 ## Spacing
 - **Base unit:** 4px.
 - **Density:** comfortable-compact — data rows tighter, cards breathe.
@@ -103,3 +126,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-18 | Amber accent replaces health-green | Every lifting app is red/green/blue; amber = effort/heat, differentiates and makes PRs feel earned. Green demoted to quiet success semantic. |
 | 2026-07-18 | Geist Mono for all numeric data | Numbers are the product; mono readout = instrument feel, reinforces "lean on purpose". |
 | 2026-07-18 | Dark-first + sharper radius (16→8) | Gym/night/OLED context; sharper shape reads as serious tool, not wellness toy. |
+| 2026-07-19 | Categorical muscle-group palette (7 colors) | User-approved exception to single-accent: lets Progreso be organized/read by muscle. Data-encoding only (dot/line, not text/CTA); amber stays reserved for effort/PR. Validated colorblind-safe (adjacent) both modes. See "Color por músculo". |
