@@ -1,35 +1,79 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..exercise_repo import find_exercise
 from ..models import Day, Exercise, SetEntry, Workout
+from ..muscles import MUSCLE_GROUPS, classify
 from ..naming import normalize_exercise_name
-from ..schemas import ExerciseIn, ExerciseOut, HistoryPoint, PreviousMarks, SetOut
+from ..schemas import (
+    ExerciseIn,
+    ExerciseOut,
+    ExercisePatch,
+    HistoryPoint,
+    PreviousMarks,
+    SetOut,
+)
 
 router = APIRouter(tags=["exercises"])
 
 
+def _to_exercise_out(exercise: Exercise) -> ExerciseOut:
+    """Fall back to the classifier when a row predates auto-tagging, so older
+    exercises still carry a group for the per-muscle views without a migration.
+    A stored value (including a manual override) always wins."""
+    return ExerciseOut(
+        id=exercise.id,
+        name=exercise.name,
+        muscle_group=exercise.muscle_group or classify(exercise.name),
+    )
+
+
+@router.get("/muscle-groups", response_model=list[str])
+async def list_muscle_groups() -> list[str]:
+    """The canonical muscle groups, in display order — powers the group picker."""
+    return MUSCLE_GROUPS
+
+
 @router.get("/exercises", response_model=list[ExerciseOut])
-async def list_exercises(session: AsyncSession = Depends(get_session)) -> list[Exercise]:
+async def list_exercises(session: AsyncSession = Depends(get_session)) -> list[ExerciseOut]:
     """Every known exercise, alphabetically — powers the add-exercise autocomplete."""
     result = await session.scalars(select(Exercise).order_by(func.lower(Exercise.name)))
-    return list(result.all())
+    return [_to_exercise_out(e) for e in result.all()]
 
 
 @router.post("/exercises", response_model=ExerciseOut, status_code=status.HTTP_201_CREATED)
 async def create_exercise(
     payload: ExerciseIn, session: AsyncSession = Depends(get_session)
-) -> Exercise:
+) -> ExerciseOut:
     existing = await session.scalar(select(Exercise).where(Exercise.name == payload.name))
     if existing is not None:
-        return existing
-    exercise = Exercise(name=payload.name, muscle_group=payload.muscle_group)
+        return _to_exercise_out(existing)
+    exercise = Exercise(
+        name=payload.name,
+        muscle_group=payload.muscle_group or classify(payload.name),
+    )
     session.add(exercise)
     await session.commit()
     await session.refresh(exercise)
-    return exercise
+    return _to_exercise_out(exercise)
+
+
+@router.patch("/exercises/{exercise_id}", response_model=ExerciseOut)
+async def set_muscle_group(
+    exercise_id: int, payload: ExercisePatch, session: AsyncSession = Depends(get_session)
+) -> ExerciseOut:
+    """Override an exercise's muscle group (or clear it back to auto with null)."""
+    if payload.muscle_group is not None and payload.muscle_group not in MUSCLE_GROUPS:
+        raise HTTPException(status_code=422, detail="unknown muscle group")
+    exercise = await session.get(Exercise, exercise_id)
+    if exercise is None:
+        raise HTTPException(status_code=404, detail="exercise not found")
+    exercise.muscle_group = payload.muscle_group
+    await session.commit()
+    await session.refresh(exercise)
+    return _to_exercise_out(exercise)
 
 
 @router.get("/exercises/history", response_model=list[HistoryPoint])
