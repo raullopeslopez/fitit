@@ -34,30 +34,42 @@ function validateSet(reps, weight, rpe) {
   return { reps: r, weight: w, rpe: rpeValue }
 }
 
+// Seed the steppers from the last previous mark so a straight repeat is one tap
+// on the "Registrar" button; fall back to empty for a never-logged exercise.
+const WEIGHT_STEP = 2.5
+
+function bump(current, delta, min) {
+  const base = Number(current)
+  const next = Number.isFinite(base) ? base : 0
+  // Keep one decimal so 2.5 kg jumps stay clean instead of drifting to 82.49999.
+  const bumped = Math.max(min, Math.round((next + delta) * 10) / 10)
+  return String(bumped)
+}
+
 function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
-  const [reps, setReps] = useState('')
-  const [weight, setWeight] = useState('')
-  const [unit, setUnit] = useState('kg')
+  const seed = previous?.found ? previous.sets?.[0] : null
+  const [reps, setReps] = useState(seed ? String(seed.reps) : '')
+  const [weight, setWeight] = useState(seed ? String(seed.weight) : '')
+  const [unit, setUnit] = useState(seed?.unit ?? 'kg')
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
   const [logging, setLogging] = useState(false)
-  const [best, setBest] = useState(previous?.best_one_rm ?? null)
+  // The number to beat: the server's best est. 1RM, or derive it from the
+  // previous marks so the target block always shows a figure when one exists.
+  const seededBest =
+    previous?.best_one_rm ??
+    (previous?.sets?.length
+      ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight, s.reps)))
+      : null)
+  const [best, setBest] = useState(seededBest)
   const [pr, setPr] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
   const [editRpe, setEditRpe] = useState('')
   const [editNote, setEditNote] = useState('')
   const [error, setError] = useState('')
-
-  function repeatPrevious() {
-    const last = previous?.sets?.[0]
-    if (!last) return
-    setError('')
-    setReps(String(last.reps))
-    setWeight(String(last.weight))
-    setUnit(last.unit)
-  }
 
   async function handleLogSet(event) {
     event.preventDefault()
@@ -109,6 +121,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
 
   function startEdit(set) {
     setError('')
+    setOpenMenuId(null)
     setEditingId(set.id)
     setEditReps(String(set.reps))
     setEditWeight(String(set.weight))
@@ -150,46 +163,88 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight, s.reps)))
     : 0
 
+  const ready = reps !== '' && weight !== ''
+
   return (
     <div className="card">
       <h2>{name}</h2>
 
+      {/* The number to beat is the biggest thing on the card — the target, not a
+          sentence buried in a tinted box. */}
       {previous && previous.found ? (
-        <p className="previous">
-          <strong>Última vez:</strong> {previous.sets.map(formatSet).join(', ')}{' '}
-          <button type="button" className="secondary set-action" onClick={repeatPrevious}>
-            Repetir
-          </button>
-        </p>
+        <div className="target">
+          <div className="target-main">
+            <div className="target-label">A batir · 1RM est.</div>
+            <div className={`target-value${pr ? ' is-pr' : ''}`}>{best ?? '—'}</div>
+          </div>
+          <div className="target-meta">{previous.sets.map(formatSet).join(', ')}</div>
+        </div>
       ) : (
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
       )}
 
       {pr && (
-        <p className="pr-banner">🏆 ¡Nuevo récord! 1RM estimado {best}</p>
+        <p className="pr-banner">¡Nuevo récord! 1RM estimado {best}</p>
       )}
 
       <form onSubmit={handleLogSet}>
         <div className="row">
-          <div className="field">
+          <div className="field stepper-field">
+            <label htmlFor={`weight-${name}`}>Peso · {unit}</label>
+            <div className="stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                aria-label="Restar kg"
+                onClick={() => setWeight((w) => bump(w, -WEIGHT_STEP, 0))}
+              >
+                −
+              </button>
+              <input
+                id={`weight-${name}`}
+                inputMode="decimal"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+              />
+              <button
+                type="button"
+                className="stepper-btn stepper-plus"
+                aria-label="Sumar kg"
+                onClick={() => setWeight((w) => bump(w, WEIGHT_STEP, 0))}
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div className="field stepper-field">
             <label htmlFor={`reps-${name}`}>Reps</label>
-            {/* "Reps" reads the same in Spanish */}
-            <input
-              id={`reps-${name}`}
-              inputMode="numeric"
-              value={reps}
-              onChange={(e) => setReps(e.target.value)}
-            />
+            <div className="stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                aria-label="Restar rep"
+                onClick={() => setReps((r) => bump(r, -1, 1))}
+              >
+                −
+              </button>
+              <input
+                id={`reps-${name}`}
+                inputMode="numeric"
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+              />
+              <button
+                type="button"
+                className="stepper-btn stepper-plus"
+                aria-label="Sumar rep"
+                onClick={() => setReps((r) => bump(r, 1, 1))}
+              >
+                +
+              </button>
+            </div>
           </div>
-          <div className="field">
-            <label htmlFor={`weight-${name}`}>Peso</label>
-            <input
-              id={`weight-${name}`}
-              inputMode="decimal"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-            />
-          </div>
+        </div>
+        <div className="row">
           <div className="field field-unit">
             <label htmlFor={`unit-${name}`}>Unidad</label>
             <select
@@ -211,18 +266,23 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
               placeholder="1–10"
             />
           </div>
+          <div className="field">
+            <label htmlFor={`note-${name}`}>Nota</label>
+            <input
+              id={`note-${name}`}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="opcional"
+            />
+          </div>
         </div>
-        <div className="field">
-          <label htmlFor={`note-${name}`}>Nota</label>
-          <input
-            id={`note-${name}`}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="opcional — ¿cómo fue?"
-          />
-        </div>
-        <button type="submit" className="btn-full" disabled={logging}>
-          {logging ? 'Registrando…' : 'Registrar serie'}
+        {/* The button states exactly what it will log, so a repeat is one tap. */}
+        <button type="submit" className="btn-full btn-log" disabled={logging}>
+          {logging
+            ? 'Registrando…'
+            : ready
+              ? `Registrar ${weight} × ${reps}`
+              : 'Registrar serie'}
         </button>
       </form>
 
@@ -286,20 +346,36 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
                     {set.rpe ? ` · RPE ${set.rpe}` : ''}
                   </span>
                   <span className="set-index">Serie {index + 1}</span>
+                  {/* Rare actions live behind an overflow so the readout stays clean. */}
                   <button
                     type="button"
-                    className="secondary set-action"
-                    onClick={() => startEdit(set)}
+                    className="secondary set-action set-menu-btn"
+                    aria-label={`Más acciones · serie ${index + 1}`}
+                    aria-expanded={openMenuId === set.id}
+                    onClick={() =>
+                      setOpenMenuId((id) => (id === set.id ? null : set.id))
+                    }
                   >
-                    Editar
+                    ⋯
                   </button>
-                  <button
-                    type="button"
-                    className="secondary set-action"
-                    onClick={() => handleDelete(set.id)}
-                  >
-                    Borrar
-                  </button>
+                  {openMenuId === set.id && (
+                    <div className="set-menu">
+                      <button
+                        type="button"
+                        className="secondary set-action"
+                        onClick={() => startEdit(set)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary set-action"
+                        onClick={() => handleDelete(set.id)}
+                      >
+                        Borrar
+                      </button>
+                    </div>
+                  )}
                   {set.note ? <span className="set-note">{set.note}</span> : null}
                 </>
               )}

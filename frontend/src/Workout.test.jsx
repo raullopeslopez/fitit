@@ -45,7 +45,7 @@ describe('Workout', () => {
     expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press')
   })
 
-  it('prefills the log form from the previous set with Repeat', async () => {
+  it('seeds the steppers from the previous set so a repeat is one tap', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
@@ -55,13 +55,29 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await screen.findByText(/última vez/i)
-
-    await userEvent.click(screen.getByRole('button', { name: /repetir/i }))
+    await screen.findByText(/a batir/i)
 
     expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
     expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
     expect(screen.getByLabelText(/unidad/i)).toHaveValue('lb')
+    // The button states exactly what pressing it will log.
+    expect(screen.getByRole('button', { name: /registrar 60 × 8/i })).toBeInTheDocument()
+  })
+
+  it('bumps the weight stepper by 2.5 kg', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ reps: 5, weight: 80, unit: 'kg' })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await screen.findByText(/a batir/i)
+
+    await userEvent.click(screen.getByRole('button', { name: /sumar kg/i }))
+    expect(screen.getByLabelText(/peso/i)).toHaveValue('82.5')
   })
 
   it('says there are no previous marks for a new exercise', async () => {
@@ -96,7 +112,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     expect(await screen.findByRole('listitem')).toHaveTextContent(/60 kg x 8/i)
     await waitFor(() =>
@@ -126,7 +142,7 @@ describe('Workout', () => {
     await userEvent.selectOptions(screen.getByLabelText(/unidad/i), 'lb')
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '135')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     await waitFor(() =>
       expect(api.logSet).toHaveBeenCalledWith(1, {
@@ -157,7 +173,7 @@ describe('Workout', () => {
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
     await userEvent.type(screen.getByLabelText(/rpe/i), '8')
     await userEvent.type(screen.getByLabelText(/nota/i), 'felt strong')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     await waitFor(() =>
       expect(api.logSet).toHaveBeenCalledWith(1, {
@@ -190,9 +206,12 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    // Steppers are seeded from the previous mark — clear before entering the PR set.
+    await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '3')
+    await userEvent.clear(screen.getByLabelText(/peso/i))
     await userEvent.type(screen.getByLabelText(/peso/i), '80')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     // 80 * (1 + 3/30) = 88 > 76 -> personal record
     expect(await screen.findByText(/nuevo récord/i)).toBeInTheDocument()
@@ -215,9 +234,11 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.clear(screen.getByLabelText(/peso/i))
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     await waitFor(() => expect(api.logSet).toHaveBeenCalled())
     expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
@@ -237,7 +258,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     // volume = 60*8 + 70*5 = 830 ; best 1RM = max(76.0, 81.7) = 81.7
     const summary = await screen.findByText(/volumen/i)
@@ -272,7 +293,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
     expect(await screen.findByText(/60 kg x 8/i)).toBeInTheDocument()
   }
 
@@ -280,6 +301,7 @@ describe('Workout', () => {
     api.deleteSet.mockResolvedValue(null)
     await logBenchSet()
 
+    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
     await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
 
     await waitFor(() => expect(api.deleteSet).toHaveBeenCalledWith(10))
@@ -290,6 +312,7 @@ describe('Workout', () => {
     api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 10, weight: 65 }))
     await logBenchSet()
 
+    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
     await userEvent.click(screen.getByRole('button', { name: /editar/i }))
     const reps = screen.getByLabelText(/editar reps/i)
     const weight = screen.getByLabelText(/editar peso/i)
@@ -333,6 +356,7 @@ describe('Workout', () => {
     api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 8, weight: 60, rpe: 9, note: 'tough' }))
     await logBenchSet()
 
+    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
     await userEvent.click(screen.getByRole('button', { name: /editar/i }))
     await userEvent.type(screen.getByLabelText(/editar rpe/i), '9')
     await userEvent.type(screen.getByLabelText(/editar nota/i), 'tough')
@@ -356,6 +380,7 @@ describe('Workout', () => {
     api.deleteSet.mockRejectedValue(new Error('network'))
     await logBenchSet()
 
+    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
     await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
@@ -369,7 +394,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/reps/i)
     expect(api.logSet).not.toHaveBeenCalled()
@@ -383,7 +408,7 @@ describe('Workout', () => {
 
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '-5')
-    await userEvent.click(screen.getByRole('button', { name: /registrar serie/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/peso/i)
     expect(api.logSet).not.toHaveBeenCalled()
