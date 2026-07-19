@@ -23,6 +23,7 @@ describe('Days', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
   })
 
   it('lists days with their workouts', async () => {
@@ -101,6 +102,32 @@ describe('Days', () => {
     render(<Days onOpenWorkout={() => {}} />)
 
     expect(await screen.findByText(/racha/i)).toBeInTheDocument()
+  })
+
+  it('shows muscle dots for the groups a workout trained', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [benchSet({ exercise_name: 'Press banca' }), benchSet({ id: 11, exercise_name: 'Press militar' })],
+          },
+        ],
+      },
+    ])
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
+      { id: 2, name: 'Press militar', muscle_group: 'Hombro' },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Push')
+    await waitFor(() => {
+      expect(container.querySelectorAll('.muscle-dots .dot').length).toBe(2)
+    })
   })
 
   it('shows an empty state when there are no days', async () => {

@@ -29,6 +29,11 @@ class ExerciseOut(BaseModel):
     kind: str = "strength"
 
 
+class ExercisePatch(BaseModel):
+    # muscle_group None clears the override, reverting to the auto-classifier.
+    muscle_group: str | None = Field(default=None, max_length=60)
+
+
 class SetIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
