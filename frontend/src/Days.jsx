@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 
-import { createWorkout, deleteDay, listDays } from './api.js'
+import { createWorkout, deleteDay, listDays, listExercises } from './api.js'
 import { downloadCsv } from './csv.js'
 import { formatDate } from './format.js'
+import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 import { trainingStats } from './stats.js'
 
 function todayISO() {
@@ -15,6 +16,7 @@ export default function Days({ onOpenWorkout }) {
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
   const [backfill, setBackfill] = useState(false)
+  const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -22,6 +24,21 @@ export default function Days({ onOpenWorkout }) {
       .then(setDays)
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
+
+  useEffect(() => {
+    // Best-effort: powers the per-session muscle dots; a failure just hides them.
+    listExercises()
+      .then((list) =>
+        setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group]))),
+      )
+      .catch(() => {})
+  }, [])
+
+  // The distinct muscle groups a workout trained, in canonical order.
+  const musclesOf = (workout) =>
+    MUSCLE_GROUPS.filter((m) =>
+      workout.sets.some((s) => muscleByName[s.exercise_name] === m),
+    )
 
   // Starting today's session is one intent: one button, no form.
   async function startToday() {
@@ -165,6 +182,13 @@ export default function Days({ onOpenWorkout }) {
                     onClick={() => onOpenWorkout(w.id)}
                   >
                     <span>{w.name || 'Entreno'}</span>
+                    {musclesOf(w).length > 0 && (
+                      <span className="muscle-dots" aria-hidden="true">
+                        {musclesOf(w).map((m) => (
+                          <span key={m} className="dot" style={{ '--chip': muscleColor(m) }} />
+                        ))}
+                      </span>
+                    )}
                     <span className="set-index">
                       {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
                     </span>

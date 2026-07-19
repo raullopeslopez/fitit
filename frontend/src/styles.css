@@ -599,11 +599,38 @@ button.set-action {
   min-height: 36px;
   padding: 0.35rem 0.8rem;
 }
-.chip .dot {
+.dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   background: var(--chip, var(--muted));
+  flex: none;
+  display: inline-block;
+}
+
+/* Muscle tag on an exercise heading (Workout). */
+.exercise-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.muscle-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/* Muscle dots on a day's workout row (Días). */
+.muscle-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   flex: none;
 }
 .chip:hover:not(:disabled) {

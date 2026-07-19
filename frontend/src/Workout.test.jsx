@@ -430,6 +430,20 @@ describe('Workout', () => {
     expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
   })
 
+  it('shows the muscle group tag on an exercise', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho' },
+    ])
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    const heading = await screen.findByRole('heading', { name: /Bench Press/ })
+    expect(heading).toHaveTextContent('Pecho')
+  })
+
   it('suggests known exercises for autocomplete', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Deadlift', muscle_group: null },

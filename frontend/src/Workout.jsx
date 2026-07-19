@@ -11,6 +11,7 @@ import {
   renameWorkout,
 } from './api.js'
 import { estimatedOneRm, formatDate, formatSet } from './format.js'
+import { muscleColor } from './muscles.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -46,7 +47,7 @@ function bump(current, delta, min) {
   return String(bumped)
 }
 
-function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
+function ExerciseCard({ name, muscle, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
   const [weight, setWeight] = useState(seed ? String(seed.weight) : '')
@@ -167,7 +168,15 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
 
   return (
     <div className="card">
-      <h2>{name}</h2>
+      <h2 className="exercise-title">
+        {name}
+        {muscle && (
+          <span className="muscle-tag">
+            <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
+            {muscle}
+          </span>
+        )}
+      </h2>
 
       {/* The number to beat is the biggest thing on the card — the target, not a
           sentence buried in a tinted box. */}
@@ -398,6 +407,7 @@ export default function Workout({ workoutId, onExit }) {
   const [exerciseInput, setExerciseInput] = useState('')
   const [exercises, setExercises] = useState([]) // [{ name, previous }] in the order added
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
+  const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [error, setError] = useState('')
@@ -417,7 +427,10 @@ export default function Workout({ workoutId, onExit }) {
   useEffect(() => {
     // Autocomplete is best-effort; a failure here shouldn't break logging.
     listExercises()
-      .then((list) => setKnown(list.map((e) => e.name)))
+      .then((list) => {
+        setKnown(list.map((e) => e.name))
+        setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
+      })
       .catch(() => {})
   }, [])
 
@@ -590,6 +603,7 @@ export default function Workout({ workoutId, onExit }) {
         <ExerciseCard
           key={ex.name}
           name={ex.name}
+          muscle={muscleByName[ex.name] ?? null}
           previous={ex.previous}
           sets={setsFor(ex.name)}
           onLogSet={logSetFor}
