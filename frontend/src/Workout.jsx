@@ -11,6 +11,7 @@ import {
   renameWorkout,
 } from './api.js'
 import { estimatedOneRm, formatDate, formatSet } from './format.js'
+import { getWeightUnit, setWeightUnit } from './prefs.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -46,11 +47,10 @@ function bump(current, delta, min) {
   return String(bumped)
 }
 
-function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }) {
+function ExerciseCard({ name, previous, sets, weightUnit, onLogSet, onEditSet, onDeleteSet }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
   const [weight, setWeight] = useState(seed ? String(seed.weight) : '')
-  const [unit, setUnit] = useState(seed?.unit ?? 'kg')
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
   const [logging, setLogging] = useState(false)
@@ -84,7 +84,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
       await onLogSet(name, {
         reps: valid.reps,
         weight: valid.weight,
-        unit,
+        unit: weightUnit,
         rpe: valid.rpe,
         note: note.trim() || null,
       })
@@ -190,7 +190,7 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
       <form onSubmit={handleLogSet}>
         <div className="row">
           <div className="field stepper-field">
-            <label htmlFor={`weight-${name}`}>Peso · {unit}</label>
+            <label htmlFor={`weight-${name}`}>Peso · {weightUnit}</label>
             <div className="stepper">
               <button
                 type="button"
@@ -245,17 +245,6 @@ function ExerciseCard({ name, previous, sets, onLogSet, onEditSet, onDeleteSet }
           </div>
         </div>
         <div className="row">
-          <div className="field field-unit">
-            <label htmlFor={`unit-${name}`}>Unidad</label>
-            <select
-              id={`unit-${name}`}
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-            >
-              <option value="kg">kg</option>
-              <option value="lb">lb</option>
-            </select>
-          </div>
           <div className="field field-unit">
             <label htmlFor={`rpe-${name}`}>RPE</label>
             <input
@@ -402,6 +391,13 @@ export default function Workout({ workoutId, onExit }) {
   const [nameInput, setNameInput] = useState('')
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
+  // kg/lb is a workout-wide preference, remembered across sessions.
+  const [weightUnit, setWeightUnitState] = useState(getWeightUnit())
+
+  function chooseWeightUnit(unit) {
+    setWeightUnit(unit)
+    setWeightUnitState(unit)
+  }
 
   useEffect(() => {
     getWorkout(workoutId)
@@ -559,6 +555,23 @@ export default function Workout({ workoutId, onExit }) {
         )}
       </div>
 
+      <div className="prefs-bar">
+        <span className="prefs-label">Peso</span>
+        <div className="unit-toggle" role="group" aria-label="Unidad">
+          {['kg', 'lb'].map((u) => (
+            <button
+              key={u}
+              type="button"
+              className="unit-option"
+              aria-pressed={weightUnit === u}
+              onClick={() => chooseWeightUnit(u)}
+            >
+              {u}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <form className="card" onSubmit={handleAddExercise}>
         <div className="field">
           <label htmlFor="exercise">Ejercicio</label>
@@ -592,6 +605,7 @@ export default function Workout({ workoutId, onExit }) {
           name={ex.name}
           previous={ex.previous}
           sets={setsFor(ex.name)}
+          weightUnit={weightUnit}
           onLogSet={logSetFor}
           onEditSet={editSetFor}
           onDeleteSet={deleteSetFor}

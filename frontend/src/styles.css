@@ -468,6 +468,45 @@ button.set-action {
   min-height: 52px;
 }
 
+/* Sticky weight-unit toggle: a small segmented control, not a per-set field. */
+.prefs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.prefs-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.unit-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.unit-option {
+  min-height: 36px;
+  padding: 0.35rem 0.9rem;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.unit-option[aria-pressed='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+.unit-option:not([aria-pressed='true']):hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  color: var(--text);
+}
+
 /* Overflow menu keeps Editar/Borrar out of the readout until asked for. */
 .set-menu-btn {
   margin-left: 0;

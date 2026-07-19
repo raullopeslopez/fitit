@@ -26,6 +26,7 @@ function renderWorkout(props = {}) {
 describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    localStorage.clear() // the weight unit is a sticky pref — don't let it leak between tests
     api.getWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
     api.listExercises.mockResolvedValue([])
   })
@@ -59,7 +60,6 @@ describe('Workout', () => {
 
     expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
     expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
-    expect(screen.getByLabelText(/unidad/i)).toHaveValue('lb')
     // The button states exactly what pressing it will log.
     expect(screen.getByRole('button', { name: /registrar 60 × 8/i })).toBeInTheDocument()
   })
@@ -127,7 +127,7 @@ describe('Workout', () => {
     )
   })
 
-  it('logs a set in lb and shows the unit', async () => {
+  it('logs a set in lb using the sticky weight-unit toggle', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -136,10 +136,12 @@ describe('Workout', () => {
       sets: [benchSet({ unit: 'lb', weight: 135 })],
     })
     renderWorkout()
+    await screen.findByLabelText(/ejercicio/i)
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    // The unit is a workout-wide preference, not a per-set field.
+    await userEvent.click(screen.getByRole('button', { name: 'lb' }))
+    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await userEvent.selectOptions(screen.getByLabelText(/unidad/i), 'lb')
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '135')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
@@ -155,6 +157,17 @@ describe('Workout', () => {
       }),
     )
     expect(await screen.findByText(/135 lb x 8/i)).toBeInTheDocument()
+  })
+
+  it('remembers the weight unit across sessions', async () => {
+    localStorage.setItem('fitit_weight_unit', 'lb')
+    renderWorkout()
+
+    // The lb toggle reflects the stored preference on load.
+    expect(await screen.findByRole('button', { name: 'lb' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   it('logs a set with RPE and a note', async () => {
