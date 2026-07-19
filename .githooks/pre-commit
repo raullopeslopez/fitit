@@ -13,8 +13,10 @@ STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 status=0
 
 if printf '%s\n' "$STAGED" | grep -q '^backend/'; then
-  echo "pre-commit: backend changed -> uv run pytest"
-  if ! ( cd "$ROOT/backend" && uv run pytest -q ); then
+  # `python -m pytest`, not `uv run pytest`: the console-script trampoline can fail
+  # to canonicalize its path on some Windows setups; the module invocation is robust.
+  echo "pre-commit: backend changed -> uv run python -m pytest"
+  if ! ( cd "$ROOT/backend" && uv run python -m pytest -q ); then
     echo "pre-commit: backend tests FAILED."
     status=1
   fi
