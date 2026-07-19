@@ -170,6 +170,82 @@ describe('Workout', () => {
     )
   })
 
+  function cardioSet(overrides = {}) {
+    return {
+      id: 30,
+      exercise_id: 3,
+      exercise_name: 'Correr',
+      kind: 'cardio',
+      set_index: 0,
+      reps: null,
+      weight: null,
+      unit: 'kg',
+      rpe: null,
+      note: null,
+      duration_seconds: 1470,
+      distance: 5.2,
+      distance_unit: 'km',
+      ...overrides,
+    }
+  }
+
+  it('logs a cardio run via the cardio card', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Correr',
+      found: false,
+      sets: [],
+      kind: null,
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [cardioSet()],
+    })
+    renderWorkout()
+    await screen.findByLabelText(/ejercicio/i)
+
+    // Pick Cardio before adding the exercise.
+    await userEvent.click(screen.getByRole('button', { name: /cardio/i }))
+    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Correr')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    await userEvent.type(await screen.findByLabelText(/duración/i), '24:30')
+    await userEvent.type(screen.getByLabelText(/distancia/i), '5.2')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    await waitFor(() =>
+      expect(api.logSet).toHaveBeenCalledWith(1, {
+        exercise_name: 'Correr',
+        kind: 'cardio',
+        duration_seconds: 1470,
+        distance: 5.2,
+        distance_unit: 'km',
+        note: null,
+      }),
+    )
+    expect(await screen.findByRole('listitem')).toHaveTextContent(
+      /24:30 · 5\.2 km · 4:43\/km/i,
+    )
+  })
+
+  it('renders the cardio card for a known cardio exercise', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Correr',
+      found: true,
+      sets: [cardioSet()],
+      kind: 'cardio',
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Correr')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    // Cardio card: a duration field, and no weight steppers.
+    expect(await screen.findByLabelText(/duración/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/peso/i)).not.toBeInTheDocument()
+  })
+
   it('logs a set with RPE and a note', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({

@@ -10,8 +10,20 @@ import {
   logSet,
   renameWorkout,
 } from './api.js'
-import { estimatedOneRm, formatDate, formatSet } from './format.js'
-import { getWeightUnit, setWeightUnit } from './prefs.js'
+import {
+  estimatedOneRm,
+  formatCardioSet,
+  formatDate,
+  formatDuration,
+  formatSet,
+  parseDuration,
+} from './format.js'
+import {
+  getDistanceUnit,
+  getWeightUnit,
+  setDistanceUnit,
+  setWeightUnit,
+} from './prefs.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -382,6 +394,196 @@ function ExerciseCard({ name, previous, sets, weightUnit, onLogSet, onEditSet, o
   )
 }
 
+function CardioCard({
+  name,
+  previous,
+  sets,
+  distanceUnit,
+  onChooseDistanceUnit,
+  onLogSet,
+  onDeleteSet,
+}) {
+  const seed = previous?.found ? previous.sets?.[0] : null
+  const [duration, setDuration] = useState(
+    seed?.duration_seconds ? formatDuration(seed.duration_seconds) : '',
+  )
+  const [distance, setDistance] = useState(seed?.distance ? String(seed.distance) : '')
+  const [note, setNote] = useState('')
+  const [logging, setLogging] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState(null)
+  const [error, setError] = useState('')
+
+  async function handleLog(event) {
+    event.preventDefault()
+    const seconds = parseDuration(duration)
+    if (seconds == null || seconds < 1) {
+      setError('Introduce una duración (mm:ss).')
+      return
+    }
+    let dist = null
+    if (distance.trim() !== '') {
+      const d = Number(distance)
+      if (!Number.isFinite(d) || d < 0) {
+        setError('Introduce una distancia de 0 o más.')
+        return
+      }
+      dist = d
+    }
+    setError('')
+    setLogging(true)
+    try {
+      await onLogSet(name, {
+        kind: 'cardio',
+        duration_seconds: seconds,
+        distance: dist,
+        distance_unit: dist != null ? distanceUnit : null,
+        note: note.trim() || null,
+      })
+      setDuration('')
+      setDistance('')
+      setNote('')
+    } catch {
+      setError('No se pudo registrar la serie.')
+    } finally {
+      setLogging(false)
+    }
+  }
+
+  async function handleDelete(setId) {
+    setError('')
+    setOpenMenuId(null)
+    try {
+      await onDeleteSet(setId)
+    } catch {
+      setError('No se pudo borrar la serie.')
+    }
+  }
+
+  const totalSeconds = sets.reduce((t, s) => t + (s.duration_seconds || 0), 0)
+  const totalDistance = Math.round(sets.reduce((t, s) => t + (s.distance || 0), 0) * 10) / 10
+  const seconds = parseDuration(duration)
+  const ready = seconds != null && seconds >= 1
+  const logLabel = ready
+    ? distance.trim() !== ''
+      ? `Registrar ${distance} ${distanceUnit} · ${formatDuration(seconds)}`
+      : `Registrar ${formatDuration(seconds)}`
+    : 'Registrar serie'
+
+  return (
+    <div className="card">
+      <h2>{name}</h2>
+
+      {previous && previous.found ? (
+        <div className="target">
+          <div className="target-label">Última vez</div>
+          <div className="target-meta">{previous.sets.map(formatCardioSet).join(' · ')}</div>
+        </div>
+      ) : (
+        <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
+      )}
+
+      <form onSubmit={handleLog}>
+        <div className="row">
+          <div className="field">
+            <label htmlFor={`dur-${name}`}>Duración</label>
+            <input
+              id={`dur-${name}`}
+              inputMode="numeric"
+              placeholder="mm:ss"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor={`dist-${name}`}>Distancia · {distanceUnit}</label>
+            <input
+              id={`dist-${name}`}
+              inputMode="decimal"
+              placeholder="opcional"
+              value={distance}
+              onChange={(e) => setDistance(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="prefs-bar">
+          <span className="prefs-label">Unidad</span>
+          <div className="unit-toggle" role="group" aria-label="km o mi">
+            {['km', 'mi'].map((u) => (
+              <button
+                key={u}
+                type="button"
+                className="unit-option"
+                aria-pressed={distanceUnit === u}
+                onClick={() => onChooseDistanceUnit(u)}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor={`cnote-${name}`}>Nota</label>
+          <input
+            id={`cnote-${name}`}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="opcional"
+          />
+        </div>
+        <button type="submit" className="btn-full btn-log" disabled={logging}>
+          {logging ? 'Registrando…' : logLabel}
+        </button>
+      </form>
+
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+
+      {sets.length > 0 ? (
+        <>
+          <p className="set-summary">
+            Total {formatDuration(totalSeconds)}
+            {totalDistance ? ` · ${totalDistance} ${distanceUnit}` : ''}
+          </p>
+          <ol className="sets">
+            {sets.map((set, index) => (
+              <li key={set.id}>
+                <span>{formatCardioSet(set)}</span>
+                <span className="set-index">Serie {index + 1}</span>
+                <button
+                  type="button"
+                  className="secondary set-action set-menu-btn"
+                  aria-label={`Más acciones · serie ${index + 1}`}
+                  aria-expanded={openMenuId === set.id}
+                  onClick={() => setOpenMenuId((id) => (id === set.id ? null : set.id))}
+                >
+                  ⋯
+                </button>
+                {openMenuId === set.id && (
+                  <div className="set-menu">
+                    <button
+                      type="button"
+                      className="secondary set-action"
+                      onClick={() => handleDelete(set.id)}
+                    >
+                      Borrar
+                    </button>
+                  </div>
+                )}
+                {set.note ? <span className="set-note">{set.note}</span> : null}
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <p className="hint">Aún no hay series.</p>
+      )}
+    </div>
+  )
+}
+
 export default function Workout({ workoutId, onExit }) {
   const [workout, setWorkout] = useState(null)
   const [exerciseInput, setExerciseInput] = useState('')
@@ -391,21 +593,35 @@ export default function Workout({ workoutId, onExit }) {
   const [nameInput, setNameInput] = useState('')
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
-  // kg/lb is a workout-wide preference, remembered across sessions.
+  // Units are workout-wide preferences, remembered across sessions.
   const [weightUnit, setWeightUnitState] = useState(getWeightUnit())
+  const [distanceUnit, setDistanceUnitState] = useState(getDistanceUnit())
+  // Kind for a brand-new exercise; ignored when the exercise already exists.
+  const [newKind, setNewKind] = useState('strength')
 
   function chooseWeightUnit(unit) {
     setWeightUnit(unit)
     setWeightUnitState(unit)
   }
 
+  function chooseDistanceUnit(unit) {
+    setDistanceUnit(unit)
+    setDistanceUnitState(unit)
+  }
+
   useEffect(() => {
     getWorkout(workoutId)
       .then((w) => {
         setWorkout(w)
-        // Seed a card per exercise already logged in this workout, in order.
+        // Seed a card per exercise already logged in this workout, in order —
+        // each set carries its exercise's kind so the right card renders.
         const names = [...new Set(w.sets.map((s) => s.exercise_name))]
-        setExercises(names.map((name) => ({ name, previous: null })))
+        setExercises(
+          names.map((name) => {
+            const first = w.sets.find((s) => s.exercise_name === name)
+            return { name, previous: null, kind: first?.kind ?? 'strength' }
+          }),
+        )
       })
       .catch(() => setError('No se pudo cargar el entreno.'))
   }, [workoutId])
@@ -425,8 +641,10 @@ export default function Workout({ workoutId, onExit }) {
     setAdding(true)
     try {
       const previous = await getPreviousMarks(name)
+      // A known exercise keeps its stored kind; a new one takes the toggle's choice.
+      const kind = previous.kind ?? newKind
       setExercises((list) =>
-        list.some((e) => e.name === name) ? list : [...list, { name, previous }],
+        list.some((e) => e.name === name) ? list : [...list, { name, previous, kind }],
       )
       setExerciseInput('')
     } catch {
@@ -436,15 +654,9 @@ export default function Workout({ workoutId, onExit }) {
     }
   }
 
-  async function logSetFor(name, { reps, weight, unit, rpe, note }) {
-    const updated = await logSet(workout.id, {
-      exercise_name: name,
-      reps,
-      weight,
-      unit,
-      rpe,
-      note,
-    })
+  async function logSetFor(name, fields) {
+    // fields carry either strength (reps/weight/…) or cardio (duration/…) metrics.
+    const updated = await logSet(workout.id, { exercise_name: name, ...fields })
     setWorkout(updated)
   }
 
@@ -588,6 +800,25 @@ export default function Workout({ workoutId, onExit }) {
             ))}
           </datalist>
         </div>
+        <div className="prefs-bar">
+          <span className="prefs-label">Tipo</span>
+          <div className="unit-toggle" role="group" aria-label="Fuerza o cardio">
+            {[
+              ['strength', 'Fuerza'],
+              ['cardio', 'Cardio'],
+            ].map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                className="unit-option"
+                aria-pressed={newKind === k}
+                onClick={() => setNewKind(k)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button type="submit" className="btn-full" disabled={adding}>
           {adding ? 'Comprobando…' : 'Añadir ejercicio'}
         </button>
@@ -599,18 +830,31 @@ export default function Workout({ workoutId, onExit }) {
         </p>
       )}
 
-      {exercises.map((ex) => (
-        <ExerciseCard
-          key={ex.name}
-          name={ex.name}
-          previous={ex.previous}
-          sets={setsFor(ex.name)}
-          weightUnit={weightUnit}
-          onLogSet={logSetFor}
-          onEditSet={editSetFor}
-          onDeleteSet={deleteSetFor}
-        />
-      ))}
+      {exercises.map((ex) =>
+        ex.kind === 'cardio' ? (
+          <CardioCard
+            key={ex.name}
+            name={ex.name}
+            previous={ex.previous}
+            sets={setsFor(ex.name)}
+            distanceUnit={distanceUnit}
+            onChooseDistanceUnit={chooseDistanceUnit}
+            onLogSet={logSetFor}
+            onDeleteSet={deleteSetFor}
+          />
+        ) : (
+          <ExerciseCard
+            key={ex.name}
+            name={ex.name}
+            previous={ex.previous}
+            sets={setsFor(ex.name)}
+            weightUnit={weightUnit}
+            onLogSet={logSetFor}
+            onEditSet={editSetFor}
+            onDeleteSet={deleteSetFor}
+          />
+        ),
+      )}
     </section>
   )
 }

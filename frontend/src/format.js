@@ -18,3 +18,51 @@ export function formatDate(iso) {
   const weekday = DIAS[new Date(y, m - 1, d).getDay()]
   return `${weekday}, ${d} ${MESES[m - 1]} ${y}`
 }
+
+// Cardio metrics. Duration is entered as "mm:ss" (or "h:mm:ss"), or a plain
+// number read as minutes; parseDuration returns whole seconds, or null if invalid.
+export function parseDuration(input) {
+  const s = String(input ?? '').trim()
+  if (s === '') return null
+  if (s.includes(':')) {
+    const parts = s.split(':')
+    if (parts.length < 2 || parts.length > 3) return null
+    const nums = parts.map((p) => Number(p))
+    if (nums.some((n) => !Number.isInteger(n) || n < 0)) return null
+    const [ss, mm] = [nums.pop(), nums.pop()]
+    const hh = nums.pop() ?? 0
+    if (ss >= 60 || mm >= 60) return null
+    return hh * 3600 + mm * 60 + ss
+  }
+  const minutes = Number(s)
+  if (!Number.isFinite(minutes) || minutes < 0) return null
+  return Math.round(minutes * 60)
+}
+
+const pad = (n) => String(n).padStart(2, '0')
+
+export function formatDuration(seconds) {
+  if (seconds == null || !Number.isFinite(seconds)) return ''
+  const s = Math.round(seconds)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
+}
+
+// Pace = time per one distance unit, e.g. "4:43/km". Null without a distance.
+export function formatPace(seconds, distance, unit) {
+  if (!distance || distance <= 0 || seconds == null) return null
+  const perUnit = Math.round(seconds / distance)
+  return `${Math.floor(perUnit / 60)}:${pad(perUnit % 60)}/${unit}`
+}
+
+export function formatCardioSet(set) {
+  const dur = formatDuration(set.duration_seconds)
+  if (!set.distance) return dur
+  return `${dur} · ${set.distance} ${set.distance_unit} · ${formatPace(
+    set.duration_seconds,
+    set.distance,
+    set.distance_unit,
+  )}`
+}

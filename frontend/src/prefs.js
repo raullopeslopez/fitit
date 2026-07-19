@@ -9,3 +9,13 @@ export function getWeightUnit() {
 export function setWeightUnit(unit) {
   localStorage.setItem(WEIGHT_UNIT_KEY, unit === 'lb' ? 'lb' : 'kg')
 }
+
+const DISTANCE_UNIT_KEY = 'fitit_distance_unit'
+
+export function getDistanceUnit() {
+  return localStorage.getItem(DISTANCE_UNIT_KEY) === 'mi' ? 'mi' : 'km'
+}
+
+export function setDistanceUnit(unit) {
+  localStorage.setItem(DISTANCE_UNIT_KEY, unit === 'mi' ? 'mi' : 'km')
+}
