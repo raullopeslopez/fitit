@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # The weight unit for strength sets.
 Unit = Literal["kg", "lb"]
+# The distance unit for cardio sets.
+DistanceUnit = Literal["km", "mi"]
 # How an exercise is measured: strength (weight × reps) or cardio (duration + distance).
 Kind = Literal["strength", "cardio"]
 
@@ -31,11 +33,19 @@ class SetIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     exercise_name: str = Field(min_length=1, max_length=120)
-    reps: int = Field(ge=1, le=1000)
-    weight: float = Field(ge=0, le=1000)  # 0 is valid (bodyweight)
+    # `kind` only matters when logging to a brand-new exercise; the router
+    # resolves the effective kind and validates the metrics below against it.
+    kind: Kind | None = None
+    # Strength metrics (required for strength, absent for cardio).
+    reps: int | None = Field(default=None, ge=1, le=1000)
+    weight: float | None = Field(default=None, ge=0, le=1000)  # 0 is valid (bodyweight)
     unit: Unit = "kg"
     rpe: float | None = Field(default=None, ge=1, le=10)  # perceived exertion
     note: str | None = Field(default=None, max_length=280)
+    # Cardio metrics (duration required for cardio, distance optional).
+    duration_seconds: int | None = Field(default=None, ge=1, le=86400)
+    distance: float | None = Field(default=None, ge=0, le=100000)
+    distance_unit: DistanceUnit | None = None
 
 
 class SetOut(BaseModel):
@@ -44,12 +54,16 @@ class SetOut(BaseModel):
     id: int
     exercise_id: int
     exercise_name: str
+    kind: str = "strength"
     set_index: int
-    reps: int
-    weight: float
+    reps: int | None = None
+    weight: float | None = None
     unit: str
     rpe: float | None = None
     note: str | None = None
+    duration_seconds: int | None = None
+    distance: float | None = None
+    distance_unit: str | None = None
 
 
 class WorkoutIn(BaseModel):

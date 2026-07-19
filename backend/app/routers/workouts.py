@@ -6,11 +6,45 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..db import get_session
-from ..exercise_repo import get_or_create_exercise
-from ..models import Day, SetEntry, Workout
+from ..exercise_repo import find_exercise, get_or_create_exercise
+from ..models import Day, Exercise, SetEntry, Workout
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
+
+
+def _set_out(entry: SetEntry, exercise: Exercise) -> SetOut:
+    return SetOut(
+        id=entry.id,
+        exercise_id=entry.exercise_id,
+        exercise_name=exercise.name,
+        kind=exercise.kind,
+        set_index=entry.set_index,
+        reps=entry.reps,
+        weight=entry.weight,
+        unit=entry.unit,
+        rpe=entry.rpe,
+        note=entry.note,
+        duration_seconds=entry.duration_seconds,
+        distance=entry.distance,
+        distance_unit=entry.distance_unit,
+    )
+
+
+def _validate_metrics(payload: SetIn, kind: str) -> None:
+    """A set's metric fields must match its exercise's kind (422 otherwise)."""
+    if kind == "cardio":
+        if payload.duration_seconds is None:
+            raise HTTPException(status_code=422, detail="cardio set needs a duration")
+        if payload.reps is not None or payload.weight is not None:
+            raise HTTPException(status_code=422, detail="cardio set has no reps or weight")
+    else:  # strength
+        if payload.reps is None or payload.weight is None:
+            raise HTTPException(status_code=422, detail="strength set needs reps and weight")
+        if payload.duration_seconds is not None or payload.distance is not None:
+            raise HTTPException(
+                status_code=422, detail="strength set has no duration or distance"
+            )
 
 
 def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
@@ -19,20 +53,7 @@ def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
         id=workout.id,
         date=day_date,
         name=workout.name,
-        sets=[
-            SetOut(
-                id=s.id,
-                exercise_id=s.exercise_id,
-                exercise_name=s.exercise.name,
-                set_index=s.set_index,
-                reps=s.reps,
-                weight=s.weight,
-                unit=s.unit,
-                rpe=s.rpe,
-                note=s.note,
-            )
-            for s in workout.sets
-        ],
+        sets=[_set_out(s, s.exercise) for s in workout.sets],
     )
 
 
@@ -151,7 +172,13 @@ async def log_set(
     if workout is None:
         raise HTTPException(status_code=404, detail="workout not found")
 
-    exercise = await get_or_create_exercise(session, payload.exercise_name)
+    # An existing exercise keeps its kind; a new one takes the payload's (default strength).
+    existing = await find_exercise(session, payload.exercise_name)
+    kind = existing.kind if existing else (payload.kind or "strength")
+    _validate_metrics(payload, kind)
+    exercise = existing or await get_or_create_exercise(
+        session, payload.exercise_name, kind=kind
+    )
 
     next_index = await session.scalar(
         select(func.count()).select_from(SetEntry).where(SetEntry.workout_id == workout_id)
@@ -166,6 +193,9 @@ async def log_set(
             unit=payload.unit,
             rpe=payload.rpe,
             note=payload.note or None,
+            duration_seconds=payload.duration_seconds,
+            distance=payload.distance,
+            distance_unit=payload.distance_unit,
         )
     )
     await session.commit()
@@ -187,7 +217,12 @@ async def edit_set(
     if set_entry is None:
         raise HTTPException(status_code=404, detail="set not found")
 
-    exercise = await get_or_create_exercise(session, payload.exercise_name)
+    existing = await find_exercise(session, payload.exercise_name)
+    kind = existing.kind if existing else (payload.kind or "strength")
+    _validate_metrics(payload, kind)
+    exercise = existing or await get_or_create_exercise(
+        session, payload.exercise_name, kind=kind
+    )
 
     set_entry.exercise_id = exercise.id
     set_entry.reps = payload.reps
@@ -195,19 +230,12 @@ async def edit_set(
     set_entry.unit = payload.unit
     set_entry.rpe = payload.rpe
     set_entry.note = payload.note or None
+    set_entry.duration_seconds = payload.duration_seconds
+    set_entry.distance = payload.distance
+    set_entry.distance_unit = payload.distance_unit
     await session.commit()
 
-    return SetOut(
-        id=set_entry.id,
-        exercise_id=set_entry.exercise_id,
-        exercise_name=exercise.name,
-        set_index=set_entry.set_index,
-        reps=set_entry.reps,
-        weight=set_entry.weight,
-        unit=set_entry.unit,
-        rpe=set_entry.rpe,
-        note=set_entry.note,
-    )
+    return _set_out(set_entry, exercise)
 
 
 @router.delete("/sets/{set_id}", status_code=status.HTTP_204_NO_CONTENT)

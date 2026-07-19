@@ -69,11 +69,16 @@ class SetEntry(Base):
     )
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"), index=True)
     set_index: Mapped[int] = mapped_column(Integer)
-    reps: Mapped[int] = mapped_column(Integer)
-    weight: Mapped[float] = mapped_column(Float)
+    # Strength metrics (null for cardio sets).
+    reps: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    weight: Mapped[float | None] = mapped_column(Float, nullable=True)
     unit: Mapped[str] = mapped_column(String(4), default="kg")
     rpe: Mapped[float | None] = mapped_column(Float, nullable=True)
     note: Mapped[str | None] = mapped_column(String(280), nullable=True)
+    # Cardio metrics (null for strength sets).
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    distance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    distance_unit: Mapped[str | None] = mapped_column(String(4), nullable=True)
 
     workout: Mapped["Workout"] = relationship(back_populates="sets")
     exercise: Mapped["Exercise"] = relationship(back_populates="sets")

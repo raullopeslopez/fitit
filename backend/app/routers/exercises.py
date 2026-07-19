@@ -52,6 +52,8 @@ async def exercise_history(
     ).all()
     best: dict = {}
     for day, weight, reps in rows:
+        if weight is None or reps is None:  # cardio sets have no 1RM
+            continue
         best[day] = max(best.get(day, 0.0), weight * (1 + reps / 30))
     return [HistoryPoint(date=day, one_rm=round(best[day], 1)) for day in sorted(best)]
 
@@ -71,12 +73,16 @@ async def previous_marks(
             exercise_name=normalize_exercise_name(name), found=False, sets=[], kind=None
         )
 
-    # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every logged set.
+    # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every strength set.
+    # Cardio sets have no weight/reps, so they're skipped.
     all_sets = (
         await session.scalars(select(SetEntry).where(SetEntry.exercise_id == exercise.id))
     ).all()
+    strength_sets = [s for s in all_sets if s.weight is not None and s.reps is not None]
     best_one_rm = (
-        round(max(s.weight * (1 + s.reps / 30) for s in all_sets), 1) if all_sets else None
+        round(max(s.weight * (1 + s.reps / 30) for s in strength_sets), 1)
+        if strength_sets
+        else None
     )
 
     last_workout_id = await session.scalar(
@@ -110,12 +116,16 @@ async def previous_marks(
                 id=s.id,
                 exercise_id=s.exercise_id,
                 exercise_name=exercise.name,
+                kind=exercise.kind,
                 set_index=s.set_index,
                 reps=s.reps,
                 weight=s.weight,
                 unit=s.unit,
                 rpe=s.rpe,
                 note=s.note,
+                duration_seconds=s.duration_seconds,
+                distance=s.distance,
+                distance_unit=s.distance_unit,
             )
             for s in result.scalars().all()
         ],
