@@ -306,6 +306,71 @@ describe('Workout', () => {
     expect(await screen.findByText(/nuevo récord/i)).toBeInTheDocument()
   })
 
+  async function logOneSet() {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet()],
+    })
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+  }
+
+  it('starts a rest countdown when a set is logged', async () => {
+    const { container } = renderWorkout()
+    expect(container.querySelector('.rest-bar')).toBeNull()
+
+    await logOneSet()
+
+    // Default rest is 90s. The clock is already running by the time this
+    // asserts, so pin the shape — zero-padded, somewhere in the 01:xx minute —
+    // rather than an exact second. formatClock's own tests cover the format.
+    await screen.findByRole('button', { name: /saltar/i })
+    expect(container.querySelector('.rest-num').textContent).toMatch(/^01:[0-3]\d$/)
+  })
+
+  it('dismisses the rest countdown with Saltar', async () => {
+    const { container } = renderWorkout()
+    await logOneSet()
+
+    await userEvent.click(await screen.findByRole('button', { name: /saltar/i }))
+
+    expect(container.querySelector('.rest-bar')).toBeNull()
+  })
+
+  it('does not start a countdown when rest is switched off', async () => {
+    renderWorkout()
+    await screen.findByLabelText(/ejercicio/i)
+    await userEvent.click(screen.getByRole('button', { name: /^sin descanso$/i }))
+
+    await logOneSet()
+
+    await waitFor(() => expect(api.logSet).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: /saltar/i })).not.toBeInTheDocument()
+  })
+
+  it('resumes a countdown that was still running when the view remounted', async () => {
+    // Absolute deadline, not a decrementing counter — leaving Entreno for Días
+    // and coming back mid-rest must not restart or lose the clock.
+    localStorage.setItem('fitit_rest_until', String(Date.now() + 45_000))
+    renderWorkout()
+
+    expect(await screen.findByRole('button', { name: /saltar/i })).toBeInTheDocument()
+  })
+
+  it('ignores a deadline that already expired while the app was closed', async () => {
+    localStorage.setItem('fitit_rest_until', String(Date.now() - 5_000))
+    renderWorkout()
+
+    await screen.findByLabelText(/ejercicio/i)
+    expect(screen.queryByRole('button', { name: /saltar/i })).not.toBeInTheDocument()
+  })
+
   it('flags the record set itself in the log, not just the banner', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',

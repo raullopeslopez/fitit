@@ -13,6 +13,7 @@ import {
 import {
   estimatedOneRm,
   formatCardioSet,
+  formatClock,
   formatDate,
   formatDuration,
   formatSet,
@@ -21,9 +22,14 @@ import {
 import { muscleColor } from './muscles.js'
 import { prSetIds } from './stats.js'
 import {
+  REST_OPTIONS,
   getDistanceUnit,
+  getRestSeconds,
+  getRestUntil,
   getWeightUnit,
   setDistanceUnit,
+  setRestSeconds,
+  setRestUntil,
   setWeightUnit,
 } from './prefs.js'
 
@@ -612,6 +618,34 @@ function CardioCard({
   )
 }
 
+// The between-sets countdown. Ticks off an absolute deadline rather than
+// decrementing a counter, so a backgrounded phone doesn't slow it down.
+function RestBar({ endsAt, total, onSkip }) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    // Sub-second so the readout never visibly sticks on a number.
+    const id = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(id)
+  }, [endsAt])
+
+  const remaining = Math.max(0, (endsAt - now) / 1000)
+  const left = total > 0 ? Math.min(100, (remaining / total) * 100) : 0
+
+  return (
+    <div className="rest-bar" role="timer" aria-label={`Descanso ${formatClock(remaining)}`}>
+      <span className="rest-label">Descanso</span>
+      <span className="rest-num">{formatClock(remaining)}</span>
+      <button type="button" className="secondary" onClick={onSkip}>
+        Saltar
+      </button>
+      <div className="rest-track" aria-hidden="true">
+        <span style={{ width: `${left}%` }} />
+      </div>
+    </div>
+  )
+}
+
 export default function Workout({ workoutId, onExit }) {
   const [workout, setWorkout] = useState(null)
   const [exerciseInput, setExerciseInput] = useState('')
@@ -627,6 +661,42 @@ export default function Workout({ workoutId, onExit }) {
   const [distanceUnit, setDistanceUnitState] = useState(getDistanceUnit())
   // Kind for a brand-new exercise; ignored when the exercise already exists.
   const [newKind, setNewKind] = useState('strength')
+  // Rest countdown. `restEndsAt` resumes from storage, so leaving Entreno
+  // mid-rest and coming back picks the clock up where it actually is.
+  const [restSeconds, setRestSecondsState] = useState(getRestSeconds)
+  const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
+
+  function endRest() {
+    setRestUntil(null)
+    setRestEndsAt(null)
+  }
+
+  function startRest() {
+    if (restSeconds <= 0) return
+    const until = Date.now() + restSeconds * 1000
+    setRestUntil(until)
+    setRestEndsAt(until)
+  }
+
+  function chooseRestSeconds(seconds) {
+    setRestSeconds(seconds)
+    setRestSecondsState(seconds)
+    // Turning rest off should stop the clock you're looking at, not just the
+    // next one.
+    if (seconds <= 0) endRest()
+  }
+
+  // Retire the bar the moment it runs out, without waiting for the next tick.
+  useEffect(() => {
+    if (restEndsAt == null) return undefined
+    const ms = restEndsAt - Date.now()
+    if (ms <= 0) {
+      endRest()
+      return undefined
+    }
+    const id = setTimeout(endRest, ms)
+    return () => clearTimeout(id)
+  }, [restEndsAt])
 
   function chooseWeightUnit(unit) {
     setWeightUnit(unit)
@@ -690,6 +760,9 @@ export default function Workout({ workoutId, onExit }) {
     // fields carry either strength (reps/weight/…) or cardio (duration/…) metrics.
     const updated = await logSet(workout.id, { exercise_name: name, ...fields })
     setWorkout(updated)
+    // The rest starts when the set lands, not when you tapped — a failed
+    // request shouldn't leave you resting on a set you never logged.
+    startRest()
   }
 
   async function editSetFor(set, { reps, weight, rpe, note }) {
@@ -799,6 +872,10 @@ export default function Workout({ workoutId, onExit }) {
         )}
       </div>
 
+      {restEndsAt != null && (
+        <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={endRest} />
+      )}
+
       <div className="prefs-bar">
         <span className="prefs-label">Peso</span>
         <div className="unit-toggle" role="group" aria-label="Unidad">
@@ -811,6 +888,23 @@ export default function Workout({ workoutId, onExit }) {
               onClick={() => chooseWeightUnit(u)}
             >
               {u}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="prefs-bar">
+        <span className="prefs-label">Descanso</span>
+        <div className="unit-toggle" role="group" aria-label="Descanso entre series">
+          {REST_OPTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="unit-option"
+              aria-pressed={restSeconds === s}
+              onClick={() => chooseRestSeconds(s)}
+            >
+              {s === 0 ? 'Sin descanso' : `${s}s`}
             </button>
           ))}
         </div>

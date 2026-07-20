@@ -50,6 +50,15 @@ export function formatDuration(seconds) {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
+// mm:ss with a padded minute, for a live countdown. Unlike formatDuration this
+// never drops the leading zero — a readout that reflows from 1:00 to 59 while
+// you're staring at it between sets is noise. Clamped at zero, so an overrun
+// deadline reads 00:00 rather than going negative.
+export function formatClock(seconds) {
+  const s = Math.max(0, Math.round(seconds ?? 0))
+  return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`
+}
+
 // Pace = time per one distance unit, e.g. "4:43/km". Null without a distance.
 export function formatPace(seconds, distance, unit) {
   if (!distance || distance <= 0 || seconds == null) return null

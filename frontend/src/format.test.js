@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { formatCardioSet, formatDuration, formatPace, parseDuration } from './format.js'
+import { formatCardioSet, formatClock, formatDuration, formatPace, parseDuration } from './format.js'
 
 describe('parseDuration', () => {
   it('parses mm:ss into seconds', () => {
@@ -52,5 +52,22 @@ describe('formatCardioSet', () => {
   })
   it('shows just the duration when there is no distance', () => {
     expect(formatCardioSet({ duration_seconds: 60 })).toBe('1:00')
+  })
+})
+
+describe('formatClock', () => {
+  it('zero-pads the minutes so the readout never reflows mid-countdown', () => {
+    expect(formatClock(92)).toBe('01:32')
+    expect(formatClock(90)).toBe('01:30')
+    expect(formatClock(5)).toBe('00:05')
+  })
+
+  it('clamps a finished or overrun countdown to zero', () => {
+    expect(formatClock(0)).toBe('00:00')
+    expect(formatClock(-3)).toBe('00:00')
+  })
+
+  it('keeps counting past an hour in minutes rather than rolling over', () => {
+    expect(formatClock(3605)).toBe('60:05')
   })
 })
