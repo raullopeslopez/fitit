@@ -740,3 +740,108 @@ button.set-action {
 .login-card h1 {
   margin-bottom: 1rem;
 }
+
+/* Consistency heat map. Amber ramp, not green — a heat map of effort is heat.
+   Intensity = sets logged that day; level 0 is a rest day (faint neutral). */
+.heatmap-card {
+  padding: 1.15rem 1.2rem 1rem;
+}
+.heatmap-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.streak-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.streak-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.4rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--pr);
+}
+.streak-word {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.heat-legend-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.heatmap {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  overflow-x: auto; /* never let the grid push the card wider than the screen */
+}
+.heat-days {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 0; /* aligns with the grid rows */
+}
+.heat-daylabel {
+  height: 16px;
+  line-height: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+.heat-grid {
+  display: flex;
+  gap: 3px;
+}
+.heat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.heat-cell {
+  width: 16px;
+  height: 16px;
+  min-height: 0; /* override the global button min-height:44px so cells stay square */
+  flex: none;
+  border: none;
+  border-radius: 3px;
+  padding: 0;
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+}
+button.heat-cell {
+  cursor: pointer;
+}
+.heat-1 {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.heat-2 {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.heat-3 {
+  background: color-mix(in srgb, var(--accent) 74%, transparent);
+}
+.heat-4 {
+  background: var(--accent);
+}
+.heat-future {
+  background: transparent;
+}
+.heat-readout {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

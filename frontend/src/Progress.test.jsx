@@ -115,6 +115,26 @@ describe('Progress', () => {
     expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Hombro')
   })
 
+  it('shows the consistency heatmap with a streak when there are training days', async () => {
+    api.getExerciseHistory.mockResolvedValue([])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [{ id: 1, exercise_name: 'Bench', reps: 5, weight: 80, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    render(<Progress />)
+
+    expect(await screen.findByText(/racha/i)).toBeInTheDocument()
+  })
+
   it('shows an empty state when there is no history', async () => {
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)

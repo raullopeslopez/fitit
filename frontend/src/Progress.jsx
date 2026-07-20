@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { getExerciseHistory, listDays, listExercises, setExerciseMuscle } from './api.js'
 import { formatDate } from './format.js'
+import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 
 function Chart({ points, color }) {
@@ -81,6 +82,7 @@ function frequencies(days) {
 
 export default function Progress() {
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
+  const [days, setDays] = useState([]) // the days feed, for the consistency heatmap
   const [freq, setFreq] = useState({})
   const [name, setName] = useState('') // search box + the currently charted lift
   const [muscle, setMuscle] = useState(null) // selected muscle filter
@@ -119,6 +121,7 @@ export default function Progress() {
     // Open on your most-trained lift, and select its muscle.
     listDays()
       .then((days) => {
+        setDays(days || [])
         const counts = frequencies(days || [])
         setFreq(counts)
         const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
@@ -170,6 +173,8 @@ export default function Progress() {
 
   return (
     <section>
+      {days.length > 0 && <Heatmap days={days} />}
+
       <form className="card" onSubmit={(e) => {
         e.preventDefault()
         loadHistory(name)
