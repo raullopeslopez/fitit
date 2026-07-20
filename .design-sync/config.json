@@ -1,0 +1,10 @@
+{
+  "projectId": "662b82d7-5276-4990-9270-2a1a2dd1a448",
+  "shape": "package",
+  "pkg": "fitit-frontend",
+  "globalName": "Fitit",
+  "cssEntry": "src/styles.css",
+  "extraFonts": ["../.design-sync/fonts/fonts.css"],
+  "guidelinesGlob": ["../DESIGN.md"],
+  "readmeHeader": ".design-sync/conventions.md"
+}
