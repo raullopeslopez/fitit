@@ -106,6 +106,25 @@ class HistoryPoint(BaseModel):
     one_rm: float
 
 
+class BestMark(BaseModel):
+    """The single best set for one exercise, and how far it moved the record.
+
+    `delta_one_rm` is the gap to the previous best, so a mark set today reads
+    differently from one that has stood for months. None means nothing to
+    compare against: a first-ever mark, or a record nothing has since beaten.
+    Spec: tests/features/best_marks.feature
+    """
+
+    exercise_id: int
+    exercise_name: str
+    muscle_group: str | None = None
+    reps: int
+    weight: float
+    unit: str
+    one_rm: float
+    delta_one_rm: float | None = None
+
+
 class PreviousMarks(BaseModel):
     exercise_name: str
     found: bool = False

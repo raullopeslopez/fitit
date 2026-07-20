@@ -84,6 +84,11 @@ export function getExerciseHistory(name) {
   return apiFetch(`/exercises/history?name=${encodeURIComponent(name)}`)
 }
 
+// Best set per exercise, strongest first, with the gap to the record it beat.
+export function getBestMarks() {
+  return apiFetch('/exercises/records')
+}
+
 export function logSet(workoutId, set) {
   return apiFetch(`/workouts/${workoutId}/sets`, {
     method: 'POST',

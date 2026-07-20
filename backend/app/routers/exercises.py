@@ -8,6 +8,7 @@ from ..models import Day, Exercise, SetEntry, Workout
 from ..muscles import MUSCLE_GROUPS, classify
 from ..naming import normalize_exercise_name
 from ..schemas import (
+    BestMark,
     ExerciseIn,
     ExerciseOut,
     ExercisePatch,
@@ -100,6 +101,57 @@ async def exercise_history(
             continue
         best[day] = max(best.get(day, 0.0), weight * (1 + reps / 30))
     return [HistoryPoint(date=day, one_rm=round(best[day], 1)) for day in sorted(best)]
+
+
+@router.get("/exercises/records", response_model=list[BestMark])
+async def best_marks(
+    limit: int = 10, session: AsyncSession = Depends(get_session)
+) -> list[BestMark]:
+    """The best set per exercise, strongest first, with the gap to the record it beat.
+
+    Ranked by estimated 1RM (Epley) rather than raw weight, so a heavy single
+    doesn't unseat a genuinely better set for more reps. Cardio has no 1RM and
+    is left out entirely.
+
+    `delta_one_rm` compares the record to the best set logged BEFORE it, using
+    each set's own timestamp — an all-time best that has stood for months
+    reports None, the same as a first-ever mark, because in both cases there is
+    nothing it just improved on.
+
+    Spec: tests/features/best_marks.feature
+    """
+    rows = (
+        await session.execute(
+            select(SetEntry, Exercise)
+            .join(Exercise, Exercise.id == SetEntry.exercise_id)
+            .where(SetEntry.weight.is_not(None), SetEntry.reps.is_not(None))
+            .order_by(SetEntry.created_at, SetEntry.id)
+        )
+    ).all()
+
+    # Walk each exercise's sets oldest-first, tracking the running record. The
+    # delta is whatever the final record beat when it was set, which is why
+    # this needs the ordered walk rather than a max() over the whole column.
+    best: dict[int, BestMark] = {}
+    for entry, exercise in rows:
+        one_rm = round(entry.weight * (1 + entry.reps / 30), 1)
+        standing = best.get(exercise.id)
+        if standing is not None and one_rm <= standing.one_rm:
+            continue
+        best[exercise.id] = BestMark(
+            exercise_id=exercise.id,
+            exercise_name=exercise.name,
+            muscle_group=exercise.muscle_group or classify(exercise.name),
+            reps=entry.reps,
+            weight=entry.weight,
+            unit=entry.unit,
+            one_rm=one_rm,
+            delta_one_rm=(
+                round(one_rm - standing.one_rm, 1) if standing is not None else None
+            ),
+        )
+
+    return sorted(best.values(), key=lambda m: m.one_rm, reverse=True)[:limit]
 
 
 @router.get("/exercises/previous", response_model=PreviousMarks)

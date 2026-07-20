@@ -11,6 +11,47 @@ describe('Progress', () => {
     vi.resetAllMocks()
     api.listExercises.mockResolvedValue([])
     api.listDays.mockResolvedValue([])
+    api.getBestMarks.mockResolvedValue([])
+  })
+
+  it('lists my best marks with the gap to the record each one beat', async () => {
+    api.getBestMarks.mockResolvedValue([
+      {
+        exercise_id: 1,
+        exercise_name: 'Sentadilla',
+        muscle_group: 'Pierna',
+        reps: 3,
+        weight: 120,
+        unit: 'kg',
+        one_rm: 132,
+        delta_one_rm: 5,
+      },
+      {
+        exercise_id: 2,
+        exercise_name: 'Peso muerto',
+        muscle_group: 'Espalda',
+        reps: 2,
+        weight: 150,
+        unit: 'kg',
+        one_rm: 160,
+        delta_one_rm: null,
+      },
+    ])
+    render(<Progress />)
+
+    expect(await screen.findByText(/mejores marcas/i)).toBeInTheDocument()
+    expect(screen.getByText('Sentadilla')).toBeInTheDocument()
+    expect(screen.getByText(/120 kg × 3/)).toBeInTheDocument()
+    expect(screen.getByText('+5 kg')).toBeInTheDocument()
+    // A record nothing has beaten yet gets a dash, not a fake +0.
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('says nothing about best marks when there are none', async () => {
+    render(<Progress />)
+
+    await waitFor(() => expect(api.getBestMarks).toHaveBeenCalled())
+    expect(screen.queryByText(/mejores marcas/i)).not.toBeInTheDocument()
   })
 
   it('charts an exercise 1RM history', async () => {

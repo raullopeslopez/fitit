@@ -908,6 +908,44 @@ button.heat-cell {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+/* Best marks: a spec sheet, not a leaderboard. Name left, value right, the
+   delta last so the eye can run down a single column of movement. */
+.bests {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+.bests li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.1rem;
+  border-bottom: 1px solid var(--border);
+}
+.bests li:last-child {
+  border-bottom: none;
+}
+.bests .name {
+  flex: 1;
+  font-weight: 600;
+}
+.bests .val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.bests .delta {
+  min-width: 3.6rem;
+  color: var(--pr);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  text-align: right;
+}
+/* A standing record isn't an improvement — it shouldn't wear the PR colour. */
+.bests .delta.flat {
+  color: var(--muted);
+}
+
 .heat-readout {
   margin: 0.9rem 0 0;
   font-family: var(--font-mono);

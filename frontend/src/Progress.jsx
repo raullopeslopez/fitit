@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 
-import { getExerciseHistory, listDays, listExercises, setExerciseMuscle } from './api.js'
+import {
+  getBestMarks,
+  getExerciseHistory,
+  listDays,
+  listExercises,
+  setExerciseMuscle,
+} from './api.js'
 import { formatDate } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
@@ -89,6 +95,7 @@ export default function Progress() {
   const [points, setPoints] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [bests, setBests] = useState([]) // best set per exercise, strongest first
 
   const muscleOf = (lift) =>
     exercises.find((e) => e.name === lift)?.muscle_group ?? null
@@ -101,6 +108,12 @@ export default function Progress() {
         ),
       )
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    getBestMarks()
+      .then(setBests)
+      .catch(() => {}) // the rest of Progreso still works without records
   }, [])
 
   // Fix a mis-guessed group; the classifier is only a default. Updates locally so
@@ -174,6 +187,31 @@ export default function Progress() {
   return (
     <section>
       {days.length > 0 && <Heatmap days={days} />}
+
+      {bests.length > 0 && (
+        <div className="card">
+          <h2>Mejores marcas</h2>
+          <ul className="bests">
+            {bests.map((mark) => (
+              <li key={mark.exercise_id}>
+                <span
+                  className="dot"
+                  aria-hidden="true"
+                  style={{ '--chip': muscleColor(mark.muscle_group) }}
+                />
+                <span className="name">{mark.exercise_name}</span>
+                <span className="val">
+                  {mark.weight} {mark.unit} × {mark.reps}
+                </span>
+                {/* A record nothing has beaten yet gets a dash, not a fake +0. */}
+                <span className={`delta${mark.delta_one_rm ? '' : ' flat'}`}>
+                  {mark.delta_one_rm ? `+${mark.delta_one_rm} ${mark.unit}` : '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form className="card" onSubmit={(e) => {
         e.preventDefault()
