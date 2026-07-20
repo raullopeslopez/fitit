@@ -19,6 +19,7 @@ import {
   parseDuration,
 } from './format.js'
 import { muscleColor } from './muscles.js'
+import { prSetIds } from './stats.js'
 import {
   getDistanceUnit,
   getWeightUnit,
@@ -184,6 +185,9 @@ function ExerciseCard({
   const bestOneRm = sets.length
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight, s.reps)))
     : 0
+  // Which rows earn the PR badge. Derived from the log against the mark you
+  // walked in with, so unlike the transient banner it survives a reload.
+  const prIds = prSetIds(sets, seededBest)
 
   const ready = reps !== '' && weight !== ''
 
@@ -314,7 +318,8 @@ function ExerciseCard({
       {sets.length > 0 ? (
         <>
         <p className="set-summary">
-          Volumen {volume} {sets[0].unit} · Mejor 1RM {bestOneRm}
+          {sets.length} {sets.length === 1 ? 'serie' : 'series'} · {volume} {sets[0].unit} volumen ·
+          Mejor 1RM {bestOneRm}
         </p>
         <ol className="sets">
           {sets.map((set, index) => (
@@ -363,6 +368,11 @@ function ExerciseCard({
                   <span>
                     {formatSet(set)}
                     {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                    {prIds.has(set.id) && (
+                      <span className="pr-flag" title="Récord al registrarla">
+                        PR
+                      </span>
+                    )}
                   </span>
                   <span className="set-index">Serie {index + 1}</span>
                   {/* Rare actions live behind an overflow so the readout stays clean. */}

@@ -21,11 +21,12 @@ export default function Heatmap({ days, weeks = 15, endDate }) {
           <span className="streak-word">{streak === 1 ? 'día de racha' : 'días de racha'}</span>
         </div>
         <div className="heat-legend" aria-hidden="true">
-          <span className="heat-legend-label">menos</span>
+          {/* Naming the ends in sets, not "menos/más", says what a step is worth. */}
+          <span className="heat-legend-label">0</span>
           {[0, 1, 2, 3, 4].map((l) => (
             <span key={l} className={`heat-cell heat-${l}`} />
           ))}
-          <span className="heat-legend-label">más</span>
+          <span className="heat-legend-label">20+</span>
         </div>
       </div>
 
@@ -45,14 +46,19 @@ export default function Heatmap({ days, weeks = 15, endDate }) {
                   <button
                     key={cell.date}
                     type="button"
-                    className={`heat-cell heat-${cell.level}`}
+                    className={`heat-cell heat-${cell.level}${cell.today ? ' heat-today' : ''}`}
                     aria-label={`${cell.date}: ${cell.count} series`}
                     onClick={() => setSelected(cell)}
                   />
                 ) : (
                   <span
                     key={cell.date}
-                    className={`heat-cell ${cell.future ? 'heat-future' : `heat-${cell.level}`}`}
+                    // Today is outlined even on a rest day — the empty cell is
+                    // the point, it's the one you can still fill.
+                    className={`heat-cell ${cell.future ? 'heat-future' : `heat-${cell.level}`}${
+                      cell.today ? ' heat-today' : ''
+                    }`}
+                    aria-label={cell.today ? `${cell.date}: hoy, sin series` : undefined}
                   />
                 ),
               )}

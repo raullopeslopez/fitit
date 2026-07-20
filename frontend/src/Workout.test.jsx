@@ -306,6 +306,77 @@ describe('Workout', () => {
     expect(await screen.findByText(/nuevo récord/i)).toBeInTheDocument()
   })
 
+  it('flags the record set itself in the log, not just the banner', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet()],
+      best_one_rm: 76,
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      // 60x8 -> 76.0 (ties the prior best, no flag); 80x3 -> 88.0 beats it.
+      sets: [benchSet({ id: 20 }), benchSet({ id: 21, reps: 3, weight: 80 })],
+    })
+    const { container } = renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.clear(screen.getByLabelText(/reps/i))
+    await userEvent.type(screen.getByLabelText(/reps/i), '3')
+    await userEvent.clear(screen.getByLabelText(/peso/i))
+    await userEvent.type(screen.getByLabelText(/peso/i), '80')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    await waitFor(() => expect(container.querySelectorAll('.pr-flag')).toHaveLength(1))
+    const flagged = container.querySelector('li:has(.pr-flag)')
+    expect(flagged).toHaveTextContent(/80/)
+  })
+
+  it('does not flag any set when none beats the previous best', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet()],
+      best_one_rm: 200,
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet()],
+    })
+    const { container } = renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    await waitFor(() => expect(api.logSet).toHaveBeenCalled())
+    expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
+  })
+
+  it('counts the series in the session summary', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet(), benchSet({ id: 11 }), benchSet({ id: 12 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(await screen.findByText(/3 series/i)).toBeInTheDocument()
+  })
+
   it('does not celebrate a non-record set', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',

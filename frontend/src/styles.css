@@ -574,6 +574,22 @@ button.set-action {
   font-size: 0.85rem;
   font-family: var(--font-mono);
 }
+/* The badge on the set that broke the record. Amber outline, not a fill — the
+   PR banner is the celebration; this is just the mark in the log. */
+.pr-flag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--pr) 45%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pr) 12%, transparent);
+  color: var(--pr);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  vertical-align: 0.1em;
+}
 .set-summary {
   margin: 0.6rem 0 0;
   font-size: 0.85rem;
@@ -836,6 +852,12 @@ button.heat-cell {
 }
 .heat-future {
   background: transparent;
+}
+/* Today, outlined rather than filled — it marks where you are in the grid
+   without claiming effort you haven't logged yet. */
+.heat-cell.heat-today {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .heat-readout {
   margin: 0.9rem 0 0;

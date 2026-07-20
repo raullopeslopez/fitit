@@ -30,4 +30,22 @@ describe('Heatmap', () => {
     const { container } = render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
     expect(container.querySelectorAll('button.heat-cell')).toHaveLength(1)
   })
+
+  it('outlines today so you can find yourself in the grid', () => {
+    const { container } = render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
+    const today = container.querySelectorAll('.heat-today')
+    expect(today).toHaveLength(1)
+    expect(today[0].getAttribute('aria-label')).toMatch(/2026-07-16/)
+  })
+
+  it('outlines today even when it is a rest day', () => {
+    const { container } = render(<Heatmap days={[day('2026-07-15', 12)]} endDate="2026-07-16" />)
+    expect(container.querySelectorAll('.heat-today')).toHaveLength(1)
+  })
+
+  it('labels the legend with the set counts it stands for', () => {
+    render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
+    expect(screen.getByText('0')).toBeInTheDocument()
+    expect(screen.getByText('20+')).toBeInTheDocument()
+  })
 })
