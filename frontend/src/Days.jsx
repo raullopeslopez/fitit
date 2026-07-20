@@ -167,7 +167,7 @@ export default function Days({ onOpenWorkout }) {
               <h2>{formatDate(day.date)}</h2>
               <button
                 type="button"
-                className="secondary set-action"
+                className="secondary set-action btn-danger"
                 onClick={() => handleDeleteDay(day.id)}
               >
                 Borrar día

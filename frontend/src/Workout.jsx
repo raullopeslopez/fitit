@@ -780,7 +780,7 @@ export default function Workout({ workoutId, onExit }) {
             </button>
             <button
               type="button"
-              className="secondary set-action"
+              className="secondary set-action btn-danger"
               onClick={handleDeleteWorkout}
             >
               Borrar entreno

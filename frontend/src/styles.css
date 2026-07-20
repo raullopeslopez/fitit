@@ -341,6 +341,15 @@ button.secondary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
   color: var(--text);
 }
+/* Destructive actions (Borrar día, Borrar entreno): same semantic --danger as .alert. */
+button.secondary.btn-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+}
+button.secondary.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
 button.set-action {
   /* DESIGN.md: 44px minimum on interactive controls (one-handed, gym use). */
   min-height: 44px;
