@@ -332,14 +332,13 @@ button:disabled {
 }
 button.secondary {
   background: transparent;
-  color: var(--muted);
+  color: var(--text);
   border: 1px solid var(--border);
   min-height: 36px;
   padding: 0.4rem 0.75rem;
 }
 button.secondary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
-  color: var(--text);
 }
 button.set-action {
   /* DESIGN.md: 44px minimum on interactive controls (one-handed, gym use). */
