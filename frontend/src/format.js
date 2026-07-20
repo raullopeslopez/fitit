@@ -59,6 +59,15 @@ export function formatClock(seconds) {
   return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`
 }
 
+// The clock time a set was logged, in the viewer's own zone — "18:04". Local
+// on purpose: what matters is the hour you were under the bar, not UTC.
+export function formatTime(iso) {
+  if (!iso) return ''
+  const dt = new Date(iso)
+  if (Number.isNaN(dt.getTime())) return ''
+  return `${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+}
+
 // Pace = time per one distance unit, e.g. "4:43/km". Null without a distance.
 export function formatPace(seconds, distance, unit) {
   if (!distance || distance <= 0 || seconds == null) return null

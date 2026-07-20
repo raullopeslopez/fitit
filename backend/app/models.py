@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -79,6 +79,19 @@ class SetEntry(Base):
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     distance: Mapped[float | None] = mapped_column(Float, nullable=True)
     distance_unit: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    # The workout carries the date, the set carries the moment — it's what
+    # separates a tight five-set block from one spread over an hour.
+    #
+    # Both defaults on purpose. Sessions run with expire_on_commit=False, so a
+    # server_default alone is never read back after INSERT and the API would
+    # answer created_at: null for the set it just wrote. The Python default
+    # populates the object; the server default still covers rows inserted
+    # outside the ORM (migrations, manual SQL).
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
 
     workout: Mapped["Workout"] = relationship(back_populates="sets")
     exercise: Mapped["Exercise"] = relationship(back_populates="sets")

@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
 
-import { formatCardioSet, formatClock, formatDuration, formatPace, parseDuration } from './format.js'
+import {
+  formatCardioSet,
+  formatClock,
+  formatDuration,
+  formatPace,
+  formatTime,
+  parseDuration,
+} from './format.js'
 
 describe('parseDuration', () => {
   it('parses mm:ss into seconds', () => {
@@ -69,5 +76,23 @@ describe('formatClock', () => {
 
   it('keeps counting past an hour in minutes rather than rolling over', () => {
     expect(formatClock(3605)).toBe('60:05')
+  })
+})
+
+describe('formatTime', () => {
+  it('reads back the local clock time a set was logged at', () => {
+    // Built from local parts and read back as local parts, so the assertion
+    // holds in any timezone the suite happens to run in.
+    const iso = new Date(2026, 6, 16, 18, 4).toISOString()
+    expect(formatTime(iso)).toBe('18:04')
+  })
+
+  it('zero-pads both halves', () => {
+    expect(formatTime(new Date(2026, 6, 16, 9, 5).toISOString())).toBe('09:05')
+  })
+
+  it('is empty for a set with no recorded moment', () => {
+    expect(formatTime(null)).toBe('')
+    expect(formatTime('not a date')).toBe('')
   })
 })

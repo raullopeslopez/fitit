@@ -1,5 +1,6 @@
 # Aliased so a model field named `date` doesn't shadow the `date` type.
 from datetime import date as Date
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -69,6 +70,7 @@ class SetOut(BaseModel):
     duration_seconds: int | None = None
     distance: float | None = None
     distance_unit: str | None = None
+    created_at: datetime | None = None
 
 
 class WorkoutIn(BaseModel):

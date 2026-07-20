@@ -17,6 +17,7 @@ import {
   formatDate,
   formatDuration,
   formatSet,
+  formatTime,
   parseDuration,
 } from './format.js'
 import { muscleColor } from './muscles.js'
@@ -380,7 +381,10 @@ function ExerciseCard({
                       </span>
                     )}
                   </span>
-                  <span className="set-index">Serie {index + 1}</span>
+                  <span className="set-index">
+                    S{index + 1}
+                    {set.created_at ? ` · ${formatTime(set.created_at)}` : ''}
+                  </span>
                   {/* Rare actions live behind an overflow so the readout stays clean. */}
                   <button
                     type="button"
@@ -585,7 +589,10 @@ function CardioCard({
             {sets.map((set, index) => (
               <li key={set.id}>
                 <span>{formatCardioSet(set)}</span>
-                <span className="set-index">Serie {index + 1}</span>
+                <span className="set-index">
+                    S{index + 1}
+                    {set.created_at ? ` · ${formatTime(set.created_at)}` : ''}
+                  </span>
                 <button
                   type="button"
                   className="secondary set-action set-menu-btn"

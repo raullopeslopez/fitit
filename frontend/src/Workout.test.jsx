@@ -423,6 +423,45 @@ describe('Workout', () => {
     expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
   })
 
+  it('stamps each set row with the clock time it was logged', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ created_at: new Date(2026, 6, 16, 18, 4).toISOString() })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(await screen.findByText(/S1 · 18:04/)).toBeInTheDocument()
+  })
+
+  it('falls back to the bare index for a set with no recorded moment', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet()],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    const row = await screen.findByText(/^S1$/)
+    expect(row).toBeInTheDocument()
+  })
+
   it('counts the series in the session summary', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
