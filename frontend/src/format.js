@@ -1,5 +1,9 @@
-export function formatSet(set) {
-  return `${set.weight} ${set.unit} x ${set.reps}`
+import { displayWeight } from './units.js'
+
+// A logged set, read back in the unit you currently prefer rather than the one
+// that happened to be selected when you logged it.
+export function formatSet(set, unit = 'kg') {
+  return `${displayWeight(set.weight_kg, unit)} ${unit} x ${set.reps}`
 }
 
 // Estimated 1-rep max (Epley). Used to compare sets for personal records.

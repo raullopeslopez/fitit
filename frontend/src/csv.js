@@ -7,6 +7,9 @@ const HEADER = [
   'reps',
   'peso',
   'unidad',
+  // Both, on purpose: `peso`/`unidad` are what was typed, `peso_kg` is what a
+  // spreadsheet can actually sum across sets logged in different units.
+  'peso_kg',
   'rpe',
   'nota',
   'duración',
@@ -34,6 +37,7 @@ export function toCsv(days) {
             set.reps,
             set.weight,
             isCardio ? '' : set.unit, // weight unit is meaningless for cardio
+            set.weight_kg != null ? Math.round(set.weight_kg * 100) / 100 : '',
             set.rpe,
             set.note,
             set.duration_seconds != null ? formatDuration(set.duration_seconds) : '',

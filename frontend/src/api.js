@@ -103,6 +103,15 @@ export function editSet(setId, set) {
   })
 }
 
+// Fix the unit on every set of one exercise in one workout. A relabel: the
+// numbers stand, only what they mean changes.
+export function correctExerciseUnit(workoutId, exerciseId, unit) {
+  return apiFetch(`/workouts/${workoutId}/exercises/${exerciseId}/unit`, {
+    method: 'PATCH',
+    body: JSON.stringify({ unit }),
+  })
+}
+
 export function deleteSet(setId) {
   return apiFetch(`/workouts/sets/${setId}`, { method: 'DELETE' })
 }

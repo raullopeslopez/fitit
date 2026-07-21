@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import {
+  correctExerciseUnit,
   deleteSet,
   deleteWorkout,
   editSet,
@@ -33,6 +34,7 @@ import {
   setRestUntil,
   setWeightUnit,
 } from './prefs.js'
+import { displayWeight, toKg } from './units.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -77,19 +79,24 @@ function ExerciseCard({
   onLogSet,
   onEditSet,
   onDeleteSet,
+  onCorrectUnit,
 }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
-  const [weight, setWeight] = useState(seed ? String(seed.weight) : '')
+  const [weight, setWeight] = useState(
+    seed ? String(displayWeight(seed.weight_kg, weightUnit)) : '',
+  )
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
   const [logging, setLogging] = useState(false)
-  // The number to beat: the server's best est. 1RM, or derive it from the
-  // previous marks so the target block always shows a figure when one exists.
+  // Every figure below is in kilos, the unit the API compares in; it's only
+  // converted on the way to the screen. The number to beat is the server's best
+  // est. 1RM, or derived from the previous marks so the target block always
+  // shows a figure when one exists.
   const seededBest =
     previous?.best_one_rm ??
     (previous?.sets?.length
-      ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight, s.reps)))
+      ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
       : null)
   const [best, setBest] = useState(seededBest)
   const [pr, setPr] = useState(false)
@@ -118,7 +125,7 @@ function ExerciseCard({
         rpe: valid.rpe,
         note: note.trim() || null,
       })
-      const oneRm = estimatedOneRm(valid.weight, valid.reps)
+      const oneRm = estimatedOneRm(toKg(valid.weight, weightUnit), valid.reps)
       setPr(best != null && oneRm > best)
       setBest((b) => (b == null ? oneRm : Math.max(b, oneRm)))
       setReps('')
@@ -154,7 +161,9 @@ function ExerciseCard({
     setOpenMenuId(null)
     setEditingId(set.id)
     setEditReps(String(set.reps))
-    setEditWeight(String(set.weight))
+    // Edited in the unit you're reading in, not the one it was logged in — the
+    // row above the form says 135 lb, so the field has to say 135 too.
+    setEditWeight(String(displayWeight(set.weight_kg, weightUnit)))
     setEditRpe(set.rpe != null ? String(set.rpe) : '')
     setEditNote(set.note || '')
   }
@@ -188,9 +197,27 @@ function ExerciseCard({
     }
   }
 
-  const volume = sets.reduce((total, s) => total + s.weight * s.reps, 0)
+  // The unit these sets were *logged* in is otherwise invisible: the readout is
+  // in whichever unit you're reading in. Stating it here is what makes the
+  // correction discoverable — you can't fix a mislabel you can't see. Null when
+  // a block somehow mixes units, where a single relabel would be a guess.
+  const loggedUnit = sets.length && sets.every((s) => s.unit === sets[0].unit)
+    ? sets[0].unit
+    : null
+  const correctedUnit = loggedUnit === 'kg' ? 'lb' : 'kg'
+
+  async function handleCorrectUnit() {
+    setError('')
+    try {
+      await onCorrectUnit(sets[0].exercise_id, correctedUnit)
+    } catch {
+      setError('No se pudo cambiar la unidad.')
+    }
+  }
+
+  const volumeKg = sets.reduce((total, s) => total + s.weight_kg * s.reps, 0)
   const bestOneRm = sets.length
-    ? Math.max(...sets.map((s) => estimatedOneRm(s.weight, s.reps)))
+    ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
     : 0
   // Which rows earn the PR badge. Derived from the log against the mark you
   // walked in with, so unlike the transient banner it survives a reload.
@@ -216,16 +243,22 @@ function ExerciseCard({
         <div className="target">
           <div className="target-main">
             <div className="target-label">A batir · 1RM est.</div>
-            <div className={`target-value${pr ? ' is-pr' : ''}`}>{best ?? '—'}</div>
+            <div className={`target-value${pr ? ' is-pr' : ''}`}>
+              {displayWeight(best, weightUnit) ?? '—'}
+            </div>
           </div>
-          <div className="target-meta">{previous.sets.map(formatSet).join(', ')}</div>
+          <div className="target-meta">
+            {previous.sets.map((s) => formatSet(s, weightUnit)).join(', ')}
+          </div>
         </div>
       ) : (
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
       )}
 
       {pr && (
-        <p className="pr-banner">¡Nuevo récord! 1RM estimado {best}</p>
+        <p className="pr-banner">
+          ¡Nuevo récord! 1RM estimado {displayWeight(best, weightUnit)}
+        </p>
       )}
 
       <form onSubmit={handleLogSet}>
@@ -236,7 +269,7 @@ function ExerciseCard({
               <button
                 type="button"
                 className="stepper-btn"
-                aria-label="Restar kg"
+                aria-label={`Restar ${weightUnit}`}
                 onClick={() => setWeight((w) => bump(w, -WEIGHT_STEP, 0))}
               >
                 −
@@ -250,7 +283,7 @@ function ExerciseCard({
               <button
                 type="button"
                 className="stepper-btn stepper-plus"
-                aria-label="Sumar kg"
+                aria-label={`Sumar ${weightUnit}`}
                 onClick={() => setWeight((w) => bump(w, WEIGHT_STEP, 0))}
               >
                 +
@@ -325,8 +358,9 @@ function ExerciseCard({
       {sets.length > 0 ? (
         <>
         <p className="set-summary">
-          {sets.length} {sets.length === 1 ? 'serie' : 'series'} · {volume} {sets[0].unit} volumen ·
-          Mejor 1RM {bestOneRm}
+          {sets.length} {sets.length === 1 ? 'serie' : 'series'} ·{' '}
+          {displayWeight(volumeKg, weightUnit)} {weightUnit} volumen · Mejor 1RM{' '}
+          {displayWeight(bestOneRm, weightUnit)}
         </p>
         <ol className="sets">
           {sets.map((set, index) => (
@@ -373,7 +407,7 @@ function ExerciseCard({
               ) : (
                 <>
                   <span>
-                    {formatSet(set)}
+                    {formatSet(set, weightUnit)}
                     {set.rpe ? ` · RPE ${set.rpe}` : ''}
                     {prIds.has(set.id) && (
                       <span className="pr-flag" title="Récord al registrarla">
@@ -424,6 +458,11 @@ function ExerciseCard({
         <button type="button" className="secondary" onClick={handleRepeatLast}>
           +1 serie
         </button>
+        {loggedUnit && (
+          <button type="button" className="unit-fix" onClick={handleCorrectUnit}>
+            Registradas en {loggedUnit} · corregir a {correctedUnit}
+          </button>
+        )}
         </>
       ) : (
         <p className="hint">Aún no hay series.</p>
@@ -773,11 +812,13 @@ export default function Workout({ workoutId, onExit }) {
   }
 
   async function editSetFor(set, { reps, weight, rpe, note }) {
+    // The edit field was seeded in the unit being read, so that's the unit the
+    // typed number is in — not whatever the set was originally logged as.
     const updated = await editSet(set.id, {
       exercise_name: set.exercise_name,
       reps,
       weight,
-      unit: set.unit,
+      unit: weightUnit,
       rpe,
       note,
     })
@@ -785,6 +826,10 @@ export default function Workout({ workoutId, onExit }) {
       ...w,
       sets: w.sets.map((s) => (s.id === updated.id ? updated : s)),
     }))
+  }
+
+  async function correctUnitFor(exerciseId, unit) {
+    setWorkout(await correctExerciseUnit(workout.id, exerciseId, unit))
   }
 
   async function deleteSetFor(setId) {
@@ -986,6 +1031,7 @@ export default function Workout({ workoutId, onExit }) {
             onLogSet={logSetFor}
             onEditSet={editSetFor}
             onDeleteSet={deleteSetFor}
+            onCorrectUnit={correctUnitFor}
           />
         ),
       )}

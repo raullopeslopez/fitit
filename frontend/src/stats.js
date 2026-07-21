@@ -76,8 +76,10 @@ export function prSetIds(sets, priorBest = null) {
   let peak = priorBest
   for (const set of sets) {
     // Cardio sets carry duration/distance, not weight/reps — no 1RM to compare.
-    if (set.weight == null || set.reps == null) continue
-    const oneRm = estimatedOneRm(set.weight, set.reps)
+    if (set.weight_kg == null || set.reps == null) continue
+    // Kilos throughout: `priorBest` comes from the API in kilos, and a set
+    // logged in pounds must not win on the strength of its bigger number.
+    const oneRm = estimatedOneRm(set.weight_kg, set.reps)
     if (peak != null && oneRm > peak) ids.add(set.id)
     if (peak == null || oneRm > peak) peak = oneRm
   }

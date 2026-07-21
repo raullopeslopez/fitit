@@ -652,6 +652,27 @@ button.set-action {
   font-size: 0.85rem;
   font-style: italic;
 }
+/* Stating which unit a block was logged in, and offering the fix. A correction
+   you reach for once in a while, so it reads as a quiet line of text rather
+   than a button competing with "+1 serie" — but it still carries a full 44px
+   target, because it's tapped in the gym like everything else. */
+.unit-fix {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.unit-fix:hover {
+  color: var(--text);
+}
 .sets li {
   align-items: center;
   gap: 0.5rem;

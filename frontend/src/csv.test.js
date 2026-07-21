@@ -17,6 +17,7 @@ describe('toCsv', () => {
                 reps: 8,
                 weight: 60,
                 unit: 'kg',
+                weight_kg: 60,
                 rpe: 8,
                 note: 'felt, good',
               },
@@ -29,9 +30,9 @@ describe('toCsv', () => {
     const lines = toCsv(days).split('\n')
 
     expect(lines[0]).toBe(
-      'fecha,entreno,ejercicio,reps,peso,unidad,rpe,nota,duración,distancia,unidad_dist',
+      'fecha,entreno,ejercicio,reps,peso,unidad,peso_kg,rpe,nota,duración,distancia,unidad_dist',
     )
-    expect(lines[1]).toBe('2026-07-10,Push,Bench,8,60,kg,8,"felt, good",,,')
+    expect(lines[1]).toBe('2026-07-10,Push,Bench,8,60,kg,60,8,"felt, good",,,')
   })
 
   it('leaves optional fields blank and handles unnamed workouts', () => {
@@ -44,14 +45,23 @@ describe('toCsv', () => {
             id: 2,
             name: null,
             sets: [
-              { id: 2, exercise_name: 'Squat', reps: 5, weight: 100, unit: 'kg', rpe: null, note: null },
+              {
+                id: 2,
+                exercise_name: 'Squat',
+                reps: 5,
+                weight: 100,
+                unit: 'kg',
+                weight_kg: 100,
+                rpe: null,
+                note: null,
+              },
             ],
           },
         ],
       },
     ]
 
-    expect(toCsv(days).split('\n')[1]).toBe('2026-07-11,,Squat,5,100,kg,,,,,')
+    expect(toCsv(days).split('\n')[1]).toBe('2026-07-11,,Squat,5,100,kg,100,,,,,')
   })
 
   it('exports cardio metrics and leaves the strength columns blank', () => {
@@ -86,8 +96,9 @@ describe('toCsv', () => {
     const cols = toCsv(days).split('\n')[1].split(',')
     expect(cols[3]).toBe('') // reps blank for cardio
     expect(cols[5]).toBe('') // weight unit blank for cardio
-    expect(cols[8]).toBe('24:30') // duración
-    expect(cols[9]).toBe('5.2') // distancia
-    expect(cols[10]).toBe('km') // unidad_dist
+    expect(cols[6]).toBe('') // and no canonical weight either
+    expect(cols[9]).toBe('24:30') // duración
+    expect(cols[10]).toBe('5.2') // distancia
+    expect(cols[11]).toBe('km') // unidad_dist
   })
 })

@@ -3,11 +3,14 @@ import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
 import * as api from './api.js'
+import { toKg } from './units.js'
 
 vi.mock('./api.js')
 
+// Mirrors what the API returns: the number and unit as typed, plus the
+// canonical kilos derived from them, so overriding the unit stays coherent.
 function benchSet(overrides = {}) {
-  return {
+  const set = {
     id: 10,
     exercise_id: 2,
     exercise_name: 'Bench Press',
@@ -17,6 +20,7 @@ function benchSet(overrides = {}) {
     unit: 'kg',
     ...overrides,
   }
+  return { weight_kg: toKg(set.weight, set.unit), ...set }
 }
 
 function renderWorkout(props = {}) {
@@ -50,7 +54,7 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
-      sets: [benchSet({ reps: 8, weight: 60, unit: 'lb' })],
+      sets: [benchSet({ reps: 8, weight: 60, unit: 'kg' })],
     })
     renderWorkout()
 
@@ -62,6 +66,24 @@ describe('Workout', () => {
     expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
     // The button states exactly what pressing it will log.
     expect(screen.getByRole('button', { name: /registrar 60 × 8/i })).toBeInTheDocument()
+  })
+
+  it('reads a set logged in lb back in the unit I prefer', async () => {
+    // Logged as 135 lb, read while the toggle sits on kg. The history is one
+    // history — the unit that happened to be selected then doesn't split it.
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ reps: 8, weight: 135, unit: 'lb' })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await screen.findByText(/a batir/i)
+
+    expect(screen.getByText(/61\.2 kg x 8/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/peso/i)).toHaveValue('61.2')
   })
 
   it('bumps the weight stepper by 2.5 kg', async () => {
@@ -398,6 +420,35 @@ describe('Workout', () => {
     await waitFor(() => expect(container.querySelectorAll('.pr-flag')).toHaveLength(1))
     const flagged = container.querySelector('li:has(.pr-flag)')
     expect(flagged).toHaveTextContent(/80/)
+  })
+
+  it('corrects a block logged with the toggle on the wrong unit', async () => {
+    // Three sets typed as 135 with the toggle stuck on kg. They were lb. The
+    // fix keeps the number that was typed and changes only what it means, so
+    // 135 kg becomes 135 lb — 61.2 kg — not 61.2 lb.
+    const mislabelled = [1, 2, 3].map((id) => benchSet({ id, weight: 135, unit: 'kg' }))
+    api.getWorkout.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: mislabelled,
+    })
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false })
+    api.correctExerciseUnit.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: mislabelled.map((s) => benchSet({ id: s.id, weight: 135, unit: 'lb' })),
+    })
+    renderWorkout()
+
+    // The logged unit is stated, because the readout alone can't reveal it.
+    const fix = await screen.findByRole('button', { name: /registradas en kg · corregir a lb/i })
+    await userEvent.click(fix)
+
+    await waitFor(() => expect(api.correctExerciseUnit).toHaveBeenCalledWith(1, 2, 'lb'))
+    // Still reading in kg, so the same sets now show their true weight.
+    expect(await screen.findAllByText(/61\.2 kg x 8/)).toHaveLength(3)
   })
 
   it('does not flag any set when none beats the previous best', async () => {

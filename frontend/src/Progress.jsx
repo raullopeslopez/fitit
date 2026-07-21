@@ -10,8 +10,12 @@ import {
 import { formatDate } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
+import { getWeightUnit } from './prefs.js'
+import { displayWeight } from './units.js'
 
-function Chart({ points, color }) {
+// Points arrive in kilos. The geometry is computed on them directly — scale is
+// scale — and only the two printed figures are converted for the reader.
+function Chart({ points, color, unit }) {
   const W = 320
   const H = 180
   const padL = 40
@@ -32,7 +36,7 @@ function Chart({ points, color }) {
   return (
     <>
       <p className="chart-caption">
-        <strong>1RM estimado</strong>
+        <strong>1RM estimado · {unit}</strong>
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Gráfica de progreso">
         {/* PR reference line stays amber — the record is effort, not a muscle. */}
@@ -47,11 +51,11 @@ function Chart({ points, color }) {
         />
         <text x={W - padR} y={prY - 4} textAnchor="end" fontSize="10" fill="var(--pr)"
           fontFamily="var(--font-mono)">
-          PR {max}
+          PR {displayWeight(max, unit)}
         </text>
         <text x={padL - 6} y={y(min)} textAnchor="end" dominantBaseline="middle" fontSize="9"
           fill="var(--muted)" fontFamily="var(--font-mono)">
-          {min}
+          {displayWeight(min, unit)}
         </text>
         {/* The trend line carries the muscle's colour. */}
         <polyline fill="none" stroke={color} strokeWidth="2" points={linePts} />
@@ -96,6 +100,9 @@ export default function Progress() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [bests, setBests] = useState([]) // best set per exercise, strongest first
+  // Read once: the toggle lives in Entreno, so it can't change while Progreso
+  // is on screen.
+  const weightUnit = getWeightUnit()
 
   const muscleOf = (lift) =>
     exercises.find((e) => e.name === lift)?.muscle_group ?? null
@@ -201,11 +208,13 @@ export default function Progress() {
                 />
                 <span className="name">{mark.exercise_name}</span>
                 <span className="val">
-                  {mark.weight} {mark.unit} × {mark.reps}
+                  {displayWeight(mark.weight_kg, weightUnit)} {weightUnit} × {mark.reps}
                 </span>
                 {/* A record nothing has beaten yet gets a dash, not a fake +0. */}
                 <span className={`delta${mark.delta_one_rm ? '' : ' flat'}`}>
-                  {mark.delta_one_rm ? `+${mark.delta_one_rm} ${mark.unit}` : '—'}
+                  {mark.delta_one_rm
+                    ? `+${displayWeight(mark.delta_one_rm, weightUnit)} ${weightUnit}`
+                    : '—'}
                 </span>
               </li>
             ))}
@@ -302,7 +311,7 @@ export default function Progress() {
                 </select>
               </div>
             )}
-            <Chart points={points} color={chartColor} />
+            <Chart points={points} color={chartColor} unit={weightUnit} />
           </div>
         ))}
     </section>
