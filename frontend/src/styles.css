@@ -438,11 +438,10 @@ button.set-action {
 
 /* Target block: the previous best is the biggest number on the card — what you
    came to beat. The single amber "glow" DESIGN.md reserves for the record. */
+/* One readout, not two: the mark you walked in with, an arrow, and where you
+   are now. Today's number is the one that moves, so it carries the weight and
+   goes amber the moment it passes. */
 .target {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.75rem;
   padding: 0 0.1rem 0.9rem;
   margin: 0 0 0.9rem;
   border-bottom: 1px solid var(--border);
@@ -455,21 +454,35 @@ button.set-action {
   color: var(--accent);
   margin-bottom: 0.15rem;
 }
-.target-value {
+.target-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 2.6rem;
-  font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
+}
+.target-prev {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.target-arrow {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+.target-today {
+  font-size: 2.6rem;
+  font-weight: 500;
   color: var(--text);
 }
-.target-value.is-pr {
+.target-today.is-pr {
   color: var(--pr);
   text-shadow: 0 0 24px color-mix(in srgb, var(--pr) 40%, transparent);
 }
 .target-meta {
-  text-align: right;
+  margin-top: 0.35rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
@@ -734,10 +747,65 @@ button.set-action {
 
 /* Muscle tag on an exercise heading (Workout). */
 .exercise-title {
+  margin: 0;
+}
+/* The whole header folds the card: a full-width thumb target, not a 24px
+   chevron you have to aim at one-handed with a bar in the other. */
+.card-toggle {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   flex-wrap: wrap;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.card-name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+/* Folded, the row still has to answer "did I do this, and what did I hit" —
+   so it reads as a spec-sheet line: label left, numbers right, tabular. */
+.card-digest {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.card-chevron {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  align-self: center;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  transform-origin: center;
+  transition: transform 150ms ease-in-out;
+}
+.card-toggle[aria-expanded='true'] .card-chevron {
+  transform: rotate(-135deg);
+}
+/* A folded card is a row, not a card. Less padding, no shadow competing with
+   the open one above it. */
+.card.is-folded {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-chevron {
+    transition: none;
+  }
 }
 .muscle-tag {
   display: inline-flex;

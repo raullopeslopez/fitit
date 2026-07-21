@@ -99,6 +99,19 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
 - **Touch targets:** minimum 44px on all interactive controls (one-handed, gym use).
 - **Set list = spec sheet:** numbers right-aligned, Geist Mono, tabular. Exercise/label
   left, values right.
+- **Newest first, everywhere.** Days, workouts within a day, exercises within a workout.
+  The thing you are doing now is the thing at the top. Order is settled on load and then
+  frozen for the session: nothing re-sorts under your thumb while you are logging.
+- **Cards fold.** Only the newest exercise starts open; the rest collapse to a single
+  spec-sheet row. Many can be open at once, because supersets are real. The whole header
+  is the control (full width, 44px), not a small chevron you have to aim at one-handed.
+- **A folded row still answers "what did I do here":** name and muscle dot left, digest
+  right in Geist Mono. `3 × 8 · 80 kg` when every set shared the same reps, `3 series ·
+  80 kg` when they did not, because "3 × 8" would be a lie about half the sets. Cardio
+  reports time, not reps.
+- **One number per idea.** The 1RM readout is a single `76 → 81.7` line: the mark you
+  walked in with, muted and small, then today's, large and amber once it passes. Two
+  separate 1RM figures on one card is how you end up reading neither.
 - **Border radius:** controls 6px · cards 8px · banners 8px · pill 9999px. (Sharper than
   the old 12–16px — instrument, not toy.)
 
@@ -127,4 +140,7 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-18 | Geist Mono for all numeric data | Numbers are the product; mono readout = instrument feel, reinforces "lean on purpose". |
 | 2026-07-18 | Dark-first + sharper radius (16→8) | Gym/night/OLED context; sharper shape reads as serious tool, not wellness toy. |
 | 2026-07-19 | Categorical muscle-group palette (7 colors) | User-approved exception to single-accent: lets Progreso be organized/read by muscle. Data-encoding only (dot/line, not text/CTA); amber stays reserved for effort/PR. Validated colorblind-safe (adjacent) both modes. See "Color por músculo". |
+| 2026-07-21 | Newest first at every level; order frozen after load | The app was newest-first for days but oldest-first for workouts and exercises, so the set you are mid-way through sank to the bottom of the screen. Freezing the order after load is the other half: a card that reorders itself while your thumb is on the phone is how you tap the wrong thing between sets. |
+| 2026-07-21 | Exercise cards fold; only the newest starts open | A five-exercise session was a five-card scroll with the active lift anywhere in it. Folded cards keep a spec-sheet digest so nothing is hidden, only quieted. Accordion (one-open) was rejected: it fights supersets. |
+| 2026-07-21 | One 1RM readout (`76 → 81.7`) replaces two | The card printed "A batir · 1RM est. 76" and "Mejor 1RM 88" twelve lines apart, both about 1RM. Merging them keeps the PR as the emotional payload (today's number is the large one, amber when it passes) while removing a competing figure. |
 | 2026-07-20 | Consistency heatmap uses the amber ramp, not green | Every contribution grid ships green; a heat map of effort should literally be heat. Intensity = sets logged that day (works for cardio too, where volume doesn't), built with `color-mix(in srgb, var(--accent) N%, transparent)` so it tracks light/dark for free. Level 0 stays neutral, never a faint amber. |

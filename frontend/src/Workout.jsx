@@ -80,6 +80,8 @@ function ExerciseCard({
   onEditSet,
   onDeleteSet,
   onCorrectUnit,
+  open = true,
+  onToggle,
 }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
@@ -219,6 +221,20 @@ function ExerciseCard({
   const bestOneRm = sets.length
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
     : 0
+  // What a folded card still has to answer: did I do this, and what did I hit.
+  // Uniform reps read as "3 × 8"; mixed reps would be a lie about half the
+  // sets, so they read "3 series". The weight shown is the heaviest.
+  const uniformReps =
+    sets.length && sets.every((s) => s.reps === sets[0].reps) ? sets[0].reps : null
+  const digest = sets.length
+    ? `${uniformReps ? `${sets.length} × ${uniformReps}` : `${sets.length} series`} · ${displayWeight(
+        Math.max(...sets.map((s) => s.weight_kg)),
+        weightUnit,
+      )} ${weightUnit}`
+    : 'sin series'
+  // The single 1RM readout: the mark you walked in with, and where you are now.
+  const todayBest = sets.length ? bestOneRm : null
+  const beatIt = seededBest != null && todayBest != null && todayBest > seededBest
   // Which rows earn the PR badge. Derived from the log against the mark you
   // walked in with, so unlike the transient banner it survives a reload.
   const prIds = prSetIds(sets, seededBest)
@@ -226,30 +242,48 @@ function ExerciseCard({
   const ready = reps !== '' && weight !== ''
 
   return (
-    <div className="card">
+    <div className={`card${open ? '' : ' is-folded'}`}>
+      {/* The whole header is the fold control: a wide target for a thumb, and
+          when folded it carries the digest so the row still says what you did. */}
       <h2 className="exercise-title">
-        {name}
-        {muscle && (
-          <span className="muscle-tag">
-            <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
-            {muscle}
-          </span>
-        )}
+        <button type="button" className="card-toggle" aria-expanded={open} onClick={onToggle}>
+          <span className="card-name">{name}</span>
+          {muscle && (
+            <span className="muscle-tag">
+              <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
+              {muscle}
+            </span>
+          )}
+          {!open && <span className="card-digest">{digest}</span>}
+          <span className="card-chevron" aria-hidden="true" />
+        </button>
       </h2>
 
-      {/* The number to beat is the biggest thing on the card — the target, not a
-          sentence buried in a tinted box. */}
-      {previous && previous.found ? (
+      {!open ? null : (
+        <>
+      {/* One 1RM readout, not two: the mark you walked in with and where you are
+          now. Two separate numbers twelve lines apart is how you read neither. */}
+      {seededBest != null || todayBest != null ? (
         <div className="target">
-          <div className="target-main">
-            <div className="target-label">A batir · 1RM est.</div>
-            <div className={`target-value${pr ? ' is-pr' : ''}`}>
-              {displayWeight(best, weightUnit) ?? '—'}
+          <div className="target-label">A batir · 1RM est.</div>
+          <div className="target-line">
+            <span className="target-prev">{displayWeight(seededBest, weightUnit) ?? '—'}</span>
+            {todayBest != null && (
+              <>
+                <span className="target-arrow" aria-hidden="true">
+                  →
+                </span>
+                <span className={`target-today${beatIt ? ' is-pr' : ''}`}>
+                  {displayWeight(todayBest, weightUnit)}
+                </span>
+              </>
+            )}
+          </div>
+          {previous?.found && (
+            <div className="target-meta">
+              {previous.sets.map((s) => formatSet(s, weightUnit)).join(', ')}
             </div>
-          </div>
-          <div className="target-meta">
-            {previous.sets.map((s) => formatSet(s, weightUnit)).join(', ')}
-          </div>
+          )}
         </div>
       ) : (
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
@@ -359,8 +393,7 @@ function ExerciseCard({
         <>
         <p className="set-summary">
           {sets.length} {sets.length === 1 ? 'serie' : 'series'} ·{' '}
-          {displayWeight(volumeKg, weightUnit)} {weightUnit} volumen · Mejor 1RM{' '}
-          {displayWeight(bestOneRm, weightUnit)}
+          {displayWeight(volumeKg, weightUnit)} {weightUnit} volumen
         </p>
         <ol className="sets">
           {sets.map((set, index) => (
@@ -467,6 +500,8 @@ function ExerciseCard({
       ) : (
         <p className="hint">Aún no hay series.</p>
       )}
+        </>
+      )}
     </div>
   )
 }
@@ -479,6 +514,8 @@ function CardioCard({
   onChooseDistanceUnit,
   onLogSet,
   onDeleteSet,
+  open = true,
+  onToggle,
 }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [duration, setDuration] = useState(
@@ -546,10 +583,23 @@ function CardioCard({
       : `Registrar ${formatDuration(seconds)}`
     : 'Registrar serie'
 
-  return (
-    <div className="card">
-      <h2>{name}</h2>
+  // Folded, a cardio block reports time on feet, not sets × reps.
+  const digest = sets.length
+    ? `${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · ${formatDuration(totalSeconds)}`
+    : 'sin series'
 
+  return (
+    <div className={`card${open ? '' : ' is-folded'}`}>
+      <h2 className="exercise-title">
+        <button type="button" className="card-toggle" aria-expanded={open} onClick={onToggle}>
+          <span className="card-name">{name}</span>
+          {!open && <span className="card-digest">{digest}</span>}
+          <span className="card-chevron" aria-hidden="true" />
+        </button>
+      </h2>
+
+      {!open ? null : (
+        <>
       {previous && previous.found ? (
         <div className="target">
           <div className="target-label">Última vez</div>
@@ -660,6 +710,8 @@ function CardioCard({
       ) : (
         <p className="hint">Aún no hay series.</p>
       )}
+        </>
+      )}
     </div>
   )
 }
@@ -695,7 +747,11 @@ function RestBar({ endsAt, total, onSkip }) {
 export default function Workout({ workoutId, onExit }) {
   const [workout, setWorkout] = useState(null)
   const [exerciseInput, setExerciseInput] = useState('')
-  const [exercises, setExercises] = useState([]) // [{ name, previous }] in the order added
+  const [exercises, setExercises] = useState([]) // [{ name, previous }], newest worked first
+  // Which cards the user has explicitly opened or shut this session. Absent
+  // means "use the default": only the newest card starts open, so the screen
+  // shows what you're doing rather than everything you've already done.
+  const [toggled, setToggled] = useState({})
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
   const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
   const [renaming, setRenaming] = useState(false)
@@ -758,14 +814,22 @@ export default function Workout({ workoutId, onExit }) {
     getWorkout(workoutId)
       .then((w) => {
         setWorkout(w)
-        // Seed a card per exercise already logged in this workout, in order —
-        // each set carries its exercise's kind so the right card renders.
-        const names = [...new Set(w.sets.map((s) => s.exercise_name))]
+        // A card per exercise already logged here, most recently worked first:
+        // the exercise you last put a set into is the one you're still on.
+        //
+        // Ranked by each exercise's LAST set, and settled once, here on load.
+        // Nothing re-sorts afterwards — a card that moves while your thumb is
+        // on the phone is how you tap the wrong thing mid-session.
+        // Spec: tests/features/newest_first.feature
+        const lastSeen = new Map()
+        w.sets.forEach((s, index) => lastSeen.set(s.exercise_name, index))
         setExercises(
-          names.map((name) => {
-            const first = w.sets.find((s) => s.exercise_name === name)
-            return { name, previous: null, kind: first?.kind ?? 'strength' }
-          }),
+          [...lastSeen.keys()]
+            .sort((a, b) => lastSeen.get(b) - lastSeen.get(a))
+            .map((name) => {
+              const first = w.sets.find((s) => s.exercise_name === name)
+              return { name, previous: null, kind: first?.kind ?? 'strength' }
+            }),
         )
       })
       .catch(() => setError('No se pudo cargar el entreno.'))
@@ -791,8 +855,9 @@ export default function Workout({ workoutId, onExit }) {
       const previous = await getPreviousMarks(name)
       // A known exercise keeps its stored kind; a new one takes the toggle's choice.
       const kind = previous.kind ?? newKind
+      // To the top: you just added it, so it's what you're about to do.
       setExercises((list) =>
-        list.some((e) => e.name === name) ? list : [...list, { name, previous, kind }],
+        list.some((e) => e.name === name) ? list : [{ name, previous, kind }, ...list],
       )
       setExerciseInput('')
     } catch {
@@ -831,6 +896,12 @@ export default function Workout({ workoutId, onExit }) {
   async function correctUnitFor(exerciseId, unit) {
     setWorkout(await correctExerciseUnit(workout.id, exerciseId, unit))
   }
+
+  // Many cards may be open at once: folding one shut when you open another
+  // would fight supersets, where you're genuinely working two lifts together.
+  const isOpen = (name, index) => toggled[name] ?? index === 0
+  const toggleCard = (name, index) =>
+    setToggled((t) => ({ ...t, [name]: !(t[name] ?? index === 0) }))
 
   async function deleteSetFor(setId) {
     await deleteSet(setId)
@@ -1008,7 +1079,7 @@ export default function Workout({ workoutId, onExit }) {
         </p>
       )}
 
-      {exercises.map((ex) =>
+      {exercises.map((ex, index) =>
         ex.kind === 'cardio' ? (
           <CardioCard
             key={ex.name}
@@ -1019,6 +1090,8 @@ export default function Workout({ workoutId, onExit }) {
             onChooseDistanceUnit={chooseDistanceUnit}
             onLogSet={logSetFor}
             onDeleteSet={deleteSetFor}
+            open={isOpen(ex.name, index)}
+            onToggle={() => toggleCard(ex.name, index)}
           />
         ) : (
           <ExerciseCard
@@ -1032,6 +1105,8 @@ export default function Workout({ workoutId, onExit }) {
             onEditSet={editSetFor}
             onDeleteSet={deleteSetFor}
             onCorrectUnit={correctUnitFor}
+            open={isOpen(ex.name, index)}
+            onToggle={() => toggleCard(ex.name, index)}
           />
         ),
       )}

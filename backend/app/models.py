@@ -33,10 +33,13 @@ class Day(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
+    # Newest first, matching the day feed itself (Day.date.desc()). The workout
+    # you're still in is the one you want at the top of the screen, not the one
+    # you finished this morning. Spec: tests/features/newest_first.feature
     workouts: Mapped[list["Workout"]] = relationship(
         back_populates="day",
         cascade="all, delete-orphan",
-        order_by="Workout.id",
+        order_by="Workout.id.desc()",
     )
 
 

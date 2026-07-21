@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
@@ -27,12 +27,174 @@ function renderWorkout(props = {}) {
   return render(<Workout workoutId={1} onExit={() => {}} {...props} />)
 }
 
+// A second exercise, so ordering and collapse have something to order and fold.
+function pullSet(overrides = {}) {
+  return benchSet({ exercise_id: 3, exercise_name: 'Dominadas', ...overrides })
+}
+
+const workoutWith = (...sets) => ({ id: 1, date: '2026-07-16', name: null, sets })
+
+// The header of each exercise card is its expand/collapse control.
+const cardToggle = (name) => screen.getByRole('button', { name: new RegExp(name, 'i') })
+
 describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     localStorage.clear() // the weight unit is a sticky pref — don't let it leak between tests
     api.getWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
     api.listExercises.mockResolvedValue([])
+  })
+
+  // Spec: the newest work comes first, and only what you're on stays open.
+  // Mirrors backend/tests/features/newest_first.feature for the card list.
+  describe('newest first', () => {
+    it('given sets for two exercises, when I open the workout, the newest is first', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      renderWorkout()
+
+      const titles = await screen.findAllByRole('heading', { level: 2 })
+      // A folded header also carries its digest, so match the name, not the whole row.
+      expect(titles.map((h) => h.textContent)).toEqual([
+        expect.stringContaining('Dominadas'),
+        expect.stringContaining('Bench Press'),
+      ])
+    })
+
+    it('given an open workout, when I add an exercise, it appears first', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
+      api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Sentadilla', found: false })
+      renderWorkout()
+
+      await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+      await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Sentadilla')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+      await waitFor(() =>
+        expect(
+          screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+        ).toEqual([
+          expect.stringContaining('Sentadilla'),
+          expect.stringContaining('Bench Press'),
+        ]),
+      )
+    })
+
+    it('when I log a set, the cards do not reorder under my thumb', async () => {
+      // The order is settled on load and frozen. A card that moves while your
+      // hand is on the phone is how you tap the wrong thing mid-session.
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      api.logSet.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, set_index: 0 }),
+          pullSet({ id: 2, set_index: 1 }),
+          benchSet({ id: 3, set_index: 2 }),
+        ),
+      )
+      renderWorkout()
+
+      // Bench is second and collapsed; open it and log to it. Dominadas stays
+      // open as well, so everything below is scoped to the Bench card.
+      await screen.findByRole('heading', { level: 2, name: /Dominadas/i })
+      await userEvent.click(cardToggle('Bench Press'))
+      const bench = within(cardToggle('Bench Press').closest('.card'))
+      await userEvent.type(bench.getByLabelText(/reps/i), '8')
+      await userEvent.type(bench.getByLabelText(/peso/i), '60')
+      await userEvent.click(bench.getByRole('button', { name: /registrar/i }))
+
+      await waitFor(() => expect(api.logSet).toHaveBeenCalled())
+      expect(
+        screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+      ).toEqual([
+        expect.stringContaining('Dominadas'),
+        expect.stringContaining('Bench Press'),
+      ])
+    })
+  })
+
+  describe('collapsing', () => {
+    it('opens only the newest card and folds the rest', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      renderWorkout()
+
+      await waitFor(() => expect(cardToggle('Dominadas')).toHaveAttribute('aria-expanded', 'true'))
+      expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'false')
+      // One log form on screen, belonging to the open card.
+      expect(screen.getAllByLabelText(/reps/i)).toHaveLength(1)
+    })
+
+    it('a folded card still reports what I did', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
+          benchSet({ id: 2, set_index: 1, reps: 8, weight: 60 }),
+          benchSet({ id: 3, set_index: 2, reps: 8, weight: 80 }),
+          pullSet({ id: 4, set_index: 3 }),
+        ),
+      )
+      renderWorkout()
+
+      // Uniform reps read as 3 × 8; the number shown is the top weight.
+      expect(await screen.findByText(/3 × 8 · 80 kg/)).toBeInTheDocument()
+    })
+
+    it('reports a set count instead of reps when the reps varied', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
+          benchSet({ id: 2, set_index: 1, reps: 5, weight: 70 }),
+          pullSet({ id: 3, set_index: 2 }),
+        ),
+      )
+      renderWorkout()
+
+      // "2 × 8" would be a lie about the second set.
+      expect(await screen.findByText(/2 series · 70 kg/)).toBeInTheDocument()
+    })
+
+    it('lets me keep two cards open at once, for supersets', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      renderWorkout()
+
+      await waitFor(() => expect(cardToggle('Dominadas')).toHaveAttribute('aria-expanded', 'true'))
+      await userEvent.click(cardToggle('Bench Press'))
+
+      expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'true')
+      expect(cardToggle('Dominadas')).toHaveAttribute('aria-expanded', 'true')
+    })
+  })
+
+  it('reads the mark to beat against what I have hit today', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet()],
+      best_one_rm: 76,
+    })
+    api.logSet.mockResolvedValue(
+      workoutWith(benchSet({ id: 20, reps: 5, weight: 70 })), // 70x5 -> 81.7
+    )
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.clear(screen.getByLabelText(/reps/i))
+    await userEvent.type(screen.getByLabelText(/reps/i), '5')
+    await userEvent.clear(screen.getByLabelText(/peso/i))
+    await userEvent.type(screen.getByLabelText(/peso/i), '70')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    // One readout: what you walked in with, and where you are now.
+    const readout = (await screen.findByText(/a batir/i)).closest('.target')
+    expect(readout).toHaveTextContent(/76/)
+    expect(readout).toHaveTextContent(/81\.7/)
   })
 
   it('shows previous marks when you add an exercise', async () => {
@@ -584,7 +746,9 @@ describe('Workout', () => {
     // volume = 60*8 + 70*5 = 830 ; best 1RM = max(76.0, 81.7) = 81.7
     const summary = await screen.findByText(/volumen/i)
     expect(summary).toHaveTextContent(/830/)
-    expect(summary).toHaveTextContent(/81\.7/)
+    // The session's best 1RM lives in the target readout now, not repeated here.
+    expect(summary).not.toHaveTextContent(/81\.7/)
+    expect(screen.getByText(/a batir/i).closest('.target')).toHaveTextContent(/81\.7/)
   })
 
   it('shows an error when a request fails', async () => {
@@ -741,14 +905,15 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await screen.findByRole('heading', { name: 'Bench Press' })
+    await screen.findByRole('heading', { name: /Bench Press/i })
 
     await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Squat')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await screen.findByRole('heading', { name: 'Squat' })
+    await screen.findByRole('heading', { name: /Squat/i })
 
-    expect(screen.getByRole('heading', { name: 'Bench Press' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Squat' })).toBeInTheDocument()
+    // Both still on screen; the older one is folded, not gone.
+    expect(screen.getByRole('heading', { name: /Bench Press/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Squat/i })).toBeInTheDocument()
   })
 
   it('shows the muscle group tag on an exercise', async () => {

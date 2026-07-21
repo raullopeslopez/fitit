@@ -16,7 +16,9 @@ def test_workouts_on_the_same_date_group_into_one_day(client):
     days = resp.json()
     assert [d["date"] for d in days] == ["2026-07-12", "2026-07-10"]  # newest first
     jul10 = next(d for d in days if d["date"] == "2026-07-10")
-    assert [w["name"] for w in jul10["workouts"]] == ["Morning", "Evening"]
+    # Newest first inside the day too, matching the feed itself.
+    # Spec: tests/features/newest_first.feature
+    assert [w["name"] for w in jul10["workouts"]] == ["Evening", "Morning"]
 
 
 def test_create_workout_defaults_to_today(client):
