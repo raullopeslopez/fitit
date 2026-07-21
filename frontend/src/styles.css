@@ -7,7 +7,11 @@
   --muted: #6b7280;
   --accent: #e4571b;
   --accent-hover: #c2440f;
-  --pr: #e4571b;
+  /* The record colour can't be the dark glow (#FFA733 scores 1.94 on white,
+     under the 3.0 floor). On paper you can't get louder than the accent by
+     going brighter, so the record goes deeper: hotter iron, not brighter
+     flame. Worst case across every --pr use is 5.35. See DESIGN.md. */
+  --pr: #a83208;
   --danger: #dc2626;
   --border: #e6e2da;
   --ring: rgba(228, 87, 27, 0.25);
@@ -446,12 +450,15 @@ button.set-action {
   margin: 0 0 0.9rem;
   border-bottom: 1px solid var(--border);
 }
+/* Muted, not amber. A static label that never changes shouldn't wear the
+   effort colour: it spends the accent on decoration and leaves the record
+   below it looking like more of the same. (It also failed AA at 3.70.) */
 .target-label {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--muted);
   margin-bottom: 0.15rem;
 }
 .target-line {
@@ -477,9 +484,22 @@ button.set-action {
   font-weight: 500;
   color: var(--text);
 }
+/* The earned moment, expressed the way each medium actually works. A 24px
+   amber glow on white paper is invisible, so light mode marks the number
+   instead: ink, like a highlighter. Dark mode emits. */
 .target-today.is-pr {
   color: var(--pr);
-  text-shadow: 0 0 24px color-mix(in srgb, var(--pr) 40%, transparent);
+  background-image: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--pr) 16%, transparent) 0.22em,
+    transparent 0.22em
+  );
+}
+@media (prefers-color-scheme: dark) {
+  .target-today.is-pr {
+    background-image: none;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--pr) 40%, transparent);
+  }
 }
 .target-meta {
   margin-top: 0.35rem;

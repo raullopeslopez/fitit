@@ -47,7 +47,18 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
 - **Accent (amber "effort"):** brand, CTAs, active/focus, links. Replaces the old
   generic health-green. Amber = heat, chalk-and-iron, the burn.
   - dark: `#FF6A2C` · light: `#E4571B`
-- **PR / record glow:** `#FFA733` (accent at full intensity) — the earned moment only.
+- **PR / record:** the earned moment only, and it is **not one colour**.
+  - dark: `#FFA733` (accent at full intensity) — brighter than the accent, plus a glow.
+  - light: `#A83208` — *deeper* than the accent, plus an ink highlight behind the number.
+  - Why they differ: on paper you cannot get louder than the accent by going brighter.
+    `#FFA733` scores **1.94** on white, under the 3.0 floor for large text. The range
+    above `#E4571B` collapses toward white, so on light the record goes hotter-iron
+    rather than brighter-flame. Verified worst case across every `--pr` use: **5.35**.
+  - Same reason the treatment differs: a 24px amber glow is invisible on white. Dark
+    emits light; paper takes ink.
+- **The accent is never spent on static labels.** A label that never changes wearing the
+  effort colour leaves the record beneath it looking like more of the same. Labels are
+  muted; amber means something happened.
 - **Neutrals (dark, default):**
   - bg `#0B0C0E` · surface `#15171A` · surface-raised `#1D2024`
   - text `#F2F3F5` · muted `#9BA1A9` · border `#24272C`
@@ -140,6 +151,7 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-18 | Geist Mono for all numeric data | Numbers are the product; mono readout = instrument feel, reinforces "lean on purpose". |
 | 2026-07-18 | Dark-first + sharper radius (16→8) | Gym/night/OLED context; sharper shape reads as serious tool, not wellness toy. |
 | 2026-07-19 | Categorical muscle-group palette (7 colors) | User-approved exception to single-accent: lets Progreso be organized/read by muscle. Data-encoding only (dot/line, not text/CTA); amber stays reserved for effort/PR. Validated colorblind-safe (adjacent) both modes. See "Color por músculo". |
+| 2026-07-21 | Light mode gets its own PR colour (`#A83208`) and its own PR treatment | Light shipped `--pr` equal to `--accent`, so the record was indistinguishable from a CTA, and every small-text use of it (`.pr-flag` 0.68rem, `.bests .delta` 0.78rem, the chart's 10px PR label, `.target-label`) sat at 3.10–3.70 against a 4.5 requirement. Failing AA on the one moment the product exists for. The dark glow can't be reused: `#FFA733` is 1.94 on white. |
 | 2026-07-21 | Newest first at every level; order frozen after load | The app was newest-first for days but oldest-first for workouts and exercises, so the set you are mid-way through sank to the bottom of the screen. Freezing the order after load is the other half: a card that reorders itself while your thumb is on the phone is how you tap the wrong thing between sets. |
 | 2026-07-21 | Exercise cards fold; only the newest starts open | A five-exercise session was a five-card scroll with the active lift anywhere in it. Folded cards keep a spec-sheet digest so nothing is hidden, only quieted. Accordion (one-open) was rejected: it fights supersets. |
 | 2026-07-21 | One 1RM readout (`76 → 81.7`) replaces two | The card printed "A batir · 1RM est. 76" and "Mejor 1RM 88" twelve lines apart, both about 1RM. Merging them keeps the PR as the emotional payload (today's number is the large one, amber when it passes) while removing a competing figure. |
