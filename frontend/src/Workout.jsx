@@ -266,18 +266,21 @@ function ExerciseCard({
       {seededBest != null || todayBest != null ? (
         <div className="target">
           <div className="target-label">A batir · 1RM est.</div>
+          {/* Only a real comparison gets an arrow. A first-ever exercise has
+              nothing on the left of it, and "— → 41.3" reads as a stray dash
+              plus a comparison that doesn't exist. */}
           <div className="target-line">
-            <span className="target-prev">{displayWeight(seededBest, weightUnit) ?? '—'}</span>
-            {todayBest != null && (
+            {seededBest != null && todayBest != null && (
               <>
+                <span className="target-prev">{displayWeight(seededBest, weightUnit)}</span>
                 <span className="target-arrow" aria-hidden="true">
                   →
                 </span>
-                <span className={`target-today${beatIt ? ' is-pr' : ''}`}>
-                  {displayWeight(todayBest, weightUnit)}
-                </span>
               </>
             )}
+            <span className={`target-today${beatIt ? ' is-pr' : ''}`}>
+              {displayWeight(todayBest ?? seededBest, weightUnit)}
+            </span>
           </div>
           {previous?.found && (
             <div className="target-meta">

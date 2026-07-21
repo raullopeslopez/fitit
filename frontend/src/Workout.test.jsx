@@ -171,6 +171,21 @@ describe('Workout', () => {
     })
   })
 
+  it('shows only today when there is no mark to beat', async () => {
+    // A first-ever exercise has nothing on the left of the arrow. Rendering
+    // "— → 41.3" puts a stray dash where a number should be and implies a
+    // comparison that doesn't exist.
+    api.getWorkout.mockResolvedValue(
+      workoutWith(benchSet({ id: 1, reps: 15, weight: 27.5 })), // -> 41.3
+    )
+    renderWorkout()
+
+    const readout = (await screen.findByText(/a batir/i)).closest('.target')
+    expect(readout).toHaveTextContent(/41\.3/)
+    expect(readout).not.toHaveTextContent('—')
+    expect(readout).not.toHaveTextContent('→')
+  })
+
   it('reads the mark to beat against what I have hit today', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',

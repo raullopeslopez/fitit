@@ -369,8 +369,20 @@ button {
     background 0.15s ease,
     transform 0.05s ease;
 }
-button:hover:not(:disabled) {
-  background: var(--accent-hover);
+/* Gated on actually having a pointer. Touch browsers leave :hover stuck on the
+   last thing you tapped, so on a phone this repainted whatever you just pressed
+   and left it there — a folded card wearing the CTA fill until you tapped
+   something else. Hover is a mouse idea; this app is used one-handed. */
+@media (hover: hover) {
+  button:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+  /* Ghost buttons are text, not CTAs. Same specificity as the rule above so
+     the later declaration wins; a plain .card-toggle:hover would lose. */
+  button.card-toggle:hover:not(:disabled),
+  button.unit-fix:hover:not(:disabled) {
+    background: none;
+  }
 }
 button:active:not(:disabled) {
   transform: translateY(1px);
@@ -772,13 +784,16 @@ button.set-action {
 /* The whole header folds the card: a full-width thumb target, not a 24px
    chevron you have to aim at one-handed with a bar in the other. */
 .card-toggle {
+  position: relative;
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   flex-wrap: wrap;
   width: 100%;
   min-height: 44px;
-  padding: 0;
+  /* Room for the chevron, which is pinned rather than laid out: an exercise
+     name long enough to wrap was pushing it onto a line of its own. */
+  padding: 0 1.25rem 0 0;
   border: 0;
   background: none;
   color: inherit;
@@ -801,19 +816,21 @@ button.set-action {
   font-size: 0.85rem;
   color: var(--muted);
 }
+/* Pinned right and vertically centred, out of the wrapping flow entirely, so a
+   two-line header keeps one chevron on the right instead of orphaning it. */
 .card-chevron {
+  position: absolute;
+  right: 0;
+  top: 50%;
   width: 0.5rem;
   height: 0.5rem;
-  flex: none;
-  align-self: center;
   border-right: 1.5px solid var(--muted);
   border-bottom: 1.5px solid var(--muted);
-  transform: rotate(45deg);
-  transform-origin: center;
+  transform: translateY(-70%) rotate(45deg);
   transition: transform 150ms ease-in-out;
 }
 .card-toggle[aria-expanded='true'] .card-chevron {
-  transform: rotate(-135deg);
+  transform: translateY(-30%) rotate(-135deg);
 }
 /* A folded card is a row, not a card. Less padding, no shadow competing with
    the open one above it. */
