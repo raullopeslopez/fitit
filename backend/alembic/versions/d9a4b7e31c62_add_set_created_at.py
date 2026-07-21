@@ -1,7 +1,7 @@
 """add created_at to sets
 
 Revision ID: d9a4b7e31c62
-Revises: c4e8a1f22b30
+Revises: a7d2e9f4c1b8
 Create Date: 2026-07-20 12:00:00.000000
 
 Added in two steps rather than one NOT NULL column: existing rows have no
@@ -16,7 +16,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "d9a4b7e31c62"
-down_revision: str | None = "c4e8a1f22b30"
+down_revision: str | None = "a7d2e9f4c1b8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
