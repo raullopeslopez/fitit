@@ -164,7 +164,12 @@ export default function Days({ onOpenWorkout }) {
         days.map((day) => (
           <div className="card" key={day.id}>
             <div className="day-head">
-              <h2>{formatDate(day.date)}</h2>
+              <h2>
+                {formatDate(day.date)}
+                {day.date === todayISO() && (
+                  <span className="today-badge">HOY</span>
+                )}
+              </h2>
               <button
                 type="button"
                 className="secondary set-action"

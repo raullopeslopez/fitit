@@ -337,6 +337,21 @@ h2 {
 .day-head h2 {
   margin: 0;
 }
+/* Marks the current day so it doesn't blend into the history list below it. */
+.today-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  vertical-align: 0.2em;
+}
 
 .link-row {
   width: 100%;
@@ -570,6 +585,11 @@ button.set-action {
     text-shadow: 0 0 24px color-mix(in srgb, var(--pr) 40%, transparent);
   }
 }
+.target-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
 .target-meta {
   margin-top: 0.35rem;
   font-family: var(--font-mono);
@@ -577,6 +597,11 @@ button.set-action {
   font-size: 0.8rem;
   color: var(--muted);
   line-height: 1.6;
+}
+/* Marks the sets you've logged this session as distinct from the "Última vez"
+   history above — same label styling, so the two read as parallel sections. */
+.session-label {
+  margin: 0.9rem 0 0.3rem;
 }
 
 /* Steppers: −/value/+ so a straight repeat is one tap; the value stays typable.
