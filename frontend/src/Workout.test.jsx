@@ -447,8 +447,14 @@ describe('Workout', () => {
     await userEvent.click(fix)
 
     await waitFor(() => expect(api.correctExerciseUnit).toHaveBeenCalledWith(1, 2, 'lb'))
-    // Still reading in kg, so the same sets now show their true weight.
+    // Still reading in kg, so the same sets now show their true weight...
     expect(await screen.findAllByText(/61\.2 kg x 8/)).toHaveLength(3)
+    expect(screen.queryByText(/135 kg x 8/)).not.toBeInTheDocument()
+    // ...and the line now reports the corrected unit, so a second tap undoes it
+    // rather than repeating the same relabel.
+    expect(
+      screen.getByRole('button', { name: /registradas en lb · corregir a kg/i }),
+    ).toBeInTheDocument()
   })
 
   it('does not flag any set when none beats the previous best', async () => {
