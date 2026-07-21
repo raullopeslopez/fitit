@@ -83,23 +83,27 @@ async def set_muscle_group(
 async def exercise_history(
     name: str, session: AsyncSession = Depends(get_session)
 ) -> list[HistoryPoint]:
-    """Best estimated 1RM (Epley) per training day for an exercise, oldest first."""
+    """Best estimated 1RM (Epley) per training day for an exercise, oldest first.
+
+    In kilos always — a curve that switched units mid-way would show a jump
+    where there was no progress.
+    """
     exercise = await find_exercise(session, name)
     if exercise is None:
         return []
     rows = (
         await session.execute(
-            select(Day.date, SetEntry.weight, SetEntry.reps)
+            select(Day.date, SetEntry.weight_kg, SetEntry.reps)
             .join(Workout, Workout.id == SetEntry.workout_id)
             .join(Day, Day.id == Workout.day_id)
             .where(SetEntry.exercise_id == exercise.id)
         )
     ).all()
     best: dict = {}
-    for day, weight, reps in rows:
-        if weight is None or reps is None:  # cardio sets have no 1RM
+    for day, weight_kg, reps in rows:
+        if weight_kg is None or reps is None:  # cardio sets have no 1RM
             continue
-        best[day] = max(best.get(day, 0.0), weight * (1 + reps / 30))
+        best[day] = max(best.get(day, 0.0), weight_kg * (1 + reps / 30))
     return [HistoryPoint(date=day, one_rm=round(best[day], 1)) for day in sorted(best)]
 
 
@@ -124,7 +128,7 @@ async def best_marks(
         await session.execute(
             select(SetEntry, Exercise)
             .join(Exercise, Exercise.id == SetEntry.exercise_id)
-            .where(SetEntry.weight.is_not(None), SetEntry.reps.is_not(None))
+            .where(SetEntry.weight_kg.is_not(None), SetEntry.reps.is_not(None))
             .order_by(SetEntry.created_at, SetEntry.id)
         )
     ).all()
@@ -134,7 +138,7 @@ async def best_marks(
     # this needs the ordered walk rather than a max() over the whole column.
     best: dict[int, BestMark] = {}
     for entry, exercise in rows:
-        one_rm = round(entry.weight * (1 + entry.reps / 30), 1)
+        one_rm = round(entry.weight_kg * (1 + entry.reps / 30), 1)
         standing = best.get(exercise.id)
         if standing is not None and one_rm <= standing.one_rm:
             continue
@@ -143,8 +147,7 @@ async def best_marks(
             exercise_name=exercise.name,
             muscle_group=exercise.muscle_group or classify(exercise.name),
             reps=entry.reps,
-            weight=entry.weight,
-            unit=entry.unit,
+            weight_kg=entry.weight_kg,
             one_rm=one_rm,
             delta_one_rm=(
                 round(one_rm - standing.one_rm, 1) if standing is not None else None
@@ -169,14 +172,14 @@ async def previous_marks(
             exercise_name=normalize_exercise_name(name), found=False, sets=[], kind=None
         )
 
-    # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every strength set.
-    # Cardio sets have no weight/reps, so they're skipped.
+    # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every strength
+    # set, in kilos. Cardio sets have no weight/reps, so they're skipped.
     all_sets = (
         await session.scalars(select(SetEntry).where(SetEntry.exercise_id == exercise.id))
     ).all()
-    strength_sets = [s for s in all_sets if s.weight is not None and s.reps is not None]
+    strength_sets = [s for s in all_sets if s.weight_kg is not None and s.reps is not None]
     best_one_rm = (
-        round(max(s.weight * (1 + s.reps / 30) for s in strength_sets), 1)
+        round(max(s.weight_kg * (1 + s.reps / 30) for s in strength_sets), 1)
         if strength_sets
         else None
     )

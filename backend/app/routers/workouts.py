@@ -8,7 +8,8 @@ from sqlalchemy.orm import selectinload
 from ..db import get_session
 from ..exercise_repo import find_exercise, get_or_create_exercise
 from ..models import Day, Exercise, SetEntry, Workout
-from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
+from ..schemas import SetIn, SetOut, UnitPatch, WorkoutIn, WorkoutOut, WorkoutPatch
+from ..units import to_kg
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -23,6 +24,7 @@ def _set_out(entry: SetEntry, exercise: Exercise) -> SetOut:
         reps=entry.reps,
         weight=entry.weight,
         unit=entry.unit,
+        weight_kg=entry.weight_kg,
         rpe=entry.rpe,
         note=entry.note,
         duration_seconds=entry.duration_seconds,
@@ -192,6 +194,7 @@ async def log_set(
             reps=payload.reps,
             weight=payload.weight,
             unit=payload.unit,
+            weight_kg=to_kg(payload.weight, payload.unit),
             rpe=payload.rpe,
             note=payload.note or None,
             duration_seconds=payload.duration_seconds,
@@ -229,6 +232,7 @@ async def edit_set(
     set_entry.reps = payload.reps
     set_entry.weight = payload.weight
     set_entry.unit = payload.unit
+    set_entry.weight_kg = to_kg(payload.weight, payload.unit)
     set_entry.rpe = payload.rpe
     set_entry.note = payload.note or None
     set_entry.duration_seconds = payload.duration_seconds
@@ -237,6 +241,51 @@ async def edit_set(
     await session.commit()
 
     return _set_out(set_entry, exercise)
+
+
+@router.patch("/{workout_id}/exercises/{exercise_id}/unit", response_model=WorkoutOut)
+async def correct_exercise_unit(
+    workout_id: int,
+    exercise_id: int,
+    payload: UnitPatch,
+    session: AsyncSession = Depends(get_session),
+) -> WorkoutOut:
+    """Fix the unit on every set of one exercise in one workout.
+
+    A relabel, not a conversion: the number stays exactly as typed and only its
+    unit — and therefore its canonical kilos — changes. Someone who logged 135
+    with the toggle stuck on kg meant 135 lb, not 61.2 lb.
+
+    Scoped to the one workout on purpose. The mistake is a session's worth of
+    sets, and rewriting every set of that exercise across all history would
+    corrupt the blocks that were logged correctly.
+
+    Spec: tests/features/weight_units.feature
+    """
+    workout = await session.get(Workout, workout_id)
+    if workout is None:
+        raise HTTPException(status_code=404, detail="workout not found")
+
+    entries = (
+        await session.scalars(
+            select(SetEntry).where(
+                SetEntry.workout_id == workout_id,
+                SetEntry.exercise_id == exercise_id,
+                SetEntry.weight.is_not(None),  # cardio sets have no unit to fix
+            )
+        )
+    ).all()
+    if not entries:
+        raise HTTPException(status_code=404, detail="no weighted sets for that exercise")
+
+    for entry in entries:
+        entry.unit = payload.unit
+        entry.weight_kg = to_kg(entry.weight, payload.unit)
+    await session.commit()
+
+    loaded = await load_workout(session, workout_id)
+    assert loaded is not None
+    return loaded
 
 
 @router.delete("/sets/{set_id}", status_code=status.HTTP_204_NO_CONTENT)

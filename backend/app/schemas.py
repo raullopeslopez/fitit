@@ -63,14 +63,28 @@ class SetOut(BaseModel):
     kind: str = "strength"
     set_index: int
     reps: int | None = None
+    # `weight`/`unit` are what was typed; `weight_kg` is what to compare and
+    # display with. The client renders in the reader's preferred unit, so it
+    # reads weight_kg and converts — it never displays `weight` directly.
     weight: float | None = None
     unit: str
+    weight_kg: float | None = None
     rpe: float | None = None
     note: str | None = None
     duration_seconds: int | None = None
     distance: float | None = None
     distance_unit: str | None = None
     created_at: datetime | None = None
+
+
+class UnitPatch(BaseModel):
+    """Correct the unit of every set of one exercise within one workout.
+
+    The toggle is sticky, so the mistake is never a single set — it's the whole
+    block you just logged. Spec: tests/features/weight_units.feature
+    """
+
+    unit: Unit
 
 
 class WorkoutIn(BaseModel):
@@ -112,6 +126,10 @@ class BestMark(BaseModel):
     `delta_one_rm` is the gap to the previous best, so a mark set today reads
     differently from one that has stood for months. None means nothing to
     compare against: a first-ever mark, or a record nothing has since beaten.
+
+    Weights here are canonical kilos, never the unit the set was typed in — a
+    leaderboard that mixes units isn't a leaderboard. The client converts to the
+    reader's preferred unit.
     Spec: tests/features/best_marks.feature
     """
 
@@ -119,8 +137,7 @@ class BestMark(BaseModel):
     exercise_name: str
     muscle_group: str | None = None
     reps: int
-    weight: float
-    unit: str
+    weight_kg: float
     one_rm: float
     delta_one_rm: float | None = None
 

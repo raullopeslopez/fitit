@@ -51,7 +51,7 @@ def then_listed_before(marks_response, first, second):
 def then_best_mark_is(marks_response, name, reps, weight):
     mark = _mark_for(marks_response, name)
     assert mark["reps"] == reps
-    assert mark["weight"] == weight
+    assert mark["weight_kg"] == weight
 
 
 @then(parsers.parse('the best mark for "{name}" improved'))
