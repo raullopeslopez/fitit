@@ -111,11 +111,11 @@ h2 {
   align-items: baseline;
   margin-bottom: 1.25rem;
 }
-/* Salir: a quiet text link, not nav-weight. */
+/* Salir: a quiet text link, not nav-weight — carried in the amber accent. */
 .link-btn {
   background: transparent;
   border: none;
-  color: var(--muted);
+  color: var(--accent);
   font-size: 0.85rem;
   font-weight: 600;
   min-height: auto;
@@ -123,7 +123,7 @@ h2 {
 }
 .link-btn:hover:not(:disabled) {
   background: transparent;
-  color: var(--text);
+  color: var(--accent-hover);
 }
 
 /* Bottom navigation — primary nav in thumb reach for one-handed gym use. */
@@ -239,6 +239,15 @@ h2 {
 .head-back {
   flex: none;
   white-space: nowrap;
+}
+/* ← Días wears the amber accent: text and outline tinted, two-class selector so
+   it outweighs button.secondary's neutral colour later in the file. */
+.secondary.head-back {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.secondary.head-back:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 /* The workout is the anchor of this bar: name (display) over date (mono),
    centered in the space between the back and overflow buttons. */
