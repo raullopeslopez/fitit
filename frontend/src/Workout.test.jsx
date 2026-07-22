@@ -206,8 +206,11 @@ describe('Workout', () => {
     )
     renderWorkout()
 
-    const readout = (await screen.findByText(/a batir/i)).closest('.target')
+    const readout = (await screen.findByText(/1RM est\./i)).closest('.target')
     expect(readout).toHaveTextContent(/41\.3/)
+    // Nothing to beat yet — the label states the estimate plainly and does not
+    // promise a comparison ("A batir" = "to beat") that has no left-hand mark.
+    expect(readout).not.toHaveTextContent(/a batir/i)
     expect(readout).not.toHaveTextContent('—')
     expect(readout).not.toHaveTextContent('→')
   })
@@ -827,7 +830,7 @@ describe('Workout', () => {
     expect(summary).toHaveTextContent(/830/)
     // The session's best 1RM lives in the target readout now, not repeated here.
     expect(summary).not.toHaveTextContent(/81\.7/)
-    expect(screen.getByText(/a batir/i).closest('.target')).toHaveTextContent(/81\.7/)
+    expect(screen.getByText(/1RM est\./i).closest('.target')).toHaveTextContent(/81\.7/)
   })
 
   it('shows an error when a request fails', async () => {

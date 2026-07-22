@@ -306,7 +306,12 @@ function ExerciseCard({
           now. Two separate numbers twelve lines apart is how you read neither. */}
       {seededBest != null || todayBest != null ? (
         <div className="target">
-          <div className="target-label">A batir · 1RM est.</div>
+          {/* "A batir" = "to beat", so it only earns its place when there is a
+              prior mark on the left of the arrow. A first-ever exercise is
+              setting the reference, not beating one — label it plainly. */}
+          <div className="target-label">
+            {seededBest != null ? 'A batir · 1RM est.' : '1RM est.'}
+          </div>
           {/* Only a real comparison gets an arrow. A first-ever exercise has
               nothing on the left of it, and "— → 41.3" reads as a stray dash
               plus a comparison that doesn't exist. */}
