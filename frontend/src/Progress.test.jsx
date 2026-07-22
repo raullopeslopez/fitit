@@ -154,6 +154,39 @@ describe('Progress', () => {
     expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Hombro')
   })
 
+  it('lets you rename the current exercise', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 7, name: 'Press banca', muscle_group: 'Pecho' },
+    ])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [{ id: 1, exercise_name: 'Press banca', reps: 5, weight: 80, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    api.renameExercise.mockResolvedValue({ id: 7, name: 'Press de banca', muscle_group: 'Pecho' })
+    render(<Progress />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /editar nombre/i }))
+    const input = screen.getByLabelText(/nombre del ejercicio/i)
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Press de banca')
+    await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+
+    await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(7, 'Press de banca'))
+    expect(await screen.findByRole('button', { name: /editar nombre/i })).toHaveTextContent(
+      'Press de banca',
+    )
+  })
+
   it('shows the consistency heatmap with a streak when there are training days', async () => {
     api.getExerciseHistory.mockResolvedValue([])
     api.listDays.mockResolvedValue([

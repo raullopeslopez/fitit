@@ -64,16 +64,43 @@ async def create_exercise(
 
 
 @router.patch("/exercises/{exercise_id}", response_model=ExerciseOut)
-async def set_muscle_group(
+async def update_exercise(
     exercise_id: int, payload: ExercisePatch, session: AsyncSession = Depends(get_session)
 ) -> ExerciseOut:
-    """Override an exercise's muscle group (or clear it back to auto with null)."""
-    if payload.muscle_group is not None and payload.muscle_group not in MUSCLE_GROUPS:
+    """Rename an exercise and/or override its muscle group.
+
+    Only the fields present in the request are touched, so a name-only edit
+    leaves the muscle group alone (and vice versa). Renaming is in place: every
+    past set, history point and record follows automatically, since they
+    reference the exercise by id. A muscle_group of null clears the override,
+    reverting to the auto-classifier.
+    """
+    fields = payload.model_fields_set
+    if (
+        "muscle_group" in fields
+        and payload.muscle_group is not None
+        and payload.muscle_group not in MUSCLE_GROUPS
+    ):
         raise HTTPException(status_code=422, detail="unknown muscle group")
     exercise = await session.get(Exercise, exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="exercise not found")
-    exercise.muscle_group = payload.muscle_group
+    if "name" in fields:
+        new_name = normalize_exercise_name(payload.name)
+        # Renaming onto another exercise would fold two distinct lifts into one
+        # name; reject it rather than silently merge. A case-only change to this
+        # exercise's own name isn't a collision (id excluded).
+        clash = await session.scalar(
+            select(Exercise).where(
+                func.lower(Exercise.name) == new_name.lower(),
+                Exercise.id != exercise_id,
+            )
+        )
+        if clash is not None:
+            raise HTTPException(status_code=409, detail="an exercise with that name already exists")
+        exercise.name = new_name
+    if "muscle_group" in fields:
+        exercise.muscle_group = payload.muscle_group
     await session.commit()
     await session.refresh(exercise)
     return _to_exercise_out(exercise)
@@ -149,18 +176,14 @@ async def best_marks(
             reps=entry.reps,
             weight_kg=entry.weight_kg,
             one_rm=one_rm,
-            delta_one_rm=(
-                round(one_rm - standing.one_rm, 1) if standing is not None else None
-            ),
+            delta_one_rm=(round(one_rm - standing.one_rm, 1) if standing is not None else None),
         )
 
     return sorted(best.values(), key=lambda m: m.one_rm, reverse=True)[:limit]
 
 
 @router.get("/exercises/previous", response_model=PreviousMarks)
-async def previous_marks(
-    name: str, session: AsyncSession = Depends(get_session)
-) -> PreviousMarks:
+async def previous_marks(name: str, session: AsyncSession = Depends(get_session)) -> PreviousMarks:
     """The sets from the most recent workout that includes this exercise.
 
     `found` is false (and `sets` empty) when the exercise has never been logged.
@@ -193,9 +216,7 @@ async def previous_marks(
         .limit(1)
     )
     if last_workout_id is None:
-        return PreviousMarks(
-            exercise_name=exercise.name, found=False, sets=[], kind=exercise.kind
-        )
+        return PreviousMarks(exercise_name=exercise.name, found=False, sets=[], kind=exercise.kind)
 
     result = await session.execute(
         select(SetEntry)

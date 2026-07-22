@@ -5,6 +5,7 @@ import {
   getExerciseHistory,
   listDays,
   listExercises,
+  renameExercise,
   setExerciseMuscle,
 } from './api.js'
 import { formatDate } from './format.js'
@@ -100,6 +101,8 @@ export default function Progress() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [bests, setBests] = useState([]) // best set per exercise, strongest first
+  const [editingName, setEditingName] = useState(false) // inline rename open?
+  const [nameDraft, setNameDraft] = useState('')
   // Read once: the toggle lives in Entreno, so it can't change while Progreso
   // is on screen.
   const weightUnit = getWeightUnit()
@@ -122,6 +125,27 @@ export default function Progress() {
       .then(setBests)
       .catch(() => {}) // the rest of Progreso still works without records
   }, [])
+
+  // Rename in place. The row keeps its id, so past sets, history and records all
+  // follow; we update locally and re-point `name` at the renamed lift so the chart
+  // and chips stay on it. A blank or unchanged name just closes the editor.
+  async function renameCurrent(id, draft) {
+    const trimmed = draft.trim()
+    if (!trimmed || trimmed === name) {
+      setEditingName(false)
+      return
+    }
+    try {
+      const updated = await renameExercise(id, trimmed)
+      setExercises((list) =>
+        list.map((e) => (e.id === id ? { ...e, name: updated.name } : e)),
+      )
+      setName(updated.name)
+      setEditingName(false)
+    } catch {
+      setError('No se pudo cambiar el nombre. ¿Ya existe otro con ese nombre?')
+    }
+  }
 
   // Fix a mis-guessed group; the classifier is only a default. Updates locally so
   // the chips regroup and the chart recolours immediately.
@@ -156,6 +180,7 @@ export default function Progress() {
     if (!q) return
     setName(q)
     setMuscle(muscleOf(q))
+    setEditingName(false)
     setError('')
     setLoading(true)
     try {
@@ -293,7 +318,38 @@ export default function Progress() {
             {current && (
               <div className="muscle-edit">
                 <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-                <span className="muscle-edit-name">{current.name}</span>
+                {editingName ? (
+                  <form
+                    className="exercise-rename"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      renameCurrent(current.id, nameDraft)
+                    }}
+                  >
+                    <input
+                      aria-label="Nombre del ejercicio"
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      maxLength={120}
+                      autoFocus
+                    />
+                    <button type="submit" className="secondary set-action">
+                      Guardar nombre
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    className="muscle-edit-name muscle-edit-name-btn"
+                    aria-label={`Editar nombre: ${current.name}`}
+                    onClick={() => {
+                      setNameDraft(current.name)
+                      setEditingName(true)
+                    }}
+                  >
+                    {current.name}
+                  </button>
+                )}
                 <label htmlFor="muscle-select" className="muscle-edit-label">
                   Grupo
                 </label>
