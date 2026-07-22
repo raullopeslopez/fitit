@@ -37,6 +37,14 @@ const workoutWith = (...sets) => ({ id: 1, date: '2026-07-16', name: null, sets 
 // The header of each exercise card is its expand/collapse control.
 const cardToggle = (name) => screen.getByRole('button', { name: new RegExp(name, 'i') })
 
+// The folded digest is split into spans (muted count/reps, ink weight, a "tope"
+// tag), so its text spans several nodes. Match on the whole card-digest element.
+const foldedDigest = (re) =>
+  screen.findByText(
+    (_, el) =>
+      el?.classList?.contains('card-digest') && re.test(el.textContent.replace(/\s+/g, ' ').trim()),
+  )
+
 describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -139,11 +147,28 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // Uniform reps read as 3 × 8; the number shown is the top weight.
-      expect(await screen.findByText(/3 × 8 · 80 kg/)).toBeInTheDocument()
+      // Sets varied (60/60/80), so the digest names the top set by est. 1RM
+      // (80 × 8) with the "tope" label, not a decoupled range.
+      expect(await foldedDigest(/^3 series · tope 80 kg × 8$/)).toBeInTheDocument()
     })
 
-    it('reports a set count instead of reps when the reps varied', async () => {
+    it('names the working set without a "tope" label when every set matched', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
+          benchSet({ id: 2, set_index: 1, reps: 8, weight: 60 }),
+          pullSet({ id: 3, set_index: 2 }),
+        ),
+      )
+      renderWorkout()
+
+      // Identical sets: one pair speaks for all, so no "tope" — there's no peak
+      // to single out.
+      expect(await foldedDigest(/^2 series · 60 kg × 8$/)).toBeInTheDocument()
+      expect(screen.queryByText(/tope/)).not.toBeInTheDocument()
+    })
+
+    it('names the top set by est. 1RM when the sets varied', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
@@ -153,8 +178,9 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // "2 × 8" would be a lie about the second set.
-      expect(await screen.findByText(/2 series · 70 kg/)).toBeInTheDocument()
+      // A flat "2 × 8" would lie about the second set. 70 × 5 (e1RM 81.7) beats
+      // 60 × 8 (76.0), so it's the tope — one real, paired working set.
+      expect(await foldedDigest(/^2 series · tope 70 kg × 5$/)).toBeInTheDocument()
     })
 
     it('lets me keep two cards open at once, for supersets', async () => {

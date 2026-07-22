@@ -816,6 +816,24 @@ button.set-action {
   font-size: 0.85rem;
   color: var(--muted);
 }
+/* The headline figure of the row — the working weight (or, for cardio, the
+   time) — lifted out of the muted line into ink so it reads first. Hierarchy,
+   not colour: amber stays reserved for the PR, so this static readout can't use
+   it. The count and "× reps" around it stay muted, and the number keeps its
+   place in the tabular mono column. */
+.card-digest .d-key {
+  color: var(--text);
+  font-weight: 500;
+}
+/* "tope" is a qualifier, not data: a small ink-less tag that says "this is your
+   peak set" without competing with the weight it labels. */
+.card-digest .d-tope {
+  font-family: var(--font-body);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 /* Pinned right and vertically centred, out of the wrapping flow entirely, so a
    two-line header keeps one chevron on the right instead of orphaning it. */
 .card-chevron {
@@ -863,6 +881,12 @@ button.set-action {
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--muted);
+}
+/* The tag rides the right edge of the header, not glued to the name: name left,
+   muscle tag top-right, digest right below it — a tidy right column instead of
+   "name● tag" run together. */
+.card-toggle .muscle-tag {
+  margin-left: auto;
 }
 
 /* Muscle dots on a day's workout row (Días). */
