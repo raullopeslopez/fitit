@@ -18,6 +18,7 @@ dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
     "pytest-bdd>=8.1",
+    "pytest-cov>=6.0",
     "httpx>=0.28",
     "aiosqlite>=0.20",
     "ruff>=0.9",
@@ -25,6 +26,29 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.coverage.run]
+source = ["app"]
+# The endpoints run inside the event loop under Starlette's TestClient — a
+# greenlet on a worker thread. Without these, coverage traces only the main
+# thread and reports the heavily-specced routers at ~40%, a measurement
+# artifact, not a real gap. With them, the true figure shows (~98%).
+concurrency = ["thread", "greenlet"]
+
+[tool.coverage.report]
+# Production-only wiring that no unit test exercises: the real DB session (tests
+# inject an in-memory override) and the static-file mount (only mounted when a
+# built frontend is present). Excluded so the floor reflects testable code.
+omit = [
+    "app/db.py",
+    "app/web.py",
+]
+show_missing = true
+# The suite currently covers 100% of testable code. Hold a floor with a little
+# headroom so a genuinely hard-to-reach line doesn't block a commit, while any
+# real drop in coverage fails CI. Only enforced when --cov is passed (CI); the
+# default `pytest` and the pre-commit hook don't compute coverage.
+fail_under = 95
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
