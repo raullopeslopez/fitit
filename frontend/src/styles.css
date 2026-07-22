@@ -241,10 +241,12 @@ h2 {
   white-space: nowrap;
 }
 /* The workout is the anchor of this bar: name (display) over date (mono),
-   taking the space the staggered button cluster used to waste. */
+   centered in the space between the back and overflow buttons. */
 .workout-title {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 0.1rem;
   flex: 1;
   min-width: 0;
@@ -269,11 +271,22 @@ h2 {
   position: relative;
   flex: none;
 }
-.head-menu-btn {
+/* Options reads as a light icon affordance, not a twin of the framed back
+   button: no border or fill, a bigger muted glyph that inks up on press. */
+.head-menu-btn.head-menu-btn {
   min-width: 44px;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.5rem;
   line-height: 1;
+}
+.head-menu-btn.head-menu-btn:hover:not(:disabled),
+.head-menu-btn[aria-expanded='true'] {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 .head-menu-pop {
   position: absolute;
