@@ -839,6 +839,16 @@ button.set-action {
   padding-bottom: 0.35rem;
   box-shadow: none;
 }
+/* Folded, the digest always takes its own line, right-aligned under the name —
+   never inline. Left to flow, it sat inline when the name was short and wrapped
+   below when the name was long, so otherwise-identical rows looked different.
+   Pinning it below makes every folded row read the same: name (+ dot) left,
+   digest right, whatever the name's length — and no name is ever truncated. */
+.card.is-folded .card-digest {
+  flex: 1 0 100%;
+  margin-left: 0;
+  text-align: right;
+}
 @media (prefers-reduced-motion: reduce) {
   .card-chevron {
     transition: none;
