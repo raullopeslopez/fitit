@@ -889,6 +889,19 @@ button.set-action {
   margin: 0 0 0 auto;
   font-size: 0.75rem;
 }
+/* The label on the in-card corrector: muted, not the display face — a label
+   that never changes doesn't earn the exercise-name treatment. */
+.muscle-edit-heading {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+.muscle-edit-select {
+  margin-left: auto;
+  min-height: 44px;
+}
 .muscle-edit select {
   width: auto;
   min-height: 36px;
