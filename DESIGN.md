@@ -123,7 +123,10 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   (`4 series · 25 kg × 15`). When they varied, show the hardest — the **top set by est.
   1RM**, the same set the PR logic tracks — labelled `tope` so a single pair isn't read as
   the whole exercise (`4 series · tope 60 kg × 8`). Full per-set detail is one tap away in
-  the open card. Cardio reports time, not reps.
+  the open card. Cardio reports time, not reps. **Emphasis is by hierarchy, not colour:**
+  the headline figure — the working weight (cardio: the time) — is lifted to ink while the
+  count, `tope` tag and `× reps` stay muted, so the number reads first. Amber is never
+  spent here; it belongs to the PR alone.
 - **One number per idea.** The 1RM readout is a single `76 → 81.7` line: the mark you
   walked in with, muted and small, then today's, large and amber once it passes. Two
   separate 1RM figures on one card is how you end up reading neither.

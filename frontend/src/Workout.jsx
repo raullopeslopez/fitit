@@ -237,11 +237,20 @@ function ExerciseCard({
         estimatedOneRm(s.weight_kg, s.reps) > estimatedOneRm(best.weight_kg, best.reps) ? s : best,
       )
     : null
-  const digest = sets.length
-    ? `${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · ${
-        varied ? 'tope ' : ''
-      }${displayWeight(topSet.weight_kg, weightUnit)} ${weightUnit} × ${topSet.reps}`
-    : 'sin series'
+  // The count and framing stay muted; the weight — the "what did I hit" figure —
+  // is lifted to ink so it reads first. Emphasis is by hierarchy, never amber:
+  // amber is spent only on the PR, so a static readout can't borrow it.
+  const digest = sets.length ? (
+    <>
+      {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · `}
+      {varied && <span className="d-tope">tope</span>}
+      {varied && ' '}
+      <span className="d-key">{`${displayWeight(topSet.weight_kg, weightUnit)} ${weightUnit}`}</span>
+      {` × ${topSet.reps}`}
+    </>
+  ) : (
+    'sin series'
+  )
   // The single 1RM readout: the mark you walked in with, and where you are now.
   const todayBest = sets.length ? bestOneRm : null
   const beatIt = seededBest != null && todayBest != null && todayBest > seededBest
@@ -618,10 +627,17 @@ function CardioCard({
       : `Registrar ${formatDuration(seconds)}`
     : 'Registrar serie'
 
-  // Folded, a cardio block reports time on feet, not sets × reps.
-  const digest = sets.length
-    ? `${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · ${formatDuration(totalSeconds)}`
-    : 'sin series'
+  // Folded, a cardio block reports time on feet, not sets × reps. Same emphasis
+  // as strength: the count stays muted, the headline figure — here the total
+  // time — is lifted to ink so the folded list reads with one visual language.
+  const digest = sets.length ? (
+    <>
+      {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · `}
+      <span className="d-key">{formatDuration(totalSeconds)}</span>
+    </>
+  ) : (
+    'sin series'
+  )
 
   return (
     <div className={`card${open ? '' : ' is-folded'}`}>

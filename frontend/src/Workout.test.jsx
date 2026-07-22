@@ -37,6 +37,14 @@ const workoutWith = (...sets) => ({ id: 1, date: '2026-07-16', name: null, sets 
 // The header of each exercise card is its expand/collapse control.
 const cardToggle = (name) => screen.getByRole('button', { name: new RegExp(name, 'i') })
 
+// The folded digest is split into spans (muted count/reps, ink weight, a "tope"
+// tag), so its text spans several nodes. Match on the whole card-digest element.
+const foldedDigest = (re) =>
+  screen.findByText(
+    (_, el) =>
+      el?.classList?.contains('card-digest') && re.test(el.textContent.replace(/\s+/g, ' ').trim()),
+  )
+
 describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -141,7 +149,7 @@ describe('Workout', () => {
 
       // Sets varied (60/60/80), so the digest names the top set by est. 1RM
       // (80 × 8) with the "tope" label, not a decoupled range.
-      expect(await screen.findByText(/3 series · tope 80 kg × 8/)).toBeInTheDocument()
+      expect(await foldedDigest(/^3 series · tope 80 kg × 8$/)).toBeInTheDocument()
     })
 
     it('names the working set without a "tope" label when every set matched', async () => {
@@ -156,7 +164,7 @@ describe('Workout', () => {
 
       // Identical sets: one pair speaks for all, so no "tope" — there's no peak
       // to single out.
-      expect(await screen.findByText(/2 series · 60 kg × 8/)).toBeInTheDocument()
+      expect(await foldedDigest(/^2 series · 60 kg × 8$/)).toBeInTheDocument()
       expect(screen.queryByText(/tope/)).not.toBeInTheDocument()
     })
 
@@ -172,7 +180,7 @@ describe('Workout', () => {
 
       // A flat "2 × 8" would lie about the second set. 70 × 5 (e1RM 81.7) beats
       // 60 × 8 (76.0), so it's the tope — one real, paired working set.
-      expect(await screen.findByText(/2 series · tope 70 kg × 5/)).toBeInTheDocument()
+      expect(await foldedDigest(/^2 series · tope 70 kg × 5$/)).toBeInTheDocument()
     })
 
     it('lets me keep two cards open at once, for supersets', async () => {
