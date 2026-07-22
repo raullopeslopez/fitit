@@ -808,6 +808,10 @@ export default function Workout({ workoutId, onExit }) {
   const [idByName, setIdByName] = useState({}) // name -> exercise id, for re-tagging
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
+  // The header overflow: rename and delete are both rare, and delete is
+  // irreversible, so neither sits loose next to the title where a thumb lands.
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
   // Units are workout-wide preferences, remembered across sessions.
@@ -975,10 +979,16 @@ export default function Workout({ workoutId, onExit }) {
     setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== setId) }))
   }
 
+  function closeMenu() {
+    setMenuOpen(false)
+    setConfirmingDelete(false)
+  }
+
   function startRename() {
     setError('')
     setNameInput(workout.name || '')
     setRenaming(true)
+    closeMenu()
   }
 
   async function handleRename(event) {
@@ -1017,8 +1027,11 @@ export default function Workout({ workoutId, onExit }) {
 
   return (
     <section>
+      {/* One toolbar, one row: back on the left, the workout (name + date) as the
+          anchor, and the rare/destructive actions folded into an overflow on the
+          right — instead of four buttons and a title staggered across the top. */}
       <div className="workout-head">
-        <button type="button" className="secondary" onClick={onExit}>
+        <button type="button" className="secondary head-back" onClick={onExit}>
           ← Días
         </button>
         {renaming ? (
@@ -1041,24 +1054,54 @@ export default function Workout({ workoutId, onExit }) {
             </button>
           </form>
         ) : (
-          <div className="workout-title">
-            <strong>{workout.name || 'Entreno'}</strong>
-            <span className="set-index"> · {formatDate(workout.date)}</span>
-            <button
-              type="button"
-              className="secondary set-action"
-              onClick={startRename}
-            >
-              Renombrar
-            </button>
-            <button
-              type="button"
-              className="secondary set-action"
-              onClick={handleDeleteWorkout}
-            >
-              Borrar entreno
-            </button>
-          </div>
+          <>
+            <div className="workout-title">
+              <strong>{workout.name || 'Entreno'}</strong>
+              <span className="workout-date">{formatDate(workout.date)}</span>
+            </div>
+            <div className="head-menu">
+              <button
+                type="button"
+                className="secondary set-action head-menu-btn"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                aria-label="Acciones del entreno"
+                onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
+              >
+                ⋯
+              </button>
+              {menuOpen && (
+                <div className="head-menu-pop">
+                  <button
+                    type="button"
+                    className="secondary set-action head-menu-item"
+                    onClick={startRename}
+                  >
+                    Renombrar
+                  </button>
+                  {/* Two taps to delete: the first only arms it. Destructive gets
+                      the true-red treatment DESIGN.md reserves for it. */}
+                  {confirmingDelete ? (
+                    <button
+                      type="button"
+                      className="secondary set-action head-menu-item head-menu-danger"
+                      onClick={handleDeleteWorkout}
+                    >
+                      Sí, borrar entreno
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="secondary set-action head-menu-item head-menu-danger"
+                      onClick={() => setConfirmingDelete(true)}
+                    >
+                      Borrar entreno
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 

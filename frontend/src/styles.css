@@ -233,19 +233,76 @@ h2 {
 .workout-head {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
 }
+.head-back {
+  flex: none;
+  white-space: nowrap;
+}
+/* The workout is the anchor of this bar: name (display) over date (mono),
+   taking the space the staggered button cluster used to waste. */
 .workout-title {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.15;
 }
 .workout-title strong {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workout-date {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.head-menu {
+  position: relative;
+  flex: none;
+}
+.head-menu-btn {
+  min-width: 44px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  line-height: 1;
+}
+.head-menu-pop {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 12rem;
+  padding: 0.35rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.head-menu-item {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  border-color: transparent;
+}
+/* Two-class selector so this outweighs `button.secondary` (which is later in
+   the file): destructive actually wears the red DESIGN.md reserves for it. */
+.head-menu-item.head-menu-danger {
+  color: var(--danger);
+}
+.head-menu-item.head-menu-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 .workout-rename {
   display: flex;
