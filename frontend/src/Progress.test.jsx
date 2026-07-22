@@ -182,9 +182,36 @@ describe('Progress', () => {
     await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
 
     await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(7, 'Press de banca'))
-    expect(await screen.findByRole('button', { name: /editar nombre/i })).toHaveTextContent(
-      'Press de banca',
-    )
+    // The editor closes and the new name is shown.
+    expect(await screen.findByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
+    expect(screen.getByText('Press de banca')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/nombre del ejercicio/i)).not.toBeInTheDocument()
+  })
+
+  it('lets you rename an exercise that has no chart data yet', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 9, name: 'Correr', muscle_group: null },
+    ])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Cardio',
+            sets: [{ id: 1, exercise_name: 'Correr', reps: 0, weight: 0, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    // No 1RM history to chart (cardio), but the exercise must still be editable.
+    api.getExerciseHistory.mockResolvedValue([])
+    render(<Progress />)
+
+    expect(await screen.findByText(/no hay datos para graficar/i)).toBeInTheDocument()
+    // The rename control is present despite the empty chart.
+    expect(screen.getByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
   })
 
   it('shows the consistency heatmap with a streak when there are training days', async () => {
