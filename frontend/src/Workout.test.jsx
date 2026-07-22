@@ -945,6 +945,41 @@ describe('Workout', () => {
     expect(heading).toHaveTextContent('Pecho')
   })
 
+  it('lets me re-label an exercise muscle group from the workout', async () => {
+    api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
+    api.listExercises.mockResolvedValue([
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho' },
+    ])
+    api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: 'Hombro' })
+    renderWorkout()
+
+    // The newest card is open, so its muscle-group editor is on screen.
+    const select = await screen.findByLabelText(/grupo muscular de Bench Press/i)
+    expect(select).toHaveValue('Pecho')
+
+    await userEvent.selectOptions(select, 'Hombro')
+
+    await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
+    expect(select).toHaveValue('Hombro')
+    // The header tag follows the new group, not the old classifier guess.
+    expect(cardToggle('Bench Press').closest('h2')).toHaveTextContent('Hombro')
+  })
+
+  it('clears a muscle group back to Sin grupo', async () => {
+    api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
+    api.listExercises.mockResolvedValue([
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho' },
+    ])
+    api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: null })
+    renderWorkout()
+
+    const select = await screen.findByLabelText(/grupo muscular de Bench Press/i)
+    await userEvent.selectOptions(select, 'Sin grupo')
+
+    await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, null))
+    expect(select).toHaveValue('')
+  })
+
   it('suggests known exercises for autocomplete', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Deadlift', muscle_group: null },

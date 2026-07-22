@@ -10,6 +10,7 @@ import {
   listExercises,
   logSet,
   renameWorkout,
+  setExerciseMuscle,
 } from './api.js'
 import {
   estimatedOneRm,
@@ -21,7 +22,7 @@ import {
   formatTime,
   parseDuration,
 } from './format.js'
-import { muscleColor } from './muscles.js'
+import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 import { prSetIds } from './stats.js'
 import {
   REST_OPTIONS,
@@ -80,6 +81,7 @@ function ExerciseCard({
   onEditSet,
   onDeleteSet,
   onCorrectUnit,
+  onChangeMuscle,
   open = true,
   onToggle,
 }) {
@@ -261,6 +263,28 @@ function ExerciseCard({
 
       {!open ? null : (
         <>
+      {/* The classifier's guess is only a default; re-tag it here, and the
+          folded header dot follows. Sits at the top of the open card so it's
+          out of the way of logging but reachable without leaving Entreno. */}
+      {onChangeMuscle && (
+        <div className="muscle-edit">
+          <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
+          <span className="muscle-edit-heading">Grupo muscular</span>
+          <select
+            className="muscle-edit-select"
+            aria-label={`Grupo muscular de ${name}`}
+            value={muscle ?? ''}
+            onChange={(e) => onChangeMuscle(name, e.target.value)}
+          >
+            <option value="">Sin grupo</option>
+            {MUSCLE_GROUPS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {/* One 1RM readout, not two: the mark you walked in with and where you are
           now. Two separate numbers twelve lines apart is how you read neither. */}
       {seededBest != null || todayBest != null ? (
@@ -757,6 +781,7 @@ export default function Workout({ workoutId, onExit }) {
   const [toggled, setToggled] = useState({})
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
   const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
+  const [idByName, setIdByName] = useState({}) // name -> exercise id, for re-tagging
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [error, setError] = useState('')
@@ -844,6 +869,7 @@ export default function Workout({ workoutId, onExit }) {
       .then((list) => {
         setKnown(list.map((e) => e.name))
         setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
+        setIdByName(Object.fromEntries(list.map((e) => [e.name, e.id])))
       })
       .catch(() => {})
   }, [])
@@ -898,6 +924,20 @@ export default function Workout({ workoutId, onExit }) {
 
   async function correctUnitFor(exerciseId, unit) {
     setWorkout(await correctExerciseUnit(workout.id, exerciseId, unit))
+  }
+
+  // Override the muscle group (empty clears it back to the classifier's guess).
+  // Update the name→group map so the header dot recolours without a reload.
+  async function changeMuscleFor(name, group) {
+    const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
+    if (id == null) return
+    setError('')
+    try {
+      const updated = await setExerciseMuscle(id, group || null)
+      setMuscleByName((m) => ({ ...m, [name]: updated.muscle_group }))
+    } catch {
+      setError('No se pudo cambiar el grupo muscular.')
+    }
   }
 
   // Many cards may be open at once: folding one shut when you open another
@@ -1108,6 +1148,7 @@ export default function Workout({ workoutId, onExit }) {
             onEditSet={editSetFor}
             onDeleteSet={deleteSetFor}
             onCorrectUnit={correctUnitFor}
+            onChangeMuscle={changeMuscleFor}
             open={isOpen(ex.name, index)}
             onToggle={() => toggleCard(ex.name, index)}
           />
