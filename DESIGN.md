@@ -116,8 +116,10 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
 - **Cards fold.** Only the newest exercise starts open; the rest collapse to a single
   spec-sheet row. Many can be open at once, because supersets are real. The whole header
   is the control (full width, 44px), not a small chevron you have to aim at one-handed.
-- **A folded row still answers "what did I do here":** name and muscle dot left, digest
-  right in Geist Mono, always shaped `N series · [tope] weight × reps`. It names one *real*
+- **A folded row still answers "what did I do here":** exercise name alone on the left; the
+  muscle tag rides the top-right (not glued to the name), with the digest right below it —
+  a tidy right column. The digest is Geist Mono, always shaped `N series · [tope] weight ×
+  reps`. It names one *real*
   working set, never decoupled reps/weight ranges (with `4 × 8–12 · 50–60 kg` you can't
   tell which weight went with which reps). When every set matched, that set speaks for all
   (`4 series · 25 kg × 15`). When they varied, show the hardest — the **top set by est.

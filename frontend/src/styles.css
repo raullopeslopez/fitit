@@ -882,6 +882,12 @@ button.set-action {
   letter-spacing: 0.02em;
   color: var(--muted);
 }
+/* The tag rides the right edge of the header, not glued to the name: name left,
+   muscle tag top-right, digest right below it — a tidy right column instead of
+   "name● tag" run together. */
+.card-toggle .muscle-tag {
+  margin-left: auto;
+}
 
 /* Muscle dots on a day's workout row (Días). */
 .muscle-dots {
