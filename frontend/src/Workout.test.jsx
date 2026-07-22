@@ -305,6 +305,41 @@ describe('Workout', () => {
     expect(screen.getByLabelText(/peso/i)).toHaveValue('82.5')
   })
 
+  it('labels the previous marks as "Última vez" so they read as history, not today', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ id: 5 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    expect(await screen.findByText(/última vez/i)).toBeInTheDocument()
+  })
+
+  it('headers today’s logged sets as "Hoy" so they read apart from the previous marks', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ id: 5 })],
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ id: 6 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(await screen.findByText('Hoy')).toBeInTheDocument()
+  })
+
   it('says there are no previous marks for a new exercise', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Face Pull',
@@ -452,6 +487,9 @@ describe('Workout', () => {
     expect(await screen.findByRole('listitem')).toHaveTextContent(
       /24:30 · 5\.2 km · 4:43\/km/i,
     )
+    // "Última vez" (previous marks, absent here) vs "Hoy" (this session's log)
+    // must read as visually distinct sections.
+    expect(screen.getByText('Hoy')).toBeInTheDocument()
   })
 
   it('renders the cardio card for a known cardio exercise', async () => {

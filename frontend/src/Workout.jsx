@@ -324,8 +324,11 @@ function ExerciseCard({
             </span>
           </div>
           {previous?.found && (
-            <div className="target-meta">
-              {previous.sets.map((s) => formatSet(s, weightUnit)).join(', ')}
+            <div className="target-side">
+              <div className="target-label">Última vez</div>
+              <div className="target-meta">
+                {previous.sets.map((s) => formatSet(s, weightUnit)).join(', ')}
+              </div>
             </div>
           )}
         </div>
@@ -435,6 +438,7 @@ function ExerciseCard({
 
       {sets.length > 0 ? (
         <>
+        <div className="target-label session-label">Hoy</div>
         <p className="set-summary">
           {sets.length} {sets.length === 1 ? 'serie' : 'series'} ·{' '}
           {displayWeight(volumeKg, weightUnit)} {weightUnit} volumen
@@ -721,6 +725,7 @@ function CardioCard({
 
       {sets.length > 0 ? (
         <>
+          <div className="target-label session-label">Hoy</div>
           <p className="set-summary">
             Total {formatDuration(totalSeconds)}
             {totalDistance ? ` · ${totalDistance} ${distanceUnit}` : ''}

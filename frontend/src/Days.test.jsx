@@ -130,6 +130,26 @@ describe('Days', () => {
     })
   })
 
+  it('badges today’s day so it reads apart from recent history', async () => {
+    // Only fake Date — testing-library's async queries poll via real timers.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-16T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
+        { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+      ])
+      render(<Days onOpenWorkout={() => {}} />)
+
+      const todayHeading = await screen.findByText('jue, 16 jul 2026')
+      const pastHeading = screen.getByText('mié, 15 jul 2026')
+      expect(todayHeading.closest('.day-head')).toHaveTextContent('HOY')
+      expect(pastHeading.closest('.day-head')).not.toHaveTextContent('HOY')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows an empty state when there are no days', async () => {
     render(<Days onOpenWorkout={() => {}} />)
     expect(await screen.findByText(/aún no hay días/i)).toBeInTheDocument()
