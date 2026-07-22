@@ -285,7 +285,8 @@ function ExerciseCard({
           out of the way of logging but reachable without leaving Entreno. */}
       {onChangeMuscle && (
         <div className="muscle-edit">
-          <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
+          {/* No dot here: the header tag right above already carries the coloured
+              identity chip. This row is the control, not a second chip. */}
           <span className="muscle-edit-heading">Grupo muscular</span>
           <select
             className="muscle-edit-select"

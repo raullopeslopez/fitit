@@ -1012,6 +1012,23 @@ describe('Workout', () => {
     expect(heading).toHaveTextContent('Pecho')
   })
 
+  it('does not repeat the muscle dot in the open card editor', async () => {
+    // The header tag already carries the coloured dot for identity; the editor
+    // row below it is the control, not a second chip. Two dots and "Pecho"
+    // twice within a thumb's width reads as noise, not information. One dot.
+    api.listExercises.mockResolvedValue([
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho' },
+    ])
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    const card = (await screen.findByRole('heading', { name: /Bench Press/ })).closest('.card')
+    expect(card.querySelectorAll('.dot')).toHaveLength(1)
+  })
+
   it('lets me re-label an exercise muscle group from the workout', async () => {
     api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
     api.listExercises.mockResolvedValue([
