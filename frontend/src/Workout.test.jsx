@@ -1044,7 +1044,9 @@ describe('Workout', () => {
     api.renameWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: 'Leg Day', sets: [] })
     renderWorkout()
 
-    await userEvent.click(await screen.findByRole('button', { name: /renombrar/i }))
+    // Rename lives behind the header overflow menu now.
+    await userEvent.click(await screen.findByRole('button', { name: /acciones del entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: /renombrar/i }))
     await userEvent.type(screen.getByLabelText(/nombre del entreno/i), 'Leg Day')
     await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
 
@@ -1052,13 +1054,18 @@ describe('Workout', () => {
     expect(await screen.findByText('Leg Day')).toBeInTheDocument()
   })
 
-  it('deletes the current workout and exits', async () => {
+  it('deletes the current workout and exits, after confirming', async () => {
     const onExit = vi.fn()
     api.deleteWorkout.mockResolvedValue(null)
     renderWorkout({ onExit })
     await screen.findByLabelText(/ejercicio/i)
 
-    await userEvent.click(screen.getByRole('button', { name: /borrar entreno/i }))
+    // Destructive + irreversible: tucked in the overflow menu and gated on a
+    // second, explicit tap so a stray thumb can't wipe the workout.
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar entreno' }))
+    expect(api.deleteWorkout).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: /sí, borrar/i }))
 
     await waitFor(() => expect(api.deleteWorkout).toHaveBeenCalledWith(1))
     expect(onExit).toHaveBeenCalled()
