@@ -139,12 +139,28 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // Uniform reps read as 3 × 8; the weights varied (60/60/80) so they
-      // read as a range, the same shape the reps use.
-      expect(await screen.findByText(/3 × 8 · 60–80 kg/)).toBeInTheDocument()
+      // Sets varied (60/60/80), so the digest names the top set by est. 1RM
+      // (80 × 8) with the "tope" label, not a decoupled range.
+      expect(await screen.findByText(/3 series · tope 80 kg × 8/)).toBeInTheDocument()
     })
 
-    it('shows the rep range when the reps varied', async () => {
+    it('names the working set without a "tope" label when every set matched', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
+          benchSet({ id: 2, set_index: 1, reps: 8, weight: 60 }),
+          pullSet({ id: 3, set_index: 2 }),
+        ),
+      )
+      renderWorkout()
+
+      // Identical sets: one pair speaks for all, so no "tope" — there's no peak
+      // to single out.
+      expect(await screen.findByText(/2 series · 60 kg × 8/)).toBeInTheDocument()
+      expect(screen.queryByText(/tope/)).not.toBeInTheDocument()
+    })
+
+    it('names the top set by est. 1RM when the sets varied', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
@@ -154,9 +170,9 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // "2 × 8" would be a lie about the second set; both reps (5–8) and
-      // weight (60–70) read as ranges, keeping the "N × reps · weight" shape.
-      expect(await screen.findByText(/2 × 5–8 · 60–70 kg/)).toBeInTheDocument()
+      // A flat "2 × 8" would lie about the second set. 70 × 5 (e1RM 81.7) beats
+      // 60 × 8 (76.0), so it's the tope — one real, paired working set.
+      expect(await screen.findByText(/2 series · tope 70 kg × 5/)).toBeInTheDocument()
     })
 
     it('lets me keep two cards open at once, for supersets', async () => {

@@ -224,21 +224,23 @@ function ExerciseCard({
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
     : 0
   // What a folded card still has to answer: did I do this, and what did I hit.
-  // Reps and weight follow the same rule so the list scans as one column: a
-  // single number when every set matched ("4 × 15 · 25 kg"), a range when they
-  // varied ("3 × 15 · 40–60 kg"). The range keeps it honest — one figure when
-  // you ramped 40→60 would hide half the work — without breaking the "N × reps ·
-  // weight" shape. Weight bounds are compared in the *displayed* unit so two kg
-  // values that round to the same shown number don't read as a phantom range.
-  const repsList = sets.map((s) => s.reps)
-  const shownWeights = sets.map((s) => displayWeight(s.weight_kg, weightUnit))
-  const range = (values) => {
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-    return min === max ? `${max}` : `${min}–${max}`
-  }
+  // It names one real working set — not decoupled reps/weight ranges, where you
+  // couldn't tell which weight went with which reps. When every set matched,
+  // that one set speaks for all ("4 series · 25 kg × 15"). When they varied,
+  // show the hardest — the top set by est. 1RM, the same one the PR logic
+  // tracks — labelled "tope" so a single pair isn't read as the whole exercise
+  // ("4 series · tope 60 kg × 8"). Full per-set detail is one tap away, open.
+  const shownPair = (s) => `${displayWeight(s.weight_kg, weightUnit)}×${s.reps}`
+  const varied = sets.length ? !sets.every((s) => shownPair(s) === shownPair(sets[0])) : false
+  const topSet = sets.length
+    ? sets.reduce((best, s) =>
+        estimatedOneRm(s.weight_kg, s.reps) > estimatedOneRm(best.weight_kg, best.reps) ? s : best,
+      )
+    : null
   const digest = sets.length
-    ? `${sets.length} × ${range(repsList)} · ${range(shownWeights)} ${weightUnit}`
+    ? `${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · ${
+        varied ? 'tope ' : ''
+      }${displayWeight(topSet.weight_kg, weightUnit)} ${weightUnit} × ${topSet.reps}`
     : 'sin series'
   // The single 1RM readout: the mark you walked in with, and where you are now.
   const todayBest = sets.length ? bestOneRm : null

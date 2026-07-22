@@ -117,11 +117,13 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   spec-sheet row. Many can be open at once, because supersets are real. The whole header
   is the control (full width, 44px), not a small chevron you have to aim at one-handed.
 - **A folded row still answers "what did I do here":** name and muscle dot left, digest
-  right in Geist Mono, always shaped `N × reps · weight`. Reps and weight each show a
-  single number when every set matched and a range when they varied, so the list scans as
-  one column: `3 × 8 · 80 kg` for straight sets, `3 × 6–8 · 60–80 kg` when reps and/or
-  weight moved. One figure where they ramped would be a lie about half the sets. Cardio
-  reports time, not reps.
+  right in Geist Mono, always shaped `N series · [tope] weight × reps`. It names one *real*
+  working set, never decoupled reps/weight ranges (with `4 × 8–12 · 50–60 kg` you can't
+  tell which weight went with which reps). When every set matched, that set speaks for all
+  (`4 series · 25 kg × 15`). When they varied, show the hardest — the **top set by est.
+  1RM**, the same set the PR logic tracks — labelled `tope` so a single pair isn't read as
+  the whole exercise (`4 series · tope 60 kg × 8`). Full per-set detail is one tap away in
+  the open card. Cardio reports time, not reps.
 - **One number per idea.** The 1RM readout is a single `76 → 81.7` line: the mark you
   walked in with, muted and small, then today's, large and amber once it passes. Two
   separate 1RM figures on one card is how you end up reading neither.
@@ -158,4 +160,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-21 | Exercise cards fold; only the newest starts open | A five-exercise session was a five-card scroll with the active lift anywhere in it. Folded cards keep a spec-sheet digest so nothing is hidden, only quieted. Accordion (one-open) was rejected: it fights supersets. |
 | 2026-07-21 | One 1RM readout (`76 → 81.7`) replaces two | The card printed "A batir · 1RM est. 76" and "Mejor 1RM 88" twelve lines apart, both about 1RM. Merging them keeps the PR as the emotional payload (today's number is the large one, amber when it passes) while removing a competing figure. |
 | 2026-07-20 | Consistency heatmap uses the amber ramp, not green | Every contribution grid ships green; a heat map of effort should literally be heat. Intensity = sets logged that day (works for cardio too, where volume doesn't), built with `color-mix(in srgb, var(--accent) N%, transparent)` so it tracks light/dark for free. Level 0 stays neutral, never a faint amber. |
-| 2026-07-22 | Folded digest is always `N × reps · weight`; mixed reps *and* mixed weight show a range | The digest switched shape on mixed reps (`4 × 15` vs `4 series`), so a list of folded cards mixed two formats and read as inconsistent. Reps now always read `N × reps`, a range (`4 × 10–15`) when they varied. Weight got the same treatment for symmetry: a single number for straight sets, a range (`40–60 kg`) when it moved, instead of silently showing only the heaviest set. Both keep the row honest about non-uniform work — the reason `N series` existed. Also fixed the folded header so the digest always sits on its own right-aligned line under the name, instead of inline for short names and wrapped for long ones. |
+| 2026-07-22 | Folded digest names one real working set (`N series · [tope] W × R`), not ranges | First attempt made reps/weight independent ranges (`4 × 8–12 · 50–60 kg`), but decoupling them loses the pairing — you can't tell which weight went with which reps. Instead name a single real set: when all sets match, that pair speaks for all (`4 series · 25 kg × 15`); when they vary, show the hardest (top set by est. 1RM, the PR set) labelled `tope` so it isn't mistaken for the whole exercise (`4 series · tope 60 kg × 8`). Every token is real and paired; the full per-set breakdown lives in the open card. Same commit fixed the folded header so the digest always sits on its own right-aligned line under the name, instead of inline for short names and wrapped for long ones. |
