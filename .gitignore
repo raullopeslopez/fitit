@@ -6,6 +6,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Coverage artifacts
+.coverage
+htmlcov/
+frontend/coverage/
+
 # Node
 node_modules/
 frontend/dist/

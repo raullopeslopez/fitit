@@ -13,5 +13,5 @@ web = FastAPI(title="Fitit")
 web.mount("/api", api_app)
 
 _STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
-if _STATIC_DIR.is_dir():
+if _STATIC_DIR.is_dir():  # pragma: no cover - only present once the frontend is built
     web.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="spa")
