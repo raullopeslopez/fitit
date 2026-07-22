@@ -108,22 +108,24 @@ h2 {
 .app-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   margin-bottom: 1.25rem;
 }
-/* Salir: a quiet text link, not nav-weight. */
+/* Salir: a framed amber button — outlined, so it reads as a control without
+   competing with the filled Días. */
 .link-btn {
   background: transparent;
-  border: none;
-  color: var(--muted);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
   font-size: 0.85rem;
   font-weight: 600;
-  min-height: auto;
-  padding: 0.25rem 0.35rem;
+  min-height: 36px;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-control);
 }
 .link-btn:hover:not(:disabled) {
-  background: transparent;
-  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
 }
 
 /* Bottom navigation — primary nav in thumb reach for one-handed gym use. */
@@ -239,6 +241,16 @@ h2 {
 .head-back {
   flex: none;
   white-space: nowrap;
+}
+/* ← Días is a filled amber button. Two-class selector so it outweighs
+   button.secondary's transparent fill later in the file. */
+.secondary.head-back {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+.secondary.head-back:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 /* The workout is the anchor of this bar: name (display) over date (mono),
    centered in the space between the back and overflow buttons. */
