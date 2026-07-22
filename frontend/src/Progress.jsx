@@ -310,66 +310,73 @@ export default function Progress() {
         </p>
       )}
 
-      {points !== null &&
-        (points.length === 0 ? (
-          <p className="hint">Aún no hay datos para este ejercicio.</p>
-        ) : (
-          <div className="card">
-            {current && (
-              <div className="muscle-edit">
-                <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-                {editingName ? (
-                  <form
-                    className="exercise-rename"
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      renameCurrent(current.id, nameDraft)
-                    }}
-                  >
-                    <input
-                      aria-label="Nombre del ejercicio"
-                      value={nameDraft}
-                      onChange={(e) => setNameDraft(e.target.value)}
-                      maxLength={120}
-                      autoFocus
-                    />
-                    <button type="submit" className="secondary set-action">
-                      Guardar nombre
-                    </button>
-                  </form>
-                ) : (
+      {points !== null && (
+        <div className="card">
+          {/* Name + group editing lives here regardless of whether there's a
+              chart: you must be able to rename a cardio or brand-new lift too,
+              not just one with 1RM history. */}
+          {current && (
+            <div className="muscle-edit">
+              <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+              {editingName ? (
+                <form
+                  className="exercise-rename"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    renameCurrent(current.id, nameDraft)
+                  }}
+                >
+                  <input
+                    aria-label="Nombre del ejercicio"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={120}
+                    autoFocus
+                  />
+                  <button type="submit" className="secondary set-action">
+                    Guardar nombre
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <span className="muscle-edit-name">{current.name}</span>
                   <button
                     type="button"
-                    className="muscle-edit-name muscle-edit-name-btn"
-                    aria-label={`Editar nombre: ${current.name}`}
+                    className="secondary set-action"
+                    aria-label="Editar nombre"
                     onClick={() => {
                       setNameDraft(current.name)
                       setEditingName(true)
                     }}
                   >
-                    {current.name}
+                    Editar
                   </button>
-                )}
-                <label htmlFor="muscle-select" className="muscle-edit-label">
-                  Grupo
-                </label>
-                <select
-                  id="muscle-select"
-                  value={current.muscle_group ?? ''}
-                  onChange={(e) => changeMuscle(current.id, e.target.value)}
-                >
-                  <option value="">Sin grupo</option>
-                  {MUSCLE_GROUPS.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+                </>
+              )}
+              <label htmlFor="muscle-select" className="muscle-edit-label">
+                Grupo
+              </label>
+              <select
+                id="muscle-select"
+                value={current.muscle_group ?? ''}
+                onChange={(e) => changeMuscle(current.id, e.target.value)}
+              >
+                <option value="">Sin grupo</option>
+                {MUSCLE_GROUPS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {points.length === 0 ? (
+            <p className="hint">Aún no hay datos para graficar este ejercicio.</p>
+          ) : (
             <Chart points={points} color={chartColor} unit={weightUnit} />
-          </div>
-        ))}
+          )}
+        </div>
+      )}
     </section>
   )
 }
