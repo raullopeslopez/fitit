@@ -224,12 +224,17 @@ function ExerciseCard({
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
     : 0
   // What a folded card still has to answer: did I do this, and what did I hit.
-  // Uniform reps read as "3 × 8"; mixed reps would be a lie about half the
-  // sets, so they read "3 series". The weight shown is the heaviest.
-  const uniformReps =
-    sets.length && sets.every((s) => s.reps === sets[0].reps) ? sets[0].reps : null
+  // Every card reads "N × reps" so the list scans as one column: uniform reps
+  // are a single number ("4 × 15"), mixed reps a range ("4 × 10–15"). The range
+  // keeps it honest — "4 × 15" when you did 15/12/10 would lie about half the
+  // sets — without breaking the shape the way a bare "4 series" did. Weight is
+  // the heaviest set.
+  const repsList = sets.map((s) => s.reps)
+  const minReps = sets.length ? Math.min(...repsList) : null
+  const maxReps = sets.length ? Math.max(...repsList) : null
+  const repsLabel = minReps === maxReps ? `${minReps}` : `${minReps}–${maxReps}`
   const digest = sets.length
-    ? `${uniformReps ? `${sets.length} × ${uniformReps}` : `${sets.length} series`} · ${displayWeight(
+    ? `${sets.length} × ${repsLabel} · ${displayWeight(
         Math.max(...sets.map((s) => s.weight_kg)),
         weightUnit,
       )} ${weightUnit}`

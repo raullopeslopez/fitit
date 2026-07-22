@@ -143,7 +143,7 @@ describe('Workout', () => {
       expect(await screen.findByText(/3 × 8 · 80 kg/)).toBeInTheDocument()
     })
 
-    it('reports a set count instead of reps when the reps varied', async () => {
+    it('shows the rep range when the reps varied', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
@@ -153,8 +153,9 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // "2 × 8" would be a lie about the second set.
-      expect(await screen.findByText(/2 series · 70 kg/)).toBeInTheDocument()
+      // "2 × 8" would be a lie about the second set; the range stays honest
+      // while keeping every folded row in the same "N × reps" shape.
+      expect(await screen.findByText(/2 × 5–8 · 70 kg/)).toBeInTheDocument()
     })
 
     it('lets me keep two cards open at once, for supersets', async () => {
