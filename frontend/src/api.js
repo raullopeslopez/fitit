@@ -80,6 +80,14 @@ export function setExerciseMuscle(exerciseId, muscleGroup) {
   })
 }
 
+// Rename an exercise in place; every past set follows (they reference it by id).
+export function renameExercise(exerciseId, name) {
+  return apiFetch(`/exercises/${exerciseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
 export function getExerciseHistory(name) {
   return apiFetch(`/exercises/history?name=${encodeURIComponent(name)}`)
 }

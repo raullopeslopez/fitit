@@ -31,8 +31,13 @@ class ExerciseOut(BaseModel):
 
 
 class ExercisePatch(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     # muscle_group None clears the override, reverting to the auto-classifier.
     muscle_group: str | None = Field(default=None, max_length=60)
+    # A new display name. Renaming is in place, so past sets follow (they
+    # reference the exercise by id). Omitted leaves the name untouched.
+    name: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class SetIn(BaseModel):
