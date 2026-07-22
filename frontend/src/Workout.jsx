@@ -285,7 +285,8 @@ function ExerciseCard({
           out of the way of logging but reachable without leaving Entreno. */}
       {onChangeMuscle && (
         <div className="muscle-edit">
-          <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
+          {/* No dot here: the header tag right above already carries the coloured
+              identity chip. This row is the control, not a second chip. */}
           <span className="muscle-edit-heading">Grupo muscular</span>
           <select
             className="muscle-edit-select"
@@ -306,7 +307,12 @@ function ExerciseCard({
           now. Two separate numbers twelve lines apart is how you read neither. */}
       {seededBest != null || todayBest != null ? (
         <div className="target">
-          <div className="target-label">A batir · 1RM est.</div>
+          {/* "A batir" = "to beat", so it only earns its place when there is a
+              prior mark on the left of the arrow. A first-ever exercise is
+              setting the reference, not beating one — label it plainly. */}
+          <div className="target-label">
+            {seededBest != null ? 'A batir · 1RM est.' : '1RM est.'}
+          </div>
           {/* Only a real comparison gets an arrow. A first-ever exercise has
               nothing on the left of it, and "— → 41.3" reads as a stray dash
               plus a comparison that doesn't exist. */}
