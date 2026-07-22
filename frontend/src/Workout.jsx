@@ -224,20 +224,21 @@ function ExerciseCard({
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
     : 0
   // What a folded card still has to answer: did I do this, and what did I hit.
-  // Every card reads "N × reps" so the list scans as one column: uniform reps
-  // are a single number ("4 × 15"), mixed reps a range ("4 × 10–15"). The range
-  // keeps it honest — "4 × 15" when you did 15/12/10 would lie about half the
-  // sets — without breaking the shape the way a bare "4 series" did. Weight is
-  // the heaviest set.
+  // Reps and weight follow the same rule so the list scans as one column: a
+  // single number when every set matched ("4 × 15 · 25 kg"), a range when they
+  // varied ("3 × 15 · 40–60 kg"). The range keeps it honest — one figure when
+  // you ramped 40→60 would hide half the work — without breaking the "N × reps ·
+  // weight" shape. Weight bounds are compared in the *displayed* unit so two kg
+  // values that round to the same shown number don't read as a phantom range.
   const repsList = sets.map((s) => s.reps)
-  const minReps = sets.length ? Math.min(...repsList) : null
-  const maxReps = sets.length ? Math.max(...repsList) : null
-  const repsLabel = minReps === maxReps ? `${minReps}` : `${minReps}–${maxReps}`
+  const shownWeights = sets.map((s) => displayWeight(s.weight_kg, weightUnit))
+  const range = (values) => {
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    return min === max ? `${max}` : `${min}–${max}`
+  }
   const digest = sets.length
-    ? `${sets.length} × ${repsLabel} · ${displayWeight(
-        Math.max(...sets.map((s) => s.weight_kg)),
-        weightUnit,
-      )} ${weightUnit}`
+    ? `${sets.length} × ${range(repsList)} · ${range(shownWeights)} ${weightUnit}`
     : 'sin series'
   // The single 1RM readout: the mark you walked in with, and where you are now.
   const todayBest = sets.length ? bestOneRm : null

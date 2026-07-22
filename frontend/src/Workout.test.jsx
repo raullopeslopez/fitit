@@ -139,8 +139,9 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // Uniform reps read as 3 × 8; the number shown is the top weight.
-      expect(await screen.findByText(/3 × 8 · 80 kg/)).toBeInTheDocument()
+      // Uniform reps read as 3 × 8; the weights varied (60/60/80) so they
+      // read as a range, the same shape the reps use.
+      expect(await screen.findByText(/3 × 8 · 60–80 kg/)).toBeInTheDocument()
     })
 
     it('shows the rep range when the reps varied', async () => {
@@ -153,9 +154,9 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // "2 × 8" would be a lie about the second set; the range stays honest
-      // while keeping every folded row in the same "N × reps" shape.
-      expect(await screen.findByText(/2 × 5–8 · 70 kg/)).toBeInTheDocument()
+      // "2 × 8" would be a lie about the second set; both reps (5–8) and
+      // weight (60–70) read as ranges, keeping the "N × reps · weight" shape.
+      expect(await screen.findByText(/2 × 5–8 · 60–70 kg/)).toBeInTheDocument()
     })
 
     it('lets me keep two cards open at once, for supersets', async () => {
