@@ -18,6 +18,7 @@ dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
     "pytest-bdd>=8.1",
+    "pytest-cov>=6.0",
     "httpx>=0.28",
     "aiosqlite>=0.20",
     "ruff>=0.9",
@@ -34,6 +35,21 @@ testpaths = ["tests"]
 # default leaks in from the environment (otherwise collection looks for the
 # features under a stale path and errors).
 bdd_features_base_dir = "tests/features"
+
+[tool.coverage.run]
+source = ["app"]
+# The API endpoints run their DB work inside SQLAlchemy's greenlet context
+# (async driven through the TestClient's portal thread). Without these
+# concurrency backends coverage never installs its trace hook there, so whole
+# endpoint bodies read as "missing" and the total lands ~25 points low — a
+# measurement artifact, not a real gap. See tests/README for the true numbers.
+concurrency = ["thread", "greenlet"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
 
 [tool.ruff]
 line-length = 100
