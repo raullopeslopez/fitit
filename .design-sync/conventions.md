@@ -59,7 +59,7 @@ Reusable anywhere:
 | `.app-header` / `.bottom-nav` / `.tab` | app chrome; `.bottom-nav` is fixed, max 480px |
 
 Element defaults already carry the design — use bare tags, don't restyle them:
-`button` is the amber CTA (44px min-height, white text); `button.secondary` is the
+`button` is the amber CTA (44px min-height, dark `--on-accent` ink for AA); `button.secondary` is the
 transparent outlined variant in `--text`; `input` / `select` / `textarea` inherit the
 body font and get an amber focus ring; `h1` and `h2` are Space Grotesk with negative
 tracking.

@@ -4,9 +4,20 @@
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --text: #16181b;
-  --muted: #6b7280;
+  /* #6b7280 was 4.32 on the paper bg (passes on white cards at 4.83, fails on
+     the page background: tab labels, streak line, hints). #616875 is 5.01 on
+     paper / 5.61 on white and still reads clearly muted. */
+  --muted: #616875;
   --accent: #e4571b;
   --accent-hover: #c2440f;
+  /* Text/glyphs sitting ON the amber fill. White text fails AA on amber (3.70
+     light, 2.86 dark); this near-black ink passes both (5.8 / 6.23). One value
+     for both themes — the accent is bright enough in each. See DESIGN.md. */
+  --on-accent: #16181b;
+  /* Amber used AS text (not a fill) has to go deeper than the accent to clear
+     AA on paper: #e4571b is only 3.2–3.7 on the light background, #c2440f is
+     4.5+. On dark, amber text already passes (6.3+), so dark keeps the accent. */
+  --accent-ink: #c2440f;
   /* The record colour can't be the dark glow (#FFA733 scores 1.94 on white,
      under the 3.0 floor). On paper you can't get louder than the accent by
      going brighter, so the record goes deeper: hotter iron, not brighter
@@ -45,6 +56,8 @@
     --muted: #9ba1a9;
     --accent: #ff6a2c;
     --accent-hover: #e4571b;
+    /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
+    --accent-ink: #ff6a2c;
     --pr: #ffa733;
     --danger: #ef4444;
     --border: #24272c;
@@ -89,11 +102,13 @@ h1 {
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 h2 {
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 600;
+  text-wrap: balance;
   margin: 0 0 0.6rem;
   letter-spacing: -0.01em;
 }
@@ -116,7 +131,7 @@ h2 {
 .link-btn {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 0.85rem;
   font-weight: 600;
   min-height: 36px;
@@ -125,7 +140,7 @@ h2 {
 }
 .link-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Bottom navigation — primary nav in thumb reach for one-handed gym use. */
@@ -163,7 +178,7 @@ h2 {
   color: var(--text);
 }
 .tab.is-active {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .tab-icon {
   font-family: var(--font-mono);
@@ -246,7 +261,7 @@ h2 {
    button.secondary's transparent fill later in the file. */
 .secondary.head-back {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: transparent;
 }
 .secondary.head-back:hover:not(:disabled) {
@@ -370,7 +385,7 @@ h2 {
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   border-radius: 4px;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
@@ -406,10 +421,10 @@ h2 {
     color 0.15s ease;
 }
 .link-row:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .link-row:hover::after {
-  color: var(--accent);
+  color: var(--accent-ink);
   transform: translateX(3px);
 }
 
@@ -461,7 +476,7 @@ button {
   border-radius: var(--radius-control);
   padding: 0.7rem 1rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   transition:
     background 0.15s ease,
     transform 0.05s ease;
@@ -529,9 +544,6 @@ button.set-action {
   font-size: 0.95rem;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-}
-.previous strong {
-  color: var(--accent);
 }
 .previous.muted {
   background: transparent;
@@ -675,7 +687,7 @@ button.set-action {
 .stepper-btn.stepper-plus {
   border-right: none;
   border-left: 1px solid var(--border);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .stepper-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
@@ -718,7 +730,7 @@ button.set-action {
 }
 .unit-option[aria-pressed='true'] {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .unit-option:not([aria-pressed='true']):hover {
   background: color-mix(in srgb, var(--text) 5%, transparent);
