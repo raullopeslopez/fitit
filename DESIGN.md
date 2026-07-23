@@ -47,6 +47,11 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
 - **Accent (amber "effort"):** brand, CTAs, active/focus, links. Replaces the old
   generic health-green. Amber = heat, chalk-and-iron, the burn.
   - dark: `#FF6A2C` · light: `#E4571B`
+- **Text on the amber fill:** near-black ink (`--on-accent` `#16181B`), not white. White on
+  amber fails AA (3.70 light, 2.86 dark); ink passes both (5.8 / 6.23) and reads industrial.
+- **Amber *as text*** (links, active tab, badges, the stepper `+`) goes deeper on light so it
+  clears AA on paper: `--accent-ink` `#C2440F` (light) / `#FF6A2C` (dark). Fills, borders and the
+  record keep `--accent`.
 - **PR / record:** the earned moment only, and it is **not one colour**.
   - dark: `#FFA733` (accent at full intensity) — brighter than the accent, plus a glow.
   - light: `#A83208` — *deeper* than the accent, plus an ink highlight behind the number.
@@ -64,7 +69,7 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
   - text `#F2F3F5` · muted `#9BA1A9` · border `#24272C`
 - **Neutrals (light — warm "paper", not cold):**
   - bg `#F4F2EE` · surface `#FFFFFF` · surface-raised `#FFFFFF`
-  - text `#16181B` · muted `#6B7280` · border `#E6E2DA`
+  - text `#16181B` · muted `#616875` · border `#E6E2DA`
 - **Semantic:**
   - success (saved/valid, quiet): dark `#34D399` / light `#059669` — ticks only, never brand
   - warning: dark `#FBBF24` / light `#D97706`
@@ -165,4 +170,5 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-21 | Exercise cards fold; only the newest starts open | A five-exercise session was a five-card scroll with the active lift anywhere in it. Folded cards keep a spec-sheet digest so nothing is hidden, only quieted. Accordion (one-open) was rejected: it fights supersets. |
 | 2026-07-21 | One 1RM readout (`76 → 81.7`) replaces two | The card printed "A batir · 1RM est. 76" and "Mejor 1RM 88" twelve lines apart, both about 1RM. Merging them keeps the PR as the emotional payload (today's number is the large one, amber when it passes) while removing a competing figure. |
 | 2026-07-20 | Consistency heatmap uses the amber ramp, not green | Every contribution grid ships green; a heat map of effort should literally be heat. Intensity = sets logged that day (works for cardio too, where volume doesn't), built with `color-mix(in srgb, var(--accent) N%, transparent)` so it tracks light/dark for free. Level 0 stays neutral, never a faint amber. |
+| 2026-07-23 | White CTA text → dark ink on amber; new `--accent-ink` for amber-as-text; light `--muted` `#6B7280`→`#616875` | /design-review. White-on-amber failed AA in both themes (3.70 light, **2.86** dark) on the primary button — the same class already fixed for `--pr`, never applied to `--accent`. Amber used as text sat at 3.2–3.7 on paper; `--muted` was 4.32 on the paper bg. Hues unchanged: buttons take near-black `--on-accent` ink (5.8/6.23), amber text takes deeper `--accent-ink` `#C2440F` on light, muted deepened to `#616875` (5.01 on paper). |
 | 2026-07-22 | Folded digest names one real working set (`N series · [tope] W × R`), not ranges | First attempt made reps/weight independent ranges (`4 × 8–12 · 50–60 kg`), but decoupling them loses the pairing — you can't tell which weight went with which reps. Instead name a single real set: when all sets match, that pair speaks for all (`4 series · 25 kg × 15`); when they vary, show the hardest (top set by est. 1RM, the PR set) labelled `tope` so it isn't mistaken for the whole exercise (`4 series · tope 60 kg × 8`). Every token is real and paired; the full per-set breakdown lives in the open card. Same commit fixed the folded header so the digest always sits on its own right-aligned line under the name, instead of inline for short names and wrapped for long ones. |
