@@ -490,9 +490,12 @@ button {
     background: var(--accent-hover);
   }
   /* Ghost buttons are text, not CTAs. Same specificity as the rule above so
-     the later declaration wins; a plain .card-toggle:hover would lose. */
+     the later declaration wins; a plain .card-toggle:hover would lose.
+     .link-row (a Días workout row) is one too — without this it inherited the
+     CTA fill and became amber text on an amber block, near-illegible. */
   button.card-toggle:hover:not(:disabled),
-  button.unit-fix:hover:not(:disabled) {
+  button.unit-fix:hover:not(:disabled),
+  button.link-row:hover:not(:disabled) {
     background: none;
   }
 }
