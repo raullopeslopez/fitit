@@ -4,7 +4,10 @@
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --text: #16181b;
-  --muted: #6b7280;
+  /* #6b7280 was 4.32 on the paper bg (passes on white cards at 4.83, fails on
+     the page background: tab labels, streak line, hints). #616875 is 5.01 on
+     paper / 5.61 on white and still reads clearly muted. */
+  --muted: #616875;
   --accent: #e4571b;
   --accent-hover: #c2440f;
   /* Text/glyphs sitting ON the amber fill. White text fails AA on amber (3.70
