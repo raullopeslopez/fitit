@@ -274,6 +274,51 @@ describe('Workout', () => {
     expect(screen.getByRole('button', { name: /registrar 60 × 8/i })).toBeInTheDocument()
   })
 
+  it('keeps the just-logged weight and reps so straight sets repeat in one tap', async () => {
+    // A first-ever exercise: nothing seeds the steppers, so you type the first
+    // set by hand. Every set after it should be a single tap on the button —
+    // blanking the fields after each log turns 3×25×15 into three re-entries.
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Apertura', found: false, sets: [] })
+    api.logSet.mockResolvedValue(
+      workoutWith(benchSet({ id: 30, exercise_name: 'Apertura', reps: 15, weight: 25 })),
+    )
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Apertura')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '15')
+    await userEvent.type(screen.getByLabelText(/peso/i), '25')
+    await userEvent.click(screen.getByRole('button', { name: /registrar 25 × 15/i }))
+
+    // The set landed, and the fields still hold it — the next set is one tap.
+    await screen.findByText(/25 kg x 15/i)
+    expect(screen.getByLabelText(/reps/i)).toHaveValue('15')
+    expect(screen.getByLabelText(/peso/i)).toHaveValue('25')
+    expect(screen.getByRole('button', { name: /registrar 25 × 15/i })).toBeInTheDocument()
+  })
+
+  it('clears the note and RPE after logging so they are not carried into the next set', async () => {
+    // Weight and reps repeat; the per-set qualia do not. A stale "felt strong"
+    // or RPE 8 silently riding onto the next set is worse than an empty field.
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Apertura', found: false, sets: [] })
+    api.logSet.mockResolvedValue(
+      workoutWith(benchSet({ id: 31, exercise_name: 'Apertura', reps: 15, weight: 25 })),
+    )
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Apertura')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.type(screen.getByLabelText(/reps/i), '15')
+    await userEvent.type(screen.getByLabelText(/peso/i), '25')
+    await userEvent.type(screen.getByLabelText(/rpe/i), '8')
+    await userEvent.type(screen.getByLabelText(/nota/i), 'felt strong')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    await screen.findByText(/25 kg x 15/i)
+    expect(screen.getByLabelText(/rpe/i)).toHaveValue('')
+    expect(screen.getByLabelText(/nota/i)).toHaveValue('')
+  })
+
   it('reads a set logged in lb back in the unit I prefer', async () => {
     // Logged as 135 lb, read while the toggle sits on kg. The history is one
     // history — the unit that happened to be selected then doesn't split it.

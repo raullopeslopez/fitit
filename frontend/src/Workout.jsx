@@ -132,8 +132,10 @@ function ExerciseCard({
       const oneRm = estimatedOneRm(toKg(valid.weight, weightUnit), valid.reps)
       setPr(best != null && oneRm > best)
       setBest((b) => (b == null ? oneRm : Math.max(b, oneRm)))
-      setReps('')
-      setWeight('')
+      // Keep the weight and reps you just logged: straight sets are the common
+      // case (3×25×15), so the next set should be one tap on the button, not a
+      // re-entry into blank fields. The per-set qualia don't carry, though — a
+      // stale RPE or note riding silently onto the next set is worse than empty.
       setRpe('')
       setNote('')
     } catch {
