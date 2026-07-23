@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Accessibility: the amber accent now clears WCAG AA (4.5:1) everywhere, the
+  floor `DESIGN.md` mandates. White text on filled buttons failed AA in both
+  themes (3.70 light, 2.86 dark) — buttons now use a near-black `--on-accent`
+  ink (5.8 / 6.23). Amber used as text (Salir, the active tab, the "HOY" badge,
+  the stepper `+`) takes a deeper `--accent-ink` (`#C2440F`) so it passes on the
+  paper background, and light `--muted` went `#6B7280` → `#616875` (4.32 → 5.01
+  on paper). Amber hues unchanged. Also dropped a dead `.previous strong` rule
+  and added `text-wrap: balance` to headings.
+
 ### Changed
 - Database moved from Render's managed Postgres to [Neon](https://neon.tech)
   serverless Postgres; Render now hosts only the web service. Dropped the
