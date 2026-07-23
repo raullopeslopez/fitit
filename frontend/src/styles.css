@@ -7,6 +7,10 @@
   --muted: #6b7280;
   --accent: #e4571b;
   --accent-hover: #c2440f;
+  /* Text/glyphs sitting ON the amber fill. White text fails AA on amber (3.70
+     light, 2.86 dark); this near-black ink passes both (5.8 / 6.23). One value
+     for both themes — the accent is bright enough in each. See DESIGN.md. */
+  --on-accent: #16181b;
   /* The record colour can't be the dark glow (#FFA733 scores 1.94 on white,
      under the 3.0 floor). On paper you can't get louder than the accent by
      going brighter, so the record goes deeper: hotter iron, not brighter
@@ -246,7 +250,7 @@ h2 {
    button.secondary's transparent fill later in the file. */
 .secondary.head-back {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: transparent;
 }
 .secondary.head-back:hover:not(:disabled) {
@@ -461,7 +465,7 @@ button {
   border-radius: var(--radius-control);
   padding: 0.7rem 1rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   transition:
     background 0.15s ease,
     transform 0.05s ease;
@@ -718,7 +722,7 @@ button.set-action {
 }
 .unit-option[aria-pressed='true'] {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .unit-option:not([aria-pressed='true']):hover {
   background: color-mix(in srgb, var(--text) 5%, transparent);
