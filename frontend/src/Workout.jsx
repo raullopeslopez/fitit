@@ -19,7 +19,6 @@ import {
   formatDate,
   formatDuration,
   formatSet,
-  formatTime,
   parseDuration,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
@@ -97,6 +96,9 @@ function ExerciseCard({
   // session they are two input rows you never touch pushing Registrar down the
   // card. Folded, "hidden" also has to mean "empty" — see toggleExtras.
   const [showExtras, setShowExtras] = useState(false)
+  // Re-tagging the muscle and relabelling the unit are both once-in-a-lifetime
+  // corrections, and both were permanent controls on a card you open to log.
+  const [showFixes, setShowFixes] = useState(false)
   const [logging, setLogging] = useState(false)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen. The number to beat is the server's best
@@ -227,7 +229,6 @@ function ExerciseCard({
     }
   }
 
-  const volumeKg = sets.reduce((total, s) => total + s.weight_kg * s.reps, 0)
   const bestOneRm = sets.length
     ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
     : 0
@@ -458,11 +459,13 @@ function ExerciseCard({
         <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>
           +1 serie
         </button>
-        <div className="target-label session-label">Hoy</div>
-        <p className="set-summary">
-          {sets.length} {sets.length === 1 ? 'serie' : 'series'} ·{' '}
-          {displayWeight(volumeKg, weightUnit)} {weightUnit} volumen
-        </p>
+        {/* Tonnage is gone: weight × reps summed is arithmetically true and
+            physically meaningless (1050 kg of cable crunches), and it was the
+            one figure here no decision depended on. The count stays — that is
+            the part you read between sets. */}
+        <div className="target-label session-label">
+          Hoy · {sets.length} {sets.length === 1 ? 'serie' : 'series'}
+        </div>
         <ol className="sets">
           {sets.map((set, index) => (
             <li key={set.id}>
@@ -516,10 +519,6 @@ function ExerciseCard({
                       </span>
                     )}
                   </span>
-                  <span className="set-index">
-                    S{index + 1}
-                    {set.created_at ? ` · ${formatTime(set.created_at)}` : ''}
-                  </span>
                   {/* Rare actions live behind an overflow so the readout stays clean. */}
                   <button
                     type="button"
@@ -556,38 +555,56 @@ function ExerciseCard({
             </li>
           ))}
         </ol>
-        {loggedUnit && (
-          <button type="button" className="unit-fix" onClick={handleCorrectUnit}>
-            Registradas en {loggedUnit} · corregir a {correctedUnit}
-          </button>
-        )}
         </>
       ) : (
         <p className="hint">Aún no hay series.</p>
       )}
 
-      {/* Corrections live together at the foot of the card: re-tagging the
-          classifier's guess is a once-per-exercise act, and it used to sit
-          between the header and the numbers you came here for. */}
-      {onChangeMuscle && (
-        <div className="muscle-edit">
-          {/* No dot here: the header tag already carries the coloured identity
-              chip. This row is the control, not a second chip. */}
-          <span className="muscle-edit-heading">Grupo muscular</span>
-          <select
-            className="muscle-edit-select"
-            aria-label={`Grupo muscular de ${name}`}
-            value={muscle ?? ''}
-            onChange={(e) => onChangeMuscle(name, e.target.value)}
+      {/* Both corrections behind one line at the foot. A mislabelled unit is
+          spotted while reading the log, and re-tagging the classifier's guess
+          happens once in an exercise's life — neither earns a permanent
+          control on the card you open twenty times a session. Kept out of the
+          header so the fold target stays full-width (DESIGN.md). */}
+      {(onChangeMuscle || loggedUnit) && (
+        <>
+          <button
+            type="button"
+            className="unit-fix fixes-toggle"
+            aria-expanded={showFixes}
+            onClick={() => setShowFixes((v) => !v)}
           >
-            <option value="">Sin grupo</option>
-            {MUSCLE_GROUPS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
+            Corregir
+          </button>
+          {showFixes && (
+            <div className="card-fixes">
+              {onChangeMuscle && (
+                <div className="muscle-edit">
+                  {/* No dot here: the header tag already carries the coloured
+                      identity chip. This row is the control, not a second chip. */}
+                  <span className="muscle-edit-heading">Grupo muscular</span>
+                  <select
+                    className="muscle-edit-select"
+                    aria-label={`Grupo muscular de ${name}`}
+                    value={muscle ?? ''}
+                    onChange={(e) => onChangeMuscle(name, e.target.value)}
+                  >
+                    <option value="">Sin grupo</option>
+                    {MUSCLE_GROUPS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {loggedUnit && (
+                <button type="button" className="unit-fix" onClick={handleCorrectUnit}>
+                  Registradas en {loggedUnit} · corregir a {correctedUnit}
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
         </>
       )}
@@ -775,10 +792,6 @@ function CardioCard({
             {sets.map((set, index) => (
               <li key={set.id}>
                 <span>{formatCardioSet(set)}</span>
-                <span className="set-index">
-                    S{index + 1}
-                    {set.created_at ? ` · ${formatTime(set.created_at)}` : ''}
-                  </span>
                 <button
                   type="button"
                   className="secondary set-action set-menu-btn"

@@ -389,7 +389,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    expect(await screen.findByText('Hoy')).toBeInTheDocument()
+    expect(await screen.findByText(/^Hoy · \d+ serie/)).toBeInTheDocument()
   })
 
   it('says there are no previous marks for a new exercise', async () => {
@@ -542,6 +542,8 @@ describe('Workout', () => {
     )
     // "Última vez" (previous marks, absent here) vs "Hoy" (this session's log)
     // must read as visually distinct sections.
+    // Cardio keeps a bare "Hoy" and its own Total: time and distance are real
+    // quantities, unlike the tonnage the strength card dropped.
     expect(screen.getByText('Hoy')).toBeInTheDocument()
   })
 
@@ -740,8 +742,10 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    // The logged unit is stated, because the readout alone can't reveal it.
-    const fix = await screen.findByRole('button', { name: /registradas en kg · corregir a lb/i })
+    // The logged unit is stated, because the readout alone can't reveal it —
+    // behind Corregir, where you look once you've spotted the mislabel.
+    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    const fix = screen.getByRole('button', { name: /registradas en kg · corregir a lb/i })
     await userEvent.click(fix)
 
     await waitFor(() => expect(api.correctExerciseUnit).toHaveBeenCalledWith(1, 2, 'lb'))
@@ -778,7 +782,10 @@ describe('Workout', () => {
     expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
   })
 
-  it('stamps each set row with the clock time it was logged', async () => {
+  // A set row is the values and a way to fix them. The index repeated the row's
+  // own position, and the clock stamp answered a question nothing asks — rest
+  // is what the countdown is for.
+  it('keeps a set row down to the numbers', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -794,27 +801,9 @@ describe('Workout', () => {
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    expect(await screen.findByText(/S1 · 18:04/)).toBeInTheDocument()
-  })
-
-  it('falls back to the bare index for a set with no recorded moment', async () => {
-    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
-    api.logSet.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: [benchSet()],
-    })
-    renderWorkout()
-
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
-    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await userEvent.type(screen.getByLabelText(/reps/i), '8')
-    await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-
-    const row = await screen.findByText(/^S1$/)
-    expect(row).toBeInTheDocument()
+    const row = (await screen.findByText(/60 kg x 8/)).closest('li')
+    expect(row).not.toHaveTextContent(/18:04/)
+    expect(row).not.toHaveTextContent(/S1/)
   })
 
   it('counts the series in the session summary', async () => {
@@ -863,7 +852,9 @@ describe('Workout', () => {
     expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
   })
 
-  it('shows session volume and best estimated 1RM for the exercise', async () => {
+  // Tonnage was the one figure on the card no decision depended on: you don't
+  // change the next set because the sum reads 830. The count you do use stays.
+  it('reports the series count and no tonnage', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -879,12 +870,42 @@ describe('Workout', () => {
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    // volume = 60*8 + 70*5 = 830 ; best 1RM = max(76.0, 81.7) = 81.7
-    const summary = await screen.findByText(/volumen/i)
-    expect(summary).toHaveTextContent(/830/)
-    // The session's best 1RM lives in the target readout now, not repeated here.
-    expect(summary).not.toHaveTextContent(/81\.7/)
+    // volume would have been 60*8 + 70*5 = 830; best 1RM = max(76.0, 81.7).
+    expect(await screen.findByText(/2 series/i)).toBeInTheDocument()
+    expect(screen.queryByText(/volumen/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/830/)).not.toBeInTheDocument()
+    // The session's best 1RM lives in the target readout, and only there.
     expect(screen.getByText(/1RM est\./i).closest('.target')).toHaveTextContent(/81\.7/)
+  })
+
+  // Re-tagging the muscle and relabelling the unit are both once-in-a-lifetime
+  // corrections, and both were permanent controls on a card you open to log.
+  describe('corrections', () => {
+    const mislabelled = [
+      benchSet({ id: 1, weight: 135, unit: 'kg' }),
+      benchSet({ id: 2, weight: 135, unit: 'kg' }),
+    ]
+
+    it('folds both away until something needs fixing', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(...mislabelled))
+      api.listExercises.mockResolvedValue([{ id: 2, name: 'Bench Press', muscle_group: 'Pecho' }])
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: false,
+        sets: [],
+      })
+      renderWorkout()
+
+      await screen.findByRole('heading', { name: /Bench Press/ })
+      expect(screen.queryByLabelText(/grupo muscular de/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /registradas en/i })).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
+      expect(screen.getByLabelText(/grupo muscular de/i)).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /registradas en kg · corregir a lb/i }),
+      ).toBeInTheDocument()
+    })
   })
 
   it('shows an error when a request fails', async () => {
@@ -1080,6 +1101,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     const card = (await screen.findByRole('heading', { name: /Bench Press/ })).closest('.card')
+    await userEvent.click(within(card).getByRole('button', { name: /^corregir$/i }))
     expect(card.querySelectorAll('.dot')).toHaveLength(1)
   })
 
@@ -1091,7 +1113,8 @@ describe('Workout', () => {
     api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: 'Hombro' })
     renderWorkout()
 
-    // The newest card is open, so its muscle-group editor is on screen.
+    // The newest card is open; the editor lives behind Corregir at its foot.
+    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
     const select = await screen.findByLabelText(/grupo muscular de Bench Press/i)
     expect(select).toHaveValue('Pecho')
 
@@ -1111,7 +1134,8 @@ describe('Workout', () => {
     api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: null })
     renderWorkout()
 
-    const select = await screen.findByLabelText(/grupo muscular de Bench Press/i)
+    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    const select = screen.getByLabelText(/grupo muscular de Bench Press/i)
     await userEvent.selectOptions(select, 'Sin grupo')
 
     await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, null))
