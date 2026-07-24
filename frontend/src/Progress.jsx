@@ -104,6 +104,9 @@ export default function Progress() {
   const [bests, setBests] = useState([]) // best set per exercise, strongest first
   const [editingName, setEditingName] = useState(false) // inline rename open?
   const [nameDraft, setNameDraft] = useState('')
+  // Rename and re-tag are corrections, the same shape as the ones on an
+  // exercise card: rare, and they were sitting inside the content.
+  const [showFixes, setShowFixes] = useState(false)
   // Read once: the toggle lives in Entreno, so it can't change while Progreso
   // is on screen.
   const weightUnit = getWeightUnit()
@@ -193,6 +196,15 @@ export default function Progress() {
     }
   }
 
+  // Picking a known lift charts it immediately, the way the chips already did.
+  // Making the text field alone demand a tap on a submit button was two paths
+  // for one job, one of them with a confirmation step and one without.
+  function handleNameInput(value) {
+    setName(value)
+    const match = exercises.find((e) => e.name.toLowerCase() === value.trim().toLowerCase())
+    if (match) loadHistory(match.name)
+  }
+
   const liftsForMuscle = (m) =>
     exercises
       .filter((e) => e.muscle_group === m)
@@ -221,14 +233,151 @@ export default function Progress() {
     <section>
       {days.length > 0 && <Heatmap days={days} />}
 
-      {/* Exporting belongs with the numbers it exports. On Días it was renting
-          space on the screen you touch forty times a session. */}
-      {days.length > 0 && (
-        <div className="export-row">
-          <button type="button" className="secondary" onClick={() => downloadCsv(days)}>
-            Exportar CSV
-          </button>
+      {points !== null && (
+        <div className="card">
+          {/* Name + group editing lives here regardless of whether there's a
+              chart: you must be able to rename a cardio or brand-new lift too,
+              not just one with 1RM history. Folded, because both are rare
+              corrections and this card is content. */}
+          {current && (
+            <>
+              <button
+                type="button"
+                className="unit-fix fixes-toggle"
+                aria-expanded={showFixes}
+                onClick={() => setShowFixes((v) => !v)}
+              >
+                Corregir
+              </button>
+              {showFixes && (
+                <div className="card-fixes">
+                  <div className="muscle-edit">
+                    <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+                    {editingName ? (
+                      <form
+                        className="exercise-rename"
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          renameCurrent(current.id, nameDraft)
+                        }}
+                      >
+                        <input
+                          aria-label="Nombre del ejercicio"
+                          value={nameDraft}
+                          onChange={(e) => setNameDraft(e.target.value)}
+                          maxLength={120}
+                          autoFocus
+                        />
+                        <button type="submit" className="secondary set-action">
+                          Guardar nombre
+                        </button>
+                      </form>
+                    ) : (
+                      <>
+                        <span className="muscle-edit-name">{current.name}</span>
+                        <button
+                          type="button"
+                          className="secondary set-action"
+                          aria-label="Editar nombre"
+                          onClick={() => {
+                            setNameDraft(current.name)
+                            setEditingName(true)
+                          }}
+                        >
+                          Editar
+                        </button>
+                      </>
+                    )}
+                    <label htmlFor="muscle-select" className="muscle-edit-label">
+                      Grupo
+                    </label>
+                    <select
+                      id="muscle-select"
+                      value={current.muscle_group ?? ''}
+                      onChange={(e) => changeMuscle(current.id, e.target.value)}
+                    >
+                      <option value="">Sin grupo</option>
+                      {MUSCLE_GROUPS.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {points.length === 0 ? (
+            <p className="hint">Aún no hay datos para graficar este ejercicio.</p>
+          ) : (
+            <Chart points={points} color={chartColor} unit={weightUnit} />
+          )}
         </div>
+      )}
+
+      {/* The picker sits directly under the chart it drives, not on top of it:
+          three stacked selectors above the content meant scrolling the whole
+          apparatus on a phone to reach the thing you opened Progreso for. */}
+      <form className="card" onSubmit={(e) => {
+        e.preventDefault()
+        loadHistory(name)
+      }}>
+        {musclesPresent.length > 0 && (
+          <div className="muscle-chips">
+            {musclesPresent.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
+                style={{ '--chip': muscleColor(m) }}
+                aria-pressed={muscle === m}
+                onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
+              >
+                <span className="dot" aria-hidden="true" />
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="field">
+          <label htmlFor="progress-exercise">Ejercicio</label>
+          <input
+            id="progress-exercise"
+            list="progress-options"
+            value={name}
+            onChange={(e) => handleNameInput(e.target.value)}
+            placeholder="p. ej. Press banca"
+          />
+          <datalist id="progress-options">
+            {exercises.map((e) => (
+              <option key={e.name} value={e.name} />
+            ))}
+          </datalist>
+        </div>
+        {shownLifts.length > 0 && (
+          <div className="lift-chips">
+            {shownLifts.map((lift) => (
+              <button
+                key={lift}
+                type="button"
+                className={`chip${name === lift ? ' is-active' : ''}`}
+                style={{ '--chip': muscleColor(muscleOf(lift)) }}
+                onClick={() => loadHistory(lift)}
+              >
+                <span className="dot" aria-hidden="true" />
+                {lift}
+              </button>
+            ))}
+          </div>
+        )}
+        {loading && <p className="hint">Cargando…</p>}
+      </form>
+
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
       )}
 
       {bests.length > 0 && (
@@ -258,134 +407,13 @@ export default function Progress() {
         </div>
       )}
 
-      <form className="card" onSubmit={(e) => {
-        e.preventDefault()
-        loadHistory(name)
-      }}>
-        {musclesPresent.length > 0 && (
-          <div className="muscle-chips">
-            {musclesPresent.map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
-                style={{ '--chip': muscleColor(m) }}
-                aria-pressed={muscle === m}
-                onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
-              >
-                <span className="dot" aria-hidden="true" />
-                {m}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="field">
-          <label htmlFor="progress-exercise">Ejercicio</label>
-          <input
-            id="progress-exercise"
-            list="progress-options"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="p. ej. Press banca"
-          />
-          <datalist id="progress-options">
-            {exercises.map((e) => (
-              <option key={e.name} value={e.name} />
-            ))}
-          </datalist>
-        </div>
-        {shownLifts.length > 0 && (
-          <div className="lift-chips">
-            {shownLifts.map((lift) => (
-              <button
-                key={lift}
-                type="button"
-                className={`chip${name === lift ? ' is-active' : ''}`}
-                style={{ '--chip': muscleColor(muscleOf(lift)) }}
-                onClick={() => loadHistory(lift)}
-              >
-                <span className="dot" aria-hidden="true" />
-                {lift}
-              </button>
-            ))}
-          </div>
-        )}
-        <button type="submit" className="btn-full" disabled={loading}>
-          {loading ? 'Cargando…' : 'Ver progreso'}
-        </button>
-      </form>
-
-      {error && (
-        <p role="alert" className="alert">
-          {error}
-        </p>
-      )}
-
-      {points !== null && (
-        <div className="card">
-          {/* Name + group editing lives here regardless of whether there's a
-              chart: you must be able to rename a cardio or brand-new lift too,
-              not just one with 1RM history. */}
-          {current && (
-            <div className="muscle-edit">
-              <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-              {editingName ? (
-                <form
-                  className="exercise-rename"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    renameCurrent(current.id, nameDraft)
-                  }}
-                >
-                  <input
-                    aria-label="Nombre del ejercicio"
-                    value={nameDraft}
-                    onChange={(e) => setNameDraft(e.target.value)}
-                    maxLength={120}
-                    autoFocus
-                  />
-                  <button type="submit" className="secondary set-action">
-                    Guardar nombre
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <span className="muscle-edit-name">{current.name}</span>
-                  <button
-                    type="button"
-                    className="secondary set-action"
-                    aria-label="Editar nombre"
-                    onClick={() => {
-                      setNameDraft(current.name)
-                      setEditingName(true)
-                    }}
-                  >
-                    Editar
-                  </button>
-                </>
-              )}
-              <label htmlFor="muscle-select" className="muscle-edit-label">
-                Grupo
-              </label>
-              <select
-                id="muscle-select"
-                value={current.muscle_group ?? ''}
-                onChange={(e) => changeMuscle(current.id, e.target.value)}
-              >
-                <option value="">Sin grupo</option>
-                {MUSCLE_GROUPS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          {points.length === 0 ? (
-            <p className="hint">Aún no hay datos para graficar este ejercicio.</p>
-          ) : (
-            <Chart points={points} color={chartColor} unit={weightUnit} />
-          )}
+      {/* Exporting belongs with the numbers it exports, and it is the rarest
+          thing on this screen — so it sits at the bottom of it. */}
+      {days.length > 0 && (
+        <div className="export-row">
+          <button type="button" className="secondary" onClick={() => downloadCsv(days)}>
+            Exportar CSV
+          </button>
         </div>
       )}
     </section>
