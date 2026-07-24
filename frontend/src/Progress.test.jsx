@@ -160,6 +160,22 @@ describe('Progress', () => {
     expect(chart.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  // The field used to hold the charted lift as well as what you were typing, so
+  // the same name showed up three times on one screen: card title, search box,
+  // active chip. The box searches; the title and the chip say where you are.
+  it('empties the search box once it has charted what you picked', async () => {
+    api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    render(<Progress />)
+
+    const box = await screen.findByLabelText(/ejercicio/i)
+    await userEvent.type(box, 'Press banca')
+
+    await waitFor(() => expect(box).toHaveValue(''))
+    // The name is stated once, as the thing the card is about.
+    expect(screen.getByRole('button', { name: /renombrar Press banca/i })).toBeInTheDocument()
+  })
+
   // Picking a known lift already loads it from the chips; making the text field
   // alone demand a second tap on a button was two paths for one job.
   it('charts a known lift the moment you pick it, with no second tap', async () => {

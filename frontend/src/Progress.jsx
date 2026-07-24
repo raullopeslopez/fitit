@@ -96,7 +96,11 @@ export default function Progress() {
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
   const [days, setDays] = useState([]) // the days feed, for the consistency heatmap
   const [freq, setFreq] = useState({})
-  const [name, setName] = useState('') // search box + the currently charted lift
+  // Two jobs, two states. One `name` doing both meant the charted lift was
+  // printed as the card title, as the field's value and as the active chip —
+  // the same string three times, twice within a thumb's width.
+  const [name, setName] = useState('') // the currently charted lift
+  const [query, setQuery] = useState('') // what you are typing to find one
   const [muscle, setMuscle] = useState(null) // selected muscle filter
   const [points, setPoints] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -183,6 +187,9 @@ export default function Progress() {
     const q = query.trim()
     if (!q) return
     setName(q)
+    // The box is for finding, not for holding what you found: the card title
+    // and the active chip already say where you are.
+    setQuery('')
     setMuscle(muscleOf(q))
     setEditingName(false)
     setError('')
@@ -200,7 +207,7 @@ export default function Progress() {
   // Making the text field alone demand a tap on a submit button was two paths
   // for one job, one of them with a confirmation step and one without.
   function handleNameInput(value) {
-    setName(value)
+    setQuery(value)
     const match = exercises.find((e) => e.name.toLowerCase() === value.trim().toLowerCase())
     if (match) loadHistory(match.name)
   }
@@ -321,7 +328,7 @@ export default function Progress() {
           apparatus on a phone to reach the thing you opened Progreso for. */}
       <form className="card" onSubmit={(e) => {
         e.preventDefault()
-        loadHistory(name)
+        loadHistory(query)
       }}>
         {musclesPresent.length > 0 && (
           <div className="muscle-chips">
@@ -345,9 +352,9 @@ export default function Progress() {
           <input
             id="progress-exercise"
             list="progress-options"
-            value={name}
+            value={query}
             onChange={(e) => handleNameInput(e.target.value)}
-            placeholder="p. ej. Press banca"
+            placeholder="Buscar…"
           />
           <datalist id="progress-options">
             {exercises.map((e) => (

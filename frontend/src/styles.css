@@ -622,6 +622,15 @@ button {
   button.link-row:hover:not(:disabled) {
     background: none;
   }
+  /* The tap-to-edit surfaces answer a pointer the way they answer a thumb:
+     a veil, not the CTA fill. Without this they inherited `button:hover` and
+     a set row filled amber under the mouse — the same defect 1efc3df fixed
+     for .link-row, reintroduced by three new surfaces. */
+  button.set-row:hover:not(:disabled),
+  button.workout-title:hover:not(:disabled),
+  button.chart-title:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+  }
 }
 button:active:not(:disabled) {
   transform: translateY(1px);
@@ -992,12 +1001,30 @@ button.set-action {
   width: auto;
 }
 
+/* One swipeable line each, not a wrapped pile. Wrapped, seven muscle chips and
+   six lift chips stacked into six rows of identical pills doing two different
+   jobs — filter and select — and the wall read as one control repeated. On a
+   line apiece they read as two rows of two kinds, and the picker stops being
+   taller than the chart it drives. */
 .muscle-chips,
 .lift-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 0.4rem;
   margin: 0 0 0.85rem;
+  /* Bleed to the card edges so a half-cut chip signals "there is more". */
+  padding-inline: 1.2rem;
+  margin-inline: -1.2rem;
+}
+.muscle-chips::-webkit-scrollbar,
+.lift-chips::-webkit-scrollbar {
+  display: none;
+}
+.muscle-chips > .chip,
+.lift-chips > .chip {
+  flex: none;
 }
 /* Muscle chips read by their label; the coloured dot reinforces identity so
    colour is never the sole cue (DESIGN.md "Color por músculo" / a11y). */
