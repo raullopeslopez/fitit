@@ -380,6 +380,18 @@ h2 {
 .extras-toggle {
   margin: 0.1rem 0 0.6rem;
 }
+/* Corrections, folded away at the foot of the card. */
+.fixes-toggle {
+  margin-top: 0.9rem;
+}
+.card-fixes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
 /* Two-class selector so this outweighs `button.secondary` (which is later in
    the file): destructive actually wears the red DESIGN.md reserves for it. */
 .head-menu-item.head-menu-danger {
