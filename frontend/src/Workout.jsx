@@ -111,7 +111,6 @@ function ExerciseCard({
       : null)
   const [best, setBest] = useState(seededBest)
   const [pr, setPr] = useState(false)
-  const [openMenuId, setOpenMenuId] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
@@ -172,7 +171,6 @@ function ExerciseCard({
 
   function startEdit(set) {
     setError('')
-    setOpenMenuId(null)
     setEditingId(set.id)
     setEditReps(String(set.reps))
     // Edited in the unit you're reading in, not the one it was logged in — the
@@ -507,10 +505,27 @@ function ExerciseCard({
                   <button type="button" className="secondary" onClick={() => setEditingId(null)}>
                     Cancelar
                   </button>
+                  {/* Borrar rides inside the editor: you are already looking at
+                      the set you mean, and it saves the row a control. */}
+                  <button
+                    type="button"
+                    className="secondary set-delete"
+                    onClick={() => handleDelete(set.id)}
+                  >
+                    Borrar
+                  </button>
                 </form>
               ) : (
                 <>
-                  <span>
+                  {/* The row is the control. Tapping a thing edits that thing —
+                      an overflow holding only "Editar" and "Borrar" was a menu
+                      standing between you and the row you already pointed at. */}
+                  <button
+                    type="button"
+                    className="set-row"
+                    aria-label={`Editar serie ${index + 1}`}
+                    onClick={() => startEdit(set)}
+                  >
                     {formatSet(set, weightUnit)}
                     {set.rpe ? ` · RPE ${set.rpe}` : ''}
                     {prIds.has(set.id) && (
@@ -518,37 +533,7 @@ function ExerciseCard({
                         PR
                       </span>
                     )}
-                  </span>
-                  {/* Rare actions live behind an overflow so the readout stays clean. */}
-                  <button
-                    type="button"
-                    className="secondary set-action set-menu-btn"
-                    aria-label={`Más acciones · serie ${index + 1}`}
-                    aria-expanded={openMenuId === set.id}
-                    onClick={() =>
-                      setOpenMenuId((id) => (id === set.id ? null : set.id))
-                    }
-                  >
-                    ⋯
                   </button>
-                  {openMenuId === set.id && (
-                    <div className="set-menu">
-                      <button
-                        type="button"
-                        className="secondary set-action"
-                        onClick={() => startEdit(set)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary set-action"
-                        onClick={() => handleDelete(set.id)}
-                      >
-                        Borrar
-                      </button>
-                    </div>
-                  )}
                   {set.note ? <span className="set-note">{set.note}</span> : null}
                 </>
               )}
@@ -1155,10 +1140,18 @@ export default function Workout({ workoutId, onExit }) {
           </form>
         ) : (
           <>
-            <div className="workout-title">
+            {/* The title is the rename control: tapping the name edits the
+                name. Nothing else claims this surface, unlike an exercise
+                card header, which belongs to the fold. */}
+            <button
+              type="button"
+              className="workout-title"
+              aria-label={`Renombrar el entreno ${workout.name || 'Entreno'}`}
+              onClick={startRename}
+            >
               <strong>{workout.name || 'Entreno'}</strong>
               <span className="workout-date">{formatDate(workout.date)}</span>
-            </div>
+            </button>
             <div className="head-menu">
               <button
                 type="button"
@@ -1211,13 +1204,6 @@ export default function Workout({ workoutId, onExit }) {
                       ))}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="secondary set-action head-menu-item"
-                    onClick={startRename}
-                  >
-                    Renombrar
-                  </button>
                   {/* Two taps to delete: the first only arms it. Destructive gets
                       the true-red treatment DESIGN.md reserves for it. */}
                   {confirmingDelete ? (

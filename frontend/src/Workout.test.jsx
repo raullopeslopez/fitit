@@ -943,7 +943,8 @@ describe('Workout', () => {
     api.deleteSet.mockResolvedValue(null)
     await logBenchSet()
 
-    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
+    // Borrar lives in the edit form now: the row itself opens it.
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
     await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
 
     await waitFor(() => expect(api.deleteSet).toHaveBeenCalledWith(10))
@@ -954,8 +955,7 @@ describe('Workout', () => {
     api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 10, weight: 65 }))
     await logBenchSet()
 
-    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
-    await userEvent.click(screen.getByRole('button', { name: /editar/i }))
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
     const reps = screen.getByLabelText(/editar reps/i)
     const weight = screen.getByLabelText(/editar peso/i)
     await userEvent.clear(reps)
@@ -998,8 +998,7 @@ describe('Workout', () => {
     api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 8, weight: 60, rpe: 9, note: 'tough' }))
     await logBenchSet()
 
-    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
-    await userEvent.click(screen.getByRole('button', { name: /editar/i }))
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
     await userEvent.type(screen.getByLabelText(/editar rpe/i), '9')
     await userEvent.type(screen.getByLabelText(/editar nota/i), 'tough')
     await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
@@ -1022,10 +1021,14 @@ describe('Workout', () => {
     api.deleteSet.mockRejectedValue(new Error('network'))
     await logBenchSet()
 
-    await userEvent.click(screen.getByRole('button', { name: /más acciones/i }))
+    // Borrar lives in the edit form now: the row itself opens it.
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
     await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
 
+    // The editor stays open on failure, so you can retry or back out; the set
+    // is still there once you do.
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /cancelar/i }))
     expect(screen.getByText(/60 kg x 8/i)).toBeInTheDocument()
   })
 
@@ -1176,13 +1179,26 @@ describe('Workout', () => {
     expect(onExit).toHaveBeenCalled()
   })
 
+  // Tapping a thing edits that thing. A menu is for actions that aren't
+  // "edit this" — so the per-row overflow, which only ever held Editar and
+  // Borrar, is gone: the row opens the editor and Borrar rides inside it.
+  it('opens the editor by tapping the set row, with no overflow to aim at', async () => {
+    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 10, weight: 60 }))
+    await logBenchSet()
+
+    expect(screen.queryByRole('button', { name: /más acciones/i })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
+    expect(screen.getByLabelText(/editar reps/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument()
+  })
+
   it('renames the current workout', async () => {
     api.renameWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: 'Leg Day', sets: [] })
     renderWorkout()
 
-    // Rename lives behind the header overflow menu now.
-    await userEvent.click(await screen.findByRole('button', { name: /acciones del entreno/i }))
-    await userEvent.click(screen.getByRole('button', { name: /renombrar/i }))
+    // The title is the control: tapping it opens the rename in place, so the
+    // overflow no longer carries a Renombrar item.
+    await userEvent.click(await screen.findByRole('button', { name: /renombrar el entreno/i }))
     await userEvent.type(screen.getByLabelText(/nombre del entreno/i), 'Leg Day')
     await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
 

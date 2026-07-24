@@ -183,9 +183,11 @@ describe('Progress', () => {
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
     await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalled())
 
-    expect(screen.queryByRole('button', { name: /editar nombre/i })).not.toBeInTheDocument()
+    // The name titles the chart card and is the rename control itself, so only
+    // the group select is left to fold away.
+    expect(screen.getByRole('button', { name: /renombrar Press banca/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText(/grupo/i)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
-    expect(screen.getByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/grupo/i)).toBeInTheDocument()
   })
 
@@ -241,17 +243,17 @@ describe('Progress', () => {
     api.renameExercise.mockResolvedValue({ id: 7, name: 'Press de banca', muscle_group: 'Pecho' })
     render(<Progress />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
-    await userEvent.click(screen.getByRole('button', { name: /editar nombre/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /renombrar Press banca/i }))
     const input = screen.getByLabelText(/nombre del ejercicio/i)
     await userEvent.clear(input)
     await userEvent.type(input, 'Press de banca')
     await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
 
     await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(7, 'Press de banca'))
-    // The editor closes and the new name is shown.
-    expect(await screen.findByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
-    expect(screen.getByText('Press de banca')).toBeInTheDocument()
+    // The editor closes and the new name titles the card.
+    expect(
+      await screen.findByRole('button', { name: /renombrar Press de banca/i }),
+    ).toBeInTheDocument()
     expect(screen.queryByLabelText(/nombre del ejercicio/i)).not.toBeInTheDocument()
   })
 
@@ -277,9 +279,8 @@ describe('Progress', () => {
     render(<Progress />)
 
     expect(await screen.findByText(/no hay datos para graficar/i)).toBeInTheDocument()
-    // The rename control is still reachable despite the empty chart.
-    await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
-    expect(screen.getByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
+    // The card is titled and renameable even with nothing to chart.
+    expect(screen.getByRole('button', { name: /renombrar Correr/i })).toBeInTheDocument()
   })
 
   it('shows the consistency heatmap with a streak when there are training days', async () => {

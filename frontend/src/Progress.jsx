@@ -241,6 +241,42 @@ export default function Progress() {
               corrections and this card is content. */}
           {current && (
             <>
+              {/* The name titles the card — a chart of nothing named is a chart
+                  you have to go looking for the subject of — and tapping it is
+                  how you rename it. */}
+              {editingName ? (
+                <form
+                  className="exercise-rename chart-title"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    renameCurrent(current.id, nameDraft)
+                  }}
+                >
+                  <input
+                    aria-label="Nombre del ejercicio"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={120}
+                    autoFocus
+                  />
+                  <button type="submit" className="secondary set-action">
+                    Guardar nombre
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className="chart-title"
+                  aria-label={`Renombrar ${current.name}`}
+                  onClick={() => {
+                    setNameDraft(current.name)
+                    setEditingName(true)
+                  }}
+                >
+                  <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+                  <h2>{current.name}</h2>
+                </button>
+              )}
               <button
                 type="button"
                 className="unit-fix fixes-toggle"
@@ -252,42 +288,6 @@ export default function Progress() {
               {showFixes && (
                 <div className="card-fixes">
                   <div className="muscle-edit">
-                    <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-                    {editingName ? (
-                      <form
-                        className="exercise-rename"
-                        onSubmit={(e) => {
-                          e.preventDefault()
-                          renameCurrent(current.id, nameDraft)
-                        }}
-                      >
-                        <input
-                          aria-label="Nombre del ejercicio"
-                          value={nameDraft}
-                          onChange={(e) => setNameDraft(e.target.value)}
-                          maxLength={120}
-                          autoFocus
-                        />
-                        <button type="submit" className="secondary set-action">
-                          Guardar nombre
-                        </button>
-                      </form>
-                    ) : (
-                      <>
-                        <span className="muscle-edit-name">{current.name}</span>
-                        <button
-                          type="button"
-                          className="secondary set-action"
-                          aria-label="Editar nombre"
-                          onClick={() => {
-                            setNameDraft(current.name)
-                            setEditingName(true)
-                          }}
-                        >
-                          Editar
-                        </button>
-                      </>
-                    )}
                     <label htmlFor="muscle-select" className="muscle-edit-label">
                       Grupo
                     </label>
