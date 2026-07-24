@@ -380,6 +380,61 @@ h2 {
 .extras-toggle {
   margin: 0.1rem 0 0.6rem;
 }
+/* Tap-to-edit surfaces: the row, the workout title, the chart title. They read
+   as content, so the only affordance is the press — no frame, no fill, nothing
+   competing with the numbers. Full width and 44px so a thumb finds them. */
+.set-row,
+button.workout-title,
+button.chart-title {
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+.set-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.35rem;
+  margin-left: -0.35rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.set-row:active:not(:disabled),
+button.workout-title:active:not(:disabled),
+button.chart-title:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: none;
+}
+button.chart-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+button.chart-title h2 {
+  margin: 0;
+}
+.chart-title.exercise-rename {
+  min-height: 44px;
+}
+/* Destructive, inside the editor — red, per DESIGN.md's reservation. */
+.set-delete.set-delete {
+  color: var(--danger);
+  border-color: transparent;
+  margin-left: auto;
+}
+.set-delete.set-delete:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
 /* Corrections, folded away at the foot of the card. */
 .fixes-toggle {
   margin-top: 0.9rem;
