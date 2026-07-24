@@ -65,8 +65,8 @@ describe('Progress', () => {
     ])
     const { container } = render(<Progress />)
 
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench')
-    await userEvent.click(screen.getByRole('button', { name: /ver progreso/i }))
+    // A name nothing knows yet is submitted with the keyboard's go key.
+    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench{enter}')
 
     // The PR reference line labels the record.
     expect(await screen.findByText(/PR 88/)).toBeInTheDocument()
@@ -130,6 +130,65 @@ describe('Progress', () => {
     await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Press banca'))
   })
 
+  // The chart is what you opened Progreso for; the picker is the mechanism that
+  // drives it. Three stacked selectors plus a submit button sat on top of it, so
+  // on a phone you scrolled the whole apparatus to reach the content.
+  it('puts the chart above the picker that drives it', async () => {
+    api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [{ id: 1, exercise_name: 'Press banca', reps: 5, weight: 80, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    const { container } = render(<Progress />)
+
+    const chart = await waitFor(() => {
+      const svg = container.querySelector('svg.chart')
+      expect(svg).not.toBeNull()
+      return svg
+    })
+    const picker = screen.getByLabelText(/ejercicio/i)
+    expect(chart.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  // Picking a known lift already loads it from the chips; making the text field
+  // alone demand a second tap on a button was two paths for one job.
+  it('charts a known lift the moment you pick it, with no second tap', async () => {
+    api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    render(<Progress />)
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
+
+    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Press banca'))
+    expect(screen.queryByRole('button', { name: /ver progreso/i })).not.toBeInTheDocument()
+  })
+
+  // Renaming a lift and re-tagging its group are corrections, the same shape as
+  // the ones on the exercise card: rare, and they were sitting in the content.
+  it('folds the corrections away until you reach for them', async () => {
+    api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+    render(<Progress />)
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
+    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalled())
+
+    expect(screen.queryByRole('button', { name: /editar nombre/i })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
+    expect(screen.getByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/grupo/i)).toBeInTheDocument()
+  })
+
   it('lets you correct a mis-guessed muscle group', async () => {
     api.listExercises.mockResolvedValue([
       { id: 7, name: 'Press banca', muscle_group: 'Pecho' },
@@ -151,7 +210,8 @@ describe('Progress', () => {
     api.setExerciseMuscle.mockResolvedValue({ id: 7, name: 'Press banca', muscle_group: 'Hombro' })
     render(<Progress />)
 
-    const select = await screen.findByLabelText(/grupo/i)
+    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    const select = screen.getByLabelText(/grupo/i)
     expect(select).toHaveValue('Pecho')
 
     await userEvent.selectOptions(select, 'Hombro')
@@ -181,7 +241,8 @@ describe('Progress', () => {
     api.renameExercise.mockResolvedValue({ id: 7, name: 'Press de banca', muscle_group: 'Pecho' })
     render(<Progress />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /editar nombre/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /editar nombre/i }))
     const input = screen.getByLabelText(/nombre del ejercicio/i)
     await userEvent.clear(input)
     await userEvent.type(input, 'Press de banca')
@@ -216,7 +277,8 @@ describe('Progress', () => {
     render(<Progress />)
 
     expect(await screen.findByText(/no hay datos para graficar/i)).toBeInTheDocument()
-    // The rename control is present despite the empty chart.
+    // The rename control is still reachable despite the empty chart.
+    await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
     expect(screen.getByRole('button', { name: /editar nombre/i })).toBeInTheDocument()
   })
 
@@ -267,8 +329,7 @@ describe('Progress', () => {
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)
 
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Squat')
-    await userEvent.click(screen.getByRole('button', { name: /ver progreso/i }))
+    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Squat{enter}')
 
     expect(await screen.findByText(/aún no hay datos/i)).toBeInTheDocument()
   })
