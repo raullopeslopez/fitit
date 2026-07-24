@@ -93,6 +93,10 @@ function ExerciseCard({
   )
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
+  // RPE and nota are optional and cleared after every log, so in a straight-sets
+  // session they are two input rows you never touch pushing Registrar down the
+  // card. Folded, "hidden" also has to mean "empty" — see toggleExtras.
+  const [showExtras, setShowExtras] = useState(false)
   const [logging, setLogging] = useState(false)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen. The number to beat is the server's best
@@ -139,6 +143,7 @@ function ExerciseCard({
       // stale RPE or note riding silently onto the next set is worse than empty.
       setRpe('')
       setNote('')
+      setShowExtras(false)
     } catch {
       setError('No se pudo registrar la serie.')
     } finally {
@@ -263,6 +268,18 @@ function ExerciseCard({
 
   const ready = reps !== '' && weight !== ''
 
+  // Folding the extras clears them: a value you can't see must not ride onto
+  // the set you're about to log.
+  function toggleExtras() {
+    setShowExtras((open) => {
+      if (open) {
+        setRpe('')
+        setNote('')
+      }
+      return !open
+    })
+  }
+
   return (
     <div className={`card${open ? '' : ' is-folded'}`}>
       {/* The whole header is the fold control: a wide target for a thumb, and
@@ -283,29 +300,6 @@ function ExerciseCard({
 
       {!open ? null : (
         <>
-      {/* The classifier's guess is only a default; re-tag it here, and the
-          folded header dot follows. Sits at the top of the open card so it's
-          out of the way of logging but reachable without leaving Entreno. */}
-      {onChangeMuscle && (
-        <div className="muscle-edit">
-          {/* No dot here: the header tag right above already carries the coloured
-              identity chip. This row is the control, not a second chip. */}
-          <span className="muscle-edit-heading">Grupo muscular</span>
-          <select
-            className="muscle-edit-select"
-            aria-label={`Grupo muscular de ${name}`}
-            value={muscle ?? ''}
-            onChange={(e) => onChangeMuscle(name, e.target.value)}
-          >
-            <option value="">Sin grupo</option>
-            {MUSCLE_GROUPS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
       {/* One 1RM readout, not two: the mark you walked in with and where you are
           now. Two separate numbers twelve lines apart is how you read neither. */}
       {seededBest != null || todayBest != null ? (
@@ -408,27 +402,37 @@ function ExerciseCard({
             </div>
           </div>
         </div>
-        <div className="row">
-          <div className="field field-unit">
-            <label htmlFor={`rpe-${name}`}>RPE</label>
-            <input
-              id={`rpe-${name}`}
-              inputMode="decimal"
-              value={rpe}
-              onChange={(e) => setRpe(e.target.value)}
-              placeholder="1–10"
-            />
+        <button
+          type="button"
+          className="unit-fix extras-toggle"
+          aria-expanded={showExtras}
+          onClick={toggleExtras}
+        >
+          {showExtras ? '− RPE y nota' : '+ RPE y nota'}
+        </button>
+        {showExtras && (
+          <div className="row">
+            <div className="field field-unit">
+              <label htmlFor={`rpe-${name}`}>RPE</label>
+              <input
+                id={`rpe-${name}`}
+                inputMode="decimal"
+                value={rpe}
+                onChange={(e) => setRpe(e.target.value)}
+                placeholder="1–10"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={`note-${name}`}>Nota</label>
+              <input
+                id={`note-${name}`}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="opcional"
+              />
+            </div>
           </div>
-          <div className="field">
-            <label htmlFor={`note-${name}`}>Nota</label>
-            <input
-              id={`note-${name}`}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="opcional"
-            />
-          </div>
-        </div>
+        )}
         {/* The button states exactly what it will log, so a repeat is one tap. */}
         <button type="submit" className="btn-full btn-log" disabled={logging}>
           {logging
@@ -447,6 +451,13 @@ function ExerciseCard({
 
       {sets.length > 0 ? (
         <>
+        {/* Straight sets are the common case, so the repeat sits with the log
+            button, at a fixed place on the card. Under the list it sank a row
+            per set logged — by the fifth, the quickest control on the screen
+            was off the bottom of the phone. */}
+        <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>
+          +1 serie
+        </button>
         <div className="target-label session-label">Hoy</div>
         <p className="set-summary">
           {sets.length} {sets.length === 1 ? 'serie' : 'series'} ·{' '}
@@ -545,9 +556,6 @@ function ExerciseCard({
             </li>
           ))}
         </ol>
-        <button type="button" className="secondary" onClick={handleRepeatLast}>
-          +1 serie
-        </button>
         {loggedUnit && (
           <button type="button" className="unit-fix" onClick={handleCorrectUnit}>
             Registradas en {loggedUnit} · corregir a {correctedUnit}
@@ -556,6 +564,30 @@ function ExerciseCard({
         </>
       ) : (
         <p className="hint">Aún no hay series.</p>
+      )}
+
+      {/* Corrections live together at the foot of the card: re-tagging the
+          classifier's guess is a once-per-exercise act, and it used to sit
+          between the header and the numbers you came here for. */}
+      {onChangeMuscle && (
+        <div className="muscle-edit">
+          {/* No dot here: the header tag already carries the coloured identity
+              chip. This row is the control, not a second chip. */}
+          <span className="muscle-edit-heading">Grupo muscular</span>
+          <select
+            className="muscle-edit-select"
+            aria-label={`Grupo muscular de ${name}`}
+            value={muscle ?? ''}
+            onChange={(e) => onChangeMuscle(name, e.target.value)}
+          >
+            <option value="">Sin grupo</option>
+            {MUSCLE_GROUPS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
         </>
       )}
@@ -909,18 +941,24 @@ export default function Workout({ workoutId, onExit }) {
           ...logged,
           ...queued.map((name) => ({ name, previous: null, kind: 'strength' })),
         ])
-        if (queued.length === 0) return
 
-        // Previous marks are what make a queued card useful: the steppers open
-        // on last session's numbers instead of zero.
+        // Every card needs its marks, rebuilt ones included. Only the add path
+        // used to fetch them, so reopening a workout lost the target on every
+        // card and left prSetIds comparing each set against the session's own
+        // running peak — flagging set 2 as a record for beating set 1. The
+        // current workout is excluded server-side, or the answer is your own
+        // sets from ten minutes ago.
+        const names = [...logged.map((e) => e.name), ...queued]
+        if (names.length === 0) return
         const marks = await Promise.all(
-          queued.map((n) => getPreviousMarks(n).catch(() => null)),
+          names.map((n) => getPreviousMarks(n, workoutId).catch(() => null)),
         )
+        const byName = new Map(names.map((n, i) => [n, marks[i]]))
         setExercises((list) =>
           list.map((ex) => {
-            const i = queued.indexOf(ex.name)
-            if (i === -1 || marks[i] == null) return ex
-            return { ...ex, previous: marks[i], kind: marks[i].kind ?? ex.kind }
+            const previous = byName.get(ex.name)
+            if (previous == null) return ex
+            return { ...ex, previous, kind: previous.kind ?? ex.kind }
           }),
         )
       })
@@ -945,7 +983,7 @@ export default function Workout({ workoutId, onExit }) {
     setError('')
     setAdding(true)
     try {
-      const previous = await getPreviousMarks(name)
+      const previous = await getPreviousMarks(name, workoutId)
       // A known exercise keeps its stored kind; a new one takes the toggle's choice.
       const kind = previous.kind ?? newKind
       // To the top: you just added it, so it's what you're about to do.
@@ -1051,6 +1089,12 @@ export default function Workout({ workoutId, onExit }) {
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
+  // A name nothing knows yet — the only case where the Fuerza/Cardio choice
+  // has anything to decide.
+  const typedName = exerciseInput.trim()
+  const isNewExercise =
+    typedName !== '' && !known.some((n) => n.toLowerCase() === typedName.toLowerCase())
+
   if (!workout) {
     // The way out matters more now that the app can reopen straight into a
     // workout: if that one is gone, an alert with no button is a dead end.
@@ -1115,6 +1159,45 @@ export default function Workout({ workoutId, onExit }) {
               </button>
               {menuOpen && (
                 <div className="head-menu-pop">
+                  {/* Both are sticky prefs — the unit is a once-ever choice and
+                      rest is once a session — and both were pinned above every
+                      exercise card, ahead of the thing you came here to do. */}
+                  <div className="menu-pref">
+                    <span className="prefs-label">Peso</span>
+                    <div className="unit-toggle" role="group" aria-label="Unidad">
+                      {['kg', 'lb'].map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          className="unit-option"
+                          aria-pressed={weightUnit === u}
+                          onClick={() => chooseWeightUnit(u)}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="menu-pref">
+                    <span className="prefs-label">Descanso</span>
+                    <div
+                      className="unit-toggle"
+                      role="group"
+                      aria-label="Descanso entre series"
+                    >
+                      {REST_OPTIONS.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className="unit-option"
+                          aria-pressed={restSeconds === s}
+                          onClick={() => chooseRestSeconds(s)}
+                        >
+                          {s === 0 ? 'Sin' : `${s}s`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     className="secondary set-action head-menu-item"
@@ -1152,40 +1235,6 @@ export default function Workout({ workoutId, onExit }) {
         <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={endRest} />
       )}
 
-      <div className="prefs-bar">
-        <span className="prefs-label">Peso</span>
-        <div className="unit-toggle" role="group" aria-label="Unidad">
-          {['kg', 'lb'].map((u) => (
-            <button
-              key={u}
-              type="button"
-              className="unit-option"
-              aria-pressed={weightUnit === u}
-              onClick={() => chooseWeightUnit(u)}
-            >
-              {u}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="prefs-bar">
-        <span className="prefs-label">Descanso</span>
-        <div className="unit-toggle" role="group" aria-label="Descanso entre series">
-          {REST_OPTIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="unit-option"
-              aria-pressed={restSeconds === s}
-              onClick={() => chooseRestSeconds(s)}
-            >
-              {s === 0 ? 'Sin descanso' : `${s}s`}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <form className="card" onSubmit={handleAddExercise}>
         <div className="field">
           <label htmlFor="exercise">Ejercicio</label>
@@ -1202,25 +1251,30 @@ export default function Workout({ workoutId, onExit }) {
             ))}
           </datalist>
         </div>
-        <div className="prefs-bar">
-          <span className="prefs-label">Tipo</span>
-          <div className="unit-toggle" role="group" aria-label="Fuerza o cardio">
-            {[
-              ['strength', 'Fuerza'],
-              ['cardio', 'Cardio'],
-            ].map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                className="unit-option"
-                aria-pressed={newKind === k}
-                onClick={() => setNewKind(k)}
-              >
-                {label}
-              </button>
-            ))}
+        {/* Kind only decides anything for a name the backend has never seen —
+            an autocompleted exercise keeps its stored kind. Shown always, it
+            was a question asked on every add and answered by one in twenty. */}
+        {isNewExercise && (
+          <div className="prefs-bar">
+            <span className="prefs-label">Tipo</span>
+            <div className="unit-toggle" role="group" aria-label="Fuerza o cardio">
+              {[
+                ['strength', 'Fuerza'],
+                ['cardio', 'Cardio'],
+              ].map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="unit-option"
+                  aria-pressed={newKind === k}
+                  onClick={() => setNewKind(k)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
         <button type="submit" className="btn-full" disabled={adding}>
           {adding ? 'Comprobando…' : 'Añadir ejercicio'}
         </button>
