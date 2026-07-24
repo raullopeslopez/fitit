@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays, listExercises } from './api.js'
-import { downloadCsv } from './csv.js'
-import { formatDate } from './format.js'
+import { formatDayShort } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
-import { trainingStats } from './stats.js'
+import { setRepeatTemplate } from './prefs.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
+}
+
+// The exercises a session worked, each once, in the order they were worked.
+// That order is the plan: repeat the session and you start where you started.
+function exerciseNames(workout) {
+  return [...new Set(workout.sets.map((s) => s.exercise_name))]
 }
 
 export default function Days({ onOpenWorkout }) {
@@ -17,6 +22,10 @@ export default function Days({ onOpenWorkout }) {
   const [creating, setCreating] = useState(false)
   const [backfill, setBackfill] = useState(false)
   const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
+  // Which day has its overflow open, and whether its delete is armed. Rare and
+  // irreversible actions live in there rather than beside the row you tap.
+  const [menuFor, setMenuFor] = useState(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -39,6 +48,16 @@ export default function Days({ onOpenWorkout }) {
     MUSCLE_GROUPS.filter((m) =>
       workout.sets.some((s) => muscleByName[s.exercise_name] === m),
     )
+
+  function openMenu(dayId) {
+    setConfirmingDelete(false)
+    setMenuFor((current) => (current === dayId ? null : dayId))
+  }
+
+  // Today's session, if there is one. Its existence is what the primary button
+  // reads: a second workout on a day you already trained is how a session ends
+  // up split across two entries.
+  const todaySession = days?.find((d) => d.date === todayISO())?.workouts?.[0] ?? null
 
   // Starting today's session is one intent: one button, no form.
   async function startToday() {
@@ -69,8 +88,28 @@ export default function Days({ onOpenWorkout }) {
     }
   }
 
+  // The quickest session to log is one already written down: same name, same
+  // exercises, standing and waiting in Entreno with their previous marks.
+  async function handleRepeat(day) {
+    const source = day.workouts[0]
+    if (!source) return
+    setError('')
+    setMenuFor(null)
+    setCreating(true)
+    try {
+      const workout = await createWorkout({ date: todayISO(), name: source.name ?? null })
+      setRepeatTemplate(workout.id, exerciseNames(source))
+      onOpenWorkout(workout.id)
+    } catch {
+      setError('No se pudo repetir ese entreno.')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   async function handleDeleteDay(id) {
     setError('')
+    setMenuFor(null)
     try {
       await deleteDay(id)
       setDays((list) => list.filter((d) => d.id !== id))
@@ -79,106 +118,79 @@ export default function Days({ onOpenWorkout }) {
     }
   }
 
+  const ctaLabel = creating
+    ? 'Empezando…'
+    : todaySession
+      ? `Continuar entreno${todaySession.name ? ` · ${todaySession.name}` : ''}`
+      : 'Empezar entreno'
+
   return (
-    <section>
-      <div className="days-start">
-        <button
-          type="button"
-          className="btn-full btn-log"
-          onClick={startToday}
-          disabled={creating}
-        >
-          {creating ? 'Empezando…' : 'Empezar entreno de hoy'}
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          aria-expanded={backfill}
-          onClick={() => setBackfill((v) => !v)}
-        >
-          Otra fecha
-        </button>
-      </div>
-
-      {backfill && (
-        <form className="card" onSubmit={handleCreate}>
-          <h2>Registrar otra fecha</h2>
-          <div className="row">
-            <div className="field">
-              <label htmlFor="workout-date">Fecha</label>
-              <input
-                id="workout-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="workout-name">Nombre (opcional)</label>
-              <input
-                id="workout-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="p. ej. Empuje"
-              />
-            </div>
-          </div>
-          <button type="submit" className="btn-full" disabled={creating}>
-            {creating ? 'Empezando…' : 'Crear entreno'}
-          </button>
-        </form>
-      )}
-
+    <section className="days">
       {error && (
         <p role="alert" className="alert">
           {error}
         </p>
       )}
 
-      {days && days.length > 0 && (
-        <div className="days-toolbar">
-          {(() => {
-            const { streak, total } = trainingStats(days)
-            return (
-              <p className="streak">
-                Racha {streak} {streak === 1 ? 'día' : 'días'} · {total} entrenado
-                {total === 1 ? '' : 's'}
-              </p>
-            )
-          })()}
-          <button
-            type="button"
-            className="secondary export-btn"
-            onClick={() => downloadCsv(days)}
-          >
-            Exportar CSV
-          </button>
-        </div>
-      )}
-
       {days === null ? (
         <p className="hint">Cargando…</p>
       ) : days.length === 0 ? (
-        <p className="hint">Aún no hay días. Empieza un entreno arriba.</p>
+        <p className="hint">Aún no hay días. Empieza un entreno abajo.</p>
       ) : (
         days.map((day) => (
-          <div className="card" key={day.id}>
+          <div className="day-block" key={day.id}>
+            {/* A ruled line, not a card: the date is the margin note and the
+                sessions hang off it. Cards cost ~100px of chrome per day. */}
             <div className="day-head">
-              <h2>
-                {formatDate(day.date)}
-                {day.date === todayISO() && (
-                  <span className="today-badge">HOY</span>
-                )}
+              <h2 className="day-date">
+                {formatDayShort(day.date)}
+                {day.date === todayISO() && <span className="today-badge">HOY</span>}
               </h2>
-              <button
-                type="button"
-                className="secondary set-action"
-                onClick={() => handleDeleteDay(day.id)}
-              >
-                Borrar día
-              </button>
+              <span className="day-line" aria-hidden="true" />
+              <div className="head-menu">
+                <button
+                  type="button"
+                  className="secondary set-action head-menu-btn"
+                  aria-haspopup="true"
+                  aria-expanded={menuFor === day.id}
+                  aria-label={`Acciones del día ${formatDayShort(day.date)}`}
+                  onClick={() => openMenu(day.id)}
+                >
+                  ⋯
+                </button>
+                {menuFor === day.id && (
+                  <div className="head-menu-pop">
+                    <button
+                      type="button"
+                      className="secondary set-action head-menu-item"
+                      disabled={creating || day.workouts.length === 0}
+                      onClick={() => handleRepeat(day)}
+                    >
+                      Repetir
+                    </button>
+                    {/* Two taps to delete: the first only arms it. */}
+                    {confirmingDelete ? (
+                      <button
+                        type="button"
+                        className="secondary set-action head-menu-item head-menu-danger"
+                        onClick={() => handleDeleteDay(day.id)}
+                      >
+                        Sí, borrar día
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="secondary set-action head-menu-item head-menu-danger"
+                        onClick={() => setConfirmingDelete(true)}
+                      >
+                        Borrar día
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <ul className="sets">
+            <ul className="sets day-sessions">
               {day.workouts.map((w) => (
                 <li key={w.id}>
                   <button
@@ -204,6 +216,56 @@ export default function Days({ onOpenWorkout }) {
           </div>
         ))
       )}
+
+      {/* The list scrolls; the way into a session doesn't. Pinned above the tab
+          bar because that's where a thumb already is, one-handed, mid-gym. */}
+      <div className="days-cta">
+        {backfill && (
+          <form className="backfill" onSubmit={handleCreate}>
+            <div className="row">
+              <div className="field">
+                <label htmlFor="workout-date">Fecha</label>
+                <input
+                  id="workout-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="workout-name">Nombre (opcional)</label>
+                <input
+                  id="workout-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="p. ej. Empuje"
+                />
+              </div>
+            </div>
+            <button type="submit" className="btn-full" disabled={creating}>
+              {creating ? 'Empezando…' : 'Crear entreno'}
+            </button>
+          </form>
+        )}
+        <div className="days-start">
+          <button
+            type="button"
+            className="btn-full btn-log"
+            onClick={todaySession ? () => onOpenWorkout(todaySession.id) : startToday}
+            disabled={creating}
+          >
+            {ctaLabel}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            aria-expanded={backfill}
+            onClick={() => setBackfill((v) => !v)}
+          >
+            Otra fecha
+          </button>
+        </div>
+      </div>
     </section>
   )
 }

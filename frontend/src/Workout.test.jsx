@@ -1157,6 +1157,60 @@ describe('Workout', () => {
     expect(await screen.findByText('Leg Day')).toBeInTheDocument()
   })
 
+  // Repetir (from Días) hands the session over as a list of names. The cards
+  // are already standing when you arrive, each with its previous marks loaded,
+  // so a repeat session is taps on steppers rather than five lookups.
+  describe('repeated session', () => {
+    it('stands the cards up from the template, in the order they were worked', async () => {
+      localStorage.setItem(
+        'fitit_repeat_template',
+        JSON.stringify({ workoutId: 1, names: ['Dominadas', 'Remo'] }),
+      )
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      renderWorkout()
+
+      expect(await screen.findByRole('button', { name: /Dominadas/i })).toBeInTheDocument()
+      expect(cardToggle('Remo')).toBeInTheDocument()
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Dominadas')
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Remo')
+    })
+
+    it('ignores a template left over from another workout', async () => {
+      localStorage.setItem(
+        'fitit_repeat_template',
+        JSON.stringify({ workoutId: 99, names: ['Dominadas'] }),
+      )
+      renderWorkout()
+
+      await screen.findByLabelText(/ejercicio/i)
+      expect(screen.queryByRole('button', { name: /Dominadas/i })).not.toBeInTheDocument()
+    })
+
+    // Log two of the five and reopen the app: the three you haven't touched
+    // are still queued, under the ones you have.
+    it('keeps the untouched exercises queued below what you have logged', async () => {
+      localStorage.setItem(
+        'fitit_repeat_template',
+        JSON.stringify({ workoutId: 1, names: ['Dominadas', 'Remo', 'Curl'] }),
+      )
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ exercise_name: 'Remo', exercise_id: 4 })),
+      )
+      const { container } = renderWorkout()
+
+      await screen.findByRole('button', { name: /Curl/i })
+      const names = [...container.querySelectorAll('.card-toggle .card-name')].map((el) =>
+        el.textContent.trim(),
+      )
+      expect(names).toEqual(['Remo', 'Dominadas', 'Curl'])
+    })
+  })
+
   it('deletes the current workout and exits, after confirming', async () => {
     const onExit = vi.fn()
     api.deleteWorkout.mockResolvedValue(null)

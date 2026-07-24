@@ -3,8 +3,10 @@ import userEvent from '@testing-library/user-event'
 
 import Progress from './Progress.jsx'
 import * as api from './api.js'
+import { downloadCsv } from './csv.js'
 
 vi.mock('./api.js')
+vi.mock('./csv.js')
 
 describe('Progress', () => {
   beforeEach(() => {
@@ -12,6 +14,10 @@ describe('Progress', () => {
     api.listExercises.mockResolvedValue([])
     api.listDays.mockResolvedValue([])
     api.getBestMarks.mockResolvedValue([])
+    // Progress opens on your most-trained lift, so any fixture with sets in it
+    // pulls history on mount. Unmocked, that resolves undefined and takes the
+    // whole render down with it.
+    api.getExerciseHistory.mockResolvedValue([])
   })
 
   it('lists my best marks with the gap to the record each one beat', async () => {
@@ -232,6 +238,29 @@ describe('Progress', () => {
     render(<Progress />)
 
     expect(await screen.findByText(/racha/i)).toBeInTheDocument()
+  })
+
+  // Exporting is a once-a-month act of bookkeeping. It sits with the numbers
+  // it exports, not on the screen you tap between sets.
+  it('exports the whole log to CSV', async () => {
+    const days = [
+      {
+        id: 1,
+        date: '2026-07-15',
+        workouts: [
+          {
+            id: 4,
+            name: 'Push',
+            sets: [{ id: 1, exercise_name: 'Bench', reps: 5, weight: 80, unit: 'kg' }],
+          },
+        ],
+      },
+    ]
+    api.listDays.mockResolvedValue(days)
+    render(<Progress />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /exportar csv/i }))
+    expect(downloadCsv).toHaveBeenCalledWith(days)
   })
 
   it('shows an empty state when there is no history', async () => {

@@ -3,11 +3,24 @@ import { describe, it, expect } from 'vitest'
 import {
   formatCardioSet,
   formatClock,
+  formatDayShort,
   formatDuration,
   formatPace,
   formatTime,
   parseDuration,
 } from './format.js'
+
+describe('formatDayShort', () => {
+  // The day list is a logbook rule, not a sentence: mono, uppercase, no comma.
+  it('formats a day as an uppercase mono stamp', () => {
+    expect(formatDayShort('2026-07-16', new Date(2026, 6, 24))).toBe('JUE 16 JUL')
+  })
+  // Dropping the year is what buys the row its width — but only where it's
+  // implied. A day from another year has to say so.
+  it('adds the year only when it is not the current one', () => {
+    expect(formatDayShort('2025-12-31', new Date(2026, 6, 24))).toBe('MIÉ 31 DIC 2025')
+  })
+})
 
 describe('parseDuration', () => {
   it('parses mm:ss into seconds', () => {

@@ -44,6 +44,49 @@ export function setRestUntil(timestamp) {
   else localStorage.setItem(REST_UNTIL_KEY, String(timestamp))
 }
 
+// The workout you currently have open. Reopening the PWA between sets used to
+// drop you on Días, one tap and one fetch from the set you were about to log —
+// so the open workout survives a relaunch. Stamped with the last time the app
+// had it open, and only honoured inside RESUME_WINDOW_MS: a session you walked
+// out on yesterday is history, not something to resume into.
+const OPEN_WORKOUT_KEY = 'fitit_open_workout'
+const RESUME_WINDOW_MS = 4 * 60 * 60 * 1000
+
+export function getOpenWorkout() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(OPEN_WORKOUT_KEY))
+    if (!Number.isFinite(stored?.id) || !Number.isFinite(stored?.at)) return null
+    return Date.now() - stored.at < RESUME_WINDOW_MS ? stored.id : null
+  } catch {
+    return null
+  }
+}
+
+export function setOpenWorkout(id) {
+  if (id == null) localStorage.removeItem(OPEN_WORKOUT_KEY)
+  else localStorage.setItem(OPEN_WORKOUT_KEY, JSON.stringify({ id, at: Date.now() }))
+}
+
+// Repeating a past session hands Entreno the exercises it should stand up, by
+// name. One slot, not a queue: you can only be inside one workout at a time,
+// and it's keyed by workout id so a template never bleeds into a different one.
+// It is not cleared once consumed — reopening a half-logged repeat has to find
+// the exercises you haven't got to yet still waiting.
+const REPEAT_TEMPLATE_KEY = 'fitit_repeat_template'
+
+export function setRepeatTemplate(workoutId, names) {
+  localStorage.setItem(REPEAT_TEMPLATE_KEY, JSON.stringify({ workoutId, names }))
+}
+
+export function getRepeatTemplate(workoutId) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(REPEAT_TEMPLATE_KEY))
+    return stored?.workoutId === workoutId && Array.isArray(stored.names) ? stored.names : null
+  } catch {
+    return null
+  }
+}
+
 const DISTANCE_UNIT_KEY = 'fitit_distance_unit'
 
 export function getDistanceUnit() {
