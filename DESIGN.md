@@ -9,8 +9,12 @@
 - **Who it's for:** A serious lifter tracking progressive overload. Solo use, no social feed.
 - **Space/industry:** Strength-training / gym logging (peers: Hevy, Strong, Fitbod).
 - **Project type:** Mobile-first PWA (installable). Used one-handed, in the gym, between sets.
-- **Design thesis:** An instrument, not a lifestyle brand. Numbers are the product. The
-  emotional payload is the PR — you beat your previous mark.
+- **Design thesis:** An instrument, not a lifestyle brand. Numbers are the product, and the
+  product is measured in **taps to a logged set**. Design for the hand that is holding a
+  phone one-handed, mid-set, between two working sets — not for the moment of triumph.
+  Records, streaks and history are real features and stay; they just don't get to set the
+  layout. When a rare action and a per-set action compete for the same space, the per-set
+  action wins, every time.
 
 ## Aesthetic Direction
 - **Direction:** Industrial / utilitarian with editorial numeric hierarchy.
@@ -137,6 +141,21 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
 - **One number per idea.** The 1RM readout is a single `76 → 81.7` line: the mark you
   walked in with, muted and small, then today's, large and amber once it passes. Two
   separate 1RM figures on one card is how you end up reading neither.
+- **The primary action is pinned to the bottom, never the top.** One-handed, the top
+  corners are the hardest reach on the screen and the bottom edge is where the thumb
+  already rests. Días pins its start/continue CTA directly above the tab bar; the list
+  scrolls under it.
+- **Rare actions do not take content-weight controls.** Export, logout, delete and rename
+  are weekly-or-rarer, and delete is irreversible and sits next to rows a thumb aims at.
+  They go behind the `⋯` overflow (delete armed by a second tap), or onto Progreso, which
+  is the screen you visit deliberately. Días carries only what you touch mid-session.
+- **A day is a ruled logbook entry, not a card.** A card spends ~100px of border, padding
+  and shadow to carry one row: three days filled a phone. Ruled — mono date, hairline to
+  the overflow, sessions hanging under it — seven do. Cards are for things you *work
+  inside* (an exercise), not things you *scan past* (a past day).
+- **Dates are data**, so the day list stamps them in Geist Mono, uppercase, no comma
+  (`JUE 16 JUL`), and drops the year when it's the current one. Prose dates
+  (`jue, 16 jul 2026`) stay inside a workout, where there's one of them.
 - **Border radius:** controls 6px · cards 8px · banners 8px · pill 9999px. (Sharper than
   the old 12–16px — instrument, not toy.)
 
@@ -171,4 +190,6 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-21 | One 1RM readout (`76 → 81.7`) replaces two | The card printed "A batir · 1RM est. 76" and "Mejor 1RM 88" twelve lines apart, both about 1RM. Merging them keeps the PR as the emotional payload (today's number is the large one, amber when it passes) while removing a competing figure. |
 | 2026-07-20 | Consistency heatmap uses the amber ramp, not green | Every contribution grid ships green; a heat map of effort should literally be heat. Intensity = sets logged that day (works for cardio too, where volume doesn't), built with `color-mix(in srgb, var(--accent) N%, transparent)` so it tracks light/dark for free. Level 0 stays neutral, never a faint amber. |
 | 2026-07-23 | White CTA text → dark ink on amber; new `--accent-ink` for amber-as-text; light `--muted` `#6B7280`→`#616875` | /design-review. White-on-amber failed AA in both themes (3.70 light, **2.86** dark) on the primary button — the same class already fixed for `--pr`, never applied to `--accent`. Amber used as text sat at 3.2–3.7 on paper; `--muted` was 4.32 on the paper bg. Hues unchanged: buttons take near-black `--on-accent` ink (5.8/6.23), amber text takes deeper `--accent-ink` `#C2440F` on light, muted deepened to `#616875` (5.01 on paper). |
+| 2026-07-24 | Thesis moves from "the payload is the PR" to **taps to a logged set** | User: *"no me interesa batir marcas sino registrarlas de manera ágil"*. The old thesis was steering every layout call toward the moment of triumph, and Días showed the bill: five chrome buttons (Salir, Exportar, Borrar día ×3) against three rows of content, the primary CTA in the least reachable corner, and no persistence — reopening the PWA mid-workout landed on the day list, one tap and one fetch from the set you were mid-way through. Records/streaks/heatmap all stay as features; they stop setting the layout. |
+| 2026-07-24 | Días redesigned around resume, reach and rules | Concretely: the open workout survives a relaunch for 4h (`fitit_open_workout`, restamped each launch); the CTA is pinned above the tab bar and reads `Continuar entreno · Push` once today exists, so a session can't get split in two; racha and Exportar CSV move to Progreso, which already fetches days and already renders the streak hero; Borrar día moves behind a per-day `⋯` with a two-tap arm; Repetir creates today's workout with the same name and hands Entreno the exercise list so the cards are standing with their previous marks loaded; day cards become ruled logbook entries with mono dates. |
 | 2026-07-22 | Folded digest names one real working set (`N series · [tope] W × R`), not ranges | First attempt made reps/weight independent ranges (`4 × 8–12 · 50–60 kg`), but decoupling them loses the pairing — you can't tell which weight went with which reps. Instead name a single real set: when all sets match, that pair speaks for all (`4 series · 25 kg × 15`); when they vary, show the hardest (top set by est. 1RM, the PR set) labelled `tope` so it isn't mistaken for the whole exercise (`4 series · tope 60 kg × 8`). Every token is real and paired; the full per-set breakdown lives in the open card. Same commit fixed the folded header so the digest always sits on its own right-aligned line under the name, instead of inline for short names and wrapped for long ones. |

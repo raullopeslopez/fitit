@@ -5,10 +5,12 @@ import Login from './Login.jsx'
 import Progress from './Progress.jsx'
 import Workout from './Workout.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
+import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 
 export default function App() {
   const [token, setTokenState] = useState(getToken())
-  const [openWorkoutId, setOpenWorkoutId] = useState(null)
+  // Resume where you were: mid-workout, the app reopens inside the workout.
+  const [openWorkoutId, setOpenWorkoutId] = useState(getOpenWorkout)
   const [view, setView] = useState('days')
 
   useEffect(() => {
@@ -16,6 +18,12 @@ export default function App() {
     setUnauthorizedHandler(() => setTokenState(null))
     return () => setUnauthorizedHandler(null)
   }, [])
+
+  // Runs on mount too, which is the point: every relaunch restamps the open
+  // workout, so a long session doesn't age out from under you.
+  useEffect(() => {
+    setOpenWorkout(openWorkoutId)
+  }, [openWorkoutId])
 
   function handleAuthenticated(newToken) {
     setToken(newToken)
@@ -47,7 +55,8 @@ export default function App() {
     <div className="container">
       <header className="app-header">
         <h1>Fitit</h1>
-        {/* Salir is a rare action — a quiet text link, not a nav-weight button. */}
+        {/* Salir is a rare action. Framed, it was the second-loudest thing on
+            the screen you open mid-set; it reads as a quiet text link now. */}
         <button type="button" className="link-btn" onClick={handleLogout}>
           Salir
         </button>

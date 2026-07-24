@@ -8,6 +8,7 @@ import {
   renameExercise,
   setExerciseMuscle,
 } from './api.js'
+import { downloadCsv } from './csv.js'
 import { formatDate } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
@@ -219,6 +220,16 @@ export default function Progress() {
   return (
     <section>
       {days.length > 0 && <Heatmap days={days} />}
+
+      {/* Exporting belongs with the numbers it exports. On Días it was renting
+          space on the screen you touch forty times a session. */}
+      {days.length > 0 && (
+        <div className="export-row">
+          <button type="button" className="secondary" onClick={() => downloadCsv(days)}>
+            Exportar CSV
+          </button>
+        </div>
+      )}
 
       {bests.length > 0 && (
         <div className="card">

@@ -27,6 +27,7 @@ import { prSetIds } from './stats.js'
 import {
   REST_OPTIONS,
   getDistanceUnit,
+  getRepeatTemplate,
   getRestSeconds,
   getRestUntil,
   getWeightUnit,
@@ -881,7 +882,7 @@ export default function Workout({ workoutId, onExit }) {
 
   useEffect(() => {
     getWorkout(workoutId)
-      .then((w) => {
+      .then(async (w) => {
         setWorkout(w)
         // A card per exercise already logged here, most recently worked first:
         // the exercise you last put a set into is the one you're still on.
@@ -892,13 +893,35 @@ export default function Workout({ workoutId, onExit }) {
         // Spec: tests/features/newest_first.feature
         const lastSeen = new Map()
         w.sets.forEach((s, index) => lastSeen.set(s.exercise_name, index))
-        setExercises(
-          [...lastSeen.keys()]
-            .sort((a, b) => lastSeen.get(b) - lastSeen.get(a))
-            .map((name) => {
-              const first = w.sets.find((s) => s.exercise_name === name)
-              return { name, previous: null, kind: first?.kind ?? 'strength' }
-            }),
+        const logged = [...lastSeen.keys()]
+          .sort((a, b) => lastSeen.get(b) - lastSeen.get(a))
+          .map((name) => {
+            const first = w.sets.find((s) => s.exercise_name === name)
+            return { name, previous: null, kind: first?.kind ?? 'strength' }
+          })
+
+        // A repeated session arrives as a list of names. The ones you haven't
+        // touched queue up *under* what you've logged: worked lifts still rise
+        // to the top, and the rest read as what's left to do — in the order the
+        // original session did them, so a fresh repeat opens on its first lift.
+        const queued = (getRepeatTemplate(workoutId) ?? []).filter((n) => !lastSeen.has(n))
+        setExercises([
+          ...logged,
+          ...queued.map((name) => ({ name, previous: null, kind: 'strength' })),
+        ])
+        if (queued.length === 0) return
+
+        // Previous marks are what make a queued card useful: the steppers open
+        // on last session's numbers instead of zero.
+        const marks = await Promise.all(
+          queued.map((n) => getPreviousMarks(n).catch(() => null)),
+        )
+        setExercises((list) =>
+          list.map((ex) => {
+            const i = queued.indexOf(ex.name)
+            if (i === -1 || marks[i] == null) return ex
+            return { ...ex, previous: marks[i], kind: marks[i].kind ?? ex.kind }
+          }),
         )
       })
       .catch(() => setError('No se pudo cargar el entreno.'))
@@ -1029,10 +1052,17 @@ export default function Workout({ workoutId, onExit }) {
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
   if (!workout) {
+    // The way out matters more now that the app can reopen straight into a
+    // workout: if that one is gone, an alert with no button is a dead end.
     return error ? (
-      <p role="alert" className="alert">
-        {error}
-      </p>
+      <>
+        <p role="alert" className="alert">
+          {error}
+        </p>
+        <button type="button" className="secondary head-back" onClick={onExit}>
+          ← Días
+        </button>
+      </>
     ) : (
       <p className="hint">Cargando…</p>
     )

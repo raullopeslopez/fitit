@@ -23,6 +23,17 @@ export function formatDate(iso) {
   return `${weekday}, ${d} ${MESES[m - 1]} ${y}`
 }
 
+// "2026-07-16" -> "JUE 16 JUL". The day list is a logbook rule, not prose, so
+// the stamp is mono and uppercase (DESIGN.md: dates are data) and loses the
+// comma. The year is the one token the row can't spare, so it's printed only
+// when it isn't the year you're in.
+export function formatDayShort(iso, today = new Date()) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const weekday = DIAS[new Date(y, m - 1, d).getDay()]
+  const stamp = `${weekday} ${d} ${MESES[m - 1]}`
+  return (y === today.getFullYear() ? stamp : `${stamp} ${y}`).toUpperCase()
+}
+
 // Cardio metrics. Duration is entered as "mm:ss" (or "h:mm:ss"), or a plain
 // number read as minutes; parseDuration returns whole seconds, or null if invalid.
 export function parseDuration(input) {
