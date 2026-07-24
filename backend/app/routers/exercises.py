@@ -183,10 +183,20 @@ async def best_marks(
 
 
 @router.get("/exercises/previous", response_model=PreviousMarks)
-async def previous_marks(name: str, session: AsyncSession = Depends(get_session)) -> PreviousMarks:
+async def previous_marks(
+    name: str,
+    exclude_workout_id: int | None = None,
+    session: AsyncSession = Depends(get_session),
+) -> PreviousMarks:
     """The sets from the most recent workout that includes this exercise.
 
     `found` is false (and `sets` empty) when the exercise has never been logged.
+
+    `exclude_workout_id` drops one workout from both the search and the best
+    1RM. The client passes the session it is standing in: reopening the app
+    mid-workout rebuilds its cards from the log and each one asks again what
+    the mark to beat is, and without this it is answered with its own sets from
+    ten minutes ago — a target nothing today can beat, and a PR that never fires.
     Spec: tests/features/previous_marks.feature
     """
     exercise = await find_exercise(session, name)
@@ -195,11 +205,13 @@ async def previous_marks(name: str, session: AsyncSession = Depends(get_session)
             exercise_name=normalize_exercise_name(name), found=False, sets=[], kind=None
         )
 
+    scope = [SetEntry.exercise_id == exercise.id]
+    if exclude_workout_id is not None:
+        scope.append(SetEntry.workout_id != exclude_workout_id)
+
     # Best estimated 1RM (Epley: weight * (1 + reps/30)) across every strength
     # set, in kilos. Cardio sets have no weight/reps, so they're skipped.
-    all_sets = (
-        await session.scalars(select(SetEntry).where(SetEntry.exercise_id == exercise.id))
-    ).all()
+    all_sets = (await session.scalars(select(SetEntry).where(*scope))).all()
     strength_sets = [s for s in all_sets if s.weight_kg is not None and s.reps is not None]
     best_one_rm = (
         round(max(s.weight_kg * (1 + s.reps / 30) for s in strength_sets), 1)
@@ -211,7 +223,7 @@ async def previous_marks(name: str, session: AsyncSession = Depends(get_session)
         select(SetEntry.workout_id)
         .join(Workout, Workout.id == SetEntry.workout_id)
         .join(Day, Day.id == Workout.day_id)
-        .where(SetEntry.exercise_id == exercise.id)
+        .where(*scope)
         .order_by(Day.date.desc(), Workout.id.desc())
         .limit(1)
     )

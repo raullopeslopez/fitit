@@ -64,8 +64,13 @@ export function deleteDay(id) {
   return apiFetch(`/days/${id}`, { method: 'DELETE' })
 }
 
-export function getPreviousMarks(name) {
-  return apiFetch(`/exercises/previous?name=${encodeURIComponent(name)}`)
+// The marks to beat for one exercise. `excludeWorkoutId` is the session you're
+// standing in: without it, a card rebuilt from an open workout is handed its
+// own sets as the thing to beat.
+export function getPreviousMarks(name, excludeWorkoutId = null) {
+  const params = new URLSearchParams({ name })
+  if (excludeWorkoutId != null) params.set('exclude_workout_id', String(excludeWorkoutId))
+  return apiFetch(`/exercises/previous?${params}`)
 }
 
 export function listExercises() {

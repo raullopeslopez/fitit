@@ -253,7 +253,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     expect(await screen.findByText(/60 kg x 8/i)).toBeInTheDocument()
-    expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press')
+    expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press', 1)
   })
 
   it('seeds the steppers from the previous set so a repeat is one tap', async () => {
@@ -310,13 +310,17 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '15')
     await userEvent.type(screen.getByLabelText(/peso/i), '25')
-    await userEvent.type(screen.getByLabelText(/rpe/i), '8')
-    await userEvent.type(screen.getByLabelText(/nota/i), 'felt strong')
+    await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
+    await userEvent.type(screen.getByLabelText(/^rpe$/i), '8')
+    await userEvent.type(screen.getByLabelText(/^nota$/i), 'felt strong')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     await screen.findByText(/25 kg x 15/i)
-    expect(screen.getByLabelText(/rpe/i)).toHaveValue('')
-    expect(screen.getByLabelText(/nota/i)).toHaveValue('')
+    // Logging folds the extras back up, and folded means empty — reopening
+    // must not hand you the last set's qualia.
+    await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
+    expect(screen.getByLabelText(/^rpe$/i)).toHaveValue('')
+    expect(screen.getByLabelText(/^nota$/i)).toHaveValue('')
   })
 
   it('reads a set logged in lb back in the unit I prefer', async () => {
@@ -446,7 +450,9 @@ describe('Workout', () => {
     renderWorkout()
     await screen.findByLabelText(/ejercicio/i)
 
-    // The unit is a workout-wide preference, not a per-set field.
+    // The unit is a workout-wide preference, not a per-set field — it lives in
+    // the header overflow, off the logging path.
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
     await userEvent.click(screen.getByRole('button', { name: 'lb' }))
     await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
@@ -471,11 +477,9 @@ describe('Workout', () => {
     localStorage.setItem('fitit_weight_unit', 'lb')
     renderWorkout()
 
+    await userEvent.click(await screen.findByRole('button', { name: /acciones del entreno/i }))
     // The lb toggle reflects the stored preference on load.
-    expect(await screen.findByRole('button', { name: 'lb' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(screen.getByRole('button', { name: 'lb' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   function cardioSet(overrides = {}) {
@@ -513,9 +517,10 @@ describe('Workout', () => {
     renderWorkout()
     await screen.findByLabelText(/ejercicio/i)
 
-    // Pick Cardio before adding the exercise.
-    await userEvent.click(screen.getByRole('button', { name: /cardio/i }))
+    // Name it first: the kind toggle only appears once what you've typed is a
+    // name nothing knows yet, which is the only time the choice matters.
     await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Correr')
+    await userEvent.click(screen.getByRole('button', { name: /cardio/i }))
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     await userEvent.type(await screen.findByLabelText(/duración/i), '24:30')
@@ -571,8 +576,9 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.type(screen.getByLabelText(/rpe/i), '8')
-    await userEvent.type(screen.getByLabelText(/nota/i), 'felt strong')
+    await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
+    await userEvent.type(screen.getByLabelText(/^rpe$/i), '8')
+    await userEvent.type(screen.getByLabelText(/^nota$/i), 'felt strong')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     await waitFor(() =>
@@ -657,7 +663,10 @@ describe('Workout', () => {
   it('does not start a countdown when rest is switched off', async () => {
     renderWorkout()
     await screen.findByLabelText(/ejercicio/i)
-    await userEvent.click(screen.getByRole('button', { name: /^sin descanso$/i }))
+    // Rest lives in the header overflow now, under its "Descanso" label.
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^sin$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
 
     await logOneSet()
 
@@ -1157,6 +1166,129 @@ describe('Workout', () => {
     expect(await screen.findByText('Leg Day')).toBeInTheDocument()
   })
 
+  // Cards rebuilt from a workout that already has sets used to carry no
+  // previous marks at all — only the add-exercise path fetched them. Reopening
+  // the app mid-session is the normal path now, so that gap is permanent.
+  describe('a workout reopened mid-session', () => {
+    it('reads the mark to beat for exercises it rebuilt from the log', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ weight: 50 })))
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: true,
+        best_one_rm: 100,
+        sets: [benchSet({ id: 5 })],
+      })
+      renderWorkout()
+
+      expect(await screen.findByText(/a batir/i)).toBeInTheDocument()
+      expect(screen.getByText(/última vez/i)).toBeInTheDocument()
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press', 1)
+    })
+
+    // Without a prior best, prSetIds compares each set against the session's
+    // own running peak — so set 2 beating set 1 wore a PR badge while sitting
+    // far under the actual record. A wrong record is worse than no record.
+    it('does not award a PR to a set that only beats today’s earlier one', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, weight: 50 }), benchSet({ id: 2, weight: 60 })),
+      )
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: true,
+        best_one_rm: 200,
+        sets: [benchSet({ id: 5 })],
+      })
+      renderWorkout()
+
+      await screen.findByText(/a batir/i)
+      expect(screen.queryByTitle(/récord al registrarla/i)).not.toBeInTheDocument()
+    })
+  })
+
+  // Settings outranked logging: kg/lb is a once-ever choice and rest is once a
+  // session, and both sat pinned above every exercise card.
+  describe('settings', () => {
+    const openSettings = () =>
+      userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+
+    it('keeps the weight unit and rest out of the logging path', async () => {
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      expect(screen.queryByRole('group', { name: /^unidad$/i })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('group', { name: /descanso entre series/i }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('still reaches them from the header overflow', async () => {
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      await openSettings()
+      expect(screen.getByRole('group', { name: /^unidad$/i })).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: /descanso entre series/i })).toBeInTheDocument()
+    })
+  })
+
+  // Kind only applies to a name the backend has never seen: an autocompleted
+  // exercise keeps its stored kind and the toggle decides nothing.
+  describe('the Fuerza/Cardio toggle', () => {
+    it('stays hidden for an exercise that already exists', async () => {
+      api.listExercises.mockResolvedValue([
+        { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
+      ])
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
+      expect(screen.queryByRole('group', { name: /fuerza o cardio/i })).not.toBeInTheDocument()
+    })
+
+    it('appears for a name nothing knows yet', async () => {
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Face Pull')
+      expect(screen.getByRole('group', { name: /fuerza o cardio/i })).toBeInTheDocument()
+    })
+  })
+
+  // +1 serie is the quickest control on the screen and it used to sink one row
+  // per set logged, so by the fifth it was off the bottom of the phone.
+  it('keeps +1 serie above the log, where it does not move', async () => {
+    api.getWorkout.mockResolvedValue(
+      workoutWith(benchSet({ id: 1 }), benchSet({ id: 2 }), benchSet({ id: 3 })),
+    )
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    const { container } = renderWorkout()
+
+    const repeat = await screen.findByRole('button', { name: /\+1 serie/i })
+    const log = container.querySelector('ol.sets')
+    // Node.compareDocumentPosition: FOLLOWING means the log comes after it.
+    expect(repeat.compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  // RPE and nota are optional, cleared after every log, and untouched in a
+  // straight-sets session — but they pushed Registrar two rows down the card.
+  describe('RPE and nota', () => {
+    it('stay folded until asked for', async () => {
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: false,
+        sets: [],
+      })
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+      await screen.findByRole('button', { name: /registrar/i })
+      expect(screen.queryByLabelText(/^RPE$/i)).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
+      expect(screen.getByLabelText(/^RPE$/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/^Nota$/i)).toBeInTheDocument()
+    })
+  })
+
   // Repetir (from Días) hands the session over as a list of names. The cards
   // are already standing when you arrive, each with its previous marks loaded,
   // so a repeat session is taps on steppers rather than five lookups.
@@ -1173,8 +1305,8 @@ describe('Workout', () => {
 
       expect(await screen.findByRole('button', { name: /Dominadas/i })).toBeInTheDocument()
       expect(cardToggle('Remo')).toBeInTheDocument()
-      expect(api.getPreviousMarks).toHaveBeenCalledWith('Dominadas')
-      expect(api.getPreviousMarks).toHaveBeenCalledWith('Remo')
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Dominadas', 1)
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Remo', 1)
     })
 
     it('ignores a template left over from another workout', async () => {
