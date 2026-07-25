@@ -21,6 +21,17 @@ import {
   parseDuration,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
+import {
+  cacheMarks,
+  cacheWorkout,
+  cachedMarks,
+  cachedWorkout,
+  dropQueued,
+  enqueueSet,
+  queuedFor,
+  readQueue,
+  retryable,
+} from './offline.js'
 import { prSetIds } from './stats.js'
 import {
   REST_OPTIONS,
@@ -80,6 +91,33 @@ function exercisesFromWorkout(workout) {
     })
 }
 
+// The server's sets plus whatever is still sitting in the outbox for this
+// workout. The queue is the single source of "pending", which is what makes a
+// reload rebuild the unsent rows for free — and why this strips pending sets
+// before re-adding them, so calling it twice can't duplicate anything.
+function withQueued(workout) {
+  if (!workout) return workout
+  return {
+    ...workout,
+    sets: [
+      ...workout.sets.filter((s) => !s.pending),
+      ...queuedFor(workout.id).map((e) => ({ id: e.tmpId, pending: true, ...e.payload })),
+    ],
+  }
+}
+
+// Previous marks, with the cache behind them: a card opened with no signal still
+// says what you did last time. Every fresh answer refreshes the cache.
+async function marksFor(name, workoutId) {
+  try {
+    const marks = await getPreviousMarks(name, workoutId)
+    cacheMarks(name, marks)
+    return marks
+  } catch {
+    return cachedMarks(name)
+  }
+}
+
 function bump(current, delta, min) {
   const base = Number(current)
   const next = Number.isFinite(base) ? base : 0
@@ -128,6 +166,13 @@ function ExerciseCard({
   // comparison silently falls back to the session's own peak and awards set 2 a
   // PR for beating set 1.
   const marksKnown = previous !== undefined
+  // Cached marks are good enough to train against and not good enough to
+  // celebrate against. They were fetched excluding some *other* session, so
+  // they can understate the real history — and a mark to beat that is lower
+  // than the truth manufactures records that never happened. A wrong record is
+  // worse than no record, so offline the card shows the numbers and withholds
+  // the badge until it has heard from the server.
+  const marksTrusted = marksKnown && !previous?.stale
   // The 1RM that broke the record, for the banner — null when nothing did. This
   // used to be a `best` state seeded once at mount, which meant a card built
   // from the log (a reload, or a handover from Días) seeded it as null and never
@@ -153,7 +198,7 @@ function ExerciseCard({
     // The mark to beat, right now: what you walked in with, or the best you
     // have already hit today, whichever is higher. Both are derived from this
     // render, so nothing can go stale between opening the card and logging.
-    const toBeat = marksKnown ? Math.max(seededBest ?? 0, bestOneRm) : null
+    const toBeat = marksTrusted ? Math.max(seededBest ?? 0, bestOneRm) : null
     const oneRm = estimatedOneRm(valid.weight, valid.reps)
     setPrAt(toBeat != null && oneRm > toBeat ? oneRm : null)
     // Keep the weight and reps you just logged: straight sets are the common
@@ -265,10 +310,11 @@ function ExerciseCard({
   )
   // The single 1RM readout: the mark you walked in with, and where you are now.
   const todayBest = sets.length ? bestOneRm : null
-  const beatIt = seededBest != null && todayBest != null && todayBest > seededBest
+  const beatIt =
+    marksTrusted && seededBest != null && todayBest != null && todayBest > seededBest
   // Which rows earn the PR badge. Derived from the log against the mark you
   // walked in with, so unlike the transient banner it survives a reload.
-  const prIds = marksKnown ? prSetIds(sets, seededBest) : new Set()
+  const prIds = marksTrusted ? prSetIds(sets, seededBest) : new Set()
 
   const ready = reps !== '' && weight !== ''
 
@@ -337,6 +383,11 @@ function ExerciseCard({
                 {previous.sets.map((s) => formatSet(s)).join(', ')}
               </div>
             </div>
+          )}
+          {/* Says why no record can fire, once, quietly. Without it a set that
+              plainly beat the number on the left looks like a bug. */}
+          {previous?.stale && (
+            <div className="target-stale">Marcas guardadas · sin conexión</div>
           )}
         </div>
       ) : (
@@ -847,7 +898,7 @@ function RestBar({ endsAt, total, onSkip }) {
 // reload) the fetch below is the only source, exactly as before.
 export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   const seed = initialWorkout?.id === workoutId ? initialWorkout : null
-  const [workout, setWorkout] = useState(seed)
+  const [workout, setWorkout] = useState(() => withQueued(seed))
   const [exerciseInput, setExerciseInput] = useState('')
   // [{ name, kind, previous? }], newest worked first. `previous` absent means
   // its marks are still in flight.
@@ -875,6 +926,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
   const nextTmpId = useRef(0)
+  // One drain at a time, or two triggers firing together send the same set twice.
+  const flushing = useRef(false)
 
   function endRest() {
     setRestUntil(null)
@@ -909,10 +962,24 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   }, [restEndsAt])
 
   useEffect(() => {
+    // No signal: the last copy of this workout we saw is a session you can keep
+    // logging into. Only a cold cache is a real dead end.
     getWorkout(workoutId)
+      .then((w) => {
+        cacheWorkout(w)
+        return w
+      })
+      .catch((err) => {
+        const cached = cachedWorkout(workoutId)
+        if (cached) return cached
+        throw err
+      })
       .then(async (w) => {
-        setWorkout(w)
-        const logged = exercisesFromWorkout(w)
+        // The queued sets are folded back in before anything reads the workout,
+        // so a card whose only sets are still unsent doesn't vanish on reload.
+        const full = withQueued(w)
+        setWorkout(full)
+        const logged = exercisesFromWorkout(full)
         const loggedNames = new Set(logged.map((e) => e.name))
 
         // A repeated session arrives as a list of names. The ones you haven't
@@ -930,9 +997,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
         // sets from ten minutes ago.
         const names = [...logged.map((e) => e.name), ...queued]
         if (names.length === 0) return
-        const marks = await Promise.all(
-          names.map((n) => getPreviousMarks(n, workoutId).catch(() => null)),
-        )
+        const marks = await Promise.all(names.map((n) => marksFor(n, workoutId)))
         const byName = new Map(names.map((n, i) => [n, marks[i]]))
         setExercises((list) =>
           list.map((ex) => {
@@ -945,6 +1010,25 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
         )
       })
       .catch(() => setError('No se pudo cargar el entreno.'))
+  }, [workoutId])
+
+  // The three moments a phone in a basement gets its signal back: the app
+  // starting, the browser noticing the network, and you bringing the app
+  // forward. No polling timer — a countdown that wakes the radio every few
+  // seconds is a battery cost paid by every session to help the rare one.
+  useEffect(() => {
+    flushQueue()
+    const drain = () => flushQueue()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') drain()
+    }
+    window.addEventListener('online', drain)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', drain)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutId])
 
   useEffect(() => {
@@ -964,52 +1048,73 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     if (!name) return
     setError('')
     setAdding(true)
-    try {
-      const previous = await getPreviousMarks(name, workoutId)
-      // A known exercise keeps its stored kind; a new one takes the toggle's choice.
-      const kind = previous.kind ?? newKind
-      // To the top: you just added it, so it's what you're about to do.
-      setExercises((list) =>
-        list.some((e) => e.name === name) ? list : [{ name, previous, kind }, ...list],
-      )
-      setExerciseInput('')
-    } catch {
-      setError('No se pudieron cargar las marcas anteriores.')
-    } finally {
-      setAdding(false)
-    }
+    // No longer able to fail: with no signal the marks come from the cache, and
+    // failing that the card stands up with no history. Refusing to add the
+    // exercise at all would have made a dead network stop the session.
+    const previous = (await marksFor(name, workoutId)) ?? { found: false, sets: [] }
+    // A known exercise keeps its stored kind; a new one takes the toggle's choice.
+    const kind = previous.kind ?? newKind
+    // To the top: you just added it, so it's what you're about to do.
+    setExercises((list) =>
+      list.some((e) => e.name === name) ? list : [{ name, previous, kind }, ...list],
+    )
+    setExerciseInput('')
+    setAdding(false)
   }
 
   async function logSetFor(name, fields) {
     // fields carry either strength (reps/weight/…) or cardio (duration/…) metrics.
     //
-    // On screen first, request second. The gym is a basement and the free tier
-    // sleeps, so putting a fetch between finishing a set and seeing it logged
-    // makes the app slowest exactly when it's being used. The set gets a string
-    // id — nothing can mistake `tmp-3` for a server id and PATCH against it.
-    // Spec: Workout.test.jsx, "optimistic logging".
+    // On disk, then on screen, then — whenever it can — on the server. The gym
+    // is a basement and the free tier sleeps, so a set you have already done
+    // must not depend on a request succeeding right now. The set gets a string
+    // id: nothing can mistake `tmp-3` for a server id and PATCH against it.
+    // Spec: Workout.test.jsx "optimistic logging" / "logging with no signal".
     const tmpId = `tmp-${(nextTmpId.current += 1)}`
-    setWorkout((w) => ({
-      ...w,
-      sets: [...w.sets, { id: tmpId, pending: true, exercise_name: name, ...fields }],
-    }))
-    // Started on the tap now, not on the round trip: resting is what you do
-    // *while* the request is open. If the log then fails the set is rolled back
-    // but the clock stays — you did rest, and the bar already has a Saltar;
-    // yanking a live countdown out from under you is the worse of the two.
+    enqueueSet({ tmpId, workoutId: workout.id, payload: { exercise_name: name, ...fields } })
+    setWorkout(withQueued)
+    // Started on the tap, not on the round trip: resting is what you do *while*
+    // the request is open, and offline there may not be a round trip for hours.
     startRest()
+    await flushQueue()
+  }
+
+  // Drain the outbox oldest-first. Nothing here throws at the card: a set that
+  // couldn't be sent is not an error the lifter can act on, it is a set waiting
+  // for signal, and the row already says so.
+  async function flushQueue() {
+    if (flushing.current) return
+    flushing.current = true
     try {
-      const updated = await logSet(workout.id, { exercise_name: name, ...fields })
-      // The response is the whole workout, and a set still in flight isn't in
-      // it. Carry the other pending ones over or logging two sets quickly has
-      // the first response wipe the second off the screen.
-      setWorkout((w) => ({
-        ...updated,
-        sets: [...updated.sets, ...w.sets.filter((s) => s.pending && s.id !== tmpId)],
-      }))
-    } catch (err) {
-      setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== tmpId) }))
-      throw err
+      // Re-read the head every pass rather than iterating a snapshot: sets
+      // logged *while* this drain is awaiting the network get picked up by it,
+      // instead of sitting in the queue until the next trigger fires. Every
+      // branch below either drops an entry or breaks, so this terminates.
+      for (;;) {
+        const [entry] = readQueue()
+        if (!entry) break
+        try {
+          const updated = await logSet(entry.workoutId, entry.payload)
+          dropQueued(entry.tmpId)
+          cacheWorkout(updated)
+          // Only this screen's workout gets redrawn; the queue can hold sets
+          // from a session you have already walked out of.
+          if (entry.workoutId === workoutId) setWorkout(withQueued(updated))
+        } catch (err) {
+          // Stop at the first thing worth retrying — set_index is assigned
+          // server-side on arrival, so everything behind it keeps its place in
+          // the queue or the session comes back reordered.
+          if (retryable(err)) break
+          // Judged and refused. Retrying a 422 forever would block every set
+          // behind it, so it comes off the queue and off the screen, out loud:
+          // this is the one case where a set really is gone.
+          dropQueued(entry.tmpId)
+          setWorkout(withQueued)
+          setError('El servidor rechazó una serie. Vuelve a registrarla.')
+        }
+      }
+    } finally {
+      flushing.current = false
     }
   }
 
