@@ -39,17 +39,26 @@ export function setScreenAwake(on) {
   localStorage.setItem(SCREEN_AWAKE_KEY, on ? 'on' : 'off')
 }
 
-// The rest countdown as a lock-screen notification with a `+1 serie` button.
+// Logging from the lock screen: a notification carrying `+1 serie` and a field
+// for a different set. Independent of the rest above, because they are two
+// different wants — the rest only decides whether that notification *also*
+// carries a countdown and a buzz. Tying them meant "Sin descanso" silently
+// took the lock screen away too.
+//
 // Off by default, and it cannot be otherwise: it needs a notification
 // permission, and a permission is only ever asked for from a tap.
-const REST_NOTICE_KEY = 'fitit_rest_notice'
+const LOCK_LOGGING_KEY = 'fitit_lock_logging'
+// What it was called while it was still the rest's own setting. Read once so
+// nobody who already switched this on has to switch it on again.
+const LEGACY_KEY = 'fitit_rest_notice'
 
-export function getRestNotice() {
-  return localStorage.getItem(REST_NOTICE_KEY) === 'on'
+export function getLockLogging() {
+  const stored = localStorage.getItem(LOCK_LOGGING_KEY) ?? localStorage.getItem(LEGACY_KEY)
+  return stored === 'on'
 }
 
-export function setRestNotice(on) {
-  localStorage.setItem(REST_NOTICE_KEY, on ? 'on' : 'off')
+export function setLockLogging(on) {
+  localStorage.setItem(LOCK_LOGGING_KEY, on ? 'on' : 'off')
 }
 
 // The running timer is stored as an absolute deadline, not a remaining count:
