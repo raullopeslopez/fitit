@@ -75,6 +75,11 @@ describe('Progress', () => {
   })
 
   it('opens with the most-trained lift already charted', async () => {
+    // A lift with sets is a lift the exercises endpoint knows about.
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Bench Press', muscle_group: 'Pecho' },
+      { id: 2, name: 'Squat', muscle_group: 'Pierna' },
+    ])
     api.listDays.mockResolvedValue([
       {
         id: 1,
@@ -97,7 +102,8 @@ describe('Progress', () => {
 
     // Bench Press is logged more often, so it charts without any typing.
     await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Bench Press'))
-    expect(await screen.findByRole('button', { name: 'Bench Press' })).toBeInTheDocument()
+    // The charted lift is named once, by the card it titles.
+    expect(await screen.findByRole('button', { name: /renombrar Bench Press/i })).toBeInTheDocument()
   })
 
   it('groups lifts by muscle and charts one on selecting a muscle', async () => {
@@ -158,6 +164,27 @@ describe('Progress', () => {
     })
     const picker = screen.getByLabelText(/ejercicio/i)
     expect(chart.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  // Muscle chips filter a closed set of seven you already know by heart, so a
+  // swipeable line costs nothing. A row of exercise names is the opposite: it is
+  // what you are hunting for, and a scroll that hides it is the one thing it
+  // must not do. With a search box that reaches everything, the row goes.
+  it('picks an exercise from the muscle chips and the search box, with no lift row', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
+      { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 120 }])
+    const { container } = render(<Progress />)
+
+    await screen.findByRole('button', { name: /pecho/i })
+    expect(container.querySelector('.lift-chips')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Sentadilla$/ })).not.toBeInTheDocument()
+
+    // Everything is still one tap or one search away.
+    await userEvent.click(screen.getByRole('button', { name: /pierna/i }))
+    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Sentadilla'))
   })
 
   // The field used to hold the charted lift as well as what you were typing, so

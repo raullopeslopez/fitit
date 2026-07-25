@@ -228,11 +228,6 @@ export default function Progress() {
   const musclesPresent = MUSCLE_GROUPS.filter((m) =>
     exercises.some((e) => e.muscle_group === m),
   )
-  const topLifts = Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([n]) => n)
-  const shownLifts = muscle ? liftsForMuscle(muscle) : topLifts
   const chartColor = muscleColor(muscleOf(name))
   const current = exercises.find((e) => e.name === name)
 
@@ -330,6 +325,11 @@ export default function Progress() {
         e.preventDefault()
         loadHistory(query)
       }}>
+        {/* Muscles filter; the box finds. A row of exercise-name chips used to
+            sit under this one, doing the third version of the same job: seven
+            memorised groups can hide behind a swipe, but the names you are
+            hunting for cannot, and wrapped they stood taller than the chart.
+            Tapping a muscle charts its top lift, so nothing got slower. */}
         {musclesPresent.length > 0 && (
           <div className="muscle-chips">
             {musclesPresent.map((m) => (
@@ -362,22 +362,6 @@ export default function Progress() {
             ))}
           </datalist>
         </div>
-        {shownLifts.length > 0 && (
-          <div className="lift-chips">
-            {shownLifts.map((lift) => (
-              <button
-                key={lift}
-                type="button"
-                className={`chip${name === lift ? ' is-active' : ''}`}
-                style={{ '--chip': muscleColor(muscleOf(lift)) }}
-                onClick={() => loadHistory(lift)}
-              >
-                <span className="dot" aria-hidden="true" />
-                {lift}
-              </button>
-            ))}
-          </div>
-        )}
         {loading && <p className="hint">Cargando…</p>}
       </form>
 
