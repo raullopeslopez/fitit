@@ -11,7 +11,16 @@ export default function App() {
   const [token, setTokenState] = useState(getToken())
   // Resume where you were: mid-workout, the app reopens inside the workout.
   const [openWorkoutId, setOpenWorkoutId] = useState(getOpenWorkout)
+  // The workout Días already had, handed over so Entreno draws immediately.
+  // Deliberately not persisted — a resume goes through the fetch, because a
+  // seed from a previous launch would be an unknown number of sets out of date.
+  const [openWorkoutSeed, setOpenWorkoutSeed] = useState(null)
   const [view, setView] = useState('days')
+
+  function openWorkout(id, seed = null) {
+    setOpenWorkoutId(id)
+    setOpenWorkoutSeed(seed)
+  }
 
   useEffect(() => {
     // A 401 from any API call drops us back to the login screen.
@@ -33,12 +42,12 @@ export default function App() {
   function handleLogout() {
     clearToken()
     setTokenState(null)
-    setOpenWorkoutId(null)
+    openWorkout(null)
     setView('days')
   }
 
   function go(target) {
-    setOpenWorkoutId(null)
+    openWorkout(null)
     setView(target)
   }
 
@@ -63,11 +72,15 @@ export default function App() {
       </header>
       <main className="app-main">
         {openWorkoutId ? (
-          <Workout workoutId={openWorkoutId} onExit={() => setOpenWorkoutId(null)} />
+          <Workout
+            workoutId={openWorkoutId}
+            initialWorkout={openWorkoutSeed}
+            onExit={() => openWorkout(null)}
+          />
         ) : view === 'progress' ? (
           <Progress />
         ) : (
-          <Days onOpenWorkout={setOpenWorkoutId} />
+          <Days onOpenWorkout={openWorkout} />
         )}
       </main>
       {/* Bottom bar puts navigation in thumb reach for one-handed gym use. */}
