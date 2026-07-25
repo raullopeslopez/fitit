@@ -38,11 +38,43 @@ async function tellWorker(message) {
   }
 }
 
+// Like `tellWorker`, but waits for the worker to say how it went. Everything
+// this feature does happens somewhere the app cannot see — another thread, then
+// the platform's own notification shade — so "posted the message" is not
+// evidence of anything. Every failure comes back as a sentence instead.
+async function askWorker(message, timeoutMs = 3000) {
+  if (!('serviceWorker' in navigator)) {
+    return { ok: false, error: 'este navegador no tiene service worker' }
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready
+    if (!registration.active) return { ok: false, error: 'el service worker no está activo' }
+    return await new Promise((resolve) => {
+      const channel = new MessageChannel()
+      const timer = setTimeout(
+        () => resolve({ ok: false, error: 'el service worker no responde' }),
+        timeoutMs,
+      )
+      channel.port1.onmessage = (event) => {
+        clearTimeout(timer)
+        resolve(event.data ?? { ok: true })
+      }
+      registration.active.postMessage(message, [channel.port2])
+    })
+  } catch (error) {
+    return { ok: false, error: String(error?.message ?? error) }
+  }
+}
+
 // `rest` carries everything the tap will need while the page is frozen: which
 // workout, the set to repeat, the token to send it with, and how many sets the
 // page still has unsent (so the worker knows not to jump the queue).
+//
+// Answers `{ ok, shown }` — `shown` being how many notifications the platform
+// admits to holding afterwards. Zero with `ok: true` is the interesting case:
+// the worker did everything right and Android threw it away anyway.
 export function startRestNotice(rest) {
-  return tellWorker({ type: 'rest-start', rest })
+  return askWorker({ type: 'rest-start', rest })
 }
 
 export function stopRestNotice() {

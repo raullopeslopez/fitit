@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Entreno: bajo `Registrar sin abrir`, una línea que dice si el aviso está vivo
+  de verdad — `Activo · última a las 18:41`, o el motivo cuando no lo está. La
+  notificación la construye otro hilo y la muestra el sistema, así que la app no
+  veía nada de su propia función: el worker sin despertar, el worker fallando,
+  el permiso revocado por detrás y Android descartando la notificación eran
+  cuatro problemas distintos con la misma cara — la de que no pasa nada. La
+  entrega es ahora de ida y vuelta y el worker contesta `{ ok, shown }`, con
+  `shown` leído de `getNotifications`: `ok` con `shown: 0` aísla "el sistema no
+  se quedó nada" de cualquier fallo del worker.
+
 ### Fixed
 - Entreno: la notificación de descanso **llegaba al panel pero no a la pantalla
   de bloqueo**, que es el único sitio donde sirve. La marcaba como `silent` para

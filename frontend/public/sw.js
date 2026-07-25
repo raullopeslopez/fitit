@@ -197,14 +197,29 @@ async function ringWhenDone(rest) {
   await showRest(current, { done: true })
 }
 
-async function startRest(rest) {
-  // The same rest handed over twice is an update, not a new one. The page sends
-  // it again once its own outbox has drained, so `pending` below tells the
-  // truth; counting it down a second time would double the buzz at the end.
-  const current = await readState('rest', null)
-  const isUpdate = current?.endsAt === rest.endsAt
-  await writeState('rest', rest)
-  await showRest(rest)
+// `port` is how the app finds out whether any of this worked. Everything here
+// happens where the page cannot see it, so a failure that only throws inside
+// the worker is a failure nobody will ever hear about — and the symptom is a
+// feature that silently does nothing.
+async function startRest(rest, port) {
+  let isUpdate = false
+  try {
+    // The same rest handed over twice is an update, not a new one. The page
+    // sends it again once its own outbox has drained, so `pending` tells the
+    // truth; counting it down a second time would double the buzz at the end.
+    const current = await readState('rest', null)
+    isUpdate = current?.endsAt === rest.endsAt
+    await writeState('rest', rest)
+    await showRest(rest)
+    // What the platform admits to holding afterwards. `ok` with zero here means
+    // the worker did its job and Android dropped the notification anyway, which
+    // is a completely different problem from the worker throwing.
+    const open = await self.registration.getNotifications({ tag: REST_TAG })
+    port?.postMessage({ ok: true, shown: open.length })
+  } catch (error) {
+    port?.postMessage({ ok: false, error: String(error?.message ?? error) })
+    return
+  }
   if (!isUpdate) await ringWhenDone(rest)
 }
 
@@ -344,7 +359,7 @@ async function handOver(port) {
 self.addEventListener('message', (event) => {
   const message = event.data || {}
   if (message.type === 'rest-start') {
-    event.waitUntil(startRest(message.rest))
+    event.waitUntil(startRest(message.rest, event.ports?.[0]))
   } else if (message.type === 'rest-stop') {
     event.waitUntil(writeState('rest', null).then(closeRest))
   } else if (message.type === 'claim') {
