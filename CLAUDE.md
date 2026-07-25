@@ -18,6 +18,19 @@ TDD: write the failing test first, implement to green, run the suite before comm
   suite for whichever layer you touched. Bypass a genuine WIP commit with
   `SKIP_TESTS=1 git commit ...` — use sparingly, main stays green.
 
+## How to talk to me
+Write as a teammate or product owner would, not as a technical report.
+
+- **Open with a TL;DR of what you're doing**: 2–3 lines, plain language, no jargon.
+  What you're changing and why it matters to me — not the mechanism.
+- **Close every turn with what you just did.** Synthetic, past tense, a few lines.
+  Test: if I read only the closing lines, do I know what changed and what I should
+  do next? If not, it isn't written yet.
+- **Keep the technical detail** — it's valuable — but put it in the middle, between
+  those two. It supports the summary; it never replaces it.
+- Name the trade-off and what you left undone. Don't bury a decision I need to make
+  inside a paragraph about CSS specificity.
+
 ## Working Style
 - When there are pending git changes, start with `git status` / `git diff` and finish/commit
   those before broad codebase exploration.
