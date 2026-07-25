@@ -142,6 +142,10 @@ describe('the rest notification', () => {
     // re-alert, so it sounds once a session and then updates without a peep.
     expect(notice.silent).toBeUndefined()
     expect(notice.renotify).toBe(false)
+    // The badge is not the app icon: Android keeps only its silhouette, and a
+    // full-bleed square silhouettes as a grey block with no F in it.
+    expect(notice.icon).toBe('/icon-192.png')
+    expect(notice.badge).toBe('/badge-96.png')
   })
 
   it('buzzes when the rest is actually over', async () => {

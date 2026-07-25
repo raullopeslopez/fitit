@@ -146,7 +146,11 @@ function showRest(rest, { done = false, confirm = false, announce = false } = {}
       // clock. Untimed it is already the title, so the body is just the set.
       body: `${timed || done ? `${rest.payload.exercise_name} · ` : ''}${set}${count}`,
       icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      // Not the app icon. Android throws the badge's colour away and tints its
+      // silhouette, so a full-bleed orange square silhouettes as… a square —
+      // which is the grey block this used to draw. `badge-96.png` is the F
+      // alone on transparent, so the shape survives the treatment.
+      badge: '/badge-96.png',
       ...(timed ? { timestamp: rest.endsAt } : {}),
       // Not `silent`, however tempting. It was, on the reasoning that every set
       // puts this on screen so it is the normal case rather than news — and
@@ -330,6 +334,7 @@ async function drain(rest) {
       tag: 'fitit-rechazada',
       body: 'El servidor rechazó una serie. Vuelve a registrarla.',
       icon: '/icon-192.png',
+      badge: '/badge-96.png',
     })
   }
 }
@@ -415,6 +420,7 @@ self.addEventListener('notificationclick', (event) => {
             tag: 'fitit-formato',
             body: 'No entendí esa serie. Escríbela como 32.5x12 — peso, luego reps.',
             icon: '/icon-192.png',
+            badge: '/badge-96.png',
           }),
     )
     return

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Entreno: el icono pequeño de la notificación (barra de estado y el círculo de
+  la propia notificación) era un bloque gris sin forma. Apuntaba al icono de la
+  app, y Android no dibuja ese hueco como una imagen: se queda con la silueta,
+  tira el color y tiñe lo que queda. Un cuadrado naranja opaco de borde a borde
+  silueta como un cuadrado, así que la F nunca salía. Nuevo `badge-96.png`: la
+  misma F, blanca sobre transparente y nada más. El icono grande no cambia.
 - Entreno: la notificación **no llegaba a la pantalla de bloqueo** salvo cuando
   el descanso terminaba — y con `Descanso: Sin`, nunca. Estaba en el cajón, con
   sus botones, y ahí se quedaba. La diferencia no era el contenido sino el
