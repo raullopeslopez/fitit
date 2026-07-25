@@ -15,6 +15,15 @@ import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 import { getWeightUnit } from './prefs.js'
 import { displayWeight } from './units.js'
 
+// Nobody types "Máq." with the accent on a phone keyboard, and nobody
+// capitalises a search. Fold both away before comparing.
+const fold = (s) =>
+  String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+
 // Points arrive in kilos. The geometry is computed on them directly — scale is
 // scale — and only the two printed figures are converted for the reader.
 function Chart({ points, color, unit }) {
@@ -208,7 +217,8 @@ export default function Progress() {
   // for one job, one of them with a confirmation step and one without.
   function handleNameInput(value) {
     setQuery(value)
-    const match = exercises.find((e) => e.name.toLowerCase() === value.trim().toLowerCase())
+    // An exact name still charts straight away, so autocomplete and paste work.
+    const match = exercises.find((e) => fold(e.name) === fold(value))
     if (match) loadHistory(match.name)
   }
 
@@ -230,6 +240,12 @@ export default function Progress() {
   )
   const chartColor = muscleColor(muscleOf(name))
   const current = exercises.find((e) => e.name === name)
+  // What you typed, matched by substring. The native <datalist> this replaces
+  // was a suggestion the browser showed when it felt like it, and never on a
+  // phone — so "gemelo" found nothing and said nothing.
+  const matches = query.trim()
+    ? exercises.filter((e) => fold(e.name).includes(fold(query))).slice(0, 8)
+    : []
 
   return (
     <section>
@@ -311,7 +327,14 @@ export default function Progress() {
             </>
           )}
           {points.length === 0 ? (
-            <p className="hint">Aún no hay datos para graficar este ejercicio.</p>
+            /* Two different failures. A known lift with no 1RM curve is cardio;
+               an unknown name is a typo, and telling someone "no data" for it
+               blames the log for a name that was never in it. */
+            <p className="hint">
+              {current
+                ? 'Aún no hay datos para graficar este ejercicio.'
+                : `No hay ningún ejercicio con ese nombre.`}
+            </p>
           ) : (
             <Chart points={points} color={chartColor} unit={weightUnit} />
           )}
@@ -323,7 +346,9 @@ export default function Progress() {
           apparatus on a phone to reach the thing you opened Progreso for. */}
       <form className="card" onSubmit={(e) => {
         e.preventDefault()
-        loadHistory(query)
+        // The go key takes the first thing you found, or the raw text so a name
+        // that matches nothing gets told so.
+        loadHistory(matches[0]?.name ?? query)
       }}>
         {/* Muscles filter; the box finds. A row of exercise-name chips used to
             sit under this one, doing the third version of the same job: seven
@@ -351,17 +376,23 @@ export default function Progress() {
           <label htmlFor="progress-exercise">Ejercicio</label>
           <input
             id="progress-exercise"
-            list="progress-options"
             value={query}
             onChange={(e) => handleNameInput(e.target.value)}
             placeholder="Buscar…"
           />
-          <datalist id="progress-options">
-            {exercises.map((e) => (
-              <option key={e.name} value={e.name} />
-            ))}
-          </datalist>
         </div>
+        {matches.length > 0 && (
+          <ul className="search-results">
+            {matches.map((e) => (
+              <li key={e.id}>
+                <button type="button" className="set-row" onClick={() => loadHistory(e.name)}>
+                  <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(e.muscle_group) }} />
+                  {e.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {loading && <p className="hint">Cargando…</p>}
       </form>
 
@@ -374,24 +405,34 @@ export default function Progress() {
       {bests.length > 0 && (
         <div className="card">
           <h2>Mejores marcas</h2>
+          {/* The row is the way in. This list was already on screen naming your
+              lifts while the only route to a chart was a box that didn't
+              search — tapping the thing you can see is the shorter path. */}
           <ul className="bests">
             {bests.map((mark) => (
               <li key={mark.exercise_id}>
-                <span
-                  className="dot"
-                  aria-hidden="true"
-                  style={{ '--chip': muscleColor(mark.muscle_group) }}
-                />
-                <span className="name">{mark.exercise_name}</span>
-                <span className="val">
-                  {displayWeight(mark.weight_kg, weightUnit)} {weightUnit} × {mark.reps}
-                </span>
-                {/* A record nothing has beaten yet gets a dash, not a fake +0. */}
-                <span className={`delta${mark.delta_one_rm ? '' : ' flat'}`}>
-                  {mark.delta_one_rm
-                    ? `+${displayWeight(mark.delta_one_rm, weightUnit)} ${weightUnit}`
-                    : '—'}
-                </span>
+                <button
+                  type="button"
+                  className="set-row best-row"
+                  aria-label={`Ver progreso de ${mark.exercise_name}`}
+                  onClick={() => loadHistory(mark.exercise_name)}
+                >
+                  <span
+                    className="dot"
+                    aria-hidden="true"
+                    style={{ '--chip': muscleColor(mark.muscle_group) }}
+                  />
+                  <span className="name">{mark.exercise_name}</span>
+                  <span className="val">
+                    {displayWeight(mark.weight_kg, weightUnit)} {weightUnit} × {mark.reps}
+                  </span>
+                  {/* A record nothing has beaten yet gets a dash, not a fake +0. */}
+                  <span className={`delta${mark.delta_one_rm ? '' : ' flat'}`}>
+                    {mark.delta_one_rm
+                      ? `+${displayWeight(mark.delta_one_rm, weightUnit)} ${weightUnit}`
+                      : '—'}
+                  </span>
+                </button>
               </li>
             ))}
           </ul>

@@ -187,6 +187,75 @@ describe('Progress', () => {
     await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Sentadilla'))
   })
 
+  // The box only ever fired on an exact, full-name match, so typing "gemelo"
+  // did nothing at all — no results, no filtering, no message. A search box
+  // that does not search.
+  describe('the search box', () => {
+    const exercises = [
+      { id: 1, name: 'Gemelo Máq.', muscle_group: 'Pierna' },
+      { id: 2, name: 'Press banca', muscle_group: 'Pecho' },
+    ]
+
+    it('finds an exercise from part of its name', async () => {
+      api.listExercises.mockResolvedValue(exercises)
+      api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 60 }])
+      render(<Progress />)
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+
+      const result = await screen.findByRole('button', { name: /Gemelo Máq\./i })
+      expect(screen.queryByRole('button', { name: /Press banca/i })).not.toBeInTheDocument()
+      await userEvent.click(result)
+
+      await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Gemelo Máq.'))
+    })
+
+    // "Máq." is not something anyone types with the accent on a phone keyboard.
+    it('ignores accents and case', async () => {
+      api.listExercises.mockResolvedValue(exercises)
+      render(<Progress />)
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'MAQ')
+      expect(await screen.findByRole('button', { name: /Gemelo Máq\./i })).toBeInTheDocument()
+    })
+
+    // "No data to chart" for a name that does not exist reads as "this exercise
+    // has none", when the truth is there is no such exercise.
+    it('says a name matches nothing, rather than blaming the data', async () => {
+      api.listExercises.mockResolvedValue(exercises)
+      api.getExerciseHistory.mockResolvedValue([])
+      render(<Progress />)
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Sentadilla{enter}')
+
+      expect(await screen.findByText(/ningún ejercicio con ese nombre/i)).toBeInTheDocument()
+      expect(screen.queryByText(/no hay datos para graficar/i)).not.toBeInTheDocument()
+    })
+  })
+
+  // Mejores marcas already lists your lifts with their best set. It was sitting
+  // right there, inert, while the only way in was a box that did not search.
+  it('charts a lift by tapping its row in Mejores marcas', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Sentadilla', muscle_group: 'Pierna' }])
+    api.getBestMarks.mockResolvedValue([
+      {
+        exercise_id: 1,
+        exercise_name: 'Sentadilla',
+        muscle_group: 'Pierna',
+        reps: 3,
+        weight_kg: 120,
+        one_rm: 132,
+        delta_one_rm: 5,
+      },
+    ])
+    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 132 }])
+    render(<Progress />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /ver progreso de Sentadilla/i }))
+
+    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Sentadilla'))
+  })
+
   // The field used to hold the charted lift as well as what you were typing, so
   // the same name showed up three times on one screen: card title, search box,
   // active chip. The box searches; the title and the chip say where you are.
@@ -369,7 +438,10 @@ describe('Progress', () => {
     expect(downloadCsv).toHaveBeenCalledWith(days)
   })
 
-  it('shows an empty state when there is no history', async () => {
+  // A lift that exists but has no 1RM curve — cardio, or one only ever logged
+  // as duration. Distinct from a name that matches nothing at all.
+  it('shows an empty state when a known lift has no history', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Squat', muscle_group: 'Pierna' }])
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)
 
