@@ -11,7 +11,7 @@ from datetime import datetime
 def _log(client, workout_id, **extra):
     return client.post(
         f"/workouts/{workout_id}/sets",
-        json={"exercise_name": "Squat", "reps": 5, "weight": 100, "unit": "kg", **extra},
+        json={"exercise_name": "Squat", "reps": 5, "weight": 100, **extra},
     )
 
 
@@ -44,7 +44,7 @@ def test_editing_a_set_keeps_its_original_timestamp(client):
 
     resp = client.patch(
         f"/workouts/sets/{logged['id']}",
-        json={"exercise_name": "Squat", "reps": 6, "weight": 100, "unit": "kg"},
+        json={"exercise_name": "Squat", "reps": 6, "weight": 100},
     )
 
     assert resp.status_code == 200, resp.text

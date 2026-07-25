@@ -12,14 +12,9 @@ from app.schemas import ExerciseIn, SetIn, WorkoutIn
 
 
 def test_valid_set_parses():
-    s = SetIn(exercise_name="Bench Press", reps=8, weight=60, unit="kg")
+    s = SetIn(exercise_name="Bench Press", reps=8, weight=60)
     assert s.reps == 8
     assert s.weight == 60
-    assert s.unit == "kg"
-
-
-def test_set_unit_defaults_to_kg():
-    assert SetIn(exercise_name="Squat", reps=5, weight=100).unit == "kg"
 
 
 def test_exercise_name_is_trimmed():
@@ -51,9 +46,11 @@ def test_weight_upper_bound():
         SetIn(exercise_name="Row", reps=8, weight=5000)
 
 
-def test_unit_must_be_kg_or_lb():
-    with pytest.raises(ValidationError):
-        SetIn(exercise_name="Row", reps=8, weight=40, unit="stone")
+# Weights are kilos with no unit field to get wrong, so an extra `unit` key is
+# just noise a client shouldn't be able to smuggle meaning through.
+def test_a_unit_field_is_not_accepted():
+    s = SetIn(exercise_name="Row", reps=8, weight=40, unit="lb")
+    assert not hasattr(s, "unit")
 
 
 @pytest.mark.parametrize("name", ["", "   "])

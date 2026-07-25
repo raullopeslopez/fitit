@@ -3,24 +3,20 @@ import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
 import * as api from './api.js'
-import { toKg } from './units.js'
 
 vi.mock('./api.js')
 
-// Mirrors what the API returns: the number and unit as typed, plus the
-// canonical kilos derived from them, so overriding the unit stays coherent.
+// Mirrors what the API returns. `weight` is kilos; there is no unit field.
 function benchSet(overrides = {}) {
-  const set = {
+  return {
     id: 10,
     exercise_id: 2,
     exercise_name: 'Bench Press',
     set_index: 0,
     reps: 8,
     weight: 60,
-    unit: 'kg',
     ...overrides,
   }
-  return { weight_kg: toKg(set.weight, set.unit), ...set }
 }
 
 function renderWorkout(props = {}) {
@@ -48,7 +44,7 @@ const foldedDigest = (re) =>
 describe('Workout', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    localStorage.clear() // the weight unit is a sticky pref — don't let it leak between tests
+    localStorage.clear() // rest seconds and the repeat template are sticky prefs
     api.getWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
     api.listExercises.mockResolvedValue([])
   })
@@ -323,13 +319,14 @@ describe('Workout', () => {
     expect(screen.getByLabelText(/^nota$/i)).toHaveValue('')
   })
 
-  it('reads a set logged in lb back in the unit I prefer', async () => {
-    // Logged as 135 lb, read while the toggle sits on kg. The history is one
-    // history — the unit that happened to be selected then doesn't split it.
+  // A set that came in as 135 lb was migrated to its kilos, so it reads and
+  // seeds the stepper as 61.2 like any other kilo set — there is no conversion
+  // left at the edge, only rounding.
+  it('reads a migrated pounds set as the kilos it always was', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
-      sets: [benchSet({ reps: 8, weight: 135, unit: 'lb' })],
+      sets: [benchSet({ reps: 8, weight: 61.235 })],
     })
     renderWorkout()
 
@@ -432,7 +429,6 @@ describe('Workout', () => {
         exercise_name: 'Bench Press',
         reps: 8,
         weight: 60,
-        unit: 'kg',
         rpe: null,
         note: null,
       }),
@@ -463,7 +459,6 @@ describe('Workout', () => {
         exercise_name: 'Bench Press',
         reps: 8,
         weight: 60,
-        unit: 'kg',
         rpe: null,
         note: null,
       }),
@@ -483,8 +478,7 @@ describe('Workout', () => {
       rpe: null,
       note: null,
       duration_seconds: 1470,
-      distance: 5.2,
-      distance_unit: 'km',
+      distance: 5.2, // kilometres
       ...overrides,
     }
   }
@@ -520,8 +514,7 @@ describe('Workout', () => {
         exercise_name: 'Correr',
         kind: 'cardio',
         duration_seconds: 1470,
-        distance: 5.2,
-        distance_unit: 'km',
+        distance: 5.2, // kilometres; there is no other unit to send
         note: null,
       }),
     )
@@ -576,7 +569,6 @@ describe('Workout', () => {
         exercise_name: 'Bench Press',
         reps: 8,
         weight: 60,
-        unit: 'kg',
         rpe: 8,
         note: 'felt strong',
       }),
@@ -929,7 +921,6 @@ describe('Workout', () => {
         exercise_name: 'Bench Press',
         reps: 10,
         weight: 65,
-        unit: 'kg',
         rpe: null,
         note: null,
       }),
@@ -947,7 +938,6 @@ describe('Workout', () => {
         exercise_name: 'Bench Press',
         reps: 8,
         weight: 60,
-        unit: 'kg',
         rpe: null,
         note: null,
       }),
@@ -968,7 +958,6 @@ describe('Workout', () => {
         exercise_name: 'Bench Press',
         reps: 8,
         weight: 60,
-        unit: 'kg',
         rpe: 9,
         note: 'tough',
       }),

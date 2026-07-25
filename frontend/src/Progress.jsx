@@ -13,7 +13,7 @@ import { formatDate } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 
-import { displayWeight } from './units.js'
+import { showKg } from './units.js'
 
 // Nobody types "Máq." with the accent on a phone keyboard, and nobody
 // capitalises a search. Fold both away before comparing.
@@ -26,7 +26,7 @@ const fold = (s) =>
 
 // Points arrive in kilos. The geometry is computed on them directly — scale is
 // scale — and only the two printed figures are converted for the reader.
-function Chart({ points, color, unit }) {
+function Chart({ points, color }) {
   const W = 320
   const H = 180
   const padL = 40
@@ -47,7 +47,7 @@ function Chart({ points, color, unit }) {
   return (
     <>
       <p className="chart-caption">
-        <strong>1RM estimado · {unit}</strong>
+        <strong>1RM estimado · kg</strong>
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Gráfica de progreso">
         {/* PR reference line stays amber — the record is effort, not a muscle. */}
@@ -62,11 +62,11 @@ function Chart({ points, color, unit }) {
         />
         <text x={W - padR} y={prY - 4} textAnchor="end" fontSize="10" fill="var(--pr)"
           fontFamily="var(--font-mono)">
-          PR {displayWeight(max, unit)}
+          PR {showKg(max)}
         </text>
         <text x={padL - 6} y={y(min)} textAnchor="end" dominantBaseline="middle" fontSize="9"
           fill="var(--muted)" fontFamily="var(--font-mono)">
-          {displayWeight(min, unit)}
+          {showKg(min)}
         </text>
         {/* The trend line carries the muscle's colour. */}
         <polyline fill="none" stroke={color} strokeWidth="2" points={linePts} />
@@ -121,7 +121,7 @@ export default function Progress() {
   // exercise card: rare, and they were sitting inside the content.
   const [showFixes, setShowFixes] = useState(false)
   // Kilos, always: the kg/lb toggle is gone. See prefs.js.
-  const weightUnit = 'kg'
+
 
   const muscleOf = (lift) =>
     exercises.find((e) => e.name === lift)?.muscle_group ?? null
@@ -335,7 +335,7 @@ export default function Progress() {
                 : `No hay ningún ejercicio con ese nombre.`}
             </p>
           ) : (
-            <Chart points={points} color={chartColor} unit={weightUnit} />
+            <Chart points={points} color={chartColor} />
           )}
         </div>
       )}
@@ -423,12 +423,12 @@ export default function Progress() {
                   />
                   <span className="name">{mark.exercise_name}</span>
                   <span className="val">
-                    {displayWeight(mark.weight_kg, weightUnit)} {weightUnit} × {mark.reps}
+                    {showKg(mark.weight)} kg × {mark.reps}
                   </span>
                   {/* A record nothing has beaten yet gets a dash, not a fake +0. */}
                   <span className={`delta${mark.delta_one_rm ? '' : ' flat'}`}>
                     {mark.delta_one_rm
-                      ? `+${displayWeight(mark.delta_one_rm, weightUnit)} ${weightUnit}`
+                      ? `+${showKg(mark.delta_one_rm)} kg`
                       : '—'}
                   </span>
                 </button>

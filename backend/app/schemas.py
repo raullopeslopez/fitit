@@ -5,10 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# The weight unit for strength sets.
-Unit = Literal["kg", "lb"]
-# The distance unit for cardio sets.
-DistanceUnit = Literal["km", "mi"]
+# Weights are kilos and distances kilometres, everywhere, with no alternative to
+# name — so there are no unit types here any more. See DESIGN.md (2026-07-25).
 # How an exercise is measured: strength (weight × reps) or cardio (duration + distance).
 Kind = Literal["strength", "cardio"]
 
@@ -49,14 +47,13 @@ class SetIn(BaseModel):
     kind: Kind | None = None
     # Strength metrics (required for strength, absent for cardio).
     reps: int | None = Field(default=None, ge=1, le=1000)
-    weight: float | None = Field(default=None, ge=0, le=1000)  # 0 is valid (bodyweight)
-    unit: Unit = "kg"
+    # Kilos. 0 is valid (bodyweight).
+    weight: float | None = Field(default=None, ge=0, le=1000)
     rpe: float | None = Field(default=None, ge=1, le=10)  # perceived exertion
     note: str | None = Field(default=None, max_length=280)
     # Cardio metrics (duration required for cardio, distance optional).
     duration_seconds: int | None = Field(default=None, ge=1, le=86400)
-    distance: float | None = Field(default=None, ge=0, le=100000)
-    distance_unit: DistanceUnit | None = None
+    distance: float | None = Field(default=None, ge=0, le=100000)  # kilometres
 
 
 class SetOut(BaseModel):
@@ -68,17 +65,11 @@ class SetOut(BaseModel):
     kind: str = "strength"
     set_index: int
     reps: int | None = None
-    # `weight`/`unit` are what was typed; `weight_kg` is what to compare and
-    # display with. The client renders in the reader's preferred unit, so it
-    # reads weight_kg and converts — it never displays `weight` directly.
-    weight: float | None = None
-    unit: str
-    weight_kg: float | None = None
+    weight: float | None = None  # kilos
     rpe: float | None = None
     note: str | None = None
     duration_seconds: int | None = None
-    distance: float | None = None
-    distance_unit: str | None = None
+    distance: float | None = None  # kilometres
     created_at: datetime | None = None
 
 
@@ -122,9 +113,7 @@ class BestMark(BaseModel):
     differently from one that has stood for months. None means nothing to
     compare against: a first-ever mark, or a record nothing has since beaten.
 
-    Weights here are canonical kilos, never the unit the set was typed in — a
-    leaderboard that mixes units isn't a leaderboard. The client converts to the
-    reader's preferred unit.
+    `weight` is kilos, like every weight in the app.
     Spec: tests/features/best_marks.feature
     """
 
@@ -132,7 +121,7 @@ class BestMark(BaseModel):
     exercise_name: str
     muscle_group: str | None = None
     reps: int
-    weight_kg: float
+    weight: float
     one_rm: float
     delta_one_rm: float | None = None
 

@@ -1,4 +1,4 @@
-"""Cardio sets carry duration (+ optional distance/unit) instead of reps/weight.
+"""Cardio sets carry duration (+ optional distance in km) instead of reps/weight.
 The kind is resolved from the exercise (existing) or the payload (new), and the
 metric fields are validated to match it."""
 
@@ -17,8 +17,7 @@ def test_log_a_cardio_set_with_duration_and_distance(client):
         json={
             "exercise_name": "Correr",
             "duration_seconds": 1470,  # 24:30
-            "distance": 5.2,
-            "distance_unit": "km",
+            "distance": 5.2,  # kilometres; there is no other unit
         },
     )
     assert r.status_code == 201, r.text
@@ -26,7 +25,6 @@ def test_log_a_cardio_set_with_duration_and_distance(client):
     assert s["kind"] == "cardio"
     assert s["duration_seconds"] == 1470
     assert s["distance"] == 5.2
-    assert s["distance_unit"] == "km"
     assert s["reps"] is None
     assert s["weight"] is None
 
@@ -51,7 +49,7 @@ def test_cardio_set_requires_a_duration(client):
 
     r = client.post(
         f"/workouts/{w['id']}/sets",
-        json={"exercise_name": "Correr", "distance": 5.0, "distance_unit": "km"},
+        json={"exercise_name": "Correr", "distance": 5.0},
     )
     assert r.status_code == 422, r.text
 

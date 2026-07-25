@@ -7,7 +7,7 @@ def test_new_exercise_defaults_to_strength(client):
     w = client.post("/workouts", json={}).json()
     r = client.post(
         f"/workouts/{w['id']}/sets",
-        json={"exercise_name": "Bench", "reps": 5, "weight": 60, "unit": "kg"},
+        json={"exercise_name": "Bench", "reps": 5, "weight": 60},
     )
     assert r.status_code == 201, r.text
 
