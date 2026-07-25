@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Entreno: la notificación de descanso **llegaba al panel pero no a la pantalla
+  de bloqueo**, que es el único sitio donde sirve. La marcaba como `silent` para
+  no molestar en cada serie, y Android se lo toma al pie de la letra: varias
+  capas (One UI entre ellas) esconden del bloqueo las notificaciones
+  silenciosas. Ahora el silencio lo lleva `renotify: false` — una sustitución
+  bajo la misma etiqueta no vuelve a avisar, así que suena una vez al aparecer
+  en la sesión y luego se actualiza sin ruido, serie tras serie. El fin del
+  descanso y el acuse de una serie tecleada sí piden ser oídos. Silenciarla del
+  todo es una preferencia legítima y vive en el canal por sitio de Android.
+
 ### Changed
 - Entreno: el descanso y el registro desde la pantalla de bloqueo pasan a ser
   **dos ajustes independientes**. `Aviso de descanso` se llama ahora

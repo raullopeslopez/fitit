@@ -136,8 +136,12 @@ describe('the rest notification', () => {
     // rather than a Saltar the swipe already does.
     expect(notice.actions.map((a) => a.title)).toEqual(['+1 serie', 'Otra serie'])
     expect(notice.actions[1]).toMatchObject({ type: 'text', placeholder: '32.5x12' })
-    // Every set puts this on screen, so it arrives without a sound.
-    expect(notice.silent).toBe(true)
+    // Never silent: Android files a silent notification away from the lock
+    // screen on several skins, which is the one place this has to be. The quiet
+    // comes from `renotify` instead — a replacement under the same tag does not
+    // re-alert, so it sounds once a session and then updates without a peep.
+    expect(notice.silent).toBeUndefined()
+    expect(notice.renotify).toBe(false)
   })
 
   it('buzzes when the rest is actually over', async () => {
@@ -149,7 +153,9 @@ describe('the rest notification', () => {
 
     expect(worker.shown).toHaveLength(2)
     expect(worker.shown[1].title).toBe('Descanso terminado')
-    expect(worker.shown[1].silent).toBe(false)
+    // This one has earned the right to interrupt, so it asks to be re-alerted
+    // even though it is replacing a notification already on screen.
+    expect(worker.shown[1].renotify).toBe(true)
     expect(worker.shown[1].vibrate).toBeTruthy()
   })
 
