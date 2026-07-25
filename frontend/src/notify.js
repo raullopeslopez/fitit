@@ -77,6 +77,13 @@ export function startRestNotice(rest) {
   return askWorker({ type: 'rest-start', rest })
 }
 
+// The page is being hidden — the phone is going into a pocket. Ask the worker to
+// make the notification *arrive* again, because Android draws on a locked screen
+// what arrives while locked, not what was already sitting in the shade.
+export function announceRestNotice() {
+  return tellWorker({ type: 'rest-announce' })
+}
+
 export function stopRestNotice() {
   return tellWorker({ type: 'rest-stop' })
 }

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  announceRestNotice,
   askForNotifications,
   claimLockScreenSets,
   notificationState,
@@ -94,6 +95,14 @@ describe('handing the rest over to the worker', () => {
     await stopRestNotice()
 
     expect(worker.posted).toEqual([{ type: 'rest-stop' }])
+  })
+
+  it('asks the worker to say it again when the phone is being pocketed', async () => {
+    const worker = mockWorker()
+
+    await announceRestNotice()
+
+    expect(worker.posted).toEqual([{ type: 'rest-announce' }])
   })
 
   it('brings back what the worker made of it', async () => {

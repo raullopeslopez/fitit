@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Entreno: la notificación **no llegaba a la pantalla de bloqueo** salvo cuando
+  el descanso terminaba — y con `Descanso: Sin`, nunca. Estaba en el cajón, con
+  sus botones, y ahí se quedaba. La diferencia no era el contenido sino el
+  momento de llegada: Android dibuja en el bloqueo lo que **llega** estando
+  bloqueado, y no repinta lo que ya estaba en el cajón. El aviso de fin de
+  descanso cumplía esa condición por casualidad; la notificación que nace al
+  pulsar `Registrar` no podía cumplirla nunca, porque en ese instante el móvil
+  está desbloqueado y en tu mano. Ahora la app avisa al worker cuando se oculta
+  —que es justo cuando el móvil va al bolsillo— y la notificación llega otra vez,
+  bajo la misma etiqueta. Sin temporizadores adivinando cuánto tardas en
+  guardarte el móvil.
+
 ### Added
 - Entreno: bajo `Registrar sin abrir`, una línea que dice si el aviso está vivo
   de verdad — `Activo · última a las 18:41`, o el motivo cuando no lo está. La
