@@ -435,6 +435,22 @@ button.chart-title h2 {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
+/* What the box actually found. Rows, not pills: these are names you are reading
+   to pick one, so they must never truncate or hide behind a scroll. */
+.search-results {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+}
+.search-results li + li {
+  border-top: 1px solid var(--border);
+}
+.search-results .set-row {
+  width: 100%;
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+
 /* Corrections, folded away at the foot of the card. */
 .fixes-toggle {
   margin-top: 0.9rem;
@@ -628,7 +644,8 @@ button {
      for .link-row, reintroduced by three new surfaces. */
   button.set-row:hover:not(:disabled),
   button.workout-title:hover:not(:disabled),
-  button.chart-title:hover:not(:disabled) {
+  button.chart-title:hover:not(:disabled),
+  button.best-row:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
 }
@@ -1371,9 +1388,14 @@ button.heat-cell {
 .bests li {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.1rem;
   border-bottom: 1px solid var(--border);
+}
+/* The whole row is the control, so it carries the padding the li used to. */
+.best-row.best-row {
+  width: 100%;
+  padding: 0.55rem 0.35rem;
+  margin-inline: -0.35rem;
+  font-family: var(--font-body);
 }
 .bests li:last-child {
   border-bottom: none;
