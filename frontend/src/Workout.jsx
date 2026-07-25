@@ -58,6 +58,28 @@ function validateSet(reps, weight, rpe) {
 // on the "Registrar" button; fall back to empty for a never-logged exercise.
 const WEIGHT_STEP = 2.5
 
+// A card per exercise the workout already has sets for, most recently worked
+// first: the exercise you last put a set into is the one you're still on.
+//
+// Ranked by each exercise's LAST set and settled once, never re-sorted — a card
+// that moves while your thumb is on the phone is how you tap the wrong thing
+// mid-session. Spec: tests/features/newest_first.feature
+//
+// No `previous` key on purpose: absent means "marks not fetched yet", which is
+// not the same as "this lift has no history". Anything that claims a record has
+// to wait for the difference.
+function exercisesFromWorkout(workout) {
+  if (!workout) return []
+  const lastSeen = new Map()
+  workout.sets.forEach((s, index) => lastSeen.set(s.exercise_name, index))
+  return [...lastSeen.keys()]
+    .sort((a, b) => lastSeen.get(b) - lastSeen.get(a))
+    .map((name) => {
+      const first = workout.sets.find((s) => s.exercise_name === name)
+      return { name, kind: first?.kind ?? 'strength' }
+    })
+}
+
 function bump(current, delta, min) {
   const base = Number(current)
   const next = Number.isFinite(base) ? base : 0
@@ -102,8 +124,16 @@ function ExerciseCard({
     (previous?.sets?.length
       ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight, s.reps)))
       : null)
-  const [best, setBest] = useState(seededBest)
-  const [pr, setPr] = useState(false)
+  // Absent `previous` means the marks haven't arrived, not that there are none.
+  // Nothing may claim a record before this is true: with no mark to beat, the
+  // comparison silently falls back to the session's own peak and awards set 2 a
+  // PR for beating set 1.
+  const marksKnown = previous !== undefined
+  // The 1RM that broke the record, for the banner — null when nothing did. This
+  // used to be a `best` state seeded once at mount, which meant a card built
+  // from the log (a reload, or a handover from Días) seeded it as null and never
+  // celebrated a genuine record even after the marks landed.
+  const [prAt, setPrAt] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
@@ -128,9 +158,12 @@ function ExerciseCard({
         rpe: valid.rpe,
         note: note.trim() || null,
       })
+      // The mark to beat, right now: what you walked in with, or the best you
+      // have already hit today, whichever is higher. Both are derived from this
+      // render, so nothing can go stale between opening the card and logging.
+      const toBeat = marksKnown ? Math.max(seededBest ?? 0, bestOneRm) : null
       const oneRm = estimatedOneRm(valid.weight, valid.reps)
-      setPr(best != null && oneRm > best)
-      setBest((b) => (b == null ? oneRm : Math.max(b, oneRm)))
+      setPrAt(toBeat != null && oneRm > toBeat ? oneRm : null)
       // Keep the weight and reps you just logged: straight sets are the common
       // case (3×25×15), so the next set should be one tap on the button, not a
       // re-entry into blank fields. The per-set qualia don't carry, though — a
@@ -237,7 +270,7 @@ function ExerciseCard({
   const beatIt = seededBest != null && todayBest != null && todayBest > seededBest
   // Which rows earn the PR badge. Derived from the log against the mark you
   // walked in with, so unlike the transient banner it survives a reload.
-  const prIds = prSetIds(sets, seededBest)
+  const prIds = marksKnown ? prSetIds(sets, seededBest) : new Set()
 
   const ready = reps !== '' && weight !== ''
 
@@ -312,9 +345,9 @@ function ExerciseCard({
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
       )}
 
-      {pr && (
+      {prAt != null && (
         <p className="pr-banner">
-          ¡Nuevo récord! 1RM estimado {showKg(best)}
+          ¡Nuevo récord! 1RM estimado {showKg(prAt)}
         </p>
       )}
 
@@ -788,10 +821,17 @@ function RestBar({ endsAt, total, onSkip }) {
   )
 }
 
-export default function Workout({ workoutId, onExit }) {
-  const [workout, setWorkout] = useState(null)
+// `initialWorkout` is the workout Días already had in hand — /days returns the
+// same shape /workouts/{id} does, so waiting on a second round trip for it
+// bought a blank screen and nothing else. Absent (a resume from storage, or a
+// reload) the fetch below is the only source, exactly as before.
+export default function Workout({ workoutId, onExit, initialWorkout = null }) {
+  const seed = initialWorkout?.id === workoutId ? initialWorkout : null
+  const [workout, setWorkout] = useState(seed)
   const [exerciseInput, setExerciseInput] = useState('')
-  const [exercises, setExercises] = useState([]) // [{ name, previous }], newest worked first
+  // [{ name, kind, previous? }], newest worked first. `previous` absent means
+  // its marks are still in flight.
+  const [exercises, setExercises] = useState(() => exercisesFromWorkout(seed))
   // Which cards the user has explicitly opened or shut this session. Absent
   // means "use the default": only the newest card starts open, so the screen
   // shows what you're doing rather than everything you've already done.
@@ -850,31 +890,15 @@ export default function Workout({ workoutId, onExit }) {
     getWorkout(workoutId)
       .then(async (w) => {
         setWorkout(w)
-        // A card per exercise already logged here, most recently worked first:
-        // the exercise you last put a set into is the one you're still on.
-        //
-        // Ranked by each exercise's LAST set, and settled once, here on load.
-        // Nothing re-sorts afterwards — a card that moves while your thumb is
-        // on the phone is how you tap the wrong thing mid-session.
-        // Spec: tests/features/newest_first.feature
-        const lastSeen = new Map()
-        w.sets.forEach((s, index) => lastSeen.set(s.exercise_name, index))
-        const logged = [...lastSeen.keys()]
-          .sort((a, b) => lastSeen.get(b) - lastSeen.get(a))
-          .map((name) => {
-            const first = w.sets.find((s) => s.exercise_name === name)
-            return { name, previous: null, kind: first?.kind ?? 'strength' }
-          })
+        const logged = exercisesFromWorkout(w)
+        const loggedNames = new Set(logged.map((e) => e.name))
 
         // A repeated session arrives as a list of names. The ones you haven't
         // touched queue up *under* what you've logged: worked lifts still rise
         // to the top, and the rest read as what's left to do — in the order the
         // original session did them, so a fresh repeat opens on its first lift.
-        const queued = (getRepeatTemplate(workoutId) ?? []).filter((n) => !lastSeen.has(n))
-        setExercises([
-          ...logged,
-          ...queued.map((name) => ({ name, previous: null, kind: 'strength' })),
-        ])
+        const queued = (getRepeatTemplate(workoutId) ?? []).filter((n) => !loggedNames.has(n))
+        setExercises([...logged, ...queued.map((name) => ({ name, kind: 'strength' }))])
 
         // Every card needs its marks, rebuilt ones included. Only the add path
         // used to fetch them, so reopening a workout lost the target on every
@@ -890,8 +914,10 @@ export default function Workout({ workoutId, onExit }) {
         const byName = new Map(names.map((n, i) => [n, marks[i]]))
         setExercises((list) =>
           list.map((ex) => {
-            const previous = byName.get(ex.name)
-            if (previous == null) return ex
+            if (!byName.has(ex.name)) return ex
+            // A failed lookup still resolves the question: null means "asked,
+            // nothing there", which is what lets the card show a record again.
+            const previous = byName.get(ex.name) ?? { found: false, sets: [] }
             return { ...ex, previous, kind: previous.kind ?? ex.kind }
           }),
         )

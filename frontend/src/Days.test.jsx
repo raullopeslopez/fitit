@@ -49,15 +49,17 @@ describe('Days', () => {
     expect(screen.getByText(/2 series/i)).toBeInTheDocument()
   })
 
-  it('opens a workout when tapped', async () => {
+  // Días already has the whole workout, sets included — hand it over so Entreno
+  // can draw immediately instead of fetching what is already in memory.
+  it('opens a workout when tapped, handing over the sets it already holds', async () => {
     const onOpen = vi.fn()
-    api.listDays.mockResolvedValue([
-      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
-    ])
+    const workout = { id: 4, name: 'Legs', sets: [benchSet()] }
+    api.listDays.mockResolvedValue([{ id: 1, date: '2026-07-15', workouts: [workout] }])
     render(<Days onOpenWorkout={onOpen} />)
 
     await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
-    expect(onOpen).toHaveBeenCalledWith(4)
+    // Sets and all, plus the day's date, so Entreno can draw its header too.
+    expect(onOpen).toHaveBeenCalledWith(4, { ...workout, date: '2026-07-15' })
   })
 
   it('starts today’s workout with one tap', async () => {
@@ -68,7 +70,7 @@ describe('Days', () => {
     await userEvent.click(screen.getByRole('button', { name: /empezar entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
-    expect(onOpen).toHaveBeenCalledWith(3)
+    expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }))
   })
 
   // Starting a second workout on a day you already trained is how you end up
@@ -87,7 +89,7 @@ describe('Days', () => {
       const cta = await screen.findByRole('button', { name: /continuar entreno · Push/i })
       await userEvent.click(cta)
 
-      expect(onOpen).toHaveBeenCalledWith(5)
+      expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
       expect(api.createWorkout).not.toHaveBeenCalled()
     } finally {
       vi.useRealTimers()
@@ -107,7 +109,7 @@ describe('Days', () => {
     await userEvent.click(screen.getByRole('button', { name: /crear entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-10', name: 'Morning' })
-    expect(onOpen).toHaveBeenCalledWith(9)
+    expect(onOpen).toHaveBeenCalledWith(9, expect.objectContaining({ id: 9 }))
   })
 
   // Borrar día sat next to the row your thumb aims at, at full button weight.
@@ -156,7 +158,7 @@ describe('Days', () => {
     await openDayMenu()
     await userEvent.click(screen.getByRole('button', { name: /repetir/i }))
 
-    await waitFor(() => expect(onOpen).toHaveBeenCalledWith(12))
+    await waitFor(() => expect(onOpen).toHaveBeenCalledWith(12, expect.objectContaining({ id: 12 })))
     expect(api.createWorkout).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Pull' }),
     )

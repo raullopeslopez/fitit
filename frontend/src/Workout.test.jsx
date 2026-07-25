@@ -1155,6 +1155,56 @@ describe('Workout', () => {
     expect(await screen.findByText('Leg Day')).toBeInTheDocument()
   })
 
+  // Días already holds every set of every workout — /days returns the same shape
+  // /workouts/{id} does — so making the card wait on a second round trip for
+  // data already in memory bought a blank screen and nothing else.
+  describe('opening a session Días already had', () => {
+    const seed = workoutWith(benchSet({ id: 1 }), pullSet({ id: 2 }))
+
+    it('renders the cards before the fetch resolves', async () => {
+      // A fetch that never lands: whatever shows up came from the seed.
+      api.getWorkout.mockReturnValue(new Promise(() => {}))
+      api.getPreviousMarks.mockReturnValue(new Promise(() => {}))
+      renderWorkout({ initialWorkout: seed })
+
+      expect(await screen.findByRole('heading', { level: 2, name: /Dominadas/i })).toBeInTheDocument()
+      expect(cardToggle('Bench Press')).toBeInTheDocument()
+      expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
+    })
+
+    it('still refetches, so a stale seed is corrected', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1 }), pullSet({ id: 2 }), benchSet({ id: 3, weight: 80 })),
+      )
+      api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
+      renderWorkout({ initialWorkout: seed })
+
+      expect(await screen.findByText(/80 kg x 8/)).toBeInTheDocument()
+      expect(api.getWorkout).toHaveBeenCalledWith(1)
+    })
+  })
+
+  // The flag compares each set against the mark you walked in with. Until the
+  // marks arrive there is no such mark, and prSetIds falls back to the session's
+  // own running peak — so set 2 wore a PR for beating set 1. It was always a
+  // flicker on open; rendering instantly from a seed would widen the window.
+  it('shows no PR badge until it knows what the record actually is', async () => {
+    api.getWorkout.mockResolvedValue(
+      workoutWith(benchSet({ id: 1, weight: 50 }), benchSet({ id: 2, weight: 60 })),
+    )
+    let resolveMarks
+    api.getPreviousMarks.mockReturnValue(new Promise((r) => { resolveMarks = r }))
+    const { container } = renderWorkout()
+
+    await screen.findByText(/60 kg x 8/)
+    expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
+
+    // A real record of 200 means neither of today's sets is one.
+    resolveMarks({ exercise_name: 'Bench Press', found: true, best_one_rm: 200, sets: [] })
+    await waitFor(() => expect(screen.getByText(/a batir/i)).toBeInTheDocument())
+    expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
+  })
+
   // Cards rebuilt from a workout that already has sets used to carry no
   // previous marks at all — only the add-exercise path fetched them. Reopening
   // the app mid-session is the normal path now, so that gap is permanent.

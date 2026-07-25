@@ -22,7 +22,13 @@ describe('App', () => {
   it('opens a workout from the days view and can go back', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([
-      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+      {
+        id: 1,
+        date: '2026-07-15',
+        // The API nests the day's date on each workout too; the seed handed to
+        // Entreno needs it to render its header before the fetch lands.
+        workouts: [{ id: 4, date: '2026-07-15', name: 'Legs', sets: [] }],
+      },
     ])
     api.getWorkout.mockResolvedValue({ id: 4, date: '2026-07-15', name: 'Legs', sets: [] })
     api.listExercises.mockResolvedValue([])
@@ -66,7 +72,13 @@ describe('App', () => {
   it('forgets the open workout once you leave it', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([
-      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+      {
+        id: 1,
+        date: '2026-07-15',
+        // The API nests the day's date on each workout too; the seed handed to
+        // Entreno needs it to render its header before the fetch lands.
+        workouts: [{ id: 4, date: '2026-07-15', name: 'Legs', sets: [] }],
+      },
     ])
     api.getWorkout.mockResolvedValue({ id: 4, date: '2026-07-15', name: 'Legs', sets: [] })
     api.listExercises.mockResolvedValue([])

@@ -57,7 +57,10 @@ export default function Days({ onOpenWorkout }) {
   // Today's session, if there is one. Its existence is what the primary button
   // reads: a second workout on a day you already trained is how a session ends
   // up split across two entries.
-  const todaySession = days?.find((d) => d.date === todayISO())?.workouts?.[0] ?? null
+  const todayDay = days?.find((d) => d.date === todayISO())
+  const todaySession = todayDay?.workouts?.[0]
+    ? { ...todayDay.workouts[0], date: todayDay.date }
+    : null
 
   // Starting today's session is one intent: one button, no form.
   async function startToday() {
@@ -65,7 +68,7 @@ export default function Days({ onOpenWorkout }) {
     setCreating(true)
     try {
       const workout = await createWorkout({ date: todayISO(), name: null })
-      onOpenWorkout(workout.id)
+      onOpenWorkout(workout.id, workout)
     } catch {
       setError('No se pudo empezar el entreno.')
     } finally {
@@ -80,7 +83,7 @@ export default function Days({ onOpenWorkout }) {
     setCreating(true)
     try {
       const workout = await createWorkout({ date, name: name.trim() || null })
-      onOpenWorkout(workout.id)
+      onOpenWorkout(workout.id, workout)
     } catch {
       setError('No se pudo empezar el entreno.')
     } finally {
@@ -99,7 +102,7 @@ export default function Days({ onOpenWorkout }) {
     try {
       const workout = await createWorkout({ date: todayISO(), name: source.name ?? null })
       setRepeatTemplate(workout.id, exerciseNames(source))
-      onOpenWorkout(workout.id)
+      onOpenWorkout(workout.id, workout)
     } catch {
       setError('No se pudo repetir ese entreno.')
     } finally {
@@ -193,10 +196,15 @@ export default function Days({ onOpenWorkout }) {
             <ul className="sets day-sessions">
               {day.workouts.map((w) => (
                 <li key={w.id}>
+                  {/* Hand the workout over, not just its id: this list already
+                      holds every set, so Entreno can draw before it fetches.
+                      The date comes from the day rather than the workout, so
+                      the seed is renderable without depending on the nested
+                      workout carrying a field it doesn't need here. */}
                   <button
                     type="button"
                     className="link-row"
-                    onClick={() => onOpenWorkout(w.id)}
+                    onClick={() => onOpenWorkout(w.id, { ...w, date: day.date })}
                   >
                     <span>{w.name || 'Entreno'}</span>
                     {musclesOf(w).length > 0 && (
@@ -251,7 +259,7 @@ export default function Days({ onOpenWorkout }) {
           <button
             type="button"
             className="btn-full btn-log"
-            onClick={todaySession ? () => onOpenWorkout(todaySession.id) : startToday}
+            onClick={todaySession ? () => onOpenWorkout(todaySession.id, todaySession) : startToday}
             disabled={creating}
           >
             {ctaLabel}
