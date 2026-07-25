@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   deleteSet,
@@ -114,7 +114,6 @@ function ExerciseCard({
   // Re-tagging the muscle and relabelling the unit are both once-in-a-lifetime
   // corrections, and both were permanent controls on a card you open to log.
   const [showFixes, setShowFixes] = useState(false)
-  const [logging, setLogging] = useState(false)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen. The number to beat is the server's best
   // est. 1RM, or derived from the previous marks so the target block always
@@ -149,7 +148,21 @@ function ExerciseCard({
       return
     }
     setError('')
-    setLogging(true)
+    // Everything the card owes you for this set is settled here, before the
+    // request goes out — the row is already on screen by then (see logSetFor).
+    // The mark to beat, right now: what you walked in with, or the best you
+    // have already hit today, whichever is higher. Both are derived from this
+    // render, so nothing can go stale between opening the card and logging.
+    const toBeat = marksKnown ? Math.max(seededBest ?? 0, bestOneRm) : null
+    const oneRm = estimatedOneRm(valid.weight, valid.reps)
+    setPrAt(toBeat != null && oneRm > toBeat ? oneRm : null)
+    // Keep the weight and reps you just logged: straight sets are the common
+    // case (3×25×15), so the next set should be one tap on the button, not a
+    // re-entry into blank fields. The per-set qualia don't carry, though — a
+    // stale RPE or note riding silently onto the next set is worse than empty.
+    setRpe('')
+    setNote('')
+    setShowExtras(false)
     try {
       await onLogSet(name, {
         reps: valid.reps,
@@ -158,23 +171,8 @@ function ExerciseCard({
         rpe: valid.rpe,
         note: note.trim() || null,
       })
-      // The mark to beat, right now: what you walked in with, or the best you
-      // have already hit today, whichever is higher. Both are derived from this
-      // render, so nothing can go stale between opening the card and logging.
-      const toBeat = marksKnown ? Math.max(seededBest ?? 0, bestOneRm) : null
-      const oneRm = estimatedOneRm(valid.weight, valid.reps)
-      setPrAt(toBeat != null && oneRm > toBeat ? oneRm : null)
-      // Keep the weight and reps you just logged: straight sets are the common
-      // case (3×25×15), so the next set should be one tap on the button, not a
-      // re-entry into blank fields. The per-set qualia don't carry, though — a
-      // stale RPE or note riding silently onto the next set is worse than empty.
-      setRpe('')
-      setNote('')
-      setShowExtras(false)
     } catch {
       setError('No se pudo registrar la serie.')
-    } finally {
-      setLogging(false)
     }
   }
 
@@ -439,13 +437,12 @@ function ExerciseCard({
             </div>
           </div>
         )}
-        {/* The button states exactly what it will log, so a repeat is one tap. */}
-        <button type="submit" className="btn-full btn-log" disabled={logging}>
-          {logging
-            ? 'Registrando…'
-            : ready
-              ? `Registrar ${weight} × ${reps}`
-              : 'Registrar serie'}
+        {/* The button states exactly what it will log, so a repeat is one tap.
+            It never disables itself waiting on the request: the set is already
+            in the list below, and a second tap means a second set, which is
+            what a straight-sets session is made of. */}
+        <button type="submit" className="btn-full btn-log">
+          {ready ? `Registrar ${weight} × ${reps}` : 'Registrar serie'}
         </button>
       </form>
 
@@ -522,6 +519,22 @@ function ExerciseCard({
                     Borrar
                   </button>
                 </form>
+              ) : set.pending ? (
+                /* On screen, not yet on the server. Editing routes through the
+                   set's server id and it hasn't got one, so the row reads
+                   exactly like a saved one minus the affordance. The dot is the
+                   whole difference — a pending set is the normal case now, not
+                   an error state, so it doesn't get amber or a banner. */
+                <span className="set-row set-pending">
+                  {formatSet(set)}
+                  {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                  {prIds.has(set.id) && (
+                    <span className="pr-flag" title="Récord al registrarla">
+                      PR
+                    </span>
+                  )}
+                  <span className="pending-dot" role="img" aria-label="Sin guardar" />
+                </span>
               ) : (
                 <>
                   {/* The row is the control. Tapping a thing edits that thing —
@@ -612,7 +625,6 @@ function CardioCard({
   )
   const [distance, setDistance] = useState(seed?.distance ? String(seed.distance) : '')
   const [note, setNote] = useState('')
-  const [logging, setLogging] = useState(false)
   const [openMenuId, setOpenMenuId] = useState(null)
   const [error, setError] = useState('')
 
@@ -633,22 +645,21 @@ function CardioCard({
       dist = d
     }
     setError('')
-    setLogging(true)
+    // Cleared before the request, like the strength card: the row is already
+    // in the list, so the form has nothing left to hold on to.
+    setDuration('')
+    setDistance('')
+    setNote('')
     try {
       await onLogSet(name, {
         kind: 'cardio',
         duration_seconds: seconds,
         distance: dist,
-        
+
         note: note.trim() || null,
       })
-      setDuration('')
-      setDistance('')
-      setNote('')
     } catch {
       setError('No se pudo registrar la serie.')
-    } finally {
-      setLogging(false)
     }
   }
 
@@ -737,8 +748,8 @@ function CardioCard({
             placeholder="opcional"
           />
         </div>
-        <button type="submit" className="btn-full btn-log" disabled={logging}>
-          {logging ? 'Registrando…' : logLabel}
+        <button type="submit" className="btn-full btn-log">
+          {logLabel}
         </button>
       </form>
 
@@ -758,16 +769,25 @@ function CardioCard({
           <ol className="sets">
             {sets.map((set, index) => (
               <li key={set.id}>
-                <span>{formatCardioSet(set)}</span>
-                <button
-                  type="button"
-                  className="secondary set-action set-menu-btn"
-                  aria-label={`Más acciones · serie ${index + 1}`}
-                  aria-expanded={openMenuId === set.id}
-                  onClick={() => setOpenMenuId((id) => (id === set.id ? null : set.id))}
-                >
-                  ⋯
-                </button>
+                <span className={set.pending ? 'set-pending' : undefined}>
+                  {formatCardioSet(set)}
+                  {set.pending && (
+                    <span className="pending-dot" role="img" aria-label="Sin guardar" />
+                  )}
+                </span>
+                {/* Deleting routes through the server id a pending set hasn't
+                    got yet, so the menu appears when the set lands. */}
+                {!set.pending && (
+                  <button
+                    type="button"
+                    className="secondary set-action set-menu-btn"
+                    aria-label={`Más acciones · serie ${index + 1}`}
+                    aria-expanded={openMenuId === set.id}
+                    onClick={() => setOpenMenuId((id) => (id === set.id ? null : set.id))}
+                  >
+                    ⋯
+                  </button>
+                )}
                 {openMenuId === set.id && (
                   <div className="set-menu">
                     <button
@@ -853,6 +873,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   // mid-rest and coming back picks the clock up where it actually is.
   const [restSeconds, setRestSecondsState] = useState(getRestSeconds)
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
+  // Counter behind the local ids of sets the server hasn't acknowledged yet.
+  const nextTmpId = useRef(0)
 
   function endRest() {
     setRestUntil(null)
@@ -960,11 +982,35 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
 
   async function logSetFor(name, fields) {
     // fields carry either strength (reps/weight/…) or cardio (duration/…) metrics.
-    const updated = await logSet(workout.id, { exercise_name: name, ...fields })
-    setWorkout(updated)
-    // The rest starts when the set lands, not when you tapped — a failed
-    // request shouldn't leave you resting on a set you never logged.
+    //
+    // On screen first, request second. The gym is a basement and the free tier
+    // sleeps, so putting a fetch between finishing a set and seeing it logged
+    // makes the app slowest exactly when it's being used. The set gets a string
+    // id — nothing can mistake `tmp-3` for a server id and PATCH against it.
+    // Spec: Workout.test.jsx, "optimistic logging".
+    const tmpId = `tmp-${(nextTmpId.current += 1)}`
+    setWorkout((w) => ({
+      ...w,
+      sets: [...w.sets, { id: tmpId, pending: true, exercise_name: name, ...fields }],
+    }))
+    // Started on the tap now, not on the round trip: resting is what you do
+    // *while* the request is open. If the log then fails the set is rolled back
+    // but the clock stays — you did rest, and the bar already has a Saltar;
+    // yanking a live countdown out from under you is the worse of the two.
     startRest()
+    try {
+      const updated = await logSet(workout.id, { exercise_name: name, ...fields })
+      // The response is the whole workout, and a set still in flight isn't in
+      // it. Carry the other pending ones over or logging two sets quickly has
+      // the first response wipe the second off the screen.
+      setWorkout((w) => ({
+        ...updated,
+        sets: [...updated.sets, ...w.sets.filter((s) => s.pending && s.id !== tmpId)],
+      }))
+    } catch (err) {
+      setWorkout((w) => ({ ...w, sets: w.sets.filter((s) => s.id !== tmpId) }))
+      throw err
+    }
   }
 
   async function editSetFor(set, { reps, weight, rpe, note }) {

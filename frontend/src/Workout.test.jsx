@@ -1383,6 +1383,128 @@ describe('Workout', () => {
     })
   })
 
+  // The gym is a basement and Render sleeps. If the network sits between
+  // finishing a set and seeing it logged, the app is slow exactly when it is
+  // being used. The set lands locally first; the request catches up after.
+  describe('optimistic logging', () => {
+    // A logSet mock you resolve by hand, so the assertions can stand in the
+    // window where the request is still in flight.
+    function deferredLogSet() {
+      let resolve
+      let reject
+      api.logSet.mockImplementation(
+        () =>
+          new Promise((res, rej) => {
+            resolve = res
+            reject = rej
+          }),
+      )
+      return {
+        resolve: (workout) => resolve(workout),
+        reject: () => reject(new Error('offline')),
+      }
+    }
+
+    async function typeAndLog({ reps = '8', weight = '60' } = {}) {
+      await userEvent.type(await screen.findByLabelText(/^ejercicio$/i), 'Bench Press')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      await userEvent.type(await screen.findByLabelText(/reps/i), reps)
+      await userEvent.type(screen.getByLabelText(/peso/i), weight)
+      await userEvent.click(screen.getByRole('button', { name: /^registrar/i }))
+    }
+
+    beforeEach(() => {
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: false,
+        sets: [],
+      })
+    })
+
+    it('puts the set on screen before the server has answered', async () => {
+      deferredLogSet()
+      renderWorkout()
+      await typeAndLog()
+
+      // No waitFor: the row is expected to be there already, with the request
+      // still open. This is the whole point of the change.
+      expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
+      expect(screen.getByText(/hoy · 1 serie/i)).toBeInTheDocument()
+    })
+
+    it('marks the set as not yet saved, and clears the mark when it lands', async () => {
+      const flight = deferredLogSet()
+      const { container } = renderWorkout()
+      await typeAndLog()
+
+      // Honest about the state it is in: on screen, not yet on the server.
+      expect(container.querySelector('.set-pending')).toBeInTheDocument()
+
+      flight.resolve(workoutWith(benchSet({ id: 77, reps: 8, weight: 60 })))
+      await waitFor(() => expect(container.querySelector('.set-pending')).toBeNull())
+      expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
+    })
+
+    it('takes the set back off the list when the request fails', async () => {
+      const flight = deferredLogSet()
+      renderWorkout()
+      await typeAndLog()
+      expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
+
+      flight.reject()
+
+      // Rolled back, and said out loud — a set silently vanishing is worse than
+      // one that never appeared. PR 2 replaces this with a queue that retries.
+      await waitFor(() => expect(screen.queryByText(/60 kg x 8/)).not.toBeInTheDocument())
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo registrar/i)
+    })
+
+    // The server answers with the whole workout, and a set still in flight is
+    // not in it. Overwriting blind would delete the second set off the screen
+    // the moment the first one's response arrived.
+    it('does not let a landing set erase one still in flight', async () => {
+      let calls = 0
+      const pending = []
+      api.logSet.mockImplementation(() => {
+        calls += 1
+        return new Promise((res) => pending.push(res))
+      })
+      renderWorkout()
+      await typeAndLog({ reps: '8', weight: '60' })
+      await waitFor(() => expect(calls).toBe(1))
+
+      // Second set, logged before the first has come back.
+      await userEvent.click(screen.getByRole('button', { name: /\+1 serie/i }))
+      await waitFor(() => expect(calls).toBe(2))
+      expect(screen.getByText(/hoy · 2 series/i)).toBeInTheDocument()
+
+      // The first response knows about one set only.
+      pending[0](workoutWith(benchSet({ id: 77, reps: 8, weight: 60 })))
+
+      await waitFor(() => expect(screen.getByText(/hoy · 2 series/i)).toBeInTheDocument())
+    })
+
+    it('starts the rest clock on the tap, not on the round trip', async () => {
+      deferredLogSet()
+      renderWorkout()
+      await typeAndLog()
+
+      // Resting is what you do while the request is still open, so the clock
+      // cannot wait for it.
+      expect(screen.getByRole('timer')).toBeInTheDocument()
+    })
+
+    it('does not offer to edit a set that has not been saved yet', async () => {
+      deferredLogSet()
+      renderWorkout()
+      await typeAndLog()
+
+      // Editing routes through the set's server id, and a pending set has none.
+      // It becomes editable when it lands.
+      expect(screen.queryByRole('button', { name: /editar serie 1/i })).not.toBeInTheDocument()
+    })
+  })
+
   it('deletes the current workout and exits, after confirming', async () => {
     const onExit = vi.fn()
     api.deleteWorkout.mockResolvedValue(null)
