@@ -9,7 +9,7 @@ def given_logged_previously(client, name, weight, reps):
     assert workout.status_code == 201, workout.text
     logged = client.post(
         f"/workouts/{workout.json()['id']}/sets",
-        json={"exercise_name": name, "reps": reps, "weight": weight, "unit": "kg"},
+        json={"exercise_name": name, "reps": reps, "weight": weight},
     )
     assert logged.status_code == 201, logged.text
 
@@ -24,7 +24,7 @@ def given_logged_in_current_workout(client, name, weight, reps):
     workout_id = workout.json()["id"]
     logged = client.post(
         f"/workouts/{workout_id}/sets",
-        json={"exercise_name": name, "reps": reps, "weight": weight, "unit": "kg"},
+        json={"exercise_name": name, "reps": reps, "weight": weight},
     )
     assert logged.status_code == 201, logged.text
     return workout_id

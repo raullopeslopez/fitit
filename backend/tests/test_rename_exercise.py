@@ -5,7 +5,7 @@ history point and record follows automatically (they reference it by id)."""
 def _log(client, workout_id, name):
     r = client.post(
         f"/workouts/{workout_id}/sets",
-        json={"exercise_name": name, "reps": 5, "weight": 50, "unit": "kg"},
+        json={"exercise_name": name, "reps": 5, "weight": 50},
     )
     assert r.status_code == 201, r.text
 

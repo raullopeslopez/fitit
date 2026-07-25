@@ -30,7 +30,7 @@ import {
   setRestSeconds,
   setRestUntil,
 } from './prefs.js'
-import { displayWeight, toKg } from './units.js'
+import { showKg } from './units.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -54,14 +54,6 @@ function validateSet(reps, weight, rpe) {
   return { reps: r, weight: w, rpe: rpeValue }
 }
 
-// Kilos and kilometres, always. The kg/lb and km/mi toggles are gone: a sticky
-// preference you never change but *can* flip mid-session isn't a preference,
-// it's a way to corrupt your own log — one flip turned a 90 lb pulldown into
-// 90 kg and invented a record. Still threaded as props so the cards keep
-// reading `weight_kg` canonically; the columns themselves go in a follow-up.
-const WEIGHT_UNIT = 'kg'
-const DISTANCE_UNIT = 'km'
-
 // Seed the steppers from the last previous mark so a straight repeat is one tap
 // on the "Registrar" button; fall back to empty for a never-logged exercise.
 const WEIGHT_STEP = 2.5
@@ -79,7 +71,6 @@ function ExerciseCard({
   muscle,
   previous,
   sets,
-  weightUnit,
   onLogSet,
   onEditSet,
   onDeleteSet,
@@ -90,7 +81,7 @@ function ExerciseCard({
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
   const [weight, setWeight] = useState(
-    seed ? String(displayWeight(seed.weight_kg, weightUnit)) : '',
+    seed ? String(showKg(seed.weight)) : '',
   )
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
@@ -109,7 +100,7 @@ function ExerciseCard({
   const seededBest =
     previous?.best_one_rm ??
     (previous?.sets?.length
-      ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
+      ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight, s.reps)))
       : null)
   const [best, setBest] = useState(seededBest)
   const [pr, setPr] = useState(false)
@@ -133,11 +124,11 @@ function ExerciseCard({
       await onLogSet(name, {
         reps: valid.reps,
         weight: valid.weight,
-        unit: weightUnit,
+
         rpe: valid.rpe,
         note: note.trim() || null,
       })
-      const oneRm = estimatedOneRm(toKg(valid.weight, weightUnit), valid.reps)
+      const oneRm = estimatedOneRm(valid.weight, valid.reps)
       setPr(best != null && oneRm > best)
       setBest((b) => (b == null ? oneRm : Math.max(b, oneRm)))
       // Keep the weight and reps you just logged: straight sets are the common
@@ -162,7 +153,6 @@ function ExerciseCard({
       await onLogSet(name, {
         reps: last.reps,
         weight: last.weight,
-        unit: last.unit,
         rpe: last.rpe ?? null,
         note: last.note ?? null,
       })
@@ -177,7 +167,7 @@ function ExerciseCard({
     setEditReps(String(set.reps))
     // Edited in the unit you're reading in, not the one it was logged in — the
     // row above the form says 135 lb, so the field has to say 135 too.
-    setEditWeight(String(displayWeight(set.weight_kg, weightUnit)))
+    setEditWeight(String(showKg(set.weight)))
     setEditRpe(set.rpe != null ? String(set.rpe) : '')
     setEditNote(set.note || '')
   }
@@ -212,7 +202,7 @@ function ExerciseCard({
   }
 
   const bestOneRm = sets.length
-    ? Math.max(...sets.map((s) => estimatedOneRm(s.weight_kg, s.reps)))
+    ? Math.max(...sets.map((s) => estimatedOneRm(s.weight, s.reps)))
     : 0
   // What a folded card still has to answer: did I do this, and what did I hit.
   // It names one real working set — not decoupled reps/weight ranges, where you
@@ -221,11 +211,11 @@ function ExerciseCard({
   // show the hardest — the top set by est. 1RM, the same one the PR logic
   // tracks — labelled "tope" so a single pair isn't read as the whole exercise
   // ("4 series · tope 60 kg × 8"). Full per-set detail is one tap away, open.
-  const shownPair = (s) => `${displayWeight(s.weight_kg, weightUnit)}×${s.reps}`
+  const shownPair = (s) => `${showKg(s.weight)}×${s.reps}`
   const varied = sets.length ? !sets.every((s) => shownPair(s) === shownPair(sets[0])) : false
   const topSet = sets.length
     ? sets.reduce((best, s) =>
-        estimatedOneRm(s.weight_kg, s.reps) > estimatedOneRm(best.weight_kg, best.reps) ? s : best,
+        estimatedOneRm(s.weight, s.reps) > estimatedOneRm(best.weight, best.reps) ? s : best,
       )
     : null
   // The count and framing stay muted; the weight — the "what did I hit" figure —
@@ -236,7 +226,7 @@ function ExerciseCard({
       {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · `}
       {varied && <span className="d-tope">tope</span>}
       {varied && ' '}
-      <span className="d-key">{`${displayWeight(topSet.weight_kg, weightUnit)} ${weightUnit}`}</span>
+      <span className="d-key">{`${showKg(topSet.weight)} kg`}</span>
       {` × ${topSet.reps}`}
     </>
   ) : (
@@ -299,21 +289,21 @@ function ExerciseCard({
           <div className="target-line">
             {seededBest != null && todayBest != null && (
               <>
-                <span className="target-prev">{displayWeight(seededBest, weightUnit)}</span>
+                <span className="target-prev">{showKg(seededBest)}</span>
                 <span className="target-arrow" aria-hidden="true">
                   →
                 </span>
               </>
             )}
             <span className={`target-today${beatIt ? ' is-pr' : ''}`}>
-              {displayWeight(todayBest ?? seededBest, weightUnit)}
+              {showKg(todayBest ?? seededBest)}
             </span>
           </div>
           {previous?.found && (
             <div className="target-side">
               <div className="target-label">Última vez</div>
               <div className="target-meta">
-                {previous.sets.map((s) => formatSet(s, weightUnit)).join(', ')}
+                {previous.sets.map((s) => formatSet(s)).join(', ')}
               </div>
             </div>
           )}
@@ -324,19 +314,19 @@ function ExerciseCard({
 
       {pr && (
         <p className="pr-banner">
-          ¡Nuevo récord! 1RM estimado {displayWeight(best, weightUnit)}
+          ¡Nuevo récord! 1RM estimado {showKg(best)}
         </p>
       )}
 
       <form onSubmit={handleLogSet}>
         <div className="row">
           <div className="field stepper-field">
-            <label htmlFor={`weight-${name}`}>Peso · {weightUnit}</label>
+            <label htmlFor={`weight-${name}`}>Peso · kg</label>
             <div className="stepper">
               <button
                 type="button"
                 className="stepper-btn"
-                aria-label={`Restar ${weightUnit}`}
+                aria-label={`Restar kg`}
                 onClick={() => setWeight((w) => bump(w, -WEIGHT_STEP, 0))}
               >
                 −
@@ -350,7 +340,7 @@ function ExerciseCard({
               <button
                 type="button"
                 className="stepper-btn stepper-plus"
-                aria-label={`Sumar ${weightUnit}`}
+                aria-label={`Sumar kg`}
                 onClick={() => setWeight((w) => bump(w, WEIGHT_STEP, 0))}
               >
                 +
@@ -510,7 +500,7 @@ function ExerciseCard({
                     aria-label={`Editar serie ${index + 1}`}
                     onClick={() => startEdit(set)}
                   >
-                    {formatSet(set, weightUnit)}
+                    {formatSet(set)}
                     {set.rpe ? ` · RPE ${set.rpe}` : ''}
                     {prIds.has(set.id) && (
                       <span className="pr-flag" title="Récord al registrarla">
@@ -578,7 +568,6 @@ function CardioCard({
   name,
   previous,
   sets,
-  distanceUnit,
   onLogSet,
   onDeleteSet,
   open = true,
@@ -617,7 +606,7 @@ function CardioCard({
         kind: 'cardio',
         duration_seconds: seconds,
         distance: dist,
-        distance_unit: dist != null ? distanceUnit : null,
+        
         note: note.trim() || null,
       })
       setDuration('')
@@ -646,7 +635,7 @@ function CardioCard({
   const ready = seconds != null && seconds >= 1
   const logLabel = ready
     ? distance.trim() !== ''
-      ? `Registrar ${distance} ${distanceUnit} · ${formatDuration(seconds)}`
+      ? `Registrar ${distance} km · ${formatDuration(seconds)}`
       : `Registrar ${formatDuration(seconds)}`
     : 'Registrar serie'
 
@@ -696,7 +685,7 @@ function CardioCard({
             />
           </div>
           <div className="field">
-            <label htmlFor={`dist-${name}`}>Distancia · {distanceUnit}</label>
+            <label htmlFor={`dist-${name}`}>Distancia · km</label>
             <input
               id={`dist-${name}`}
               inputMode="decimal"
@@ -731,7 +720,7 @@ function CardioCard({
           <div className="target-label session-label">Hoy</div>
           <p className="set-summary">
             Total {formatDuration(totalSeconds)}
-            {totalDistance ? ` · ${totalDistance} ${distanceUnit}` : ''}
+            {totalDistance ? ` · ${totalDistance} km` : ''}
           </p>
           <ol className="sets">
             {sets.map((set, index) => (
@@ -959,7 +948,6 @@ export default function Workout({ workoutId, onExit }) {
       exercise_name: set.exercise_name,
       reps,
       weight,
-      unit: WEIGHT_UNIT,
       rpe,
       note,
     })
@@ -1220,7 +1208,6 @@ export default function Workout({ workoutId, onExit }) {
             name={ex.name}
             previous={ex.previous}
             sets={setsFor(ex.name)}
-            distanceUnit={DISTANCE_UNIT}
             onLogSet={logSetFor}
             onDeleteSet={deleteSetFor}
             open={isOpen(ex.name, index)}
@@ -1233,7 +1220,6 @@ export default function Workout({ workoutId, onExit }) {
             muscle={muscleByName[ex.name] ?? null}
             previous={ex.previous}
             sets={setsFor(ex.name)}
-            weightUnit={WEIGHT_UNIT}
             onLogSet={logSetFor}
             onEditSet={editSetFor}
             onDeleteSet={deleteSetFor}

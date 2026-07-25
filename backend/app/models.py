@@ -72,24 +72,17 @@ class SetEntry(Base):
     )
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"), index=True)
     set_index: Mapped[int] = mapped_column(Integer)
-    # Strength metrics (null for cardio sets).
-    #
-    # `weight` + `unit` are provenance: the number as typed, in the unit that
-    # was selected at the time. A unit correction rewrites `unit` and leaves
-    # `weight` alone — the user typed 135, they just meant 135 lb.
-    #
-    # `weight_kg` is the canonical value every comparison reads. Without it a
-    # 135 lb set outranks a 100 kg one in records, volume and 1RM.
+    # Strength metrics (null for cardio sets). `weight` is kilos — there is no
+    # other unit, so there is nothing to record alongside it and nothing to
+    # convert. It used to carry `unit` + a canonical `weight_kg` beside it; both
+    # went with the kg/lb toggle they existed to serve.
     reps: Mapped[int | None] = mapped_column(Integer, nullable=True)
     weight: Mapped[float | None] = mapped_column(Float, nullable=True)
-    unit: Mapped[str] = mapped_column(String(4), default="kg")
-    weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     rpe: Mapped[float | None] = mapped_column(Float, nullable=True)
     note: Mapped[str | None] = mapped_column(String(280), nullable=True)
     # Cardio metrics (null for strength sets).
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    distance: Mapped[float | None] = mapped_column(Float, nullable=True)
-    distance_unit: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    distance: Mapped[float | None] = mapped_column(Float, nullable=True)  # kilometres
     # The workout carries the date, the set carries the moment — it's what
     # separates a tight five-set block from one spread over an hour.
     #

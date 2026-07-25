@@ -56,18 +56,18 @@ describe('formatDuration', () => {
 })
 
 describe('formatPace', () => {
-  it('is time per distance unit', () => {
-    expect(formatPace(1470, 5.2, 'km')).toBe('4:43/km')
+  it('is time per kilometre', () => {
+    expect(formatPace(1470, 5.2)).toBe('4:43/km')
   })
   it('is null without a distance', () => {
-    expect(formatPace(1470, 0, 'km')).toBeNull()
+    expect(formatPace(1470, 0)).toBeNull()
   })
 })
 
 describe('formatCardioSet', () => {
   it('shows duration, distance and pace', () => {
     expect(
-      formatCardioSet({ duration_seconds: 1470, distance: 5.2, distance_unit: 'km' }),
+      formatCardioSet({ duration_seconds: 1470, distance: 5.2 }),
     ).toBe('24:30 · 5.2 km · 4:43/km')
   })
   it('shows just the duration when there is no distance', () => {

@@ -9,7 +9,6 @@ from ..db import get_session
 from ..exercise_repo import find_exercise, get_or_create_exercise
 from ..models import Day, Exercise, SetEntry, Workout
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
-from ..units import to_kg
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -23,13 +22,10 @@ def _set_out(entry: SetEntry, exercise: Exercise) -> SetOut:
         set_index=entry.set_index,
         reps=entry.reps,
         weight=entry.weight,
-        unit=entry.unit,
-        weight_kg=entry.weight_kg,
         rpe=entry.rpe,
         note=entry.note,
         duration_seconds=entry.duration_seconds,
         distance=entry.distance,
-        distance_unit=entry.distance_unit,
         created_at=entry.created_at,
     )
 
@@ -193,13 +189,10 @@ async def log_set(
             set_index=next_index,
             reps=payload.reps,
             weight=payload.weight,
-            unit=payload.unit,
-            weight_kg=to_kg(payload.weight, payload.unit),
             rpe=payload.rpe,
             note=payload.note or None,
             duration_seconds=payload.duration_seconds,
             distance=payload.distance,
-            distance_unit=payload.distance_unit,
         )
     )
     await session.commit()
@@ -231,13 +224,10 @@ async def edit_set(
     set_entry.exercise_id = exercise.id
     set_entry.reps = payload.reps
     set_entry.weight = payload.weight
-    set_entry.unit = payload.unit
-    set_entry.weight_kg = to_kg(payload.weight, payload.unit)
     set_entry.rpe = payload.rpe
     set_entry.note = payload.note or None
     set_entry.duration_seconds = payload.duration_seconds
     set_entry.distance = payload.distance
-    set_entry.distance_unit = payload.distance_unit
     await session.commit()
 
     return _set_out(set_entry, exercise)

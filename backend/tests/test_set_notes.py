@@ -4,7 +4,7 @@
 def _log(client, workout_id, extra):
     return client.post(
         f"/workouts/{workout_id}/sets",
-        json={"exercise_name": "Squat", "reps": 5, "weight": 100, "unit": "kg", **extra},
+        json={"exercise_name": "Squat", "reps": 5, "weight": 100, **extra},
     )
 
 

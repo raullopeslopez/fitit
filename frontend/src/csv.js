@@ -1,20 +1,18 @@
 import { formatDuration } from './format.js'
 
+// `peso` is kilos and `distancia` kilometres — one unit each, so the columns
+// that used to name them (and the duplicate `peso_kg` that existed to be
+// summable across mixed units) are gone.
 const HEADER = [
   'fecha',
   'entreno',
   'ejercicio',
   'reps',
-  'peso',
-  'unidad',
-  // Both, on purpose: `peso`/`unidad` are what was typed, `peso_kg` is what a
-  // spreadsheet can actually sum across sets logged in different units.
   'peso_kg',
   'rpe',
   'nota',
   'duración',
-  'distancia',
-  'unidad_dist',
+  'distancia_km',
 ]
 
 function escape(value) {
@@ -28,21 +26,17 @@ export function toCsv(days) {
   for (const day of days) {
     for (const workout of day.workouts) {
       for (const set of workout.sets) {
-        const isCardio = set.kind === 'cardio'
         rows.push(
           [
             day.date,
             workout.name,
             set.exercise_name,
             set.reps,
-            set.weight,
-            isCardio ? '' : set.unit, // weight unit is meaningless for cardio
-            set.weight_kg != null ? Math.round(set.weight_kg * 100) / 100 : '',
+            set.weight != null ? Math.round(set.weight * 100) / 100 : '',
             set.rpe,
             set.note,
             set.duration_seconds != null ? formatDuration(set.duration_seconds) : '',
             set.distance,
-            set.distance_unit,
           ]
             .map(escape)
             .join(','),

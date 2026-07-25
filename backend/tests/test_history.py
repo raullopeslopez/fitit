@@ -4,7 +4,7 @@
 def _log(client, workout_id, reps, weight):
     r = client.post(
         f"/workouts/{workout_id}/sets",
-        json={"exercise_name": "Bench", "reps": reps, "weight": weight, "unit": "kg"},
+        json={"exercise_name": "Bench", "reps": reps, "weight": weight},
     )
     assert r.status_code == 201, r.text
 

@@ -12,7 +12,7 @@ def _log(client, payload):
 
 @given(parsers.parse('I logged "{name}" at {weight:g} kg x {reps:d} in a previous workout'))
 def given_logged_previously(client, name, weight, reps):
-    _log(client, {"exercise_name": name, "reps": reps, "weight": weight, "unit": "kg"})
+    _log(client, {"exercise_name": name, "reps": reps, "weight": weight})
 
 
 @given(parsers.parse('I ran "{name}" for {seconds:d} seconds in a previous workout'))
@@ -51,7 +51,7 @@ def then_listed_before(marks_response, first, second):
 def then_best_mark_is(marks_response, name, reps, weight):
     mark = _mark_for(marks_response, name)
     assert mark["reps"] == reps
-    assert mark["weight_kg"] == weight
+    assert mark["weight"] == weight
 
 
 @then(parsers.parse('the best mark for "{name}" improved'))

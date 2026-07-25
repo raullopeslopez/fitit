@@ -20,7 +20,10 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import create_engine, text
 
-from app.units import to_kg
+# app.units is gone with the kg/lb toggle, so the multiplier lives here now. It
+# still has to match the one the migration hardcodes in SQL: this migration runs
+# on every fresh database, and e3b9c07f5a21 copies its output into `weight`.
+LB_TO_KG = 0.45359237
 
 BACKEND = Path(__file__).resolve().parents[2]
 MIGRATION = BACKEND / "alembic" / "versions" / "f1c6b3d80e57_add_set_weight_kg.py"
@@ -75,11 +78,11 @@ def test_pound_rows_are_converted(migrated):
     assert migrated[2].weight_kg == pytest.approx(61.235, abs=0.001)
 
 
-def test_the_backfill_matches_what_the_app_writes_for_new_sets(migrated):
-    # The migration hardcodes its multiplier in SQL and the app computes one in
-    # Python. If those ever drift, a set logged before the migration and the
-    # identical set logged after it stop comparing equal.
-    assert migrated[2].weight_kg == pytest.approx(to_kg(135.0, "lb"))
+def test_the_backfill_uses_the_international_pound(migrated):
+    # The multiplier is hardcoded in the migration's SQL. If it ever drifts from
+    # the international pound, every historical pound-logged set is silently
+    # wrong by a factor of 2.2 — and e3b9c07f5a21 then copies that into `weight`.
+    assert migrated[2].weight_kg == pytest.approx(135.0 * LB_TO_KG)
 
 
 def test_bodyweight_zero_stays_zero_rather_than_null(migrated):

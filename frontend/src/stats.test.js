@@ -45,7 +45,7 @@ describe('heatmapGrid', () => {
 
 describe('prSetIds', () => {
   // Weights are canonical kilos — that's the only thing the comparison reads.
-  const set = (id, kg, reps) => ({ id, weight_kg: kg, reps })
+  const set = (id, kg, reps) => ({ id, weight: kg, reps })
 
   it('flags a set that beats the previous best', () => {
     // Epley: 82.5x5 -> 96.3, 85x5 -> 99.2. A prior best of 97 sits between them.

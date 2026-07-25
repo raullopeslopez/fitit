@@ -33,7 +33,7 @@ def given_workout_with_sets(client, ctx, first, second):
     for name in (first, second):
         logged = client.post(
             f"/workouts/{workout['id']}/sets",
-            json={"exercise_name": name, "reps": 5, "weight": 60, "unit": "kg"},
+            json={"exercise_name": name, "reps": 5, "weight": 60},
         )
         assert logged.status_code == 201, logged.text
     ctx["workout_id"] = workout["id"]

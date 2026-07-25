@@ -1,9 +1,8 @@
-import { displayWeight } from './units.js'
+import { showKg } from './units.js'
 
-// A logged set, read back in the unit you currently prefer rather than the one
-// that happened to be selected when you logged it.
-export function formatSet(set, unit = 'kg') {
-  return `${displayWeight(set.weight_kg, unit)} ${unit} x ${set.reps}`
+// A logged set. Kilos, because that is the only unit there is.
+export function formatSet(set) {
+  return `${showKg(set.weight)} kg x ${set.reps}`
 }
 
 // Estimated 1-rep max (Epley). Used to compare sets for personal records.
@@ -83,19 +82,15 @@ export function formatTime(iso) {
   return `${pad(dt.getHours())}:${pad(dt.getMinutes())}`
 }
 
-// Pace = time per one distance unit, e.g. "4:43/km". Null without a distance.
-export function formatPace(seconds, distance, unit) {
+// Pace = time per kilometre, e.g. "4:43/km". Null without a distance.
+export function formatPace(seconds, distance) {
   if (!distance || distance <= 0 || seconds == null) return null
-  const perUnit = Math.round(seconds / distance)
-  return `${Math.floor(perUnit / 60)}:${pad(perUnit % 60)}/${unit}`
+  const perKm = Math.round(seconds / distance)
+  return `${Math.floor(perKm / 60)}:${pad(perKm % 60)}/km`
 }
 
 export function formatCardioSet(set) {
   const dur = formatDuration(set.duration_seconds)
   if (!set.distance) return dur
-  return `${dur} · ${set.distance} ${set.distance_unit} · ${formatPace(
-    set.duration_seconds,
-    set.distance,
-    set.distance_unit,
-  )}`
+  return `${dur} · ${set.distance} km · ${formatPace(set.duration_seconds, set.distance)}`
 }

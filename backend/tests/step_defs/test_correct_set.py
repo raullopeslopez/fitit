@@ -13,7 +13,7 @@ def given_logged_set(client, reps, weight, name):
     workout_id = workout.json()["id"]
     logged = client.post(
         f"/workouts/{workout_id}/sets",
-        json={"exercise_name": name, "reps": reps, "weight": weight, "unit": "kg"},
+        json={"exercise_name": name, "reps": reps, "weight": weight},
     )
     assert logged.status_code == 201, logged.text
     return {

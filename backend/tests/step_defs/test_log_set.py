@@ -24,7 +24,7 @@ def given_workout(client):
 def when_log_set(client, workout, name, reps, weight):
     return client.post(
         f"/workouts/{workout['id']}/sets",
-        json={"exercise_name": name, "reps": reps, "weight": weight, "unit": "kg"},
+        json={"exercise_name": name, "reps": reps, "weight": weight},
     )
 
 
