@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Entreno: la notificación **saltaba cada vez que salías de la app**, no solo al
+  bloquear el móvil. "Oculta" también es abrir WhatsApp o mirar la música, y
+  como el reanuncio tiene que sonar para contar como una llegada, el arreglo de
+  la pantalla de bloqueo se convirtió en un banner interrumpiendo cualquier otra
+  cosa. La unidad correcta es la serie, no el cambio de app: registrar una serie
+  da derecho a **una** llegada, que se gasta al ocultarse la app la primera vez;
+  la siguiente hay que ganársela levantando algo.
 - Entreno: el icono pequeño de la notificación (barra de estado y el círculo de
   la propia notificación) era un bloque gris sin forma. Apuntaba al icono de la
   app, y Android no dibuja ese hueco como una imagen: se queda con la silueta,
