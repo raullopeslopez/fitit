@@ -103,7 +103,8 @@ const REST = {
   endsAt: 0, // filled in per test, relative to the frozen clock
   seconds: 90,
   workoutId: 7,
-  label: 'Press banca · 60 kg x 8',
+  // No wording on the wire: the worker writes it from the set, because it has
+  // to rewrite it anyway the moment a different set is typed in.
   payload: { exercise_name: 'Press banca', reps: 8, weight: 60 },
   token: 'jwt-123',
   pending: 0,
@@ -163,6 +164,49 @@ describe('the rest notification', () => {
     // Two rests started, one "terminado" — the first one's alarm would have
     // gone off a minute into the second one's countdown.
     expect(worker.shown.filter((n) => n.title === 'Descanso terminado')).toHaveLength(1)
+  })
+
+  describe('with no rest to count', () => {
+    const untimed = (overrides = {}) => ({ ...REST, endsAt: null, seconds: 0, ...overrides })
+
+    it('stands as a plain remote: the exercise leads, no clock at all', async () => {
+      // Not timing your rests must not cost you the lock screen.
+      const worker = bootWorker()
+
+      worker.dispatch('message', { data: { type: 'rest-start', rest: untimed() } })
+      await vi.advanceTimersByTimeAsync(0)
+
+      const [notice] = worker.shown
+      expect(notice.title).toBe('Press banca')
+      expect(notice.body).toBe('60 kg x 8\n3 series')
+      expect(notice.actions.map((a) => a.title)).toEqual(['+1 serie', 'Otra serie'])
+      expect(notice.timestamp).toBeUndefined()
+    })
+
+    it('never rings, because nothing is counting down', async () => {
+      const worker = bootWorker()
+
+      const running = worker.dispatch('message', { data: { type: 'rest-start', rest: untimed() } })
+      await vi.advanceTimersByTimeAsync(600_000)
+      await running
+
+      expect(worker.shown).toHaveLength(1)
+    })
+
+    it('keeps the clock off after a set logged from the notification', async () => {
+      const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+      const worker = bootWorker({ fetch })
+      worker.dispatch('message', { data: { type: 'rest-start', rest: untimed() } })
+      await vi.advanceTimersByTimeAsync(0)
+
+      worker.dispatch('notificationclick', { action: 'log' })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect((await worker.state('rest')).endsAt).toBeNull()
+      const receipt = worker.shown[worker.shown.length - 1]
+      expect(receipt.title).toBe('Press banca')
+      expect(receipt.body).toContain('4 series')
+    })
   })
 
   it('the same rest sent twice is an update, not a second countdown', async () => {

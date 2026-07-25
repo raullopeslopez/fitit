@@ -74,12 +74,17 @@ self.addEventListener('fetch', (event) => {
 })
 
 // ---------------------------------------------------------------------------
-// The rest countdown, on the lock screen.
+// The session, on the lock screen.
 //
 // The trip from pocket to card is the most expensive thing left in logging a
-// set: wake the phone, unlock it, find the app, find the card, tap. So the rest
-// timer becomes an Android notification carrying a `+1 serie` button, and a
-// straight set is one tap on a locked phone.
+// set: wake the phone, unlock it, find the app, find the card, tap. So the
+// session gets an Android notification carrying `+1 serie` and a field for a
+// different set, and a straight set is one tap on a locked phone.
+//
+// The rest countdown rides on that notification when there is one — an end time
+// in the title, a buzz when it runs out — but it is not what the notification
+// is *for*. Somebody who doesn't time their rests still wants the button, so
+// `endsAt: null` is a first-class case throughout: same remote, no clock.
 //
 // It has to live here rather than in the page, because the page is exactly what
 // stops running when the screen goes off. The page hands over everything the
@@ -104,6 +109,9 @@ async function writeState(key, value) {
 
 const pad = (n) => String(n).padStart(2, '0')
 
+// One decimal, no trailing ".0" — the same rule the app's readouts follow.
+const showKg = (kg) => Math.round(kg * 10) / 10
+
 // The end time, not a countdown. A notification's text is written once and then
 // sits there — on a locked phone it can sit for ten minutes — so a number that
 // claims to be counting down would be lying within a second of being shown.
@@ -114,16 +122,29 @@ function endsAtLabel(endsAt) {
 
 // `done` = the rest is over (this is the moment it earns a buzz). `confirm` = a
 // set was just logged from the lock screen and the notification is the receipt.
+//
+// With no rest to count (`endsAt` null) the same notification stands as a plain
+// remote for the session: the exercise leads, and the clock simply isn't part
+// of it. Not timing your rests must not cost you the lock screen.
 function showRest(rest, { done = false, confirm = false } = {}) {
   const count = rest.series > 0 ? `\n${rest.series} ${rest.series === 1 ? 'serie' : 'series'}` : ''
+  const set = `${showKg(rest.payload.weight)} kg x ${rest.payload.reps}`
+  const timed = rest.endsAt != null
+  const title = done
+    ? 'Descanso terminado'
+    : timed
+      ? `Descanso hasta las ${endsAtLabel(rest.endsAt)}`
+      : rest.payload.exercise_name
   return self.registration.showNotification(
-    done ? 'Descanso terminado' : `Descanso hasta las ${endsAtLabel(rest.endsAt)}`,
+    title,
     {
       tag: REST_TAG,
-      body: `${rest.label}${count}`,
+      // Timed, the exercise has to ride in the body because the title is the
+      // clock. Untimed it is already the title, so the body is just the set.
+      body: `${timed || done ? `${rest.payload.exercise_name} · ` : ''}${set}${count}`,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      timestamp: rest.endsAt,
+      ...(timed ? { timestamp: rest.endsAt } : {}),
       // Every set puts this on screen, so it stays quiet until it has something
       // to say: the rest running out, or a set landing.
       silent: !done && !confirm,
@@ -154,6 +175,9 @@ async function closeRest() {
 // and nothing else: the notification is already on the lock screen with its
 // button, which is the part that matters.
 async function ringWhenDone(rest) {
+  // No rest to sit out. The notification stands as a remote and nothing is
+  // owed at the end of a countdown that isn't running.
+  if (rest.endsAt == null) return
   const wait = rest.endsAt - Date.now()
   if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
   // Superseded by a newer set (or skipped) while we waited: that rest owns the
@@ -199,8 +223,6 @@ function parseSet(text) {
   return { weight, reps }
 }
 
-// One decimal, no trailing ".0" — the same rule the app's readouts follow.
-const showKg = (kg) => Math.round(kg * 10) / 10
 
 // A set logged from the lock screen: `+1 serie` repeats the last one, the text
 // field names a different one. On disk first, then the network — the same order
@@ -216,15 +238,15 @@ async function logAnother(custom = null) {
     { tmpId: `sw-${Date.now()}`, workoutId: rest.workoutId, payload },
   ])
 
-  // Logging a set starts the rest, here as much as in the app. The typed set
-  // also becomes the one `+1 serie` repeats from now on: on the way down a drop
-  // set, the next repeat is the weight you just named.
+  // Logging a set starts the rest, here as much as in the app — unless there is
+  // no rest to start, in which case the notification just stands there as the
+  // remote it is. The typed set also becomes the one `+1 serie` repeats from now
+  // on: on the way down a drop set, the next repeat is the weight you just named.
   const next = {
     ...rest,
     payload,
-    label: `${payload.exercise_name} · ${showKg(payload.weight)} kg x ${payload.reps}`,
     series: (rest.series ?? 0) + 1,
-    endsAt: Date.now() + rest.seconds * 1000,
+    endsAt: rest.seconds > 0 ? Date.now() + rest.seconds * 1000 : null,
   }
   await writeState('rest', next)
   await showRest(next, { confirm: true })

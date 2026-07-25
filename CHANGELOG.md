@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Entreno: el descanso y el registro desde la pantalla de bloqueo pasan a ser
+  **dos ajustes independientes**. `Aviso de descanso` se llama ahora
+  **`Registrar sin abrir`** y va por su cuenta; `Descanso` solo decide si esa
+  notificación además lleva cuenta atrás y pita al terminar. Antes estaban
+  pegados, así que elegir `Sin descanso` quitaba también el botón `+1 serie` —
+  y "no cronometro los descansos" no es lo mismo que "no quiero registrar desde
+  el bolsillo". Sin descanso, la notificación sale con el ejercicio de título y
+  sin reloj. Saltar el descanso ya no la cierra: se reenvía sin cuenta atrás,
+  porque saltarse un descanso no es salirse de la sesión. La preferencia
+  anterior se lee una vez como valor inicial de la nueva.
 - Entreno: la notificación de descanso cambia `Saltar` por un **campo de texto**,
   así que una serie con otro peso o reps (`32.5x12`) también se registra desde la
   pantalla de bloqueo — pirámides y drop sets, que antes no tenían ninguna vía.
