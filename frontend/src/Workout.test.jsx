@@ -860,14 +860,20 @@ describe('Workout', () => {
     })
   })
 
-  it('shows an error when a request fails', async () => {
+  it('adds the exercise even when its marks cannot be fetched', async () => {
+    // This used to raise an alert and refuse. A dead network is the normal
+    // condition in a basement gym, and it has no business stopping you from
+    // putting a lift on the screen — the card stands up without history and
+    // picks it up when the marks land.
     api.getPreviousMarks.mockRejectedValue(new Error('network'))
     renderWorkout()
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(await screen.findByLabelText(/reps/i)).toBeInTheDocument()
+    expect(screen.getByText(/sin marcas anteriores/i)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   async function logBenchSet() {
@@ -1445,37 +1451,18 @@ describe('Workout', () => {
       expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
     })
 
-    it('takes the set back off the list when the request fails', async () => {
-      const flight = deferredLogSet()
-      renderWorkout()
-      await typeAndLog()
-      expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
-
-      flight.reject()
-
-      // Rolled back, and said out loud — a set silently vanishing is worse than
-      // one that never appeared. PR 2 replaces this with a queue that retries.
-      await waitFor(() => expect(screen.queryByText(/60 kg x 8/)).not.toBeInTheDocument())
-      expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo registrar/i)
-    })
-
     // The server answers with the whole workout, and a set still in flight is
     // not in it. Overwriting blind would delete the second set off the screen
     // the moment the first one's response arrived.
     it('does not let a landing set erase one still in flight', async () => {
-      let calls = 0
       const pending = []
-      api.logSet.mockImplementation(() => {
-        calls += 1
-        return new Promise((res) => pending.push(res))
-      })
+      api.logSet.mockImplementation(() => new Promise((res) => pending.push(res)))
       renderWorkout()
       await typeAndLog({ reps: '8', weight: '60' })
-      await waitFor(() => expect(calls).toBe(1))
+      await waitFor(() => expect(pending).toHaveLength(1))
 
       // Second set, logged before the first has come back.
       await userEvent.click(screen.getByRole('button', { name: /\+1 serie/i }))
-      await waitFor(() => expect(calls).toBe(2))
       expect(screen.getByText(/hoy · 2 series/i)).toBeInTheDocument()
 
       // The first response knows about one set only.
@@ -1502,6 +1489,205 @@ describe('Workout', () => {
       // Editing routes through the set's server id, and a pending set has none.
       // It becomes editable when it lands.
       expect(screen.queryByRole('button', { name: /editar serie 1/i })).not.toBeInTheDocument()
+    })
+  })
+
+  // The half that makes the optimistic row honest. A set that can't be sent is
+  // not lost and not an error — it waits in the outbox for signal.
+  describe('logging with no signal', () => {
+    const offline = () => Object.assign(new Error('Failed to fetch'))
+    const refused = () => Object.assign(new Error('nope'), { status: 422 })
+
+    async function addBench() {
+      await userEvent.type(await screen.findByLabelText(/^ejercicio$/i), 'Bench Press')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      await screen.findByLabelText(/reps/i)
+    }
+
+    async function logBench({ reps = '8', weight = '60' } = {}) {
+      await userEvent.type(screen.getByLabelText(/reps/i), reps)
+      await userEvent.type(screen.getByLabelText(/peso/i), weight)
+      await userEvent.click(screen.getByRole('button', { name: /^registrar/i }))
+    }
+
+    beforeEach(() => {
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: false,
+        sets: [],
+      })
+    })
+
+    it('keeps the set on screen and in the queue when the request fails', async () => {
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+      await addBench()
+      await logBench()
+
+      // No rollback and no alarm: you did the set, the phone just can't say so
+      // yet. This is the behaviour PR #47 explicitly left undone.
+      expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()
+      await waitFor(() => expect(JSON.parse(localStorage.getItem('fitit_outbox'))).toHaveLength(1))
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('rebuilds the unsent sets when the app is reopened', async () => {
+      localStorage.setItem(
+        'fitit_outbox',
+        JSON.stringify([
+          {
+            tmpId: 'tmp-1',
+            workoutId: 1,
+            payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 },
+          },
+        ]),
+      )
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+
+      // The card stands itself up from the queue alone — the server has never
+      // heard of this exercise, so without the queue it would not exist.
+      expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()
+      expect(cardToggle('Bench Press')).toBeInTheDocument()
+    })
+
+    it('reopens into the session with no signal at all', async () => {
+      // The one that makes the rest of this real. Without the workout cache
+      // `getWorkout` fails, the screen renders its error state, and the queue
+      // is holding sets for a session you can no longer see or add to.
+      localStorage.setItem(
+        'fitit_workout_cache',
+        JSON.stringify(workoutWith(benchSet({ id: 5, reps: 8, weight: 60 }))),
+      )
+      api.getWorkout.mockRejectedValue(offline())
+      api.getPreviousMarks.mockRejectedValue(offline())
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+
+      // Not an error screen: the session, with its history, still loggable.
+      expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()
+      expect(screen.queryByText(/no se pudo cargar el entreno/i)).not.toBeInTheDocument()
+
+      await userEvent.type(screen.getByLabelText(/reps/i), '8')
+      await userEvent.type(screen.getByLabelText(/peso/i), '65')
+      await userEvent.click(screen.getByRole('button', { name: /^registrar/i }))
+
+      expect(await screen.findByText(/65 kg x 8/)).toBeInTheDocument()
+      await waitFor(() => expect(JSON.parse(localStorage.getItem('fitit_outbox'))).toHaveLength(1))
+    })
+
+    it('still dead-ends when there is no signal and nothing cached', async () => {
+      // A cold cache is the one case with genuinely nothing to show, and it
+      // keeps its way out.
+      api.getWorkout.mockRejectedValue(offline())
+      renderWorkout()
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo cargar el entreno/i)
+      expect(screen.getByRole('button', { name: /días/i })).toBeInTheDocument()
+    })
+
+    it('sends the backlog when the network comes back', async () => {
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+      await addBench()
+      await logBench()
+      await waitFor(() => expect(JSON.parse(localStorage.getItem('fitit_outbox'))).toHaveLength(1))
+
+      api.logSet.mockResolvedValue(workoutWith(benchSet({ id: 77, reps: 8, weight: 60 })))
+      window.dispatchEvent(new Event('online'))
+
+      // Queue empty, dot gone, set still there — it just belongs to the server
+      // now instead of to the phone.
+      await waitFor(() => expect(localStorage.getItem('fitit_outbox')).toBeNull())
+      await waitFor(() => expect(document.querySelector('.set-pending')).toBeNull())
+      expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
+    })
+
+    it('drains the backlog oldest first, and stops at the one that fails', async () => {
+      localStorage.setItem(
+        'fitit_outbox',
+        JSON.stringify([
+          { tmpId: 'tmp-1', workoutId: 1, payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 } },
+          { tmpId: 'tmp-2', workoutId: 1, payload: { exercise_name: 'Bench Press', reps: 8, weight: 65 } },
+        ]),
+      )
+      // The first goes through, the second doesn't.
+      api.logSet
+        .mockResolvedValueOnce(workoutWith(benchSet({ id: 77, reps: 8, weight: 60 })))
+        .mockRejectedValue(offline())
+      renderWorkout()
+
+      // set_index is assigned server-side on arrival, so the queue may not
+      // reorder itself around a failure — the second set keeps its place.
+      await waitFor(() => {
+        const left = JSON.parse(localStorage.getItem('fitit_outbox'))
+        expect(left.map((e) => e.tmpId)).toEqual(['tmp-2'])
+      })
+      expect(api.logSet).toHaveBeenNthCalledWith(1, 1, {
+        exercise_name: 'Bench Press',
+        reps: 8,
+        weight: 60,
+      })
+    })
+
+    it('gives up on a set the server refuses, and says so', async () => {
+      api.logSet.mockRejectedValue(refused())
+      renderWorkout()
+      await addBench()
+      await logBench()
+
+      // A 422 will be a 422 forever. Retrying it would block every set behind
+      // it, so this is the one case where the row really does come back off.
+      expect(await screen.findByRole('alert')).toHaveTextContent(/rechazó una serie/i)
+      await waitFor(() => expect(localStorage.getItem('fitit_outbox')).toBeNull())
+      expect(screen.queryByText(/60 kg x 8/)).not.toBeInTheDocument()
+    })
+
+    it('shows the marks it saw last time when it cannot ask for them', async () => {
+      api.getPreviousMarks.mockResolvedValueOnce({
+        exercise_name: 'Bench Press',
+        found: true,
+        sets: [{ reps: 8, weight: 60 }],
+        best_one_rm: 76,
+      })
+      const first = renderWorkout()
+      await addBench()
+      await screen.findByText(/a batir/i)
+      first.unmount()
+
+      // Same lift, no signal. The card still knows what you did last time.
+      api.getPreviousMarks.mockRejectedValue(offline())
+      renderWorkout()
+      await addBench()
+
+      expect(await screen.findByText(/última vez/i)).toBeInTheDocument()
+      expect(screen.getByText(/marcas guardadas · sin conexión/i)).toBeInTheDocument()
+    })
+
+    it('will not award a record against marks that came from the cache', async () => {
+      api.getPreviousMarks.mockResolvedValueOnce({
+        exercise_name: 'Bench Press',
+        found: true,
+        sets: [{ reps: 8, weight: 60 }],
+        best_one_rm: 76,
+      })
+      const first = renderWorkout()
+      await addBench()
+      await screen.findByText(/a batir/i)
+      first.unmount()
+
+      api.getPreviousMarks.mockRejectedValue(offline())
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+      await addBench()
+      await logBench({ reps: '8', weight: '100' }) // e1RM 126.7, way past 76
+
+      // Cached marks were fetched excluding a different session, so they can
+      // understate the real history. A record claimed against a number like
+      // that is a record that never happened — worse than no record at all.
+      expect(await screen.findByText(/100 kg x 8/)).toBeInTheDocument()
+      expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/^PR$/)).not.toBeInTheDocument()
     })
   })
 
