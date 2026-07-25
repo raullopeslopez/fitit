@@ -26,13 +26,16 @@ export async function apiFetch(path, options = {}) {
     },
   })
 
+  // The status rides on the error. The outbox has to tell "no signal" (nothing
+  // to read, keep the set and retry) from "the server judged this set and
+  // refused it" (drop it, or it blocks every set behind it forever).
   if (res.status === 401) {
     clearToken()
     notifyUnauthorized()
-    throw new Error('unauthorized')
+    throw Object.assign(new Error('unauthorized'), { status: 401 })
   }
   if (!res.ok) {
-    throw new Error(`request failed: ${res.status}`)
+    throw Object.assign(new Error(`request failed: ${res.status}`), { status: res.status })
   }
   if (res.status === 204) {
     return null
