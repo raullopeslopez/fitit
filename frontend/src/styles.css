@@ -956,6 +956,35 @@ button.set-action {
   letter-spacing: 0.08em;
   vertical-align: 0.1em;
 }
+/* A set that is on screen but not yet on the server. Deliberately quiet: with
+   optimistic logging this is the normal state of every set for a second or two,
+   so it can't read as a warning. No amber (spent on the PR), no border, no
+   banner — the numbers stay full strength and a muted dot carries the status.
+   The row keeps .set-row's metrics so nothing shifts when the set lands. */
+.set-pending {
+  cursor: default;
+}
+.pending-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 0.45rem;
+  border-radius: 50%;
+  background: var(--muted);
+  vertical-align: 0.15em;
+  animation: pending-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pending-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pending-dot {
+    animation: none;
+    opacity: 0.55;
+  }
+}
 .set-summary {
   margin: 0.6rem 0 0;
   font-size: 0.85rem;
