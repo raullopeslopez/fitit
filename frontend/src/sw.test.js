@@ -131,7 +131,10 @@ describe('the rest notification', () => {
     // locked phone for ten minutes.
     expect(notice.title).toBe('Descanso hasta las 18:41')
     expect(notice.body).toContain('Press banca · 60 kg x 8')
-    expect(notice.actions.map((a) => a.title)).toEqual(['+1 serie', 'Saltar'])
+    // Two slots is all Android gives, so the second one is the text field
+    // rather than a Saltar the swipe already does.
+    expect(notice.actions.map((a) => a.title)).toEqual(['+1 serie', 'Otra serie'])
+    expect(notice.actions[1]).toMatchObject({ type: 'text', placeholder: '32.5x12' })
     // Every set puts this on screen, so it arrives without a sound.
     expect(notice.silent).toBe(true)
   })
@@ -176,18 +179,14 @@ describe('the rest notification', () => {
     expect(worker.shown.filter((n) => n.title === 'Descanso terminado')).toHaveLength(1)
   })
 
-  it('skipping clears the rest and takes the notification off the screen', async () => {
+  it('the app skipping clears the rest and takes the notification off the screen', async () => {
     const worker = bootWorker()
     worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() } })
     await vi.advanceTimersByTimeAsync(0)
 
-    const close = vi.fn()
-    await worker.dispatch('notificationclick', {
-      action: 'skip',
-      notification: { close },
-    })
+    await worker.dispatch('message', { data: { type: 'rest-stop' } })
 
-    expect(close).toHaveBeenCalled()
+    expect(worker.live.every((n) => n.close.mock.calls.length > 0)).toBe(true)
     expect(await worker.state('rest')).toBeNull()
     await vi.advanceTimersByTimeAsync(90_000)
     expect(worker.shown.some((n) => n.title === 'Descanso terminado')).toBe(false)
@@ -345,6 +344,73 @@ describe('+1 serie, from the lock screen', () => {
 
     // Nothing to absorb, but the session on screen is a set out of date.
     expect(port.postMessage.mock.calls[0][0]).toEqual({ queued: [], sent: 1 })
+  })
+
+  it('logs the weight and reps typed into the notification', async () => {
+    // Pyramids and drop sets: the load changes, and the trip to the pocket was
+    // exactly what this is for.
+    const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+    const worker = await resting({ fetch })
+
+    worker.dispatch('notificationclick', { action: 'custom', reply: '32.5x12' })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
+      exercise_name: 'Press banca',
+      reps: 12,
+      weight: 32.5,
+    })
+    expect(worker.shown[worker.shown.length - 1].body).toContain('Press banca · 32.5 kg x 12')
+  })
+
+  it.each([
+    ['32,5 x 12', 32.5, 12],
+    ['32.5 12', 32.5, 12],
+    ['30kg x 8', 30, 8],
+    ['  60X5  ', 60, 5],
+  ])('reads "%s" as the set you meant', async (reply, weight, reps) => {
+    // One field, typed one-handed on a lock screen. Every shape of the same
+    // sentence is the same set; being strict here just loses the set.
+    const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+    const worker = await resting({ fetch })
+
+    worker.dispatch('notificationclick', { action: 'custom', reply })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ weight, reps })
+    expect(worker.shown.some((n) => /No entendí/.test(n.body ?? ''))).toBe(false)
+  })
+
+  it.each(['', 'un poco', '12', '30 x 0', '30 x 8.5', '-5 x 8'])(
+    'refuses "%s" and says what it wanted, without losing the rest',
+    async (reply) => {
+      const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+      const worker = await resting({ fetch })
+
+      worker.dispatch('notificationclick', { action: 'custom', reply })
+      await vi.advanceTimersByTimeAsync(0)
+
+      // Nothing invented, nothing queued — and the countdown is untouched, so
+      // the +1 button is still there to fall back on.
+      expect(fetch).not.toHaveBeenCalled()
+      expect(await worker.state('queue')).toBeUndefined()
+      expect(worker.shown.some((n) => /No entendí/.test(n.body ?? ''))).toBe(true)
+      expect((await worker.state('rest')).series).toBe(3)
+    },
+  )
+
+  it('makes the typed set the one +1 serie repeats from then on', async () => {
+    // You are on the way down a drop set: the next repeat is the weight you
+    // just typed, not the one you started the pyramid with.
+    const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+    const worker = await resting({ fetch })
+
+    worker.dispatch('notificationclick', { action: 'custom', reply: '25x15' })
+    await vi.advanceTimersByTimeAsync(0)
+    worker.dispatch('notificationclick', { action: 'log' })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ weight: 25, reps: 15 })
   })
 
   it('wakes a live app so the row appears there too', async () => {

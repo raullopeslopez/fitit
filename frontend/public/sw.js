@@ -131,9 +131,14 @@ function showRest(rest, { done = false, confirm = false } = {}) {
       // Android would otherwise sweep it away while you are still under the bar.
       requireInteraction: true,
       vibrate: done ? [120, 60, 120] : confirm ? [40] : undefined,
+      // Android gives two slots and no more. The second one is a text field
+      // rather than a `Saltar`, because a swipe already dismisses this and the
+      // countdown runs out on its own — while a pyramid or a drop set had no
+      // way in at all. One field, not two: that is all the platform offers, so
+      // `parseSet` below takes every shape of the same sentence.
       actions: [
         { action: 'log', title: '+1 serie' },
-        { action: 'skip', title: 'Saltar' },
+        { action: 'custom', type: 'text', title: 'Otra serie', placeholder: '32.5x12' },
       ],
       data: { endsAt: rest.endsAt },
     },
@@ -169,20 +174,58 @@ async function startRest(rest) {
   if (!isUpdate) await ringWhenDone(rest)
 }
 
-// A set logged from the lock screen. On disk first, then the network — the same
-// order the page uses (see offline.js), and for the same reason: a set you have
+// What was typed into the notification's one text field. Weight first, reps
+// second — the order the log itself reads in ("30 kg x 15") — with every
+// separator a thumb might produce on a lock screen treated the same: `32.5x12`,
+// `32,5 x 12`, `30kg x 8`, `60 5`. Being strict here does not teach anyone the
+// format, it just loses the set.
+//
+// What it will not do is guess. A lone number could be reps at the same weight
+// or a weight at the same reps, and a set invented from a coin flip is worse
+// than one not logged — so it comes back null and says so out loud.
+function parseSet(text) {
+  const cleaned = String(text ?? '')
+    .trim()
+    .replace(/,/g, '.')
+    .replace(/kg/gi, ' ')
+  const parts = cleaned.split(/\s*[x*×]\s*|\s+/i).filter(Boolean)
+  if (parts.length !== 2) return null
+  const weight = Number(parts[0])
+  const reps = Number(parts[1])
+  // The backend's own bounds, mirrored: reps is a whole number of 1 or more,
+  // weight is 0 or more (bodyweight work is a real 0).
+  if (!Number.isFinite(weight) || weight < 0) return null
+  if (!Number.isInteger(reps) || reps < 1) return null
+  return { weight, reps }
+}
+
+// One decimal, no trailing ".0" — the same rule the app's readouts follow.
+const showKg = (kg) => Math.round(kg * 10) / 10
+
+// A set logged from the lock screen: `+1 serie` repeats the last one, the text
+// field names a different one. On disk first, then the network — the same order
+// the page uses (see offline.js), and for the same reason: a set you have
 // already done must not depend on a request succeeding right now.
-async function logAnother() {
+async function logAnother(custom = null) {
   const rest = await readState('rest', null)
   if (!rest) return
+  const payload = custom ? { ...rest.payload, ...custom } : rest.payload
   const queue = await readState('queue', [])
   await writeState('queue', [
     ...queue,
-    { tmpId: `sw-${Date.now()}`, workoutId: rest.workoutId, payload: rest.payload },
+    { tmpId: `sw-${Date.now()}`, workoutId: rest.workoutId, payload },
   ])
 
-  // Logging a set starts the rest, here as much as in the app.
-  const next = { ...rest, series: (rest.series ?? 0) + 1, endsAt: Date.now() + rest.seconds * 1000 }
+  // Logging a set starts the rest, here as much as in the app. The typed set
+  // also becomes the one `+1 serie` repeats from now on: on the way down a drop
+  // set, the next repeat is the weight you just named.
+  const next = {
+    ...rest,
+    payload,
+    label: `${payload.exercise_name} · ${showKg(payload.weight)} kg x ${payload.reps}`,
+    series: (rest.series ?? 0) + 1,
+    endsAt: Date.now() + rest.seconds * 1000,
+  }
   await writeState('rest', next)
   await showRest(next, { confirm: true })
   // The deadline rides along: if the app happens to be awake, its own rest bar
@@ -278,16 +321,30 @@ self.addEventListener('message', (event) => {
 })
 
 self.addEventListener('notificationclick', (event) => {
+  // Deliberately not closed on either logging path: the same notification is
+  // rewritten as the receipt, and closing it first makes it flicker off the
+  // lock screen.
   if (event.action === 'log') {
-    // Deliberately not closed: the same notification is rewritten as the
-    // receipt, and closing it first makes it flicker off the lock screen.
     event.waitUntil(logAnother())
     return
   }
-  event.notification.close()
-  if (event.action === 'skip') {
-    event.waitUntil(writeState('rest', null))
+  if (event.action === 'custom') {
+    const custom = parseSet(event.reply)
+    // Nothing invented, and the rest left exactly as it was — so `+1 serie` is
+    // still sitting there to fall back on. A notification is the only channel
+    // back to someone holding a locked phone, so the complaint carries the
+    // format instead of just refusing.
+    event.waitUntil(
+      custom
+        ? logAnother(custom)
+        : self.registration.showNotification('Fitit', {
+            tag: 'fitit-formato',
+            body: 'No entendí esa serie. Escríbela como 32.5x12 — peso, luego reps.',
+            icon: '/icon-192.png',
+          }),
+    )
     return
   }
+  event.notification.close()
   event.waitUntil(openApp())
 })

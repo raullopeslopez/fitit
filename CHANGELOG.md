@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Entreno: la notificación de descanso cambia `Saltar` por un **campo de texto**,
+  así que una serie con otro peso o reps (`32.5x12`) también se registra desde la
+  pantalla de bloqueo — pirámides y drop sets, que antes no tenían ninguna vía.
+  Android solo da dos acciones, y `Saltar` era la prescindible: deslizar ya
+  descarta la notificación y el descanso se agota solo. El parser acepta
+  `32,5 x 12`, `30kg x 8` o `60 5`, pero no adivina: un número suelto es
+  ambiguo entre peso y reps, y una serie inventada es peor que una no
+  registrada. Lo que escribes pasa a ser también lo que repite `+1 serie`.
+
 ### Added
 - Entreno: the rest countdown goes to the Android lock screen as a notification
   with a **`+1 serie`** button, so a straight set is one tap on a phone you never
