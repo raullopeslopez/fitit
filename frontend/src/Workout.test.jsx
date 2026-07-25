@@ -1831,13 +1831,12 @@ describe('Workout', () => {
     })
 
     describe('arriving again when the phone is pocketed', () => {
-      const pocket = () => {
-        Object.defineProperty(document, 'visibilityState', {
-          value: 'hidden',
-          configurable: true,
-        })
+      const setVisibility = (value) => {
+        Object.defineProperty(document, 'visibilityState', { value, configurable: true })
         document.dispatchEvent(new Event('visibilitychange'))
       }
+      const pocket = () => setVisibility('hidden')
+      const show = () => setVisibility('visible')
 
       afterEach(() => {
         Object.defineProperty(document, 'visibilityState', {
@@ -1858,6 +1857,39 @@ describe('Workout', () => {
         pocket()
 
         expect(notify.announceRestNotice).toHaveBeenCalled()
+      })
+
+      it('announces once per set, not every time you leave the app', async () => {
+        // Hidden also means "switched to WhatsApp", and an arrival has to make
+        // a sound to count as one. Announcing on every hide turned a
+        // between-sets aid into a banner interrupting whatever else you were
+        // doing on the phone.
+        turnNoticeOn()
+        renderWorkout()
+        await logOneSet()
+        await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+
+        pocket()
+        show()
+        pocket()
+        show()
+        pocket()
+
+        expect(notify.announceRestNotice).toHaveBeenCalledTimes(1)
+      })
+
+      it('earns another arrival by logging another set', async () => {
+        turnNoticeOn()
+        renderWorkout()
+        await logOneSet()
+        await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+        pocket()
+        show()
+
+        await userEvent.click(screen.getByRole('button', { name: /\+1 serie/i }))
+
+        pocket()
+        expect(notify.announceRestNotice).toHaveBeenCalledTimes(2)
       })
 
       it('has nothing to announce before the first set', async () => {

@@ -986,6 +986,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   // has nothing to repeat before then, which is why the lock screen only shows
   // up once you have logged something from the card.
   const lastNotice = useRef(null)
+  // Whether the notification still owes itself an arrival on a locked screen.
+  // Spent by the first hide after each set — see the visibility handler.
+  const announceOwed = useRef(false)
 
   // The countdown on screen. Independent of the notification below: the rest is
   // one thing you might want and logging from your pocket is another.
@@ -1010,6 +1013,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   // rest length you just turned off.
   function handOverSession(notice, endsAt) {
     lastNotice.current = notice
+    // One arrival per set. See the visibility handler for why this is spent
+    // rather than repeated.
+    announceOwed.current = true
     if (!getLockLogging() || notificationState() !== 'granted') return
     startRestNotice({
       endsAt,
@@ -1157,7 +1163,16 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
       // locked — a notification already in the shade is not redrawn. So this is
       // the moment to make it arrive again, and it beats any timer guessing at
       // how long somebody takes to put a phone away.
-      if (lastNotice.current && getLockLogging()) announceRestNotice()
+      //
+      // Once per set, though, and no more. Hidden also means "switched to
+      // WhatsApp", and re-arriving has to make a sound to count as an arrival —
+      // so announcing on every hide turned a between-sets aid into a banner
+      // that interrupted whatever else the phone was doing. One set logged buys
+      // one arrival; the next one has to be earned by lifting something.
+      if (announceOwed.current && lastNotice.current && getLockLogging()) {
+        announceOwed.current = false
+        announceRestNotice()
+      }
     }
     // The app was awake when the notification was tapped (from the shade rather
     // than the lock screen): take the set, and the rest clock with it, or the
