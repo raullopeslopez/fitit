@@ -57,7 +57,7 @@ describe('Workout', () => {
     notify.notificationState.mockReturnValue('granted')
     notify.claimLockScreenSets.mockResolvedValue({ queued: [], sent: 0 })
     notify.onLockScreenSets.mockReturnValue(() => {})
-    notify.startRestNotice.mockResolvedValue(true)
+    notify.startRestNotice.mockResolvedValue({ ok: true, shown: 1 })
     notify.stopRestNotice.mockResolvedValue(true)
     wakelock.holdScreenAwake.mockReturnValue(() => {})
   })
@@ -1757,6 +1757,77 @@ describe('Workout', () => {
       // tap on +1 would restart the 90 s you just turned off.
       expect(rest.seconds).toBe(0)
       expect(notify.stopRestNotice).not.toHaveBeenCalled()
+    })
+
+    // The one feature whose whole output happens where the app cannot see it.
+    // Four failures used to look identical from the menu: the worker never
+    // woke, the worker threw, Android dropped the notification, or nothing had
+    // been handed over yet. One muted line tells them apart.
+    describe('saying whether it is actually alive', () => {
+      const openMenu = () =>
+        userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+
+      it('explains that it waits for a set, before any set exists', async () => {
+        turnNoticeOn()
+        renderWorkout()
+        await screen.findByLabelText(/ejercicio/i)
+
+        await openMenu()
+
+        expect(screen.getByText(/se activa al registrar una serie/i)).toBeInTheDocument()
+      })
+
+      it('says it is live, and when, once the worker confirms', async () => {
+        turnNoticeOn()
+        notify.startRestNotice.mockResolvedValue({ ok: true, shown: 1 })
+        renderWorkout()
+        await logOneSet()
+        await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+
+        await openMenu()
+
+        expect(await screen.findByText(/^Activo · última a las \d{2}:\d{2}$/)).toBeInTheDocument()
+      })
+
+      it('names a worker that refused instead of leaving it a mystery', async () => {
+        turnNoticeOn()
+        notify.startRestNotice.mockResolvedValue({
+          ok: false,
+          error: 'el service worker no responde',
+        })
+        renderWorkout()
+        await logOneSet()
+        await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+
+        await openMenu()
+
+        expect(
+          await screen.findByText(/no se pudo enviar: el service worker no responde/i),
+        ).toBeInTheDocument()
+      })
+
+      it('separates "Android dropped it" from "the worker failed"', async () => {
+        // Everything worked and the platform kept nothing. Completely
+        // different problem, completely different fix.
+        turnNoticeOn()
+        notify.startRestNotice.mockResolvedValue({ ok: true, shown: 0 })
+        renderWorkout()
+        await logOneSet()
+        await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+
+        await openMenu()
+
+        expect(await screen.findByText(/pero Android no lo muestra/i)).toBeInTheDocument()
+      })
+
+      it('says nothing at all while the setting is off', async () => {
+        renderWorkout()
+        await screen.findByLabelText(/ejercicio/i)
+
+        await openMenu()
+
+        expect(screen.queryByText(/se activa al registrar/i)).not.toBeInTheDocument()
+      })
     })
 
     it('goes up straight away when switched on mid-session', async () => {

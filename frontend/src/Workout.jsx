@@ -19,6 +19,7 @@ import {
   formatDate,
   formatDuration,
   formatSet,
+  formatTime,
   parseDuration,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
@@ -950,6 +951,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   // carries a countdown and a buzz.
   const [screenAwake, setScreenAwakeState] = useState(getScreenAwake)
   const [lockLogging, setLockLoggingState] = useState(getLockLogging)
+  // What the worker said about the last handover. This is the one feature in
+  // the app whose whole output happens where the app cannot see it — another
+  // thread, then the platform's notification shade — so without this the only
+  // way to know whether it works is to lock the phone and hope. `null` until
+  // the first set: nothing has been asked of the worker yet.
+  const [noticeState, setNoticeState] = useState(null)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
   const nextTmpId = useRef(0)
   // One drain at a time, or two triggers firing together send the same set twice.
@@ -1010,7 +1017,23 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
       token: getToken(),
       pending: readQueue().length,
       ...notice,
-    })
+    }).then((result) => setNoticeState({ at: Date.now(), ...result }))
+  }
+
+  // One muted line under the toggle, saying whether the thing is actually
+  // alive. Four different failures used to look identical from here — the
+  // worker never woke, the worker threw, Android dropped the notification, or
+  // nothing had been handed over yet — and telling them apart meant guessing.
+  function noticeSummary() {
+    if (!lockLogging) return null
+    if (!noticeState) return 'Se activa al registrar una serie.'
+    if (!noticeState.ok) return `No se pudo enviar: ${noticeState.error}`
+    // The worker did everything right and the platform kept nothing. That is
+    // Android's own doing — almost always the per-site channel in Ajustes.
+    if (noticeState.shown === 0) {
+      return `Enviado a las ${formatTime(noticeState.at)}, pero Android no lo muestra.`
+    }
+    return `Activo · última a las ${formatTime(noticeState.at)}`
   }
 
   function chooseRestSeconds(seconds) {
@@ -1509,26 +1532,33 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
                       {notificationState() === 'denied' ? (
                         <p className="menu-note">Bloqueado en el navegador.</p>
                       ) : (
-                        <div
-                          className="unit-toggle"
-                          role="group"
-                          aria-label="Registrar series desde la pantalla bloqueada"
-                        >
-                          {[
-                            [true, 'Sí'],
-                            [false, 'No'],
-                          ].map(([on, label]) => (
-                            <button
-                              key={label}
-                              type="button"
-                              className="unit-option"
-                              aria-pressed={lockLogging === on}
-                              onClick={() => chooseLockLogging(on)}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
+                        <>
+                          <div
+                            className="unit-toggle"
+                            role="group"
+                            aria-label="Registrar series desde la pantalla bloqueada"
+                          >
+                            {[
+                              [true, 'Sí'],
+                              [false, 'No'],
+                            ].map(([on, label]) => (
+                              <button
+                                key={label}
+                                type="button"
+                                className="unit-option"
+                                aria-pressed={lockLogging === on}
+                                onClick={() => chooseLockLogging(on)}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          {noticeSummary() && (
+                            <p className="menu-note" role="status">
+                              {noticeSummary()}
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

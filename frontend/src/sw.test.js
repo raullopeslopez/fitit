@@ -215,6 +215,53 @@ describe('the rest notification', () => {
     })
   })
 
+  describe('answering the app', () => {
+    it('reports that the platform is holding the notification', async () => {
+      const worker = bootWorker()
+      const port = { postMessage: vi.fn() }
+
+      worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() }, ports: [port] })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(port.postMessage).toHaveBeenCalledWith({ ok: true, shown: 1 })
+    })
+
+    it('reports a platform that took it and kept nothing', async () => {
+      // The worker did everything right and Android dropped it anyway. From
+      // the app that used to look exactly like the worker never running.
+      const worker = bootWorker()
+      worker.self.registration.getNotifications = vi.fn(async () => [])
+      const port = { postMessage: vi.fn() }
+
+      worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() }, ports: [port] })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(port.postMessage).toHaveBeenCalledWith({ ok: true, shown: 0 })
+    })
+
+    it('reports a refusal instead of dying quietly inside the worker', async () => {
+      const worker = bootWorker()
+      worker.self.registration.showNotification = vi.fn(async () => {
+        throw new TypeError('no está permitido')
+      })
+      const port = { postMessage: vi.fn() }
+
+      worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() }, ports: [port] })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(port.postMessage).toHaveBeenCalledWith({ ok: false, error: 'no está permitido' })
+    })
+
+    it('still works for a page that is not listening', async () => {
+      const worker = bootWorker()
+
+      worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() } })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(worker.shown).toHaveLength(1)
+    })
+  })
+
   it('the same rest sent twice is an update, not a second countdown', async () => {
     // The page sends it again once its own outbox has drained, so the worker
     // knows whether it may send. That must not buy a second alarm.

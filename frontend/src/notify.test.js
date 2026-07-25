@@ -10,12 +10,19 @@ import {
 } from './notify.js'
 
 // A service worker registration that answers `claim` the way public/sw.js does.
-function mockWorker({ active = true, reply = { queued: [], sent: 0 }, answers = true } = {}) {
+function mockWorker({
+  active = true,
+  reply = { queued: [], sent: 0 },
+  restReply = { ok: true, shown: 1 },
+  answers = true,
+} = {}) {
   const posted = []
   const activeWorker = {
     postMessage: (message, transfer) => {
       posted.push(message)
-      if (answers && message.type === 'claim') transfer?.[0]?.postMessage(reply)
+      if (!answers) return
+      if (message.type === 'claim') transfer?.[0]?.postMessage(reply)
+      if (message.type === 'rest-start') transfer?.[0]?.postMessage(restReply)
     },
   }
   const listeners = []
@@ -89,10 +96,43 @@ describe('handing the rest over to the worker', () => {
     expect(worker.posted).toEqual([{ type: 'rest-stop' }])
   })
 
-  it('is a no-op, never a crash, with no worker to talk to', async () => {
-    await expect(startRestNotice(rest)).resolves.toBe(false)
+  it('brings back what the worker made of it', async () => {
+    // Everything this feature does happens where the app cannot see it, so
+    // "posted the message" is not evidence of anything.
+    mockWorker({ restReply: { ok: true, shown: 1 } })
+
+    await expect(startRestNotice(rest)).resolves.toEqual({ ok: true, shown: 1 })
+  })
+
+  it('brings back the failure too, as a sentence', async () => {
+    mockWorker({ restReply: { ok: false, error: 'permission denied' } })
+
+    await expect(startRestNotice(rest)).resolves.toEqual({
+      ok: false,
+      error: 'permission denied',
+    })
+  })
+
+  it('says so when there is no worker to talk to', async () => {
+    await expect(startRestNotice(rest)).resolves.toMatchObject({ ok: false })
     mockWorker({ active: false })
-    await expect(startRestNotice(rest)).resolves.toBe(false)
+    await expect(startRestNotice(rest)).resolves.toEqual({
+      ok: false,
+      error: 'el service worker no está activo',
+    })
+  })
+
+  it('says so when the worker takes the message and never answers', async () => {
+    vi.useFakeTimers()
+    mockWorker({ answers: false })
+
+    const asked = startRestNotice(rest)
+    await vi.advanceTimersByTimeAsync(3000)
+
+    await expect(asked).resolves.toEqual({
+      ok: false,
+      error: 'el service worker no responde',
+    })
   })
 })
 
