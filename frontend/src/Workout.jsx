@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 
 import {
-  correctExerciseUnit,
   deleteSet,
   deleteWorkout,
   editSet,
@@ -25,15 +24,11 @@ import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 import { prSetIds } from './stats.js'
 import {
   REST_OPTIONS,
-  getDistanceUnit,
   getRepeatTemplate,
   getRestSeconds,
   getRestUntil,
-  getWeightUnit,
-  setDistanceUnit,
   setRestSeconds,
   setRestUntil,
-  setWeightUnit,
 } from './prefs.js'
 import { displayWeight, toKg } from './units.js'
 
@@ -59,6 +54,14 @@ function validateSet(reps, weight, rpe) {
   return { reps: r, weight: w, rpe: rpeValue }
 }
 
+// Kilos and kilometres, always. The kg/lb and km/mi toggles are gone: a sticky
+// preference you never change but *can* flip mid-session isn't a preference,
+// it's a way to corrupt your own log — one flip turned a 90 lb pulldown into
+// 90 kg and invented a record. Still threaded as props so the cards keep
+// reading `weight_kg` canonically; the columns themselves go in a follow-up.
+const WEIGHT_UNIT = 'kg'
+const DISTANCE_UNIT = 'km'
+
 // Seed the steppers from the last previous mark so a straight repeat is one tap
 // on the "Registrar" button; fall back to empty for a never-logged exercise.
 const WEIGHT_STEP = 2.5
@@ -80,7 +83,6 @@ function ExerciseCard({
   onLogSet,
   onEditSet,
   onDeleteSet,
-  onCorrectUnit,
   onChangeMuscle,
   open = true,
   onToggle,
@@ -206,24 +208,6 @@ function ExerciseCard({
       await onDeleteSet(setId)
     } catch {
       setError('No se pudo borrar la serie.')
-    }
-  }
-
-  // The unit these sets were *logged* in is otherwise invisible: the readout is
-  // in whichever unit you're reading in. Stating it here is what makes the
-  // correction discoverable — you can't fix a mislabel you can't see. Null when
-  // a block somehow mixes units, where a single relabel would be a guess.
-  const loggedUnit = sets.length && sets.every((s) => s.unit === sets[0].unit)
-    ? sets[0].unit
-    : null
-  const correctedUnit = loggedUnit === 'kg' ? 'lb' : 'kg'
-
-  async function handleCorrectUnit() {
-    setError('')
-    try {
-      await onCorrectUnit(sets[0].exercise_id, correctedUnit)
-    } catch {
-      setError('No se pudo cambiar la unidad.')
     }
   }
 
@@ -545,12 +529,12 @@ function ExerciseCard({
         <p className="hint">Aún no hay series.</p>
       )}
 
-      {/* Both corrections behind one line at the foot. A mislabelled unit is
-          spotted while reading the log, and re-tagging the classifier's guess
-          happens once in an exercise's life — neither earns a permanent
-          control on the card you open twenty times a session. Kept out of the
-          header so the fold target stays full-width (DESIGN.md). */}
-      {(onChangeMuscle || loggedUnit) && (
+      {/* Re-tagging the classifier's guess happens once in an exercise's life,
+          so it doesn't earn a permanent control on a card you open twenty times
+          a session. Kept out of the header so the fold target stays full-width
+          (DESIGN.md). The unit relabel that used to sit beside it is gone with
+          the toggle that made it necessary. */}
+      {onChangeMuscle && (
         <>
           <button
             type="button"
@@ -562,31 +546,24 @@ function ExerciseCard({
           </button>
           {showFixes && (
             <div className="card-fixes">
-              {onChangeMuscle && (
-                <div className="muscle-edit">
-                  {/* No dot here: the header tag already carries the coloured
-                      identity chip. This row is the control, not a second chip. */}
-                  <span className="muscle-edit-heading">Grupo muscular</span>
-                  <select
-                    className="muscle-edit-select"
-                    aria-label={`Grupo muscular de ${name}`}
-                    value={muscle ?? ''}
-                    onChange={(e) => onChangeMuscle(name, e.target.value)}
-                  >
-                    <option value="">Sin grupo</option>
-                    {MUSCLE_GROUPS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {loggedUnit && (
-                <button type="button" className="unit-fix" onClick={handleCorrectUnit}>
-                  Registradas en {loggedUnit} · corregir a {correctedUnit}
-                </button>
-              )}
+              <div className="muscle-edit">
+                {/* No dot here: the header tag already carries the coloured
+                    identity chip. This row is the control, not a second chip. */}
+                <span className="muscle-edit-heading">Grupo muscular</span>
+                <select
+                  className="muscle-edit-select"
+                  aria-label={`Grupo muscular de ${name}`}
+                  value={muscle ?? ''}
+                  onChange={(e) => onChangeMuscle(name, e.target.value)}
+                >
+                  <option value="">Sin grupo</option>
+                  {MUSCLE_GROUPS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </>
@@ -602,7 +579,6 @@ function CardioCard({
   previous,
   sets,
   distanceUnit,
-  onChooseDistanceUnit,
   onLogSet,
   onDeleteSet,
   open = true,
@@ -730,22 +706,6 @@ function CardioCard({
             />
           </div>
         </div>
-        <div className="prefs-bar">
-          <span className="prefs-label">Unidad</span>
-          <div className="unit-toggle" role="group" aria-label="km o mi">
-            {['km', 'mi'].map((u) => (
-              <button
-                key={u}
-                type="button"
-                className="unit-option"
-                aria-pressed={distanceUnit === u}
-                onClick={() => onChooseDistanceUnit(u)}
-              >
-                {u}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="field">
           <label htmlFor={`cnote-${name}`}>Nota</label>
           <input
@@ -858,9 +818,6 @@ export default function Workout({ workoutId, onExit }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
-  // Units are workout-wide preferences, remembered across sessions.
-  const [weightUnit, setWeightUnitState] = useState(getWeightUnit())
-  const [distanceUnit, setDistanceUnitState] = useState(getDistanceUnit())
   // Kind for a brand-new exercise; ignored when the exercise already exists.
   const [newKind, setNewKind] = useState('strength')
   // Rest countdown. `restEndsAt` resumes from storage, so leaving Entreno
@@ -899,16 +856,6 @@ export default function Workout({ workoutId, onExit }) {
     const id = setTimeout(endRest, ms)
     return () => clearTimeout(id)
   }, [restEndsAt])
-
-  function chooseWeightUnit(unit) {
-    setWeightUnit(unit)
-    setWeightUnitState(unit)
-  }
-
-  function chooseDistanceUnit(unit) {
-    setDistanceUnit(unit)
-    setDistanceUnitState(unit)
-  }
 
   useEffect(() => {
     getWorkout(workoutId)
@@ -1006,13 +953,13 @@ export default function Workout({ workoutId, onExit }) {
   }
 
   async function editSetFor(set, { reps, weight, rpe, note }) {
-    // The edit field was seeded in the unit being read, so that's the unit the
-    // typed number is in — not whatever the set was originally logged as.
+    // Kilos, whatever the set was originally logged as: editing a set that came
+    // in as pounds restates it in the only unit the app now speaks.
     const updated = await editSet(set.id, {
       exercise_name: set.exercise_name,
       reps,
       weight,
-      unit: weightUnit,
+      unit: WEIGHT_UNIT,
       rpe,
       note,
     })
@@ -1020,10 +967,6 @@ export default function Workout({ workoutId, onExit }) {
       ...w,
       sets: w.sets.map((s) => (s.id === updated.id ? updated : s)),
     }))
-  }
-
-  async function correctUnitFor(exerciseId, unit) {
-    setWorkout(await correctExerciseUnit(workout.id, exerciseId, unit))
   }
 
   // Override the muscle group (empty clears it back to the classifier's guess).
@@ -1165,25 +1108,10 @@ export default function Workout({ workoutId, onExit }) {
               </button>
               {menuOpen && (
                 <div className="head-menu-pop">
-                  {/* Both are sticky prefs — the unit is a once-ever choice and
-                      rest is once a session — and both were pinned above every
-                      exercise card, ahead of the thing you came here to do. */}
-                  <div className="menu-pref">
-                    <span className="prefs-label">Peso</span>
-                    <div className="unit-toggle" role="group" aria-label="Unidad">
-                      {['kg', 'lb'].map((u) => (
-                        <button
-                          key={u}
-                          type="button"
-                          className="unit-option"
-                          aria-pressed={weightUnit === u}
-                          onClick={() => chooseWeightUnit(u)}
-                        >
-                          {u}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Rest is a once-a-session choice and was pinned above every
+                      exercise card, ahead of the thing you came here to do. The
+                      kg/lb toggle that used to sit beside it is gone: a sticky
+                      unit you can flip mid-session corrupts the log. */}
                   <div className="menu-pref">
                     <span className="prefs-label">Descanso</span>
                     <div
@@ -1292,8 +1220,7 @@ export default function Workout({ workoutId, onExit }) {
             name={ex.name}
             previous={ex.previous}
             sets={setsFor(ex.name)}
-            distanceUnit={distanceUnit}
-            onChooseDistanceUnit={chooseDistanceUnit}
+            distanceUnit={DISTANCE_UNIT}
             onLogSet={logSetFor}
             onDeleteSet={deleteSetFor}
             open={isOpen(ex.name, index)}
@@ -1306,11 +1233,10 @@ export default function Workout({ workoutId, onExit }) {
             muscle={muscleByName[ex.name] ?? null}
             previous={ex.previous}
             sets={setsFor(ex.name)}
-            weightUnit={weightUnit}
+            weightUnit={WEIGHT_UNIT}
             onLogSet={logSetFor}
             onEditSet={editSetFor}
             onDeleteSet={deleteSetFor}
-            onCorrectUnit={correctUnitFor}
             onChangeMuscle={changeMuscleFor}
             open={isOpen(ex.name, index)}
             onToggle={() => toggleCard(ex.name, index)}

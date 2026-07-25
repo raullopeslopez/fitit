@@ -1,14 +1,10 @@
-// Sticky user preferences (localStorage). The weight unit is a choice you make
-// once, not a per-set decision — so it lives here, not on every card.
-const WEIGHT_UNIT_KEY = 'fitit_weight_unit'
-
-export function getWeightUnit() {
-  return localStorage.getItem(WEIGHT_UNIT_KEY) === 'lb' ? 'lb' : 'kg'
-}
-
-export function setWeightUnit(unit) {
-  localStorage.setItem(WEIGHT_UNIT_KEY, unit === 'lb' ? 'lb' : 'kg')
-}
+// Sticky user preferences (localStorage).
+//
+// The weight and distance units used to live here. They are gone: a preference
+// that is never changed but *can* be, silently, mid-session, is not a
+// preference — it is a way to corrupt your own log. One flipped toggle turned a
+// 90 lb pulldown into 90 kg and manufactured a record that never happened.
+// Everything is kilos and kilometres now.
 
 // How long to rest between sets. 0 = don't count at all — plenty of sessions
 // (and every cardio one) have no business being timed.
@@ -87,12 +83,3 @@ export function getRepeatTemplate(workoutId) {
   }
 }
 
-const DISTANCE_UNIT_KEY = 'fitit_distance_unit'
-
-export function getDistanceUnit() {
-  return localStorage.getItem(DISTANCE_UNIT_KEY) === 'mi' ? 'mi' : 'km'
-}
-
-export function setDistanceUnit(unit) {
-  localStorage.setItem(DISTANCE_UNIT_KEY, unit === 'mi' ? 'mi' : 'km')
-}
