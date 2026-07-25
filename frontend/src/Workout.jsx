@@ -44,12 +44,12 @@ import {
 import { prSetIds } from './stats.js'
 import {
   REST_OPTIONS,
+  getLockLogging,
   getRepeatTemplate,
-  getRestNotice,
   getRestSeconds,
   getRestUntil,
   getScreenAwake,
-  setRestNotice,
+  setLockLogging,
   setRestSeconds,
   setRestUntil,
   setScreenAwake,
@@ -939,12 +939,17 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   const [restSeconds, setRestSecondsState] = useState(getRestSeconds)
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
   // The two session aids: the screen staying lit while you are at the rack, and
-  // the rest going to the lock screen with a `+1 serie` button on it for when
-  // the phone is in a pocket. Both are once-a-session choices, so both live in
-  // the header overflow (DESIGN.md: rare actions don't take content-weight
-  // controls).
+  // a lock-screen notification with `+1 serie` on it for when the phone is in a
+  // pocket. Both are once-a-session choices, so both live in the header
+  // overflow (DESIGN.md: rare actions don't take content-weight controls).
+  //
+  // Deliberately independent of the rest above. They were one setting, which
+  // meant choosing "Sin descanso" silently took the lock screen away too —
+  // "I don't time my rests" and "I don't want to log from my pocket" are not
+  // the same sentence. The rest now only decides whether that notification also
+  // carries a countdown and a buzz.
   const [screenAwake, setScreenAwakeState] = useState(getScreenAwake)
-  const [restNotice, setRestNoticeState] = useState(getRestNotice)
+  const [lockLogging, setLockLoggingState] = useState(getLockLogging)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
   const nextTmpId = useRef(0)
   // One drain at a time, or two triggers firing together send the same set twice.
@@ -959,34 +964,48 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     setRestEndsAt(null)
   }
 
-  // Skipping is a decision, not the clock running out, so the notification goes
-  // with it.
+  // Skipping is a decision, not the clock running out. The clock stops; the
+  // notification stays, minus its countdown — it is the remote for the session,
+  // and you have not left the session.
   function skipRest() {
     endRest()
-    stopRestNotice()
+    if (lastNotice.current) handOverSession(lastNotice.current, null)
+    else stopRestNotice()
   }
 
-  // `notice` describes the set the lock-screen button would repeat. Absent (a
-  // cardio block: an interval you just ran is not an interval you are about to
-  // run) the rest still counts down on screen, just not on the lock screen.
-  function startRest(notice = null) {
+  // The last set logged in this session, so the notification can be rebuilt
+  // without one (skipping the rest, say). Null until the first set: `+1 serie`
+  // has nothing to repeat before then, which is why the lock screen only shows
+  // up once you have logged something from the card.
+  const lastNotice = useRef(null)
+
+  // The countdown on screen. Independent of the notification below: the rest is
+  // one thing you might want and logging from your pocket is another.
+  function startRest() {
     if (restSeconds <= 0) return null
     const until = Date.now() + restSeconds * 1000
     setRestUntil(until)
     setRestEndsAt(until)
-    if (notice) handOverRest(until, notice)
     return until
   }
 
   // Everything the tap will need while this page is frozen: which workout, the
   // set to repeat, the token to send it with — and how many sets are still
   // sitting in our own outbox, because those are older and set_index is
-  // assigned in arrival order.
-  function handOverRest(endsAt, notice) {
-    if (!restNotice || notificationState() !== 'granted') return
+  // assigned in arrival order. `endsAt` null means there is no rest to show,
+  // which is a full citizen here, not a degraded state.
+  //
+  // The two preferences are read from the store rather than from this render:
+  // both are written synchronously when they change, and the toggles that
+  // change them hand the session over again in the same breath — at which point
+  // the React state is still a render behind, and would send the worker the
+  // rest length you just turned off.
+  function handOverSession(notice, endsAt) {
+    lastNotice.current = notice
+    if (!getLockLogging() || notificationState() !== 'granted') return
     startRestNotice({
       endsAt,
-      seconds: restSeconds,
+      seconds: getRestSeconds(),
       workoutId: workout.id,
       token: getToken(),
       pending: readQueue().length,
@@ -998,8 +1017,11 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     setRestSeconds(seconds)
     setRestSecondsState(seconds)
     // Turning rest off should stop the clock you're looking at, not just the
-    // next one.
-    if (seconds <= 0) skipRest()
+    // next one — and it must not take the lock screen with it.
+    if (seconds <= 0) {
+      endRest()
+      if (lastNotice.current) handOverSession(lastNotice.current, null)
+    }
   }
 
   function chooseScreenAwake(on) {
@@ -1010,16 +1032,19 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   // The permission is asked for here and nowhere else: from a tap on the thing
   // that needs it, so the prompt has a question attached. A no leaves the
   // preference off — the browser only offers to ask once.
-  async function chooseRestNotice(on) {
+  async function chooseLockLogging(on) {
     if (!on) {
-      setRestNotice(false)
-      setRestNoticeState(false)
+      setLockLogging(false)
+      setLockLoggingState(false)
       stopRestNotice()
       return
     }
     const granted = notificationState() === 'granted' || (await askForNotifications())
-    setRestNotice(granted)
-    setRestNoticeState(granted)
+    setLockLogging(granted)
+    setLockLoggingState(granted)
+    // Switched on mid-session: put it up now, against the last set logged,
+    // rather than making you log another one to see whether it worked.
+    if (granted && lastNotice.current) handOverSession(lastNotice.current, restEndsAt)
   }
 
   // Retire the bar the moment it runs out, without waiting for the next tick.
@@ -1179,22 +1204,17 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     // the request is open, and offline there may not be a round trip for hours.
     //
     // The lock screen gets the same set to repeat that the card's `+1 serie`
-    // would, named in full — a button you press without unlocking the phone has
-    // to say what it is about to write.
+    // would. Cardio is the one exclusion: an interval you just ran is not an
+    // interval you are about to run.
+    const endsAt = startRest()
     const notice =
-      fields.kind === 'cardio'
-        ? null
-        : {
-            label: `${name} · ${formatSet(payload)}`,
-            series: setsFor(name).length + 1,
-            payload,
-          }
-    const endsAt = startRest(notice)
+      fields.kind === 'cardio' ? null : { series: setsFor(name).length + 1, payload }
+    if (notice) handOverSession(notice, endsAt)
     await flushQueue()
     // Again, now that the outbox has had its chance to drain: the worker holds
     // off sending anything of its own while sets older than it are still queued
     // here, and that count is only true once this is over.
-    if (endsAt != null && notice) handOverRest(endsAt, notice)
+    if (notice) handOverSession(notice, endsAt)
   }
 
   // Sets logged from the lock screen, taken back the moment this page is alive
@@ -1479,18 +1499,20 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
                       ))}
                     </div>
                   </div>
-                  {/* Hidden outright where the browser can't do it — a control
-                      that has nothing to decide isn't shown (DESIGN.md). */}
+                  {/* Its own setting, not the rest's: "I don't time my rests"
+                      and "I don't want to log from my pocket" are different
+                      sentences. Hidden outright where the browser can't do it —
+                      a control with nothing to decide isn't shown (DESIGN.md). */}
                   {notificationState() !== 'unsupported' && (
                     <div className="menu-pref">
-                      <span className="prefs-label">Aviso de descanso</span>
+                      <span className="prefs-label">Registrar sin abrir</span>
                       {notificationState() === 'denied' ? (
                         <p className="menu-note">Bloqueado en el navegador.</p>
                       ) : (
                         <div
                           className="unit-toggle"
                           role="group"
-                          aria-label="Avisar del descanso en la pantalla bloqueada"
+                          aria-label="Registrar series desde la pantalla bloqueada"
                         >
                           {[
                             [true, 'Sí'],
@@ -1500,8 +1522,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
                               key={label}
                               type="button"
                               className="unit-option"
-                              aria-pressed={restNotice === on}
-                              onClick={() => chooseRestNotice(on)}
+                              aria-pressed={lockLogging === on}
+                              onClick={() => chooseLockLogging(on)}
                             >
                               {label}
                             </button>

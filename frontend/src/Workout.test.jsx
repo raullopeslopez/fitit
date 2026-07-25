@@ -1704,11 +1704,11 @@ describe('Workout', () => {
     })
   })
 
-  // Spec: the rest goes to the lock screen so a straight set costs one tap on a
-  // phone you never take out of your pocket. public/sw.js owns what happens
+  // Spec: the session reaches the lock screen so a straight set costs one tap on
+  // a phone you never take out of your pocket. public/sw.js owns what happens
   // there; these are the two ends of the wire, in the session.
-  describe('the rest on the lock screen', () => {
-    const turnNoticeOn = () => localStorage.setItem('fitit_rest_notice', 'on')
+  describe('the session on the lock screen', () => {
+    const turnNoticeOn = () => localStorage.setItem('fitit_lock_logging', 'on')
 
     it('hands the worker the set that +1 serie would repeat', async () => {
       turnNoticeOn()
@@ -1718,11 +1718,63 @@ describe('Workout', () => {
       await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
       const [rest] = notify.startRestNotice.mock.lastCall
       expect(rest.workoutId).toBe(1)
+      // The set itself, not a sentence about it: the worker writes the wording,
+      // and it has to rewrite it anyway once you type a different set.
       expect(rest.payload).toMatchObject({ exercise_name: 'Bench Press', reps: 8, weight: 60 })
-      // A button you press without unlocking the phone has to say what it is
-      // about to write.
-      expect(rest.label).toBe('Bench Press · 60 kg x 8')
+      expect(rest.series).toBe(1)
       expect(rest.seconds).toBe(90)
+      expect(rest.endsAt).toBeGreaterThan(Date.now())
+    })
+
+    it('reaches the lock screen even with the rest switched off', async () => {
+      // The two are different wants. Tying them meant "Sin descanso" quietly
+      // took the pocket away too.
+      turnNoticeOn()
+      localStorage.setItem('fitit_rest_seconds', '0')
+      const { container } = renderWorkout()
+      await logOneSet()
+
+      await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+      const [rest] = notify.startRestNotice.mock.lastCall
+      expect(rest.endsAt).toBeNull()
+      expect(rest.seconds).toBe(0)
+      // No countdown anywhere: not on the notification, not on the screen.
+      expect(container.querySelector('.rest-bar')).toBeNull()
+    })
+
+    it('drops the clock but keeps the remote when the rest is switched off mid-session', async () => {
+      turnNoticeOn()
+      renderWorkout()
+      await logOneSet()
+      await screen.findByRole('button', { name: /saltar/i })
+
+      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^sin$/i }))
+
+      const [rest] = notify.startRestNotice.mock.lastCall
+      expect(rest.endsAt).toBeNull()
+      // The new rest length, not the one this render still remembers — or a
+      // tap on +1 would restart the 90 s you just turned off.
+      expect(rest.seconds).toBe(0)
+      expect(notify.stopRestNotice).not.toHaveBeenCalled()
+    })
+
+    it('goes up straight away when switched on mid-session', async () => {
+      // Against the set you already logged, rather than making you log another
+      // one to find out whether it worked.
+      notify.notificationState.mockReturnValue('granted')
+      renderWorkout()
+      await logOneSet()
+      expect(notify.startRestNotice).not.toHaveBeenCalled()
+
+      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+      const toggle = screen.getByRole('group', { name: /pantalla bloqueada/i })
+      await userEvent.click(within(toggle).getByRole('button', { name: 'Sí' }))
+
+      await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+      expect(notify.startRestNotice.mock.lastCall[0].payload).toMatchObject({
+        exercise_name: 'Bench Press',
+      })
     })
 
     it('stays off the lock screen until it is asked for', async () => {
@@ -1781,14 +1833,17 @@ describe('Workout', () => {
       expect(notify.stopRestNotice).not.toHaveBeenCalled()
     })
 
-    it('takes it off the screen when the rest is skipped', async () => {
+    it('keeps the remote when the rest is skipped, minus its countdown', async () => {
+      // Skipping the rest is not leaving the session, and the button is the
+      // reason the notification is there at all.
       turnNoticeOn()
       renderWorkout()
       await logOneSet()
 
       await userEvent.click(await screen.findByRole('button', { name: /saltar/i }))
 
-      expect(notify.stopRestNotice).toHaveBeenCalled()
+      expect(notify.stopRestNotice).not.toHaveBeenCalled()
+      expect(notify.startRestNotice.mock.lastCall[0].endsAt).toBeNull()
     })
 
     it('takes it off the screen when the session is left', async () => {
@@ -1870,7 +1925,7 @@ describe('Workout', () => {
       await userEvent.click(within(notice).getByRole('button', { name: 'Sí' }))
 
       expect(notify.askForNotifications).toHaveBeenCalled()
-      await waitFor(() => expect(localStorage.getItem('fitit_rest_notice')).toBe('on'))
+      await waitFor(() => expect(localStorage.getItem('fitit_lock_logging')).toBe('on'))
     })
 
     it('offers nothing to tap when the browser has already said no', async () => {
@@ -1891,7 +1946,7 @@ describe('Workout', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
 
-      expect(screen.queryByText(/aviso de descanso/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/registrar sin abrir/i)).not.toBeInTheDocument()
     })
   })
 
