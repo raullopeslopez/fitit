@@ -3,8 +3,12 @@ import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
 import * as api from './api.js'
+import * as notify from './notify.js'
+import * as wakelock from './wakelock.js'
 
 vi.mock('./api.js')
+vi.mock('./notify.js')
+vi.mock('./wakelock.js')
 
 // Mirrors what the API returns. `weight` is kilos; there is no unit field.
 function benchSet(overrides = {}) {
@@ -47,6 +51,15 @@ describe('Workout', () => {
     localStorage.clear() // rest seconds and the repeat template are sticky prefs
     api.getWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
     api.listExercises.mockResolvedValue([])
+    // The lock screen is off by default (it needs a permission), so unless a
+    // test turns it on these are the quiet answers a browser with a service
+    // worker and nothing queued would give.
+    notify.notificationState.mockReturnValue('granted')
+    notify.claimLockScreenSets.mockResolvedValue({ queued: [], sent: 0 })
+    notify.onLockScreenSets.mockReturnValue(() => {})
+    notify.startRestNotice.mockResolvedValue(true)
+    notify.stopRestNotice.mockResolvedValue(true)
+    wakelock.holdScreenAwake.mockReturnValue(() => {})
   })
 
   // Spec: the newest work comes first, and only what you're on stays open.
@@ -1688,6 +1701,232 @@ describe('Workout', () => {
       expect(await screen.findByText(/100 kg x 8/)).toBeInTheDocument()
       expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
       expect(screen.queryByText(/^PR$/)).not.toBeInTheDocument()
+    })
+  })
+
+  // Spec: the rest goes to the lock screen so a straight set costs one tap on a
+  // phone you never take out of your pocket. public/sw.js owns what happens
+  // there; these are the two ends of the wire, in the session.
+  describe('the rest on the lock screen', () => {
+    const turnNoticeOn = () => localStorage.setItem('fitit_rest_notice', 'on')
+
+    it('hands the worker the set that +1 serie would repeat', async () => {
+      turnNoticeOn()
+      renderWorkout()
+      await logOneSet()
+
+      await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+      const [rest] = notify.startRestNotice.mock.lastCall
+      expect(rest.workoutId).toBe(1)
+      expect(rest.payload).toMatchObject({ exercise_name: 'Bench Press', reps: 8, weight: 60 })
+      // A button you press without unlocking the phone has to say what it is
+      // about to write.
+      expect(rest.label).toBe('Bench Press · 60 kg x 8')
+      expect(rest.seconds).toBe(90)
+    })
+
+    it('stays off the lock screen until it is asked for', async () => {
+      renderWorkout()
+      await logOneSet()
+
+      await screen.findByRole('button', { name: /saltar/i })
+      expect(notify.startRestNotice).not.toHaveBeenCalled()
+    })
+
+    it('tells the worker what is still unsent, so it does not jump the queue', async () => {
+      // set_index is assigned server-side in arrival order: a set logged from
+      // the lock screen must not overtake one this page queued earlier.
+      turnNoticeOn()
+      api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+      renderWorkout()
+      await userEvent.type(await screen.findByLabelText(/^ejercicio$/i), 'Bench Press')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      api.logSet.mockRejectedValue(new Error('Failed to fetch'))
+      await userEvent.type(await screen.findByLabelText(/reps/i), '8')
+      await userEvent.type(screen.getByLabelText(/peso/i), '60')
+      await userEvent.click(screen.getByRole('button', { name: /^registrar/i }))
+
+      await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalledTimes(2))
+      // Sent twice on purpose: once for the notification to appear on the tap,
+      // and again once the outbox has had its chance to drain.
+      expect(notify.startRestNotice.mock.lastCall[0].pending).toBe(1)
+    })
+
+    it('does not put a repeat button on a cardio interval', async () => {
+      // The interval you just ran is not the interval you are about to run.
+      turnNoticeOn()
+      api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Cinta', found: false, sets: [] })
+      api.logSet.mockResolvedValue(workoutWith())
+      renderWorkout()
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Cinta')
+      await userEvent.click(screen.getByRole('button', { name: /^cardio$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      await userEvent.type(await screen.findByLabelText(/duración/i), '20:00')
+      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+      await waitFor(() => expect(api.logSet).toHaveBeenCalled())
+      expect(notify.startRestNotice).not.toHaveBeenCalled()
+    })
+
+    it('keeps the notification alive when the rest simply runs out', async () => {
+      // The notification turns into "Descanso terminado" and its +1 serie
+      // button is the whole point — taking it away at the moment you are about
+      // to use it would be the one wrong thing to do here.
+      turnNoticeOn()
+      localStorage.setItem('fitit_rest_until', String(Date.now() + 60))
+      const { container } = renderWorkout()
+      await screen.findByRole('button', { name: /saltar/i })
+
+      await waitFor(() => expect(container.querySelector('.rest-bar')).toBeNull())
+      expect(notify.stopRestNotice).not.toHaveBeenCalled()
+    })
+
+    it('takes it off the screen when the rest is skipped', async () => {
+      turnNoticeOn()
+      renderWorkout()
+      await logOneSet()
+
+      await userEvent.click(await screen.findByRole('button', { name: /saltar/i }))
+
+      expect(notify.stopRestNotice).toHaveBeenCalled()
+    })
+
+    it('takes it off the screen when the session is left', async () => {
+      turnNoticeOn()
+      const view = renderWorkout()
+      await logOneSet()
+      await screen.findByRole('button', { name: /saltar/i })
+
+      notify.stopRestNotice.mockClear()
+      view.unmount()
+
+      // A +1 serie button for a workout you have walked out of would log into
+      // the wrong session.
+      expect(notify.stopRestNotice).toHaveBeenCalled()
+    })
+
+    it('absorbs the sets logged from the lock screen when the app comes back', async () => {
+      notify.claimLockScreenSets.mockResolvedValue({
+        queued: [
+          {
+            tmpId: 'sw-1',
+            workoutId: 1,
+            payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 },
+          },
+        ],
+        sent: 0,
+      })
+      api.logSet.mockResolvedValue(workoutWith(benchSet()))
+      renderWorkout()
+
+      // Sent by the page — which is the only thing allowed to drain, so the
+      // session keeps one order — and standing on a card of its own, because a
+      // set on disk with no card is a set you cannot see.
+      await waitFor(() =>
+        expect(api.logSet).toHaveBeenCalledWith(1, {
+          exercise_name: 'Bench Press',
+          reps: 8,
+          weight: 60,
+        }),
+      )
+      expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()
+    })
+
+    it('follows the rest clock when the set was logged from the shade', async () => {
+      // Tapped while the app happened to be awake. Two clocks on one phone
+      // disagreeing about the same countdown is worse than either being wrong.
+      let announce = null
+      notify.onLockScreenSets.mockImplementation((handler) => {
+        announce = handler
+        return () => {}
+      })
+      const { container } = renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      announce({ type: 'sets-logged', endsAt: Date.now() + 90_000 })
+
+      await screen.findByRole('button', { name: /saltar/i })
+      expect(container.querySelector('.rest-num').textContent).toMatch(/^01:[0-3]\d$/)
+    })
+
+    it('refetches when the worker already sent sets of its own', async () => {
+      notify.claimLockScreenSets.mockResolvedValue({ queued: [], sent: 1 })
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ reps: 12, weight: 40 })))
+      renderWorkout()
+
+      // Nothing to absorb, but the session on screen is a set out of date.
+      await waitFor(() => expect(api.getWorkout).toHaveBeenCalledTimes(2))
+      expect(await screen.findByText(/40 kg x 12/)).toBeInTheDocument()
+    })
+
+    it('asks for the permission from the tap that needs it', async () => {
+      notify.notificationState.mockReturnValue('default')
+      notify.askForNotifications.mockResolvedValue(true)
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+      const notice = screen.getByRole('group', { name: /pantalla bloqueada/i })
+      await userEvent.click(within(notice).getByRole('button', { name: 'Sí' }))
+
+      expect(notify.askForNotifications).toHaveBeenCalled()
+      await waitFor(() => expect(localStorage.getItem('fitit_rest_notice')).toBe('on'))
+    })
+
+    it('offers nothing to tap when the browser has already said no', async () => {
+      notify.notificationState.mockReturnValue('denied')
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+
+      expect(screen.queryByRole('group', { name: /pantalla bloqueada/i })).not.toBeInTheDocument()
+      expect(screen.getByText(/bloqueado en el navegador/i)).toBeInTheDocument()
+    })
+
+    it('says nothing at all where the browser cannot do this', async () => {
+      notify.notificationState.mockReturnValue('unsupported')
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+
+      expect(screen.queryByText(/aviso de descanso/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('the screen staying awake', () => {
+    it('holds the screen while the session is open, and lets go on the way out', async () => {
+      const release = vi.fn()
+      wakelock.holdScreenAwake.mockReturnValue(release)
+      const view = renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      expect(wakelock.holdScreenAwake).toHaveBeenCalled()
+      view.unmount()
+      expect(release).toHaveBeenCalled()
+    })
+
+    it('lets go the moment it is switched off', async () => {
+      const release = vi.fn()
+      wakelock.holdScreenAwake.mockReturnValue(release)
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+      const toggle = screen.getByRole('group', { name: /pantalla encendida/i })
+      await userEvent.click(within(toggle).getByRole('button', { name: 'No' }))
+
+      expect(release).toHaveBeenCalled()
+      expect(localStorage.getItem('fitit_screen_awake')).toBe('off')
+    })
+
+    it('does not take the screen when the session was told not to', async () => {
+      localStorage.setItem('fitit_screen_awake', 'off')
+      renderWorkout()
+      await screen.findByLabelText(/ejercicio/i)
+
+      expect(wakelock.holdScreenAwake).not.toHaveBeenCalled()
     })
   })
 
