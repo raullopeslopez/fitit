@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
@@ -1843,7 +1843,7 @@ describe('Workout', () => {
       const { container } = renderWorkout()
       await screen.findByLabelText(/ejercicio/i)
 
-      announce({ type: 'sets-logged', endsAt: Date.now() + 90_000 })
+      await act(async () => announce({ type: 'sets-logged', endsAt: Date.now() + 90_000 }))
 
       await screen.findByRole('button', { name: /saltar/i })
       expect(container.querySelector('.rest-num').textContent).toMatch(/^01:[0-3]\d$/)
