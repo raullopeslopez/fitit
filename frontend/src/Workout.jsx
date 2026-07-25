@@ -11,6 +11,7 @@ import {
   renameWorkout,
   setExerciseMuscle,
 } from './api.js'
+import { getToken } from './auth.js'
 import {
   estimatedOneRm,
   formatCardioSet,
@@ -32,16 +33,29 @@ import {
   readQueue,
   retryable,
 } from './offline.js'
+import {
+  askForNotifications,
+  claimLockScreenSets,
+  notificationState,
+  onLockScreenSets,
+  startRestNotice,
+  stopRestNotice,
+} from './notify.js'
 import { prSetIds } from './stats.js'
 import {
   REST_OPTIONS,
   getRepeatTemplate,
+  getRestNotice,
   getRestSeconds,
   getRestUntil,
+  getScreenAwake,
+  setRestNotice,
   setRestSeconds,
   setRestUntil,
+  setScreenAwake,
 } from './prefs.js'
 import { showKg } from './units.js'
+import { holdScreenAwake } from './wakelock.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -924,21 +938,60 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   // mid-rest and coming back picks the clock up where it actually is.
   const [restSeconds, setRestSecondsState] = useState(getRestSeconds)
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
+  // The two session aids: the screen staying lit while you are at the rack, and
+  // the rest going to the lock screen with a `+1 serie` button on it for when
+  // the phone is in a pocket. Both are once-a-session choices, so both live in
+  // the header overflow (DESIGN.md: rare actions don't take content-weight
+  // controls).
+  const [screenAwake, setScreenAwakeState] = useState(getScreenAwake)
+  const [restNotice, setRestNoticeState] = useState(getRestNotice)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
   const nextTmpId = useRef(0)
   // One drain at a time, or two triggers firing together send the same set twice.
   const flushing = useRef(false)
 
+  // The rest is over. The lock-screen notification deliberately stays: it has
+  // just turned into "Descanso terminado", and its `+1 serie` button is the
+  // whole point — closing it here would take the button away at the exact
+  // moment you are about to use it.
   function endRest() {
     setRestUntil(null)
     setRestEndsAt(null)
   }
 
-  function startRest() {
-    if (restSeconds <= 0) return
+  // Skipping is a decision, not the clock running out, so the notification goes
+  // with it.
+  function skipRest() {
+    endRest()
+    stopRestNotice()
+  }
+
+  // `notice` describes the set the lock-screen button would repeat. Absent (a
+  // cardio block: an interval you just ran is not an interval you are about to
+  // run) the rest still counts down on screen, just not on the lock screen.
+  function startRest(notice = null) {
+    if (restSeconds <= 0) return null
     const until = Date.now() + restSeconds * 1000
     setRestUntil(until)
     setRestEndsAt(until)
+    if (notice) handOverRest(until, notice)
+    return until
+  }
+
+  // Everything the tap will need while this page is frozen: which workout, the
+  // set to repeat, the token to send it with — and how many sets are still
+  // sitting in our own outbox, because those are older and set_index is
+  // assigned in arrival order.
+  function handOverRest(endsAt, notice) {
+    if (!restNotice || notificationState() !== 'granted') return
+    startRestNotice({
+      endsAt,
+      seconds: restSeconds,
+      workoutId: workout.id,
+      token: getToken(),
+      pending: readQueue().length,
+      ...notice,
+    })
   }
 
   function chooseRestSeconds(seconds) {
@@ -946,7 +999,27 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     setRestSecondsState(seconds)
     // Turning rest off should stop the clock you're looking at, not just the
     // next one.
-    if (seconds <= 0) endRest()
+    if (seconds <= 0) skipRest()
+  }
+
+  function chooseScreenAwake(on) {
+    setScreenAwake(on)
+    setScreenAwakeState(on)
+  }
+
+  // The permission is asked for here and nowhere else: from a tap on the thing
+  // that needs it, so the prompt has a question attached. A no leaves the
+  // preference off — the browser only offers to ask once.
+  async function chooseRestNotice(on) {
+    if (!on) {
+      setRestNotice(false)
+      setRestNoticeState(false)
+      stopRestNotice()
+      return
+    }
+    const granted = notificationState() === 'granted' || (await askForNotifications())
+    setRestNotice(granted)
+    setRestNoticeState(granted)
   }
 
   // Retire the bar the moment it runs out, without waiting for the next tick.
@@ -1010,26 +1083,54 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
         )
       })
       .catch(() => setError('No se pudo cargar el entreno.'))
+      // Only once the session on screen exists. Absorbing first would race the
+      // load: a set sent from here would be wiped by a response that was
+      // already in flight before it went out.
+      .finally(() => absorbLockScreen())
   }, [workoutId])
 
   // The three moments a phone in a basement gets its signal back: the app
   // starting, the browser noticing the network, and you bringing the app
   // forward. No polling timer — a countdown that wakes the radio every few
   // seconds is a battery cost paid by every session to help the rare one.
+  //
+  // Coming forward is also the moment to take back whatever was logged from the
+  // lock screen while this page was frozen.
   useEffect(() => {
-    flushQueue()
-    const drain = () => flushQueue()
+    const drain = () => absorbLockScreen()
     const onVisible = () => {
-      if (document.visibilityState === 'visible') drain()
+      if (document.visibilityState === 'visible') absorbLockScreen()
     }
+    // The app was awake when the notification was tapped (from the shade rather
+    // than the lock screen): take the set, and the rest clock with it, or the
+    // bar on screen and the notification disagree about the same countdown.
+    const stopListening = onLockScreenSets(({ endsAt } = {}) => {
+      if (endsAt != null) {
+        setRestUntil(endsAt)
+        setRestEndsAt(endsAt)
+      }
+      absorbLockScreen()
+    })
     window.addEventListener('online', drain)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
+      stopListening()
       window.removeEventListener('online', drain)
       document.removeEventListener('visibilitychange', onVisible)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutId])
+
+  // The screen doesn't go dark between sets. Re-run on the preference, so
+  // turning it off in the overflow lets go of the lock there and then.
+  useEffect(() => {
+    if (!screenAwake) return undefined
+    return holdScreenAwake()
+  }, [screenAwake])
+
+  // Walking out of the session takes its notification with it: a `+1 serie`
+  // button for a workout you have left would log into the wrong one.
+  useEffect(() => () => stopRestNotice(), [workoutId])
 
   useEffect(() => {
     // Autocomplete is best-effort; a failure here shouldn't break logging.
@@ -1070,13 +1171,68 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     // must not depend on a request succeeding right now. The set gets a string
     // id: nothing can mistake `tmp-3` for a server id and PATCH against it.
     // Spec: Workout.test.jsx "optimistic logging" / "logging with no signal".
+    const payload = { exercise_name: name, ...fields }
     const tmpId = `tmp-${(nextTmpId.current += 1)}`
-    enqueueSet({ tmpId, workoutId: workout.id, payload: { exercise_name: name, ...fields } })
+    enqueueSet({ tmpId, workoutId: workout.id, payload })
     setWorkout(withQueued)
     // Started on the tap, not on the round trip: resting is what you do *while*
     // the request is open, and offline there may not be a round trip for hours.
-    startRest()
+    //
+    // The lock screen gets the same set to repeat that the card's `+1 serie`
+    // would, named in full — a button you press without unlocking the phone has
+    // to say what it is about to write.
+    const notice =
+      fields.kind === 'cardio'
+        ? null
+        : {
+            label: `${name} · ${formatSet(payload)}`,
+            series: setsFor(name).length + 1,
+            payload,
+          }
+    const endsAt = startRest(notice)
     await flushQueue()
+    // Again, now that the outbox has had its chance to drain: the worker holds
+    // off sending anything of its own while sets older than it are still queued
+    // here, and that count is only true once this is over.
+    if (endsAt != null && notice) handOverRest(endsAt, notice)
+  }
+
+  // Sets logged from the lock screen, taken back the moment this page is alive
+  // again. The unsent ones join the outbox — which is the only thing allowed to
+  // drain, so the session keeps one order — and anything the worker already
+  // sent means the workout on screen is out of date.
+  async function absorbLockScreen() {
+    const { queued, sent } = await claimLockScreenSets()
+    queued.forEach((entry) => enqueueSet(entry))
+    if (queued.length > 0) {
+      setWorkout(withQueued)
+      // Normally the card is already standing — the worker only ever repeats a
+      // set you logged from it. But a set on disk with no card is a set you
+      // cannot see, so anything without one gets one, at the top, where the
+      // work you just did belongs.
+      setExercises((list) => {
+        const standing = new Set(list.map((e) => e.name))
+        const missing = [
+          ...new Set(
+            queued.map((e) => e.payload.exercise_name).filter((name) => !standing.has(name)),
+          ),
+        ]
+        return missing.length === 0
+          ? list
+          : [...missing.map((name) => ({ name, kind: 'strength' })), ...list]
+      })
+    }
+    await flushQueue()
+    if (sent > 0) {
+      // Best-effort: with no signal the rows are already on screen from the
+      // queue, and the next visit will pick up the rest.
+      await getWorkout(workoutId)
+        .then((w) => {
+          cacheWorkout(w)
+          setWorkout(withQueued(w))
+        })
+        .catch(() => {})
+    }
   }
 
   // Drain the outbox oldest-first. Nothing here throws at the card: a set that
@@ -1297,6 +1453,63 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
                       ))}
                     </div>
                   </div>
+                  {/* The screen not going dark is the cheap half of not making
+                      the trip to the pocket; the lock-screen notice is the
+                      other half, for when the phone goes in it anyway. */}
+                  <div className="menu-pref">
+                    <span className="prefs-label">Pantalla activa</span>
+                    <div
+                      className="unit-toggle"
+                      role="group"
+                      aria-label="Mantener la pantalla encendida"
+                    >
+                      {[
+                        [true, 'Sí'],
+                        [false, 'No'],
+                      ].map(([on, label]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className="unit-option"
+                          aria-pressed={screenAwake === on}
+                          onClick={() => chooseScreenAwake(on)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Hidden outright where the browser can't do it — a control
+                      that has nothing to decide isn't shown (DESIGN.md). */}
+                  {notificationState() !== 'unsupported' && (
+                    <div className="menu-pref">
+                      <span className="prefs-label">Aviso de descanso</span>
+                      {notificationState() === 'denied' ? (
+                        <p className="menu-note">Bloqueado en el navegador.</p>
+                      ) : (
+                        <div
+                          className="unit-toggle"
+                          role="group"
+                          aria-label="Avisar del descanso en la pantalla bloqueada"
+                        >
+                          {[
+                            [true, 'Sí'],
+                            [false, 'No'],
+                          ].map(([on, label]) => (
+                            <button
+                              key={label}
+                              type="button"
+                              className="unit-option"
+                              aria-pressed={restNotice === on}
+                              onClick={() => chooseRestNotice(on)}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* Two taps to delete: the first only arms it. Destructive gets
                       the true-red treatment DESIGN.md reserves for it. */}
                   {confirmingDelete ? (
@@ -1324,7 +1537,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
       </div>
 
       {restEndsAt != null && (
-        <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={endRest} />
+        <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={skipRest} />
       )}
 
       <form className="card" onSubmit={handleAddExercise}>

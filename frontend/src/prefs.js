@@ -25,6 +25,33 @@ export function setRestSeconds(seconds) {
   localStorage.setItem(REST_SECONDS_KEY, String(n))
 }
 
+// Keep the screen lit while a session is open. On by default: a phone that
+// locks itself between sets costs a wake, an unlock and a hunt for the card,
+// which is the most expensive thing left in logging a set. Off is there for the
+// session where the battery matters more than the trip.
+const SCREEN_AWAKE_KEY = 'fitit_screen_awake'
+
+export function getScreenAwake() {
+  return localStorage.getItem(SCREEN_AWAKE_KEY) !== 'off'
+}
+
+export function setScreenAwake(on) {
+  localStorage.setItem(SCREEN_AWAKE_KEY, on ? 'on' : 'off')
+}
+
+// The rest countdown as a lock-screen notification with a `+1 serie` button.
+// Off by default, and it cannot be otherwise: it needs a notification
+// permission, and a permission is only ever asked for from a tap.
+const REST_NOTICE_KEY = 'fitit_rest_notice'
+
+export function getRestNotice() {
+  return localStorage.getItem(REST_NOTICE_KEY) === 'on'
+}
+
+export function setRestNotice(on) {
+  localStorage.setItem(REST_NOTICE_KEY, on ? 'on' : 'off')
+}
+
 // The running timer is stored as an absolute deadline, not a remaining count:
 // a phone that sleeps mid-set, or a tab switch to Días and back, must not slow
 // the clock down or restart it. A deadline already in the past is simply gone.
