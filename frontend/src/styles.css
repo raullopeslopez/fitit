@@ -1001,13 +1001,11 @@ button.set-action {
   width: auto;
 }
 
-/* One swipeable line each, not a wrapped pile. Wrapped, seven muscle chips and
-   six lift chips stacked into six rows of identical pills doing two different
-   jobs — filter and select — and the wall read as one control repeated. On a
-   line apiece they read as two rows of two kinds, and the picker stops being
-   taller than the chart it drives. */
-.muscle-chips,
-.lift-chips {
+/* One swipeable line. A filter over a closed, memorised set of seven can hide
+   behind a swipe — you already know which groups exist. Content cannot, which
+   is why the row of exercise-name chips that used to sit below this one is gone
+   rather than scrolling. */
+.muscle-chips {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -1018,12 +1016,10 @@ button.set-action {
   padding-inline: 1.2rem;
   margin-inline: -1.2rem;
 }
-.muscle-chips::-webkit-scrollbar,
-.lift-chips::-webkit-scrollbar {
+.muscle-chips::-webkit-scrollbar {
   display: none;
 }
-.muscle-chips > .chip,
-.lift-chips > .chip {
+.muscle-chips > .chip {
   flex: none;
 }
 /* Muscle chips read by their label; the coloured dot reinforces identity so
