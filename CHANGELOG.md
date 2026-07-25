@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Entreno: the rest countdown goes to the Android lock screen as a notification
+  with a **`+1 serie`** button, so a straight set is one tap on a phone you never
+  take out of your pocket. The service worker owns it (the page is frozen while
+  the screen is off): it is handed the set to repeat, the token to send it with
+  and the page's own unsent count, writes the set to disk before the network,
+  and refuses to send while older sets are still queued in the app — `set_index`
+  is assigned in arrival order. Unsent sets are handed back when the app comes
+  forward, and the outbox stays the only thing that drains. Off until switched
+  on in the header `⋯` (it needs a notification permission, and a permission is
+  only ever asked for from a tap). Cardio blocks get no repeat button: the
+  interval you just ran is not the one you are about to run.
+- Entreno: a screen Wake Lock while a session is open, so the phone stops
+  locking itself between sets. On by default, `Pantalla activa` in the header
+  `⋯` turns it off. Re-taken whenever the app comes back, since Android drops it
+  the moment the tab is hidden.
+
 ### Fixed
 - Accessibility: the amber accent now clears WCAG AA (4.5:1) everywhere, the
   floor `DESIGN.md` mandates. White text on filled buttons failed AA in both

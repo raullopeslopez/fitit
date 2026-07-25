@@ -372,6 +372,13 @@ h2 {
 .menu-pref .unit-option {
   flex: 1;
 }
+/* Why a preference in here has no control: the answer is the browser's, and
+   there is nothing to tap until it is changed there. */
+.menu-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 /* The repeat sits with the log button, so it reads as part of the same act. */
 .repeat-set {
   margin-top: 0.6rem;
