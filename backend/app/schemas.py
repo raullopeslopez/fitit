@@ -82,16 +82,6 @@ class SetOut(BaseModel):
     created_at: datetime | None = None
 
 
-class UnitPatch(BaseModel):
-    """Correct the unit of every set of one exercise within one workout.
-
-    The toggle is sticky, so the mistake is never a single set — it's the whole
-    block you just logged. Spec: tests/features/weight_units.feature
-    """
-
-    unit: Unit
-
-
 class WorkoutIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 

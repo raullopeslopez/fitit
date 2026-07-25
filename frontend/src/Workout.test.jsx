@@ -439,47 +439,35 @@ describe('Workout', () => {
     )
   })
 
-  it('logs a set in lb using the sticky weight-unit toggle', async () => {
+  // The kg/lb toggle is gone, so a set can only be logged in kilos. What used to
+  // be two tests of the toggle is now one test that there is nothing to flip.
+  it('logs in kilos, with no unit to choose', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
-    api.logSet.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: [benchSet({ unit: 'lb', weight: 135 })],
-    })
+    api.logSet.mockResolvedValue(workoutWith(benchSet({ weight: 60 })))
     renderWorkout()
     await screen.findByLabelText(/ejercicio/i)
 
-    // The unit is a workout-wide preference, not a per-set field — it lives in
-    // the header overflow, off the logging path.
     await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
-    await userEvent.click(screen.getByRole('button', { name: 'lb' }))
+    expect(screen.queryByRole('button', { name: 'lb' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: /^unidad$/i })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+
     await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
-    await userEvent.type(screen.getByLabelText(/peso/i), '135')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     await waitFor(() =>
       expect(api.logSet).toHaveBeenCalledWith(1, {
         exercise_name: 'Bench Press',
         reps: 8,
-        weight: 135,
-        unit: 'lb',
+        weight: 60,
+        unit: 'kg',
         rpe: null,
         note: null,
       }),
     )
-    expect(await screen.findByText(/135 lb x 8/i)).toBeInTheDocument()
-  })
-
-  it('remembers the weight unit across sessions', async () => {
-    localStorage.setItem('fitit_weight_unit', 'lb')
-    renderWorkout()
-
-    await userEvent.click(await screen.findByRole('button', { name: /acciones del entreno/i }))
-    // The lb toggle reflects the stored preference on load.
-    expect(screen.getByRole('button', { name: 'lb' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   function cardioSet(overrides = {}) {
@@ -722,41 +710,16 @@ describe('Workout', () => {
     expect(flagged).toHaveTextContent(/80/)
   })
 
-  it('corrects a block logged with the toggle on the wrong unit', async () => {
-    // Three sets typed as 135 with the toggle stuck on kg. They were lb. The
-    // fix keeps the number that was typed and changes only what it means, so
-    // 135 kg becomes 135 lb — 61.2 kg — not 61.2 lb.
-    const mislabelled = [1, 2, 3].map((id) => benchSet({ id, weight: 135, unit: 'kg' }))
-    api.getWorkout.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: mislabelled,
-    })
+  // The relabel tool is gone with the toggle. It existed to undo a mistake the
+  // toggle made possible, and it could not even do that — it hid itself whenever
+  // a block mixed units, which is the exact shape of a mid-session flip.
+  it('offers no unit relabel, because there is no unit to get wrong', async () => {
+    api.getWorkout.mockResolvedValue(workoutWith(benchSet({ weight: 135 })))
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false })
-    api.correctExerciseUnit.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: mislabelled.map((s) => benchSet({ id: s.id, weight: 135, unit: 'lb' })),
-    })
     renderWorkout()
 
-    // The logged unit is stated, because the readout alone can't reveal it —
-    // behind Corregir, where you look once you've spotted the mislabel.
     await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
-    const fix = screen.getByRole('button', { name: /registradas en kg · corregir a lb/i })
-    await userEvent.click(fix)
-
-    await waitFor(() => expect(api.correctExerciseUnit).toHaveBeenCalledWith(1, 2, 'lb'))
-    // Still reading in kg, so the same sets now show their true weight...
-    expect(await screen.findAllByText(/61\.2 kg x 8/)).toHaveLength(3)
-    expect(screen.queryByText(/135 kg x 8/)).not.toBeInTheDocument()
-    // ...and the line now reports the corrected unit, so a second tap undoes it
-    // rather than repeating the same relabel.
-    expect(
-      screen.getByRole('button', { name: /registradas en lb · corregir a kg/i }),
-    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /registradas en/i })).not.toBeInTheDocument()
   })
 
   it('does not flag any set when none beats the previous best', async () => {
@@ -902,9 +865,6 @@ describe('Workout', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
       expect(screen.getByLabelText(/grupo muscular de/i)).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /registradas en kg · corregir a lb/i }),
-      ).toBeInTheDocument()
     })
   })
 
@@ -1261,13 +1221,14 @@ describe('Workout', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('still reaches them from the header overflow', async () => {
+    it('still reaches rest from the header overflow', async () => {
       renderWorkout()
       await screen.findByLabelText(/ejercicio/i)
 
       await openSettings()
-      expect(screen.getByRole('group', { name: /^unidad$/i })).toBeInTheDocument()
       expect(screen.getByRole('group', { name: /descanso entre series/i })).toBeInTheDocument()
+      // The weight unit used to live beside it. It has no toggle any more.
+      expect(screen.queryByRole('group', { name: /^unidad$/i })).not.toBeInTheDocument()
     })
   })
 

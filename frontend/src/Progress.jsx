@@ -12,7 +12,7 @@ import { downloadCsv } from './csv.js'
 import { formatDate } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
-import { getWeightUnit } from './prefs.js'
+
 import { displayWeight } from './units.js'
 
 // Nobody types "Máq." with the accent on a phone keyboard, and nobody
@@ -120,9 +120,8 @@ export default function Progress() {
   // Rename and re-tag are corrections, the same shape as the ones on an
   // exercise card: rare, and they were sitting inside the content.
   const [showFixes, setShowFixes] = useState(false)
-  // Read once: the toggle lives in Entreno, so it can't change while Progreso
-  // is on screen.
-  const weightUnit = getWeightUnit()
+  // Kilos, always: the kg/lb toggle is gone. See prefs.js.
+  const weightUnit = 'kg'
 
   const muscleOf = (lift) =>
     exercises.find((e) => e.name === lift)?.muscle_group ?? null

@@ -1,7 +1,14 @@
 Feature: Weight units
-  I train in kilos but the unit toggle is sticky, so sooner or later I log a
-  whole exercise in the wrong one. Every mark is compared in kilos regardless of
-  what I typed, and a mislabelled block is fixed in one go without retyping it.
+  Everything is compared in kilos, whatever a set was typed in. This used to
+  matter because the app offered a sticky kg/lb toggle; the toggle is gone, so
+  from now on a set is logged in kilos and nothing else. What survives here is
+  the storage rule — canonical kilos on every set — which is what keeps the
+  pounds already in the log readable and comparable.
+
+  # The relabel tool that used to live here has been removed with the toggle.
+  # It existed to undo a mistake the toggle made possible, and it could not even
+  # do that: it hid itself whenever a block mixed units, which is exactly the
+  # shape the mistake takes when the toggle is flipped mid-session.
 
   Scenario: A set logged in pounds is comparable in kilos
     Given a logged set of 8 reps at 135 lb for "Bench Press"
@@ -11,15 +18,3 @@ Feature: Weight units
     Given a logged set of 5 reps at 100 kg for "Squat"
     And a logged set of 5 reps at 135 lb for "Squat"
     Then the best mark for "Squat" is 100 kg
-
-  Scenario: Relabel an exercise logged in the wrong unit
-    Given a workout with 3 sets of 8 reps at 135 kg for "Bench Press"
-    When I relabel "Bench Press" in that workout as lb
-    Then those sets still read 135
-    And those sets report 61.2 kg
-
-  Scenario: Relabelling leaves other exercises alone
-    Given a workout with 3 sets of 8 reps at 135 kg for "Bench Press"
-    And that workout also has a set of 5 reps at 100 kg for "Squat"
-    When I relabel "Bench Press" in that workout as lb
-    Then the "Squat" set still reports 100 kg
