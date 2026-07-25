@@ -145,9 +145,19 @@ function showRest(rest, { done = false, confirm = false } = {}) {
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       ...(timed ? { timestamp: rest.endsAt } : {}),
-      // Every set puts this on screen, so it stays quiet until it has something
-      // to say: the rest running out, or a set landing.
-      silent: !done && !confirm,
+      // Not `silent`, however tempting. It was, on the reasoning that every set
+      // puts this on screen so it is the normal case rather than news — and
+      // Android duly filed it as a silent notification, which several skins
+      // (One UI among them) hide from the lock screen by default. It reached
+      // the shade and nowhere else, which is the one place it is useless: the
+      // whole feature is "without unlocking the phone".
+      //
+      // `renotify` carries the quiet instead, and carries it better: a
+      // replacement under the same tag does not re-alert, so this makes one
+      // sound when it first appears in a session and then updates in silence,
+      // set after set. Wanting it fully mute is a real preference, and it
+      // belongs in Android's own per-site channel, not in a flag here that
+      // costs the lock screen.
       renotify: done || confirm,
       // Android would otherwise sweep it away while you are still under the bar.
       requireInteraction: true,
