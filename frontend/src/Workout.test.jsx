@@ -1830,6 +1830,56 @@ describe('Workout', () => {
       })
     })
 
+    describe('arriving again when the phone is pocketed', () => {
+      const pocket = () => {
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'hidden',
+          configurable: true,
+        })
+        document.dispatchEvent(new Event('visibilitychange'))
+      }
+
+      afterEach(() => {
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'visible',
+          configurable: true,
+        })
+      })
+
+      it('re-announces when the app is hidden, which is the phone going away', async () => {
+        // Android draws on a locked screen what arrives while locked. The page
+        // being hidden *is* the phone being pocketed, so it beats any timer
+        // guessing at how long that takes.
+        turnNoticeOn()
+        renderWorkout()
+        await logOneSet()
+        await waitFor(() => expect(notify.startRestNotice).toHaveBeenCalled())
+
+        pocket()
+
+        expect(notify.announceRestNotice).toHaveBeenCalled()
+      })
+
+      it('has nothing to announce before the first set', async () => {
+        turnNoticeOn()
+        renderWorkout()
+        await screen.findByLabelText(/ejercicio/i)
+
+        pocket()
+
+        expect(notify.announceRestNotice).not.toHaveBeenCalled()
+      })
+
+      it('stays quiet while the setting is off', async () => {
+        renderWorkout()
+        await logOneSet()
+
+        pocket()
+
+        expect(notify.announceRestNotice).not.toHaveBeenCalled()
+      })
+    })
+
     it('goes up straight away when switched on mid-session', async () => {
       // Against the set you already logged, rather than making you log another
       // one to find out whether it worked.

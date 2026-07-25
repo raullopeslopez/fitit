@@ -262,6 +262,58 @@ describe('the rest notification', () => {
     })
   })
 
+  // Verified on the user's Xiaomi: MIUI draws on a locked screen what *arrives*
+  // while locked, and redraws nothing that was already in the shade. The
+  // end-of-rest alert reached the lock screen for that reason alone; the one
+  // born when you tapped Registrar never did.
+  describe('arriving again when the phone is pocketed', () => {
+    it('re-announces the notification so it lands on a locked screen', async () => {
+      const worker = bootWorker()
+      worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() } })
+      await vi.advanceTimersByTimeAsync(0)
+
+      await worker.dispatch('message', { data: { type: 'rest-announce' } })
+
+      const again = worker.shown[worker.shown.length - 1]
+      expect(worker.shown).toHaveLength(2)
+      expect(again.renotify).toBe(true)
+      expect(again.title).toBe('Descanso hasta las 18:41')
+      // Same tag, so it replaces rather than piling a second card on the screen.
+      expect(again.tag).toBe(worker.shown[0].tag)
+    })
+
+    it('works for a session with no rest at all, which is the case that needed it', async () => {
+      const worker = bootWorker()
+      const untimed = { ...REST, endsAt: null, seconds: 0 }
+      worker.dispatch('message', { data: { type: 'rest-start', rest: untimed } })
+      await vi.advanceTimersByTimeAsync(0)
+
+      await worker.dispatch('message', { data: { type: 'rest-announce' } })
+
+      expect(worker.shown[1].title).toBe('Press banca')
+      expect(worker.shown[1].renotify).toBe(true)
+    })
+
+    it('does not put a deadline back on screen that already passed', async () => {
+      const worker = bootWorker()
+      const running = worker.dispatch('message', { data: { type: 'rest-start', rest: restNow() } })
+      await vi.advanceTimersByTimeAsync(90_000)
+      await running
+
+      await worker.dispatch('message', { data: { type: 'rest-announce' } })
+
+      expect(worker.shown[worker.shown.length - 1].title).toBe('Descanso terminado')
+    })
+
+    it('has nothing to announce outside a session', async () => {
+      const worker = bootWorker()
+
+      await worker.dispatch('message', { data: { type: 'rest-announce' } })
+
+      expect(worker.shown).toHaveLength(0)
+    })
+  })
+
   it('the same rest sent twice is an update, not a second countdown', async () => {
     // The page sends it again once its own outbox has drained, so the worker
     // knows whether it may send. That must not buy a second alarm.

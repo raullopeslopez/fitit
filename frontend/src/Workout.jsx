@@ -35,6 +35,7 @@ import {
   retryable,
 } from './offline.js'
 import {
+  announceRestNotice,
   askForNotifications,
   claimLockScreenSets,
   notificationState,
@@ -1147,7 +1148,16 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
   useEffect(() => {
     const drain = () => absorbLockScreen()
     const onVisible = () => {
-      if (document.visibilityState === 'visible') absorbLockScreen()
+      if (document.visibilityState === 'visible') {
+        absorbLockScreen()
+        return
+      }
+      // Going away is the other half. The phone being hidden *is* the phone
+      // being pocketed, and Android draws on a locked screen what arrives while
+      // locked — a notification already in the shade is not redrawn. So this is
+      // the moment to make it arrive again, and it beats any timer guessing at
+      // how long somebody takes to put a phone away.
+      if (lastNotice.current && getLockLogging()) announceRestNotice()
     }
     // The app was awake when the notification was tapped (from the shade rather
     // than the lock screen): take the set, and the rest clock with it, or the

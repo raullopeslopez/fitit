@@ -126,7 +126,10 @@ function endsAtLabel(endsAt) {
 // With no rest to count (`endsAt` null) the same notification stands as a plain
 // remote for the session: the exercise leads, and the clock simply isn't part
 // of it. Not timing your rests must not cost you the lock screen.
-function showRest(rest, { done = false, confirm = false } = {}) {
+// `announce` = the phone has just gone into a pocket and this needs to *arrive*
+// again. See the message handler below for why that is not the same as being on
+// screen already.
+function showRest(rest, { done = false, confirm = false, announce = false } = {}) {
   const count = rest.series > 0 ? `\n${rest.series} ${rest.series === 1 ? 'serie' : 'series'}` : ''
   const set = `${showKg(rest.payload.weight)} kg x ${rest.payload.reps}`
   const timed = rest.endsAt != null
@@ -158,7 +161,7 @@ function showRest(rest, { done = false, confirm = false } = {}) {
       // set after set. Wanting it fully mute is a real preference, and it
       // belongs in Android's own per-site channel, not in a flag here that
       // costs the lock screen.
-      renotify: done || confirm,
+      renotify: done || confirm || announce,
       // Android would otherwise sweep it away while you are still under the bar.
       requireInteraction: true,
       vibrate: done ? [120, 60, 120] : confirm ? [40] : undefined,
@@ -331,6 +334,28 @@ async function drain(rest) {
   }
 }
 
+// Say it again, now that the phone is going away.
+//
+// Android decides for itself what reaches a locked screen, and MIUI's rule —
+// verified on the user's own phone — is that it draws what *arrives* while
+// locked and nothing else. A notification already sitting in the shade when you
+// press the power button is not redrawn. That is why the end-of-rest alert
+// showed up on the lock screen and the one born the moment you tapped Registrar
+// never did: same notification, different arrival time.
+//
+// So the page tells us when it is being hidden, which is exactly when the phone
+// is pocketed or locked, and the notification arrives a second time — under the
+// same tag, so it replaces rather than stacks. No timer guessing at how long
+// somebody takes to put a phone away.
+async function announceRest() {
+  const rest = await readState('rest', null)
+  if (!rest) return
+  // A rest that already ran out keeps saying so. Re-announcing the countdown
+  // form would put a deadline back on screen that passed minutes ago.
+  const done = rest.endsAt != null && rest.endsAt <= Date.now()
+  await showRest(rest, { done, announce: true })
+}
+
 async function tellClients(message) {
   const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
   clients.forEach((client) => client.postMessage(message))
@@ -360,6 +385,8 @@ self.addEventListener('message', (event) => {
   const message = event.data || {}
   if (message.type === 'rest-start') {
     event.waitUntil(startRest(message.rest, event.ports?.[0]))
+  } else if (message.type === 'rest-announce') {
+    event.waitUntil(announceRest())
   } else if (message.type === 'rest-stop') {
     event.waitUntil(writeState('rest', null).then(closeRest))
   } else if (message.type === 'claim') {
