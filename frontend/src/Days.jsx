@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { createWorkout, deleteDay, listDays, listExercises } from './api.js'
+import { createWorkout, deleteDay, listDays } from './api.js'
 import { formatDayShort } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 import { setRepeatTemplate } from './prefs.js'
@@ -21,7 +21,6 @@ export default function Days({ onOpenWorkout }) {
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
   const [backfill, setBackfill] = useState(false)
-  const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
   // Which day has its overflow open, and whether its delete is armed. Rare and
   // irreversible actions live in there rather than beside the row you tap.
   const [menuFor, setMenuFor] = useState(null)
@@ -34,20 +33,12 @@ export default function Days({ onOpenWorkout }) {
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
 
-  useEffect(() => {
-    // Best-effort: powers the per-session muscle dots; a failure just hides them.
-    listExercises()
-      .then((list) =>
-        setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group]))),
-      )
-      .catch(() => {})
-  }, [])
-
-  // The distinct muscle groups a workout trained, in canonical order.
+  // The distinct muscle groups a workout trained, in canonical order. Every set
+  // carries its own group, so this needs nothing the list didn't already fetch —
+  // it used to cross-reference /exercises by name, a second request and a map
+  // that went stale the moment you re-tagged a lift.
   const musclesOf = (workout) =>
-    MUSCLE_GROUPS.filter((m) =>
-      workout.sets.some((s) => muscleByName[s.exercise_name] === m),
-    )
+    MUSCLE_GROUPS.filter((m) => workout.sets.some((s) => s.muscle_group === m))
 
   function openMenu(dayId) {
     setConfirmingDelete(false)
