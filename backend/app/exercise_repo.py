@@ -2,7 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import Exercise
-from .muscles import classify
+from .muscles import group_for
 from .naming import normalize_exercise_name
 
 
@@ -28,7 +28,7 @@ async def get_or_create_exercise(
     if exercise is None:
         normalized = normalize_exercise_name(name)
         # Auto-assign a muscle group on first sight; the user can override later.
-        exercise = Exercise(name=normalized, muscle_group=classify(normalized), kind=kind)
+        exercise = Exercise(name=normalized, muscle_group=group_for(normalized, kind), kind=kind)
         session.add(exercise)
         await session.flush()
     return exercise
