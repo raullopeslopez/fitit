@@ -25,7 +25,9 @@ export default function Login({ onAuthenticated }) {
   return (
     <div className="login-wrap">
       <div className="card login-card">
-        <h1>Fitit</h1>
+        <h1 className="wordmark">
+          fit<span className="wordmark-swap">I</span>t
+        </h1>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="username">Usuario</label>

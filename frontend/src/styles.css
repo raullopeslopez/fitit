@@ -126,6 +126,18 @@ h2 {
   align-items: center;
   margin-bottom: 1.25rem;
 }
+/* The wordmark: lowercase, tight, with the second i raised to a capital and
+   dropped to regular weight. One letter carrying the whole idea — the bar and
+   its plates, the same shape as the icon — so the name needs no logo beside
+   it. Set as one text run, never letter by letter, so the kerning holds. */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.0375em;
+}
+.wordmark-swap {
+  font-weight: 400;
+}
 /* Salir: a quiet muted link. Framed and amber it was the second-loudest thing
    on the screen you open mid-set, for something you press once a month. */
 .link-btn {
