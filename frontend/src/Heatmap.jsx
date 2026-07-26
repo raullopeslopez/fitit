@@ -4,7 +4,7 @@ import { formatDate } from './format.js'
 import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
 import { muscleHeatmapGrid } from './stats.js'
 
-// Monday-start; show every other label so the column doesn't crowd on mobile.
+// Monday-start.
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
@@ -81,9 +81,9 @@ export default function Heatmap({ days, weeks = 10, endDate }) {
 
       <div className="heatmap heat-cal">
         <div className="heat-days">
-          {DAY_LABELS.map((d, i) => (
+          {DAY_LABELS.map((d) => (
             <span key={d} className="heat-daylabel">
-              {i % 2 === 0 ? d : ''}
+              {d}
             </span>
           ))}
         </div>
