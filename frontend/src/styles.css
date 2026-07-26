@@ -379,9 +379,17 @@ h2 {
   font-size: 0.8rem;
   color: var(--muted);
 }
-/* The repeat sits with the log button, so it reads as part of the same act. */
+/* The repeat sits beside the log button, so it reads as part of the same act.
+   Its geometry belongs to that row — see .log-actions. */
 .repeat-set {
-  margin-top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.rep-icon {
+  font-size: 1.05rem;
+  line-height: 1;
 }
 /* A quiet text affordance, not a control competing with Registrar. */
 .extras-toggle {
@@ -785,21 +793,10 @@ button.set-action {
   color: var(--muted);
 }
 
-.pr-banner {
-  border-radius: var(--radius);
-  padding: 0.6rem 0.8rem;
-  margin: 0 0 0.9rem;
-  font-weight: 600;
-  color: var(--pr);
-  background: color-mix(in srgb, var(--pr) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--pr) 35%, transparent);
-}
-
-/* Target block: the previous best is the biggest number on the card — what you
-   came to beat. The single amber "glow" DESIGN.md reserves for the record. */
-/* One readout, not two: the mark you walked in with, an arrow, and where you
-   are now. Today's number is the one that moves, so it carries the weight and
-   goes amber the moment it passes. */
+/* Target block: the biggest number on the card is what you last put on the bar
+   — the thing you came to beat, in the terms you'd think it in. No estimate
+   stands in for it, and no banner celebrates beating it: the record is marked
+   on the row that took it, where it stays. */
 .target {
   padding: 0 0.1rem 0.9rem;
   margin: 0 0 0.9rem;
@@ -825,41 +822,18 @@ button.set-action {
   line-height: 1;
   letter-spacing: -0.02em;
 }
-.target-prev {
-  font-size: 1.6rem;
-  font-weight: 500;
-  color: var(--muted);
-}
-.target-arrow {
-  font-size: 1.1rem;
-  color: var(--muted);
-}
 .target-today {
   font-size: 2.6rem;
   font-weight: 500;
   color: var(--text);
 }
-/* The earned moment, expressed the way each medium actually works. A 24px
-   amber glow on white paper is invisible, so light mode marks the number
-   instead: ink, like a highlighter. Dark mode emits. */
-.target-today.is-pr {
-  color: var(--pr);
-  background-image: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--pr) 16%, transparent) 0.22em,
-    transparent 0.22em
-  );
-}
-@media (prefers-color-scheme: dark) {
-  .target-today.is-pr {
-    background-image: none;
-    text-shadow: 0 0 24px color-mix(in srgb, var(--pr) 40%, transparent);
-  }
-}
-.target-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+/* The reps ride beside the weight at reading size: "82.5" is the figure you
+   act on, "kg × 5" is what makes it mean anything. */
+.target-unit {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  color: var(--muted);
 }
 .target-meta {
   margin-top: 0.35rem;

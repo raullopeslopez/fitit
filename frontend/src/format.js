@@ -63,6 +63,19 @@ export function formatRange(startIso, endIso) {
   return `${sd} ${MESES[sm - 1]} – ${ed} ${MESES[em - 1]}`
 }
 
+// How long ago, in the words you'd use out loud: "hoy", "ayer", "hace 3 días".
+// Takes an API timestamp (UTC) and compares calendar days in the viewer's own
+// zone — 23:00 last night is "ayer" even though it's fifteen hours back.
+export function daysAgoLabel(timestamp, today = new Date()) {
+  const then = new Date(timestamp)
+  if (Number.isNaN(then.getTime())) return null
+  const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.round((startOf(today) - startOf(then)) / 86400000)
+  if (days <= 0) return 'hoy'
+  if (days === 1) return 'ayer'
+  return `hace ${days} días`
+}
+
 // Cardio metrics. Duration is entered as "mm:ss" (or "h:mm:ss"), or a plain
 // number read as minutes; parseDuration returns whole seconds, or null if invalid.
 export function parseDuration(input) {

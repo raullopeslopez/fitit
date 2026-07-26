@@ -158,7 +158,7 @@ describe('Workout', () => {
 
       // Sets varied (60/60/80), so the digest names the top set by est. 1RM
       // (80 × 8) with the "tope" label, not a decoupled range.
-      expect(await foldedDigest(/^3 series · tope 80 kg × 8$/)).toBeInTheDocument()
+      expect(await foldedDigest(/^3 series hoy · tope 80 kg × 8$/)).toBeInTheDocument()
     })
 
     it('names the working set without a "tope" label when every set matched', async () => {
@@ -173,7 +173,7 @@ describe('Workout', () => {
 
       // Identical sets: one pair speaks for all, so no "tope" — there's no peak
       // to single out.
-      expect(await foldedDigest(/^2 series · 60 kg × 8$/)).toBeInTheDocument()
+      expect(await foldedDigest(/^2 series hoy · 60 kg × 8$/)).toBeInTheDocument()
       expect(screen.queryByText(/tope/)).not.toBeInTheDocument()
     })
 
@@ -189,7 +189,7 @@ describe('Workout', () => {
 
       // A flat "2 × 8" would lie about the second set. 70 × 5 (e1RM 81.7) beats
       // 60 × 8 (76.0), so it's the tope — one real, paired working set.
-      expect(await foldedDigest(/^2 series · tope 70 kg × 5$/)).toBeInTheDocument()
+      expect(await foldedDigest(/^2 series hoy · tope 70 kg × 5$/)).toBeInTheDocument()
     })
 
     it('lets me keep two cards open at once, for supersets', async () => {
@@ -206,25 +206,42 @@ describe('Workout', () => {
     })
   })
 
-  it('shows only today when there is no mark to beat', async () => {
-    // A first-ever exercise has nothing on the left of the arrow. Rendering
-    // "— → 41.3" puts a stray dash where a number should be and implies a
-    // comparison that doesn't exist.
-    api.getWorkout.mockResolvedValue(
-      workoutWith(benchSet({ id: 1, reps: 15, weight: 27.5 })), // -> 41.3
-    )
+  it('says plainly that there is no mark yet, rather than inventing one', async () => {
+    api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1, reps: 15, weight: 27.5 })))
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     renderWorkout()
 
-    const readout = (await screen.findByText(/1RM est\./i)).closest('.target')
-    expect(readout).toHaveTextContent(/41\.3/)
-    // Nothing to beat yet — the label states the estimate plainly and does not
-    // promise a comparison ("A batir" = "to beat") that has no left-hand mark.
-    expect(readout).not.toHaveTextContent(/a batir/i)
-    expect(readout).not.toHaveTextContent('—')
-    expect(readout).not.toHaveTextContent('→')
+    expect(await screen.findByText(/sin marcas anteriores/i)).toBeInTheDocument()
+    expect(screen.queryByText(/última vez/i)).not.toBeInTheDocument()
   })
 
-  it('reads the mark to beat against what I have hit today', async () => {
+  // The mark to beat used to be an estimated 1RM — a number you never lift.
+  // You walk to the rack thinking "82.5 for 5", so that is what the card says.
+  it('reads the mark to beat as the last thing I actually put on the bar', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      // A top set and a back-off: the target is the top one, not the last one.
+      sets: [
+        benchSet({ id: 90, reps: 5, weight: 82.5, created_at: '2026-07-13T18:04:00Z' }),
+        benchSet({ id: 91, reps: 8, weight: 70, created_at: '2026-07-13T18:12:00Z' }),
+      ],
+      best_one_rm: 96.3,
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    const readout = (await screen.findByText(/última vez/i)).closest('.target')
+    expect(readout).toHaveTextContent('82.5')
+    expect(readout).toHaveTextContent(/kg × 5/)
+    // No formula anywhere near the headline.
+    expect(readout).not.toHaveTextContent(/1RM/i)
+    expect(readout).not.toHaveTextContent(/96\.3/)
+  })
+
+  it('keeps the old estimate off the card entirely', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
@@ -244,10 +261,11 @@ describe('Workout', () => {
     await userEvent.type(screen.getByLabelText(/peso/i), '70')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    // One readout: what you walked in with, and where you are now.
-    const readout = (await screen.findByText(/a batir/i)).closest('.target')
-    expect(readout).toHaveTextContent(/76/)
-    expect(readout).toHaveTextContent(/81\.7/)
+    // The session's estimated 1RM was 81.7 and the prior best 76. Neither is
+    // anywhere on the card any more.
+    const readout = (await screen.findByText(/última vez/i)).closest('.target')
+    expect(readout).not.toHaveTextContent(/81\.7/)
+    expect(readout).not.toHaveTextContent(/1RM/i)
   })
 
   it('shows previous marks when you add an exercise', async () => {
@@ -261,7 +279,9 @@ describe('Workout', () => {
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-    expect(await screen.findByText(/60 kg x 8/i)).toBeInTheDocument()
+    const readout = (await screen.findByText(/última vez/i)).closest('.target')
+    expect(readout).toHaveTextContent(/60/)
+    expect(readout).toHaveTextContent(/kg × 8/)
     expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press', 1)
   })
 
@@ -275,7 +295,7 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await screen.findByText(/a batir/i)
+    await screen.findByText(/última vez/i)
 
     expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
     expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
@@ -345,9 +365,9 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await screen.findByText(/a batir/i)
+    await screen.findByText(/última vez/i)
 
-    expect(screen.getByText(/61\.2 kg x 8/)).toBeInTheDocument()
+    expect(screen.getByText('61.2')).toBeInTheDocument()
     expect(screen.getByLabelText(/peso/i)).toHaveValue('61.2')
   })
 
@@ -361,7 +381,7 @@ describe('Workout', () => {
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await screen.findByText(/a batir/i)
+    await screen.findByText(/última vez/i)
 
     await userEvent.click(screen.getByRole('button', { name: /sumar kg/i }))
     expect(screen.getByLabelText(/peso/i)).toHaveValue('82.5')
@@ -590,7 +610,9 @@ describe('Workout', () => {
     expect(screen.getByText(/felt strong/i)).toBeInTheDocument()
   })
 
-  it('celebrates a new personal record', async () => {
+  // The record is marked where the record is: on the row, not in a banner that
+  // covers the log for a moment and then leaves nothing behind.
+  it('marks a real weight record on the set that took it', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
@@ -614,8 +636,11 @@ describe('Workout', () => {
     await userEvent.type(screen.getByLabelText(/peso/i), '80')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    // 80 * (1 + 3/30) = 88 > 76 -> personal record
-    expect(await screen.findByText(/nuevo récord/i)).toBeInTheDocument()
+    // 80 kg at 3 reps, against 60 kg at 8: more than you had ever moved at
+    // three reps or more. No banner — the label rides the row and survives a
+    // reload, which the banner never did.
+    expect(await screen.findByText(/PR peso/i)).toBeInTheDocument()
+    expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
   })
 
   async function logOneSet() {
@@ -750,10 +775,11 @@ describe('Workout', () => {
     expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
   })
 
-  // A set row is the values and a way to fix them. The index repeated the row's
-  // own position, and the clock stamp answered a question nothing asks — rest
-  // is what the countdown is for.
-  it('keeps a set row down to the numbers', async () => {
+  // A set row is the values, an index and a way to fix them. The clock stamp
+  // answered a question nothing asks — rest is what the countdown is for. The
+  // index earns its place back now the rows are zebra-striped instead of ruled:
+  // without a border to end each line, "S2" is what keeps your place at set six.
+  it('keeps a set row down to its index and its numbers', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -771,7 +797,7 @@ describe('Workout', () => {
 
     const row = (await screen.findByText(/60 kg x 8/)).closest('li')
     expect(row).not.toHaveTextContent(/18:04/)
-    expect(row).not.toHaveTextContent(/S1/)
+    expect(row).toHaveTextContent(/S1/)
   })
 
   it('counts the series in the session summary', async () => {
@@ -842,8 +868,8 @@ describe('Workout', () => {
     expect(await screen.findByText(/2 series/i)).toBeInTheDocument()
     expect(screen.queryByText(/volumen/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/830/)).not.toBeInTheDocument()
-    // The session's best 1RM lives in the target readout, and only there.
-    expect(screen.getByText(/1RM est\./i).closest('.target')).toHaveTextContent(/81\.7/)
+    // Nor any estimate standing in for what you lifted.
+    expect(screen.queryByText(/81\.7/)).not.toBeInTheDocument()
   })
 
   // Re-tagging the muscle and relabelling the unit are both once-in-a-lifetime
@@ -950,7 +976,7 @@ describe('Workout', () => {
   it('adds a copy of the last set with +1', async () => {
     await logBenchSet()
 
-    await userEvent.click(screen.getByRole('button', { name: /\+1/ }))
+    await userEvent.click(screen.getByRole('button', { name: /repetir serie/i }))
 
     await waitFor(() =>
       expect(api.logSet).toHaveBeenLastCalledWith(1, {
@@ -1203,10 +1229,10 @@ describe('Workout', () => {
     })
   })
 
-  // The flag compares each set against the mark you walked in with. Until the
-  // marks arrive there is no such mark, and prSetIds falls back to the session's
-  // own running peak — so set 2 wore a PR for beating set 1. It was always a
-  // flicker on open; rendering instantly from a seed would widen the window.
+  // The flag compares each set against what you walked in with. Until the marks
+  // arrive there is nothing to compare to, and the comparison falls back to the
+  // session's own history — so set 2 wore a PR for beating set 1. It was always
+  // a flicker on open; rendering instantly from a seed would widen the window.
   it('shows no PR badge until it knows what the record actually is', async () => {
     api.getWorkout.mockResolvedValue(
       workoutWith(benchSet({ id: 1, weight: 50 }), benchSet({ id: 2, weight: 60 })),
@@ -1218,9 +1244,14 @@ describe('Workout', () => {
     await screen.findByText(/60 kg x 8/)
     expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
 
-    // A real record of 200 means neither of today's sets is one.
-    resolveMarks({ exercise_name: 'Bench Press', found: true, best_one_rm: 200, sets: [] })
-    await waitFor(() => expect(screen.getByText(/a batir/i)).toBeInTheDocument())
+    // A last session at 200 kg means neither of today's sets is a record.
+    resolveMarks({
+      exercise_name: 'Bench Press',
+      found: true,
+      best_one_rm: 200,
+      sets: [benchSet({ id: 90, weight: 200, reps: 8 })],
+    })
+    await waitFor(() => expect(screen.getByText(/última vez/i)).toBeInTheDocument())
     expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
   })
 
@@ -1238,7 +1269,7 @@ describe('Workout', () => {
       })
       renderWorkout()
 
-      expect(await screen.findByText(/a batir/i)).toBeInTheDocument()
+      expect(await screen.findByText(/última vez/i)).toBeInTheDocument()
       expect(screen.getByText(/última vez/i)).toBeInTheDocument()
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press', 1)
     })
@@ -1258,7 +1289,7 @@ describe('Workout', () => {
       })
       renderWorkout()
 
-      await screen.findByText(/a batir/i)
+      await screen.findByText(/última vez/i)
       expect(screen.queryByTitle(/récord al registrarla/i)).not.toBeInTheDocument()
     })
   })
@@ -1320,7 +1351,7 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     const { container } = renderWorkout()
 
-    const repeat = await screen.findByRole('button', { name: /\+1 serie/i })
+    const repeat = await screen.findByRole('button', { name: /repetir serie/i })
     const log = container.querySelector('ol.sets')
     // Node.compareDocumentPosition: FOLLOWING means the log comes after it.
     expect(repeat.compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -1475,7 +1506,7 @@ describe('Workout', () => {
       await waitFor(() => expect(pending).toHaveLength(1))
 
       // Second set, logged before the first has come back.
-      await userEvent.click(screen.getByRole('button', { name: /\+1 serie/i }))
+      await userEvent.click(screen.getByRole('button', { name: /repetir serie/i }))
       expect(screen.getByText(/hoy · 2 series/i)).toBeInTheDocument()
 
       // The first response knows about one set only.
@@ -1665,7 +1696,7 @@ describe('Workout', () => {
       })
       const first = renderWorkout()
       await addBench()
-      await screen.findByText(/a batir/i)
+      await screen.findByText(/última vez/i)
       first.unmount()
 
       // Same lift, no signal. The card still knows what you did last time.
@@ -1686,7 +1717,7 @@ describe('Workout', () => {
       })
       const first = renderWorkout()
       await addBench()
-      await screen.findByText(/a batir/i)
+      await screen.findByText(/última vez/i)
       first.unmount()
 
       api.getPreviousMarks.mockRejectedValue(offline())
@@ -1886,7 +1917,7 @@ describe('Workout', () => {
         pocket()
         show()
 
-        await userEvent.click(screen.getByRole('button', { name: /\+1 serie/i }))
+        await userEvent.click(screen.getByRole('button', { name: /repetir serie/i }))
 
         pocket()
         expect(notify.announceRestNotice).toHaveBeenCalledTimes(2)

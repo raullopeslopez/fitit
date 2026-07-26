@@ -4,6 +4,7 @@ import {
   formatCardioSet,
   formatClock,
   formatDayShort,
+  daysAgoLabel,
   formatDuration,
   formatMonth,
   formatPace,
@@ -11,6 +12,28 @@ import {
   formatTime,
   parseDuration,
 } from './format.js'
+
+describe('daysAgoLabel', () => {
+  const today = new Date(2026, 6, 26, 10)
+
+  it('names the near past the way you would say it', () => {
+    expect(daysAgoLabel(new Date(2026, 6, 26, 8).toISOString(), today)).toBe('hoy')
+    expect(daysAgoLabel(new Date(2026, 6, 25, 23).toISOString(), today)).toBe('ayer')
+    expect(daysAgoLabel(new Date(2026, 6, 23, 19).toISOString(), today)).toBe('hace 3 días')
+  })
+
+  // Calendar days, not elapsed hours: last night at 23:00 is "ayer" even though
+  // it is eleven hours ago, and this morning is "hoy" whatever the clock says.
+  it('counts calendar days, not elapsed time', () => {
+    expect(daysAgoLabel(new Date(2026, 6, 25, 22).toISOString(), new Date(2026, 6, 26, 1))).toBe(
+      'ayer',
+    )
+  })
+
+  it('is null for a timestamp it cannot read', () => {
+    expect(daysAgoLabel(undefined, today)).toBeNull()
+  })
+})
 
 describe('formatMonth', () => {
   it('names a month in full, for a title that has room for it', () => {
