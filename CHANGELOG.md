@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Progreso responde otra pregunta.** El calendario ya no mide constancia: el
+  color es el músculo y la opacidad las series, así que de un vistazo ves si
+  llevas dos semanas sin tocar pierna. Los chips de la derecha son la leyenda y
+  el filtro a la vez. En su sitio hay además una tarjeta de resumen — series por
+  músculo en la semana o el mes, con la diferencia contra el periodo anterior y
+  flechas para ir hacia atrás.
+- **Evolución sustituye a la gráfica de 1RM estimado y a "Mejores marcas".**
+  Escalones en vez de pendiente: solo las sesiones en las que el peso subió de
+  verdad. La curva anterior trazaba línea también por los días en que solo
+  mantenías, y eso se lee como un progreso que no ocurrió.
+- **Entreno encabeza con lo que pusiste en la barra**, no con un 1RM estimado:
+  "Última vez · hace 3 días" y la serie tope de aquel día. El récord se marca en
+  la fila que lo tomó, con la etiqueta `PR peso`, y ahora es un récord de peso
+  real — más kilos que nunca a ese número de reps o más — en lugar de una
+  fórmula por la que un single pesado ganaba a una serie dura de ocho. Fuera el
+  banner: tapaba el log un momento y no dejaba nada detrás.
+- **Repetir serie pasa a la fila de Registrar**, en gris. El log de hoy vuelve a
+  numerar las series (S1, S2…) sobre filas en cebra, y las tarjetas plegadas
+  enseñan las series de hoy como chips.
+- **Jerarquía de tarjetas**: el ejercicio en curso lleva un lavado ámbar, la
+  tarjeta protagonista de cada pantalla se eleva y lo ya hecho se hunde hacia el
+  fondo. Con el dedo, ninguna fila tocable se tiñe de ámbar: solo velo gris
+  mientras pulsas.
+- **Marca nueva**: el icono es una barra cargada vista de frente, que de paso
+  insinúa una F — al revés que el anterior, que era una F recortada sobre un
+  cuadrado naranja. Iconos de app, badge y favicon nuevos.
+
+### Removed
+- Progreso: racha de días, constancia semanal, heatmap por intensidad de series,
+  "Mejores marcas" y los avisos de músculo desatendido.
+
 ### Fixed
 - Entreno: la notificación **saltaba cada vez que salías de la app**, no solo al
   bloquear el móvil. "Oculta" también es abrir WhatsApp o mirar la música, y

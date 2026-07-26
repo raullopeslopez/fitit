@@ -56,9 +56,11 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
 - **Amber *as text*** (links, active tab, badges, the stepper `+`) goes deeper on light so it
   clears AA on paper: `--accent-ink` `#C2440F` (light) / `#FF6A2C` (dark). Fills, borders and the
   record keep `--accent`.
-- **PR / record:** the earned moment only, and it is **not one colour**.
-  - dark: `#FFA733` (accent at full intensity) — brighter than the accent, plus a glow.
-  - light: `#A83208` — *deeper* than the accent, plus an ink highlight behind the number.
+- **PR / record:** the earned moment only, and it is **not one colour**. Since 2026-07-26
+  it is spent on the `PR peso` label and the summary deltas — the glow and the highlight
+  behind the headline number are gone with the readout they sat on.
+  - dark: `#FFA733` (accent at full intensity) — brighter than the accent.
+  - light: `#A83208` — *deeper* than the accent.
   - Why they differ: on paper you cannot get louder than the accent by going brighter.
     `#FFA733` scores **1.94** on white, under the 3.0 floor for large text. The range
     above `#E4571B` collapses toward white, so on light the record goes hotter-iron
@@ -138,9 +140,18 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   the headline figure — the working weight (cardio: the time) — is lifted to ink while the
   count, `tope` tag and `× reps` stay muted, so the number reads first. Amber is never
   spent here; it belongs to the PR alone.
-- **One number per idea.** The 1RM readout is a single `76 → 81.7` line: the mark you
-  walked in with, muted and small, then today's, large and amber once it passes. Two
-  separate 1RM figures on one card is how you end up reading neither.
+- **One number per idea, and it has to be a number you lift.** The headline on an open
+  card is `Última vez · hace 3 días` over the heaviest set of that session — `82.5` large,
+  `kg × 5` beside it in muted mono. Not an estimated 1RM: nobody walks to the rack
+  thinking "96.3 theoretical single". The record is marked where it happens, on the row
+  that took it (`PR peso`), and nowhere else — no banner, no glow. A banner covers the log
+  for a moment and leaves nothing behind; the label survives a reload.
+- **Three surfaces, so a screen of cards says which one you're in.** *hero* (the exercise
+  you're logging: `--surface-raised` under a 7% accent wash, border at 26% accent — the
+  only card wearing amber, and only as a wash), *raised* (the one card a screen is about),
+  *quiet* (already done — sunk toward the background rather than framed). On dark every
+  card takes `inset 0 1px 0 rgba(255,255,255,.045)`: there's no light to cast a shadow, so
+  the top edge catches it instead.
 - **The primary action is pinned to the bottom, never the top.** One-handed, the top
   corners are the hardest reach on the screen and the bottom edge is where the thumb
   already rests. Días pins its start/continue CTA directly above the tab bar; the list
@@ -294,6 +305,11 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-21 | Exercise cards fold; only the newest starts open | A five-exercise session was a five-card scroll with the active lift anywhere in it. Folded cards keep a spec-sheet digest so nothing is hidden, only quieted. Accordion (one-open) was rejected: it fights supersets. |
 | 2026-07-21 | One 1RM readout (`76 → 81.7`) replaces two | The card printed "A batir · 1RM est. 76" and "Mejor 1RM 88" twelve lines apart, both about 1RM. Merging them keeps the PR as the emotional payload (today's number is the large one, amber when it passes) while removing a competing figure. |
 | 2026-07-20 | Consistency heatmap uses the amber ramp, not green | Every contribution grid ships green; a heat map of effort should literally be heat. Intensity = sets logged that day (works for cardio too, where volume doesn't), built with `color-mix(in srgb, var(--accent) N%, transparent)` so it tracks light/dark for free. Level 0 stays neutral, never a faint amber. |
+| 2026-07-26 | Heatmap colour = muscle, opacity = volume; the amber ramp goes | The amber grid measured one thing — how many sets that day — and so answered "have I been consistent?", a question about discipline. The question worth a card on Progreso is "have I touched legs this month?". Colour now carries the muscle group (the categorical palette, which is exactly the data-encoding use it was approved for), opacity carries volume in the same four steps, and a day split between two groups splits the cell on a 135° diagonal. The streak hero and the intensity legend go with it. |
+| 2026-07-26 | The mark to beat is the last set, not an estimated 1RM; PR banner → row label | An e1RM is a number nobody has ever lifted, printed at 2.6rem as the thing to beat. Replaced by "Última vez · hace 3 días" over the top set of that session. The record moves with it: `PR peso` on the row, defined as more kilos than ever at that rep count *or more* — so a heavy single can no longer outrank a hard set of eight on a formula. The banner and the amber glow on the headline are gone: "momento PR discreto" from the redesign handoff. |
+| 2026-07-26 | Three-level surface hierarchy (hero / raised / quiet) | Every card was one surface, so a five-card session gave the eye nothing to fix on. The active exercise now carries a 7% accent wash — the only non-CTA use of amber, and it earns it by being the thing you are actually doing. |
+| 2026-07-26 | Progreso drops "Mejores marcas" and the estimated-1RM curve for a record ladder | The curve interpolated through days you were only maintaining, which reads as progress that did not happen; the leaderboard listed your own lifts against nobody. Evolución draws steps through confirmed weight records only, so every corner is a day you did it, and a period summary answers "am I training what I think I'm training" with sets per muscle and a delta. |
+| 2026-07-26 | Brand mark B3: a loaded bar that suggests an F, replacing the F that was only an F | Three rounded rectangles — two plate stacks in amber, the sleeve in muted — on a 64 canvas, drawn programmatically (`frontend/scripts/make_icons.py`). The old icon was a white F bled to the edges of an amber square, which silhouettes as a square and says nothing about lifting. Wordmark `fitIt`: second i capitalised at weight 400 against 700, echoing the tall plate. |
 | 2026-07-23 | White CTA text → dark ink on amber; new `--accent-ink` for amber-as-text; light `--muted` `#6B7280`→`#616875` | /design-review. White-on-amber failed AA in both themes (3.70 light, **2.86** dark) on the primary button — the same class already fixed for `--pr`, never applied to `--accent`. Amber used as text sat at 3.2–3.7 on paper; `--muted` was 4.32 on the paper bg. Hues unchanged: buttons take near-black `--on-accent` ink (5.8/6.23), amber text takes deeper `--accent-ink` `#C2440F` on light, muted deepened to `#616875` (5.01 on paper). |
 | 2026-07-24 | Thesis moves from "the payload is the PR" to **taps to a logged set** | User: *"no me interesa batir marcas sino registrarlas de manera ágil"*. The old thesis was steering every layout call toward the moment of triumph, and Días showed the bill: five chrome buttons (Salir, Exportar, Borrar día ×3) against three rows of content, the primary CTA in the least reachable corner, and no persistence — reopening the PWA mid-workout landed on the day list, one tap and one fetch from the set you were mid-way through. Records/streaks/heatmap all stay as features; they stop setting the layout. |
 | 2026-07-24 | Días redesigned around resume, reach and rules | Concretely: the open workout survives a relaunch for 4h (`fitit_open_workout`, restamped each launch); the CTA is pinned above the tab bar and reads `Continuar entreno · Push` once today exists, so a session can't get split in two; racha and Exportar CSV move to Progreso, which already fetches days and already renders the streak hero; Borrar día moves behind a per-day `⋯` with a two-tap arm; Repetir creates today's workout with the same name and hands Entreno the exercise list so the cards are standing with their previous marks loaded; day cards become ruled logbook entries with mono dates. |
