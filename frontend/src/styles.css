@@ -1289,12 +1289,8 @@ button.set-action {
   letter-spacing: 0.02em;
   color: var(--muted);
 }
-/* The tag rides the right edge of the header, not glued to the name: name left,
-   muscle tag top-right, digest right below it — a tidy right column instead of
-   "name● tag" run together. */
-.card-toggle .muscle-tag {
-  margin-left: auto;
-}
+/* The tag leads the header, ahead of the name: what it is, then what you call
+   it. Digest (folded) still hugs the right via its own auto margin. */
 
 /* Muscle dots on a day's workout row (Días). */
 .muscle-dots {
@@ -1742,12 +1738,17 @@ button.heat-cell {
   gap: 0.35rem;
   margin: 0.5rem 0 0.45rem;
 }
+/* Tinted by the exercise's muscle group (`--chip`, set on the row from the
+   same categorical palette as the heatmap and Evolución) instead of a flat
+   grey — a folded card's chips read as "what did I hit" at a glance, the
+   same colour language as the rest of the app. Falls back to muted for an
+   unclassified exercise (`muscleColor` already returns `var(--muted)`). */
 .set-chip {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
   padding: 0.15rem 0.45rem;
   border-radius: var(--radius-control);
-  background: color-mix(in srgb, var(--text) 7%, transparent);
-  color: var(--muted);
+  background: color-mix(in srgb, var(--chip, var(--muted)) 18%, transparent);
+  color: var(--text);
 }

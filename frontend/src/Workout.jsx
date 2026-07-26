@@ -343,13 +343,13 @@ function ExerciseCard({
       )}
       <h2 className="exercise-title">
         <button type="button" className="card-toggle" aria-expanded={open} onClick={onToggle}>
-          <span className="card-name">{name}</span>
           {muscle && (
             <span className="muscle-tag">
               <span className="dot" aria-hidden="true" style={{ '--chip': muscleColor(muscle) }} />
               {muscle}
             </span>
           )}
+          <span className="card-name">{name}</span>
           <span className="card-chevron" aria-hidden="true" />
         </button>
       </h2>
@@ -359,7 +359,7 @@ function ExerciseCard({
       {!open && (
         <>
           {sets.length > 0 && (
-            <div className="set-chips">
+            <div className="set-chips" style={{ '--chip': muscleColor(muscle) }}>
               {sets.map((set) => (
                 <span className="set-chip" key={set.id}>
                   {showKg(set.weight)}×{set.reps}
@@ -763,12 +763,12 @@ function CardioCard({
     <div className={`card${open ? '' : ' is-folded'}`}>
       <h2 className="exercise-title">
         <button type="button" className="card-toggle" aria-expanded={open} onClick={onToggle}>
-          <span className="card-name">{name}</span>
-          {!open && <span className="card-digest">{digest}</span>}
           <span className="muscle-tag">
             <span className="dot dot-cardio" aria-hidden="true" />
             Cardio
           </span>
+          <span className="card-name">{name}</span>
+          {!open && <span className="card-digest">{digest}</span>}
           <span className="card-chevron" aria-hidden="true" />
         </button>
       </h2>
