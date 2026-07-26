@@ -382,183 +382,184 @@ export default function Progress() {
     <section>
       {days.length > 0 && <Heatmap days={days} />}
 
-      {(exercises.length > 0 || name !== '') && (
-        <div className="card">
-          <h2>Evolución</h2>
-          {/* The chips drive this card's chart, so they live in it. Down in the
-              search card you had to scroll past the chart to change what it was
-              about. Seven memorised groups can hide behind a swipe; the names
-              you are hunting for cannot, which is why the box stays below. */}
-          {musclesPresent.length > 0 && (
-            <div className="muscle-chips">
-              {musclesPresent.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
-                  style={{ '--chip': muscleColor(m) }}
-                  aria-pressed={muscle === m}
-                  onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
-                >
-                  <span className="dot" aria-hidden="true" />
-                  {m}
+      {/* Not gated on exercises having loaded: the search box below is typeable
+          the instant the screen mounts, so it must be on screen the instant the
+          screen mounts. Gating the whole card on `exercises.length` held the
+          box hostage to a request that hadn't resolved yet. */}
+      <div className="card">
+        <h2>Evolución</h2>
+        {/* The chips drive this card's chart, so they live in it. Down in the
+            search card you had to scroll past the chart to change what it was
+            about. Seven memorised groups can hide behind a swipe; the names
+            you are hunting for cannot, which is why the box stays below. */}
+        {musclesPresent.length > 0 && (
+          <div className="muscle-chips">
+            {musclesPresent.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
+                style={{ '--chip': muscleColor(m) }}
+                aria-pressed={muscle === m}
+                onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
+              >
+                <span className="dot" aria-hidden="true" />
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Name + group editing lives here regardless of whether there's a
+            chart: you must be able to rename a cardio or brand-new lift too,
+            not just one with records. Folded, because both are rare
+            corrections and this card is content. */}
+        {current && (
+          <>
+            {/* The name titles the card — a chart of nothing named is a chart
+                you have to go looking for the subject of — and tapping it is
+                how you rename it. */}
+            {editingName ? (
+              <form
+                className="exercise-rename chart-title"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  renameCurrent(current.id, nameDraft)
+                }}
+              >
+                <input
+                  aria-label="Nombre del ejercicio"
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  maxLength={120}
+                  autoFocus
+                />
+                <button type="submit" className="secondary set-action">
+                  Guardar nombre
                 </button>
-              ))}
-            </div>
-          )}
-          {/* Name + group editing lives here regardless of whether there's a
-              chart: you must be able to rename a cardio or brand-new lift too,
-              not just one with records. Folded, because both are rare
-              corrections and this card is content. */}
-          {current && (
-            <>
-              {/* The name titles the card — a chart of nothing named is a chart
-                  you have to go looking for the subject of — and tapping it is
-                  how you rename it. */}
-              {editingName ? (
-                <form
-                  className="exercise-rename chart-title"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    renameCurrent(current.id, nameDraft)
-                  }}
-                >
-                  <input
-                    aria-label="Nombre del ejercicio"
-                    value={nameDraft}
-                    onChange={(e) => setNameDraft(e.target.value)}
-                    maxLength={120}
-                    autoFocus
-                  />
-                  <button type="submit" className="secondary set-action">
-                    Guardar nombre
-                  </button>
-                </form>
-              ) : (
-                <button
-                  type="button"
-                  className="chart-title"
-                  aria-label={`Renombrar ${current.name}`}
-                  onClick={() => {
-                    setNameDraft(current.name)
-                    setEditingName(true)
-                  }}
-                >
-                  <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-                  <h2>{current.name}</h2>
-                </button>
-              )}
-            </>
-          )}
-          {rungs.length === 0 ? (
-            /* Three different silences. Nothing picked yet; a known lift with no
-               records (cardio, or one you have only ever done at the same
-               weight); and an unknown name — telling someone "no data" for that
-               one blames the log for a name that was never in it. */
-            <p className="hint">
-              {name === ''
-                ? 'Elige un músculo o busca un ejercicio.'
-                : current
-                  ? 'Aún no hay datos para graficar este ejercicio.'
-                  : 'No hay ningún ejercicio con ese nombre.'}
-            </p>
-          ) : (
-            <>
-              <Ladder rungs={rungs} color={chartColor} />
-              <p className="chart-caption muted">
-                {name} · solo récords reales
-                {gain > 0 && (
-                  <>
-                    {' · '}
-                    <span className="mono" style={{ color: 'var(--pr)' }}>
-                      +{showKg(gain)} kg
-                    </span>{' '}
-                    desde {formatMonth(rungs[0].date)}
-                  </>
-                )}
-              </p>
-            </>
-          )}
-          {/* At the foot of the card, per DESIGN.md — between the title and the
-              chart it read as a second heading on the thing you came to look
-              at. Renaming and re-tagging are corrections, not content. */}
-          {current && (
-            <>
+              </form>
+            ) : (
               <button
                 type="button"
-                className="unit-fix fixes-toggle"
-                aria-expanded={showFixes}
-                onClick={() => setShowFixes((v) => !v)}
+                className="chart-title"
+                aria-label={`Renombrar ${current.name}`}
+                onClick={() => {
+                  setNameDraft(current.name)
+                  setEditingName(true)
+                }}
               >
-                Corregir
+                <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+                <h2>{current.name}</h2>
               </button>
-              {showFixes && (
-                <div className="card-fixes">
-                  <div className="muscle-edit">
-                    <label htmlFor="muscle-select" className="muscle-edit-label">
-                      Grupo
-                    </label>
-                    <select
-                      id="muscle-select"
-                      value={current.muscle_group ?? ''}
-                      onChange={(e) => changeMuscle(current.id, e.target.value)}
-                    >
-                      <option value="">Sin grupo</option>
-                      {MUSCLE_GROUPS.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+            )}
+          </>
+        )}
+        {rungs.length === 0 ? (
+          /* Three different silences. Nothing picked yet; a known lift with no
+             records (cardio, or one you have only ever done at the same
+             weight); and an unknown name — telling someone "no data" for that
+             one blames the log for a name that was never in it. */
+          <p className="hint">
+            {name === ''
+              ? 'Elige un músculo o busca un ejercicio.'
+              : current
+                ? 'Aún no hay datos para graficar este ejercicio.'
+                : 'No hay ningún ejercicio con ese nombre.'}
+          </p>
+        ) : (
+          <>
+            <Ladder rungs={rungs} color={chartColor} />
+            <p className="chart-caption muted">
+              {name} · solo récords reales
+              {gain > 0 && (
+                <>
+                  {' · '}
+                  <span className="mono" style={{ color: 'var(--pr)' }}>
+                    +{showKg(gain)} kg
+                  </span>{' '}
+                  desde {formatMonth(rungs[0].date)}
+                </>
               )}
-            </>
+            </p>
+          </>
+        )}
+        {/* The box finds what the chips can't reach: everything that isn't
+            the most-trained lift of its group. One card, one job — a lift
+            picked here or from the chips ends up on the same chart, so
+            picking it shouldn't mean leaving the card that draws it. */}
+        <form
+          className="exercise-search"
+          onSubmit={(e) => {
+            e.preventDefault()
+            // The go key takes the first thing you found, or the raw text so
+            // a name that matches nothing gets told so.
+            selectLift(matches[0]?.name ?? query)
+          }}
+        >
+          <div className="field">
+            <label htmlFor="progress-exercise">Ejercicio</label>
+            <input
+              id="progress-exercise"
+              value={query}
+              onChange={(e) => handleNameInput(e.target.value)}
+              placeholder="Buscar…"
+            />
+          </div>
+          {matches.length > 0 && (
+            <ul className="search-results">
+              {matches.map((e) => (
+                <li key={e.id}>
+                  <button type="button" className="set-row" onClick={() => selectLift(e.name)}>
+                    <span
+                      className="dot"
+                      aria-hidden="true"
+                      style={{ '--chip': muscleColor(e.muscle_group) }}
+                    />
+                    {e.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
-      )}
+        </form>
+        {/* At the foot of the card, per DESIGN.md — between the title and the
+            chart it read as a second heading on the thing you came to look
+            at. Renaming and re-tagging are corrections, not content. */}
+        {current && (
+          <>
+            <button
+              type="button"
+              className="unit-fix fixes-toggle"
+              aria-expanded={showFixes}
+              onClick={() => setShowFixes((v) => !v)}
+            >
+              Corregir
+            </button>
+            {showFixes && (
+              <div className="card-fixes">
+                <div className="muscle-edit">
+                  <label htmlFor="muscle-select" className="muscle-edit-label">
+                    Grupo
+                  </label>
+                  <select
+                    id="muscle-select"
+                    value={current.muscle_group ?? ''}
+                    onChange={(e) => changeMuscle(current.id, e.target.value)}
+                  >
+                    <option value="">Sin grupo</option>
+                    {MUSCLE_GROUPS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {days.length > 0 && <PeriodSummary days={days} />}
-
-      {/* The box finds what the chips can't reach: everything that isn't the
-          most-trained lift of its group. It sits under the content it drives,
-          not on top of it — stacked selectors above the chart meant scrolling
-          the whole apparatus on a phone to get to it. */}
-      <form
-        className="card"
-        onSubmit={(e) => {
-          e.preventDefault()
-          // The go key takes the first thing you found, or the raw text so a
-          // name that matches nothing gets told so.
-          selectLift(matches[0]?.name ?? query)
-        }}
-      >
-        <div className="field">
-          <label htmlFor="progress-exercise">Ejercicio</label>
-          <input
-            id="progress-exercise"
-            value={query}
-            onChange={(e) => handleNameInput(e.target.value)}
-            placeholder="Buscar…"
-          />
-        </div>
-        {matches.length > 0 && (
-          <ul className="search-results">
-            {matches.map((e) => (
-              <li key={e.id}>
-                <button type="button" className="set-row" onClick={() => selectLift(e.name)}>
-                  <span
-                    className="dot"
-                    aria-hidden="true"
-                    style={{ '--chip': muscleColor(e.muscle_group) }}
-                  />
-                  {e.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </form>
 
       {error && (
         <p role="alert" className="alert">
