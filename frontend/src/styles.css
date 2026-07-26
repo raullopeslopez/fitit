@@ -1176,6 +1176,13 @@ button.set-action {
   flex: none;
   display: inline-block;
 }
+/* Cardio has no muscle group to colour by. An outline, not a fill, so it
+   doesn't compete with the PR/CTA fill — the one explicit exception to
+   "amber is effort/PR only" outside the categorical muscle palette. */
+.dot-cardio {
+  background: transparent;
+  border: 1.5px solid var(--accent);
+}
 
 /* Muscle tag on an exercise heading (Workout). */
 .exercise-title {
