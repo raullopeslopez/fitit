@@ -462,6 +462,12 @@ button.chart-title h2 {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
+/* The picker, folded into the Evolución card it drives — no border of its own,
+   just room from whatever sits above it (the chart, or the "elige un músculo"
+   hint when nothing's picked yet). */
+.exercise-search {
+  margin-top: 0.9rem;
+}
 /* What the box actually found. Rows, not pills: these are names you are reading
    to pick one, so they must never truncate or hide behind a scroll. */
 .search-results {
