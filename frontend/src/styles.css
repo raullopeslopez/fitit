@@ -127,13 +127,24 @@ h2 {
   margin-bottom: 1.25rem;
 }
 /* The wordmark: lowercase, tight, with the second i raised to a capital and
-   dropped to regular weight. One letter carrying the whole idea — the bar and
-   its plates, the same shape as the icon — so the name needs no logo beside
-   it. Set as one text run, never letter by letter, so the kerning holds. */
+   dropped to regular weight — one letter echoing the bar-and-plates icon.
+   The mark rides beside it now as its own coloured tile (the app icon PNG,
+   background baked in, so it reads the same here as it does on the home
+   screen and tab), sized off the wordmark's own font-size so it scales with
+   it wherever the wordmark is used. */
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.0375em;
+}
+.wordmark-icon {
+  width: 1em;
+  height: 1em;
+  border-radius: var(--radius-control);
+  display: block;
 }
 .wordmark-swap {
   font-weight: 400;
@@ -484,9 +495,9 @@ button.chart-title h2 {
   font-weight: 600;
 }
 
-/* Corrections, folded away at the foot of the card. */
+/* Corrections, folded away right under the header. */
 .fixes-toggle {
-  margin-top: 0.9rem;
+  margin-top: 0.4rem;
 }
 .card-fixes {
   display: flex;

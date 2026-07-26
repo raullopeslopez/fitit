@@ -80,7 +80,19 @@ function Ladder({ rungs, color }) {
         const inwards = x(rung) > W * 0.55
         return (
           <g key={`${rung.date}-${i}`}>
-            <circle cx={x(rung)} cy={y(rung.weight)} r="4" fill={isLast ? 'var(--pr)' : color} />
+            {/* Every point is the exercise's own muscle colour — mixing in the
+                PR amber for the last one reads as a different muscle when
+                that muscle happens to be Hombro's amber-adjacent hue. The
+                record gets an amber ring instead, same "outline, not a fill"
+                treatment as the PR badge on a logged set. */}
+            <circle
+              cx={x(rung)}
+              cy={y(rung.weight)}
+              r={isLast ? 5 : 4}
+              fill={color}
+              stroke={isLast ? 'var(--pr)' : 'none'}
+              strokeWidth={isLast ? 2 : 0}
+            />
             <text
               x={inwards ? x(rung) - 8 : x(rung) + 6}
               y={y(rung.weight) - 6}
@@ -388,10 +400,47 @@ export default function Progress() {
           box hostage to a request that hadn't resolved yet. */}
       <div className="card">
         <h2>Evolución</h2>
-        {/* The chips drive this card's chart, so they live in it. Down in the
-            search card you had to scroll past the chart to change what it was
-            about. Seven memorised groups can hide behind a swipe; the names
-            you are hunting for cannot, which is why the box stays below. */}
+        {/* The box finds what the chips can't reach: everything that isn't
+            the most-trained lift of its group. One card, one job — a lift
+            picked here or from the chips ends up on the same chart, so
+            picking it shouldn't mean leaving the card that draws it. Above
+            the chips: it's the more general way in, the chips a shortcut
+            for the common case. */}
+        <form
+          className="exercise-search"
+          onSubmit={(e) => {
+            e.preventDefault()
+            // The go key takes the first thing you found, or the raw text so
+            // a name that matches nothing gets told so.
+            selectLift(matches[0]?.name ?? query)
+          }}
+        >
+          <div className="field">
+            <label htmlFor="progress-exercise">Ejercicio</label>
+            <input
+              id="progress-exercise"
+              value={query}
+              onChange={(e) => handleNameInput(e.target.value)}
+              placeholder="Buscar…"
+            />
+          </div>
+          {matches.length > 0 && (
+            <ul className="search-results">
+              {matches.map((e) => (
+                <li key={e.id}>
+                  <button type="button" className="set-row" onClick={() => selectLift(e.name)}>
+                    <span
+                      className="dot"
+                      aria-hidden="true"
+                      style={{ '--chip': muscleColor(e.muscle_group) }}
+                    />
+                    {e.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </form>
         {musclesPresent.length > 0 && (
           <div className="muscle-chips">
             {musclesPresent.map((m) => (
@@ -482,45 +531,6 @@ export default function Progress() {
             </p>
           </>
         )}
-        {/* The box finds what the chips can't reach: everything that isn't
-            the most-trained lift of its group. One card, one job — a lift
-            picked here or from the chips ends up on the same chart, so
-            picking it shouldn't mean leaving the card that draws it. */}
-        <form
-          className="exercise-search"
-          onSubmit={(e) => {
-            e.preventDefault()
-            // The go key takes the first thing you found, or the raw text so
-            // a name that matches nothing gets told so.
-            selectLift(matches[0]?.name ?? query)
-          }}
-        >
-          <div className="field">
-            <label htmlFor="progress-exercise">Ejercicio</label>
-            <input
-              id="progress-exercise"
-              value={query}
-              onChange={(e) => handleNameInput(e.target.value)}
-              placeholder="Buscar…"
-            />
-          </div>
-          {matches.length > 0 && (
-            <ul className="search-results">
-              {matches.map((e) => (
-                <li key={e.id}>
-                  <button type="button" className="set-row" onClick={() => selectLift(e.name)}>
-                    <span
-                      className="dot"
-                      aria-hidden="true"
-                      style={{ '--chip': muscleColor(e.muscle_group) }}
-                    />
-                    {e.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </form>
         {/* At the foot of the card, per DESIGN.md — between the title and the
             chart it read as a second heading on the thing you came to look
             at. Renaming and re-tagging are corrections, not content. */}
