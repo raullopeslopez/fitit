@@ -64,6 +64,7 @@ export default function App() {
     <div className="container">
       <header className="app-header">
         <h1 className="wordmark">
+          <img src="/favicon.png" alt="" className="wordmark-icon" />
           fit<span className="wordmark-swap">I</span>t
         </h1>
         {/* Salir is a rare action. Framed, it was the second-loudest thing on
