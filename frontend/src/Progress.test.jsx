@@ -8,6 +8,23 @@ import { downloadCsv } from './csv.js'
 vi.mock('./api.js')
 vi.mock('./csv.js')
 
+const bench = (id, weight, reps) => ({
+  id,
+  exercise_name: 'Press banca',
+  muscle_group: 'Pecho',
+  set_index: 0,
+  weight,
+  reps,
+})
+
+// Three sessions climbing 80 → 82.5 → 85, with a back-off set that isn't a
+// record. Newest first, the order /days uses.
+const BENCH_DAYS = [
+  { id: 3, date: '2026-07-20', workouts: [{ id: 3, sets: [bench(5, 85, 5), bench(6, 80, 6)] }] },
+  { id: 2, date: '2026-07-10', workouts: [{ id: 2, sets: [bench(3, 82.5, 5)] }] },
+  { id: 1, date: '2026-07-01', workouts: [{ id: 1, sets: [bench(1, 80, 5)] }] },
+]
+
 describe('Progress', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -20,58 +37,37 @@ describe('Progress', () => {
     api.getExerciseHistory.mockResolvedValue([])
   })
 
-  it('lists my best marks with the gap to the record each one beat', async () => {
-    api.getBestMarks.mockResolvedValue([
-      {
-        exercise_id: 1,
-        exercise_name: 'Sentadilla',
-        muscle_group: 'Pierna',
-        reps: 3,
-        weight: 120,
-        one_rm: 132,
-        delta_one_rm: 5,
-      },
-      {
-        exercise_id: 2,
-        exercise_name: 'Peso muerto',
-        muscle_group: 'Espalda',
-        reps: 2,
-        weight: 150,
-        one_rm: 160,
-        delta_one_rm: null,
-      },
-    ])
+  // "Mejores marcas" was a leaderboard of your own lifts, and it answered a
+  // question nobody was asking twice. Evolución shows the climb instead.
+  it('has no best-marks leaderboard', async () => {
     render(<Progress />)
 
-    expect(await screen.findByText(/mejores marcas/i)).toBeInTheDocument()
-    expect(screen.getByText('Sentadilla')).toBeInTheDocument()
-    expect(screen.getByText(/120 kg × 3/)).toBeInTheDocument()
-    expect(screen.getByText('+5 kg')).toBeInTheDocument()
-    // A record nothing has beaten yet gets a dash, not a fake +0.
-    expect(screen.getByText('—')).toBeInTheDocument()
-  })
-
-  it('says nothing about best marks when there are none', async () => {
-    render(<Progress />)
-
-    await waitFor(() => expect(api.getBestMarks).toHaveBeenCalled())
+    await waitFor(() => expect(api.listDays).toHaveBeenCalled())
     expect(screen.queryByText(/mejores marcas/i)).not.toBeInTheDocument()
   })
 
-  it('charts an exercise 1RM history', async () => {
-    api.getExerciseHistory.mockResolvedValue([
-      { date: '2026-07-10', one_rm: 76 },
-      { date: '2026-07-12', one_rm: 88 },
-    ])
+  it('draws the climb of a lift from its real records', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
     const { container } = render(<Progress />)
 
-    // A name nothing knows yet is submitted with the keyboard's go key.
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench{enter}')
+    expect(await screen.findByText(/evolución/i)).toBeInTheDocument()
+    // Three sessions, three records — the 80 × 6 back-off is not one of them.
+    expect(screen.getByText('80 × 5')).toBeInTheDocument()
+    expect(screen.getByText('82.5 × 5')).toBeInTheDocument()
+    expect(screen.getByText('85 × 5')).toBeInTheDocument()
+    expect(screen.queryByText('80 × 6')).not.toBeInTheDocument()
+    expect(container.querySelector('svg.chart')).not.toBeNull()
+  })
 
-    // The PR reference line labels the record.
-    expect(await screen.findByText(/PR 88/)).toBeInTheDocument()
-    expect(container.querySelector('svg')).not.toBeNull()
-    expect(api.getExerciseHistory).toHaveBeenCalledWith('Bench')
+  it('says how much the climb was worth, and since when', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    render(<Progress />)
+
+    expect(await screen.findByText(/solo récords reales/i)).toBeInTheDocument()
+    expect(screen.getByText('+5 kg')).toBeInTheDocument()
+    expect(screen.getByText(/desde julio/i)).toBeInTheDocument()
   })
 
   it('opens with the most-trained lift already charted', async () => {
@@ -97,12 +93,10 @@ describe('Progress', () => {
         ],
       },
     ])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
     render(<Progress />)
 
-    // Bench Press is logged more often, so it charts without any typing.
-    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Bench Press'))
-    // The charted lift is named once, by the card it titles.
+    // Bench Press is logged more often, so it charts without any typing, and
+    // the charted lift is named once — by the card it titles.
     expect(await screen.findByRole('button', { name: /renombrar Bench Press/i })).toBeInTheDocument()
   })
 
@@ -124,16 +118,18 @@ describe('Progress', () => {
         ],
       },
     ])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 120 }])
     render(<Progress />)
 
-    // A chip per muscle that has exercises.
-    const pecho = await screen.findByRole('button', { name: /pecho/i })
-    expect(screen.getByRole('button', { name: /pierna/i })).toBeInTheDocument()
+    // A chip per muscle that has exercises. The heatmap has its own filter
+    // chips, so the picker's are the ones inside the form.
+    const chips = await screen.findAllByRole('button', { name: /pecho/i })
+    expect(screen.getAllByRole('button', { name: /pierna/i }).length).toBeGreaterThan(0)
 
     // Selecting Pecho charts that muscle's top lift.
-    await userEvent.click(pecho)
-    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Press banca'))
+    await userEvent.click(chips.at(-1))
+    expect(
+      await screen.findByRole('button', { name: /renombrar Press banca/i }),
+    ).toBeInTheDocument()
   })
 
   // The chart is what you opened Progreso for; the picker is the mechanism that
@@ -175,7 +171,6 @@ describe('Progress', () => {
       { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
       { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
     ])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 120 }])
     const { container } = render(<Progress />)
 
     await screen.findByRole('button', { name: /pecho/i })
@@ -184,7 +179,7 @@ describe('Progress', () => {
 
     // Everything is still one tap or one search away.
     await userEvent.click(screen.getByRole('button', { name: /pierna/i }))
-    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Sentadilla'))
+    expect(await screen.findByRole('button', { name: /renombrar Sentadilla/i })).toBeInTheDocument()
   })
 
   // The box only ever fired on an exact, full-name match, so typing "gemelo"
@@ -198,7 +193,6 @@ describe('Progress', () => {
 
     it('finds an exercise from part of its name', async () => {
       api.listExercises.mockResolvedValue(exercises)
-      api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 60 }])
       render(<Progress />)
 
       await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
@@ -207,7 +201,9 @@ describe('Progress', () => {
       expect(screen.queryByRole('button', { name: /Press banca/i })).not.toBeInTheDocument()
       await userEvent.click(result)
 
-      await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Gemelo Máq.'))
+      expect(
+        await screen.findByRole('button', { name: /renombrar Gemelo Máq\./i }),
+      ).toBeInTheDocument()
     })
 
     // "Máq." is not something anyone types with the accent on a phone keyboard.
@@ -223,7 +219,6 @@ describe('Progress', () => {
     // has none", when the truth is there is no such exercise.
     it('says a name matches nothing, rather than blaming the data', async () => {
       api.listExercises.mockResolvedValue(exercises)
-      api.getExerciseHistory.mockResolvedValue([])
       render(<Progress />)
 
       await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Sentadilla{enter}')
@@ -233,35 +228,11 @@ describe('Progress', () => {
     })
   })
 
-  // Mejores marcas already lists your lifts with their best set. It was sitting
-  // right there, inert, while the only way in was a box that did not search.
-  it('charts a lift by tapping its row in Mejores marcas', async () => {
-    api.listExercises.mockResolvedValue([{ id: 1, name: 'Sentadilla', muscle_group: 'Pierna' }])
-    api.getBestMarks.mockResolvedValue([
-      {
-        exercise_id: 1,
-        exercise_name: 'Sentadilla',
-        muscle_group: 'Pierna',
-        reps: 3,
-        weight: 120,
-        one_rm: 132,
-        delta_one_rm: 5,
-      },
-    ])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 132 }])
-    render(<Progress />)
-
-    await userEvent.click(await screen.findByRole('button', { name: /ver progreso de Sentadilla/i }))
-
-    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Sentadilla'))
-  })
-
   // The field used to hold the charted lift as well as what you were typing, so
   // the same name showed up three times on one screen: card title, search box,
   // active chip. The box searches; the title and the chip say where you are.
   it('empties the search box once it has charted what you picked', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
     render(<Progress />)
 
     const box = await screen.findByLabelText(/ejercicio/i)
@@ -276,24 +247,23 @@ describe('Progress', () => {
   // alone demand a second tap on a button was two paths for one job.
   it('charts a known lift the moment you pick it, with no second tap', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
     render(<Progress />)
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
 
-    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalledWith('Press banca'))
-    expect(screen.queryByRole('button', { name: /ver progreso/i })).not.toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', { name: /renombrar Press banca/i }),
+    ).toBeInTheDocument()
   })
 
   // Renaming a lift and re-tagging its group are corrections, the same shape as
   // the ones on the exercise card: rare, and they were sitting in the content.
   it('folds the corrections away until you reach for them', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
     render(<Progress />)
 
     await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
-    await waitFor(() => expect(api.getExerciseHistory).toHaveBeenCalled())
+    await screen.findByRole('button', { name: /renombrar Press banca/i })
 
     // The name titles the chart card and is the rename control itself, so only
     // the group select is left to fold away.
@@ -381,13 +351,12 @@ describe('Progress', () => {
           {
             id: 5,
             name: 'Cardio',
-            sets: [{ id: 1, exercise_name: 'Correr', reps: 0, weight: 0, unit: 'kg' }],
+            // Cardio: duration and distance, no weight to climb.
+            sets: [{ id: 1, exercise_name: 'Correr', duration_seconds: 1800, distance: 5 }],
           },
         ],
       },
     ])
-    // No 1RM history to chart (cardio), but the exercise must still be editable.
-    api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)
 
     expect(await screen.findByText(/no hay datos para graficar/i)).toBeInTheDocument()
@@ -424,6 +393,70 @@ describe('Progress', () => {
     expect(await screen.findByText(/qué has entrenado/i)).toBeInTheDocument()
     // Consistency scoring is gone: it never said anything about training.
     expect(screen.queryByText(/racha/i)).not.toBeInTheDocument()
+  })
+
+  describe('the period summary', () => {
+    // 26 jul 2026 is a Sunday, so "this week" is 20–26 jul.
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      vi.setSystemTime(new Date(2026, 6, 26, 12))
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const SUMMER = [
+      {
+        id: 3,
+        date: '2026-07-22',
+        workouts: [{ id: 3, sets: [bench(3, 60, 8), bench(4, 60, 8), bench(5, 60, 8)] }],
+      },
+      { id: 2, date: '2026-07-20', workouts: [{ id: 2, sets: [bench(1, 60, 8), bench(2, 60, 8)] }] },
+      { id: 1, date: '2026-07-15', workouts: [{ id: 1, sets: [bench(6, 55, 8), bench(7, 55, 8)] }] },
+    ]
+
+    it('breaks a month down into sets per muscle', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      expect(await screen.findByText('Julio')).toBeInTheDocument()
+      expect(screen.getByText(/3 entrenos/)).toBeInTheDocument()
+      expect(container.querySelector('.sum-name').textContent).toBe('Pecho')
+    })
+
+    it('switches to the week, which counts sets rather than averaging them', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+      expect(await screen.findByText('Esta semana')).toBeInTheDocument()
+      expect(screen.getByText(/2 entrenos · 5 series/)).toBeInTheDocument()
+      // 5 this week against 2 the week before.
+      expect(container.querySelector('.sum-val').textContent).toBe('5 series')
+      expect(container.querySelector('.sum-delta').textContent).toBe('+3')
+    })
+
+    it('walks back through the periods, and stops at both ends', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      render(<Progress />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+      // Nothing newer than the week you're in.
+      expect(screen.getByRole('button', { name: /periodo siguiente/i })).toBeDisabled()
+
+      await userEvent.click(screen.getByRole('button', { name: /periodo anterior/i }))
+      expect(await screen.findByRole('heading', { name: '13–19 jul' })).toBeInTheDocument()
+      // And nothing older than the first week you ever logged.
+      expect(screen.getByRole('button', { name: /periodo anterior/i })).toBeDisabled()
+    })
+
+    it('says nothing at all when there is nothing logged', async () => {
+      render(<Progress />)
+
+      await waitFor(() => expect(api.listDays).toHaveBeenCalled())
+      expect(screen.queryByRole('button', { name: /^semana$/i })).not.toBeInTheDocument()
+    })
   })
 
   // Exporting is a once-a-month act of bookkeeping. It sits with the numbers

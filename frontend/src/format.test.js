@@ -5,10 +5,28 @@ import {
   formatClock,
   formatDayShort,
   formatDuration,
+  formatMonth,
   formatPace,
+  formatRange,
   formatTime,
   parseDuration,
 } from './format.js'
+
+describe('formatMonth', () => {
+  it('names a month in full, for a title that has room for it', () => {
+    expect(formatMonth('2026-07-01')).toBe('julio')
+    expect(formatMonth('2026-12-31')).toBe('diciembre')
+  })
+})
+
+describe('formatRange', () => {
+  it('says the month once when both ends share it', () => {
+    expect(formatRange('2026-07-20', '2026-07-26')).toBe('20–26 jul')
+  })
+  it('names both months when the range straddles them', () => {
+    expect(formatRange('2026-06-29', '2026-07-05')).toBe('29 jun – 5 jul')
+  })
+})
 
 describe('formatDayShort', () => {
   // The day list is a logbook rule, not a sentence: mono, uppercase, no comma.

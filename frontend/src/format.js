@@ -33,6 +33,36 @@ export function formatDayShort(iso, today = new Date()) {
   return (y === today.getFullYear() ? stamp : `${stamp} ${y}`).toUpperCase()
 }
 
+const MESES_LARGOS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
+
+// "2026-07-01" -> "julio". Lowercase, because it is a word: the one place it
+// titles a card capitalises it there, rather than shouting everywhere else.
+export function formatMonth(iso) {
+  return MESES_LARGOS[Number(iso.slice(5, 7)) - 1]
+}
+
+// A period, as short as it can be said: "20–26 jul" inside one month, "29 jun –
+// 5 jul" across two. Naming the month twice when it hasn't changed is noise.
+export function formatRange(startIso, endIso) {
+  const [, sm, sd] = startIso.split('-').map(Number)
+  const [, em, ed] = endIso.split('-').map(Number)
+  if (sm === em) return `${sd}–${ed} ${MESES[sm - 1]}`
+  return `${sd} ${MESES[sm - 1]} – ${ed} ${MESES[em - 1]}`
+}
+
 // Cardio metrics. Duration is entered as "mm:ss" (or "h:mm:ss"), or a plain
 // number read as minutes; parseDuration returns whole seconds, or null if invalid.
 export function parseDuration(input) {
