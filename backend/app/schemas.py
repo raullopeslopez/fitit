@@ -63,6 +63,9 @@ class SetOut(BaseModel):
     exercise_id: int
     exercise_name: str
     kind: str = "strength"
+    # The exercise's group, carried on the set so the per-muscle views can read
+    # everything they need from /days. Null when the name isn't recognizable.
+    muscle_group: str | None = None
     set_index: int
     reps: int | None = None
     weight: float | None = None  # kilos

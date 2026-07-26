@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from ..db import get_session
 from ..exercise_repo import find_exercise, get_or_create_exercise
 from ..models import Day, Exercise, SetEntry, Workout
+from ..muscles import classify
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
@@ -19,6 +20,10 @@ def _set_out(entry: SetEntry, exercise: Exercise) -> SetOut:
         exercise_id=entry.exercise_id,
         exercise_name=exercise.name,
         kind=exercise.kind,
+        # Same fallback as `_to_exercise_out`: a stored group wins, otherwise
+        # guess from the name, so a row that predates auto-tagging still gets a
+        # colour instead of rendering grey.
+        muscle_group=exercise.muscle_group or classify(exercise.name),
         set_index=entry.set_index,
         reps=entry.reps,
         weight=entry.weight,
