@@ -65,7 +65,9 @@ export default function App() {
       <header className="app-header">
         <h1 className="wordmark">
           <img src="/favicon.png" alt="" className="wordmark-icon" />
-          fit<span className="wordmark-swap">I</span>t
+          <span className="wordmark-text">
+            fit<span className="wordmark-swap">I</span>t
+          </span>
         </h1>
         {/* Salir is a rare action. Framed, it was the second-loudest thing on
             the screen you open mid-set; it reads as a quiet text link now. */}
