@@ -27,7 +27,9 @@ export default function Login({ onAuthenticated }) {
       <div className="card login-card">
         <h1 className="wordmark">
           <img src="/favicon.png" alt="" className="wordmark-icon" />
-          fit<span className="wordmark-swap">I</span>t
+          <span className="wordmark-text">
+            fit<span className="wordmark-swap">I</span>t
+          </span>
         </h1>
         <form onSubmit={handleSubmit}>
           <div className="field">
