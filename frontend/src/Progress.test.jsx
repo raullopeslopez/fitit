@@ -60,6 +60,62 @@ describe('Progress', () => {
     expect(container.querySelector('svg.chart')).not.toBeNull()
   })
 
+  // A chart re-used the same <svg> across exercises and keyed its points by
+  // date. Two lifts trained on the same days (everyone's log, most weeks) or
+  // one lift with two PRs in a single session gave React duplicate/matching
+  // keys, and it left the old exercise's dots and labels on screen instead of
+  // replacing them.
+  it('does not leave a previous exercise\'s points on the chart after switching', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Curl Predicador Máq.', muscle_group: 'Bíceps' },
+      { id: 2, name: 'Press banca', muscle_group: 'Pecho' },
+    ])
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-26',
+        workouts: [
+          {
+            id: 1,
+            sets: [
+              { id: 1, exercise_name: 'Curl Predicador Máq.', muscle_group: 'Bíceps', reps: 15, weight: 15 },
+              { id: 2, exercise_name: 'Curl Predicador Máq.', muscle_group: 'Bíceps', reps: 15, weight: 20 },
+              // Same date as the curl's two PRs above, so a naive `key={date}`
+              // collides across exercises as well as within one.
+              { id: 3, exercise_name: 'Press banca', muscle_group: 'Pecho', reps: 12, weight: 40 },
+            ],
+          },
+        ],
+      },
+      {
+        id: 2,
+        date: '2026-07-21',
+        workouts: [
+          { id: 2, sets: [{ id: 4, exercise_name: 'Press banca', muscle_group: 'Pecho', reps: 12, weight: 20 }] },
+        ],
+      },
+    ])
+    const { container } = render(<Progress />)
+
+    // Opens on Curl Predicador (only lift with more than one set).
+    expect(await screen.findByRole('button', { name: /renombrar Curl Predicador Máq\./i })).toBeInTheDocument()
+    expect(screen.getByText('15 × 15')).toBeInTheDocument()
+    expect(screen.getByText('20 × 15')).toBeInTheDocument()
+
+    // Heatmap draws its own muscle legend above this card with the same chip
+    // labels, so the click has to stay scoped to Evolución's own chips.
+    const evoCard = screen.getByText(/evolución/i).closest('.card')
+    await userEvent.click(
+      [...evoCard.querySelectorAll('.chip')].find((c) => /^Pecho$/i.test(c.textContent)),
+    )
+    await screen.findByRole('button', { name: /renombrar Press banca/i })
+
+    // Only Press banca's own points remain; the curl's survive nowhere.
+    expect(screen.queryByText('15 × 15')).not.toBeInTheDocument()
+    expect(screen.queryByText('20 × 15')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('svg.chart circle').length).toBe(2)
+  })
+
   // The chips belong to the chart they drive. Stranded at the bottom of the
   // screen inside the search card, you had to scroll past the chart to change
   // what it was about.

@@ -79,7 +79,7 @@ function Ladder({ rungs, color }) {
         // construction, so its label always would.
         const inwards = x(rung) > W * 0.55
         return (
-          <g key={rung.date}>
+          <g key={`${rung.date}-${i}`}>
             <circle cx={x(rung)} cy={y(rung.weight)} r="4" fill={isLast ? 'var(--pr)' : color} />
             <text
               x={inwards ? x(rung) - 8 : x(rung) + 6}
@@ -467,7 +467,7 @@ export default function Progress() {
           </p>
         ) : (
           <>
-            <Ladder rungs={rungs} color={chartColor} />
+            <Ladder key={name} rungs={rungs} color={chartColor} />
             <p className="chart-caption muted">
               {name} · solo récords reales
               {gain > 0 && (
