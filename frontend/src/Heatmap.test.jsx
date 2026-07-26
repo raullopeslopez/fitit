@@ -3,49 +3,138 @@ import userEvent from '@testing-library/user-event'
 
 import Heatmap from './Heatmap.jsx'
 
-const day = (date, ...setCounts) => ({
-  date,
-  workouts: setCounts.map((n) => ({ sets: Array.from({ length: n }, (_, i) => ({ id: i })) })),
-})
+let seq = 0
+const group = (name, n) =>
+  Array.from({ length: n }, () => ({ id: (seq += 1), muscle_group: name }))
+
+const day = (date, ...blocks) => ({ date, workouts: [{ id: (seq += 1), sets: blocks.flat() }] })
+
+// 26 jul 2026 is a Sunday, so the last column is the week of the 20th.
+const SUNDAY = '2026-07-26'
+const cellOn = (container, date) =>
+  container.querySelector(`.heat-cell[data-date="${date}"]`)
 
 describe('Heatmap', () => {
-  it('shows the current streak as the hero number', () => {
-    render(<Heatmap days={[day('2026-07-16', 5), day('2026-07-15', 5)]} endDate="2026-07-16" />)
-    expect(screen.getByText('2')).toBeInTheDocument()
-    expect(screen.getByText(/racha/i)).toBeInTheDocument()
+  it('colours a day with the muscle it worked', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+    )
+    const cell = cellOn(container, '2026-07-20')
+    expect(cell.style.getPropertyValue('--m-a')).toBe('var(--m-pecho)')
+    expect(cell).toHaveClass('is-worked')
   })
 
-  it("renders a heat cell at the level for the day's set count", () => {
-    const { container } = render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
-    expect(container.querySelector('.heat-3')).not.toBeNull()
+  it('splits a day between two muscles when both did real work', () => {
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-07-20', group('Pecho', 6), group('Tríceps', 4))]}
+        weeks={4}
+        endDate={SUNDAY}
+      />,
+    )
+    const cell = cellOn(container, '2026-07-20')
+    expect(cell).toHaveClass('is-split')
+    expect(cell.style.getPropertyValue('--m-b')).toBe('var(--m-triceps)')
   })
 
-  it('shows a readout when you tap a trained day', async () => {
-    render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
-    await userEvent.click(screen.getByLabelText(/2026-07-16.*12 series/i))
-    expect(await screen.findByText(/· 12 series/i)).toBeInTheDocument()
+  // A single warm-up set of something else shouldn't repaint half the day.
+  it('keeps one colour when the second muscle was an afterthought', () => {
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-07-20', group('Pecho', 10), group('Core', 1))]}
+        weeks={4}
+        endDate={SUNDAY}
+      />,
+    )
+    expect(cellOn(container, '2026-07-20')).not.toHaveClass('is-split')
   })
 
-  it('does not make rest days clickable', () => {
-    const { container } = render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
-    expect(container.querySelectorAll('button.heat-cell')).toHaveLength(1)
+  it('reads volume as opacity, in the same four steps as before', () => {
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-07-20', group('Pecho', 3)), day('2026-07-22', group('Pecho', 12))]}
+        weeks={4}
+        endDate={SUNDAY}
+      />,
+    )
+    expect(cellOn(container, '2026-07-20')).toHaveClass('heat-v1')
+    expect(cellOn(container, '2026-07-22')).toHaveClass('heat-v3')
   })
 
-  it('outlines today so you can find yourself in the grid', () => {
-    const { container } = render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
+  it('outlines today, trained or not', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+    )
     const today = container.querySelectorAll('.heat-today')
     expect(today).toHaveLength(1)
-    expect(today[0].getAttribute('aria-label')).toMatch(/2026-07-16/)
+    expect(today[0].dataset.date).toBe(SUNDAY)
   })
 
-  it('outlines today even when it is a rest day', () => {
-    const { container } = render(<Heatmap days={[day('2026-07-15', 12)]} endDate="2026-07-16" />)
-    expect(container.querySelectorAll('.heat-today')).toHaveLength(1)
+  it('leaves the rest of the current week blank rather than empty-looking', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate="2026-07-22" />,
+    )
+    expect(cellOn(container, '2026-07-25')).toHaveClass('heat-future')
   })
 
-  it('labels the legend with the set counts it stands for', () => {
-    render(<Heatmap days={[day('2026-07-16', 12)]} endDate="2026-07-16" />)
-    expect(screen.getByText('0')).toBeInTheDocument()
-    expect(screen.getByText('20+')).toBeInTheDocument()
+  it('spans each month label over its own columns and opens a gap at the change', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+    )
+    // Four weeks back from 20 jul: 29 jun, 6 jul, 13 jul, 20 jul.
+    const months = [...container.querySelectorAll('.heat-months span')]
+    expect(months.map((m) => m.textContent)).toEqual(['jun', 'jul'])
+    expect(months[1].style.getPropertyValue('--cols')).toBe('3')
+    expect(months[1]).toHaveClass('is-month-start')
+    // The column and its date shift with the label, or the three drift apart.
+    expect(container.querySelectorAll('.heat-col')[1]).toHaveClass('is-month-start')
+    expect(container.querySelectorAll('.heat-weeks span')[1]).toHaveClass('is-month-start')
+  })
+
+  it('labels each column with the Monday it starts on', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+    )
+    const weeks = [...container.querySelectorAll('.heat-weeks span')]
+    expect(weeks.map((w) => w.textContent)).toEqual(['29', '6', '13', '20'])
+  })
+
+  it('filters the grid to one muscle, receding the rest', async () => {
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-07-20', group('Pecho', 6)), day('2026-07-22', group('Pierna', 6))]}
+        weeks={4}
+        endDate={SUNDAY}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /pecho/i }))
+
+    expect(cellOn(container, '2026-07-20')).not.toHaveClass('is-dimmed')
+    expect(cellOn(container, '2026-07-22')).toHaveClass('is-dimmed')
+
+    // Tapping it again clears the filter.
+    await userEvent.click(screen.getByRole('button', { name: /pecho/i }))
+    expect(cellOn(container, '2026-07-22')).not.toHaveClass('is-dimmed')
+  })
+
+  it('offers a chip only for the muscles the log actually has', () => {
+    render(<Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />)
+    expect(screen.getByRole('button', { name: /pecho/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pierna/i })).not.toBeInTheDocument()
+  })
+
+  it('tells you what a day was when you tap it', async () => {
+    render(<Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />)
+    await userEvent.click(screen.getByLabelText(/2026-07-20.*6 series/i))
+    expect(await screen.findByText(/Pecho · 6 series/i)).toBeInTheDocument()
+  })
+
+  // Both were consistency scoring, and neither said anything about training.
+  it('has no streak and no intensity legend', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+    )
+    expect(screen.queryByText(/racha/i)).not.toBeInTheDocument()
+    expect(container.querySelector('.heat-legend')).toBeNull()
   })
 })

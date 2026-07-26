@@ -1398,47 +1398,9 @@ button.set-action {
   margin-bottom: 1rem;
 }
 
-/* Consistency heat map. Amber ramp, not green — a heat map of effort is heat.
-   Intensity = sets logged that day; level 0 is a rest day (faint neutral). */
-.heatmap-card {
-  padding: 1.15rem 1.2rem 1rem;
-}
-.heatmap-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-.streak-hero {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.streak-num {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 2.4rem;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--pr);
-}
-.streak-word {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.heat-legend {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.heat-legend-label {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--muted);
-}
+/* The calendar of what you trained. Colour is the muscle and opacity the
+   volume; the amber intensity ramp and the streak hero it used to lead with
+   were both scoring consistency, which says nothing about training. */
 .heatmap {
   display: flex;
   align-items: flex-start;
@@ -1479,18 +1441,6 @@ button.set-action {
 }
 button.heat-cell {
   cursor: pointer;
-}
-.heat-1 {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-}
-.heat-2 {
-  background: color-mix(in srgb, var(--accent) 50%, transparent);
-}
-.heat-3 {
-  background: color-mix(in srgb, var(--accent) 74%, transparent);
-}
-.heat-4 {
-  background: var(--accent);
 }
 .heat-future {
   background: transparent;

@@ -395,7 +395,7 @@ describe('Progress', () => {
     expect(screen.getByRole('button', { name: /renombrar Correr/i })).toBeInTheDocument()
   })
 
-  it('shows the consistency heatmap with a streak when there are training days', async () => {
+  it('shows the calendar of what you trained when there are training days', async () => {
     api.getExerciseHistory.mockResolvedValue([])
     api.listDays.mockResolvedValue([
       {
@@ -405,14 +405,25 @@ describe('Progress', () => {
           {
             id: 5,
             name: 'Push',
-            sets: [{ id: 1, exercise_name: 'Bench', reps: 5, weight: 80, unit: 'kg' }],
+            sets: [
+              {
+                id: 1,
+                exercise_name: 'Bench',
+                muscle_group: 'Pecho',
+                reps: 5,
+                weight: 80,
+                unit: 'kg',
+              },
+            ],
           },
         ],
       },
     ])
     render(<Progress />)
 
-    expect(await screen.findByText(/racha/i)).toBeInTheDocument()
+    expect(await screen.findByText(/qué has entrenado/i)).toBeInTheDocument()
+    // Consistency scoring is gone: it never said anything about training.
+    expect(screen.queryByText(/racha/i)).not.toBeInTheDocument()
   })
 
   // Exporting is a once-a-month act of bookkeeping. It sits with the numbers
