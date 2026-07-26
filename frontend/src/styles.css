@@ -128,10 +128,13 @@ h2 {
 }
 /* The wordmark: lowercase, tight, with the second i raised to a capital and
    dropped to regular weight — one letter echoing the bar-and-plates icon.
-   The mark rides beside it now as its own coloured tile (the app icon PNG,
-   background baked in, so it reads the same here as it does on the home
-   screen and tab), sized off the wordmark's own font-size so it scales with
-   it wherever the wordmark is used. */
+   The mark rides beside it as its own glyph now, sized off the wordmark's
+   own font-size so it scales with it wherever the wordmark is used.
+   `mark.png` (see make_icons.py's `draw_mark_tight`) is a dedicated crop for
+   this spot — the app-icon PNGs carry ~45% padding for Android's maskable
+   safe zone, which read as dead air between the plates and the text when
+   reused here; no amount of shrinking `gap` fixed that, since the space was
+   baked into the image, not the layout. */
 .wordmark {
   display: inline-flex;
   align-items: center;
@@ -141,9 +144,8 @@ h2 {
   letter-spacing: -0.0375em;
 }
 .wordmark-icon {
-  width: 1em;
   height: 1em;
-  border-radius: var(--radius-control);
+  width: auto;
   display: block;
 }
 .wordmark-swap {

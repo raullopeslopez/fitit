@@ -73,6 +73,45 @@ def draw_mark(size, background, plate, sleeve, scale=SAFE_SCALE):
     return image.resize((size, size), Image.LANCZOS)
 
 
+def draw_mark_tight(height, background, plate, sleeve, pad=0.08):
+    """The mark cropped to its own bounding box, not the square icon canvas.
+
+    `draw_mark` centres the mark inside a square with ~45% combined margin
+    (`SAFE_SCALE` pulls it inside Android's maskable-icon safe circle) — right
+    for a launcher tile, but that margin reads as dead space when the same PNG
+    sits inline next to the wordmark. This renders onto a canvas shaped like
+    the mark's own bbox (roughly 41x44) with a small fixed `pad`, so almost
+    the whole image is plate.
+    """
+    bbox_w = BBOX[2] - BBOX[0]
+    bbox_h = BBOX[3] - BBOX[1]
+    width = round(height * bbox_w / bbox_h)
+    px_w, px_h = width * SUPERSAMPLE, height * SUPERSAMPLE
+    image = Image.new("RGBA", (px_w, px_h), background or (0, 0, 0, 0))
+    pen = ImageDraw.Draw(image)
+    unit = px_h * (1 - 2 * pad) / bbox_h
+    offset_x = px_w / 2 - (BBOX[0] + BBOX[2]) / 2 * unit
+    offset_y = px_h / 2 - (BBOX[1] + BBOX[3]) / 2 * unit
+
+    def rect(spec, fill):
+        x, y, w, h = spec
+        pen.rounded_rectangle(
+            (
+                offset_x + x * unit,
+                offset_y + y * unit,
+                offset_x + (x + w) * unit,
+                offset_y + (y + h) * unit,
+            ),
+            radius=RADIUS * unit,
+            fill=fill,
+        )
+
+    rect(SHORT_PLATE, plate)
+    rect(LONG_PLATE, plate)
+    rect(SLEEVE, sleeve)
+    return image.resize((width, height), Image.LANCZOS)
+
+
 def main():
     public = pathlib.Path(__file__).resolve().parents[1] / "public"
     for size in (192, 512):
@@ -84,6 +123,10 @@ def main():
     # gaps between the three rectangles are what makes it a mark rather than a
     # blob. Slightly larger, because it renders at 24dp.
     draw_mark(96, None, "#ffffff", "#ffffff", scale=0.92).save(public / "badge-96.png")
+    # The inline mark beside the wordmark: transparent background, cropped
+    # tight to the plates (see draw_mark_tight) rather than reusing an
+    # icon PNG built for a launcher's safe zone.
+    draw_mark_tight(128, None, PLATE, SLEEVE_COLOR).save(public / "mark.png")
 
 
 if __name__ == "__main__":

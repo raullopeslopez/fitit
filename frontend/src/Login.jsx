@@ -26,7 +26,7 @@ export default function Login({ onAuthenticated }) {
     <div className="login-wrap">
       <div className="card login-card">
         <h1 className="wordmark">
-          <img src="/favicon.png" alt="" className="wordmark-icon" />
+          <img src="/mark.png" alt="" className="wordmark-icon" />
           <span className="wordmark-text">
             fit<span className="wordmark-swap">I</span>t
           </span>
