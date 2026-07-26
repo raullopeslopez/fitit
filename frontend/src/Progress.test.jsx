@@ -221,10 +221,10 @@ describe('Progress', () => {
     ).toBeInTheDocument()
   })
 
-  // The chart is what you opened Progreso for; the picker is the mechanism that
-  // drives it. Three stacked selectors plus a submit button sat on top of it, so
-  // on a phone you scrolled the whole apparatus to reach the content.
-  it('puts the chart above the picker that drives it', async () => {
+  // The search box is the general way into the card — anything the muscle
+  // chips can't reach — so it leads, with the chips as a shortcut for the
+  // common case and the chart as the content both of them drive.
+  it('puts the picker above the chart it drives', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
     api.listDays.mockResolvedValue([
       {
@@ -248,7 +248,7 @@ describe('Progress', () => {
       return svg
     })
     const picker = screen.getByLabelText(/ejercicio/i)
-    expect(chart.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(picker.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   // Muscle chips filter a closed set of seven you already know by heart, so a

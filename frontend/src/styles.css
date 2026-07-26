@@ -484,9 +484,9 @@ button.chart-title h2 {
   font-weight: 600;
 }
 
-/* Corrections, folded away at the foot of the card. */
+/* Corrections, folded away right under the header. */
 .fixes-toggle {
-  margin-top: 0.9rem;
+  margin-top: 0.4rem;
 }
 .card-fixes {
   display: flex;

@@ -373,6 +373,48 @@ function ExerciseCard({
 
       {!open ? null : (
         <>
+      {/* Re-tagging the classifier's guess happens once in an exercise's life,
+          so it doesn't earn a permanent control on a card you open twenty times
+          a session. Kept out of the header so the fold target stays full-width
+          (DESIGN.md), but up top rather than under the set log — buried below a
+          growing list of sets, it was practically unreachable by the time you'd
+          actually want it. The unit relabel that used to sit beside it is gone
+          with the toggle that made it necessary. */}
+      {onChangeMuscle && (
+        <>
+          <button
+            type="button"
+            className="unit-fix fixes-toggle"
+            aria-expanded={showFixes}
+            onClick={() => setShowFixes((v) => !v)}
+          >
+            Corregir
+          </button>
+          {showFixes && (
+            <div className="card-fixes">
+              <div className="muscle-edit">
+                {/* No dot here: the header tag already carries the coloured
+                    identity chip. This row is the control, not a second chip. */}
+                <span className="muscle-edit-heading">Grupo muscular</span>
+                <select
+                  className="muscle-edit-select"
+                  aria-label={`Grupo muscular de ${name}`}
+                  value={muscle ?? ''}
+                  onChange={(e) => onChangeMuscle(name, e.target.value)}
+                >
+                  <option value="">Sin grupo</option>
+                  {MUSCLE_GROUPS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* The mark to beat, in the terms you'd think it in: what you last put on
           the bar, and how long ago. */}
       {lastTop ? (
@@ -627,46 +669,6 @@ function ExerciseCard({
         </>
       ) : (
         <p className="hint">Aún no hay series.</p>
-      )}
-
-      {/* Re-tagging the classifier's guess happens once in an exercise's life,
-          so it doesn't earn a permanent control on a card you open twenty times
-          a session. Kept out of the header so the fold target stays full-width
-          (DESIGN.md). The unit relabel that used to sit beside it is gone with
-          the toggle that made it necessary. */}
-      {onChangeMuscle && (
-        <>
-          <button
-            type="button"
-            className="unit-fix fixes-toggle"
-            aria-expanded={showFixes}
-            onClick={() => setShowFixes((v) => !v)}
-          >
-            Corregir
-          </button>
-          {showFixes && (
-            <div className="card-fixes">
-              <div className="muscle-edit">
-                {/* No dot here: the header tag already carries the coloured
-                    identity chip. This row is the control, not a second chip. */}
-                <span className="muscle-edit-heading">Grupo muscular</span>
-                <select
-                  className="muscle-edit-select"
-                  aria-label={`Grupo muscular de ${name}`}
-                  value={muscle ?? ''}
-                  onChange={(e) => onChangeMuscle(name, e.target.value)}
-                >
-                  <option value="">Sin grupo</option>
-                  {MUSCLE_GROUPS.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-        </>
       )}
         </>
       )}
