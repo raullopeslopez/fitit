@@ -1,7 +1,7 @@
 # Production image: build the React app, then serve it + the API from FastAPI.
 
 # --- build the React app ---
-FROM node:22-alpine AS frontend
+FROM node:24-alpine AS frontend
 WORKDIR /fe
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
