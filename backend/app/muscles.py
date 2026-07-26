@@ -104,3 +104,16 @@ def classify(name: str) -> str | None:
         if any(_fold(k) in folded for k in keywords):
             return group
     return None
+
+
+def group_for(name: str, kind: str) -> str | None:
+    """Auto-classify by name, but never for cardio.
+
+    The keyword rules are written for strength moves ("remo" reads as a back
+    row), but a cardio machine sharing that name — a rowing ergometer, say —
+    isn't training that muscle group. Cardio gets no auto-guess; only an
+    explicit override on the exercise assigns it one.
+    """
+    if kind == "cardio":
+        return None
+    return classify(name)

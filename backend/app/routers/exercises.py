@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..exercise_repo import find_exercise
 from ..models import Day, Exercise, SetEntry, Workout
-from ..muscles import MUSCLE_GROUPS, classify
+from ..muscles import MUSCLE_GROUPS, group_for
 from ..naming import normalize_exercise_name
 from ..schemas import (
     BestMark,
@@ -27,7 +27,7 @@ def _to_exercise_out(exercise: Exercise) -> ExerciseOut:
     return ExerciseOut(
         id=exercise.id,
         name=exercise.name,
-        muscle_group=exercise.muscle_group or classify(exercise.name),
+        muscle_group=exercise.muscle_group or group_for(exercise.name, exercise.kind),
         kind=exercise.kind,
     )
 
@@ -54,7 +54,7 @@ async def create_exercise(
         return _to_exercise_out(existing)
     exercise = Exercise(
         name=payload.name,
-        muscle_group=payload.muscle_group or classify(payload.name),
+        muscle_group=payload.muscle_group or group_for(payload.name, payload.kind),
         kind=payload.kind,
     )
     session.add(exercise)
@@ -172,7 +172,7 @@ async def best_marks(
         best[exercise.id] = BestMark(
             exercise_id=exercise.id,
             exercise_name=exercise.name,
-            muscle_group=exercise.muscle_group or classify(exercise.name),
+            muscle_group=exercise.muscle_group or group_for(exercise.name, exercise.kind),
             reps=entry.reps,
             weight=entry.weight,
             one_rm=one_rm,

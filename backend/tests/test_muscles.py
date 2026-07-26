@@ -12,6 +12,7 @@ from app.muscles import (
     PIERNA,
     TRICEPS,
     classify,
+    group_for,
 )
 
 
@@ -53,3 +54,15 @@ def test_returns_none_for_unknown():
 def test_every_result_is_a_canonical_group():
     for name in ["Press banca", "Sentadilla", "Curl martillo"]:
         assert classify(name) in MUSCLE_GROUPS
+
+
+def test_cardio_is_never_auto_classified():
+    # "Remo" reads as a back row to the keyword classifier, but a cardio
+    # rowing machine isn't training a muscle group the way the strength move
+    # named "Remo" is.
+    assert classify("Remo") == ESPALDA
+    assert group_for("Remo", "cardio") is None
+
+
+def test_strength_still_gets_the_name_based_guess():
+    assert group_for("Press banca", "strength") == PECHO
