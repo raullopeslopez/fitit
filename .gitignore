@@ -33,6 +33,10 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 
+# Design handoff packages: HTML references plus a copy of the font files, sent
+# over to be looked at. The system they mirror lives in frontend/src/styles.css.
+design_handoff_*/
+
 # OS / editor
 .DS_Store
 .vscode/

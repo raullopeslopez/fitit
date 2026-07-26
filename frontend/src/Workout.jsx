@@ -13,6 +13,7 @@ import {
 } from './api.js'
 import { getToken } from './auth.js'
 import {
+  daysAgoLabel,
   estimatedOneRm,
   formatCardioSet,
   formatClock,
@@ -43,7 +44,7 @@ import {
   startRestNotice,
   stopRestNotice,
 } from './notify.js'
-import { prSetIds } from './stats.js'
+import { weightPrs } from './stats.js'
 import {
   REST_OPTIONS,
   getLockLogging,
@@ -169,14 +170,7 @@ function ExerciseCard({
   // corrections, and both were permanent controls on a card you open to log.
   const [showFixes, setShowFixes] = useState(false)
   // Every figure below is in kilos, the unit the API compares in; it's only
-  // converted on the way to the screen. The number to beat is the server's best
-  // est. 1RM, or derived from the previous marks so the target block always
-  // shows a figure when one exists.
-  const seededBest =
-    previous?.best_one_rm ??
-    (previous?.sets?.length
-      ? Math.max(...previous.sets.map((s) => estimatedOneRm(s.weight, s.reps)))
-      : null)
+  // converted on the way to the screen.
   // Absent `previous` means the marks haven't arrived, not that there are none.
   // Nothing may claim a record before this is true: with no mark to beat, the
   // comparison silently falls back to the session's own peak and awards set 2 a
@@ -189,11 +183,6 @@ function ExerciseCard({
   // worse than no record, so offline the card shows the numbers and withholds
   // the badge until it has heard from the server.
   const marksTrusted = marksKnown && !previous?.stale
-  // The 1RM that broke the record, for the banner — null when nothing did. This
-  // used to be a `best` state seeded once at mount, which meant a card built
-  // from the log (a reload, or a handover from Días) seeded it as null and never
-  // celebrated a genuine record even after the marks landed.
-  const [prAt, setPrAt] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
@@ -209,14 +198,6 @@ function ExerciseCard({
       return
     }
     setError('')
-    // Everything the card owes you for this set is settled here, before the
-    // request goes out — the row is already on screen by then (see logSetFor).
-    // The mark to beat, right now: what you walked in with, or the best you
-    // have already hit today, whichever is higher. Both are derived from this
-    // render, so nothing can go stale between opening the card and logging.
-    const toBeat = marksTrusted ? Math.max(seededBest ?? 0, bestOneRm) : null
-    const oneRm = estimatedOneRm(valid.weight, valid.reps)
-    setPrAt(toBeat != null && oneRm > toBeat ? oneRm : null)
     // Keep the weight and reps you just logged: straight sets are the common
     // case (3×25×15), so the next set should be one tap on the button, not a
     // re-entry into blank fields. The per-set qualia don't carry, though — a
@@ -293,9 +274,18 @@ function ExerciseCard({
     }
   }
 
-  const bestOneRm = sets.length
-    ? Math.max(...sets.map((s) => estimatedOneRm(s.weight, s.reps)))
-    : 0
+  // The mark to beat, said the way you'd think it: the heaviest set of the last
+  // time you did this, and when that was. The estimated-1RM readout this
+  // replaces was a number you never lift — you walk to the rack thinking "82.5
+  // for 5", not "96.3 theoretical single".
+  const lastTop = previous?.found
+    ? previous.sets.reduce((best, s) => {
+        if (s.weight == null || s.reps == null) return best
+        if (best == null || s.weight > best.weight) return s
+        return s.weight === best.weight && s.reps > best.reps ? s : best
+      }, null)
+    : null
+  const lastWhen = previous?.sets?.length ? daysAgoLabel(previous.sets[0].created_at) : null
   // What a folded card still has to answer: did I do this, and what did I hit.
   // It names one real working set — not decoupled reps/weight ranges, where you
   // couldn't tell which weight went with which reps. When every set matched,
@@ -315,7 +305,7 @@ function ExerciseCard({
   // amber is spent only on the PR, so a static readout can't borrow it.
   const digest = sets.length ? (
     <>
-      {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · `}
+      {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} hoy · `}
       {varied && <span className="d-tope">tope</span>}
       {varied && ' '}
       <span className="d-key">{`${showKg(topSet.weight)} kg`}</span>
@@ -324,13 +314,12 @@ function ExerciseCard({
   ) : (
     'sin series'
   )
-  // The single 1RM readout: the mark you walked in with, and where you are now.
-  const todayBest = sets.length ? bestOneRm : null
-  const beatIt =
-    marksTrusted && seededBest != null && todayBest != null && todayBest > seededBest
-  // Which rows earn the PR badge. Derived from the log against the mark you
-  // walked in with, so unlike the transient banner it survives a reload.
-  const prIds = marksTrusted ? prSetIds(sets, seededBest) : new Set()
+  // Which rows earn the badge: a real weight record, more kilos than you had
+  // ever moved at that many reps or more. The estimated 1RM this replaces let a
+  // heavy single outrank a hard set of eight on a formula nobody lifted.
+  const prIds = marksTrusted
+    ? weightPrs(sets, { history: previous?.sets ?? [] })
+    : new Set()
 
   const ready = reps !== '' && weight !== ''
 
@@ -347,9 +336,11 @@ function ExerciseCard({
   }
 
   return (
-    <div className={`card${open ? '' : ' is-folded'}`}>
-      {/* The whole header is the fold control: a wide target for a thumb, and
-          when folded it carries the digest so the row still says what you did. */}
+    <div className={`card ${open ? 'card-hero' : 'card-quiet is-folded'}`}>
+      {/* The whole header is the fold control: a wide target for a thumb. */}
+      {open && (
+        <span className="card-eyebrow live">En curso</span>
+      )}
       <h2 className="exercise-title">
         <button type="button" className="card-toggle" aria-expanded={open} onClick={onToggle}>
           <span className="card-name">{name}</span>
@@ -359,61 +350,48 @@ function ExerciseCard({
               {muscle}
             </span>
           )}
-          {!open && <span className="card-digest">{digest}</span>}
           <span className="card-chevron" aria-hidden="true" />
         </button>
       </h2>
 
-      {!open ? null : (
+      {/* Folded, the card still has to answer "did I do this, and what did I
+          hit" — the sets as chips, then one line naming the top one. */}
+      {!open && (
         <>
-      {/* One 1RM readout, not two: the mark you walked in with and where you are
-          now. Two separate numbers twelve lines apart is how you read neither. */}
-      {seededBest != null || todayBest != null ? (
-        <div className="target">
-          {/* "A batir" = "to beat", so it only earns its place when there is a
-              prior mark on the left of the arrow. A first-ever exercise is
-              setting the reference, not beating one — label it plainly. */}
-          <div className="target-label">
-            {seededBest != null ? 'A batir · 1RM est.' : '1RM est.'}
-          </div>
-          {/* Only a real comparison gets an arrow. A first-ever exercise has
-              nothing on the left of it, and "— → 41.3" reads as a stray dash
-              plus a comparison that doesn't exist. */}
-          <div className="target-line">
-            {seededBest != null && todayBest != null && (
-              <>
-                <span className="target-prev">{showKg(seededBest)}</span>
-                <span className="target-arrow" aria-hidden="true">
-                  →
+          {sets.length > 0 && (
+            <div className="set-chips">
+              {sets.map((set) => (
+                <span className="set-chip" key={set.id}>
+                  {showKg(set.weight)}×{set.reps}
                 </span>
-              </>
-            )}
-            <span className={`target-today${beatIt ? ' is-pr' : ''}`}>
-              {showKg(todayBest ?? seededBest)}
-            </span>
-          </div>
-          {previous?.found && (
-            <div className="target-side">
-              <div className="target-label">Última vez</div>
-              <div className="target-meta">
-                {previous.sets.map((s) => formatSet(s)).join(', ')}
-              </div>
+              ))}
             </div>
           )}
+          <p className="hint card-digest">{digest}</p>
+        </>
+      )}
+
+      {!open ? null : (
+        <>
+      {/* The mark to beat, in the terms you'd think it in: what you last put on
+          the bar, and how long ago. */}
+      {lastTop ? (
+        <div className="target">
+          <div className="target-label">
+            Última vez{lastWhen ? ` · ${lastWhen}` : ''}
+          </div>
+          <div className="target-line">
+            <span className="target-today">{showKg(lastTop.weight)}</span>
+            <span className="target-unit">kg × {lastTop.reps}</span>
+          </div>
           {/* Says why no record can fire, once, quietly. Without it a set that
-              plainly beat the number on the left looks like a bug. */}
+              plainly beat the number above looks like a bug. */}
           {previous?.stale && (
             <div className="target-stale">Marcas guardadas · sin conexión</div>
           )}
         </div>
       ) : (
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
-      )}
-
-      {prAt != null && (
-        <p className="pr-banner">
-          ¡Nuevo récord! 1RM estimado {showKg(prAt)}
-        </p>
       )}
 
       <form onSubmit={handleLogSet}>
@@ -507,10 +485,26 @@ function ExerciseCard({
         {/* The button states exactly what it will log, so a repeat is one tap.
             It never disables itself waiting on the request: the set is already
             in the list below, and a second tap means a second set, which is
-            what a straight-sets session is made of. */}
-        <button type="submit" className="btn-full btn-log">
-          {ready ? `Registrar ${weight} × ${reps}` : 'Registrar serie'}
-        </button>
+            what a straight-sets session is made of.
+
+            Straight sets are the common case, so the repeat sits beside it, at
+            a fixed place on the card. Under the list it sank a row per set
+            logged — by the fifth, the quickest control on the screen was off
+            the bottom of the phone. Grey, never a second amber button: there is
+            one primary act here and this isn't it. */}
+        <div className="log-actions">
+          <button type="submit" className="btn-full btn-log">
+            {ready ? `Registrar ${weight} × ${reps}` : 'Registrar serie'}
+          </button>
+          {sets.length > 0 && (
+            <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>
+              <span className="rep-icon" aria-hidden="true">
+                ↻
+              </span>
+              Repetir serie
+            </button>
+          )}
+        </div>
       </form>
 
       {error && (
@@ -521,13 +515,6 @@ function ExerciseCard({
 
       {sets.length > 0 ? (
         <>
-        {/* Straight sets are the common case, so the repeat sits with the log
-            button, at a fixed place on the card. Under the list it sank a row
-            per set logged — by the fifth, the quickest control on the screen
-            was off the bottom of the phone. */}
-        <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>
-          +1 serie
-        </button>
         {/* Tonnage is gone: weight × reps summed is arithmetically true and
             physically meaningless (1050 kg of cable crunches), and it was the
             one figure here no decision depended on. The count stays — that is
@@ -535,7 +522,7 @@ function ExerciseCard({
         <div className="target-label session-label">
           Hoy · {sets.length} {sets.length === 1 ? 'serie' : 'series'}
         </div>
-        <ol className="sets">
+        <ol className="sets set-log">
           {sets.map((set, index) => (
             <li key={set.id}>
               {editingId === set.id ? (
@@ -593,11 +580,16 @@ function ExerciseCard({
                    whole difference — a pending set is the normal case now, not
                    an error state, so it doesn't get amber or a banner. */
                 <span className="set-row set-pending">
-                  {formatSet(set)}
-                  {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                  <span className="set-ix" aria-hidden="true">
+                    S{index + 1}
+                  </span>
+                  <span className="set-val">
+                    {formatSet(set)}
+                    {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                  </span>
                   {prIds.has(set.id) && (
-                    <span className="pr-flag" title="Récord al registrarla">
-                      PR
+                    <span className="pr-flag" title="Más peso que nunca a estas reps">
+                      PR peso
                     </span>
                   )}
                   <span className="pending-dot" role="img" aria-label="Sin guardar" />
@@ -613,11 +605,16 @@ function ExerciseCard({
                     aria-label={`Editar serie ${index + 1}`}
                     onClick={() => startEdit(set)}
                   >
-                    {formatSet(set)}
-                    {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                    <span className="set-ix" aria-hidden="true">
+                      S{index + 1}
+                    </span>
+                    <span className="set-val">
+                      {formatSet(set)}
+                      {set.rpe ? ` · RPE ${set.rpe}` : ''}
+                    </span>
                     {prIds.has(set.id) && (
-                      <span className="pr-flag" title="Récord al registrarla">
-                        PR
+                      <span className="pr-flag" title="Más peso que nunca a estas reps">
+                        PR peso
                       </span>
                     )}
                   </button>

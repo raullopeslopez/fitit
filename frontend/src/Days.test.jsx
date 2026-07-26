@@ -169,6 +169,8 @@ describe('Days', () => {
     })
   })
 
+  // The group rides on every set now, so the list draws its dots from the one
+  // response it already has — no second request, no name map to keep in step.
   it('shows muscle dots for the groups a workout trained', async () => {
     api.listDays.mockResolvedValue([
       {
@@ -178,14 +180,15 @@ describe('Days', () => {
           {
             id: 5,
             name: 'Push',
-            sets: [benchSet({ exercise_name: 'Press banca' }), benchSet({ id: 11, exercise_name: 'Press militar' })],
+            sets: [
+              benchSet({ exercise_name: 'Press banca', muscle_group: 'Pecho' }),
+              benchSet({ id: 11, exercise_name: 'Press militar', muscle_group: 'Hombro' }),
+              // A second chest lift doesn't earn a second dot.
+              benchSet({ id: 12, exercise_name: 'Aperturas', muscle_group: 'Pecho' }),
+            ],
           },
         ],
       },
-    ])
-    api.listExercises.mockResolvedValue([
-      { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
-      { id: 2, name: 'Press militar', muscle_group: 'Hombro' },
     ])
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
@@ -193,6 +196,21 @@ describe('Days', () => {
     await waitFor(() => {
       expect(container.querySelectorAll('.muscle-dots .dot').length).toBe(2)
     })
+    expect(api.listExercises).not.toHaveBeenCalled()
+  })
+
+  it('leaves a workout of untagged lifts with no dots at all', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [{ id: 5, name: 'Varios', sets: [benchSet({ muscle_group: null })] }],
+      },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Varios')
+    expect(container.querySelector('.muscle-dots')).toBeNull()
   })
 
   it('badges today’s day so it reads apart from recent history', async () => {

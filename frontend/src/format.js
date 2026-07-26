@@ -33,6 +33,49 @@ export function formatDayShort(iso, today = new Date()) {
   return (y === today.getFullYear() ? stamp : `${stamp} ${y}`).toUpperCase()
 }
 
+const MESES_LARGOS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
+
+// "2026-07-01" -> "julio". Lowercase, because it is a word: the one place it
+// titles a card capitalises it there, rather than shouting everywhere else.
+export function formatMonth(iso) {
+  return MESES_LARGOS[Number(iso.slice(5, 7)) - 1]
+}
+
+// A period, as short as it can be said: "20–26 jul" inside one month, "29 jun –
+// 5 jul" across two. Naming the month twice when it hasn't changed is noise.
+export function formatRange(startIso, endIso) {
+  const [, sm, sd] = startIso.split('-').map(Number)
+  const [, em, ed] = endIso.split('-').map(Number)
+  if (sm === em) return `${sd}–${ed} ${MESES[sm - 1]}`
+  return `${sd} ${MESES[sm - 1]} – ${ed} ${MESES[em - 1]}`
+}
+
+// How long ago, in the words you'd use out loud: "hoy", "ayer", "hace 3 días".
+// Takes an API timestamp (UTC) and compares calendar days in the viewer's own
+// zone — 23:00 last night is "ayer" even though it's fifteen hours back.
+export function daysAgoLabel(timestamp, today = new Date()) {
+  const then = new Date(timestamp)
+  if (Number.isNaN(then.getTime())) return null
+  const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.round((startOf(today) - startOf(then)) / 86400000)
+  if (days <= 0) return 'hoy'
+  if (days === 1) return 'ayer'
+  return `hace ${days} días`
+}
+
 // Cardio metrics. Duration is entered as "mm:ss" (or "h:mm:ss"), or a plain
 // number read as minutes; parseDuration returns whole seconds, or null if invalid.
 export function parseDuration(input) {

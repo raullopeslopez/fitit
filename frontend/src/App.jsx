@@ -63,7 +63,9 @@ export default function App() {
   return (
     <div className="container">
       <header className="app-header">
-        <h1>Fitit</h1>
+        <h1 className="wordmark">
+          fit<span className="wordmark-swap">I</span>t
+        </h1>
         {/* Salir is a rare action. Framed, it was the second-loudest thing on
             the screen you open mid-set; it reads as a quiet text link now. */}
         <button type="button" className="link-btn" onClick={handleLogout}>

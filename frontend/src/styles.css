@@ -126,6 +126,18 @@ h2 {
   align-items: center;
   margin-bottom: 1.25rem;
 }
+/* The wordmark: lowercase, tight, with the second i raised to a capital and
+   dropped to regular weight. One letter carrying the whole idea — the bar and
+   its plates, the same shape as the icon — so the name needs no logo beside
+   it. Set as one text run, never letter by letter, so the kerning holds. */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.0375em;
+}
+.wordmark-swap {
+  font-weight: 400;
+}
 /* Salir: a quiet muted link. Framed and amber it was the second-loudest thing
    on the screen you open mid-set, for something you press once a month. */
 .link-btn {
@@ -379,9 +391,17 @@ h2 {
   font-size: 0.8rem;
   color: var(--muted);
 }
-/* The repeat sits with the log button, so it reads as part of the same act. */
+/* The repeat sits beside the log button, so it reads as part of the same act.
+   Its geometry belongs to that row — see .log-actions. */
 .repeat-set {
-  margin-top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.rep-icon {
+  font-size: 1.05rem;
+  line-height: 1;
 }
 /* A quiet text affordance, not a control competing with Registrar. */
 .extras-toggle {
@@ -567,12 +587,23 @@ button.chart-title h2 {
     transform 0.15s ease,
     color 0.15s ease;
 }
-.link-row:hover {
-  color: var(--accent-ink);
+/* Ink and a nudged chevron, never a fill — and only for a mouse. On touch,
+   :hover sticks to the last thing you tapped, so the row you just left would
+   stay tinted behind the screen you opened. */
+@media (hover: hover) {
+  .link-row:hover:not(:disabled) {
+    color: var(--accent-ink);
+  }
+  .link-row:hover:not(:disabled)::after {
+    color: var(--accent-ink);
+    transform: translateX(3px);
+  }
 }
-.link-row:hover::after {
-  color: var(--accent-ink);
-  transform: translateX(3px);
+/* What a thumb gets instead: a grey veil for as long as the finger is down. */
+.link-row:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: var(--radius-control);
+  transform: none;
 }
 
 .card {
@@ -582,6 +613,70 @@ button.chart-title h2 {
   box-shadow: var(--shadow);
   padding: 1.15rem 1.2rem;
   margin-bottom: 1rem;
+}
+
+/* Three surfaces, so a screen full of cards says which one you're working in.
+   *hero* is the exercise you're logging: the only card wearing the accent, and
+   only as a wash. *raised* is the one card a screen is about. *quiet* is
+   everything already done — sunk toward the background rather than framed. */
+.card-hero {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 7%, var(--surface-raised)),
+    var(--surface-raised) 60%
+  );
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
+}
+.card-raised {
+  background: var(--surface-raised);
+  border-color: color-mix(in srgb, var(--text) 12%, var(--border));
+}
+.card-quiet {
+  background: color-mix(in srgb, var(--surface) 50%, var(--bg));
+  box-shadow: none;
+}
+/* On paper a card is lifted by its shadow; on a dark screen there is no light
+   to cast one, so the top edge catches it instead. */
+@media (prefers-color-scheme: dark) {
+  .card {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      var(--shadow);
+  }
+  .card-quiet {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  }
+}
+@media (prefers-color-scheme: light) {
+  .card-raised {
+    box-shadow:
+      0 4px 14px rgba(16, 24, 40, 0.09),
+      0 1px 2px rgba(16, 24, 40, 0.05);
+  }
+}
+/* A card's kicker: what this card is, in the smallest type on the screen. */
+.card-eyebrow {
+  display: inline-block;
+  margin-bottom: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.card-eyebrow.live {
+  color: var(--accent-ink);
+}
+.card-eyebrow.live::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 0.4rem;
+  vertical-align: 0.08em;
 }
 
 .field {
@@ -651,8 +746,7 @@ button {
      for .link-row, reintroduced by three new surfaces. */
   button.set-row:hover:not(:disabled),
   button.workout-title:hover:not(:disabled),
-  button.chart-title:hover:not(:disabled),
-  button.best-row:hover:not(:disabled) {
+  button.chart-title:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
 }
@@ -711,21 +805,10 @@ button.set-action {
   color: var(--muted);
 }
 
-.pr-banner {
-  border-radius: var(--radius);
-  padding: 0.6rem 0.8rem;
-  margin: 0 0 0.9rem;
-  font-weight: 600;
-  color: var(--pr);
-  background: color-mix(in srgb, var(--pr) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--pr) 35%, transparent);
-}
-
-/* Target block: the previous best is the biggest number on the card — what you
-   came to beat. The single amber "glow" DESIGN.md reserves for the record. */
-/* One readout, not two: the mark you walked in with, an arrow, and where you
-   are now. Today's number is the one that moves, so it carries the weight and
-   goes amber the moment it passes. */
+/* Target block: the biggest number on the card is what you last put on the bar
+   — the thing you came to beat, in the terms you'd think it in. No estimate
+   stands in for it, and no banner celebrates beating it: the record is marked
+   on the row that took it, where it stays. */
 .target {
   padding: 0 0.1rem 0.9rem;
   margin: 0 0 0.9rem;
@@ -751,41 +834,18 @@ button.set-action {
   line-height: 1;
   letter-spacing: -0.02em;
 }
-.target-prev {
-  font-size: 1.6rem;
-  font-weight: 500;
-  color: var(--muted);
-}
-.target-arrow {
-  font-size: 1.1rem;
-  color: var(--muted);
-}
 .target-today {
   font-size: 2.6rem;
   font-weight: 500;
   color: var(--text);
 }
-/* The earned moment, expressed the way each medium actually works. A 24px
-   amber glow on white paper is invisible, so light mode marks the number
-   instead: ink, like a highlighter. Dark mode emits. */
-.target-today.is-pr {
-  color: var(--pr);
-  background-image: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--pr) 16%, transparent) 0.22em,
-    transparent 0.22em
-  );
-}
-@media (prefers-color-scheme: dark) {
-  .target-today.is-pr {
-    background-image: none;
-    text-shadow: 0 0 24px color-mix(in srgb, var(--pr) 40%, transparent);
-  }
-}
-.target-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+/* The reps ride beside the weight at reading size: "82.5" is the figure you
+   act on, "kg × 5" is what makes it mean anything. */
+.target-unit {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  color: var(--muted);
 }
 .target-meta {
   margin-top: 0.35rem;
@@ -1100,9 +1160,11 @@ button.set-action {
   min-height: 36px;
   padding: 0.35rem 0.8rem;
 }
+/* 13px, not 9: on a Días row the dots are the only thing telling you what a
+   session was, read at arm's length while the list scrolls past. */
 .dot {
-  width: 9px;
-  height: 9px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: var(--chip, var(--muted));
   flex: none;
@@ -1321,47 +1383,9 @@ button.set-action {
   margin-bottom: 1rem;
 }
 
-/* Consistency heat map. Amber ramp, not green — a heat map of effort is heat.
-   Intensity = sets logged that day; level 0 is a rest day (faint neutral). */
-.heatmap-card {
-  padding: 1.15rem 1.2rem 1rem;
-}
-.heatmap-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-.streak-hero {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.streak-num {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 2.4rem;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--pr);
-}
-.streak-word {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.heat-legend {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.heat-legend-label {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--muted);
-}
+/* The calendar of what you trained. Colour is the muscle and opacity the
+   volume; the amber intensity ramp and the streak hero it used to lead with
+   were both scoring consistency, which says nothing about training. */
 .heatmap {
   display: flex;
   align-items: flex-start;
@@ -1403,18 +1427,6 @@ button.set-action {
 button.heat-cell {
   cursor: pointer;
 }
-.heat-1 {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-}
-.heat-2 {
-  background: color-mix(in srgb, var(--accent) 50%, transparent);
-}
-.heat-3 {
-  background: color-mix(in srgb, var(--accent) 74%, transparent);
-}
-.heat-4 {
-  background: var(--accent);
-}
 .heat-future {
   background: transparent;
 }
@@ -1424,53 +1436,309 @@ button.heat-cell {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-/* Best marks: a spec sheet, not a leaderboard. Name left, value right, the
-   delta last so the eye can run down a single column of movement. */
-.bests {
-  list-style: none;
-  margin: 0.4rem 0 0;
-  padding: 0;
-}
-.bests li {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-}
-/* The whole row is the control, so it carries the padding the li used to. */
-.best-row.best-row {
-  width: 100%;
-  padding: 0.55rem 0.35rem;
-  margin-inline: -0.35rem;
-  font-family: var(--font-body);
-}
-.bests li:last-child {
-  border-bottom: none;
-}
-.bests .name {
-  flex: 1;
-  font-weight: 600;
-}
-.bests .val {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.bests .delta {
-  min-width: 3.6rem;
-  color: var(--pr);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.78rem;
-  text-align: right;
-}
-/* A standing record isn't an improvement — it shouldn't wear the PR colour. */
-.bests .delta.flat {
-  color: var(--muted);
-}
-
 .heat-readout {
   margin: 0.9rem 0 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* --- What you trained -------------------------------------------------------
+
+   The calendar answers two questions at once without a legend for either:
+   *which* muscle by colour, *how much* by opacity. A column is a week, a row a
+   weekday, so a habit shows up as a horizontal band and a gap shows up as a
+   hole. Sizes come from one place because the labels have to keep step with
+   the cells — a 21px grid under 10px legends drifts out of alignment. */
+.heat-cal {
+  --hm-cell: 21px;
+  --hm-gap: 3px;
+  --hm-month-gap: 10px;
+  --hm-lab: 13px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  /* The bundle's .heatmap sets overflow:auto, which puts a scrollbar under a
+     grid that already fits. Nothing here overflows: the week count is chosen
+     to fit the card. */
+  overflow: visible;
+}
+.heat-cal .heat-days {
+  padding-top: calc(var(--hm-lab) + 9px);
+  gap: var(--hm-gap);
+}
+.heat-cal .heat-daylabel,
+.heat-cal .heat-months,
+.heat-cal .heat-weeks {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--hm-lab);
+  font-weight: 600;
+  /* Full-strength text, not muted: at 13px these are read, not skimmed. */
+  color: var(--text);
+}
+.heat-cal .heat-daylabel {
+  height: var(--hm-cell);
+  line-height: var(--hm-cell);
+}
+.heat-cal .heat-grid,
+.heat-cal .heat-col {
+  gap: var(--hm-gap);
+}
+.heat-cal .heat-cell {
+  width: var(--hm-cell);
+  height: var(--hm-cell);
+}
+/* Each label spans its own month's columns and centres over them, so "jul"
+   sits over July rather than over the day July happens to start on. */
+.heat-months {
+  display: flex;
+  gap: var(--hm-gap);
+  margin-bottom: 7px;
+  line-height: calc(var(--hm-lab) + 2px);
+  overflow: visible;
+}
+.heat-months span {
+  flex: 0 0 auto;
+  width: calc(var(--hm-cell) * var(--cols, 1) + var(--hm-gap) * (var(--cols, 1) - 1));
+  text-align: center;
+  white-space: nowrap;
+}
+/* The Monday each column starts on. One number per week is enough to locate
+   yourself; the month above does the rest. */
+.heat-weeks {
+  display: flex;
+  gap: var(--hm-gap);
+  margin-top: 6px;
+}
+.heat-weeks span {
+  flex: none;
+  width: var(--hm-cell);
+  text-align: center;
+}
+/* A new month opens a gap instead of a divider line — the same 10px on the
+   column, its date and its label, or the three drift apart. */
+.heat-col.is-month-start,
+.heat-weeks span.is-month-start,
+.heat-months span.is-month-start {
+  margin-left: var(--hm-month-gap);
+}
+/* Colour is the muscle, opacity the volume. A day split between two groups
+   splits the cell on the diagonal rather than picking a winner. */
+.heat-cell.is-worked {
+  background: color-mix(in srgb, var(--m-a) var(--fill, 100%), transparent);
+}
+.heat-cell.is-worked.is-split {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--m-a) var(--fill, 100%), transparent) 50%,
+    color-mix(in srgb, var(--m-b) var(--fill, 100%), transparent) 50%
+  );
+}
+.heat-v1 {
+  --fill: 25%;
+}
+.heat-v2 {
+  --fill: 50%;
+}
+.heat-v3 {
+  --fill: 75%;
+}
+.heat-v4 {
+  --fill: 100%;
+}
+/* Filtering doesn't hide the other days, it recedes them: the shape of the
+   month stays readable behind the one muscle you asked about. */
+.heat-cell.is-dimmed {
+  opacity: 0.22;
+}
+/* The filter itself, stacked down the right of the grid behind a hairline. */
+.heat-chips {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-left: 0.8rem;
+  padding-left: 0.8rem;
+  border-left: 1px solid var(--border);
+}
+.heat-chips .chip {
+  min-height: 30px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+/* --- Period summary ---------------------------------------------------------
+
+   Sets per muscle over a week or a month, with the arrows to walk back through
+   them. The bar is the comparison between groups; the number is the fact; the
+   delta is the only thing that carries colour. */
+.sum-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.sum-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sum-nav h2 {
+  margin: 0;
+  min-width: 88px;
+  text-align: center;
+}
+.sum-arrow.sum-arrow {
+  min-width: 32px;
+  border-color: transparent;
+  color: var(--muted);
+}
+.sum-arrow:disabled {
+  opacity: 0.35;
+}
+.sum-seg {
+  display: flex;
+  gap: 0.3rem;
+}
+.sum-seg .chip {
+  min-height: 30px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.sum-sub {
+  margin: 0.15rem 0 0.6rem;
+}
+.sum-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.sum-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.sum-name {
+  flex: none;
+  width: 56px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.sum-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  overflow: hidden;
+}
+.sum-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--chip, var(--muted));
+}
+.sum-val {
+  flex: none;
+  width: 86px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.sum-delta {
+  flex: none;
+  width: 26px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  color: var(--pr);
+}
+.sum-delta.flat {
+  color: var(--muted);
+}
+.sum-delta.down {
+  color: var(--danger);
+}
+.sum-foot {
+  margin-top: 0.55rem;
+}
+
+/* --- Today's log ------------------------------------------------------------
+
+   Zebra instead of rules: at four or five sets a bordered list reads as one
+   block of lines, and you lose your place counting them. Scoped to the session
+   log so the day list in Días keeps its plain rows. */
+.set-log li {
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.5rem;
+  border-bottom: none;
+  border-radius: var(--radius-control);
+}
+.set-log li:nth-child(odd) {
+  background: color-mix(in srgb, var(--text) 4.5%, transparent);
+}
+/* A fixed-width index column, so every value starts on the same vertical. */
+.set-ix {
+  flex: none;
+  width: 1.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.set-val {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Registrar and its repeat share a row: one act, two ways to say it. The
+   repeat is grey on purpose — a second amber button would be a second CTA. */
+.log-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+.log-actions > .btn-log {
+  flex: 1;
+  width: auto;
+}
+.log-actions > .repeat-set {
+  flex: 0 0 auto;
+  min-height: 52px;
+  padding: 0.7rem 1rem;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* A folded exercise shows what you already did to it today — the sets as chips,
+   then one line of summary. Enough to know you don't need to open it. */
+.set-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.45rem;
+}
+.set-chip {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
   color: var(--muted);
 }

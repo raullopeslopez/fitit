@@ -147,9 +147,10 @@ function showRest(rest, { done = false, confirm = false, announce = false } = {}
       body: `${timed || done ? `${rest.payload.exercise_name} · ` : ''}${set}${count}`,
       icon: '/icon-192.png',
       // Not the app icon. Android throws the badge's colour away and tints its
-      // silhouette, so a full-bleed orange square silhouettes as… a square —
-      // which is the grey block this used to draw. `badge-96.png` is the F
-      // alone on transparent, so the shape survives the treatment.
+      // silhouette, so a full-bleed square silhouettes as… a square — which is
+      // the grey block this used to draw. `badge-96.png` is the mark alone on
+      // transparent, and the gaps between its three bars are what survive the
+      // treatment as a shape.
       badge: '/badge-96.png',
       ...(timed ? { timestamp: rest.endsAt } : {}),
       // Not `silent`, however tempting. It was, on the reasoning that every set
