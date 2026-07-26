@@ -1460,10 +1460,15 @@ button.heat-cell {
   align-items: flex-start;
   justify-content: center;
   gap: 6px;
-  /* The bundle's .heatmap sets overflow:auto, which puts a scrollbar under a
-     grid that already fits. Nothing here overflows: the week count is chosen
-     to fit the card. */
-  overflow: visible;
+  /* The week count is chosen to fit a phone card, so normally nothing overflows
+     and no scrollbar appears. The fallback is scroll rather than the inherited
+     `visible`: on a narrow phone, or with the system font scaled up, a clipped
+     grid loses its left edge and its weekday labels with no way to reach them. */
+  overflow-x: auto;
+}
+/* One swipeable line under the grid, like the picker's. */
+.heat-chips {
+  margin-top: 0.85rem;
 }
 .heat-cal .heat-days {
   padding-top: calc(var(--hm-lab) + 9px);
@@ -1554,18 +1559,6 @@ button.heat-cell {
 .heat-cell.is-dimmed {
   opacity: 0.22;
 }
-/* The filter itself, stacked down the right of the grid behind a hairline. */
-.heat-chips {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.35rem;
-  margin-left: 0.8rem;
-  padding-left: 0.8rem;
-  border-left: 1px solid var(--border);
-}
 .heat-chips .chip {
   min-height: 30px;
   padding: 0.15rem 0.6rem;
@@ -1644,10 +1637,13 @@ button.heat-cell {
   border-radius: 4px;
   background: var(--chip, var(--muted));
 }
+/* Sized by its content, not to a fixed column: at a scaled-up system font size
+   an 86px box wrapped "6.2/sem" onto two lines and every row grew a second
+   line. The bar gives up the width instead — it's a comparison, not a reading. */
 .sum-val {
-  flex: none;
-  width: 86px;
+  flex: 0 0 auto;
   text-align: right;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.74rem;
@@ -1655,7 +1651,7 @@ button.heat-cell {
 }
 .sum-delta {
   flex: none;
-  width: 26px;
+  min-width: 26px;
   text-align: right;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

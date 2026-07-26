@@ -60,6 +60,39 @@ describe('Progress', () => {
     expect(container.querySelector('svg.chart')).not.toBeNull()
   })
 
+  // The chips belong to the chart they drive. Stranded at the bottom of the
+  // screen inside the search card, you had to scroll past the chart to change
+  // what it was about.
+  it('puts the muscle chips in the card whose chart they change', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
+      { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
+    ])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    render(<Progress />)
+
+    const card = (await screen.findByText(/evolución/i)).closest('.card')
+    expect(card.querySelector('.muscle-chips')).not.toBeNull()
+    await userEvent.click(
+      [...card.querySelectorAll('.chip')].find((c) => /pierna/i.test(c.textContent)),
+    )
+    expect(await screen.findByRole('button', { name: /renombrar Sentadilla/i })).toBeInTheDocument()
+  })
+
+  // The last record sits on the right edge of the chart, so its label ran off
+  // the side: "30 × 15" rendered as "3(".
+  it('turns the last label inwards so it does not run off the chart', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    const { container } = render(<Progress />)
+
+    await screen.findByText(/evolución/i)
+    const last = [...container.querySelectorAll('svg text')].find(
+      (t) => t.textContent === '85 × 5',
+    )
+    expect(last.getAttribute('text-anchor')).toBe('end')
+  })
+
   it('says how much the climb was worth, and since when', async () => {
     api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
     api.listDays.mockResolvedValue(BENCH_DAYS)
@@ -449,6 +482,28 @@ describe('Progress', () => {
       expect(await screen.findByRole('heading', { name: '13–19 jul' })).toBeInTheDocument()
       // And nothing older than the first week you ever logged.
       expect(screen.getByRole('button', { name: /periodo anterior/i })).toBeDisabled()
+    })
+
+    // "6.2 series/sem" wrapped onto two lines inside its column and broke the
+    // rhythm of every row. The footer already says the unit, so the row doesn't
+    // have to spell it.
+    it('states a monthly average short enough to fit its column', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      await screen.findByText('Julio')
+      expect(container.querySelector('.sum-val').textContent).toBe('1.9/sem')
+      expect(screen.getByText(/media de series por semana/i)).toBeInTheDocument()
+    })
+
+    // Every row read "+6.2" — the whole of its own value — because there was no
+    // earlier month to subtract. A delta against nothing is not a delta.
+    it('leaves the delta column empty when there is no earlier period', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      await screen.findByText('Julio')
+      expect(container.querySelector('.sum-delta')).toBeNull()
     })
 
     it('says nothing at all when there is nothing logged', async () => {

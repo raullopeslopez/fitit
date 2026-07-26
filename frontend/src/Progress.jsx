@@ -74,12 +74,17 @@ function Ladder({ rungs, color }) {
       {rungs.length > 1 && <polyline fill="none" stroke={color} strokeWidth="2" points={line} />}
       {rungs.map((rung, i) => {
         const isLast = i === rungs.length - 1
+        // A label past the middle of the chart is hung to the left of its point,
+        // or it runs off the edge — the last rung sits on the right border by
+        // construction, so its label always would.
+        const inwards = x(rung) > W * 0.55
         return (
           <g key={rung.date}>
             <circle cx={x(rung)} cy={y(rung.weight)} r="4" fill={isLast ? 'var(--pr)' : color} />
             <text
-              x={x(rung) + 6}
+              x={inwards ? x(rung) - 8 : x(rung) + 6}
               y={y(rung.weight) - 6}
+              textAnchor={inwards ? 'end' : 'start'}
               fontSize={isLast ? 11 : 10}
               fontWeight={isLast ? 600 : 400}
               fill={isLast ? 'var(--text)' : 'var(--muted)'}
@@ -207,15 +212,26 @@ function PeriodSummary({ days }) {
                   }}
                 />
               </span>
+              {/* No "series" in month mode: the footer already says these are
+                  weekly averages of sets, and spelling it out per row wrapped
+                  the column onto two lines. */}
               <span className="sum-val">
-                {byMonth ? `${row.perWeek} series/sem` : plural(row.sets, 'serie', 'series')}
+                {byMonth ? `${row.perWeek}/sem` : plural(row.sets, 'serie', 'series')}
               </span>
-              {/* A group that held steady gets "=", not a fake +0. */}
-              <span
-                className={`sum-delta${row.delta === 0 ? ' flat' : row.delta < 0 ? ' down' : ''}`}
-              >
-                {row.delta === 0 ? '=' : row.delta > 0 ? `+${row.delta}` : `−${Math.abs(row.delta)}`}
-              </span>
+              {/* Only when there is something to compare with. Against an empty
+                  period every delta is just the row's own value again. A group
+                  that held steady gets "=", not a fake +0. */}
+              {previous && (
+                <span
+                  className={`sum-delta${row.delta === 0 ? ' flat' : row.delta < 0 ? ' down' : ''}`}
+                >
+                  {row.delta === 0
+                    ? '='
+                    : row.delta > 0
+                      ? `+${row.delta}`
+                      : `−${Math.abs(row.delta)}`}
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -366,9 +382,30 @@ export default function Progress() {
     <section>
       {days.length > 0 && <Heatmap days={days} />}
 
-      {name !== '' && (
+      {(exercises.length > 0 || name !== '') && (
         <div className="card">
           <h2>Evolución</h2>
+          {/* The chips drive this card's chart, so they live in it. Down in the
+              search card you had to scroll past the chart to change what it was
+              about. Seven memorised groups can hide behind a swipe; the names
+              you are hunting for cannot, which is why the box stays below. */}
+          {musclesPresent.length > 0 && (
+            <div className="muscle-chips">
+              {musclesPresent.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
+                  style={{ '--chip': muscleColor(m) }}
+                  aria-pressed={muscle === m}
+                  onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
+                >
+                  <span className="dot" aria-hidden="true" />
+                  {m}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Name + group editing lives here regardless of whether there's a
               chart: you must be able to rename a cardio or brand-new lift too,
               not just one with records. Folded, because both are rare
@@ -411,6 +448,42 @@ export default function Progress() {
                   <h2>{current.name}</h2>
                 </button>
               )}
+            </>
+          )}
+          {rungs.length === 0 ? (
+            /* Three different silences. Nothing picked yet; a known lift with no
+               records (cardio, or one you have only ever done at the same
+               weight); and an unknown name — telling someone "no data" for that
+               one blames the log for a name that was never in it. */
+            <p className="hint">
+              {name === ''
+                ? 'Elige un músculo o busca un ejercicio.'
+                : current
+                  ? 'Aún no hay datos para graficar este ejercicio.'
+                  : 'No hay ningún ejercicio con ese nombre.'}
+            </p>
+          ) : (
+            <>
+              <Ladder rungs={rungs} color={chartColor} />
+              <p className="chart-caption muted">
+                {name} · solo récords reales
+                {gain > 0 && (
+                  <>
+                    {' · '}
+                    <span className="mono" style={{ color: 'var(--pr)' }}>
+                      +{showKg(gain)} kg
+                    </span>{' '}
+                    desde {formatMonth(rungs[0].date)}
+                  </>
+                )}
+              </p>
+            </>
+          )}
+          {/* At the foot of the card, per DESIGN.md — between the title and the
+              chart it read as a second heading on the thing you came to look
+              at. Renaming and re-tagging are corrections, not content. */}
+          {current && (
+            <>
               <button
                 type="button"
                 className="unit-fix fixes-toggle"
@@ -442,41 +515,15 @@ export default function Progress() {
               )}
             </>
           )}
-          {rungs.length === 0 ? (
-            /* Two different failures. A known lift with no records is cardio, or
-               one you have only ever done at the same weight; an unknown name is
-               a typo, and telling someone "no data" for it blames the log for a
-               name that was never in it. */
-            <p className="hint">
-              {current
-                ? 'Aún no hay datos para graficar este ejercicio.'
-                : 'No hay ningún ejercicio con ese nombre.'}
-            </p>
-          ) : (
-            <>
-              <Ladder rungs={rungs} color={chartColor} />
-              <p className="chart-caption muted">
-                {name} · solo récords reales
-                {gain > 0 && (
-                  <>
-                    {' · '}
-                    <span className="mono" style={{ color: 'var(--pr)' }}>
-                      +{showKg(gain)} kg
-                    </span>{' '}
-                    desde {formatMonth(rungs[0].date)}
-                  </>
-                )}
-              </p>
-            </>
-          )}
         </div>
       )}
 
       {days.length > 0 && <PeriodSummary days={days} />}
 
-      {/* The picker sits under the content it drives, not on top of it: three
-          stacked selectors above the chart meant scrolling the whole apparatus
-          on a phone to reach the thing you opened Progreso for. */}
+      {/* The box finds what the chips can't reach: everything that isn't the
+          most-trained lift of its group. It sits under the content it drives,
+          not on top of it — stacked selectors above the chart meant scrolling
+          the whole apparatus on a phone to get to it. */}
       <form
         className="card"
         onSubmit={(e) => {
@@ -486,28 +533,6 @@ export default function Progress() {
           selectLift(matches[0]?.name ?? query)
         }}
       >
-        {/* Muscles filter; the box finds. A row of exercise-name chips used to
-            sit under this one, doing the third version of the same job: seven
-            memorised groups can hide behind a swipe, but the names you are
-            hunting for cannot, and wrapped they stood taller than the chart.
-            Tapping a muscle charts its top lift, so nothing got slower. */}
-        {musclesPresent.length > 0 && (
-          <div className="muscle-chips">
-            {musclesPresent.map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
-                style={{ '--chip': muscleColor(m) }}
-                aria-pressed={muscle === m}
-                onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
-              >
-                <span className="dot" aria-hidden="true" />
-                {m}
-              </button>
-            ))}
-          </div>
-        )}
         <div className="field">
           <label htmlFor="progress-exercise">Ejercicio</label>
           <input

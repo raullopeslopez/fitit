@@ -129,6 +129,42 @@ describe('Heatmap', () => {
     expect(await screen.findByText(/Pecho · 6 series/i)).toBeInTheDocument()
   })
 
+  // 15 weeks of 21px cells plus a seven-row chip column is ~500px of content in
+  // a 320px card: on the phone the grid was clipped at both edges, the weekday
+  // labels fell off the left and the chips ran past the bottom of the calendar.
+  it('shows a number of weeks that fits a phone', () => {
+    const { container } = render(<Heatmap days={[]} endDate={SUNDAY} />)
+    expect(container.querySelectorAll('.heat-col')).toHaveLength(10)
+  })
+
+  it('puts the chips under the grid, on one swipeable line', () => {
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-07-20', group('Pecho', 6)), day('2026-07-21', group('Pierna', 4))]}
+        endDate={SUNDAY}
+      />,
+    )
+    // Seven groups stacked down the right are taller than the grid they label,
+    // so they ride below it in the row the app already uses for muscle chips.
+    const chips = container.querySelector('.muscle-chips')
+    expect(chips).not.toBeNull()
+    const grid = container.querySelector('.heat-grid')
+    expect(grid.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('keeps the weekday labels beside the grid', () => {
+    const { container } = render(<Heatmap days={[]} endDate={SUNDAY} />)
+    expect([...container.querySelectorAll('.heat-daylabel')].map((l) => l.textContent)).toEqual([
+      'L',
+      '',
+      'X',
+      '',
+      'V',
+      '',
+      'D',
+    ])
+  })
+
   // Both were consistency scoring, and neither said anything about training.
   it('has no streak and no intensity legend', () => {
     const { container } = render(

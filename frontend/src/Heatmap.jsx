@@ -30,7 +30,11 @@ function monthRuns(grid) {
 // The calendar of what you trained: a column per week, a row per weekday.
 // Colour says which muscle, opacity says how much — so a glance answers "have I
 // touched legs this month?" without a single number on screen.
-export default function Heatmap({ days, weeks = 15, endDate }) {
+// Ten weeks, not fifteen: at 21px a column is 24px of width, and a phone card
+// has about 300 to give. Fifteen overflowed it — the grid was clipped at both
+// edges and the weekday labels fell off the left. Ten is still two and a half
+// months, which is the range the question needs.
+export default function Heatmap({ days, weeks = 10, endDate }) {
   const [selected, setSelected] = useState(null)
   const [filter, setFilter] = useState(null)
   const grid = muscleHeatmapGrid(days, { weeks, endDate })
@@ -136,9 +140,15 @@ export default function Heatmap({ days, weeks = 15, endDate }) {
             ))}
           </div>
         </div>
-        {/* The legend is the filter: naming the colours and narrowing the grid
-            are the same act, so there is no second control to learn. */}
-        <div className="heat-chips">
+      </div>
+
+      {/* The legend is the filter: naming the colours and narrowing the grid are
+          the same act, so there is no second control to learn. Under the grid on
+          one swipeable line, not stacked down its right: seven groups make a
+          column taller than the calendar it labels, and on a phone that column
+          also stole the width the grid needed. */}
+      {present.length > 0 && (
+        <div className="muscle-chips heat-chips">
           {present.map((m) => (
             <button
               key={m}
@@ -153,7 +163,7 @@ export default function Heatmap({ days, weeks = 15, endDate }) {
             </button>
           ))}
         </div>
-      </div>
+      )}
 
       <p className="hint">
         Cada columna es una semana (empieza el lunes indicado) · color = músculo · opacidad = series

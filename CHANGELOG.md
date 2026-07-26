@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Progreso: el calendario **no cabía en el móvil**. Quince semanas de celdas de
+  21px más una columna de siete chips a la derecha son medio metro de contenido
+  en una tarjeta de 320px: el grid salía recortado por los dos lados, las
+  etiquetas de día se caían por la izquierda y los chips seguían por debajo del
+  calendario. Ahora son diez semanas — dos meses y medio, que es el rango que
+  la pregunta necesita — y los chips van bajo el grid en una línea que se
+  desliza, como los del buscador.
+- Progreso: en el resumen mensual, `6.2 series/sem` partía en dos líneas dentro
+  de su columna y rompía el ritmo de todas las filas. El pie ya dice que son
+  medias semanales de series, así que la fila solo pone `6.2/sem`.
+- Progreso: cada fila del resumen mostraba un delta igual a su propio valor
+  (`+6.2`, `+4.6`…) cuando no había mes anterior con el que comparar. Sin
+  periodo previo la columna queda vacía.
+- Progreso: los chips de músculo estaban en la tarjeta del buscador, al final
+  de la pantalla, así que para cambiar de qué iba la gráfica había que pasar por
+  delante de ella. Ahora viven en la tarjeta que gobiernan.
+- Progreso: la etiqueta del último récord de la gráfica se salía por el borde
+  derecho (`30 × 15` se leía `3(`). Las etiquetas pasada la mitad del ancho se
+  cuelgan hacia dentro.
+- Progreso: `Corregir` se colaba entre el nombre del ejercicio y la gráfica,
+  donde parecía un segundo encabezado. Vuelve al pie de la tarjeta.
+
 ### Changed
 - **Progreso responde otra pregunta.** El calendario ya no mide constancia: el
   color es el músculo y la opacidad las series, así que de un vistazo ves si
