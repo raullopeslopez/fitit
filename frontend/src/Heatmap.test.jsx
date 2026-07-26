@@ -156,11 +156,11 @@ describe('Heatmap', () => {
     const { container } = render(<Heatmap days={[]} endDate={SUNDAY} />)
     expect([...container.querySelectorAll('.heat-daylabel')].map((l) => l.textContent)).toEqual([
       'L',
-      '',
+      'M',
       'X',
-      '',
+      'J',
       'V',
-      '',
+      'S',
       'D',
     ])
   })
