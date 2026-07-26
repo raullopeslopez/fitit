@@ -213,6 +213,26 @@ describe('Days', () => {
     expect(container.querySelector('.muscle-dots')).toBeNull()
   })
 
+  it('gives a cardio-only workout its amber-ring dot, since it has no muscle group', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Cardio',
+            sets: [benchSet({ kind: 'cardio', muscle_group: null, reps: null, weight: null })],
+          },
+        ],
+      },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Cardio')
+    expect(container.querySelectorAll('.muscle-dots .dot-cardio').length).toBe(1)
+  })
+
   it('badges today’s day so it reads apart from recent history', async () => {
     // Only fake Date — testing-library's async queries poll via real timers.
     vi.useFakeTimers({ toFake: ['Date'] })

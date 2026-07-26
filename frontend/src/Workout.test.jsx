@@ -576,6 +576,8 @@ describe('Workout', () => {
     // Cardio card: a duration field, and no weight steppers.
     expect(await screen.findByLabelText(/duración/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/peso/i)).not.toBeInTheDocument()
+    // No muscle group to colour by, so the header dot is an amber ring instead.
+    expect(document.querySelector('.dot-cardio')).toBeInTheDocument()
   })
 
   it('logs a set with RPE and a note', async () => {

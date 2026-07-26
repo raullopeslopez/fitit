@@ -39,6 +39,7 @@ export default function Days({ onOpenWorkout }) {
   // that went stale the moment you re-tagged a lift.
   const musclesOf = (workout) =>
     MUSCLE_GROUPS.filter((m) => workout.sets.some((s) => s.muscle_group === m))
+  const hasCardio = (workout) => workout.sets.some((s) => s.kind === 'cardio')
 
   function openMenu(dayId) {
     setConfirmingDelete(false)
@@ -198,11 +199,12 @@ export default function Days({ onOpenWorkout }) {
                     onClick={() => onOpenWorkout(w.id, { ...w, date: day.date })}
                   >
                     <span>{w.name || 'Entreno'}</span>
-                    {musclesOf(w).length > 0 && (
+                    {(musclesOf(w).length > 0 || hasCardio(w)) && (
                       <span className="muscle-dots" aria-hidden="true">
                         {musclesOf(w).map((m) => (
                           <span key={m} className="dot" style={{ '--chip': muscleColor(m) }} />
                         ))}
+                        {hasCardio(w) && <span className="dot dot-cardio" />}
                       </span>
                     )}
                     <span className="set-index">

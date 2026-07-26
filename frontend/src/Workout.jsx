@@ -765,6 +765,10 @@ function CardioCard({
         <button type="button" className="card-toggle" aria-expanded={open} onClick={onToggle}>
           <span className="card-name">{name}</span>
           {!open && <span className="card-digest">{digest}</span>}
+          <span className="muscle-tag">
+            <span className="dot dot-cardio" aria-hidden="true" />
+            Cardio
+          </span>
           <span className="card-chevron" aria-hidden="true" />
         </button>
       </h2>
