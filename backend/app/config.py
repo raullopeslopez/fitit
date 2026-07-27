@@ -16,10 +16,12 @@ class Settings(BaseSettings):
     env: str = "local"
     database_url: str = "postgresql+asyncpg://fitit:fitit@localhost:5432/fitit"
 
-    # Auth: single user, credentials from the environment. No users table.
     jwt_secret: str = "dev-secret-change-me"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days — it's a personal app
+    # Only read once, by the add_users_table migration, to seed the first
+    # account (the user this app originally ran as) from the credentials that
+    # used to be the whole auth system. Unused at runtime after that.
     auth_username: str = "fitit"
     auth_password: str = "changeme"
 

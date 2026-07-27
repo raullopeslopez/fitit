@@ -20,7 +20,10 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      # Set these two yourself in the Render dashboard (they are your login).
+      # Set these two yourself in the Render dashboard. They are not the login
+      # any more — everyone registers their own account. The add_users_table
+      # migration reads them once to seed the first account on a database that
+      # predates the users table.
       - key: AUTH_USERNAME
         sync: false
       - key: AUTH_PASSWORD

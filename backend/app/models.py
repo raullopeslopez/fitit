@@ -1,6 +1,15 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import (
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -8,11 +17,26 @@ class Base(DeclarativeBase):
     pass
 
 
-class Exercise(Base):
-    __tablename__ = "exercises"
+class User(Base):
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Exercise(Base):
+    __tablename__ = "exercises"
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_exercises_user_id_name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(120), index=True)
     muscle_group: Mapped[str | None] = mapped_column(String(60), nullable=True)
     # "strength" (weight × reps) or "cardio" (duration + optional distance).
     kind: Mapped[str] = mapped_column(
@@ -26,9 +50,13 @@ class Day(Base):
     """A calendar date of training that groups one or more workouts."""
 
     __tablename__ = "days"
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_days_user_id_date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    date: Mapped[date] = mapped_column(Date, unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    date: Mapped[date] = mapped_column(Date, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

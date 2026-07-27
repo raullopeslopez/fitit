@@ -1,8 +1,6 @@
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from app.config import settings
-
 scenarios("../features/auth.feature")
 
 
@@ -11,12 +9,12 @@ def ctx():
     return {}
 
 
-@given(
-    parsers.parse('the app is configured with username "{username}" and password "{password}"')
-)
-def given_configured(monkeypatch, username, password):
-    monkeypatch.setattr(settings, "auth_username", username)
-    monkeypatch.setattr(settings, "auth_password", password)
+@given(parsers.parse('an account "{username}" with password "{password}"'))
+def given_account(unauthed_client, username, password):
+    resp = unauthed_client.post(
+        "/auth/register", json={"username": username, "password": password}
+    )
+    assert resp.status_code == 201, resp.text
 
 
 @when("I create a workout without logging in")

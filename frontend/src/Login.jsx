@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { login } from './api.js'
 
-export default function Login({ onAuthenticated }) {
+export default function Login({ onAuthenticated, onSwitchToRegister }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -62,6 +62,9 @@ export default function Login({ onAuthenticated }) {
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
+        <button type="button" className="link-btn" onClick={onSwitchToRegister}>
+          Crear cuenta
+        </button>
       </div>
     </div>
   )

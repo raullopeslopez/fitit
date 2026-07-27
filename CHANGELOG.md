@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Cuentas de verdad: cada uno con su propio registro.** Hasta ahora la app era
+  de un solo usuario — un usuario y una contraseña en variables de entorno, sin
+  tabla `users` y sin `user_id` en ningún modelo. Dar acceso a otra persona
+  significaba darle *tu* cuenta, y sus entrenos caían en las mismas tablas que
+  los tuyos. Ahora hay tabla de usuarios con contraseñas cifradas (bcrypt),
+  `POST /auth/register`, y ejercicios y días pertenecen a quien los creó.
+- La pantalla de alta ("Crear cuenta") cuelga del login y te deja dentro al
+  registrarte, sin un segundo paso para iniciar sesión.
+- El catálogo de ejercicios pasa a ser **por usuario, no compartido**. Es lo que
+  hace seguro renombrar: en un catálogo común, uno cambiando "Press banca" se lo
+  cambiaba a todos. Dos personas pueden tener su propio "Press banca", y la
+  unicidad de nombre de ejercicio y de fecha de día ahora es por persona.
+
+### Security
+- **Filtrar las listas no bastaba.** Todos los endpoints que reciben un id
+  (`workout_id`, `set_id`, `day_id`, `exercise_id`) lo aceptaban sin comprobar
+  de quién era. En cuanto dos personas comparten tablas con ids correlativos,
+  eso es leer, editar y borrar los entrenos del otro tecleando un número. Los
+  seis comprueban dueño y responden 404 — nunca 403, que confirmaría que la fila
+  existe.
+- Registro y login devolvían **500** con contraseñas de más de 72 bytes, el
+  límite de bcrypt. En una app en español el detalle muerde antes de lo que
+  parece: cada tilde y cada ñ ocupan dos bytes, así que una frase de 80
+  caracteres ya se pasa. Ahora el alta lo dice (422) y el login simplemente
+  rechaza (401). El hash tolera además cualquier entrada sin lanzar, porque la
+  migración que siembra la primera cuenta corre como arranque del contenedor:
+  ahí una excepción no es una petición fallida, es una app que no levanta.
+
 ### Fixed
 - Progreso: el calendario **no cabía en el móvil**. Quince semanas de celdas de
   21px más una columna de siete chips a la derecha son medio metro de contenido

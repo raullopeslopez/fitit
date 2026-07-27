@@ -6,12 +6,12 @@ Feature: Authentication
     Then I am refused with 401
 
   Scenario: Log in and use the token
-    Given the app is configured with username "raul" and password "s3cret"
-    When I log in as "raul" with password "s3cret"
+    Given an account "raul" with password "s3cretpass"
+    When I log in as "raul" with password "s3cretpass"
     Then I receive an access token
     And I can create a workout with that token
 
   Scenario: Reject a wrong password
-    Given the app is configured with username "raul" and password "s3cret"
+    Given an account "raul" with password "s3cretpass"
     When I log in as "raul" with password "wrong"
     Then I am refused with 401
