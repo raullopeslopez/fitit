@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Days from './Days.jsx'
 import Login from './Login.jsx'
 import Progress from './Progress.jsx'
+import Register from './Register.jsx'
 import Workout from './Workout.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
@@ -16,6 +17,7 @@ export default function App() {
   // seed from a previous launch would be an unknown number of sets out of date.
   const [openWorkoutSeed, setOpenWorkoutSeed] = useState(null)
   const [view, setView] = useState('days')
+  const [showRegister, setShowRegister] = useState(false)
 
   function openWorkout(id, seed = null) {
     setOpenWorkoutId(id)
@@ -52,7 +54,17 @@ export default function App() {
   }
 
   if (!token) {
-    return <Login onAuthenticated={handleAuthenticated} />
+    return showRegister ? (
+      <Register
+        onAuthenticated={handleAuthenticated}
+        onSwitchToLogin={() => setShowRegister(false)}
+      />
+    ) : (
+      <Login
+        onAuthenticated={handleAuthenticated}
+        onSwitchToRegister={() => setShowRegister(true)}
+      />
+    )
   }
 
   // Días is active whenever we're in the days list or inside a workout opened

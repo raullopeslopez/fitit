@@ -19,6 +19,17 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
   })
 
+  it('switches to the register screen and back', async () => {
+    render(<App />)
+
+    await userEvent.click(screen.getByRole('button', { name: /crear cuenta/i }))
+    expect(screen.getByRole('button', { name: /ya tengo cuenta/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^entrar$/i })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /ya tengo cuenta/i }))
+    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
+  })
+
   it('opens a workout from the days view and can go back', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([

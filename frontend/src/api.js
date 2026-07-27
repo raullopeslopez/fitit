@@ -13,6 +13,20 @@ export async function login(username, password) {
   return data.access_token
 }
 
+export async function register(username, password) {
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw Object.assign(new Error(body?.detail || 'registration failed'), { status: res.status })
+  }
+  const data = await res.json()
+  return data.access_token
+}
+
 // Authenticated request against the backend. Attaches the stored JWT, prefixes
 // /api (Vite proxy), and on 401 drops the token + notifies the app to log out.
 export async function apiFetch(path, options = {}) {
