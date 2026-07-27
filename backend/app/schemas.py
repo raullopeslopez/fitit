@@ -3,7 +3,9 @@ from datetime import date as Date
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from .auth import BCRYPT_MAX_BYTES
 
 # Weights are kilos and distances kilometres, everywhere, with no alternative to
 # name — so there are no unit types here any more. See DESIGN.md (2026-07-25).
@@ -140,6 +142,26 @@ class PreviousMarks(BaseModel):
 class LoginIn(BaseModel):
     username: str
     password: str
+
+
+class RegisterIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def _fits_bcrypt(cls, value: str) -> str:
+        """bcrypt's ceiling is 72 bytes, not 72 characters — and in Spanish
+        every accent costs two. Say so at sign-up rather than quietly hashing
+        a prefix, which would let a different password open the account."""
+        if len(value.encode()) > BCRYPT_MAX_BYTES:
+            raise ValueError(
+                f"la contraseña no puede superar {BCRYPT_MAX_BYTES} bytes "
+                "(las tildes y la ñ cuentan doble)"
+            )
+        return value
 
 
 class TokenOut(BaseModel):

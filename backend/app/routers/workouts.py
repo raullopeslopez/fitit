@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ..auth import get_current_user
 from ..db import get_session
 from ..exercise_repo import find_exercise, get_or_create_exercise
 from ..models import Day, Exercise, SetEntry, Workout
@@ -61,11 +62,13 @@ def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
     )
 
 
-async def get_or_create_day(session: AsyncSession, day: date) -> Day:
-    existing = await session.scalar(select(Day).where(Day.date == day))
+async def get_or_create_day(session: AsyncSession, user_id: int, day: date) -> Day:
+    existing = await session.scalar(
+        select(Day).where(Day.user_id == user_id, Day.date == day)
+    )
     if existing is not None:
         return existing
-    created = Day(date=day)
+    created = Day(user_id=user_id, date=day)
     session.add(created)
     await session.flush()
     return created
@@ -86,12 +89,41 @@ async def load_workout(session: AsyncSession, workout_id: int) -> WorkoutOut | N
     return _to_workout_out(workout, workout.day.date)
 
 
+async def _get_owned_workout(session: AsyncSession, workout_id: int, user_id: int) -> Workout:
+    """Load a workout with its day, 404ing if it doesn't exist or belongs to
+    someone else — never 403, so a guessed id can't be used to confirm it
+    exists."""
+    result = await session.execute(
+        select(Workout).where(Workout.id == workout_id).options(selectinload(Workout.day))
+    )
+    workout = result.scalar_one_or_none()
+    if workout is None or workout.day.user_id != user_id:
+        raise HTTPException(status_code=404, detail="workout not found")
+    return workout
+
+
+async def _get_owned_set(session: AsyncSession, set_id: int, user_id: int) -> SetEntry:
+    result = await session.execute(
+        select(SetEntry)
+        .where(SetEntry.id == set_id)
+        .options(selectinload(SetEntry.workout).selectinload(Workout.day))
+    )
+    set_entry = result.scalar_one_or_none()
+    if set_entry is None or set_entry.workout.day.user_id != user_id:
+        raise HTTPException(status_code=404, detail="set not found")
+    return set_entry
+
+
 @router.get("", response_model=list[WorkoutOut])
-async def list_workouts(session: AsyncSession = Depends(get_session)) -> list[WorkoutOut]:
-    """Past workouts, newest first, with their sets — powers the history view."""
+async def list_workouts(
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[WorkoutOut]:
+    """This user's past workouts, newest first, with their sets — powers the history view."""
     result = await session.execute(
         select(Workout)
         .join(Workout.day)
+        .where(Day.user_id == user_id)
         .options(
             selectinload(Workout.day),
             selectinload(Workout.sets).selectinload(SetEntry.exercise),
@@ -103,9 +135,11 @@ async def list_workouts(session: AsyncSession = Depends(get_session)) -> list[Wo
 
 @router.post("", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
 async def create_workout(
-    payload: WorkoutIn, session: AsyncSession = Depends(get_session)
+    payload: WorkoutIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> WorkoutOut:
-    day = await get_or_create_day(session, payload.date or date.today())
+    day = await get_or_create_day(session, user_id, payload.date or date.today())
     workout = Workout(name=payload.name, day_id=day.id)
     session.add(workout)
     await session.commit()
@@ -116,21 +150,24 @@ async def create_workout(
 
 @router.get("/{workout_id}", response_model=WorkoutOut)
 async def get_workout(
-    workout_id: int, session: AsyncSession = Depends(get_session)
+    workout_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> WorkoutOut:
+    await _get_owned_workout(session, workout_id, user_id)
     workout = await load_workout(session, workout_id)
-    if workout is None:
-        raise HTTPException(status_code=404, detail="workout not found")
+    assert workout is not None
     return workout
 
 
 @router.patch("/{workout_id}", response_model=WorkoutOut)
 async def rename_workout(
-    workout_id: int, payload: WorkoutPatch, session: AsyncSession = Depends(get_session)
+    workout_id: int,
+    payload: WorkoutPatch,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> WorkoutOut:
-    workout = await session.get(Workout, workout_id)
-    if workout is None:
-        raise HTTPException(status_code=404, detail="workout not found")
+    workout = await _get_owned_workout(session, workout_id, user_id)
     workout.name = payload.name
     await session.commit()
     loaded = await load_workout(session, workout_id)
@@ -140,12 +177,12 @@ async def rename_workout(
 
 @router.delete("/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_workout(
-    workout_id: int, session: AsyncSession = Depends(get_session)
+    workout_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> None:
     """Delete a workout and its sets; drop the day too if it's now empty."""
-    workout = await session.get(Workout, workout_id)
-    if workout is None:
-        raise HTTPException(status_code=404, detail="workout not found")
+    workout = await _get_owned_workout(session, workout_id, user_id)
     day_id = workout.day_id
     await session.delete(workout)
     await session.flush()
@@ -166,22 +203,23 @@ async def delete_workout(
     status_code=status.HTTP_201_CREATED,
 )
 async def log_set(
-    workout_id: int, payload: SetIn, session: AsyncSession = Depends(get_session)
+    workout_id: int,
+    payload: SetIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> WorkoutOut:
     """Append a set to a workout, creating the exercise on first use.
 
     Spec: tests/features/log_set.feature
     """
-    workout = await session.get(Workout, workout_id)
-    if workout is None:
-        raise HTTPException(status_code=404, detail="workout not found")
+    await _get_owned_workout(session, workout_id, user_id)
 
     # An existing exercise keeps its kind; a new one takes the payload's (default strength).
-    existing = await find_exercise(session, payload.exercise_name)
+    existing = await find_exercise(session, user_id, payload.exercise_name)
     kind = existing.kind if existing else (payload.kind or "strength")
     _validate_metrics(payload, kind)
     exercise = existing or await get_or_create_exercise(
-        session, payload.exercise_name, kind=kind
+        session, user_id, payload.exercise_name, kind=kind
     )
 
     next_index = await session.scalar(
@@ -209,21 +247,22 @@ async def log_set(
 
 @router.patch("/sets/{set_id}", response_model=SetOut)
 async def edit_set(
-    set_id: int, payload: SetIn, session: AsyncSession = Depends(get_session)
+    set_id: int,
+    payload: SetIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> SetOut:
     """Correct a logged set (full replacement of its values).
 
     Spec: tests/features/correct_set.feature
     """
-    set_entry = await session.get(SetEntry, set_id)
-    if set_entry is None:
-        raise HTTPException(status_code=404, detail="set not found")
+    set_entry = await _get_owned_set(session, set_id, user_id)
 
-    existing = await find_exercise(session, payload.exercise_name)
+    existing = await find_exercise(session, user_id, payload.exercise_name)
     kind = existing.kind if existing else (payload.kind or "strength")
     _validate_metrics(payload, kind)
     exercise = existing or await get_or_create_exercise(
-        session, payload.exercise_name, kind=kind
+        session, user_id, payload.exercise_name, kind=kind
     )
 
     set_entry.exercise_id = exercise.id
@@ -239,10 +278,12 @@ async def edit_set(
 
 
 @router.delete("/sets/{set_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_set(set_id: int, session: AsyncSession = Depends(get_session)) -> None:
+async def delete_set(
+    set_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
     """Remove a logged set. Spec: tests/features/correct_set.feature"""
-    set_entry = await session.get(SetEntry, set_id)
-    if set_entry is None:
-        raise HTTPException(status_code=404, detail="set not found")
+    set_entry = await _get_owned_set(session, set_id, user_id)
     await session.delete(set_entry)
     await session.commit()

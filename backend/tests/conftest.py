@@ -5,10 +5,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.auth import get_current_user
+from app.auth import get_current_user, hash_password
 from app.db import get_session
 from app.main import app
-from app.models import Base
+from app.models import Base, User
 
 
 def _install_overrides(*, bypass_auth: bool):
@@ -37,7 +37,18 @@ def _install_overrides(*, bypass_auth: bool):
 
     app.dependency_overrides[get_session] = _override_session
     if bypass_auth:
-        app.dependency_overrides[get_current_user] = lambda: "test-user"
+        # Routers filter by a real user_id FK now, so the bypass needs a real
+        # row behind it — not just a placeholder subject string.
+        async def _seed_user() -> int:
+            async with test_sessionmaker() as session:
+                user = User(username="test-user", password_hash=hash_password("test-pass"))
+                session.add(user)
+                await session.commit()
+                await session.refresh(user)
+                return user.id
+
+        user_id = asyncio.run(_seed_user())
+        app.dependency_overrides[get_current_user] = lambda: user_id
     return engine
 
 

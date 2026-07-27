@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import get_current_user
 from ..db import get_session
 from ..exercise_repo import find_exercise
 from ..models import Day, Exercise, SetEntry, Workout
@@ -39,20 +40,32 @@ async def list_muscle_groups() -> list[str]:
 
 
 @router.get("/exercises", response_model=list[ExerciseOut])
-async def list_exercises(session: AsyncSession = Depends(get_session)) -> list[ExerciseOut]:
-    """Every known exercise, alphabetically — powers the add-exercise autocomplete."""
-    result = await session.scalars(select(Exercise).order_by(func.lower(Exercise.name)))
+async def list_exercises(
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[ExerciseOut]:
+    """Every exercise of this user's, alphabetically — powers the add-exercise autocomplete."""
+    result = await session.scalars(
+        select(Exercise)
+        .where(Exercise.user_id == user_id)
+        .order_by(func.lower(Exercise.name))
+    )
     return [_to_exercise_out(e) for e in result.all()]
 
 
 @router.post("/exercises", response_model=ExerciseOut, status_code=status.HTTP_201_CREATED)
 async def create_exercise(
-    payload: ExerciseIn, session: AsyncSession = Depends(get_session)
+    payload: ExerciseIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> ExerciseOut:
-    existing = await session.scalar(select(Exercise).where(Exercise.name == payload.name))
+    existing = await session.scalar(
+        select(Exercise).where(Exercise.user_id == user_id, Exercise.name == payload.name)
+    )
     if existing is not None:
         return _to_exercise_out(existing)
     exercise = Exercise(
+        user_id=user_id,
         name=payload.name,
         muscle_group=payload.muscle_group or group_for(payload.name, payload.kind),
         kind=payload.kind,
@@ -65,7 +78,10 @@ async def create_exercise(
 
 @router.patch("/exercises/{exercise_id}", response_model=ExerciseOut)
 async def update_exercise(
-    exercise_id: int, payload: ExercisePatch, session: AsyncSession = Depends(get_session)
+    exercise_id: int,
+    payload: ExercisePatch,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> ExerciseOut:
     """Rename an exercise and/or override its muscle group.
 
@@ -83,7 +99,7 @@ async def update_exercise(
     ):
         raise HTTPException(status_code=422, detail="unknown muscle group")
     exercise = await session.get(Exercise, exercise_id)
-    if exercise is None:
+    if exercise is None or exercise.user_id != user_id:
         raise HTTPException(status_code=404, detail="exercise not found")
     if "name" in fields:
         new_name = normalize_exercise_name(payload.name)
@@ -92,6 +108,7 @@ async def update_exercise(
         # exercise's own name isn't a collision (id excluded).
         clash = await session.scalar(
             select(Exercise).where(
+                Exercise.user_id == user_id,
                 func.lower(Exercise.name) == new_name.lower(),
                 Exercise.id != exercise_id,
             )
@@ -108,14 +125,16 @@ async def update_exercise(
 
 @router.get("/exercises/history", response_model=list[HistoryPoint])
 async def exercise_history(
-    name: str, session: AsyncSession = Depends(get_session)
+    name: str,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> list[HistoryPoint]:
     """Best estimated 1RM (Epley) per training day for an exercise, oldest first.
 
     In kilos always — a curve that switched units mid-way would show a jump
     where there was no progress.
     """
-    exercise = await find_exercise(session, name)
+    exercise = await find_exercise(session, user_id, name)
     if exercise is None:
         return []
     rows = (
@@ -136,7 +155,9 @@ async def exercise_history(
 
 @router.get("/exercises/records", response_model=list[BestMark])
 async def best_marks(
-    limit: int = 10, session: AsyncSession = Depends(get_session)
+    limit: int = 10,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> list[BestMark]:
     """The best set per exercise, strongest first, with the gap to the record it beat.
 
@@ -155,7 +176,11 @@ async def best_marks(
         await session.execute(
             select(SetEntry, Exercise)
             .join(Exercise, Exercise.id == SetEntry.exercise_id)
-            .where(SetEntry.weight.is_not(None), SetEntry.reps.is_not(None))
+            .where(
+                Exercise.user_id == user_id,
+                SetEntry.weight.is_not(None),
+                SetEntry.reps.is_not(None),
+            )
             .order_by(SetEntry.created_at, SetEntry.id)
         )
     ).all()
@@ -186,6 +211,7 @@ async def best_marks(
 async def previous_marks(
     name: str,
     exclude_workout_id: int | None = None,
+    user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> PreviousMarks:
     """The sets from the most recent workout that includes this exercise.
@@ -199,7 +225,7 @@ async def previous_marks(
     ten minutes ago — a target nothing today can beat, and a PR that never fires.
     Spec: tests/features/previous_marks.feature
     """
-    exercise = await find_exercise(session, name)
+    exercise = await find_exercise(session, user_id, name)
     if exercise is None:
         return PreviousMarks(
             exercise_name=normalize_exercise_name(name), found=False, sets=[], kind=None
