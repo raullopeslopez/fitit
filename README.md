@@ -36,19 +36,27 @@ That's your red-green starting line. Implement `POST /workouts/{id}/sets` in
 
 ## Auth
 
-Single user, credentials from the environment (`AUTH_USERNAME` / `AUTH_PASSWORD`).
-Log in for a JWT, then send it as a bearer token:
+Multi-user. Anyone can register their own account; passwords are hashed with
+bcrypt (72-byte ceiling, enforced at sign-up — accented characters cost two
+bytes each). Register or log in for a JWT, then send it as a bearer token:
 
 ```bash
-TOKEN=$(curl -s localhost:8000/auth/login \
+TOKEN=$(curl -s localhost:8000/auth/register \
   -H 'content-type: application/json' \
-  -d '{"username":"fitit","password":"changeme"}' | jq -r .access_token)
+  -d '{"username":"fitit","password":"changeme123"}' | jq -r .access_token)
+
+# ...or /auth/login with the same body, once the account exists.
 
 curl localhost:8000/workouts -H "Authorization: Bearer $TOKEN"
 ```
 
-`/health` and `/auth/login` are public; every `/workouts` and `/exercises` route
-requires the token. Set real values in your Render env group for production.
+`/health`, `/auth/register` and `/auth/login` are public; every `/workouts` and
+`/exercises` route requires the token, and only ever returns that user's own
+data. Requesting another user's workout, set, day or exercise by id is a 404.
+
+`AUTH_USERNAME` / `AUTH_PASSWORD` are no longer the login. They are read once,
+by the `add_users_table` migration, to seed the first account on a database that
+predates the users table — keep them set until that migration has run.
 
 ## Database migrations
 
@@ -125,7 +133,10 @@ Steps:
    - `DATABASE_URL` → the Neon pooled connection string from step 2. `config.py`
      coerces it to the asyncpg driver and translates Neon's `sslmode`/`channel_binding`
      params, so paste it exactly as Neon gives it.
-   - `AUTH_USERNAME` and `AUTH_PASSWORD` → your login. (`JWT_SECRET` is generated.)
+   - `AUTH_USERNAME` and `AUTH_PASSWORD` → seed the first account. The
+     `add_users_table` migration reads them once, on the deploy that introduces
+     the users table; after that everyone registers their own account and these
+     are only needed again for a fresh database. (`JWT_SECRET` is generated.)
 5. Deploy. `alembic upgrade head` runs on container start against Neon (creating the
    schema on first deploy); health check is `/api/health`.
 
