@@ -1,7 +1,10 @@
 import { showKg } from './units.js'
 
-// A logged set. Kilos, because that is the only unit there is.
+// A logged set. Kilos, because that is the only unit there is — unless there is
+// no weight at all (dominadas, fondos, abdominales), which is not the same as
+// zero: 0 is a number someone typed, null is a set that never had one.
 export function formatSet(set) {
+  if (set.weight == null) return `Corporal x ${set.reps}`
   return `${showKg(set.weight)} kg x ${set.reps}`
 }
 

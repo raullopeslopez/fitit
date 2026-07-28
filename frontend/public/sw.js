@@ -131,7 +131,12 @@ function endsAtLabel(endsAt) {
 // screen already.
 function showRest(rest, { done = false, confirm = false, announce = false } = {}) {
   const count = rest.series > 0 ? `\n${rest.series} ${rest.series === 1 ? 'serie' : 'series'}` : ''
-  const set = `${showKg(rest.payload.weight)} kg x ${rest.payload.reps}`
+  // No weight is a real answer (dominadas, fondos): say so rather than print
+  // "null kg" — or worse, a zero nobody lifted.
+  const set =
+    rest.payload.weight == null
+      ? `Corporal x ${rest.payload.reps}`
+      : `${showKg(rest.payload.weight)} kg x ${rest.payload.reps}`
   const timed = rest.endsAt != null
   const title = done
     ? 'Descanso terminado'
@@ -177,7 +182,14 @@ function showRest(rest, { done = false, confirm = false, announce = false } = {}
       // `parseSet` below takes every shape of the same sentence.
       actions: [
         { action: 'log', title: '+1 serie' },
-        { action: 'custom', type: 'text', title: 'Otra serie', placeholder: '32.5x12' },
+        {
+          action: 'custom',
+          type: 'text',
+          title: 'Otra serie',
+          // With no weight in play the field only ever takes reps, and the
+          // example has to say so or it asks for a number that doesn't exist.
+          placeholder: rest.payload.weight == null ? '15' : '32.5x12',
+        },
       ],
       data: { endsAt: rest.endsAt },
     },
@@ -240,12 +252,19 @@ async function startRest(rest, port) {
 // What it will not do is guess. A lone number could be reps at the same weight
 // or a weight at the same reps, and a set invented from a coin flip is worse
 // than one not logged — so it comes back null and says so out loud.
-function parseSet(text) {
+// `weightless` = the set this repeats carries no weight (fondos, dominadas).
+// Then there is nothing to guess between and a lone number can only be reps —
+// which is the only way that exercise can use this field at all.
+function parseSet(text, { weightless = false } = {}) {
   const cleaned = String(text ?? '')
     .trim()
     .replace(/,/g, '.')
     .replace(/kg/gi, ' ')
   const parts = cleaned.split(/\s*[x*×]\s*|\s+/i).filter(Boolean)
+  if (parts.length === 1 && weightless) {
+    const reps = Number(parts[0])
+    return Number.isInteger(reps) && reps >= 1 ? { weight: null, reps } : null
+  }
   if (parts.length !== 2) return null
   const weight = Number(parts[0])
   const reps = Number(parts[1])
@@ -400,6 +419,29 @@ self.addEventListener('message', (event) => {
   }
 })
 
+// The typed set. What the field can mean depends on the set it repeats — with
+// no weight in play a lone number is reps — so the stored rest has to be read
+// before the text can be parsed.
+//
+// Nothing is invented and the rest is left exactly as it was, so `+1 serie` is
+// still sitting there to fall back on. A notification is the only channel back
+// to someone holding a locked phone, so the complaint carries the format
+// instead of just refusing.
+async function logTyped(reply) {
+  const rest = await readState('rest', null)
+  const weightless = rest?.payload?.weight == null
+  const custom = parseSet(reply, { weightless })
+  if (custom) return logAnother(custom)
+  return self.registration.showNotification('Fitit', {
+    tag: 'fitit-formato',
+    body: weightless
+      ? 'No entendí esa serie. Escribe solo las reps, como 15.'
+      : 'No entendí esa serie. Escríbela como 32.5x12 — peso, luego reps.',
+    icon: '/icon-192.png',
+    badge: '/badge-96.png',
+  })
+}
+
 self.addEventListener('notificationclick', (event) => {
   // Deliberately not closed on either logging path: the same notification is
   // rewritten as the receipt, and closing it first makes it flicker off the
@@ -409,21 +451,7 @@ self.addEventListener('notificationclick', (event) => {
     return
   }
   if (event.action === 'custom') {
-    const custom = parseSet(event.reply)
-    // Nothing invented, and the rest left exactly as it was — so `+1 serie` is
-    // still sitting there to fall back on. A notification is the only channel
-    // back to someone holding a locked phone, so the complaint carries the
-    // format instead of just refusing.
-    event.waitUntil(
-      custom
-        ? logAnother(custom)
-        : self.registration.showNotification('Fitit', {
-            tag: 'fitit-formato',
-            body: 'No entendí esa serie. Escríbela como 32.5x12 — peso, luego reps.',
-            icon: '/icon-192.png',
-            badge: '/badge-96.png',
-          }),
-    )
+    event.waitUntil(logTyped(event.reply))
     return
   }
   event.notification.close()

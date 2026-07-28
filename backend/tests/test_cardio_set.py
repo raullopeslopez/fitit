@@ -69,11 +69,20 @@ def test_strength_set_rejects_cardio_fields(client):
     assert r.status_code == 422, r.text
 
 
-def test_strength_set_still_needs_reps_and_weight(client):
+def test_strength_set_still_needs_reps(client):
+    """Weight is optional (bodyweight work carries none — see
+    tests/features/bodyweight_set.feature); reps are what make it a set."""
     w = client.post("/workouts", json={}).json()
 
-    r = client.post(
-        f"/workouts/{w['id']}/sets",
-        json={"exercise_name": "Bench", "reps": 5},
+    assert (
+        client.post(
+            f"/workouts/{w['id']}/sets", json={"exercise_name": "Bench", "weight": 60}
+        ).status_code
+        == 422
     )
-    assert r.status_code == 422, r.text
+    assert (
+        client.post(
+            f"/workouts/{w['id']}/sets", json={"exercise_name": "Bench", "reps": 5}
+        ).status_code
+        == 201
+    )

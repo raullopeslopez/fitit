@@ -9,9 +9,23 @@ import {
   formatMonth,
   formatPace,
   formatRange,
+  formatSet,
   formatTime,
   parseDuration,
 } from './format.js'
+
+describe('formatSet', () => {
+  it('reads a weighted set in kilos', () => {
+    expect(formatSet({ weight: 60, reps: 8 })).toBe('60 kg x 8')
+  })
+
+  // Dominadas and fondos carry no weight at all. "0 kg x 12" made a number out
+  // of the absence of one; 0 stays a number someone typed (an empty bar).
+  it('says a weightless set is bodyweight, and keeps a real zero', () => {
+    expect(formatSet({ weight: null, reps: 12 })).toBe('Corporal x 12')
+    expect(formatSet({ weight: 0, reps: 12 })).toBe('0 kg x 12')
+  })
+})
 
 describe('daysAgoLabel', () => {
   const today = new Date(2026, 6, 26, 10)
