@@ -120,3 +120,27 @@ def test_bob_cannot_rename_alices_exercise(alice_owns_a_workout):
         f"/exercises/{exercise_id}", json={"name": "hijacked"}, headers=bob
     )
     assert resp.status_code == 404
+
+
+def test_bob_cannot_delete_alices_exercise(alice_owns_a_workout):
+    client, alice, bob, _workout_id, _set_id, _day_id, exercise_id = alice_owns_a_workout
+    assert client.delete(f"/exercises/{exercise_id}", headers=bob).status_code == 404
+
+
+def test_bob_cannot_merge_alices_exercise_into_his_own(alice_owns_a_workout):
+    """Both ends are checked: the row being folded away and the row it lands in."""
+    client, alice, bob, _workout_id, _set_id, _day_id, exercise_id = alice_owns_a_workout
+    bobs = client.post("/exercises", json={"name": "Press banca"}, headers=bob).json()
+
+    assert (
+        client.post(
+            f"/exercises/{exercise_id}/merge", json={"into_id": bobs["id"]}, headers=bob
+        ).status_code
+        == 404
+    )
+    assert (
+        client.post(
+            f"/exercises/{bobs['id']}/merge", json={"into_id": exercise_id}, headers=bob
+        ).status_code
+        == 404
+    )

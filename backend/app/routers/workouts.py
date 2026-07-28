@@ -44,8 +44,12 @@ def _validate_metrics(payload: SetIn, kind: str) -> None:
         if payload.reps is not None or payload.weight is not None:
             raise HTTPException(status_code=422, detail="cardio set has no reps or weight")
     else:  # strength
-        if payload.reps is None or payload.weight is None:
-            raise HTTPException(status_code=422, detail="strength set needs reps and weight")
+        # Weight is optional: dominadas, fondos and abs carry none at all, and
+        # logging those as 0 kg made a number out of the absence of one — it
+        # charted, it could take a record, and the row read "0×12". Reps are
+        # what makes it a strength set, so those stay required.
+        if payload.reps is None:
+            raise HTTPException(status_code=422, detail="strength set needs reps")
         if payload.duration_seconds is not None or payload.distance is not None:
             raise HTTPException(
                 status_code=422, detail="strength set has no duration or distance"

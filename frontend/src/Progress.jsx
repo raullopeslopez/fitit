@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import { listDays, listExercises, renameExercise, setExerciseMuscle } from './api.js'
+import {
+  deleteExercise,
+  listDays,
+  listExercises,
+  mergeExercise,
+  renameExercise,
+  setExerciseMuscle,
+} from './api.js'
 import { downloadCsv } from './csv.js'
 import { formatMonth, formatRange } from './format.js'
 import Heatmap from './Heatmap.jsx'
@@ -280,6 +287,13 @@ export default function Progress() {
   const [error, setError] = useState('')
   const [editingName, setEditingName] = useState(false) // inline rename open?
   const [nameDraft, setNameDraft] = useState('')
+  // The rename's own complaint, beside its field — the page-foot alert is too
+  // far from the thumb that typed to be read at all on a phone.
+  const [nameError, setNameError] = useState('')
+  // The exercise whose name the rename collided with, and so the one this can
+  // be folded into.
+  const [clash, setClash] = useState(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   // Rename and re-tag are corrections, the same shape as the ones on an
   // exercise card: rare, and they were sitting inside the content.
   const [showFixes, setShowFixes] = useState(false)
@@ -297,19 +311,78 @@ export default function Progress() {
   // Rename in place. The row keeps its id, so past sets, history and records all
   // follow; we update locally and re-point `name` at the renamed lift so the chart
   // and chips stay on it. A blank or unchanged name just closes the editor.
+  //
+  // A 409 means the name is already an exercise of yours — "Fondo" typed on a
+  // busy floor, renamed to the "Fondos" that already exists. That is not a
+  // failure to explain at the foot of the page, it is an offer: fold this one
+  // into that one. The complaint stays beside the field you typed in.
   async function renameCurrent(id, draft) {
     const trimmed = draft.trim()
     if (!trimmed || trimmed === name) {
       setEditingName(false)
       return
     }
+    setNameError('')
+    setClash(null)
     try {
       const updated = await renameExercise(id, trimmed)
       setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: updated.name } : e)))
       setName(updated.name)
       setEditingName(false)
+    } catch (err) {
+      const taken = exercises.find((e) => e.id !== id && fold(e.name) === fold(trimmed))
+      if (err?.status === 409 && taken) {
+        setClash(taken)
+        setNameError(`Ya existe "${taken.name}".`)
+      } else {
+        setNameError('No se pudo cambiar el nombre.')
+      }
+    }
+  }
+
+  // Fold this exercise into the one whose name it collided with: its sets move
+  // over, it disappears, and the chart lands on the survivor.
+  async function mergeIntoClash() {
+    if (!current || !clash) return
+    try {
+      const target = await mergeExercise(current.id, clash.id)
+      setExercises((list) => list.filter((e) => e.id !== current.id))
+      setName(target.name)
+      setEditingName(false)
+      setNameError('')
+      setClash(null)
+      await reloadLog()
     } catch {
-      setError('No se pudo cambiar el nombre. ¿Ya existe otro con ese nombre?')
+      setNameError('No se pudo fusionar.')
+    }
+  }
+
+  // Delete the exercise and everything logged against it. Irreversible, and it
+  // takes history with it, so it is gated on a dialog that names the damage.
+  async function deleteCurrent() {
+    if (!current) return
+    try {
+      await deleteExercise(current.id)
+      const left = exercises.filter((e) => e.id !== current.id)
+      setExercises(left)
+      setConfirmingDelete(false)
+      setEditingName(false)
+      setName('')
+      setMuscle(null)
+      await reloadLog()
+    } catch {
+      setConfirmingDelete(false)
+      setError('No se pudo eliminar el ejercicio.')
+    }
+  }
+
+  // The log on screen is a snapshot; deleting or merging just changed it under
+  // us, and the chart, the chips and the heatmap all read from it.
+  async function reloadLog() {
+    const loaded = await listDays().catch(() => null)
+    if (loaded) {
+      setDays(loaded)
+      setFreq(frequencies(loaded))
     }
   }
 
@@ -353,6 +426,8 @@ export default function Progress() {
     setMuscle(muscleOf(trimmed))
     setEditingName(false)
     setError('')
+    setNameError('')
+    setClash(null)
   }
 
   // Picking a known lift charts it immediately, the way the chips already did.
@@ -389,6 +464,19 @@ export default function Progress() {
   const matches = query.trim()
     ? exercises.filter((e) => fold(e.name).includes(fold(query))).slice(0, 8)
     : []
+  // What deleting this exercise would cost, counted from the log we already
+  // hold — the confirmation has to name it.
+  const setsLogged = current
+    ? days.reduce(
+        (total, day) =>
+          total +
+          day.workouts.reduce(
+            (n, w) => n + w.sets.filter((s) => fold(s.exercise_name) === fold(current.name)).length,
+            0,
+          ),
+        0,
+      )
+    : 0
 
   return (
     <section>
@@ -485,6 +573,23 @@ export default function Progress() {
                 <button type="submit" className="secondary set-action">
                   Guardar nombre
                 </button>
+                {nameError && (
+                  <p role="alert" className="alert rename-alert">
+                    {nameError}
+                  </p>
+                )}
+                {/* The name is taken because you already have that exercise —
+                    so the useful move isn't renaming, it's folding this one
+                    into it. One tap, and its sets go too. */}
+                {clash && (
+                  <button
+                    type="button"
+                    className="secondary set-action merge-action"
+                    onClick={mergeIntoClash}
+                  >
+                    Fusionar con {clash.name}
+                  </button>
+                )}
               </form>
             ) : (
               <button
@@ -563,11 +668,56 @@ export default function Progress() {
                     ))}
                   </select>
                 </div>
+                {/* The last resort for a duplicate you don't want to keep at
+                    all. True red, per DESIGN.md — it is the one control here
+                    that destroys something. */}
+                <button
+                  type="button"
+                  className="secondary danger delete-exercise"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Eliminar ejercicio
+                </button>
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Two taps everywhere else in the app, a dialog here: this is the only
+          destructive action whose cost isn't on screen next to it — the series
+          it deletes are months of log spread across the calendar — so the
+          confirmation has to count them out loud. */}
+      {confirmingDelete && current && (
+        <div className="dialog-backdrop" onClick={() => setConfirmingDelete(false)}>
+          <div
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-exercise-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="delete-exercise-title">Eliminar {current.name}</h2>
+            <p className="dialog-body">
+              {setsLogged > 0
+                ? `Se borrarán también sus ${plural(setsLogged, 'serie', 'series')}, y con ellas su historial y sus récords. No se puede deshacer.`
+                : 'No tiene ninguna serie registrada. No se puede deshacer.'}
+            </p>
+            <div className="dialog-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setConfirmingDelete(false)}
+              >
+                Cancelar
+              </button>
+              <button type="button" className="danger" onClick={deleteCurrent}>
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {days.length > 0 && <PeriodSummary days={days} />}
 

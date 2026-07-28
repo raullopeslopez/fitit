@@ -62,14 +62,22 @@ import { holdScreenAwake } from './wakelock.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
+//
+// An empty weight is a set with no weight — dominadas, fondos, abdominales —
+// and travels as null, not 0. Logged as 0 it became a number: it charted, it
+// could take a record, and the row read "0×12". Reps are what make it a set, so
+// those are still required.
 function validateSet(reps, weight, rpe) {
   const r = Number(reps)
-  const w = Number(weight)
   if (!Number.isInteger(r) || r < 1) {
     return { error: 'Introduce reps: un número entero de 1 o más.' }
   }
-  if (!Number.isFinite(w) || w < 0) {
-    return { error: 'Introduce un peso de 0 o más.' }
+  let w = null
+  if (String(weight ?? '').trim() !== '') {
+    w = Number(weight)
+    if (!Number.isFinite(w) || w < 0) {
+      return { error: 'Introduce un peso de 0 o más, o déjalo vacío si es sin peso.' }
+    }
   }
   let rpeValue = null
   if (rpe != null && String(rpe).trim() !== '') {
@@ -157,8 +165,10 @@ function ExerciseCard({
 }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
+  // Empty for a bodyweight seed too: the field says "no weight" by being empty,
+  // which is exactly what you want to log again.
   const [weight, setWeight] = useState(
-    seed ? String(showKg(seed.weight)) : '',
+    seed && seed.weight != null ? String(showKg(seed.weight)) : '',
   )
   const [rpe, setRpe] = useState('')
   const [note, setNote] = useState('')
@@ -240,7 +250,7 @@ function ExerciseCard({
     setEditReps(String(set.reps))
     // Edited in the unit you're reading in, not the one it was logged in — the
     // row above the form says 135 lb, so the field has to say 135 too.
-    setEditWeight(String(showKg(set.weight)))
+    setEditWeight(set.weight == null ? '' : String(showKg(set.weight)))
     setEditRpe(set.rpe != null ? String(set.rpe) : '')
     setEditNote(set.note || '')
   }
@@ -278,12 +288,19 @@ function ExerciseCard({
   // time you did this, and when that was. The estimated-1RM readout this
   // replaces was a number you never lift — you walk to the rack thinking "82.5
   // for 5", not "96.3 theoretical single".
+  // Weighted sets first, because kilos are the mark. An exercise that never
+  // carries any (dominadas, fondos) still has one — the most reps you did —
+  // and without this it read "sin marcas anteriores" forever.
   const lastTop = previous?.found
-    ? previous.sets.reduce((best, s) => {
+    ? (previous.sets.reduce((best, s) => {
         if (s.weight == null || s.reps == null) return best
         if (best == null || s.weight > best.weight) return s
         return s.weight === best.weight && s.reps > best.reps ? s : best
-      }, null)
+      }, null) ??
+      previous.sets.reduce((best, s) => {
+        if (s.reps == null) return best
+        return best == null || s.reps > best.reps ? s : best
+      }, null))
     : null
   const lastWhen = previous?.sets?.length ? daysAgoLabel(previous.sets[0].created_at) : null
   // What a folded card still has to answer: did I do this, and what did I hit.
@@ -293,11 +310,16 @@ function ExerciseCard({
   // show the hardest — the top set by est. 1RM, the same one the PR logic
   // tracks — labelled "tope" so a single pair isn't read as the whole exercise
   // ("4 series · tope 60 kg × 8"). Full per-set detail is one tap away, open.
-  const shownPair = (s) => `${showKg(s.weight)}×${s.reps}`
+  const shownPair = (s) => `${s.weight == null ? 'Corporal' : showKg(s.weight)}×${s.reps}`
   const varied = sets.length ? !sets.every((s) => shownPair(s) === shownPair(sets[0])) : false
+  // A weightless set ranks by reps alone (1RM of nothing is nothing), so a set
+  // that does carry kilos always outranks it — which is right: it is the harder
+  // one to have done.
   const topSet = sets.length
     ? sets.reduce((best, s) =>
-        estimatedOneRm(s.weight, s.reps) > estimatedOneRm(best.weight, best.reps) ? s : best,
+        estimatedOneRm(s.weight ?? 0, s.reps) > estimatedOneRm(best.weight ?? 0, best.reps)
+          ? s
+          : best,
       )
     : null
   // The count and framing stay muted; the weight — the "what did I hit" figure —
@@ -308,7 +330,9 @@ function ExerciseCard({
       {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} hoy · `}
       {varied && <span className="d-tope">tope</span>}
       {varied && ' '}
-      <span className="d-key">{`${showKg(topSet.weight)} kg`}</span>
+      <span className="d-key">
+        {topSet.weight == null ? 'Corporal' : `${showKg(topSet.weight)} kg`}
+      </span>
       {` × ${topSet.reps}`}
     </>
   ) : (
@@ -321,7 +345,12 @@ function ExerciseCard({
     ? weightPrs(sets, { history: previous?.sets ?? [] })
     : new Set()
 
-  const ready = reps !== '' && weight !== ''
+  // Reps alone make a set loggable: an empty weight field is the bodyweight
+  // case, not an unfinished form.
+  const ready = reps !== ''
+  const logLabel = ready
+    ? `Registrar ${weight === '' ? 'corporal' : weight} × ${reps}`
+    : 'Registrar serie'
 
   // Folding the extras clears them: a value you can't see must not ride onto
   // the set you're about to log.
@@ -362,7 +391,7 @@ function ExerciseCard({
             <div className="set-chips" style={{ '--chip': muscleColor(muscle) }}>
               {sets.map((set) => (
                 <span className="set-chip" key={set.id}>
-                  {showKg(set.weight)}×{set.reps}
+                  {shownPair(set)}
                 </span>
               ))}
             </div>
@@ -423,8 +452,17 @@ function ExerciseCard({
             Última vez{lastWhen ? ` · ${lastWhen}` : ''}
           </div>
           <div className="target-line">
-            <span className="target-today">{showKg(lastTop.weight)}</span>
-            <span className="target-unit">kg × {lastTop.reps}</span>
+            {lastTop.weight == null ? (
+              <>
+                <span className="target-today">{lastTop.reps}</span>
+                <span className="target-unit">reps · sin peso</span>
+              </>
+            ) : (
+              <>
+                <span className="target-today">{showKg(lastTop.weight)}</span>
+                <span className="target-unit">kg × {lastTop.reps}</span>
+              </>
+            )}
           </div>
           {/* Says why no record can fire, once, quietly. Without it a set that
               plainly beat the number above looks like a bug. */}
@@ -536,7 +574,7 @@ function ExerciseCard({
             one primary act here and this isn't it. */}
         <div className="log-actions">
           <button type="submit" className="btn-full btn-log">
-            {ready ? `Registrar ${weight} × ${reps}` : 'Registrar serie'}
+            {logLabel}
           </button>
           {sets.length > 0 && (
             <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>

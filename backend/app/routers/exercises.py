@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
@@ -11,6 +12,7 @@ from ..naming import normalize_exercise_name
 from ..schemas import (
     BestMark,
     ExerciseIn,
+    ExerciseMerge,
     ExerciseOut,
     ExercisePatch,
     HistoryPoint,
@@ -121,6 +123,95 @@ async def update_exercise(
     await session.commit()
     await session.refresh(exercise)
     return _to_exercise_out(exercise)
+
+
+async def _get_owned_exercise(session: AsyncSession, exercise_id: int, user_id: int) -> Exercise:
+    """404 for both "no such exercise" and "someone else's" — never 403, so a
+    guessed id can't be used to confirm one exists."""
+    exercise = await session.get(Exercise, exercise_id)
+    if exercise is None or exercise.user_id != user_id:
+        raise HTTPException(status_code=404, detail="exercise not found")
+    return exercise
+
+
+async def _workout_ids_with(session: AsyncSession, exercise_id: int) -> set[int]:
+    rows = await session.scalars(
+        select(SetEntry.workout_id).where(SetEntry.exercise_id == exercise_id).distinct()
+    )
+    return set(rows.all())
+
+
+async def _reindex(session: AsyncSession, workout_ids: set[int]) -> None:
+    """Close the holes in set_index left by moved or deleted sets.
+
+    A new set takes its index from the count of sets in the workout, so a hole
+    means the next one collides with a set already sitting there — and a
+    collision makes the order of two rows in the same session a coin flip.
+    """
+    for workout_id in workout_ids:
+        rows = await session.scalars(
+            select(SetEntry)
+            .where(SetEntry.workout_id == workout_id)
+            .order_by(SetEntry.set_index, SetEntry.created_at, SetEntry.id)
+        )
+        for index, entry in enumerate(rows.all()):
+            entry.set_index = index
+
+
+@router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_exercise(
+    exercise_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Delete an exercise and every set ever logged against it.
+
+    There is no soft version of this: the sets reference the exercise by id, so
+    leaving them would leave rows pointing at nothing. The confirmation — and
+    the count of what's about to go — belongs to the client, which is where the
+    thumb is. Spec: tests/features/manage_exercises.feature
+    """
+    exercise = await _get_owned_exercise(session, exercise_id, user_id)
+    touched = await _workout_ids_with(session, exercise_id)
+    await session.execute(sql_delete(SetEntry).where(SetEntry.exercise_id == exercise_id))
+    await session.delete(exercise)
+    await session.flush()
+    await _reindex(session, touched)
+    await session.commit()
+
+
+@router.post("/exercises/{exercise_id}/merge", response_model=ExerciseOut)
+async def merge_exercise(
+    exercise_id: int,
+    payload: ExerciseMerge,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ExerciseOut:
+    """Fold a duplicate into the real exercise: its sets move, then it's gone.
+
+    What renaming can't do — the target name is taken, which is exactly why you
+    are here. History, records and the mark to beat all read through the target
+    afterwards, because they read through the exercise id the sets now carry.
+    """
+    source = await _get_owned_exercise(session, exercise_id, user_id)
+    target = await _get_owned_exercise(session, payload.into_id, user_id)
+    if source.id == target.id:
+        raise HTTPException(status_code=422, detail="an exercise cannot merge into itself")
+    if source.kind != target.kind:
+        # Their sets carry different metrics (reps/weight vs duration/distance);
+        # merged, half the rows would no longer match their exercise's kind.
+        raise HTTPException(status_code=409, detail="cannot merge a cardio and a strength exercise")
+
+    touched = await _workout_ids_with(session, source.id)
+    await session.execute(
+        update(SetEntry).where(SetEntry.exercise_id == source.id).values(exercise_id=target.id)
+    )
+    await session.delete(source)
+    await session.flush()
+    await _reindex(session, touched)
+    await session.commit()
+    await session.refresh(target)
+    return _to_exercise_out(target)
 
 
 @router.get("/exercises/history", response_model=list[HistoryPoint])

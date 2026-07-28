@@ -552,6 +552,30 @@ describe('+1 serie, from the lock screen', () => {
     },
   )
 
+  // Fondos and dominadas carry no weight, so the lock screen has no kilos to
+  // print and the text field has nothing to disambiguate: a lone number can
+  // only be reps. Spec: backend/tests/features/bodyweight_set.feature
+  it('reads a lone number as reps when the set carries no weight', async () => {
+    const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+    const worker = await resting({
+      fetch,
+      rest: { payload: { exercise_name: 'Fondos', reps: 12, weight: null } },
+    })
+
+    const [notice] = worker.shown
+    expect(notice.body).toContain('Fondos · Corporal x 12')
+    expect(notice.actions[1]).toMatchObject({ placeholder: '15' })
+
+    worker.dispatch('notificationclick', { action: 'custom', reply: '15' })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
+      exercise_name: 'Fondos',
+      reps: 15,
+      weight: null,
+    })
+  })
+
   it('makes the typed set the one +1 serie repeats from then on', async () => {
     // You are on the way down a drop set: the next repeat is the weight you
     // just typed, not the one you started the pyramid with.

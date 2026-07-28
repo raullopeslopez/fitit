@@ -2187,4 +2187,69 @@ describe('Workout', () => {
     await waitFor(() => expect(api.deleteWorkout).toHaveBeenCalledWith(1))
     expect(onExit).toHaveBeenCalled()
   })
+
+  // Dominadas, fondos, abdominales: the weight field is empty because there is
+  // no weight, not because it is zero. Spec:
+  // backend/tests/features/bodyweight_set.feature
+  describe('series sin peso', () => {
+    const dip = (overrides = {}) => ({
+      id: 30,
+      exercise_id: 9,
+      exercise_name: 'Fondos',
+      set_index: 0,
+      reps: 12,
+      weight: null,
+      ...overrides,
+    })
+
+    async function addFondos() {
+      api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Fondos', found: false })
+      renderWorkout()
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Fondos')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      await screen.findByLabelText(/^reps/i)
+    }
+
+    it('logs a set with no weight when the weight field is left empty', async () => {
+      api.logSet.mockResolvedValue(workoutWith(dip()))
+      await addFondos()
+
+      await userEvent.type(screen.getByLabelText(/^reps/i), '12')
+      await userEvent.click(screen.getByRole('button', { name: /^Registrar/i }))
+
+      await waitFor(() =>
+        expect(api.logSet).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ exercise_name: 'Fondos', reps: 12, weight: null }),
+        ),
+      )
+      // And the row says so, rather than claiming you lifted zero kilos.
+      expect(await screen.findByText(/Corporal x 12/i)).toBeInTheDocument()
+    })
+
+    it('names what it will log before you log it', async () => {
+      await addFondos()
+      await userEvent.type(screen.getByLabelText(/^reps/i), '12')
+
+      expect(screen.getByRole('button', { name: /Registrar corporal × 12/i })).toBeInTheDocument()
+    })
+
+    it('still refuses a set with no reps', async () => {
+      await addFondos()
+      await userEvent.click(screen.getByRole('button', { name: /^Registrar/i }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/reps/i)
+      expect(api.logSet).not.toHaveBeenCalled()
+    })
+
+    it('opens the editor of a weightless set with an empty weight field', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(dip()))
+      api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Fondos', found: false })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar serie 1/i }))
+      expect(screen.getByLabelText(/editar peso/i)).toHaveValue('')
+      expect(screen.getByLabelText(/editar reps/i)).toHaveValue('12')
+    })
+  })
 })

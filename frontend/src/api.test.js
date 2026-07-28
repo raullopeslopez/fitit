@@ -1,4 +1,4 @@
-import { apiFetch, register } from './api.js'
+import { apiFetch, deleteExercise, mergeExercise, register } from './api.js'
 import { getToken, setToken, setUnauthorizedHandler } from './auth.js'
 
 describe('apiFetch', () => {
@@ -49,6 +49,41 @@ describe('apiFetch', () => {
     await expect(apiFetch('/workouts')).rejects.toThrow()
     expect(getToken()).toBeNull()
     expect(onUnauthorized).toHaveBeenCalled()
+  })
+})
+
+// Progreso mocks this module, so the wire shape of the two exercise cleanups is
+// only checked here. A field named wrong (`intoId` for `into_id`) is a 422 the
+// component tests would never see.
+describe('cleaning up exercises', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setToken('tok')
+    vi.restoreAllMocks()
+  })
+
+  it('deletes an exercise by id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    expect(await deleteExercise(32)).toBeNull()
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/exercises/32')
+    expect(options.method).toBe('DELETE')
+  })
+
+  it('merges one exercise into another', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 20 }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await mergeExercise(32, 20)
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/exercises/32/merge')
+    expect(options.method).toBe('POST')
+    expect(JSON.parse(options.body)).toEqual({ into_id: 20 })
   })
 })
 

@@ -40,6 +40,17 @@ class ExercisePatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
 
 
+class ExerciseMerge(BaseModel):
+    """Fold this exercise into another one: its sets move, then it is deleted.
+
+    The way out of a name typed wrong mid-session ("Fondo" beside "Fondos"),
+    which renaming can't fix — the target name is already taken, which is the
+    whole point.
+    """
+
+    into_id: int
+
+
 class SetIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -49,7 +60,8 @@ class SetIn(BaseModel):
     kind: Kind | None = None
     # Strength metrics (required for strength, absent for cardio).
     reps: int | None = Field(default=None, ge=1, le=1000)
-    # Kilos. 0 is valid (bodyweight).
+    # Kilos, and optional even for strength: null is a set carrying no weight
+    # (dominadas, fondos), which is not the same as a 0 someone typed.
     weight: float | None = Field(default=None, ge=0, le=1000)
     rpe: float | None = Field(default=None, ge=1, le=10)  # perceived exertion
     note: str | None = Field(default=None, max_length=280)
