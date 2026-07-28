@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Progress from './Progress.jsx'
@@ -603,5 +603,85 @@ describe('Progress', () => {
     await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Squat{enter}')
 
     expect(await screen.findByText(/aún no hay datos/i)).toBeInTheDocument()
+  })
+
+  // A name typed wrong on the gym floor becomes a second exercise ("Fondo"
+  // beside "Fondos"), and its sets land on the duplicate. Two ways out, both
+  // here: fold it into the real one, or delete it outright.
+  describe('limpiar el listado de ejercicios', () => {
+    const fondo = (id) => ({ id, exercise_name: 'Fondo', muscle_group: 'Pecho', reps: 8, weight: 30 })
+    const FONDO_DAYS = [
+      {
+        id: 1,
+        date: '2026-07-28',
+        workouts: [{ id: 1, sets: [fondo(1), fondo(2), fondo(3), fondo(4)] }],
+      },
+    ]
+
+    async function openFixes() {
+      render(<Progress />)
+      await screen.findByRole('button', { name: /renombrar Fondo/i })
+      await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
+    }
+
+    beforeEach(() => {
+      api.listExercises.mockResolvedValue([
+        { id: 32, name: 'Fondo', muscle_group: 'Pecho' },
+        { id: 20, name: 'Fondos', muscle_group: 'Pecho' },
+      ])
+      api.listDays.mockResolvedValue(FONDO_DAYS)
+    })
+
+    it('deletes an exercise once you confirm, saying what goes with it', async () => {
+      api.deleteExercise.mockResolvedValue(null)
+      await openFixes()
+
+      await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
+      // Irreversible and it takes history with it, so the confirmation has to
+      // name the damage — not just ask "are you sure".
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveTextContent(/4 series/i)
+      expect(api.deleteExercise).not.toHaveBeenCalled()
+
+      await userEvent.click(within(dialog).getByRole('button', { name: /sí, eliminar/i }))
+      await waitFor(() => expect(api.deleteExercise).toHaveBeenCalledWith(32))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('backs out of the deletion when you cancel', async () => {
+      await openFixes()
+
+      await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: /cancelar/i }),
+      )
+
+      expect(api.deleteExercise).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('offers to merge when the name you want is already taken', async () => {
+      api.renameExercise.mockRejectedValue(
+        Object.assign(new Error('request failed: 409'), { status: 409 }),
+      )
+      api.mergeExercise.mockResolvedValue({ id: 20, name: 'Fondos', muscle_group: 'Pecho' })
+      render(<Progress />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /renombrar Fondo/i }))
+      const input = screen.getByLabelText(/nombre del ejercicio/i)
+      await userEvent.clear(input)
+      await userEvent.type(input, 'Fondos')
+      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+
+      // The complaint belongs beside the field you typed in, not at the foot of
+      // a page you'd have to scroll to see.
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(/ya existe/i)
+      expect(screen.getByLabelText(/nombre del ejercicio/i).closest('form')).toContainElement(alert)
+
+      await userEvent.click(screen.getByRole('button', { name: /fusionar con Fondos/i }))
+      await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(32, 20))
+      expect(await screen.findByRole('button', { name: /renombrar Fondos/i })).toBeInTheDocument()
+    })
   })
 })

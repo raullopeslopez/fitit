@@ -517,6 +517,67 @@ button.chart-title h2 {
 .head-menu-item.head-menu-danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
+/* Deleting an exercise takes its whole history with it. Red, and never
+   full-width: it sits at the end of the corrections row, not across it. */
+.secondary.delete-exercise {
+  align-self: flex-start;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+@media (hover: hover) {
+  .secondary.delete-exercise:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+}
+/* The one modal in the app. Everywhere else a destructive action is armed by a
+   second tap next to the thing it destroys — but this one's cost (months of
+   sets, spread across the calendar) isn't on screen beside it, so it gets a
+   surface that stops the world and counts it out. Tapping the backdrop is a
+   cancel: the way out has to be as easy as the way in. */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.55);
+}
+.dialog {
+  width: min(24rem, 100%);
+  padding: 1.1rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.dialog h2 {
+  margin: 0 0 0.5rem;
+}
+.dialog-body {
+  margin: 0 0 1.1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+/* The destructive confirm is the primary act of this dialog, so it is filled —
+   in red, the one colour DESIGN.md reserves for exactly this. */
+.dialog-actions .danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+@media (hover: hover) {
+  .dialog-actions .danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 85%, #000);
+  }
+}
+
 .workout-rename {
   display: flex;
   align-items: center;
@@ -1345,6 +1406,16 @@ button.set-action {
 .exercise-rename input {
   flex: 1;
   min-width: 8rem;
+}
+/* The rename's own complaint, on its own row under the field it belongs to.
+   Full-width so the offer that follows it ("Fusionar con …") reads as the
+   answer to it, and with no bottom margin — the form's gap already spaces it. */
+.exercise-rename .rename-alert {
+  flex-basis: 100%;
+  margin: 0;
+}
+.merge-action {
+  flex-basis: 100%;
 }
 .muscle-edit-label {
   margin: 0 0 0 auto;

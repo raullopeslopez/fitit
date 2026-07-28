@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Series sin peso.** Dominadas, fondos y abdominales no llevan peso, y la app
+  exigía uno: dejar el campo vacío guardaba `0 kg`, que es un número — salía en
+  la gráfica, podía batir un récord y la fila decía "0×12". Ahora el peso es
+  opcional en fuerza (las reps no), un campo vacío viaja como "sin peso" y se
+  lee **Corporal × 12** en la fila, en el chip y en el aviso de la pantalla de
+  bloqueo, donde además una cifra suelta ya se entiende como reps. Un 0 escrito
+  a mano sigue siendo un 0: barra vacía y máquina asistida son valores reales.
+- **Eliminar un ejercicio** desde Progreso · Corregir, con un diálogo que dice
+  cuántas series se van con él. No había forma de borrar uno: se podía borrar
+  serie, entreno y día, pero un nombre tecleado mal se quedaba para siempre en
+  el buscador y en los chips.
+- **Fusionar duplicados.** Renombrar "Fondo" a "Fondos" cuando "Fondos" ya
+  existe devolvía 409 — correcto, pero el aviso salía al pie de la página, tres
+  pantallas por debajo del campo, así que en el móvil no lo veías. Ahora la
+  queja sale junto al campo y trae la salida real: *Fusionar con Fondos*, que
+  mueve las series al ejercicio bueno y borra el duplicado.
 - **Cuentas de verdad: cada uno con su propio registro.** Hasta ahora la app era
   de un solo usuario — un usuario y una contraseña en variables de entorno, sin
   tabla `users` y sin `user_id` en ningún modelo. Dar acceso a otra persona

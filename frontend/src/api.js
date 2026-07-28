@@ -110,6 +110,22 @@ export function renameExercise(exerciseId, name) {
   })
 }
 
+// Delete an exercise and every set ever logged against it. There is no soft
+// version: the sets reference it by id, so they go with it.
+export function deleteExercise(exerciseId) {
+  return apiFetch(`/exercises/${exerciseId}`, { method: 'DELETE' })
+}
+
+// Fold a duplicate into the real exercise — its sets move over, then it's gone.
+// The way out of a name typed wrong, which renaming can't fix: the name you
+// want is taken, which is the whole point.
+export function mergeExercise(exerciseId, intoId) {
+  return apiFetch(`/exercises/${exerciseId}/merge`, {
+    method: 'POST',
+    body: JSON.stringify({ into_id: intoId }),
+  })
+}
+
 export function getExerciseHistory(name) {
   return apiFetch(`/exercises/history?name=${encodeURIComponent(name)}`)
 }
