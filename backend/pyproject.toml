@@ -23,6 +23,7 @@ dev = [
     "httpx>=0.28",
     "aiosqlite>=0.20",
     "ruff>=0.9",
+    "debugpy>=1.8",
 ]
 
 [tool.uv]
