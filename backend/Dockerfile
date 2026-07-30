@@ -10,8 +10,10 @@ ENV UV_COMPILE_BYTECODE=1 \
     PATH="/app/.venv/bin:$PATH"
 
 # Install deps first (cached layer). Lockfile keeps builds reproducible.
+# Includes the dev group (pytest, debugpy) — this image is local-dev only,
+# never what Render deploys (that's the root Dockerfile, --no-dev).
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen
 
 # App code.
 COPY . .

@@ -17,15 +17,26 @@ services:
 
   backend:
     build: ./backend
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # DEBUG=1 docker compose up backend -> waits for a debugger (VS Code) to
+    # attach on :5678 before serving. Plain `docker compose up` runs as before.
+    command: |
+      sh -c '
+      if [ "$$DEBUG" = "1" ]; then
+        exec uv run python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+      else
+        exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      fi
+      '
     environment:
       ENV: local
+      DEBUG: ${DEBUG:-0}
       DATABASE_URL: postgresql+asyncpg://fitit:fitit@db:5432/fitit
       JWT_SECRET: dev-secret-change-me
       AUTH_USERNAME: fitit
       AUTH_PASSWORD: changeme
     ports:
       - "8000:8000"
+      - "5678:5678"
     volumes:
       - ./backend:/app
       - /app/.venv          # keep the container's Linux venv, not the host one
