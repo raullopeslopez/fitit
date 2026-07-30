@@ -60,7 +60,7 @@ export default function Days({ onOpenWorkout }) {
     setCreating(true)
     try {
       const workout = await createWorkout({ date: todayISO(), name: null })
-      onOpenWorkout(workout.id, workout)
+      onOpenWorkout(workout.id, workout, true)
     } catch {
       setError('No se pudo empezar el entreno.')
     } finally {

@@ -1202,6 +1202,14 @@ describe('Workout', () => {
     expect(await screen.findByText('Leg Day')).toBeInTheDocument()
   })
 
+  // A workout Días just created carries no name yet — asking for it right as
+  // Entreno opens saves the trip back to tap the title.
+  it('opens straight into naming a freshly created workout', async () => {
+    renderWorkout({ autoRename: true, initialWorkout: workoutWith() })
+
+    expect(await screen.findByLabelText(/nombre del entreno/i)).toBeInTheDocument()
+  })
+
   // Días already holds every set of every workout — /days returns the same shape
   // /workouts/{id} does — so making the card wait on a second round trip for
   // data already in memory bought a blank screen and nothing else.
