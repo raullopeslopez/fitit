@@ -953,7 +953,7 @@ function RestBar({ endsAt, total, onSkip }) {
 // same shape /workouts/{id} does, so waiting on a second round trip for it
 // bought a blank screen and nothing else. Absent (a resume from storage, or a
 // reload) the fetch below is the only source, exactly as before.
-export default function Workout({ workoutId, onExit, initialWorkout = null }) {
+export default function Workout({ workoutId, onExit, initialWorkout = null, autoRename = false }) {
   const seed = initialWorkout?.id === workoutId ? initialWorkout : null
   const [workout, setWorkout] = useState(() => withQueued(seed))
   const [exerciseInput, setExerciseInput] = useState('')
@@ -1436,6 +1436,14 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
     closeMenu()
   }
 
+  // A workout just created with no name opens straight into naming it: the
+  // whole reason "Empezar entreno" asks for nothing up front is that it's one
+  // tap, but that shouldn't cost a second tap right after to say what it was.
+  useEffect(() => {
+    if (autoRename) startRename()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleRename(event) {
     event.preventDefault()
     try {
@@ -1499,6 +1507,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null }) {
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               placeholder="Nombre del entreno"
+              autoFocus
             />
             <button type="submit" className="secondary set-action">
               Guardar nombre

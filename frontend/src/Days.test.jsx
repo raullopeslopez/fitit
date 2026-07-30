@@ -70,7 +70,9 @@ describe('Days', () => {
     await userEvent.click(screen.getByRole('button', { name: /empezar entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
-    expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }))
+    // The third argument tells Entreno to open straight into naming it — no
+    // name was asked for up front, so it's asked for the moment it opens.
+    expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }), true)
   })
 
   // Starting a second workout on a day you already trained is how you end up
