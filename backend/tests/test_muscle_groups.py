@@ -19,7 +19,9 @@ def test_muscle_groups_endpoint(client):
     groups = resp.json()
     assert groups[0] == "Pecho"
     assert "Bíceps" in groups
-    assert len(groups) == 7
+    # Nine since the leg split: Cuádriceps / Femoral / Gemelo replaced "Pierna".
+    assert len(groups) == 9
+    assert {"Cuádriceps", "Femoral", "Gemelo"} <= set(groups)
 
 
 def test_auto_assigns_group_on_first_use(client):

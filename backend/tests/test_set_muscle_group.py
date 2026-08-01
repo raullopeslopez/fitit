@@ -71,4 +71,4 @@ def test_the_group_survives_an_edit(client):
     )
 
     assert resp.status_code == 200, resp.text
-    assert resp.json()["muscle_group"] == "Pierna"
+    assert resp.json()["muscle_group"] == "Cuádriceps"

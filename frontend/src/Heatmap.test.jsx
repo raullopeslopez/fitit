@@ -102,7 +102,7 @@ describe('Heatmap', () => {
   it('filters the grid to one muscle, receding the rest', async () => {
     const { container } = render(
       <Heatmap
-        days={[day('2026-07-20', group('Pecho', 6)), day('2026-07-22', group('Pierna', 6))]}
+        days={[day('2026-07-20', group('Pecho', 6)), day('2026-07-22', group('Cuádriceps', 6))]}
         weeks={4}
         endDate={SUNDAY}
       />,
@@ -120,7 +120,7 @@ describe('Heatmap', () => {
   it('offers a chip only for the muscles the log actually has', () => {
     render(<Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />)
     expect(screen.getByRole('button', { name: /pecho/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /pierna/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /cuádriceps/i })).not.toBeInTheDocument()
   })
 
   it('tells you what a day was when you tap it', async () => {
@@ -140,7 +140,7 @@ describe('Heatmap', () => {
   it('puts the chips under the grid, on one swipeable line', () => {
     const { container } = render(
       <Heatmap
-        days={[day('2026-07-20', group('Pecho', 6)), day('2026-07-21', group('Pierna', 4))]}
+        days={[day('2026-07-20', group('Pecho', 6)), day('2026-07-21', group('Cuádriceps', 4))]}
         endDate={SUNDAY}
       />,
     )

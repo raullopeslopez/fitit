@@ -34,7 +34,9 @@
      surface (#fff); amber stays reserved for effort/PR so it's not in this set. */
   --m-pecho: #2a78d6;
   --m-espalda: #008300;
-  --m-pierna: #e87ba4;
+  --m-cuadriceps: #e87ba4;
+  --m-femoral: #8b4bc0;
+  --m-gemelo: #0089a0;
   --m-hombro: #eda100;
   --m-biceps: #1baf7a;
   --m-triceps: #4a3aa7;
@@ -66,7 +68,9 @@
     /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
     --m-pecho: #3987e5;
     --m-espalda: #008300;
-    --m-pierna: #d55181;
+    --m-cuadriceps: #d55181;
+    --m-femoral: #8046c8;
+    --m-gemelo: #0093a8;
     --m-hombro: #c98500;
     --m-biceps: #199e70;
     --m-triceps: #9085e9;
@@ -1754,11 +1758,22 @@ button.heat-cell {
   font-weight: 600;
 }
 .sum-bar {
+  position: relative;
   flex: 1;
   height: 8px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--text) 7%, transparent);
   overflow: hidden;
+}
+/* The 10-set edge of the efficient band, on a bar that runs to 20. Recessive by
+   design — a full-height rule here would read as a target to hit. */
+.sum-tick {
+  position: absolute;
+  left: 50%;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  background: color-mix(in srgb, var(--text) 20%, transparent);
 }
 .sum-fill {
   display: block;
@@ -1794,7 +1809,8 @@ button.heat-cell {
   color: var(--danger);
 }
 /* Sits with the rows it explains, not with the footnotes below them. */
-.sum-rest {
+.sum-rest,
+.sum-ref {
   margin: 0.5rem 0 0;
   font-size: 0.74rem;
 }

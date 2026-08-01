@@ -5,23 +5,44 @@ lift by hand, we guess the group from the name (Spanish and common English terms
 accent- and case-insensitively. A stored value always wins — this is only the
 auto-assignment/fallback, and the guess is editable via the API.
 
-The set is deliberately small (7 groups): the whole point downstream is a legible
+The set is deliberately small (9 groups): the whole point downstream is a legible
 per-muscle colour, and a colour per individual muscle would be an unreadable
 rainbow.
+
+It was 7 until the weekly-set reference arrived. A single "Pierna" bucket held
+squats, leg curls and calf raises at once, so "Pierna: 20 series" could be twenty
+sets of squats and nothing else — a number you cannot hold against a per-muscle
+reference and learn anything from. The three that a leg day actually splits into
+are separated; glutes ride with the hamstrings under ``FEMORAL`` because the
+hinges that train one train the other.
 """
 
 import unicodedata
 
 PECHO = "Pecho"
 ESPALDA = "Espalda"
-PIERNA = "Pierna"
+CUADRICEPS = "Cuádriceps"
+FEMORAL = "Femoral"
+GEMELO = "Gemelo"
 HOMBRO = "Hombro"
 BICEPS = "Bíceps"
 TRICEPS = "Tríceps"
 CORE = "Core"
 
-# Canonical order — the UI renders chips/legend in this sequence.
-MUSCLE_GROUPS: list[str] = [PECHO, ESPALDA, PIERNA, HOMBRO, BICEPS, TRICEPS, CORE]
+# Canonical order — the UI renders chips/legend in this sequence, and it is the
+# order the categorical palette was validated in (adjacent pairs), so the three
+# leg groups have to stay together and in this position.
+MUSCLE_GROUPS: list[str] = [
+    PECHO,
+    ESPALDA,
+    CUADRICEPS,
+    FEMORAL,
+    GEMELO,
+    HOMBRO,
+    BICEPS,
+    TRICEPS,
+    CORE,
+]
 
 # Keyword → group, checked in order; the first substring hit wins. Order matters
 # only where names overlap ("curl femoral" is a leg curl, not a biceps curl; a
@@ -30,13 +51,49 @@ MUSCLE_GROUPS: list[str] = [PECHO, ESPALDA, PIERNA, HOMBRO, BICEPS, TRICEPS, COR
 # match. Keep bare ambiguous words ("press", "curl") OUT — always qualify them.
 _RULES: list[tuple[str, tuple[str, ...]]] = [
     (
-        PIERNA,
+        # First, or the leg groups below would swallow it: "elevación de piernas"
+        # is an ab move that happens to contain "pierna". Leg extensions say
+        # "extensión", never "elevación", so nothing legitimate is caught here.
+        CORE,
+        ("elevacion de pierna", "elevaciones de pierna", "elevacion de las pierna"),
+    ),
+    (
+        # Ahead of ESPALDA, whose bare "back" keyword matches inside "kickback"
+        # and files a triceps kickback under Espalda. Only the qualified names
+        # are rescued: a bare "Kickback" is genuinely ambiguous (triceps or
+        # glute) and is left to the user to tag.
+        TRICEPS,
+        ("kickback de triceps", "triceps kickback", "patada de triceps"),
+    ),
+    (
+        # Calves before the rest of the leg: "gemelo en prensa" is a calf raise.
+        GEMELO,
+        (
+            "gemelo", "pantorrilla", "calf", "soleo", "elevacion de talones",
+            "elevaciones de talones", "talones", "ponerse de puntillas",
+        ),
+    ),
+    (
+        # Hip hinge and knee flexion. Glutes live here: the RDLs and hip thrusts
+        # that train them train the hamstrings in the same set, and a separate
+        # glute colour was the tenth in a palette that stops being readable at
+        # nine. Adductor/abductor machines are hip work with nowhere better.
+        FEMORAL,
+        (
+            "peso muerto rumano", "rumano", "romanian", "rdl", "hip thrust",
+            "empuje de cadera", "gluteo", "glute", "femoral", "isquios",
+            "isquiotibial", "hamstring", "curl de pierna", "leg curl", "nordic",
+            "buenos dias", "good morning", "patada de gluteo", "puente de gluteo",
+            "rear kick", "aductor", "abductor",
+        ),
+    ),
+    (
+        # Knee-dominant work, and the catch-all for anything that just says "leg".
+        CUADRICEPS,
         (
             "sentadilla", "squat", "prensa", "leg press", "zancada", "lunge",
-            "bulgara", "peso muerto rumano", "rumano", "rdl", "hip thrust",
-            "empuje de cadera", "gluteo", "cuadriceps", "femoral", "isquios",
-            "gemelo", "pantorrilla", "calf", "extension de pierna", "curl de pierna",
-            "aductor", "abductor", "pierna", "leg", "hack", "jaca",
+            "bulgara", "cuadriceps", "extension de pierna", "extension de cuadriceps",
+            "step up", "subida al cajon", "sissy", "pierna", "leg", "hack", "jaca",
         ),
     ),
     (

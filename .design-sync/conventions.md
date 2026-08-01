@@ -29,7 +29,8 @@ dashboards; one column is correct for this product.
 - Shape: `--radius` (8px, cards) `--radius-control` (6px, controls) `--shadow`
 - Type: `--font-display` (Space Grotesk) `--font-body` (Geist) `--font-mono` (Geist Mono)
 - Muscle-group data palette — **for data marks only, never CTAs or text**:
-  `--m-pecho` `--m-espalda` `--m-pierna` `--m-hombro` `--m-biceps` `--m-triceps` `--m-core`
+  `--m-pecho` `--m-espalda` `--m-cuadriceps` `--m-femoral` `--m-gemelo` `--m-hombro`
+  `--m-biceps` `--m-triceps` `--m-core`
 
 ## The numeric rule (the signature — do not skip)
 

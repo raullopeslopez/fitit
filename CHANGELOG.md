@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **La tarjeta de periodo tiene una referencia, no solo una comparación.** La
+  barra de cada músculo se medía contra tu propio músculo más entrenado, así que
+  cinco series de pecho llenaban la barra de lado a lado — el gesto de "hecho" —
+  solo porque nada las superaba. Ahora se mide contra **20 series semanales**
+  fijas, con una marca a las 10, y debajo dice qué significa: *Referencia: 4
+  series/semana es el mínimo que produce crecimiento. 10–20 es la zona eficiente.
+  Barra llena = 20.* Los números vienen de la meta-regresión de Pelland et al.
+  (Sports Medicine, 2026), resumida en `docs/investigacion-series-semana.md`.
+  No dice "óptimo" en ningún sitio, porque la curva no tiene pico: tiene
+  eficiencia decreciente.
+- **Nada de veredictos a media semana.** El lunes todo el mundo está a cero, y
+  eso habla del calendario, no del entrenamiento. Mientras el periodo sigue
+  abierto la tarjeta avisa: *Semana en curso — la referencia es para la semana
+  completa.*
+
+### Changed
+- **"Pierna" se parte en Cuádriceps, Femoral y Gemelo.** Un solo cubo mezclaba
+  sentadillas, curl femoral y gemelos, así que "Pierna: 20 series" podía ser
+  veinte de sentadilla con el gemelo sin tocar — una cifra que no se puede
+  comparar con ninguna referencia. Los ejercicios ya registrados se re-clasifican
+  solos por su nombre al desplegar; el que no se entienda se queda en Cuádriceps
+  y se corrige con un toque en Progreso · Corregir. El glúteo va con Femoral: los
+  ejercicios de cadera que entrenan uno entrenan el otro. La paleta pasa de 7 a 9
+  colores, revalidada para daltonismo en claro y oscuro; Cuádriceps se queda el
+  rosa que era de Pierna, para que el grueso del historial no cambie de color.
+
+### Fixed
+- **"Elevación de piernas" contaba como pierna.** El clasificador veía "pierna"
+  dentro del nombre antes de llegar a la regla de abdominales, así que un ejercicio
+  de core llevaba meses sumando en el grupo equivocado. Ahora es Core.
 - **Series sin peso.** Dominadas, fondos y abdominales no llevan peso, y la app
   exigía uno: dejar el campo vacío guardaba `0 kg`, que es un número — salía en
   la gráfica, podía batir un récord y la fila decía "0×12". Ahora el peso es

@@ -134,7 +134,7 @@ const LOG = [
   trained('2026-07-22', group('Espalda', 5)),
   trained('2026-07-20', group('Pecho', 4), group('Tríceps', 2)),
   trained('2026-07-15', group('Pecho', 2)),
-  trained('2026-06-30', group('Pierna', 3)),
+  trained('2026-06-30', group('Cuádriceps', 3)),
 ]
 const SUNDAY = '2026-07-26'
 
@@ -263,7 +263,7 @@ describe('setsPerMuscle over a period in progress', () => {
   const MIDWEEK = [
     trained('2026-07-22', group('Pecho', 4)),
     trained('2026-07-17', group('Pecho', 6)), // Fri — after the cut
-    trained('2026-07-14', group('Pecho', 3), group('Pierna', 5)), // Tue — inside it
+    trained('2026-07-14', group('Pecho', 3), group('Cuádriceps', 5)), // Tue — inside it
   ]
 
   it('compares a week in progress against the same stretch of the week before', () => {
@@ -276,7 +276,7 @@ describe('setsPerMuscle over a period in progress', () => {
 
   it('keeps a group that went quiet on the board instead of dropping the row', () => {
     const week = setsPerMuscle(MIDWEEK, { period: 'week', index: 0, endDate: WEDNESDAY })
-    expect(week.rows.find((r) => r.group === 'Pierna')).toMatchObject({ sets: 0, delta: -5 })
+    expect(week.rows.find((r) => r.group === 'Cuádriceps')).toMatchObject({ sets: 0, delta: -5 })
   })
 
   it('compares two finished periods whole against whole', () => {

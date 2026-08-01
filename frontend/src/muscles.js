@@ -1,11 +1,23 @@
 // Muscle groups + their categorical colors. Mirrors backend/app/muscles.py; the
 // order is the validated colorblind-safe display sequence (see DESIGN.md).
-export const MUSCLE_GROUPS = ['Pecho', 'Espalda', 'Pierna', 'Hombro', 'Bíceps', 'Tríceps', 'Core']
+export const MUSCLE_GROUPS = [
+  'Pecho',
+  'Espalda',
+  'Cuádriceps',
+  'Femoral',
+  'Gemelo',
+  'Hombro',
+  'Bíceps',
+  'Tríceps',
+  'Core',
+]
 
 const SLUG = {
   Pecho: 'pecho',
   Espalda: 'espalda',
-  Pierna: 'pierna',
+  Cuádriceps: 'cuadriceps',
+  Femoral: 'femoral',
+  Gemelo: 'gemelo',
   Hombro: 'hombro',
   Bíceps: 'biceps',
   Tríceps: 'triceps',
@@ -22,7 +34,7 @@ export function muscleColor(group) {
 // What an exercise with no group is called, everywhere it is named: the empty
 // option of the corrector, and the Progreso chip that makes those exercises
 // reachable at all. It doubles as the selected-filter value there — safe as a
-// sentinel because the backend only accepts the seven real groups, so no
+// sentinel because the backend only accepts the nine real groups, so no
 // exercise can ever hold this as its actual muscle_group.
 export const UNGROUPED = 'Sin grupo'
 

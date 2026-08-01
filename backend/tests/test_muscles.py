@@ -5,11 +5,13 @@ import pytest
 from app.muscles import (
     BICEPS,
     CORE,
+    CUADRICEPS,
     ESPALDA,
+    FEMORAL,
+    GEMELO,
     HOMBRO,
     MUSCLE_GROUPS,
     PECHO,
-    PIERNA,
     TRICEPS,
     classify,
     group_for,
@@ -27,11 +29,6 @@ from app.muscles import (
         ("Remo con barra", ESPALDA),
         ("Jalón al pecho", ESPALDA),
         ("Peso muerto", ESPALDA),
-        ("Sentadilla", PIERNA),
-        ("Squat", PIERNA),
-        ("Prensa de pierna", PIERNA),
-        ("Peso muerto rumano", PIERNA),  # RDL is legs, not back
-        ("Curl femoral", PIERNA),  # a leg curl, not a biceps curl
         ("Press militar", HOMBRO),
         ("Elevaciones laterales", HOMBRO),
         ("Curl de bíceps", BICEPS),
@@ -46,14 +43,109 @@ def test_classifies_common_lifts(name, expected):
     assert classify(name) == expected
 
 
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        # Knee-dominant work is quads.
+        ("Sentadilla", CUADRICEPS),
+        ("Squat", CUADRICEPS),
+        ("Prensa de pierna", CUADRICEPS),
+        ("Extensión de pierna", CUADRICEPS),
+        ("Zancadas con mancuernas", CUADRICEPS),
+        ("Hack squat", CUADRICEPS),
+        ("Búlgara", CUADRICEPS),
+        # Hip-dominant and knee-flexion work is the posterior chain.
+        ("Peso muerto rumano", FEMORAL),  # an RDL is a hinge, not a back lift
+        ("RDL", FEMORAL),
+        ("Curl femoral", FEMORAL),  # a leg curl, not a biceps curl
+        ("Curl de pierna tumbado", FEMORAL),
+        ("Hip thrust", FEMORAL),
+        ("Patada de glúteo", FEMORAL),
+        ("Buenos días", FEMORAL),
+        # Calves are their own group: many sets, one small muscle. Folding them
+        # in with squats is exactly what made a "Pierna" total meaningless.
+        ("Elevación de talones", GEMELO),
+        ("Gemelo en máquina", GEMELO),
+        ("Standing calf raise", GEMELO),
+        ("Sóleo sentado", GEMELO),
+    ],
+)
+def test_splits_the_leg_groups(name, expected):
+    assert classify(name) == expected
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        # English names, which is half of what a real exercise list looks like.
+        # "Leg Curl" was landing in Cuádriceps: the posterior-chain rules only
+        # knew the Spanish "curl de pierna", so the quad catch-all rule "leg"
+        # took it first — a hamstring lift counted as quads.
+        ("Leg Curl", FEMORAL),
+        ("Seated leg curl", FEMORAL),
+        ("Hamstring curl", FEMORAL),
+        ("Romanian deadlift", FEMORAL),
+        ("Nordic curl", FEMORAL),
+        ("Glute bridge", FEMORAL),
+        # A glute kickback machine. "Patada" and "kickback" belong to triceps, so
+        # this one is matched on its own name rather than by loosening those.
+        ("Rear Kick Máq", FEMORAL),
+        ("Leg extension", CUADRICEPS),
+        ("Leg press", CUADRICEPS),
+        ("Calf raise", GEMELO),
+    ],
+)
+def test_reads_english_leg_names_too(name, expected):
+    assert classify(name) == expected
+
+
+def test_the_triceps_kickback_is_still_triceps():
+    """The glute rule must not eat it: 'patada'/'kickback' stay with triceps."""
+    assert classify("Patada de tríceps") == TRICEPS
+    assert classify("Kickback de tríceps") == TRICEPS
+
+
+def test_plain_deadlift_is_still_back():
+    """Only the *rumano* qualifier moves a deadlift to the posterior chain."""
+    assert classify("Peso muerto") == ESPALDA
+    assert classify("Deadlift") == ESPALDA
+
+
+def test_leg_raises_are_core_not_legs():
+    """'Elevación de piernas' is an ab move that happens to say 'piernas'."""
+    assert classify("Elevación de piernas") == CORE
+    assert classify("Elevaciones de piernas colgado") == CORE
+
+
 def test_returns_none_for_unknown():
     assert classify("Malabares") is None
     assert classify("") is None
 
 
 def test_every_result_is_a_canonical_group():
-    for name in ["Press banca", "Sentadilla", "Curl martillo"]:
+    for name in ["Press banca", "Sentadilla", "Curl femoral", "Gemelo", "Curl martillo"]:
         assert classify(name) in MUSCLE_GROUPS
+
+
+def test_canonical_order_keeps_the_leg_groups_together():
+    """The chip row and the legend render in this sequence, so it is the palette's
+    order too — and the three leg groups sit adjacent, which is what the
+    colorblind validation was run against."""
+    assert MUSCLE_GROUPS == [
+        "Pecho",
+        "Espalda",
+        "Cuádriceps",
+        "Femoral",
+        "Gemelo",
+        "Hombro",
+        "Bíceps",
+        "Tríceps",
+        "Core",
+    ]
+
+
+def test_pierna_is_no_longer_a_group():
+    assert "Pierna" not in MUSCLE_GROUPS
 
 
 def test_cardio_is_never_auto_classified():
