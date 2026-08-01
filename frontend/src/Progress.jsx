@@ -122,6 +122,20 @@ function Ladder({ rungs, color }) {
   )
 }
 
+// The weekly-set reference, from docs/investigacion-series-semana.md: 4 sets a
+// week per muscle is the minimum dose that grows anything, 10–20 is where each
+// set still buys a lot, and past that the returns fall off — there is no peak to
+// aim at, so the copy never says "óptimo".
+//
+// The bar is drawn against this fixed 20 rather than against your own biggest
+// muscle. Scaled to the biggest row, five sets of chest filled the bar edge to
+// edge because nothing beat it, which reads as "done"; against a fixed reference
+// a full bar means the same thing in every row and every week.
+const REFERENCE = 20
+const REFERENCE_COPY =
+  'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
+  '10–20 es la zona eficiente. Barra llena = 20.'
+
 // Sets per muscle over a week or a month, with the arrows to walk back through
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
@@ -134,7 +148,6 @@ function PeriodSummary({ days }) {
   const previous = periods[at + 1]
   const summary = setsPerMuscle(days, { period, index: at })
   const byMonth = period === 'month'
-  const widest = Math.max(...summary.rows.map((r) => r.sets), 1)
 
   function switchTo(mode) {
     setPeriod(mode)
@@ -236,13 +249,21 @@ function PeriodSummary({ days }) {
             <div className="sum-row" key={row.group}>
               <span className="sum-name">{row.group}</span>
               <span className="sum-bar">
+                {/* Whatever the row prints is what the bar draws: the monthly
+                    figure is a weekly average, and the reference is weekly. */}
                 <span
                   className="sum-fill"
                   style={{
-                    width: `${Math.round((row.sets / widest) * 100)}%`,
+                    width: `${Math.min(
+                      Math.round(((summary.averaged ? row.perWeek : row.sets) / REFERENCE) * 100),
+                      100,
+                    )}%`,
                     '--chip': muscleColor(row.group),
                   }}
                 />
+                {/* The 10-set edge of the efficient band, recessive on purpose:
+                    it's a reading aid, not a target line to be chased. */}
+                <span className="sum-tick" aria-hidden="true" />
               </span>
               {/* No "series" in month mode: the footer already says these are
                   weekly averages of sets, and spelling it out per row wrapped
@@ -267,6 +288,21 @@ function PeriodSummary({ days }) {
             </div>
           ))}
         </div>
+      )}
+      {summary.rows.length > 0 && (
+        <>
+          <p className="hint sum-ref">{REFERENCE_COPY}</p>
+          {/* Monday reads as a near-empty week for everyone — that's the
+              calendar, not the training. A reference for a finished week has to
+              say so while one is still running, or it accuses you every Monday. */}
+          {summary.inProgress && (
+            <p className="hint sum-ref">
+              {byMonth
+                ? 'Mes en curso — la referencia es por semana completa.'
+                : 'Semana en curso — la referencia es para la semana completa.'}
+            </p>
+          )}
+        </>
       )}
       {/* The bars only ever add up to the set count above when this is zero:
           cardio has no muscle group by design, and a lift the classifier

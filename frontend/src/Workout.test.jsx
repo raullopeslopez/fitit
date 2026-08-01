@@ -1295,7 +1295,7 @@ describe('Workout', () => {
   describe('finding an exercise you already have', () => {
     const someKnown = () =>
       api.listExercises.mockResolvedValue([
-        { id: 1, name: 'Gemelo Máq.', muscle_group: 'Pierna' },
+        { id: 1, name: 'Gemelo Máq.', muscle_group: 'Gemelo' },
         { id: 2, name: 'Press Banca', muscle_group: 'Pecho' },
       ])
 

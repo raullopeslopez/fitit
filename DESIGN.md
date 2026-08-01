@@ -93,8 +93,12 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   brand/effort/PR accent and is **not** in this palette (so "record" keeps meaning).
 - **Color rides a mark, not text.** A muscle is shown as a colored dot/line beside
   its name; labels/values stay in ink. Color is never the only cue.
-- **Fixed 7-group set**, assigned in canonical order (below). A colour per
-  individual muscle would be an unreadable rainbow — keep it to these 7.
+- **Fixed 9-group set**, assigned in canonical order (below). A colour per
+  individual muscle would be an unreadable rainbow — nine is the ceiling, and it
+  is already at the edge of what a categorical palette separates cleanly. A
+  tenth group is not a new hue: fold it into an existing one.
+- **The three leg groups sit adjacent in the order**, because that is the
+  pairlist the validation was run against. Reordering them re-opens the check.
 - Validated colorblind-safe on the *adjacent* pairlist in both modes via the
   dataviz `validate_palette.js` (light surface #fff, dark #15171A). Re-run it if
   you touch these hues.
@@ -103,11 +107,18 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   |-------|------|-------|
   | Pecho | `#3987e5` | `#2a78d6` |
   | Espalda | `#008300` | `#008300` |
-  | Pierna | `#d55181` | `#e87ba4` |
+  | Cuádriceps | `#d55181` | `#e87ba4` |
+  | Femoral | `#8046c8` | `#8b4bc0` |
+  | Gemelo | `#0093a8` | `#0089a0` |
   | Hombro | `#c98500` | `#eda100` |
   | Bíceps | `#199e70` | `#1baf7a` |
   | Tríceps | `#9085e9` | `#4a3aa7` |
   | Core | `#e66767` | `#e34948` |
+
+  Light mode carries a contrast WARN on `#e87ba4`, `#eda100` and `#1baf7a`
+  (below 3:1 on white). It is dismissable here and only here because the rule
+  above already forces relief: every mark in this palette sits beside its
+  muscle's name in ink, so colour is never carrying identity alone.
 
 ## Spacing
 - **Base unit:** 4px.
@@ -336,3 +347,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-07-25 | Nothing in a session may depend on the network being up right now | The optimistic row was honest only while the request eventually succeeded; underneath it, a set logged in a basement was still lost. Three caches make the session self-sufficient: an **outbox** (sets queued FIFO on disk before they are on screen, drained on launch / `online` / app-forward, never on a polling timer), a **workout cache** (one slot — without it `getWorkout` fails on reopen and the screen dead-ends while the queue holds sets for a session you can no longer see), and a **previous-marks cache**. Adding an exercise no longer fails on a dead network either. Two rules keep it honest: a set the server *judged and refused* (4xx that isn't 401) is dropped out loud, because retrying a 422 forever blocks every set behind it; and **cached marks may never award a record** — they were fetched excluding a different session, so they understate history, and a PR against an understated mark is a PR that never happened. The card shows the numbers and withholds the badge, with one muted line saying why. |
 | 2026-07-26 | Cardio gets an amber-ring dot where a muscle dot would go | User: *"el círculo del ejercicio de cardio tiene que tener un borde color ámbar"*. Cardio has no muscle group, so the exercise-card header and the Días session row simply drew no dot at all for it — the one exercise kind with no colour cue. A second explicit exception to "amber is effort/PR only" (the first being the categorical muscle palette): `.dot-cardio` is a transparent circle with an amber *border*, not a fill, so it doesn't compete with the PR or CTA amber. Shown in the Entreno card header (`Workout.jsx`) and, since a cardio-only day still needs a mark, in the Días session row (`Days.jsx`) alongside the muscle dots. |
 | 2026-08-01 | The period summary compares equal spans, and never averages a week it hasn't lived | User: *"veo las series y veo en negativo"*, on the 1st of a month. The card measured a period in progress against a finished one — one day of August against four weeks of July — so every group read as a collapse, which is a statement about the calendar and not about training. Three fixes, one idea: the comparison window is now the *matching stretch* of the previous period (nine days of month against the first nine of the month before, Wednesday against Wednesday), whole against whole only once both are closed; `weeksElapsed` floors at one **day** instead of one week, because taking the three days a month has managed and dividing them by seven was the arithmetic behind the collapse; and a month reports plain counts until it holds a full week, since 12 sets on the 1st extrapolates to 84/week — a number nobody has done. The subtitle names the span the numbers came from ("3.7 semanas", "6 días") while the period is open, and the footer says which stretch it compared against. Two silences went with it: a muscle you stopped training now holds its row at zero (*Espalda 0 series, −6*) instead of vanishing from the one card that asks "am I training what I think I'm training", and the sets no group claims — cardio by design, unrecognised lifts by accident — are stated under the bars, because otherwise they are volume in the total that colours no row and the arithmetic just looks broken. |
+| 2026-08-01 | Pierna se parte en Cuádriceps / Femoral / Gemelo, y la paleta pasa de 7 a 9 | Explicit reversal of the 2026-07-19 "keep it to these 7", approved by the user. The weekly-set reference needs a per-muscle number to mean something, and one "Pierna" bucket held squats, leg curls and calf raises at once: *Pierna 20 series* could be twenty sets of squats with the calves untouched — a figure you cannot hold against a reference and learn anything from. Glutes ride with the hamstrings under Femoral rather than taking a tenth slot, because the hinges that train one train the other and ten categorical hues stop separating cleanly. Two new hues (violet `#8046c8`/`#8b4bc0`, teal `#0093a8`/`#0089a0`); the old Pierna pink stays on Cuádriceps so the largest slice of existing history keeps its colour. Re-validated on the adjacent pairlist in both modes: all checks pass. |

@@ -122,7 +122,7 @@ describe('Progress', () => {
   it('puts the muscle chips in the card whose chart they change', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
-      { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
+      { id: 2, name: 'Sentadilla', muscle_group: 'Cuádriceps' },
     ])
     api.listDays.mockResolvedValue(BENCH_DAYS)
     render(<Progress />)
@@ -130,7 +130,7 @@ describe('Progress', () => {
     const card = (await screen.findByText(/evolución/i)).closest('.card')
     expect(card.querySelector('.muscle-chips')).not.toBeNull()
     await userEvent.click(
-      [...card.querySelectorAll('.chip')].find((c) => /pierna/i.test(c.textContent)),
+      [...card.querySelectorAll('.chip')].find((c) => /cuádriceps/i.test(c.textContent)),
     )
     expect(await screen.findByRole('button', { name: /renombrar Sentadilla/i })).toBeInTheDocument()
   })
@@ -163,7 +163,7 @@ describe('Progress', () => {
     // A lift with sets is a lift the exercises endpoint knows about.
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Bench Press', muscle_group: 'Pecho' },
-      { id: 2, name: 'Squat', muscle_group: 'Pierna' },
+      { id: 2, name: 'Squat', muscle_group: 'Cuádriceps' },
     ])
     api.listDays.mockResolvedValue([
       {
@@ -192,7 +192,7 @@ describe('Progress', () => {
   it('groups lifts by muscle and charts one on selecting a muscle', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
-      { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
+      { id: 2, name: 'Sentadilla', muscle_group: 'Cuádriceps' },
     ])
     api.listDays.mockResolvedValue([
       {
@@ -212,7 +212,7 @@ describe('Progress', () => {
     // A chip per muscle that has exercises. The heatmap has its own filter
     // chips, so the picker's are the ones inside the form.
     const chips = await screen.findAllByRole('button', { name: /pecho/i })
-    expect(screen.getAllByRole('button', { name: /pierna/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: /cuádriceps/i }).length).toBeGreaterThan(0)
 
     // Selecting Pecho charts that muscle's top lift.
     await userEvent.click(chips.at(-1))
@@ -258,7 +258,7 @@ describe('Progress', () => {
   it('picks an exercise from the muscle chips and the search box, with no lift row', async () => {
     api.listExercises.mockResolvedValue([
       { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
-      { id: 2, name: 'Sentadilla', muscle_group: 'Pierna' },
+      { id: 2, name: 'Sentadilla', muscle_group: 'Cuádriceps' },
     ])
     const { container } = render(<Progress />)
 
@@ -267,7 +267,7 @@ describe('Progress', () => {
     expect(screen.queryByRole('button', { name: /^Sentadilla$/ })).not.toBeInTheDocument()
 
     // Everything is still one tap or one search away.
-    await userEvent.click(screen.getByRole('button', { name: /pierna/i }))
+    await userEvent.click(screen.getByRole('button', { name: /cuádriceps/i }))
     expect(await screen.findByRole('button', { name: /renombrar Sentadilla/i })).toBeInTheDocument()
   })
 
@@ -276,7 +276,7 @@ describe('Progress', () => {
   // that does not search.
   describe('the search box', () => {
     const exercises = [
-      { id: 1, name: 'Gemelo Máq.', muscle_group: 'Pierna' },
+      { id: 1, name: 'Gemelo Máq.', muscle_group: 'Gemelo' },
       { id: 2, name: 'Press banca', muscle_group: 'Pecho' },
     ]
 
@@ -721,6 +721,100 @@ describe('Progress', () => {
       expect(screen.queryByRole('button', { name: /^semana$/i })).not.toBeInTheDocument()
     })
 
+    // The weekly-set reference (docs/investigacion-series-semana.md). A bar
+    // scaled to your own biggest muscle answers "which do I train most" and
+    // quietly implies you are done: five sets of chest filled the bar edge to
+    // edge because nothing beat it. Against a fixed 20 a full bar means the
+    // same thing in every row, every week.
+    describe('the weekly-set reference', () => {
+      const leg = (id, group) => ({
+        id,
+        exercise_name: group === 'Gemelo' ? 'Gemelo en máquina' : 'Sentadilla',
+        muscle_group: group,
+        set_index: 0,
+        weight: 60,
+        reps: 10,
+      })
+      const many = (n, group, from) =>
+        Array.from({ length: n }, (_, i) => leg(from + i, group))
+
+      const widthOf = (container, index) =>
+        container.querySelectorAll('.sum-fill')[index].style.width
+
+      it('scales the bar against 20 sets, not against your biggest muscle', async () => {
+        api.listDays.mockResolvedValue([
+          {
+            id: 1,
+            date: '2026-07-22',
+            workouts: [
+              { id: 1, sets: [...many(5, 'Cuádriceps', 1), ...many(2, 'Gemelo', 20)] },
+            ],
+          },
+        ])
+        const { container } = render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        // 5/20 and 2/20 — neither is anywhere near a full bar.
+        expect(widthOf(container, 0)).toBe('25%')
+        expect(widthOf(container, 1)).toBe('10%')
+      })
+
+      it('caps the bar at the reference instead of overflowing it', async () => {
+        api.listDays.mockResolvedValue([
+          {
+            id: 1,
+            date: '2026-07-22',
+            workouts: [{ id: 1, sets: many(26, 'Cuádriceps', 1) }],
+          },
+        ])
+        const { container } = render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        expect(widthOf(container, 0)).toBe('100%')
+        // The count itself still tells the truth.
+        expect(container.querySelector('.sum-val').textContent).toBe('26 series')
+      })
+
+      it('spells out what the reference is', async () => {
+        api.listDays.mockResolvedValue(SUMMER)
+        const { container } = render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        expect(container.querySelector('.sum-ref').textContent).toBe(
+          'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
+            '10–20 es la zona eficiente. Barra llena = 20.',
+        )
+      })
+
+      // Monday reads as a near-empty week for everyone, which is the calendar
+      // talking, not the training. The reference is for a finished week and the
+      // card has to say so while one is still running.
+      it('holds the verdict while the week is still running', async () => {
+        vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
+        api.listDays.mockResolvedValue(SUMMER)
+        render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        expect(
+          await screen.findByText('Semana en curso — la referencia es para la semana completa.'),
+        ).toBeInTheDocument()
+      })
+
+      it('drops the caveat once the week is over', async () => {
+        api.listDays.mockResolvedValue(SUMMER) // Sunday: 20–26 jul is done
+        render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        await screen.findByText('Esta semana')
+        expect(screen.queryByText(/en curso — la referencia/)).not.toBeInTheDocument()
+      })
+    })
+
     // The average is only readable next to the span it was taken over: 1.9/sem
     // means one thing after four weeks and quite another after two days.
     it('states how far into the period you are, while it is still running', async () => {
@@ -811,7 +905,7 @@ describe('Progress', () => {
   // A lift that exists but has no 1RM curve — cardio, or one only ever logged
   // as duration. Distinct from a name that matches nothing at all.
   it('shows an empty state when a known lift has no history', async () => {
-    api.listExercises.mockResolvedValue([{ id: 1, name: 'Squat', muscle_group: 'Pierna' }])
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Squat', muscle_group: 'Cuádriceps' }])
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)
 
