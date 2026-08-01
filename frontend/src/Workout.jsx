@@ -23,7 +23,8 @@ import {
   formatTime,
   parseDuration,
 } from './format.js'
-import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
+import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
+import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
 import {
   cacheMarks,
   cacheWorkout,
@@ -154,6 +155,10 @@ function bump(current, delta, min) {
 function ExerciseCard({
   name,
   muscle,
+  // Sets already logged against this exercise, across the whole log — not just
+  // this session, which is all this card can see. It comes from /exercises and
+  // is what the re-tag confirmation counts out loud.
+  setCount = 0,
   previous,
   sets,
   onLogSet,
@@ -179,6 +184,14 @@ function ExerciseCard({
   // Re-tagging the muscle and relabelling the unit are both once-in-a-lifetime
   // corrections, and both were permanent controls on a card you open to log.
   const [showFixes, setShowFixes] = useState(false)
+  // A re-tag the user has asked for but not yet confirmed — `{ group }`, where
+  // a null group means "Sin grupo". Null while nothing is pending. The select
+  // stays controlled by `muscle` throughout, so backing out needs no undoing:
+  // the next render puts it back on the group the exercise still has.
+  const [pendingRetag, setPendingRetag] = useState(null)
+  // The re-tag that just went through, kept so it can be walked back from the
+  // same fold: `{ from }`, the group it held before.
+  const [lastRetag, setLastRetag] = useState(null)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen.
   // Absent `previous` means the marks haven't arrived, not that there are none.
@@ -199,6 +212,33 @@ function ExerciseCard({
   const [editRpe, setEditRpe] = useState('')
   const [editNote, setEditNote] = useState('')
   const [error, setError] = useState('')
+
+  // Re-tagging reaches every set ever logged against this exercise, so it is
+  // gated on saying how many — but only when there are any. A name added a
+  // minute ago has nothing to move, and a dialog there would be ceremony for
+  // its own sake.
+  function requestRetag(group) {
+    if (setCount > 0) {
+      setPendingRetag({ group })
+      return
+    }
+    applyRetag(group)
+  }
+
+  async function applyRetag(group) {
+    const from = muscle ?? null
+    setPendingRetag(null)
+    // Only offer the way back if the change actually landed; the parent owns
+    // the complaint when it didn't.
+    if (await onChangeMuscle(name, group)) setLastRetag({ from })
+  }
+
+  async function undoRetag() {
+    const { from } = lastRetag
+    setLastRetag(null)
+    // A failed undo leaves the new group in place, so the offer still stands.
+    if (!(await onChangeMuscle(name, from))) setLastRetag({ from })
+  }
 
   async function handleLogSet(event) {
     event.preventDefault()
@@ -429,9 +469,9 @@ function ExerciseCard({
                   className="muscle-edit-select"
                   aria-label={`Grupo muscular de ${name}`}
                   value={muscle ?? ''}
-                  onChange={(e) => onChangeMuscle(name, e.target.value)}
+                  onChange={(e) => requestRetag(e.target.value || null)}
                 >
-                  <option value="">Sin grupo</option>
+                  <option value="">{UNGROUPED}</option>
                   {MUSCLE_GROUPS.map((m) => (
                     <option key={m} value={m}>
                       {m}
@@ -439,7 +479,17 @@ function ExerciseCard({
                   ))}
                 </select>
               </div>
+              {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
             </div>
+          )}
+          {pendingRetag && (
+            <RetagConfirm
+              name={name}
+              group={pendingRetag.group}
+              setCount={setCount}
+              onCancel={() => setPendingRetag(null)}
+              onConfirm={() => applyRetag(pendingRetag.group)}
+            />
           )}
         </>
       )}
@@ -967,6 +1017,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
   const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
   const [idByName, setIdByName] = useState({}) // name -> exercise id, for re-tagging
+  // name -> sets logged against it in the whole log. This card can only see the
+  // session it is standing in, and a re-tag moves all of them.
+  const [countByName, setCountByName] = useState({})
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
   // The header overflow: rename and delete are both rare, and delete is
@@ -1253,6 +1306,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
         setKnown(list.map((e) => e.name))
         setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
         setIdByName(Object.fromEntries(list.map((e) => [e.name, e.id])))
+        setCountByName(Object.fromEntries(list.map((e) => [e.name, e.set_count ?? 0])))
       })
       .catch(() => {})
   }, [])
@@ -1401,15 +1455,19 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
 
   // Override the muscle group (empty clears it back to the classifier's guess).
   // Update the name→group map so the header dot recolours without a reload.
+  // Answers whether it landed: the card only offers to undo a change that
+  // actually happened, and only the parent knows the request failed.
   async function changeMuscleFor(name, group) {
     const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
-    if (id == null) return
+    if (id == null) return false
     setError('')
     try {
       const updated = await setExerciseMuscle(id, group || null)
       setMuscleByName((m) => ({ ...m, [name]: updated.muscle_group }))
+      return true
     } catch {
       setError('No se pudo cambiar el grupo muscular.')
+      return false
     }
   }
 
@@ -1735,6 +1793,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             key={ex.name}
             name={ex.name}
             muscle={muscleByName[ex.name] ?? null}
+            setCount={countByName[ex.name] ?? 0}
             previous={ex.previous}
             sets={setsFor(ex.name)}
             onLogSet={logSetFor}

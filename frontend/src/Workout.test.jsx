@@ -1107,7 +1107,7 @@ describe('Workout', () => {
   it('lets me re-label an exercise muscle group from the workout', async () => {
     api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
     api.listExercises.mockResolvedValue([
-      { id: 2, name: 'Bench Press', muscle_group: 'Pecho' },
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 0 },
     ])
     api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: 'Hombro' })
     renderWorkout()
@@ -1128,7 +1128,7 @@ describe('Workout', () => {
   it('clears a muscle group back to Sin grupo', async () => {
     api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
     api.listExercises.mockResolvedValue([
-      { id: 2, name: 'Bench Press', muscle_group: 'Pecho' },
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 0 },
     ])
     api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: null })
     renderWorkout()
@@ -1139,6 +1139,109 @@ describe('Workout', () => {
 
     await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, null))
     expect(select).toHaveValue('')
+  })
+
+  // The group is stored on the exercise, not on the set, so one tap on this
+  // select re-buckets every set ever logged against it — weeks of per-muscle
+  // totals move at once, on a screen that shows none of them. The card can't
+  // count that itself (it holds today's session), so the count rides on
+  // /exercises.
+  describe('re-tagging an exercise that already has history', () => {
+    const tagged = (overrides = {}) => [
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 4, ...overrides },
+    ]
+
+    async function openCorrector(exercises = tagged()) {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
+      api.listExercises.mockResolvedValue(exercises)
+      renderWorkout()
+      await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+      return screen.getByLabelText(/grupo muscular de Bench Press/i)
+    }
+
+    it('asks first, naming how many logged sets would move', async () => {
+      const select = await openCorrector()
+
+      await userEvent.selectOptions(select, 'Hombro')
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveTextContent(/4 series/i)
+      expect(dialog).toHaveTextContent(/Hombro/)
+      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
+    })
+
+    it('applies the change once you confirm', async () => {
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 2,
+        name: 'Bench Press',
+        muscle_group: 'Hombro',
+        set_count: 4,
+      })
+      const select = await openCorrector()
+
+      await userEvent.selectOptions(select, 'Hombro')
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: /sí, mover/i }),
+      )
+
+      await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('leaves the group untouched when you cancel, select included', async () => {
+      const select = await openCorrector()
+
+      await userEvent.selectOptions(select, 'Hombro')
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: /cancelar/i }),
+      )
+
+      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
+      // The select must snap back: left showing Hombro it would claim a change
+      // that never happened.
+      expect(select).toHaveValue('Pecho')
+    })
+
+    it('does not ask when nothing has been logged against it yet', async () => {
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 2,
+        name: 'Bench Press',
+        muscle_group: 'Hombro',
+        set_count: 0,
+      })
+      const select = await openCorrector(tagged({ set_count: 0 }))
+
+      await userEvent.selectOptions(select, 'Hombro')
+
+      await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('offers to put it back afterwards', async () => {
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 2,
+        name: 'Bench Press',
+        muscle_group: 'Hombro',
+        set_count: 0,
+      })
+      const select = await openCorrector(tagged({ set_count: 0 }))
+
+      await userEvent.selectOptions(select, 'Hombro')
+      await waitFor(() => expect(select).toHaveValue('Hombro'))
+
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 2,
+        name: 'Bench Press',
+        muscle_group: 'Pecho',
+        set_count: 0,
+      })
+      await userEvent.click(screen.getByRole('button', { name: /deshacer/i }))
+
+      // Undo goes back to the group it held before, not to no group at all.
+      await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenLastCalledWith(2, 'Pecho'))
+      expect(select).toHaveValue('Pecho')
+      expect(screen.queryByRole('button', { name: /deshacer/i })).not.toBeInTheDocument()
+    })
   })
 
   it('suggests known exercises for autocomplete', async () => {

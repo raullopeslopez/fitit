@@ -393,6 +393,142 @@ describe('Progress', () => {
     expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Hombro')
   })
 
+  // Same guard as the exercise card in Entreno: the group rides on the
+  // exercise, so re-tagging moves every set ever logged against it — including,
+  // on this very screen, the bars of the period summary and the colours of the
+  // heatmap. The cost is not next to the control, so the control has to state it.
+  describe('re-tagging what already has history', () => {
+    const PRESS_DAYS = [
+      {
+        id: 1,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            sets: [
+              { id: 1, exercise_name: 'Press banca', muscle_group: 'Pecho', reps: 5, weight: 80 },
+              { id: 2, exercise_name: 'Press banca', muscle_group: 'Pecho', reps: 5, weight: 82.5 },
+            ],
+          },
+        ],
+      },
+    ]
+
+    async function openCorrector(setCount = 6) {
+      api.listExercises.mockResolvedValue([
+        { id: 7, name: 'Press banca', muscle_group: 'Pecho', set_count: setCount },
+      ])
+      api.listDays.mockResolvedValue(PRESS_DAYS)
+      api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
+      render(<Progress />)
+      await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+      return screen.getByLabelText(/grupo/i)
+    }
+
+    it('asks first, naming how many logged sets would move', async () => {
+      const select = await openCorrector(6)
+
+      await userEvent.selectOptions(select, 'Hombro')
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveTextContent(/6 series/i)
+      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
+    })
+
+    it('applies it on confirm and then offers to put it back', async () => {
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 7,
+        name: 'Press banca',
+        muscle_group: 'Hombro',
+        set_count: 6,
+      })
+      const select = await openCorrector(6)
+
+      await userEvent.selectOptions(select, 'Hombro')
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: /sí, mover/i }),
+      )
+      await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
+
+      // Undoing is a correction of a correction: it must not ask again.
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 7,
+        name: 'Press banca',
+        muscle_group: 'Pecho',
+        set_count: 6,
+      })
+      await userEvent.click(await screen.findByRole('button', { name: /deshacer/i }))
+
+      await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenLastCalledWith(7, 'Pecho'))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Pecho')
+    })
+
+    it('cancelling changes nothing', async () => {
+      const select = await openCorrector(6)
+
+      await userEvent.selectOptions(select, 'Hombro')
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: /cancelar/i }),
+      )
+
+      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
+      expect(select).toHaveValue('Pecho')
+    })
+  })
+
+  // An exercise the classifier didn't recognise is stored with no group and
+  // shows up in no per-muscle view — so the one thing that would prompt you to
+  // fix it is the one thing the screen never says. The chip is how it gets said.
+  describe('exercises with no group', () => {
+    const UNGROUPED = [
+      { id: 7, name: 'Press banca', muscle_group: 'Pecho', set_count: 2 },
+      { id: 8, name: 'Rodillo', muscle_group: null, set_count: 3 },
+    ]
+
+    it('offers a Sin grupo chip that charts an untagged lift', async () => {
+      api.listExercises.mockResolvedValue(UNGROUPED)
+      // Press banca is the most-trained lift, so the screen opens on it: the
+      // chip has to be what moves the chart onto the untagged one.
+      api.listDays.mockResolvedValue([
+        {
+          id: 1,
+          date: '2026-07-16',
+          workouts: [
+            {
+              id: 5,
+              sets: [
+                { id: 1, exercise_name: 'Press banca', muscle_group: 'Pecho', reps: 5, weight: 80 },
+                { id: 2, exercise_name: 'Press banca', muscle_group: 'Pecho', reps: 5, weight: 85 },
+                { id: 3, exercise_name: 'Rodillo', muscle_group: null, reps: 10, weight: 5 },
+              ],
+            },
+          ],
+        },
+      ])
+      render(<Progress />)
+
+      expect(await screen.findByRole('button', { name: /renombrar Press banca/i })).toBeInTheDocument()
+      const chip = screen.getByRole('button', { name: /sin grupo/i })
+      await userEvent.click(chip)
+
+      // It behaves like a muscle chip: it selects, and it charts its lift.
+      expect(chip).toHaveAttribute('aria-pressed', 'true')
+      expect(await screen.findByRole('button', { name: /renombrar Rodillo/i })).toBeInTheDocument()
+    })
+
+    it('stays away when every exercise carries a group', async () => {
+      api.listExercises.mockResolvedValue([
+        { id: 7, name: 'Press banca', muscle_group: 'Pecho', set_count: 2 },
+      ])
+      render(<Progress />)
+
+      await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
+      expect(screen.queryByRole('button', { name: /sin grupo/i })).not.toBeInTheDocument()
+    })
+  })
+
   it('lets you rename the current exercise', async () => {
     api.listExercises.mockResolvedValue([
       { id: 7, name: 'Press banca', muscle_group: 'Pecho' },
