@@ -58,6 +58,14 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         ("elevacion de pierna", "elevaciones de pierna", "elevacion de las pierna"),
     ),
     (
+        # Ahead of ESPALDA, whose bare "back" keyword matches inside "kickback"
+        # and files a triceps kickback under Espalda. Only the qualified names
+        # are rescued: a bare "Kickback" is genuinely ambiguous (triceps or
+        # glute) and is left to the user to tag.
+        TRICEPS,
+        ("kickback de triceps", "triceps kickback", "patada de triceps"),
+    ),
+    (
         # Calves before the rest of the leg: "gemelo en prensa" is a calf raise.
         GEMELO,
         (
@@ -72,10 +80,11 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         # nine. Adductor/abductor machines are hip work with nowhere better.
         FEMORAL,
         (
-            "peso muerto rumano", "rumano", "rdl", "hip thrust", "empuje de cadera",
-            "gluteo", "femoral", "isquios", "isquiotibial", "curl de pierna",
+            "peso muerto rumano", "rumano", "romanian", "rdl", "hip thrust",
+            "empuje de cadera", "gluteo", "glute", "femoral", "isquios",
+            "isquiotibial", "hamstring", "curl de pierna", "leg curl", "nordic",
             "buenos dias", "good morning", "patada de gluteo", "puente de gluteo",
-            "aductor", "abductor",
+            "rear kick", "aductor", "abductor",
         ),
     ),
     (

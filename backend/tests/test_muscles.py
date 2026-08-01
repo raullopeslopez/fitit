@@ -74,6 +74,37 @@ def test_splits_the_leg_groups(name, expected):
     assert classify(name) == expected
 
 
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        # English names, which is half of what a real exercise list looks like.
+        # "Leg Curl" was landing in Cuádriceps: the posterior-chain rules only
+        # knew the Spanish "curl de pierna", so the quad catch-all rule "leg"
+        # took it first — a hamstring lift counted as quads.
+        ("Leg Curl", FEMORAL),
+        ("Seated leg curl", FEMORAL),
+        ("Hamstring curl", FEMORAL),
+        ("Romanian deadlift", FEMORAL),
+        ("Nordic curl", FEMORAL),
+        ("Glute bridge", FEMORAL),
+        # A glute kickback machine. "Patada" and "kickback" belong to triceps, so
+        # this one is matched on its own name rather than by loosening those.
+        ("Rear Kick Máq", FEMORAL),
+        ("Leg extension", CUADRICEPS),
+        ("Leg press", CUADRICEPS),
+        ("Calf raise", GEMELO),
+    ],
+)
+def test_reads_english_leg_names_too(name, expected):
+    assert classify(name) == expected
+
+
+def test_the_triceps_kickback_is_still_triceps():
+    """The glute rule must not eat it: 'patada'/'kickback' stay with triceps."""
+    assert classify("Patada de tríceps") == TRICEPS
+    assert classify("Kickback de tríceps") == TRICEPS
+
+
 def test_plain_deadlift_is_still_back():
     """Only the *rumano* qualifier moves a deadlift to the posterior chain."""
     assert classify("Peso muerto") == ESPALDA
