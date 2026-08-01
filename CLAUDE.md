@@ -31,6 +31,26 @@ Write as a teammate or product owner would, not as a technical report.
 - Name the trade-off and what you left undone. Don't bury a decision I need to make
   inside a paragraph about CSS specificity.
 
+## Say what changes on screen
+Any change that touches the UI has to be reported as an effect on the UI, not as an
+edit to a file. I read the summary to know what the app does now — a diff tells me
+what moved, not what I will see.
+
+For every visible change, name:
+- **Where.** The screen and the exact place in it (`Progreso → chips de músculo`,
+  `tarjeta de ejercicio → Corregir`). "In the component" is not a place.
+- **What I see, before → after.** The concrete difference: new control, new wording,
+  something that used to appear and now doesn't.
+- **When it appears.** Anything gated says what opens the gate — a count above zero,
+  a fold opened, an offline session. A control I can't reproduce reads as a bug.
+- **What I have to do to see it.** The taps, from the screen I'm on now.
+
+State the exact copy for anything with words in it — button labels, dialog text, empty
+states. Copy is a product decision, and I can't approve what I haven't been shown.
+
+If a change touches the frontend and yet nothing looks different, say that explicitly.
+Silence there is indistinguishable from having forgotten to mention it.
+
 ## Working Style
 - When there are pending git changes, start with `git status` / `git diff` and finish/commit
   those before broad codebase exploration.
