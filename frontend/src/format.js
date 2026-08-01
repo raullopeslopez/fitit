@@ -1,5 +1,14 @@
 import { showKg } from './units.js'
 
+// Nobody types "Máq." with the accent on a phone keyboard, and nobody
+// capitalises a search. Fold both away before comparing.
+export const fold = (s) =>
+  String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+
 // A logged set. Kilos, because that is the only unit there is — unless there is
 // no weight at all (dominadas, fondos, abdominales), which is not the same as
 // zero: 0 is a number someone typed, null is a set that never had one.

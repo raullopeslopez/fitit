@@ -15,6 +15,7 @@ import { getToken } from './auth.js'
 import {
   daysAgoLabel,
   estimatedOneRm,
+  fold,
   formatCardioSet,
   formatClock,
   formatDate,
@@ -1313,7 +1314,14 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
 
   async function handleAddExercise(event) {
     event.preventDefault()
-    const name = exerciseInput.trim()
+    // The go key takes the name you typed if it is one you have, then the first
+    // thing you found — so a half-typed `gemelo` stands up `Gemelo Máq.` rather
+    // than a second exercise called `gemelo`.
+    await addExercise(knownExact ?? matches[0] ?? exerciseInput)
+  }
+
+  async function addExercise(rawName) {
+    const name = rawName.trim()
     if (!name) return
     setError('')
     setAdding(true)
@@ -1529,8 +1537,17 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // A name nothing knows yet — the only case where the Fuerza/Cardio choice
   // has anything to decide.
   const typedName = exerciseInput.trim()
-  const isNewExercise =
-    typedName !== '' && !known.some((n) => n.toLowerCase() === typedName.toLowerCase())
+  const knownExact = known.find((n) => fold(n) === fold(typedName))
+  const isNewExercise = typedName !== '' && knownExact === undefined
+  // What you typed, matched by substring. The native <datalist> this replaces
+  // was a suggestion the browser showed when it felt like it, and never on a
+  // phone — so the field looked like it knew nothing you had ever lifted.
+  // A lift already standing in this session is left out: its card is on screen,
+  // and adding it again does nothing.
+  const standing = new Set(exercises.map((e) => fold(e.name)))
+  const matches = typedName
+    ? known.filter((n) => fold(n).includes(fold(typedName)) && !standing.has(fold(n))).slice(0, 8)
+    : []
 
   if (!workout) {
     // The way out matters more now that the app can reopen straight into a
@@ -1730,17 +1747,27 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
           <label htmlFor="exercise">Ejercicio</label>
           <input
             id="exercise"
-            list="exercise-options"
             value={exerciseInput}
             onChange={(e) => setExerciseInput(e.target.value)}
-            placeholder="p. ej. Press banca"
+            placeholder="Buscar o escribir…"
           />
-          <datalist id="exercise-options">
-            {known.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
         </div>
+        {matches.length > 0 && (
+          <ul className="search-results">
+            {matches.map((name) => (
+              <li key={name}>
+                <button type="button" className="set-row" onClick={() => addExercise(name)}>
+                  <span
+                    className="dot"
+                    aria-hidden="true"
+                    style={{ '--chip': muscleColor(muscleByName[name]) }}
+                  />
+                  {name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {/* Kind only decides anything for a name the backend has never seen —
             an autocompleted exercise keeps its stored kind. Shown always, it
             was a question asked on every add and answered by one in twenty. */}

@@ -9,21 +9,12 @@ import {
   setExerciseMuscle,
 } from './api.js'
 import { downloadCsv } from './csv.js'
-import { formatMonth, formatRange } from './format.js'
+import { fold, formatMonth, formatRange } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
 import { recordLadder, sessionsPerPeriod, setsPerMuscle } from './stats.js'
 import { showKg } from './units.js'
-
-// Nobody types "Máq." with the accent on a phone keyboard, and nobody
-// capitalises a search. Fold both away before comparing.
-const fold = (s) =>
-  String(s ?? '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
