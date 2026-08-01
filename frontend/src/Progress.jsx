@@ -156,19 +156,39 @@ function PeriodSummary({ days }) {
       ? 'Esta semana'
       : formatRange(current.start, current.end)
 
-  const subtitle = byMonth
-    ? `${plural(current.sessions, 'entreno', 'entrenos')} · ${current.perWeek}/semana`
-    : `${plural(current.sessions, 'entreno', 'entrenos')} · ${plural(summary.sets, 'serie', 'series')}`
+  // How much of the period you have actually done — the divisor behind every
+  // number above, and meaningless once the period has closed, so it only shows
+  // while one is running. Weeks once there is more than one, days below that:
+  // "0.1 semanas" is arithmetic, "1 día" is a Saturday.
+  const elapsed = !summary.inProgress
+    ? null
+    : summary.averaged
+      ? `${Math.round(summary.weeks * 10) / 10} semanas`
+      : plural(Math.round(summary.weeks * 7), 'día', 'días')
+
+  const subtitle = [
+    plural(current.sessions, 'entreno', 'entrenos'),
+    plural(summary.sets, 'serie', 'series'),
+    elapsed,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  // Against the same stretch of the period before, never against the whole of
+  // it: a month on its second day compared with a finished one reads as a
+  // collapse every time, which says something about the calendar and nothing
+  // about the training.
+  const against = !previous
+    ? null
+    : byMonth
+      ? `vs. ${summary.inProgress ? 'mismo tramo de ' : ''}${formatMonth(previous.start)}`
+      : `vs. ${summary.inProgress ? 'mismo tramo de la ' : ''}semana anterior`
 
   const footer = byMonth
-    ? [previous && `vs. ${formatMonth(previous.start)}`, 'media de series por semana']
+    ? [against, summary.averaged ? 'media de series por semana' : 'series del mes hasta hoy']
         .filter(Boolean)
         .join(' · ')
-    : [
-        formatRange(current.start, current.end),
-        at === 0 && 'en curso',
-        previous && 'vs. semana anterior',
-      ]
+    : [formatRange(current.start, current.end), summary.inProgress && 'en curso', against]
         .filter(Boolean)
         .join(' · ')
 
@@ -235,7 +255,7 @@ function PeriodSummary({ days }) {
                   weekly averages of sets, and spelling it out per row wrapped
                   the column onto two lines. */}
               <span className="sum-val">
-                {byMonth ? `${row.perWeek}/sem` : plural(row.sets, 'serie', 'series')}
+                {summary.averaged ? `${row.perWeek}/sem` : plural(row.sets, 'serie', 'series')}
               </span>
               {/* Only when there is something to compare with. Against an empty
                   period every delta is just the row's own value again. A group
@@ -254,6 +274,15 @@ function PeriodSummary({ days }) {
             </div>
           ))}
         </div>
+      )}
+      {/* The bars only ever add up to the set count above when this is zero:
+          cardio has no muscle group by design, and a lift the classifier
+          doesn't recognise has none yet. Left unsaid, the gap reads as a bug —
+          and it's fixable from the exercise, which is worth knowing. */}
+      {summary.unclassified > 0 && (
+        <p className="hint sum-rest">
+          {plural(summary.unclassified, 'serie', 'series')} sin músculo asignado
+        </p>
       )}
       <p className="hint sum-foot">{footer}</p>
     </div>

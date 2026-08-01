@@ -178,12 +178,31 @@ function previousPeriod({ start }, period) {
   return periodOf(shiftDay(start, period === 'month' ? -1 : -7), period)
 }
 
-// How many weeks of a period have actually happened. A month still in progress
-// is measured against the days elapsed, so the current one doesn't look thin
-// next to a finished one just for being young.
+// How many weeks of a period have actually happened — the ones lived through,
+// not the ones the calendar still owes you. A month on its third day is 0.43
+// weeks.
+//
+// The floor is one *day*, and exists only so the divisor can never be zero. It
+// used to be one whole week, which took the two or three days a fresh month had
+// managed, divided them by seven, and called the answer a weekly rate: every
+// group read as a collapse for the first six days of every month.
 function weeksElapsed({ start, end }, today) {
   const last = end > today ? today : end
-  return Math.max(1, (daysBetween(start, last) + 1) / 7)
+  return Math.max(1, daysBetween(start, last) + 1) / 7
+}
+
+// The stretch of the previous period that lines up with how much of this one has
+// happened: nine days into a month, the comparison is the first nine days of the
+// month before. Measuring a period in progress against a finished one is the
+// calendar talking, not your training — it can only ever count down.
+//
+// Two finished periods compare whole against whole; a shorter month gives what
+// it has and no more.
+function comparableWindow(current, period, today) {
+  const before = previousPeriod(current, period)
+  if (current.end <= today) return before
+  const cut = shiftDay(before.start, daysBetween(current.start, today))
+  return { start: before.start, end: cut < before.end ? cut : before.end }
 }
 
 const dayTrained = (day) => day.workouts.some((w) => w.sets.length > 0)
@@ -202,7 +221,9 @@ export function sessionsPerPeriod(days, period = 'week', { endDate } = {}) {
     const sessions = new Set(
       trained.filter((d) => d >= current.start && d <= current.end),
     ).size
-    const weeks = round1(weeksElapsed(current, end))
+    // `weeks` stays unrounded: it is a divisor before it is ever a label, and
+    // rounding 0.14 to 0.1 inflates a first-of-the-month rate by 40%.
+    const weeks = weeksElapsed(current, end)
     periods.push({ ...current, sessions, weeks, perWeek: round1(sessions / weeks) })
     if (earliest === null || current.start <= earliest) return periods
     current = previousPeriod(current, period)
@@ -226,31 +247,50 @@ function setsInWindow(days, { start, end }) {
 }
 
 // One row per muscle group worked in a period, biggest first, each with the
-// change against the same measure one period earlier. `index` is 0 for the most
-// recent period and counts backwards; past the start of the history it clamps.
+// change against the matching stretch of the period before. `index` is 0 for the
+// most recent period and counts backwards; past the start of the history it
+// clamps.
 //
 // Month mode reports a weekly average, because "61 sets in July" and "61 sets
 // this week" are not the same sentence. `delta` compares whatever is displayed:
-// the average in month mode, the raw count in week mode.
+// the average in month mode, the raw count in week mode — and always over equal
+// spans of days, so a period in progress is never punished for being young.
 export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}) {
   const periods = sessionsPerPeriod(days, period, { endDate })
   const at = Math.min(Math.max(index, 0), periods.length - 1)
   const current = periods[at]
-  const before = previousPeriod(current, period)
   const end = endDate ?? todayIso()
+  const before = comparableWindow(current, period, end)
 
   const now = setsInWindow(days, current)
   const then = setsInWindow(days, before)
   const nowWeeks = current.weeks
-  const thenWeeks = round1(weeksElapsed(before, end))
-  const shown = (sets, weeks) => (period === 'month' ? round1(sets / weeks) : sets)
+  const thenWeeks = weeksElapsed(before, end)
 
-  const rows = rankGroups(now.counts).map(({ group, sets }) => ({
+  // A "per week" figure taken from less than a week is not a rate, it's a
+  // projection: 12 sets of chest on the 1st extrapolates to 84/week, a number
+  // you have never done and won't. Until a month has a full week in it the
+  // counts are reported plain — the average arrives when there is a week to
+  // average. Both sides of a delta span the same days, so raw against raw is
+  // still like for like.
+  const averaged = period === 'month' && nowWeeks >= 1
+  const shown = (sets, weeks) => (averaged ? round1(sets / weeks) : sets)
+
+  // A group that has gone quiet keeps its row at zero. "Espalda 0, −6" is the
+  // answer to "am I training what I think I'm training"; dropping the row hid
+  // the one case worth seeing. Only against a window that had volume, or every
+  // group you ever trained would queue up at the bottom forever.
+  const silent = then.total > 0 ? Object.keys(then.counts).map((g) => [g, 0]) : []
+  const counts = { ...Object.fromEntries(silent), ...now.counts }
+
+  const rows = rankGroups(counts).map(({ group, sets }) => ({
     group,
     sets,
     perWeek: round1(sets / nowWeeks),
     delta: round1(shown(sets, nowWeeks) - shown(then.counts[group] || 0, thenWeeks)),
   }))
+
+  const grouped = Object.values(now.counts).reduce((n, c) => n + c, 0)
 
   return {
     start: current.start,
@@ -258,7 +298,14 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
     sessions: current.sessions,
     weeks: nowWeeks,
     sets: now.total,
+    // Cardio, and any lift the classifier doesn't recognize, are volume that
+    // colours nothing — so the rows only add up to `sets` when this is zero.
+    // Saying so beats leaving the arithmetic quietly broken.
+    unclassified: now.total - grouped,
     perWeek: round1(now.total / nowWeeks),
+    inProgress: current.end > end,
+    // Whether the numbers above are weekly averages or plain counts.
+    averaged,
     rows,
   }
 }

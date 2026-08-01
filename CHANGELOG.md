@@ -53,6 +53,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ahí una excepción no es una petición fallida, es una app que no levanta.
 
 ### Fixed
+- Progreso: el resumen por músculo **daba todo en negativo al empezar un mes o
+  una semana**. Comparaba un periodo en curso contra uno terminado — el 1 de
+  agosto, un día de agosto contra las cuatro semanas de julio — así que cada
+  grupo se desplomaba por calendario, no por entrenar menos. Ahora la
+  comparación es contra el **mismo tramo** del periodo anterior: nueve días de
+  mes contra los nueve primeros del mes pasado, miércoles contra miércoles.
+  Además el mes se medía sobre "mínimo una semana", que cogía los tres días que
+  llevaba y los dividía entre siete; ahora se mide sobre los días realmente
+  transcurridos, y **no hay media semanal hasta que hay una semana** que
+  promediar — 12 series el día 1 no son 84/sem. El subtítulo dice cuánto llevas
+  ("3.7 semanas", "6 días") mientras el periodo sigue abierto.
+- Progreso: un músculo que **dejabas de entrenar desaparecía** del resumen en
+  vez de aparecer a cero. La tarjeta responde a "¿entreno lo que creo?" y
+  escondía justo el caso que hay que ver: ahora *Espalda 0 series, −6*.
+- Progreso: las barras **no sumaban el total** del subtítulo y nada lo explicaba.
+  El cardio no tiene grupo muscular por diseño y un ejercicio que el
+  clasificador no reconoce tampoco, así que esas series contaban como volumen
+  sin pintar ninguna fila. Ahora se dicen aparte: *3 series sin músculo
+  asignado*.
 - Progreso: el calendario **no cabía en el móvil**. Quince semanas de celdas de
   21px más una columna de siete chips a la derecha son medio metro de contenido
   en una tarjeta de 320px: el grid salía recortado por los dos lados, las
