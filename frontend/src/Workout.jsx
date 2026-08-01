@@ -168,6 +168,9 @@ function ExerciseCard({
   onChangeMuscle,
   open = true,
   onToggle,
+  // Unfolds the card without the toggle's "or fold it again": a chip has to
+  // open the card it stands on, never close it.
+  onOpen,
 }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
@@ -425,16 +428,36 @@ function ExerciseCard({
       </h2>
 
       {/* Folded, the card still has to answer "did I do this, and what did I
-          hit" — the sets as chips, then one line naming the top one. */}
+          hit" — the sets as chips, then one line naming the top one. Each chip
+          is also the set it names: tapping one unfolds the card with that set
+          already in the editor, so fixing a mistyped weight costs one tap from
+          the folded list instead of unfold-find-tap. A pending set has no
+          server id to edit through, so its chip stays inert — the same rule the
+          open card's rows follow. */}
       {!open && (
         <>
           {sets.length > 0 && (
             <div className="set-chips" style={{ '--chip': muscleColor(muscle) }}>
-              {sets.map((set) => (
-                <span className="set-chip" key={set.id}>
-                  {shownPair(set)}
-                </span>
-              ))}
+              {sets.map((set, index) =>
+                set.pending ? (
+                  <span className="set-chip" key={set.id}>
+                    {shownPair(set)}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="set-chip"
+                    key={set.id}
+                    aria-label={`Editar serie ${index + 1}`}
+                    onClick={() => {
+                      startEdit(set)
+                      onOpen?.()
+                    }}
+                  >
+                    {shownPair(set)}
+                  </button>
+                ),
+              )}
             </div>
           )}
           <p className="hint card-digest">{digest}</p>
@@ -1484,6 +1507,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   const isOpen = (name, index) => toggled[name] ?? index === 0
   const toggleCard = (name, index) =>
     setToggled((t) => ({ ...t, [name]: !(t[name] ?? index === 0) }))
+  // One-way: a set chip opens the card it lives on, and a chip on an open card
+  // doesn't exist, so this can never be the thing that folds one shut.
+  const openCard = (name) => setToggled((t) => ({ ...t, [name]: true }))
 
   async function deleteSetFor(setId) {
     await deleteSet(setId)
@@ -1829,6 +1855,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             onChangeMuscle={changeMuscleFor}
             open={isOpen(ex.name, index)}
             onToggle={() => toggleCard(ex.name, index)}
+            onOpen={() => openCard(ex.name)}
           />
         ),
       )}

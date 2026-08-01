@@ -829,6 +829,11 @@ button {
   button.chart-title:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
+  /* A set chip already carries its muscle tint; the pointer deepens it instead
+     of replacing it with the CTA fill. */
+  button.set-chip:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--chip, var(--muted)) 28%, transparent);
+  }
 }
 button:active:not(:disabled) {
   transform: translateY(1px);
@@ -1863,12 +1868,26 @@ button.heat-cell {
    grey — a folded card's chips read as "what did I hit" at a glance, the
    same colour language as the rest of the app. Falls back to muted for an
    unclassified exercise (`muscleColor` already returns `var(--muted)`). */
+/* Sized for a thumb, not for the ink: a chip is a tap-to-edit surface now, so
+   it takes the 44px target every control owes (DESIGN.md). The type stays small
+   — the chip still reads as a digest, it just stands on a target you can hit
+   one-handed between sets. */
 .set-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
-  padding: 0.15rem 0.45rem;
+  font-weight: 400;
+  padding: 0 0.6rem;
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--chip, var(--muted)) 18%, transparent);
   color: var(--text);
+}
+/* The press is the only affordance, same as the set rows: a chip that filled
+   amber would read as the CTA. */
+button.set-chip:active:not(:disabled) {
+  background: color-mix(in srgb, var(--chip, var(--muted)) 34%, transparent);
+  transform: none;
 }
