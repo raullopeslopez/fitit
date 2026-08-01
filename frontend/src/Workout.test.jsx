@@ -1244,17 +1244,68 @@ describe('Workout', () => {
     })
   })
 
-  it('suggests known exercises for autocomplete', async () => {
-    api.listExercises.mockResolvedValue([
-      { id: 1, name: 'Deadlift', muscle_group: null },
-      { id: 2, name: 'Overhead Press', muscle_group: null },
-    ])
-    const { container } = renderWorkout()
+  // Spec: DESIGN.md "A search box must search" — the native <datalist> that
+  // used to live here is surfaced by the browser when it feels like it, and on
+  // a phone that is never.
+  describe('finding an exercise you already have', () => {
+    const someKnown = () =>
+      api.listExercises.mockResolvedValue([
+        { id: 1, name: 'Gemelo Máq.', muscle_group: 'Pierna' },
+        { id: 2, name: 'Press Banca', muscle_group: 'Pecho' },
+      ])
 
-    await waitFor(() => {
-      expect(container.querySelector('datalist option[value="Deadlift"]')).not.toBeNull()
+    it('lists the matches as tappable rows, case- and accent-folded', async () => {
+      someKnown()
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+
+      expect(await screen.findByRole('button', { name: 'Gemelo Máq.' })).toBeInTheDocument()
+      // Only what matches: the other lift is not offered.
+      expect(screen.queryByRole('button', { name: 'Press Banca' })).not.toBeInTheDocument()
     })
-    expect(container.querySelector('datalist option[value="Overhead Press"]')).not.toBeNull()
+
+    it('offers nothing until you type', async () => {
+      someKnown()
+      renderWorkout()
+
+      await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
+      expect(screen.queryByRole('button', { name: 'Gemelo Máq.' })).not.toBeInTheDocument()
+    })
+
+    it('adds the exercise on the tap, without a second one on Añadir', async () => {
+      someKnown()
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Gemelo Máq.',
+        found: true,
+        sets: [benchSet()],
+        kind: 'strength',
+      })
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+      await userEvent.click(await screen.findByRole('button', { name: 'Gemelo Máq.' }))
+
+      expect(
+        await screen.findByRole('heading', { level: 2, name: /Gemelo Máq\./i }),
+      ).toBeInTheDocument()
+      // The box holds what you are typing, not what you already found.
+      expect(screen.getByLabelText(/ejercicio/i)).toHaveValue('')
+    })
+
+    it('does not offer an exercise already standing in this session', async () => {
+      someKnown()
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ exercise_name: 'Gemelo Máq.' })),
+      )
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+
+      await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
+      // The heading is the card that is already up; no suggestion row beside it.
+      expect(screen.queryByRole('button', { name: 'Gemelo Máq.' })).not.toBeInTheDocument()
+    })
   })
 
   it('loads the exercises already logged in the workout', async () => {
