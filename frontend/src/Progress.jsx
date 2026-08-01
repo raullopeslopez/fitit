@@ -177,8 +177,9 @@ function PeriodSummary({ days }) {
   // Against the same stretch of the period before, never against the whole of
   // it: a month on its second day compared with a finished one reads as a
   // collapse every time, which says something about the calendar and nothing
-  // about the training.
-  const against = !previous
+  // about the training. `comparable` is the other half — the stretch has to
+  // have had something in it, or "+13" is just the row reading itself back.
+  const against = !previous || !summary.comparable
     ? null
     : byMonth
       ? `vs. ${summary.inProgress ? 'mismo tramo de ' : ''}${formatMonth(previous.start)}`
@@ -257,10 +258,10 @@ function PeriodSummary({ days }) {
               <span className="sum-val">
                 {summary.averaged ? `${row.perWeek}/sem` : plural(row.sets, 'serie', 'series')}
               </span>
-              {/* Only when there is something to compare with. Against an empty
-                  period every delta is just the row's own value again. A group
-                  that held steady gets "=", not a fake +0. */}
-              {previous && (
+              {/* Only when there is something to compare with — an empty
+                  matching stretch makes every delta the row's own value again.
+                  A group that held steady gets "=", not a fake +0. */}
+              {summary.comparable && (
                 <span
                   className={`sum-delta${row.delta === 0 ? ' flat' : row.delta < 0 ? ' down' : ''}`}
                 >

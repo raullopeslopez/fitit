@@ -316,6 +316,23 @@ describe('setsPerMuscle over a period in progress', () => {
     expect(month.rows.find((r) => r.group === 'Pecho').delta).toBe(1)
   })
 
+  it('has nothing to compare with when the matching stretch is empty', () => {
+    // Training starts on the 20th of July, so the 1st of August lines up with a
+    // 1st of July that never happened. Every delta would be the row's own value
+    // dressed as a gain.
+    const late = [trained('2026-08-01', group('Pecho', 5)), trained('2026-07-20', group('Pecho', 9))]
+    const month = setsPerMuscle(late, { period: 'month', index: 0, endDate: AUG })
+    expect(month.comparable).toBe(false)
+    // And the July it walks back to still compares against something real.
+    const july = setsPerMuscle(late, { period: 'month', index: 1, endDate: AUG })
+    expect(july.comparable).toBe(false)
+  })
+
+  it('has something to compare with as soon as the matching stretch has volume', () => {
+    const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: AUG })
+    expect(month.comparable).toBe(true)
+  })
+
   it('averages once a full week of the month has gone by', () => {
     const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: '2026-08-07' })
     expect(month.averaged).toBe(true)

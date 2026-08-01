@@ -306,6 +306,11 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
     inProgress: current.end > end,
     // Whether the numbers above are weekly averages or plain counts.
     averaged,
+    // Whether the deltas mean anything. An empty matching stretch makes every
+    // one of them the row's own value again dressed as a gain — which is what
+    // the 1st of a month looks like when the 1st of the month before was a rest
+    // day. Having an earlier *period* is not the same question.
+    comparable: then.total > 0,
     rows,
   }
 }

@@ -64,6 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   transcurridos, y **no hay media semanal hasta que hay una semana** que
   promediar — 12 series el día 1 no son 84/sem. El subtítulo dice cuánto llevas
   ("3.7 semanas", "6 días") mientras el periodo sigue abierto.
+- Progreso: el delta salía **contra un tramo vacío**. Comprobado con los datos
+  reales del 1 de agosto: el tramo equivalente es el 1 de julio, que fue día de
+  descanso, así que cada fila leía su propio valor disfrazado de subida
+  (*Pierna 13 series, +13*). La tarjeta ya tenía la regla — un delta contra
+  nada no es un delta — pero la condicionaba a *existe mes anterior* en vez de
+  a *el tramo comparado tiene volumen*. Ahora el delta y el "vs." del pie
+  desaparecen juntos cuando no hay con qué comparar.
 - Progreso: un músculo que **dejabas de entrenar desaparecía** del resumen en
   vez de aparecer a cero. La tarjeta responde a "¿entreno lo que creo?" y
   escondía justo el caso que hay que ver: ahora *Espalda 0 series, −6*.
