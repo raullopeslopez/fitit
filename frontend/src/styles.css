@@ -1440,6 +1440,37 @@ button.set-action {
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
 }
+/* The way back from a re-tag, inside the same fold that made it — not a toast.
+   An overlay that times out is the shape DESIGN.md rejected for the PR banner,
+   and an undo you can miss by looking away is not an undo. Muted sentence,
+   amber-as-text action (`--accent-ink`, the one deep enough to clear AA on
+   paper), 44px on the tap target like every other control. */
+.retag-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.retag-undo-action {
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .retag-undo-action:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+}
 
 .chart {
   width: 100%;

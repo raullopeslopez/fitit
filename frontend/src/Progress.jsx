@@ -11,7 +11,8 @@ import {
 import { downloadCsv } from './csv.js'
 import { formatMonth, formatRange } from './format.js'
 import Heatmap from './Heatmap.jsx'
-import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
+import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
+import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
 import { recordLadder, sessionsPerPeriod, setsPerMuscle } from './stats.js'
 import { showKg } from './units.js'
 
@@ -323,6 +324,10 @@ export default function Progress() {
   // be folded into.
   const [clash, setClash] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // A re-tag asked for but not yet confirmed, and the one that just went
+  // through — see requestRetag/undoRetag below.
+  const [pendingRetag, setPendingRetag] = useState(null)
+  const [lastRetag, setLastRetag] = useState(null)
   // Rename and re-tag are corrections, the same shape as the ones on an
   // exercise card: rare, and they were sitting inside the content.
   const [showFixes, setShowFixes] = useState(false)
@@ -332,7 +337,15 @@ export default function Progress() {
   useEffect(() => {
     listExercises()
       .then((list) =>
-        setExercises(list.map((e) => ({ id: e.id, name: e.name, muscle_group: e.muscle_group }))),
+        setExercises(
+          list.map((e) => ({
+            id: e.id,
+            name: e.name,
+            muscle_group: e.muscle_group,
+            // Carried, not dropped: it is what the re-tag confirmation counts.
+            set_count: e.set_count ?? 0,
+          })),
+        ),
       )
       .catch(() => {})
   }, [])
@@ -417,16 +430,47 @@ export default function Progress() {
 
   // Fix a mis-guessed group; the classifier is only a default. Updates locally so
   // the chips regroup and the chart recolours immediately.
+  //
+  // Gated, when there is history to move: the group rides on the exercise, so
+  // this re-buckets every set ever logged against it — including the summary
+  // bars and heatmap cells further down this very screen. Answers whether it
+  // landed, so only a real change gets offered a way back.
   async function changeMuscle(id, group) {
     try {
       const updated = await setExerciseMuscle(id, group || null)
       setExercises((list) =>
         list.map((e) => (e.id === id ? { ...e, muscle_group: updated.muscle_group } : e)),
       )
-      setMuscle(updated.muscle_group)
+      // Follow it to wherever it landed, Sin grupo included — deselecting the
+      // filter would drop the exercise you are looking at off its own screen.
+      setMuscle(updated.muscle_group ?? UNGROUPED)
+      return true
     } catch {
       setError('No se pudo cambiar el grupo.')
+      return false
     }
+  }
+
+  function requestRetag(group) {
+    if (!current) return
+    if (current.set_count > 0) {
+      setPendingRetag({ group })
+      return
+    }
+    applyRetag(group)
+  }
+
+  async function applyRetag(group) {
+    const from = current?.muscle_group ?? null
+    setPendingRetag(null)
+    if (await changeMuscle(current.id, group)) setLastRetag({ id: current.id, from })
+  }
+
+  async function undoRetag() {
+    const { id, from } = lastRetag
+    setLastRetag(null)
+    // A failed undo leaves the new group standing, so the offer still stands.
+    if (!(await changeMuscle(id, from))) setLastRetag({ id, from })
   }
 
   useEffect(() => {
@@ -452,7 +496,12 @@ export default function Progress() {
     // The box is for finding, not for holding what you found: the card title
     // and the active chip already say where you are.
     setQuery('')
-    setMuscle(muscleOf(trimmed))
+    // An exercise you have but that carries no group lights the Sin grupo chip,
+    // not nothing: otherwise picking one silently clears the filter it belongs
+    // to. A free-typed name that matches no exercise still selects nothing —
+    // it isn't in any group because it isn't anything.
+    const picked = exercises.find((e) => e.name === trimmed)
+    setMuscle(picked ? (picked.muscle_group ?? UNGROUPED) : null)
     setEditingName(false)
     setError('')
     setNameError('')
@@ -471,7 +520,7 @@ export default function Progress() {
 
   const liftsForMuscle = (m) =>
     exercises
-      .filter((e) => e.muscle_group === m)
+      .filter((e) => (m === UNGROUPED ? !e.muscle_group : e.muscle_group === m))
       .map((e) => e.name)
       .sort((a, b) => (freq[b] || 0) - (freq[a] || 0))
 
@@ -483,6 +532,13 @@ export default function Progress() {
 
   // Only show chips for muscles you actually have exercises in, in canonical order.
   const musclesPresent = MUSCLE_GROUPS.filter((m) => exercises.some((e) => e.muscle_group === m))
+  // An exercise the classifier didn't recognise is stored with no group, which
+  // means it appears in no per-muscle view at all — not the chips, not the
+  // summary bars, not the heatmap. It is invisible precisely where you would
+  // notice it needs fixing. This chip is the one place it is visible, so it
+  // rides at the end of the same row, wearing the muted dot `muscleColor`
+  // already gives an unknown group. Absent when there is nothing to find.
+  const ungroupedCount = exercises.filter((e) => !e.muscle_group).length
   const chartColor = muscleColor(muscleOf(name))
   const current = exercises.find((e) => e.name === name)
   const rungs = name ? recordLadder(days, name) : []
@@ -558,7 +614,7 @@ export default function Progress() {
             </ul>
           )}
         </form>
-        {musclesPresent.length > 0 && (
+        {(musclesPresent.length > 0 || ungroupedCount > 0) && (
           <div className="muscle-chips">
             {musclesPresent.map((m) => (
               <button
@@ -573,6 +629,20 @@ export default function Progress() {
                 {m}
               </button>
             ))}
+            {ungroupedCount > 0 && (
+              <button
+                type="button"
+                className={`chip muscle-chip${muscle === UNGROUPED ? ' is-active' : ''}`}
+                style={{ '--chip': muscleColor(null) }}
+                aria-pressed={muscle === UNGROUPED}
+                onClick={() =>
+                  muscle === UNGROUPED ? setMuscle(null) : selectMuscle(UNGROUPED)
+                }
+              >
+                <span className="dot" aria-hidden="true" />
+                {UNGROUPED}
+              </button>
+            )}
           </div>
         )}
         {/* Name + group editing lives here regardless of whether there's a
@@ -687,9 +757,9 @@ export default function Progress() {
                   <select
                     id="muscle-select"
                     value={current.muscle_group ?? ''}
-                    onChange={(e) => changeMuscle(current.id, e.target.value)}
+                    onChange={(e) => requestRetag(e.target.value || null)}
                   >
-                    <option value="">Sin grupo</option>
+                    <option value="">{UNGROUPED}</option>
                     {MUSCLE_GROUPS.map((m) => (
                       <option key={m} value={m}>
                         {m}
@@ -697,6 +767,9 @@ export default function Progress() {
                     ))}
                   </select>
                 </div>
+                {lastRetag && (
+                  <RetagUndo group={current.muscle_group} onUndo={undoRetag} />
+                )}
                 {/* The last resort for a duplicate you don't want to keep at
                     all. True red, per DESIGN.md — it is the one control here
                     that destroys something. */}
@@ -717,6 +790,16 @@ export default function Progress() {
           destructive action whose cost isn't on screen next to it — the series
           it deletes are months of log spread across the calendar — so the
           confirmation has to count them out loud. */}
+      {pendingRetag && current && (
+        <RetagConfirm
+          name={current.name}
+          group={pendingRetag.group}
+          setCount={current.set_count}
+          onCancel={() => setPendingRetag(null)}
+          onConfirm={() => applyRetag(pendingRetag.group)}
+        />
+      )}
+
       {confirmingDelete && current && (
         <div className="dialog-backdrop" onClick={() => setConfirmingDelete(false)}>
           <div
