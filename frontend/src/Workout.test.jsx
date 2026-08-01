@@ -192,6 +192,51 @@ describe('Workout', () => {
       expect(await foldedDigest(/^2 series hoy · tope 70 kg × 5$/)).toBeInTheDocument()
     })
 
+    it('opens the card straight into the editor for the chip I tapped', async () => {
+      // The chips on a folded card are the sets. Tapping a thing edits that
+      // thing (DESIGN.md): the chip is the same surface as the row it stands
+      // for, so it opens the card with that set already in the editor —
+      // instead of unfold, find the row, tap it.
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
+          benchSet({ id: 2, set_index: 1, reps: 5, weight: 70 }),
+          pullSet({ id: 3, set_index: 2 }),
+        ),
+      )
+      renderWorkout()
+
+      // Bench is folded, so its two sets are on screen only as chips.
+      await waitFor(() => expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'false'))
+      await userEvent.click(screen.getByRole('button', { name: 'Editar serie 2' }))
+
+      expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'true')
+      const bench = within(cardToggle('Bench Press').closest('.card'))
+      expect(bench.getByLabelText('Editar reps')).toHaveValue('5')
+      expect(bench.getByLabelText('Editar peso')).toHaveValue('70')
+      expect(bench.getByRole('button', { name: 'Guardar' })).toBeInTheDocument()
+    })
+
+    it('leaves a chip for an unsaved set untappable', async () => {
+      // Editing routes through the set's server id and a pending set hasn't got
+      // one — same rule the open card's rows already follow.
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      // The log never lands, so the set stays pending on screen.
+      api.logSet.mockRejectedValue(new Error('offline'))
+      renderWorkout()
+
+      await screen.findByRole('heading', { level: 2, name: /Dominadas/i })
+      const pull = within(cardToggle('Dominadas').closest('.card'))
+      await userEvent.type(pull.getByLabelText(/reps/i), '8')
+      await userEvent.click(pull.getByRole('button', { name: /registrar/i }))
+      await screen.findByLabelText('Sin guardar')
+      await userEvent.click(cardToggle('Dominadas'))
+
+      expect(screen.queryByRole('button', { name: 'Editar serie 2' })).not.toBeInTheDocument()
+    })
+
     it('lets me keep two cards open at once, for supersets', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
