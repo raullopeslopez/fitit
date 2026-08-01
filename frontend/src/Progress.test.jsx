@@ -698,6 +698,22 @@ describe('Progress', () => {
       expect(container.querySelector('.sum-delta')).toBeNull()
     })
 
+    // Same rule, the case the equivalent-window comparison introduced: August
+    // has a July behind it, but the 1st of July was a rest day, so the stretch
+    // this one is measured against is empty and every delta is a fake gain.
+    it('leaves it empty when the matching stretch is empty, earlier period or not', async () => {
+      vi.setSystemTime(new Date(2026, 7, 1, 12))
+      api.listDays.mockResolvedValue([
+        { id: 4, date: '2026-08-01', workouts: [{ id: 4, sets: [bench(9, 60, 8)] }] },
+        ...SUMMER,
+      ])
+      const { container } = render(<Progress />)
+
+      expect(await screen.findByText('Agosto')).toBeInTheDocument()
+      expect(container.querySelector('.sum-delta')).toBeNull()
+      expect(screen.queryByText(/vs\./)).not.toBeInTheDocument()
+    })
+
     it('says nothing at all when there is nothing logged', async () => {
       render(<Progress />)
 
