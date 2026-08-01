@@ -1741,25 +1741,31 @@ button.heat-cell {
 .sum-sub {
   margin: 0.15rem 0 0.6rem;
 }
+/* One grid for every row rather than a flex box per row: the name column then
+   sizes itself to the longest muscle there is and all the bars still start on
+   the same line. The 56px fixed column it replaces fit "Femoral" and let
+   "Cuádriceps" run under its own bar. */
 .sum-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 0.55rem;
+  row-gap: 0.4rem;
+}
+/* Only when there are deltas to put there — an always-declared fourth column
+   leaves a column gap hanging off the right edge of every row without one. */
+.sum-rows.has-delta {
+  grid-template-columns: auto 1fr auto auto;
 }
 .sum-row {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
+  display: contents;
 }
 .sum-name {
-  flex: none;
-  width: 56px;
   font-size: 0.8rem;
   font-weight: 600;
 }
 .sum-bar {
   position: relative;
-  flex: 1;
   height: 8px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--text) 7%, transparent);
@@ -1785,7 +1791,6 @@ button.heat-cell {
    an 86px box wrapped "6.2/sem" onto two lines and every row grew a second
    line. The bar gives up the width instead — it's a comparison, not a reading. */
 .sum-val {
-  flex: 0 0 auto;
   text-align: right;
   white-space: nowrap;
   font-family: var(--font-mono);
@@ -1794,7 +1799,6 @@ button.heat-cell {
   color: var(--muted);
 }
 .sum-delta {
-  flex: none;
   min-width: 26px;
   text-align: right;
   font-family: var(--font-mono);

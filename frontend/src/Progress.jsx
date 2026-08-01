@@ -244,7 +244,7 @@ function PeriodSummary({ days }) {
       {summary.rows.length === 0 ? (
         <p className="hint">Nada registrado en este periodo.</p>
       ) : (
-        <div className="sum-rows">
+        <div className={`sum-rows${summary.comparable ? ' has-delta' : ''}`}>
           {summary.rows.map((row) => (
             <div className="sum-row" key={row.group}>
               <span className="sum-name">{row.group}</span>

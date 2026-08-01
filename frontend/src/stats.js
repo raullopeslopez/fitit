@@ -276,12 +276,17 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
   const averaged = period === 'month' && nowWeeks >= 1
   const shown = (sets, weeks) => (averaged ? round1(sets / weeks) : sets)
 
-  // A group that has gone quiet keeps its row at zero. "Espalda 0, −6" is the
+  // A group that has gone quiet keeps its row at zero. "Espalda 0" is the
   // answer to "am I training what I think I'm training"; dropping the row hid
-  // the one case worth seeing. Only against a window that had volume, or every
-  // group you ever trained would queue up at the bottom forever.
-  const silent = then.total > 0 ? Object.keys(then.counts).map((g) => [g, 0]) : []
-  const counts = { ...Object.fromEntries(silent), ...now.counts }
+  // the one case worth seeing.
+  //
+  // Seeded from the whole period before, not from the stretch of it the deltas
+  // compare against: that stretch is one day long on the 1st of a month, so a
+  // muscle trained all July but not on its 1st fell off the board on exactly
+  // the day its absence mattered. One period back is still a bound — otherwise
+  // every group ever trained queues up at the bottom forever.
+  const silent = Object.keys(setsInWindow(days, previousPeriod(current, period)).counts)
+  const counts = { ...Object.fromEntries(silent.map((g) => [g, 0])), ...now.counts }
 
   const rows = rankGroups(counts).map(({ group, sets }) => ({
     group,
@@ -379,11 +384,20 @@ function historyOf(days, exerciseName) {
 // a first set at a new rep range counts even when it's lighter. Right for the
 // banner mid-session, wrong here — it would draw a staircase that goes down.
 export function recordLadder(days, exerciseName) {
+  const history = historyOf(days, exerciseName)
+  // 0 kg means two different things and the log can tell them apart. On a lift
+  // that has carried weight at some point it is a weight you didn't write down
+  // — the four 0×15 of a machine curl before anyone read the stack — and as the
+  // first rung it becomes the baseline the caption measures the climb from,
+  // which is how "+25 kg desde julio" is really "+15". On a lift that never
+  // carried any it is the truth: pull-ups are 0 kg, and their climb is reps.
+  const loaded = history.some((s) => isStrength(s) && s.weight > 0)
   const rungs = []
   let bestWeight = -Infinity
   let bestReps = 0
-  for (const set of historyOf(days, exerciseName)) {
+  for (const set of history) {
     if (!isStrength(set)) continue
+    if (loaded && set.weight === 0) continue
     const heavier = set.weight > bestWeight
     const longer = set.weight === bestWeight && set.reps > bestReps
     if (!heavier && !longer) continue

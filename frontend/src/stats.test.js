@@ -333,6 +333,21 @@ describe('setsPerMuscle over a period in progress', () => {
     expect(month.comparable).toBe(true)
   })
 
+  // The matching stretch of a month one day old is one day long, so a muscle
+  // you trained all last month but not on its 1st has nothing to keep its row
+  // alive — it vanishes from the board on the day you most need to see it at
+  // zero.
+  it('keeps a muscle trained last period on the board, even outside the matching stretch', () => {
+    const days = [
+      trained('2026-08-01', group('Bíceps', 3)),
+      trained('2026-07-20', group('Espalda', 8)),
+      trained('2026-07-01', group('Bíceps', 4)),
+    ]
+    const month = setsPerMuscle(days, { period: 'month', index: 0, endDate: AUG })
+    expect(month.rows.find((r) => r.group === 'Espalda')).toMatchObject({ sets: 0 })
+    expect(month.rows.find((r) => r.group === 'Bíceps')).toMatchObject({ sets: 3 })
+  })
+
   it('averages once a full week of the month has gone by', () => {
     const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: '2026-08-07' })
     expect(month.averaged).toBe(true)
@@ -435,6 +450,30 @@ describe('recordLadder', () => {
 
   it('is empty for an exercise that was never logged', () => {
     expect(recordLadder(BENCH, 'Sentadilla')).toEqual([])
+  })
+
+  // A machine curl logged at 0 kg is a weight you didn't write down, not a
+  // weight you lifted — and as the first rung it becomes the baseline the
+  // caption measures the whole climb from.
+  it('leaves out a 0 kg set on a lift that has carried weight', () => {
+    const days = [
+      trained('2026-07-25', [lift('Curl predicador', 10, 15)]),
+      trained('2026-07-21', [lift('Curl predicador', 0, 15)]),
+    ]
+    expect(recordLadder(days, 'Curl predicador')).toEqual([
+      { date: '2026-07-25', weight: 10, reps: 15 },
+    ])
+  })
+
+  it('keeps 0 kg for a lift that has never carried any', () => {
+    const days = [
+      trained('2026-07-25', [lift('Dominadas', 0, 12)]),
+      trained('2026-07-21', [lift('Dominadas', 0, 10)]),
+    ]
+    expect(recordLadder(days, 'Dominadas')).toEqual([
+      { date: '2026-07-21', weight: 0, reps: 10 },
+      { date: '2026-07-25', weight: 0, reps: 12 },
+    ])
   })
 })
 
