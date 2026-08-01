@@ -15,6 +15,22 @@ def test_create_existing_exercise_returns_the_existing_row(client):
     assert again.json()["muscle_group"] == first.json()["muscle_group"]
 
 
+def test_create_existing_exercise_matches_case_insensitively(client):
+    """Everywhere else an exercise is looked up case- and whitespace-insensitively
+    (`find_exercise`), so "press banca" logs onto the "Press banca" you already
+    have. Creation matching exactly would open the one door that lets a second
+    row through — and then two rows answer to the same name, with the sets and
+    the records split between them."""
+    first = client.post("/exercises", json={"name": "Press banca"})
+    assert first.status_code == 201, first.text
+
+    again = client.post("/exercises", json={"name": "  press   BANCA "})
+
+    assert again.status_code == 201, again.text
+    assert again.json()["id"] == first.json()["id"]
+    assert len(client.get("/exercises").json()) == 1
+
+
 def test_history_ignores_cardio_sets(client):
     """A cardio set has no weight_kg/reps, so it contributes no 1RM point."""
     client.post("/exercises", json={"name": "Correr", "kind": "cardio"})

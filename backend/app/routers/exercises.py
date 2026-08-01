@@ -23,15 +23,30 @@ from ..schemas import (
 router = APIRouter(tags=["exercises"])
 
 
-def _to_exercise_out(exercise: Exercise) -> ExerciseOut:
+def _to_exercise_out(exercise: Exercise, set_count: int) -> ExerciseOut:
     """Fall back to the classifier when a row predates auto-tagging, so older
     exercises still carry a group for the per-muscle views without a migration.
-    A stored value (including a manual override) always wins."""
+    A stored value (including a manual override) always wins.
+
+    `set_count` is passed in rather than read off a relationship: the listing
+    gets every count in one grouped query, and lazy-loading one per row would
+    turn that into an N+1 on the screen that opens first."""
     return ExerciseOut(
         id=exercise.id,
         name=exercise.name,
         muscle_group=exercise.muscle_group or group_for(exercise.name, exercise.kind),
         kind=exercise.kind,
+        set_count=set_count,
+    )
+
+
+async def _count_sets(session: AsyncSession, exercise_id: int) -> int:
+    """The sets logged against one exercise — what a re-tag would move."""
+    return (
+        await session.scalar(
+            select(func.count()).select_from(SetEntry).where(SetEntry.exercise_id == exercise_id)
+        )
+        or 0
     )
 
 
@@ -46,13 +61,23 @@ async def list_exercises(
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[ExerciseOut]:
-    """Every exercise of this user's, alphabetically — powers the add-exercise autocomplete."""
-    result = await session.scalars(
-        select(Exercise)
+    """Every exercise of this user's, alphabetically — powers the add-exercise autocomplete.
+
+    The set counts come along in the same query (LEFT JOIN onto a grouped
+    count), so an exercise you created but never logged still appears, with 0.
+    """
+    counted = (
+        select(SetEntry.exercise_id.label("exercise_id"), func.count().label("n"))
+        .group_by(SetEntry.exercise_id)
+        .subquery()
+    )
+    rows = await session.execute(
+        select(Exercise, func.coalesce(counted.c.n, 0))
+        .outerjoin(counted, counted.c.exercise_id == Exercise.id)
         .where(Exercise.user_id == user_id)
         .order_by(func.lower(Exercise.name))
     )
-    return [_to_exercise_out(e) for e in result.all()]
+    return [_to_exercise_out(e, n) for e, n in rows.all()]
 
 
 @router.post("/exercises", response_model=ExerciseOut, status_code=status.HTTP_201_CREATED)
@@ -61,21 +86,28 @@ async def create_exercise(
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> ExerciseOut:
-    existing = await session.scalar(
-        select(Exercise).where(Exercise.user_id == user_id, Exercise.name == payload.name)
-    )
+    """Create an exercise, or hand back the one you already have by that name.
+
+    "Already have" is judged the same way every other lookup judges it —
+    case-insensitively and whitespace-normalized, via `find_exercise`. Matching
+    exactly here would be the one door a second row fits through: "press banca"
+    beside "Press banca", each holding half the sets and half the records, and
+    the name-based lookups everywhere else picking between them arbitrarily.
+    """
+    existing = await find_exercise(session, user_id, payload.name)
     if existing is not None:
-        return _to_exercise_out(existing)
+        return _to_exercise_out(existing, await _count_sets(session, existing.id))
+    name = normalize_exercise_name(payload.name)
     exercise = Exercise(
         user_id=user_id,
-        name=payload.name,
-        muscle_group=payload.muscle_group or group_for(payload.name, payload.kind),
+        name=name,
+        muscle_group=payload.muscle_group or group_for(name, payload.kind),
         kind=payload.kind,
     )
     session.add(exercise)
     await session.commit()
     await session.refresh(exercise)
-    return _to_exercise_out(exercise)
+    return _to_exercise_out(exercise, 0)
 
 
 @router.patch("/exercises/{exercise_id}", response_model=ExerciseOut)
@@ -122,7 +154,7 @@ async def update_exercise(
         exercise.muscle_group = payload.muscle_group
     await session.commit()
     await session.refresh(exercise)
-    return _to_exercise_out(exercise)
+    return _to_exercise_out(exercise, await _count_sets(session, exercise.id))
 
 
 async def _get_owned_exercise(session: AsyncSession, exercise_id: int, user_id: int) -> Exercise:
@@ -211,7 +243,7 @@ async def merge_exercise(
     await _reindex(session, touched)
     await session.commit()
     await session.refresh(target)
-    return _to_exercise_out(target)
+    return _to_exercise_out(target, await _count_sets(session, target.id))
 
 
 @router.get("/exercises/history", response_model=list[HistoryPoint])

@@ -28,6 +28,11 @@ class ExerciseOut(BaseModel):
     name: str
     muscle_group: str | None = None
     kind: str = "strength"
+    # How many sets are already logged against this exercise. The muscle group
+    # lives here, not on the set, so re-tagging re-buckets all of them at once —
+    # the client needs the number to say so before it happens, and the card you
+    # re-tag from doesn't hold the log to count it itself.
+    set_count: int = 0
 
 
 class ExercisePatch(BaseModel):
