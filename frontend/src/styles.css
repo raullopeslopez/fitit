@@ -1757,6 +1757,11 @@ button.heat-cell {
 .sum-delta.down {
   color: var(--danger);
 }
+/* Sits with the rows it explains, not with the footnotes below them. */
+.sum-rest {
+  margin: 0.5rem 0 0;
+  font-size: 0.74rem;
+}
 .sum-foot {
   margin-top: 0.55rem;
 }

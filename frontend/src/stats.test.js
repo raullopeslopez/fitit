@@ -245,6 +245,82 @@ describe('setsPerMuscle', () => {
     const oldest = setsPerMuscle(LOG, { period: 'week', index: 99, endDate: SUNDAY })
     expect(oldest.start).toBe('2026-06-29')
   })
+
+  it('counts the sets no muscle group claims, so the rows can be seen not to add up', () => {
+    const days = [trained('2026-07-22', group('Pecho', 4), group(null, 3))]
+    const week = setsPerMuscle(days, { period: 'week', index: 0, endDate: SUNDAY })
+    expect(week.sets).toBe(7)
+    expect(week.unclassified).toBe(3)
+  })
+})
+
+// A period still running compared against a finished one is the calendar
+// talking, not your training: on the 1st of the month every group collapses.
+describe('setsPerMuscle over a period in progress', () => {
+  // Wednesday of the current week. The week before holds a Tuesday inside the
+  // matching stretch and a Friday past the end of it.
+  const WEDNESDAY = '2026-07-22'
+  const MIDWEEK = [
+    trained('2026-07-22', group('Pecho', 4)),
+    trained('2026-07-17', group('Pecho', 6)), // Fri — after the cut
+    trained('2026-07-14', group('Pecho', 3), group('Pierna', 5)), // Tue — inside it
+  ]
+
+  it('compares a week in progress against the same stretch of the week before', () => {
+    const week = setsPerMuscle(MIDWEEK, { period: 'week', index: 0, endDate: WEDNESDAY })
+    expect(week.inProgress).toBe(true)
+    // 4 now against the 3 logged by the Wednesday of the week before — not
+    // against all 9 of it, which would read −5 for a week that is up on itself.
+    expect(week.rows.find((r) => r.group === 'Pecho')).toMatchObject({ sets: 4, delta: 1 })
+  })
+
+  it('keeps a group that went quiet on the board instead of dropping the row', () => {
+    const week = setsPerMuscle(MIDWEEK, { period: 'week', index: 0, endDate: WEDNESDAY })
+    expect(week.rows.find((r) => r.group === 'Pierna')).toMatchObject({ sets: 0, delta: -5 })
+  })
+
+  it('compares two finished periods whole against whole', () => {
+    const week = setsPerMuscle(MIDWEEK, { period: 'week', index: 1, endDate: '2026-07-26' })
+    expect(week.inProgress).toBe(false)
+    expect(week.start).toBe('2026-07-13')
+    // The whole of 13–19: 3 + 6.
+    expect(week.rows.find((r) => r.group === 'Pecho')).toMatchObject({ sets: 9 })
+  })
+
+  // 1 aug 2026 is a Saturday — the first day of the month, and the case that
+  // started this: every row read deeply negative.
+  const AUG = '2026-08-01'
+  const NEW_MONTH = [
+    trained('2026-08-01', group('Pecho', 5)),
+    trained('2026-07-20', group('Pecho', 20)),
+    trained('2026-07-01', group('Pecho', 4)),
+  ]
+
+  it('measures a month against the days elapsed, not a whole week of them', () => {
+    const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: AUG })
+    // One day in: 1/7 of a week, not the whole week the old floor assumed.
+    expect(month.weeks).toBeCloseTo(0.14, 2)
+    expect(month.perWeek).toBe(35)
+  })
+
+  it('does not report a collapse on the first day of a month', () => {
+    const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: AUG })
+    // 5 sets on this 1st against the 4 on the 1st of July — up, not down.
+    expect(month.rows.find((r) => r.group === 'Pecho').delta).toBeGreaterThan(0)
+  })
+
+  it('reports plain counts until the month has a whole week to average', () => {
+    const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: AUG })
+    expect(month.averaged).toBe(false)
+    // 5 against 4, not 35 against 28: one day is not a weekly rate.
+    expect(month.rows.find((r) => r.group === 'Pecho').delta).toBe(1)
+  })
+
+  it('averages once a full week of the month has gone by', () => {
+    const month = setsPerMuscle(NEW_MONTH, { period: 'month', index: 0, endDate: '2026-08-07' })
+    expect(month.averaged).toBe(true)
+    expect(month.weeks).toBe(1)
+  })
 })
 
 describe('weightPrs', () => {

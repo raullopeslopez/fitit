@@ -568,6 +568,69 @@ describe('Progress', () => {
       await waitFor(() => expect(api.listDays).toHaveBeenCalled())
       expect(screen.queryByRole('button', { name: /^semana$/i })).not.toBeInTheDocument()
     })
+
+    // The average is only readable next to the span it was taken over: 1.9/sem
+    // means one thing after four weeks and quite another after two days.
+    it('states how far into the period you are, while it is still running', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      render(<Progress />)
+
+      // 1–26 jul is 26 days: 3.7 weeks in, not a finished month.
+      expect(await screen.findByText(/3\.7 semanas/)).toBeInTheDocument()
+
+      // 20–26 jul with today the 26th: the week is closed, and a closed period
+      // needs no caveat about how much of it happened.
+      await userEvent.click(screen.getByRole('button', { name: /^semana$/i }))
+      expect(await screen.findByText('Esta semana')).toBeInTheDocument()
+      expect(screen.queryByText(/días$/)).not.toBeInTheDocument()
+    })
+
+    it('counts the days elapsed of a week still running', async () => {
+      vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
+      api.listDays.mockResolvedValue(SUMMER)
+      render(<Progress />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+      // Mon 20 to Wed 22.
+      expect(await screen.findByText(/3 días/)).toBeInTheDocument()
+    })
+
+    // A month in progress against a finished one only ever counts down. The
+    // comparison is against the same stretch of it, and the footer has to say so
+    // or the number reads as the whole month.
+    it('names the matching stretch it compared against', async () => {
+      api.listDays.mockResolvedValue([
+        ...SUMMER,
+        { id: 0, date: '2026-06-10', workouts: [{ id: 0, sets: [bench(8, 50, 8)] }] },
+      ])
+      render(<Progress />)
+
+      expect(await screen.findByText(/vs\. mismo tramo de junio/i)).toBeInTheDocument()
+    })
+
+    // Cardio and unrecognised lifts are volume that colours no row, so the bars
+    // stop adding up to the set count in the subtitle. Unexplained, it reads as
+    // a bug.
+    it('accounts for the sets that no muscle group claims', async () => {
+      api.listDays.mockResolvedValue([
+        {
+          id: 9,
+          date: '2026-07-22',
+          workouts: [
+            {
+              id: 9,
+              sets: [
+                bench(1, 60, 8),
+                { id: 2, exercise_name: 'Cinta', muscle_group: null, duration_seconds: 600 },
+              ],
+            },
+          ],
+        },
+      ])
+      render(<Progress />)
+
+      expect(await screen.findByText(/1 serie sin músculo asignado/i)).toBeInTheDocument()
+    })
   })
 
   // Exporting is a once-a-month act of bookkeeping. It sits with the numbers
