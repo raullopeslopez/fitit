@@ -872,22 +872,53 @@ describe('Progress', () => {
       })
 
       // Monday reads as a near-empty week for everyone, which is the calendar
-      // talking, not the training. The reference is for a finished week and the
-      // card has to say so while one is still running.
-      it('holds the verdict while the week is still running', async () => {
+      // talking, not the training. A verdict passed on a week that hasn't
+      // happened yet is an accusation, so while one is running the row reports
+      // and does not judge: the count it has, and the count it is aiming at.
+      it('reports instead of judging while the week is still running', async () => {
         vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
-        api.listDays.mockResolvedValue(SUMMER)
-        render(<Progress />)
+        api.listDays.mockResolvedValue(bands({ Pecho: 6 }))
+        const { container } = render(<Progress />)
 
         await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
-        expect(
-          await screen.findByText('Semana en curso — la referencia es para la semana completa.'),
-        ).toBeInTheDocument()
+        await waitFor(() => {
+          expect(container.querySelector('.sum-state').textContent).toBe('6 de 10')
+        })
       })
 
-      it('drops the caveat once the week is over', async () => {
-        api.listDays.mockResolvedValue(SUMMER) // Sunday: 20–26 jul is done
+      // The red of a shortfall is a verdict too, and the same argument applies:
+      // there is nothing to be short of until the week is done.
+      it('does not mark a running week as short', async () => {
+        vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
+        api.listDays.mockResolvedValue(bands({ Pecho: 2 }))
+        const { container } = render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        await waitFor(() => {
+          expect(container.querySelector('.sum-state').textContent).toBe('2 de 10')
+        })
+        expect(container.querySelector('.sum-state.is-short')).toBeNull()
+      })
+
+      it('passes the verdict once the week is closed', async () => {
+        // Sunday: 20–26 jul is done, so 6 sets really is 4 short of the zone.
+        api.listDays.mockResolvedValue(bands({ Pecho: 6 }))
+        const { container } = render(<Progress />)
+
+        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+        await waitFor(() => {
+          expect(container.querySelector('.sum-state').textContent).toBe('+4 a la zona')
+        })
+      })
+
+      // The caveat was an apology for a number that accused you; the row no
+      // longer accuses, so there is nothing left to apologise for.
+      it('needs no caveat about the week being unfinished', async () => {
+        vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
+        api.listDays.mockResolvedValue(SUMMER)
         render(<Progress />)
 
         await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
@@ -919,8 +950,9 @@ describe('Progress', () => {
       render(<Progress />)
 
       await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
-      // Mon 20 to Wed 22.
-      expect(await screen.findByText(/3 días/)).toBeInTheDocument()
+      // Mon 20 to Wed 22. The denominator is the point: "3 días" alone reads as
+      // a total, "3 de 7 días" says how much of the week is still to come.
+      expect(await screen.findByText(/3 de 7 días/)).toBeInTheDocument()
     })
 
     // A month in progress against a finished one only ever counts down. The
