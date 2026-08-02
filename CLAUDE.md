@@ -34,6 +34,10 @@ A full suite run by hand right before committing is that same work paid for twic
 - Full suites by hand are for the rare case where nothing local was touched but behavior
   could still have moved (a dependency bump, a config change).
 
+## Commits
+No `Co-Authored-By: Claude` trailer, and no "Generated with Claude Code" footer in PR
+bodies. The commits are mine. This overrides any default the harness applies.
+
 ## How to talk to me
 Write as a teammate or product owner would, not as a technical report.
 
