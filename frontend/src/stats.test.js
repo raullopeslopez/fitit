@@ -218,6 +218,71 @@ describe('setsPerMuscle', () => {
   })
 })
 
+// The reference the card draws (4 / 10–20) is written in fractional sets: the
+// research behind it counted indirect work as half a set. Counting only direct
+// work against it compared two different units.
+describe('setsPerMuscle counting secondary muscles', () => {
+  const press = (n) => group('Pecho', n, { secondary_groups: ['Tríceps', 'Hombro'] })
+
+  it('gives a secondary muscle half a set', () => {
+    const week = setsPerMuscle([trained('2026-07-22', press(4))], {
+      period: 'week',
+      endDate: SUNDAY,
+    })
+    // Tied at 2, so canonical order breaks it: Hombro precedes Tríceps.
+    expect(week.rows).toEqual([
+      { group: 'Pecho', sets: 4, perWeek: 4, delta: 4 },
+      { group: 'Hombro', sets: 2, perWeek: 2, delta: 2 },
+      { group: 'Tríceps', sets: 2, perWeek: 2, delta: 2 },
+    ])
+  })
+
+  // The push day from the docs: five pressing exercises, three direct triceps
+  // sets. Direct-only counting called that 3 — under the minimum dose. Counted
+  // the way the reference was built, it is 9.5, at the edge of the zone.
+  it('turns a push day from “below the minimum” into “nearly in the zone”', () => {
+    const days = [
+      trained(
+        '2026-07-22',
+        press(4), // press banca
+        press(3), // press inclinado
+        group('Hombro', 3, { secondary_groups: ['Tríceps'] }), // press militar
+        press(3), // fondos
+        group('Tríceps', 3), // extensiones en polea
+      ),
+    ]
+    const week = setsPerMuscle(days, { period: 'week', endDate: SUNDAY })
+    const triceps = week.rows.find((r) => r.group === 'Tríceps')
+    expect(triceps.sets).toBe(9.5)
+  })
+
+  it('leaves the logged set count alone — only the muscle rows are fractional', () => {
+    const week = setsPerMuscle([trained('2026-07-22', press(4))], {
+      period: 'week',
+      endDate: SUNDAY,
+    })
+    // Four sets went in; the rows hold 8 between them, and that is the point.
+    expect(week.sets).toBe(4)
+    expect(week.unclassified).toBe(0)
+  })
+
+  it('falls back to direct-only when a payload carries no secondaries', () => {
+    const week = setsPerMuscle([trained('2026-07-22', group('Pecho', 4))], {
+      period: 'week',
+      endDate: SUNDAY,
+    })
+    expect(week.rows).toEqual([{ group: 'Pecho', sets: 4, perWeek: 4, delta: 4 }])
+  })
+
+  // Colour answers "what did I train that day", which is the direct work. If a
+  // secondary could win the hue, every push day would be a Pecho+Tríceps split
+  // and the calendar would stop showing the shape of the week.
+  it('keeps the heatmap on direct work only', () => {
+    const byDate = muscleByDay([trained('2026-07-22', press(4))])
+    expect(byDate['2026-07-22']).toEqual({ Pecho: 4 })
+  })
+})
+
 // A period still running compared against a finished one is the calendar
 // talking, not your training: on the 1st of the month every group collapses.
 describe('setsPerMuscle over a period in progress', () => {

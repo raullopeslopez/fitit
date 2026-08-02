@@ -148,6 +148,65 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
 ]
 
 
+# The muscles a lift trains on the way past, keyed on (primary group, keywords).
+# Both have to match: "prensa" is a leg press and trains the hamstrings, but
+# "gemelo en prensa" is a calf raise and trains nothing else — gating on the
+# primary means the movement family decides, not the word alone.
+#
+# Deliberately short. Almost every lift has some third or fourth muscle with a
+# claim on it, and the 0.5 weight downstream is already a heuristic (Pelland et
+# al. call it that themselves); stacking guesses on top of a guess buys noise.
+# A pair only earns a place here when the involvement is large and nobody
+# argues about it. Isolation work — curls, extensions, laterals, flyes — gets
+# nothing, which is the whole point of calling it isolation.
+#
+# First match wins, so the more specific movement is listed before the family
+# it belongs to. Spec: tests/features/secondary_muscles.feature
+_SECONDARY_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
+    # Overhead pressing is already a shoulder movement; only the triceps are
+    # along for the ride. Listed before the chest press family so a "press
+    # militar" never reaches it.
+    (
+        HOMBRO,
+        ("press militar", "militar", "overhead press", "ohp", "arnold", "press de hombro"),
+        (TRICEPS,),
+    ),
+    # Horizontal and incline pressing, and dips. Flyes are absent on purpose:
+    # a pec deck bends at the elbow only enough to hold the handle.
+    (
+        PECHO,
+        (
+            "press banca", "banca", "bench", "press inclinado", "press declinado",
+            "incline press", "press de pecho", "fondos", "dips", "press",
+        ),
+        (TRICEPS, HOMBRO),
+    ),
+    # Every pull that bends the elbow: the biceps finish what the back starts.
+    # Deadlifts and shrugs are absent — the elbow stays straight, so the arm
+    # only ever holds on.
+    (
+        ESPALDA,
+        (
+            "dominada", "pull up", "pull-up", "pullup", "jalon", "pulldown",
+            "remo", "row",
+        ),
+        (BICEPS,),
+    ),
+    # A deadlift is a hip hinge that the back holds together.
+    (ESPALDA, ("peso muerto", "deadlift"), (FEMORAL,)),
+    # Knee-dominant work drives the hips out of the hole too. Leg extensions
+    # are absent: the hip never moves. Glutes ride with FEMORAL throughout.
+    (
+        CUADRICEPS,
+        (
+            "sentadilla", "squat", "prensa", "leg press", "zancada", "lunge",
+            "bulgara", "hack", "jaca", "step up", "subida al cajon",
+        ),
+        (FEMORAL,),
+    ),
+]
+
+
 def _fold(text: str) -> str:
     """Lowercase and strip accents so 'Bíceps' and 'biceps' match the same keys."""
     decomposed = unicodedata.normalize("NFKD", text.lower())
@@ -174,3 +233,27 @@ def group_for(name: str, kind: str) -> str | None:
     if kind == "cardio":
         return None
     return classify(name)
+
+
+def secondaries_for(name: str, kind: str, primary: str | None = None) -> list[str]:
+    """The groups this lift trains indirectly, in canonical order.
+
+    `primary` overrides the auto-classification, so a lift the user has re-tagged
+    by hand is read as the movement they say it is. The primary is never returned
+    as one of its own secondaries — otherwise a re-tagged press would count the
+    shoulder once at full weight and again at half.
+
+    Downstream these count half a set each, the fractional method that won in
+    Pelland et al. 2026 against counting them whole or not at all. Empty for
+    cardio, for isolation work, and for anything the classifier can't place.
+    """
+    group = primary if primary is not None else group_for(name, kind)
+    if group is None:
+        return []
+    folded = _fold(name)
+    for rule_group, keywords, secondaries in _SECONDARY_RULES:
+        if rule_group != group:
+            continue
+        if any(_fold(k) in folded for k in keywords):
+            return [g for g in MUSCLE_GROUPS if g in secondaries and g != group]
+    return []

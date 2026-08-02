@@ -207,20 +207,44 @@ export function sessionsPerPeriod(days, period = 'week', { endDate } = {}) {
   }
 }
 
+// Sets per muscle over a window, counted *fractionally*: the muscles a lift
+// trains on the way past take half a set each, the primary takes a whole one.
+//
+// That halving is not a flourish — it is the unit the reference is written in.
+// The 4/10/20 the card draws comes from Pelland et al. 2026, who tested all
+// three ways of counting indirect work (whole, half, not at all) and found the
+// half-set model fit best. Counting direct work only, against a reference built
+// on fractional counting, compared two different units: the muscles that live
+// on indirect volume — triceps, biceps, shoulders — read low for ever, and a
+// push day full of pressing showed a triceps count of nearly zero.
+//
+// `sets` stays a plain count of sets logged, because that is what it says it
+// is; only the per-muscle buckets are fractional. `unclassified` counts the
+// sets no muscle claimed at all — cardio, and lifts the classifier can't place.
 function setsInWindow(days, { start, end }) {
   const counts = {}
   let total = 0
+  let unclassified = 0
   for (const day of days) {
     if (day.date < start || day.date > end) continue
     for (const workout of day.workouts) {
       for (const set of workout.sets) {
         total += 1
-        if (!set.muscle_group) continue
+        if (!set.muscle_group) {
+          unclassified += 1
+          continue
+        }
         counts[set.muscle_group] = (counts[set.muscle_group] || 0) + 1
+        // Older payloads (an offline cache from before secondaries existed)
+        // simply have none, and fall back to direct-only counting rather than
+        // breaking.
+        for (const group of set.secondary_groups ?? []) {
+          counts[group] = (counts[group] || 0) + 0.5
+        }
       }
     }
   }
-  return { counts, total }
+  return { counts, total, unclassified }
 }
 
 // One row per muscle group worked in a period, biggest first, each with the
@@ -267,12 +291,10 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
 
   const rows = rankGroups(counts).map(({ group, sets }) => ({
     group,
-    sets,
+    sets: round1(sets),
     perWeek: round1(sets / nowWeeks),
     delta: round1(shown(sets, nowWeeks) - shown(then.counts[group] || 0, thenWeeks)),
   }))
-
-  const grouped = Object.values(now.counts).reduce((n, c) => n + c, 0)
 
   return {
     start: current.start,
@@ -280,10 +302,13 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
     sessions: current.sessions,
     weeks: nowWeeks,
     sets: now.total,
-    // Cardio, and any lift the classifier doesn't recognize, are volume that
-    // colours nothing — so the rows only add up to `sets` when this is zero.
-    // Saying so beats leaving the arithmetic quietly broken.
-    unclassified: now.total - grouped,
+    // Cardio, and any lift the classifier doesn't recognize: volume that
+    // colours nothing. It is no longer the gap between the rows and `sets` —
+    // fractional counting means a bench press puts 2.0 into the rows off one
+    // logged set, so the rows outrun the total by design. This is its own
+    // count now: sets that landed in no row at all, which is the thing worth
+    // saying because it's fixable from the exercise.
+    unclassified: now.unclassified,
     perWeek: round1(now.total / nowWeeks),
     inProgress: current.end > end,
     // Whether the numbers above are weekly averages or plain counts.
