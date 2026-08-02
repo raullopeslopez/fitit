@@ -85,6 +85,10 @@ class SetOut(BaseModel):
     # The exercise's group, carried on the set so the per-muscle views can read
     # everything they need from /days. Null when the name isn't recognizable.
     muscle_group: str | None = None
+    # What the lift trains on the way past — a bench press's triceps and front
+    # delt. Half a set each downstream; the primary above is never in here.
+    # Spec: tests/features/secondary_muscles.feature
+    secondary_groups: list[str] = []
     set_index: int
     reps: int | None = None
     weight: float | None = None  # kilos

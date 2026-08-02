@@ -867,7 +867,8 @@ describe('Progress', () => {
 
         expect(container.querySelector('.sum-ref').textContent).toBe(
           'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
-            '10–20 es la zona eficiente. Barra llena = 20.',
+            '10–20 es la zona eficiente. Barra llena = 20. ' +
+            'Un músculo secundario cuenta media serie.',
         )
       })
 
