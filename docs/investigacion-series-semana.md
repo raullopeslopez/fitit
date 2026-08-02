@@ -195,22 +195,35 @@ números por músculo salen distintos solos, y por la razón correcta.
 - **"Pierna" partido en Cuádriceps / Femoral / Gemelo** (9 grupos), con
   migración que re-clasifica el historial por el nombre del ejercicio. El glúteo
   va con Femoral: un décimo color deja de separarse bien.
+- **Conteo fraccional**: `secondaries_for()` en `backend/app/muscles.py` marca
+  los secundarios de cada movimiento y viajan en cada serie de `/days`. Las
+  barras los cuentan a 0,5. Con esto las cifras de la app y la referencia por
+  fin están en la misma unidad — antes se contaba solo directo (indirectas = 0),
+  el método con *peor* soporte de los tres.
+  - Las reglas se activan por **(grupo primario + palabra clave)**, no por la
+    palabra sola: "prensa" es leg press y lleva Femoral, pero "gemelo en prensa"
+    es un gemelo y no lleva nada.
+  - Lista deliberadamente corta: solo pares grandes e indiscutibles. El 0,5 ya
+    es una heurística; apilar conjeturas encima compra ruido.
+  - **El heatmap sigue contando solo directo.** Color e intensidad responden
+    "qué entrené", y el conteo fraccional responde "cuánto estímulo recibí". Si
+    un secundario pudiera ganar el color, todo día de empuje sería un split
+    Pecho+Tríceps y el calendario dejaría de enseñar la forma de la semana.
+- **Falso cero del lunes eliminado**, no tapado: mientras la semana corre la
+  fila dice "6 de 10" en vez de dictar "+4 a la zona", y no se pinta en corto.
 
 ### Lo que sigue pendiente
 
-1. **No hay músculos secundarios.** Sin ellos no se puede contar fraccional; solo
-   se cuenta directo (indirectas = 0), que es el método con *peor* soporte de los
-   tres. Hoy quien hace press banca y dominadas tiene tríceps y bíceps a cero
-   aunque los esté entrenando, y por tanto sus barras mienten a la baja. Haría
-   falta un mapa `ejercicio → {primario: 1, secundarios: 0.5}`, derivable de las
-   mismas reglas de palabras clave que ya existen en `backend/app/muscles.py`.
-2. **El esfuerzo se registra pero probablemente no se usa.** `SetEntry` sí tiene
+1. **El esfuerzo se registra pero probablemente no se usa.** `SetEntry` sí tiene
    `rpe` (float opcional), así que el campo existe. Lo que no sé —y no he
    comprobado en la base de datos real— es qué porcentaje de series lo lleva
    relleno. Si está casi siempre vacío, todas las series pesarán igual en el
    contador, y conviene no prometer una precisión que no tenemos.
-3. **La ventana sigue siendo semana natural**, no 7 días rodantes. El falso cero
-   del lunes se ha tapado con una frase, no eliminado.
+2. **La ventana sigue siendo semana natural**, no 7 días rodantes.
+3. **El desglose por celda del heatmap no muestra lo fraccional.** El readout al
+   tocar un día sigue dando solo los grupos directos. Es el sitio natural para
+   enseñar "Pecho 10 · Tríceps 9,5 · Hombro 8", y encaja con el pendiente de
+   "mostrar desglose de series en registro día".
 
 Bandas defendibles si algún día el indicador pasa de una referencia a un
 semáforo (series fraccionadas):

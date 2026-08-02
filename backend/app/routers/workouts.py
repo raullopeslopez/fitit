@@ -9,22 +9,26 @@ from ..auth import get_current_user
 from ..db import get_session
 from ..exercise_repo import find_exercise, get_or_create_exercise
 from ..models import Day, Exercise, SetEntry, Workout
-from ..muscles import group_for
+from ..muscles import group_for, secondaries_for
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
 
 def _set_out(entry: SetEntry, exercise: Exercise) -> SetOut:
+    # Same fallback as `_to_exercise_out`: a stored group wins, otherwise guess
+    # from the name, so a row that predates auto-tagging still gets a colour
+    # instead of rendering grey.
+    primary = exercise.muscle_group or group_for(exercise.name, exercise.kind)
     return SetOut(
         id=entry.id,
         exercise_id=entry.exercise_id,
         exercise_name=exercise.name,
         kind=exercise.kind,
-        # Same fallback as `_to_exercise_out`: a stored group wins, otherwise
-        # guess from the name, so a row that predates auto-tagging still gets a
-        # colour instead of rendering grey.
-        muscle_group=exercise.muscle_group or group_for(exercise.name, exercise.kind),
+        muscle_group=primary,
+        # Read off the effective primary, so a lift the user re-tagged by hand
+        # gets the secondaries of the movement they say it is.
+        secondary_groups=secondaries_for(exercise.name, exercise.kind, primary),
         set_index=entry.set_index,
         reps=entry.reps,
         weight=entry.weight,

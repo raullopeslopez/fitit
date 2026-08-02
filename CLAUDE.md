@@ -71,6 +71,24 @@ states. Copy is a product decision, and I can't approve what I haven't been show
 If a change touches the frontend and yet nothing looks different, say that explicitly.
 Silence there is indistinguishable from having forgotten to mention it.
 
+## Verify UI changes in the browser
+Claude in Chrome is connected and works against this project. Use it. A green vitest run
+says the component rendered in jsdom, not that the screen is right — those are different
+claims, and only one of them is what I asked about.
+
+- **After any change that touches the UI, look at it before describing it.** The
+  "what I see, before → after" above is owed to me from the actual screen. Inferring it
+  from the diff is how a claim that nothing moved goes unnoticed.
+- **Which URL:** `fitit-n4q0.onrender.com` for what already shipped, the dev server for
+  what hasn't. Production opens with my session already active, so real data — my real
+  data — is one navigation away. No login, no fixtures.
+- **Debug there too.** When something renders but misbehaves, read the console and the
+  network requests instead of guessing from the source.
+- **Verifying a deploy means opening the app**, not grepping the CSS bundle for a class
+  name. That workaround existed because the browser didn't work. It does now.
+- Site access is set to "on click" and the extension works anyway — it drives its own tab
+  group. Never ask me to widen it to all sites.
+
 ## Working Style
 - When there are pending git changes, start with `git status` / `git diff` and finish/commit
   those before broad codebase exploration.

@@ -136,7 +136,8 @@ const MINIMUM = 4
 const ZONE = 10
 const REFERENCE_COPY =
   'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
-  '10–20 es la zona eficiente. Barra llena = 20.'
+  '10–20 es la zona eficiente. Barra llena = 20. ' +
+  'Un músculo secundario cuenta media serie.'
 
 // Where a row sits against that reference, said in words — and when it is short,
 // how short. The bar already draws the bands (a tick at 10, full at 20), but
@@ -358,10 +359,11 @@ function PeriodSummary({ days }) {
           )}
         </>
       )}
-      {/* The bars only ever add up to the set count above when this is zero:
-          cardio has no muscle group by design, and a lift the classifier
-          doesn't recognise has none yet. Left unsaid, the gap reads as a bug —
-          and it's fixable from the exercise, which is worth knowing. */}
+      {/* Sets that landed in no row at all: cardio has no muscle group by
+          design, and a lift the classifier doesn't recognise has none yet.
+          Left unsaid it reads as a bug — and it's fixable from the exercise,
+          which is worth knowing. (The rows themselves outrun the set count on
+          purpose: a press puts 1 into Pecho and half into two more.) */}
       {summary.unclassified > 0 && (
         <p className="hint sum-rest">
           {plural(summary.unclassified, 'serie', 'series')} sin músculo asignado
