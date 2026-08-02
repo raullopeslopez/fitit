@@ -70,6 +70,24 @@ describe('Heatmap', () => {
     expect(today[0].dataset.date).toBe(SUNDAY)
   })
 
+  // A column is a week, and the weekly set count is what this app is measured
+  // in — so "which of these ten is the one I'm living in" has to be answerable
+  // without counting back from the right edge.
+  it('marks the week you are in, not just the day', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+    )
+    const current = container.querySelectorAll('.heat-col.is-current')
+    expect(current).toHaveLength(1)
+    // 26 jul is a Sunday, so the week you are in is the one starting the 20th.
+    expect(current[0].querySelector('.heat-cell').dataset.date).toBe('2026-07-20')
+    // Its date label carries the same mark, or the column has nothing under it
+    // to name the week it is.
+    const labels = [...container.querySelectorAll('.heat-weeks span')]
+    expect(labels.filter((l) => l.classList.contains('is-current'))).toHaveLength(1)
+    expect(labels.at(-1)).toHaveClass('is-current')
+  })
+
   it('leaves the rest of the current week blank rather than empty-looking', () => {
     const { container } = render(
       <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate="2026-07-22" />,

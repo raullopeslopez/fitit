@@ -54,6 +54,12 @@ export default function Heatmap({ days, weeks = 10, endDate }) {
     at += run.cols
   }
 
+  // The week you are in. Today's cell is already outlined, but a 21px square
+  // does not say which of ten columns it belongs to, and the column *is* the
+  // unit the whole app measures in — series por semana. Marked on the column
+  // and on its date, the way a month start already marks all three rows.
+  const currentWeek = grid.findIndex((col) => col.some((cell) => cell.today))
+
   function cellProps(cell) {
     const [main, second] = cell.groups
     const split = second && second.sets >= main.sets * SPLIT_SHARE
@@ -103,7 +109,9 @@ export default function Heatmap({ days, weeks = 10, endDate }) {
             {grid.map((col, ci) => (
               <div
                 key={col[0].date}
-                className={`heat-col${monthStarts.has(ci) ? ' is-month-start' : ''}`}
+                className={`heat-col${monthStarts.has(ci) ? ' is-month-start' : ''}${
+                  ci === currentWeek ? ' is-current' : ''
+                }`}
                 role="row"
               >
                 {col.map((cell) => {
@@ -134,7 +142,14 @@ export default function Heatmap({ days, weeks = 10, endDate }) {
           </div>
           <div className="heat-weeks" aria-hidden="true">
             {grid.map((col, ci) => (
-              <span key={col[0].date} className={monthStarts.has(ci) ? 'is-month-start' : undefined}>
+              <span
+                key={col[0].date}
+                className={
+                  [monthStarts.has(ci) && 'is-month-start', ci === currentWeek && 'is-current']
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
+              >
                 {Number(col[0].date.slice(8))}
               </span>
             ))}

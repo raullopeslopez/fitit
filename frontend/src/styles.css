@@ -643,6 +643,68 @@ button.chart-title h2 {
   letter-spacing: 0.08em;
   vertical-align: 0.2em;
 }
+/* And the whole entry with it. The badge is a 0.68rem chip on a muted line —
+   readable once you are looking at it, invisible when you are scanning for
+   "where am I now" from the top of a list. Today's date goes to ink and its
+   rule takes the accent, so the current entry is the one the eye lands on. */
+.day-block.is-today .day-date {
+  color: var(--text);
+}
+.day-block.is-today .day-line {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* A session row is two lines: what it was + how much, then what it cost per
+   muscle. The breakdown is the answer to "was that a real back day or two
+   sets of curls" — dots alone only ever said *which* groups were touched. */
+.day-session-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+.day-session-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.day-session-name {
+  flex: 1;
+  min-width: 0;
+}
+.day-session-top .set-index {
+  flex: none;
+}
+/* Wraps rather than scrolls: this is content, not a filter — a group hidden
+   past the right edge is a group you don't know you trained. */
+.day-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.55rem;
+  font-weight: 400;
+}
+.day-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* Small enough to sit on a 0.8rem line without becoming the loudest thing on
+   the row: colour still rides a mark, never the text. */
+.day-part .dot {
+  width: 8px;
+  height: 8px;
+}
+.day-part .dot-cardio {
+  border-width: 1.5px;
+}
+.day-part-n {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
 
 .link-row {
   width: 100%;
@@ -1656,6 +1718,27 @@ button.heat-cell {
   width: var(--hm-cell);
   text-align: center;
 }
+/* The week you are in. Today's cell is already outlined, but at 21px it can't
+   say which of ten columns it belongs to — and the column is the unit this app
+   is measured in. A wash behind the column and its date in accent ink, drawn on
+   a pseudo-element so nothing in the grid moves: the labels below and the month
+   spans above are pinned to the same widths and drift the moment anything here
+   takes padding. */
+.heat-col {
+  position: relative;
+  z-index: 0;
+}
+.heat-col.is-current::before {
+  content: '';
+  position: absolute;
+  inset: -3px -2px;
+  z-index: -1;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.heat-weeks span.is-current {
+  color: var(--accent-ink);
+}
 /* A new month opens a gap instead of a divider line — the same 10px on the
    column, its date and its label, or the three drift apart. */
 .heat-col.is-month-start,
@@ -1763,6 +1846,29 @@ button.heat-cell {
 .sum-name {
   font-size: 0.8rem;
   font-weight: 600;
+}
+/* Bar + the words under it, in one grid cell. A full-width second line per row
+   would have added ~14px nine times over; stacked inside the bar's own column
+   it uses the slack an 8px bar leaves in a row sized by its 0.8rem name. */
+.sum-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+}
+/* Which band of the reference this row is in, and — when it is under one — how
+   far off. No colour on it: a gap is not a record and not a destructive act, so
+   the emphasis is hierarchy, ink against muted. The rows with something owed
+   are the ones that read first. */
+.sum-state {
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sum-state.is-short {
+  color: var(--text);
 }
 .sum-bar {
   position: relative;

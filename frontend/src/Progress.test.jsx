@@ -640,6 +640,88 @@ describe('Progress', () => {
       { id: 1, date: '2026-07-15', workouts: [{ id: 1, sets: [bench(6, 55, 8), bench(7, 55, 8)] }] },
     ]
 
+    // Series por músculo is the KPI this screen exists for, and it was the last
+    // thing on it — under the calendar, the chart and the picker.
+    it('leads the screen, above the calendar', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      await screen.findByText('Julio')
+      const summary = container.querySelector('.sum-head')
+      const heatmap = container.querySelector('.heatmap')
+      expect(summary).not.toBeNull()
+      expect(heatmap).not.toBeNull()
+      expect(summary.compareDocumentPosition(heatmap) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    // Sets in one week, spread so every band of the reference is represented.
+    const setOf = (id, group) => ({
+      id,
+      exercise_name: group,
+      muscle_group: group,
+      set_index: 0,
+      weight: 40,
+      reps: 10,
+    })
+    const bands = (spec) => {
+      let id = 100
+      const sets = []
+      for (const [group, n] of Object.entries(spec)) {
+        for (let i = 0; i < n; i++) sets.push(setOf((id += 1), group))
+      }
+      return [{ id: 9, date: '2026-07-22', workouts: [{ id: 9, sets }] }]
+    }
+
+    // The bar already draws the bands — a tick at 10, full at 20 — but reading
+    // it means decoding two tick positions. The row says which band it is in,
+    // and when it is under one, how many sets away it is: the number you can
+    // act on in the next session, rather than the one you already did.
+    it('names the band each muscle is in, and what is missing to clear the next one', async () => {
+      api.listDays.mockResolvedValue(bands({ Core: 22, Pecho: 12, Espalda: 6, Hombro: 2 }))
+      const { container } = render(<Progress />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+      await waitFor(() => {
+        expect([...container.querySelectorAll('.sum-state')].map((s) => s.textContent)).toEqual([
+          'sobre la zona', // 22 — past the point where each set still buys a lot
+          'en zona', // 12 — inside 10–20
+          '+4 a la zona', // 6 — over the minimum, under the efficient band
+          '+2 al mínimo', // 2 — not yet the dose that grows anything
+        ])
+      })
+    })
+
+    // A group that has gone quiet keeps its row at zero, and that row is the one
+    // with something to say: the whole minimum is still owed.
+    it('tells a silent muscle the whole minimum is still owed', async () => {
+      api.listDays.mockResolvedValue([
+        { id: 9, date: '2026-07-22', workouts: [{ id: 9, sets: [setOf(1, 'Pecho')] }] },
+        { id: 8, date: '2026-07-15', workouts: [{ id: 8, sets: [setOf(2, 'Espalda')] }] },
+      ])
+      const { container } = render(<Progress />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
+
+      await waitFor(() => {
+        const rows = [...container.querySelectorAll('.sum-name')].map((n) => n.textContent)
+        const states = [...container.querySelectorAll('.sum-state')].map((s) => s.textContent)
+        expect(states[rows.indexOf('Espalda')]).toBe('+4 al mínimo')
+      })
+    })
+
+    // In month mode the row prints a weekly average, so the gap has to be one
+    // too — the reference is per week and always was.
+    it('states the gap in the same unit the row prints', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      await screen.findByText('Julio')
+      // 1.9 sets of Pecho a week, so 2.1 short of the weekly minimum of 4.
+      expect(container.querySelector('.sum-val').textContent).toBe('1.9/sem')
+      expect(container.querySelector('.sum-state').textContent).toBe('+2.1 al mínimo')
+    })
+
     it('breaks a month down into sets per muscle', async () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
