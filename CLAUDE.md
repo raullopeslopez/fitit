@@ -11,12 +11,28 @@ Do not deviate without explicit user approval.
 In QA/review mode, flag any code that doesn't match `DESIGN.md`.
 
 ## Testing / Workflow
-TDD: write the failing test first, implement to green, run the suite before committing.
-- **Backend:** `cd backend && uv run pytest` (pytest-bdd on in-memory SQLite; this is the CI merge gate).
+TDD: write the failing test first, watch it fail for the right reason, implement to green.
+- **Backend:** `cd backend && uv run python -m pytest` (pytest-bdd on in-memory SQLite;
+  this is the CI merge gate). Plain `uv run pytest` is broken in this checkout.
 - **Frontend:** `cd frontend && npm test` (vitest).
 - A git pre-commit hook (`.githooks/pre-commit`, enabled via `core.hooksPath`) runs the
   suite for whichever layer you touched. Bypass a genuine WIP commit with
   `SKIP_TESTS=1 git commit ...` — use sparingly, main stays green.
+
+### Don't run the same tests twice
+The pre-commit hook is the full-suite gate, and when it passes it costs a line of output.
+A full suite run by hand right before committing is that same work paid for twice.
+
+- **During the red-green loop, run targeted tests** — one file, or `-t`/`-k` on one name.
+  Always pipe through a tail filter (`| Select-Object -Last 20`) so a passing run doesn't
+  spend context on output nobody reads.
+- **Don't run the full suite by hand before committing.** Let the hook do it. If it fails
+  the commit aborts and you'll see why.
+- **Don't use CI as the feedback loop.** A round trip to GitHub costs minutes, and a
+  failure there means `gh run view --log-failed`, which dumps far more than a filtered
+  local run — then fix, commit, push and wait again. CI is the merge gate, not the loop.
+- Full suites by hand are for the rare case where nothing local was touched but behavior
+  could still have moved (a dependency bump, a config change).
 
 ## How to talk to me
 Write as a teammate or product owner would, not as a technical report.
