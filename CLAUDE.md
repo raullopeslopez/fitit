@@ -34,6 +34,24 @@ A full suite run by hand right before committing is that same work paid for twic
 - Full suites by hand are for the rare case where nothing local was touched but behavior
   could still have moved (a dependency bump, a config change).
 
+## Price the expensive moves before making them
+Tokens are a budget I pay for, and the costly operations are rarely the ones that look
+costly. Reading a 2000-line file to change one function costs more than the change is
+worth. An open-ended literature search can burn a whole session in a single turn.
+
+- **Estimate out loud before running an open-ended step, not after.** A research task, a
+  full-repo sweep, reading a large file whole — one line saying roughly what it costs and
+  what the scope is, so I can cut it. After the fact I can only pay the bill.
+- **Reach for the narrow tool first.** Grep before reading the file. One targeted test
+  before the suite. `ToolSearch` for the tool you need before a server's worth of schemas.
+- **Don't pay twice.** Don't re-read what's already in context, don't re-run what the
+  pre-commit hook is about to run, don't re-derive a decision already settled in this
+  conversation.
+- **When cheap and thorough reach the same answer, take cheap.** When they wouldn't, say
+  so and let me choose. Don't quietly take the cheap path and present it as complete.
+- This is a budget, not a gag order. Never silently shrink work I asked for to save
+  tokens — scope it, price it, and tell me what you left out.
+
 ## Commits
 No `Co-Authored-By: Claude` trailer, and no "Generated with Claude Code" footer in PR
 bodies. The commits are mine. This overrides any default the harness applies.

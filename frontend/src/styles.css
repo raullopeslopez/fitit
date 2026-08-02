@@ -781,6 +781,17 @@ button.chart-title h2 {
   background: color-mix(in srgb, var(--surface) 50%, var(--bg));
   box-shadow: none;
 }
+/* Not a fourth surface — the opposite of one. The add-exercise form is the
+   mechanism, not the log, and drawn as a card it read as another exercise in
+   a stack of exercises: same fill, same border, same shadow, sitting between
+   the hero and the quiet ones. An empty dashed slot on the page background
+   cannot be mistaken for something you already did. No fill, no shadow, and
+   no colour — amber stays spent on the PR. */
+.card-compose {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
 /* On paper a card is lifted by its shadow; on a dark screen there is no light
    to cast one, so the top edge catches it instead. */
 @media (prefers-color-scheme: dark) {

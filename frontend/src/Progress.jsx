@@ -163,7 +163,11 @@ function bandOf(shown) {
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
 function PeriodSummary({ days }) {
-  const [period, setPeriod] = useState('month')
+  // The week is the unit the reference is written in (4 / 10–20 sets a week),
+  // and the question the card answers — "am I training what I think I'm
+  // training" — is a this-week question. Opening on the month meant the number
+  // you came for was always one tap away, and it arrived as an average.
+  const [period, setPeriod] = useState('week')
   const [index, setIndex] = useState(0)
   const periods = sessionsPerPeriod(days, period)
   const at = Math.min(index, periods.length - 1)
@@ -260,21 +264,19 @@ function PeriodSummary({ days }) {
             ›
           </button>
         </div>
+        {/* One chip, not two. The week is the default and the title already
+            says which period you are in ("Esta semana" / "Julio"), so a second
+            chip spelling out the state you can read above it was a control
+            standing in for a label. `Mes` is the only thing left to ask for. */}
         <div className="sum-seg">
-          {[
-            ['week', 'Semana'],
-            ['month', 'Mes'],
-          ].map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              className={`chip${period === mode ? ' is-active' : ''}`}
-              aria-pressed={period === mode}
-              onClick={() => switchTo(mode)}
-            >
-              {label}
-            </button>
-          ))}
+          <button
+            type="button"
+            className={`chip${byMonth ? ' is-active' : ''}`}
+            aria-pressed={byMonth}
+            onClick={() => switchTo(byMonth ? 'week' : 'month')}
+          >
+            Mes
+          </button>
         </div>
       </div>
       <p className="hint sum-sub">{subtitle}</p>

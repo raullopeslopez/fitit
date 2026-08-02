@@ -640,13 +640,18 @@ describe('Progress', () => {
       { id: 1, date: '2026-07-15', workouts: [{ id: 1, sets: [bench(6, 55, 8), bench(7, 55, 8)] }] },
     ]
 
+    // The card opens on the week — the unit the reference is written in — so
+    // the month is the only thing left to ask for.
+    const openMonth = async () =>
+      userEvent.click(await screen.findByRole('button', { name: /^mes$/i }))
+
     // Series por músculo is the KPI this screen exists for, and it was the last
     // thing on it — under the calendar, the chart and the picker.
     it('leads the screen, above the calendar', async () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
-      await screen.findByText('Julio')
+      await screen.findByText('Esta semana')
       const summary = container.querySelector('.sum-head')
       const heatmap = container.querySelector('.heatmap')
       expect(summary).not.toBeNull()
@@ -680,7 +685,6 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(bands({ Core: 22, Pecho: 12, Espalda: 6, Hombro: 2 }))
       const { container } = render(<Progress />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
       await waitFor(() => {
         expect([...container.querySelectorAll('.sum-state')].map((s) => s.textContent)).toEqual([
@@ -701,7 +705,6 @@ describe('Progress', () => {
       ])
       const { container } = render(<Progress />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
       await waitFor(() => {
         const rows = [...container.querySelectorAll('.sum-name')].map((n) => n.textContent)
@@ -716,6 +719,7 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
+      await openMonth()
       await screen.findByText('Julio')
       // 1.9 sets of Pecho a week, so 2.1 short of the weekly minimum of 4.
       expect(container.querySelector('.sum-val').textContent).toBe('1.9/sem')
@@ -726,6 +730,7 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
+      await openMonth()
       expect(await screen.findByText('Julio')).toBeInTheDocument()
       expect(screen.getByText(/3 entrenos/)).toBeInTheDocument()
       expect(container.querySelector('.sum-name').textContent).toBe('Pecho')
@@ -735,7 +740,6 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
       expect(await screen.findByText('Esta semana')).toBeInTheDocument()
       expect(screen.getByText(/2 entrenos · 5 series/)).toBeInTheDocument()
@@ -748,8 +752,8 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       render(<Progress />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
       // Nothing newer than the week you're in.
+      await screen.findByText('Esta semana')
       expect(screen.getByRole('button', { name: /periodo siguiente/i })).toBeDisabled()
 
       await userEvent.click(screen.getByRole('button', { name: /periodo anterior/i }))
@@ -765,6 +769,7 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
+      await openMonth()
       await screen.findByText('Julio')
       expect(container.querySelector('.sum-val').textContent).toBe('1.9/sem')
       expect(screen.getByText(/media de series por semana/i)).toBeInTheDocument()
@@ -776,6 +781,7 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
+      await openMonth()
       await screen.findByText('Julio')
       expect(container.querySelector('.sum-delta')).toBeNull()
     })
@@ -791,6 +797,7 @@ describe('Progress', () => {
       ])
       const { container } = render(<Progress />)
 
+      await openMonth()
       expect(await screen.findByText('Agosto')).toBeInTheDocument()
       expect(container.querySelector('.sum-delta')).toBeNull()
       expect(screen.queryByText(/vs\./)).not.toBeInTheDocument()
@@ -800,7 +807,7 @@ describe('Progress', () => {
       render(<Progress />)
 
       await waitFor(() => expect(api.listDays).toHaveBeenCalled())
-      expect(screen.queryByRole('button', { name: /^semana$/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^mes$/i })).not.toBeInTheDocument()
     })
 
     // The weekly-set reference (docs/investigacion-series-semana.md). A bar
@@ -835,8 +842,8 @@ describe('Progress', () => {
         ])
         const { container } = render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
+        await screen.findByText('Esta semana')
         // 5/20 and 2/20 — neither is anywhere near a full bar.
         expect(widthOf(container, 0)).toBe('25%')
         expect(widthOf(container, 1)).toBe('10%')
@@ -852,8 +859,8 @@ describe('Progress', () => {
         ])
         const { container } = render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
+        await screen.findByText('Esta semana')
         expect(widthOf(container, 0)).toBe('100%')
         // The count itself still tells the truth.
         expect(container.querySelector('.sum-val').textContent).toBe('26 series')
@@ -863,8 +870,8 @@ describe('Progress', () => {
         api.listDays.mockResolvedValue(SUMMER)
         const { container } = render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
+        await screen.findByText('Esta semana')
         expect(container.querySelector('.sum-ref').textContent).toBe(
           'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
             '10–20 es la zona eficiente. Barra llena = 20. ' +
@@ -881,7 +888,6 @@ describe('Progress', () => {
         api.listDays.mockResolvedValue(bands({ Pecho: 6 }))
         const { container } = render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
         await waitFor(() => {
           expect(container.querySelector('.sum-state').textContent).toBe('6 de 10')
@@ -895,7 +901,6 @@ describe('Progress', () => {
         api.listDays.mockResolvedValue(bands({ Pecho: 2 }))
         const { container } = render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
         await waitFor(() => {
           expect(container.querySelector('.sum-state').textContent).toBe('2 de 10')
@@ -908,7 +913,6 @@ describe('Progress', () => {
         api.listDays.mockResolvedValue(bands({ Pecho: 6 }))
         const { container } = render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
         await waitFor(() => {
           expect(container.querySelector('.sum-state').textContent).toBe('+4 a la zona')
@@ -922,7 +926,6 @@ describe('Progress', () => {
         api.listDays.mockResolvedValue(SUMMER)
         render(<Progress />)
 
-        await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
 
         await screen.findByText('Esta semana')
         expect(screen.queryByText(/en curso — la referencia/)).not.toBeInTheDocument()
@@ -936,11 +939,13 @@ describe('Progress', () => {
       render(<Progress />)
 
       // 1–26 jul is 26 days: 3.7 weeks in, not a finished month.
+      await openMonth()
       expect(await screen.findByText(/3\.7 semanas/)).toBeInTheDocument()
+
+      await openMonth()
 
       // 20–26 jul with today the 26th: the week is closed, and a closed period
       // needs no caveat about how much of it happened.
-      await userEvent.click(screen.getByRole('button', { name: /^semana$/i }))
       expect(await screen.findByText('Esta semana')).toBeInTheDocument()
       expect(screen.queryByText(/días$/)).not.toBeInTheDocument()
     })
@@ -950,7 +955,6 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(SUMMER)
       render(<Progress />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /^semana$/i }))
       // Mon 20 to Wed 22. The denominator is the point: "3 días" alone reads as
       // a total, "3 de 7 días" says how much of the week is still to come.
       expect(await screen.findByText(/3 de 7 días/)).toBeInTheDocument()
@@ -966,6 +970,7 @@ describe('Progress', () => {
       ])
       render(<Progress />)
 
+      await openMonth()
       expect(await screen.findByText(/vs\. mismo tramo de junio/i)).toBeInTheDocument()
     })
 
