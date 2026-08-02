@@ -132,9 +132,31 @@ function Ladder({ rungs, color }) {
 // edge because nothing beat it, which reads as "done"; against a fixed reference
 // a full bar means the same thing in every row and every week.
 const REFERENCE = 20
+const MINIMUM = 4
+const ZONE = 10
 const REFERENCE_COPY =
   'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
   '10–20 es la zona eficiente. Barra llena = 20.'
+
+// Where a row sits against that reference, said in words — and when it is short,
+// how short. The bar already draws the bands (a tick at 10, full at 20), but
+// reading it means decoding two tick positions against a fill; the row has to
+// say it. And it says the *gap*, not the total: 6 series is a number you have
+// already done, "+4 a la zona" is one you can act on in the next session.
+//
+// The gap is in whatever unit the row prints — a plain count in week mode, a
+// weekly average in month mode — because the reference has always been weekly
+// and the row's own figure is what the bar draws.
+//
+// Nothing above 20 is called a peak or an excess: the research this comes from
+// says returns fall off past the zone, not that more is wrong.
+function bandOf(shown) {
+  const short = (target) => `+${Math.round((target - shown) * 10) / 10}`
+  if (shown < MINIMUM) return `${short(MINIMUM)} al mínimo`
+  if (shown < ZONE) return `${short(ZONE)} a la zona`
+  if (shown <= REFERENCE) return 'en zona'
+  return 'sobre la zona'
+}
 
 // Sets per muscle over a week or a month, with the arrows to walk back through
 // them. The question is "am I training what I think I'm training", so the bar
@@ -248,22 +270,35 @@ function PeriodSummary({ days }) {
           {summary.rows.map((row) => (
             <div className="sum-row" key={row.group}>
               <span className="sum-name">{row.group}</span>
-              <span className="sum-bar">
-                {/* Whatever the row prints is what the bar draws: the monthly
-                    figure is a weekly average, and the reference is weekly. */}
+              {/* The bar and the words under it are one column: the state line
+                  rides in the vertical slack the 8px bar leaves inside a row
+                  sized by its 0.8rem name, so naming the band costs ~5px a row
+                  instead of a second full-width line. */}
+              <span className="sum-gauge">
+                <span className="sum-bar">
+                  {/* Whatever the row prints is what the bar draws: the monthly
+                      figure is a weekly average, and the reference is weekly. */}
+                  <span
+                    className="sum-fill"
+                    style={{
+                      width: `${Math.min(
+                        Math.round(((summary.averaged ? row.perWeek : row.sets) / REFERENCE) * 100),
+                        100,
+                      )}%`,
+                      '--chip': muscleColor(row.group),
+                    }}
+                  />
+                  {/* The 10-set edge of the efficient band, recessive on purpose:
+                      it's a reading aid, not a target line to be chased. */}
+                  <span className="sum-tick" aria-hidden="true" />
+                </span>
                 <span
-                  className="sum-fill"
-                  style={{
-                    width: `${Math.min(
-                      Math.round(((summary.averaged ? row.perWeek : row.sets) / REFERENCE) * 100),
-                      100,
-                    )}%`,
-                    '--chip': muscleColor(row.group),
-                  }}
-                />
-                {/* The 10-set edge of the efficient band, recessive on purpose:
-                    it's a reading aid, not a target line to be chased. */}
-                <span className="sum-tick" aria-hidden="true" />
+                  className={`sum-state${
+                    (summary.averaged ? row.perWeek : row.sets) < ZONE ? ' is-short' : ''
+                  }`}
+                >
+                  {bandOf(summary.averaged ? row.perWeek : row.sets)}
+                </span>
               </span>
               {/* No "series" in month mode: the footer already says these are
                   weekly averages of sets, and spelling it out per row wrapped
@@ -593,6 +628,13 @@ export default function Progress() {
 
   return (
     <section>
+      {/* First card on the screen, because it is the one number this screen
+          exists to answer: series por músculo esta semana. It used to sit at
+          the foot, under the calendar and the whole Evolución apparatus — three
+          scrolls down on a phone, which is where you put something you don't
+          expect to be read. */}
+      {days.length > 0 && <PeriodSummary days={days} />}
+
       {days.length > 0 && <Heatmap days={days} />}
 
       {/* Not gated on exercises having loaded: the search box below is typeable
@@ -858,8 +900,6 @@ export default function Progress() {
           </div>
         </div>
       )}
-
-      {days.length > 0 && <PeriodSummary days={days} />}
 
       {error && (
         <p role="alert" className="alert">

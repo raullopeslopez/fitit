@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
 import { formatDayShort } from './format.js'
-import { MUSCLE_GROUPS, muscleColor } from './muscles.js'
+import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { setRepeatTemplate } from './prefs.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
+
+// Cardio has no muscle group by design, so it gets its own bucket in the day
+// breakdown rather than falling in with the lifts nobody has tagged yet.
+const CARDIO = 'Cardio'
 
 // The exercises a session worked, each once, in the order they were worked.
 // That order is the plan: repeat the session and you start where you started.
@@ -33,13 +37,27 @@ export default function Days({ onOpenWorkout }) {
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
 
-  // The distinct muscle groups a workout trained, in canonical order. Every set
-  // carries its own group, so this needs nothing the list didn't already fetch —
-  // it used to cross-reference /exercises by name, a second request and a map
-  // that went stale the moment you re-tagged a lift.
-  const musclesOf = (workout) =>
-    MUSCLE_GROUPS.filter((m) => workout.sets.some((s) => s.muscle_group === m))
-  const hasCardio = (workout) => workout.sets.some((s) => s.kind === 'cardio')
+  // What a session cost, per muscle, in canonical order. Every set carries its
+  // own group, so this needs nothing the list didn't already fetch — it used to
+  // cross-reference /exercises by name, a second request and a map that went
+  // stale the moment you re-tagged a lift.
+  //
+  // The count is the point. A row of anonymous dots said *which* groups a day
+  // touched and nothing about how much, so six sets of chest and one warm-up of
+  // shoulders drew exactly the same mark as a real push session. Cardio and
+  // untagged sets keep their own entries rather than being dropped: the parts
+  // have to add up to the total beside the name, or the arithmetic looks broken
+  // — the same rule the Progreso summary follows.
+  function breakdownOf(workout) {
+    const counts = {}
+    for (const set of workout.sets) {
+      const key = set.kind === 'cardio' ? CARDIO : (set.muscle_group ?? UNGROUPED)
+      counts[key] = (counts[key] || 0) + 1
+    }
+    return [...MUSCLE_GROUPS, CARDIO, UNGROUPED]
+      .filter((key) => counts[key])
+      .map((key) => ({ key, sets: counts[key] }))
+  }
 
   function openMenu(dayId) {
     setConfirmingDelete(false)
@@ -133,7 +151,10 @@ export default function Days({ onOpenWorkout }) {
         <p className="hint">Aún no hay días. Empieza un entreno abajo.</p>
       ) : (
         days.map((day) => (
-          <div className="day-block" key={day.id}>
+          <div
+            className={`day-block${day.date === todayISO() ? ' is-today' : ''}`}
+            key={day.id}
+          >
             {/* A ruled line, not a card: the date is the margin note and the
                 sessions hang off it. Cards cost ~100px of chrome per day. */}
             <div className="day-head">
@@ -195,20 +216,33 @@ export default function Days({ onOpenWorkout }) {
                       workout carrying a field it doesn't need here. */}
                   <button
                     type="button"
-                    className="link-row"
+                    className="link-row day-session"
                     onClick={() => onOpenWorkout(w.id, { ...w, date: day.date })}
                   >
-                    <span>{w.name || 'Entreno'}</span>
-                    {(musclesOf(w).length > 0 || hasCardio(w)) && (
-                      <span className="muscle-dots" aria-hidden="true">
-                        {musclesOf(w).map((m) => (
-                          <span key={m} className="dot" style={{ '--chip': muscleColor(m) }} />
-                        ))}
-                        {hasCardio(w) && <span className="dot dot-cardio" />}
+                    <span className="day-session-main">
+                      <span className="day-session-top">
+                        <span className="day-session-name">{w.name || 'Entreno'}</span>
+                        <span className="set-index">
+                          {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
+                        </span>
                       </span>
-                    )}
-                    <span className="set-index">
-                      {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
+                      {/* The breakdown under the name, not beside it: three or
+                          four groups will not share a line with the name and
+                          the total on a phone. */}
+                      {w.sets.length > 0 && (
+                        <span className="day-parts">
+                          {breakdownOf(w).map((part) => (
+                            <span className="day-part" key={part.key}>
+                              <span
+                                className={`dot${part.key === CARDIO ? ' dot-cardio' : ''}`}
+                                aria-hidden="true"
+                                style={{ '--chip': muscleColor(part.key) }}
+                              />
+                              {part.key} <span className="day-part-n">{part.sets}</span>
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </span>
                   </button>
                 </li>

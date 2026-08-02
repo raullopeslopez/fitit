@@ -158,7 +158,7 @@ describe('Workout', () => {
 
       // Sets varied (60/60/80), so the digest names the top set by est. 1RM
       // (80 × 8) with the "tope" label, not a decoupled range.
-      expect(await foldedDigest(/^3 series hoy · tope 80 kg × 8$/)).toBeInTheDocument()
+      expect(await foldedDigest(/^3 series · tope 80 kg × 8$/)).toBeInTheDocument()
     })
 
     it('names the working set without a "tope" label when every set matched', async () => {
@@ -173,7 +173,7 @@ describe('Workout', () => {
 
       // Identical sets: one pair speaks for all, so no "tope" — there's no peak
       // to single out.
-      expect(await foldedDigest(/^2 series hoy · 60 kg × 8$/)).toBeInTheDocument()
+      expect(await foldedDigest(/^2 series · 60 kg × 8$/)).toBeInTheDocument()
       expect(screen.queryByText(/tope/)).not.toBeInTheDocument()
     })
 
@@ -189,7 +189,7 @@ describe('Workout', () => {
 
       // A flat "2 × 8" would lie about the second set. 70 × 5 (e1RM 81.7) beats
       // 60 × 8 (76.0), so it's the tope — one real, paired working set.
-      expect(await foldedDigest(/^2 series hoy · tope 70 kg × 5$/)).toBeInTheDocument()
+      expect(await foldedDigest(/^2 series · tope 70 kg × 5$/)).toBeInTheDocument()
     })
 
     it('opens the card straight into the editor for the chip I tapped', async () => {

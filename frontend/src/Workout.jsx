@@ -354,6 +354,10 @@ function ExerciseCard({
   // show the hardest — the top set by est. 1RM, the same one the PR logic
   // tracks — labelled "tope" so a single pair isn't read as the whole exercise
   // ("4 series · tope 60 kg × 8"). Full per-set detail is one tap away, open.
+  // No "hoy" in it: every card on this screen belongs to the session you are
+  // looking at, so the word distinguished nothing here — and on a backfilled or
+  // reopened day it named the wrong one. The open card's set-list header keeps
+  // it, because there it separates today's sets from the previous marks above.
   const shownPair = (s) => `${s.weight == null ? 'Corporal' : showKg(s.weight)}×${s.reps}`
   const varied = sets.length ? !sets.every((s) => shownPair(s) === shownPair(sets[0])) : false
   // A weightless set ranks by reps alone (1RM of nothing is nothing), so a set
@@ -371,7 +375,7 @@ function ExerciseCard({
   // amber is spent only on the PR, so a static readout can't borrow it.
   const digest = sets.length ? (
     <>
-      {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} hoy · `}
+      {`${sets.length} ${sets.length === 1 ? 'serie' : 'series'} · `}
       {varied && <span className="d-tope">tope</span>}
       {varied && ' '}
       <span className="d-key">
@@ -673,6 +677,9 @@ function ExerciseCard({
             physically meaningless (1050 kg of cable crunches), and it was the
             one figure here no decision depended on. The count stays — that is
             the part you read between sets. */}
+        {/* "Hoy" stays here and only here: this label's job is to separate the
+            sets you are logging now from the "Última vez" marks directly above
+            it. On the folded row there is nothing to separate them from. */}
         <div className="target-label session-label">
           Hoy · {sets.length} {sets.length === 1 ? 'serie' : 'series'}
         </div>

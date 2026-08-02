@@ -171,9 +171,13 @@ describe('Days', () => {
     })
   })
 
-  // The group rides on every set now, so the list draws its dots from the one
-  // response it already has — no second request, no name map to keep in step.
-  it('shows muscle dots for the groups a workout trained', async () => {
+  // The group rides on every set now, so the list draws its breakdown from the
+  // one response it already has — no second request, no name map to keep in step.
+  //
+  // A row of anonymous dots said *which* groups a day worked and nothing about
+  // how much: six sets of chest and one warm-up of shoulders drew the same two
+  // dots as a real push session. The count is the part you read.
+  it('breaks a session down into sets per muscle', async () => {
     api.listDays.mockResolvedValue([
       {
         id: 2,
@@ -185,7 +189,7 @@ describe('Days', () => {
             sets: [
               benchSet({ exercise_name: 'Press banca', muscle_group: 'Pecho' }),
               benchSet({ id: 11, exercise_name: 'Press militar', muscle_group: 'Hombro' }),
-              // A second chest lift doesn't earn a second dot.
+              // A second chest lift doesn't earn a second entry, it adds to one.
               benchSet({ id: 12, exercise_name: 'Aperturas', muscle_group: 'Pecho' }),
             ],
           },
@@ -196,26 +200,19 @@ describe('Days', () => {
 
     await screen.findByText('Push')
     await waitFor(() => {
-      expect(container.querySelectorAll('.muscle-dots .dot').length).toBe(2)
+      expect([...container.querySelectorAll('.day-part')].map((p) => p.textContent)).toEqual([
+        'Pecho 2',
+        'Hombro 1',
+      ])
     })
+    // Every part still carries its muscle colour, so the row reads at a glance.
+    expect(container.querySelectorAll('.day-part .dot').length).toBe(2)
     expect(api.listExercises).not.toHaveBeenCalled()
   })
 
-  it('leaves a workout of untagged lifts with no dots at all', async () => {
-    api.listDays.mockResolvedValue([
-      {
-        id: 2,
-        date: '2026-07-16',
-        workouts: [{ id: 5, name: 'Varios', sets: [benchSet({ muscle_group: null })] }],
-      },
-    ])
-    const { container } = render(<Days onOpenWorkout={() => {}} />)
-
-    await screen.findByText('Varios')
-    expect(container.querySelector('.muscle-dots')).toBeNull()
-  })
-
-  it('gives a cardio-only workout its amber-ring dot, since it has no muscle group', async () => {
+  // The parts have to add up to the total beside the name, or the arithmetic
+  // just looks broken — so sets no group claims are named rather than dropped.
+  it('names the sets no muscle group claims', async () => {
     api.listDays.mockResolvedValue([
       {
         id: 2,
@@ -223,16 +220,42 @@ describe('Days', () => {
         workouts: [
           {
             id: 5,
-            name: 'Cardio',
-            sets: [benchSet({ kind: 'cardio', muscle_group: null, reps: null, weight: null })],
+            name: 'Varios',
+            sets: [
+              benchSet({ muscle_group: 'Pecho' }),
+              benchSet({ id: 11, muscle_group: null }),
+              benchSet({ id: 12, kind: 'cardio', muscle_group: null, reps: null, weight: null }),
+            ],
           },
         ],
       },
     ])
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
-    await screen.findByText('Cardio')
-    expect(container.querySelectorAll('.muscle-dots .dot-cardio').length).toBe(1)
+    await screen.findByText('Varios')
+    await waitFor(() => {
+      expect([...container.querySelectorAll('.day-part')].map((p) => p.textContent)).toEqual([
+        'Pecho 1',
+        'Cardio 1',
+        'Sin grupo 1',
+      ])
+    })
+    // Cardio keeps its amber-ring dot: it has no muscle group by design.
+    expect(container.querySelectorAll('.day-part .dot-cardio').length).toBe(1)
+  })
+
+  it('leaves an empty session with no breakdown at all', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [{ id: 5, name: 'Vacío', sets: [] }],
+      },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Vacío')
+    expect(container.querySelector('.day-parts')).toBeNull()
   })
 
   it('badges today’s day so it reads apart from recent history', async () => {
@@ -250,6 +273,10 @@ describe('Days', () => {
       const pastHeading = screen.getByText(/15 JUL/)
       expect(todayHeading.closest('.day-head')).toHaveTextContent('HOY')
       expect(pastHeading.closest('.day-head')).not.toHaveTextContent('HOY')
+      // The badge alone is a 0.68rem chip on a muted line; the whole entry is
+      // marked so today reads as today from across the list.
+      expect(todayHeading.closest('.day-block')).toHaveClass('is-today')
+      expect(pastHeading.closest('.day-block')).not.toHaveClass('is-today')
     } finally {
       vi.useRealTimers()
     }
