@@ -9,11 +9,12 @@ import {
   setExerciseMuscle,
 } from './api.js'
 import { downloadCsv } from './csv.js'
+import { deloadWeeks, toggleDeload } from './deload.js'
 import { fold, formatMonth, formatRange } from './format.js'
 import Heatmap from './Heatmap.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
-import { recordLadder, sessionsPerPeriod, setsPerMuscle } from './stats.js'
+import { deloadTargets, recordLadder, sessionsPerPeriod, setsPerMuscle } from './stats.js'
 import { showKg } from './units.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -139,6 +140,18 @@ const REFERENCE_COPY =
   '10–20 es la zona eficiente. Barra llena = 20. ' +
   'Un músculo secundario cuenta media serie.'
 
+// The one week where the standing reference is the wrong question. Marked as a
+// deload, every row is measured against a third of your own recent average
+// instead — and nothing is called short, because training less is the plan.
+//
+// Only the volume moves. Bickel et al. (2011) and the tapering meta-analyses
+// agree on cutting sets while holding the load, and the single trial on
+// stopping outright found it cost strength and bought no size, so the card says
+// "mismo peso" out loud: it is the half of the instruction people drop.
+const DELOAD_COPY =
+  'Semana de descarga: el objetivo es 1/3 de tu media de las 8 semanas ' +
+  'anteriores. Mismo peso, menos series.'
+
 // Where a row sits against that reference, said in words — and when it is short,
 // how short. The bar already draws the bands (a tick at 10, full at 20), but
 // reading it means decoding two tick positions against a fill; the row has to
@@ -175,6 +188,15 @@ function PeriodSummary({ days }) {
   const previous = periods[at + 1]
   const summary = setsPerMuscle(days, { period, index: at })
   const byMonth = period === 'month'
+
+  // A deload belongs to a week, so the month never offers it: four or five
+  // weeks with one light one in them is not a deload, it's a month.
+  const [marked, setMarked] = useState(deloadWeeks)
+  const deload = !byMonth && marked.includes(current.start)
+  const targets = deload ? deloadTargets(days, current.start) : null
+  // A group with no history behind it has no third to take, so it keeps the
+  // standing reference rather than being handed a target of zero.
+  const targetFor = (group) => (deload && targets[group]) || null
 
   function switchTo(mode) {
     setPeriod(mode)
@@ -300,29 +322,41 @@ function PeriodSummary({ days }) {
                     className="sum-fill"
                     style={{
                       width: `${Math.min(
-                        Math.round(((summary.averaged ? row.perWeek : row.sets) / REFERENCE) * 100),
+                        Math.round(
+                          ((summary.averaged ? row.perWeek : row.sets) /
+                            (targetFor(row.group) ?? REFERENCE)) *
+                            100,
+                        ),
                         100,
                       )}%`,
                       '--chip': muscleColor(row.group),
                     }}
                   />
                   {/* The 10-set edge of the efficient band, recessive on purpose:
-                      it's a reading aid, not a target line to be chased. */}
-                  <span className="sum-tick" aria-hidden="true" />
+                      it's a reading aid, not a target line to be chased. Gone in
+                      a deload week: the bar is drawing a different scale, and a
+                      mark at half of a third means nothing. */}
+                  {!deload && <span className="sum-tick" aria-hidden="true" />}
                 </span>
                 <span
                   className={`sum-state${
-                    judging && (summary.averaged ? row.perWeek : row.sets) < ZONE
+                    judging &&
+                    !deload &&
+                    (summary.averaged ? row.perWeek : row.sets) < ZONE
                       ? ' is-short'
                       : ''
                   }`}
                 >
                   {/* Mid-week the row reports: what you have, and what it is
                       aiming at. The red of a shortfall is a verdict too, so it
-                      waits for the same moment the words do. */}
-                  {judging
-                    ? bandOf(summary.averaged ? row.perWeek : row.sets)
-                    : `${row.sets} de ${ZONE}`}
+                      waits for the same moment the words do — and in a deload it
+                      never comes, because being under the usual number is the
+                      whole point of the week. */}
+                  {deload
+                    ? `${row.sets} de ${targetFor(row.group) ?? ZONE}`
+                    : judging
+                      ? bandOf(summary.averaged ? row.perWeek : row.sets)
+                      : `${row.sets} de ${ZONE}`}
                 </span>
               </span>
               {/* No "series" in month mode: the footer already says these are
@@ -351,7 +385,7 @@ function PeriodSummary({ days }) {
       )}
       {summary.rows.length > 0 && (
         <>
-          <p className="hint sum-ref">{REFERENCE_COPY}</p>
+          <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>
           {/* The month still needs saying out loud: its rows print a weekly
               average against a weekly reference, on a card titled with a month.
               The week needs nothing — its rows no longer pass a verdict there
@@ -360,6 +394,20 @@ function PeriodSummary({ days }) {
             <p className="hint sum-ref">Mes en curso — la referencia es por semana completa.</p>
           )}
         </>
+      )}
+      {/* Rare by definition — six to eight weeks apart — so it takes a quiet
+          text control, the same one corrections use, and never a button with
+          content weight. It sits under the reference it replaces, because that
+          line is the thing it changes. */}
+      {!byMonth && summary.rows.length > 0 && (
+        <button
+          type="button"
+          className="unit-fix sum-deload"
+          aria-pressed={deload}
+          onClick={() => setMarked(toggleDeload(current.start))}
+        >
+          {deload ? 'Quitar descarga' : 'Marcar descarga'}
+        </button>
       )}
       {/* Sets that landed in no row at all: cardio has no muscle group by
           design, and a lift the classifier doesn't recognise has none yet.

@@ -1,5 +1,6 @@
 import {
   dailySetCounts,
+  deloadTargets,
   heatmapGrid,
   lastTime,
   muscleByDay,
@@ -176,6 +177,44 @@ describe('sessionsPerPeriod', () => {
     expect(sessionsPerPeriod([], 'week', { endDate: SUNDAY })).toEqual([
       { start: '2026-07-20', end: '2026-07-26', sessions: 0, weeks: 1, perWeek: 0 },
     ])
+  })
+})
+
+describe('deloadTargets', () => {
+  // The week of Mon 20 jul is the one being deloaded, so the eight weeks it is
+  // measured against run 25 may – 19 jul.
+  const DELOADED = '2026-07-20'
+  const HISTORY = [
+    trained('2026-07-22', group('Pecho', 30)), // inside the deload week itself
+    trained('2026-06-15', group('Pecho', 24), group('Espalda', 96)),
+    trained('2026-05-01', group('Hombro', 80)), // before the window opens
+  ]
+
+  it('asks for a third of your own weekly average, not a number from a book', () => {
+    // 24 chest sets over eight weeks is 3/week, a third of which is 1.
+    // 96 back sets is 12/week, a third of which is 4.
+    expect(deloadTargets(HISTORY, DELOADED)).toMatchObject({ Pecho: 1, Espalda: 4 })
+  })
+
+  it('ignores training from before the window opens', () => {
+    expect(deloadTargets(HISTORY, DELOADED).Hombro).toBeUndefined()
+  })
+
+  it('never counts the deload week itself', () => {
+    // The 30 sets logged on the 22nd would drag the average up and let the week
+    // raise the bar it is being measured against.
+    expect(deloadTargets(HISTORY, DELOADED).Pecho).toBe(1)
+  })
+
+  it('never asks for less than one set of a muscle you actually train', () => {
+    // 4 sets over eight weeks is 0.5/week; a third of that rounds to nothing,
+    // and a target of zero would read as "stop training calves".
+    const light = [trained('2026-06-15', group('Gemelo', 4))]
+    expect(deloadTargets(light, DELOADED)).toEqual({ Gemelo: 1 })
+  })
+
+  it('has nothing to say about a muscle with no history behind it', () => {
+    expect(deloadTargets([], DELOADED)).toEqual({})
   })
 })
 

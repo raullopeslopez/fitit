@@ -1935,6 +1935,17 @@ button.heat-cell {
   margin: 0.5rem 0 0;
   font-size: 0.74rem;
 }
+/* The deload switch sits directly under the reference line it replaces, since
+   that line is the thing it changes. A hairline separates a control from the
+   prose above it without spending a whole bordered box — the same separation
+   the corrections fold uses. It keeps .unit-fix's full width and 44px: rare
+   does not mean small, and this one is pressed one-handed like everything
+   else. */
+.sum-deload {
+  margin-top: 0.6rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
 .sum-foot {
   margin-top: 0.55rem;
 }
