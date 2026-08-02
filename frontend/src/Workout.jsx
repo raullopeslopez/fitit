@@ -1782,7 +1782,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
         <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={skipRest} />
       )}
 
-      <form className="card" onSubmit={handleAddExercise}>
+      {/* The mechanism, not the log — dashed and unfilled so it reads as an
+          empty slot rather than as one more exercise in the stack below it. */}
+      <form className="card card-compose" onSubmit={handleAddExercise}>
         <div className="field">
           <label htmlFor="exercise">Ejercicio</label>
           <input

@@ -754,6 +754,33 @@ describe('Workout', () => {
     expect(await screen.findByText(/PR peso/i)).toBeInTheDocument()
   })
 
+  // The add form and the exercise cards were the same surface, so a session
+  // read as one undifferentiated stack and the input was whichever card you
+  // happened to remember was the input.
+  it('sets the add-exercise form apart from the cards holding the log', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet()],
+      best_one_rm: 76,
+      best_by_reps: [{ reps: 8, weight: 60 }],
+    })
+    const { container } = renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await screen.findByRole('button', { name: /registrar/i })
+
+    // Exactly one on the screen, and it is the one holding the name field.
+    const composed = container.querySelectorAll('.card-compose')
+    expect(composed).toHaveLength(1)
+    expect(composed[0].querySelector('#exercise')).not.toBeNull()
+    // And the exercise card that just appeared is not wearing it.
+    const hero = container.querySelector('.card-hero')
+    expect(hero).not.toBeNull()
+    expect(hero.classList.contains('card-compose')).toBe(false)
+  })
+
   async function logOneSet() {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
