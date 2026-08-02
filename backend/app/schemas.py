@@ -148,11 +148,25 @@ class BestMark(BaseModel):
     delta_one_rm: float | None = None
 
 
+class RepMark(BaseModel):
+    """The most weight ever moved at one rep count. Kilos, like every weight here."""
+
+    reps: int
+    weight: float
+
+
 class PreviousMarks(BaseModel):
     exercise_name: str
     found: bool = False
     sets: list[SetOut] = []
     best_one_rm: float | None = None  # best estimated 1RM (Epley) across all sets
+    # The bar a set has to clear to be a record, one entry per rep count ever
+    # done. Deliberately not a single number: a record is "more than I ever did
+    # at these reps or more", and collapsing the history into one estimated 1RM
+    # lets a heavy double stand in front of every rep record you might set.
+    # Empty when the lift has no history — then the first set is a baseline,
+    # not an achievement.
+    best_by_reps: list[RepMark] = []
     kind: str | None = None  # the exercise's kind, or None if it doesn't exist yet
 
 

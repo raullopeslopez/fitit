@@ -17,6 +17,7 @@ from ..schemas import (
     ExercisePatch,
     HistoryPoint,
     PreviousMarks,
+    RepMark,
     SetOut,
 )
 
@@ -368,6 +369,16 @@ async def previous_marks(
         else None
     )
 
+    # The heaviest ever moved at each rep count — everything the client needs to
+    # decide whether a set is a record, without shipping a lift's whole history
+    # down the wire. `scope` already drops the session being logged, so the bar
+    # is what you walked in with.
+    bars: dict[int, float] = {}
+    for s in strength_sets:
+        if s.weight > bars.get(s.reps, float("-inf")):
+            bars[s.reps] = s.weight
+    best_by_reps = [RepMark(reps=r, weight=w) for r, w in sorted(bars.items())]
+
     last_workout_id = await session.scalar(
         select(SetEntry.workout_id)
         .join(Workout, Workout.id == SetEntry.workout_id)
@@ -391,6 +402,7 @@ async def previous_marks(
         exercise_name=exercise.name,
         found=True,
         best_one_rm=best_one_rm,
+        best_by_reps=best_by_reps,
         kind=exercise.kind,
         sets=[
             SetOut(

@@ -4,7 +4,6 @@ import {
   lastTime,
   muscleByDay,
   muscleHeatmapGrid,
-  prSetIds,
   recordLadder,
   sessionsPerPeriod,
   setsPerMuscle,
@@ -52,41 +51,6 @@ describe('heatmapGrid', () => {
     const todays = grid.flat().filter((c) => c.today)
     expect(todays).toHaveLength(1)
     expect(todays[0].date).toBe('2026-07-16')
-  })
-})
-
-describe('prSetIds', () => {
-  // Weights are canonical kilos — that's the only thing the comparison reads.
-  const set = (id, kg, reps) => ({ id, weight: kg, reps })
-
-  it('flags a set that beats the previous best', () => {
-    // Epley: 82.5x5 -> 96.3, 85x5 -> 99.2. A prior best of 97 sits between them.
-    const ids = prSetIds([set(1, 82.5, 5), set(2, 85, 5)], 97)
-    expect([...ids]).toEqual([2])
-  })
-
-  it('does not flag anything when nothing beats the previous best', () => {
-    expect(prSetIds([set(1, 60, 5), set(2, 62.5, 5)], 200).size).toBe(0)
-  })
-
-  it('raises the bar as it goes, so a later set must beat the earlier ones', () => {
-    // 80x5 -> 93.3 beats the 90 you walked in with; 90x5 -> 105 beats that;
-    // 85x5 -> 99.2 clears the original 90 but NOT the 105 already set today,
-    // so it earns no flag. The bar is the running peak, not the starting mark.
-    const ids = prSetIds([set(1, 80, 5), set(2, 90, 5), set(3, 85, 5)], 90)
-    expect([...ids]).toEqual([1, 2])
-    expect(ids.has(3)).toBe(false)
-  })
-
-  it('lets the first ever set set the baseline without calling it a record', () => {
-    // No prior best means nothing to beat — flagging it would cheapen the badge.
-    expect(prSetIds([set(1, 100, 5)], null).size).toBe(0)
-  })
-
-  it('ignores cardio sets, which have no weight or reps', () => {
-    const cardio = { id: 9, duration_seconds: 1800, distance: 5 }
-    expect(prSetIds([cardio, set(1, 120, 3)], 100).has(1)).toBe(true)
-    expect(prSetIds([cardio], 100).size).toBe(0)
   })
 })
 
@@ -377,10 +341,9 @@ describe('weightPrs', () => {
   })
 
   it('ignores the estimated 1RM entirely', () => {
-    // Epley says 90x3 (99) beats 85x5 (99.2)? No — 99 < 99.2, so prSetIds stays
-    // quiet. As a weight record at 3 reps, 90 kg is new and it fires.
+    // On Epley, 90x3 (99) does not beat 85x5 (99.2) — a 1RM comparison would
+    // stay quiet. As a weight record at 3 reps, 90 kg is new and it fires.
     const history = [set(1, 85, 5)]
-    expect(prSetIds([set(2, 90, 3)], 99.2).size).toBe(0)
     expect(weightPrs([set(2, 90, 3)], { history }).has(2)).toBe(true)
   })
 

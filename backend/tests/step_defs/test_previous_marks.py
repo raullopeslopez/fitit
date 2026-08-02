@@ -68,6 +68,19 @@ def then_best_one_rm_is(marks_response, one_rm):
     assert marks_response.json()["best_one_rm"] == one_rm
 
 
+@then(parsers.parse("the bar to beat at {reps:d} reps is {weight:g} kg"))
+def then_bar_to_beat_is(marks_response, reps, weight):
+    assert marks_response.status_code == 200, marks_response.text
+    bars = marks_response.json()["best_by_reps"]
+    assert any(b["reps"] == reps and b["weight"] == weight for b in bars), bars
+
+
+@then("there is no bar to beat")
+def then_no_bar_to_beat(marks_response):
+    assert marks_response.status_code == 200, marks_response.text
+    assert marks_response.json()["best_by_reps"] == []
+
+
 @then("I see no previous marks")
 def then_no_previous_marks(marks_response):
     assert marks_response.status_code == 200, marks_response.text
