@@ -866,6 +866,95 @@ describe('Progress', () => {
         expect(container.querySelector('.sum-val').textContent).toBe('26 series')
       })
 
+      // A deload is the one week where training less is the plan. The card's
+      // whole job is holding you to 10–20 sets, so left alone it spends that
+      // week telling you that you are short of a target you decided to miss.
+      describe('a week marked as a deload', () => {
+        // The mark outlives the render on purpose — it is what makes the week
+        // survive closing the app — so each test has to start from unmarked or
+        // it inherits the one before it.
+        beforeEach(() => localStorage.clear())
+
+        const mark = async () =>
+          await userEvent.click(screen.getByRole('button', { name: 'Marcar descarga' }))
+
+        it('retargets the bars at a third of your own recent average', async () => {
+          api.listDays.mockResolvedValue([
+            // 24 sets of quads over the eight weeks before: 3/week, so the
+            // deload asks for 1. Three sets in is already a full bar.
+            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(24, 'Cuádriceps', 1) }] },
+            { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: many(3, 'Cuádriceps', 40) }] },
+          ])
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          // Against the standing reference those 3 sets are a near-empty bar.
+          expect(widthOf(container, 0)).toBe('15%')
+          await mark()
+          expect(widthOf(container, 0)).toBe('100%')
+        })
+
+        it('stops asking for the zone and says what it wants instead', async () => {
+          api.listDays.mockResolvedValue([
+            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(24, 'Cuádriceps', 1) }] },
+            { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: many(1, 'Cuádriceps', 40) }] },
+          ])
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await mark()
+          expect(container.querySelector('.sum-state').textContent).toBe('1 de 1')
+          // Nothing is short during a deload — being under the usual number is
+          // the point of the week.
+          expect(container.querySelector('.sum-state.is-short')).toBeNull()
+        })
+
+        it('says what the week is for, in place of the standing reference', async () => {
+          api.listDays.mockResolvedValue(SUMMER)
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await mark()
+          expect(container.querySelector('.sum-ref').textContent).toBe(
+            'Semana de descarga: el objetivo es 1/3 de tu media de las 8 semanas ' +
+              'anteriores. Mismo peso, menos series.',
+          )
+        })
+
+        it('lets you take the mark back off', async () => {
+          api.listDays.mockResolvedValue(SUMMER)
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await mark()
+          await userEvent.click(screen.getByRole('button', { name: 'Quitar descarga' }))
+          expect(container.querySelector('.sum-ref').textContent).toContain('Referencia:')
+        })
+
+        // The mark belongs to one week, not to the card. Walking back to a
+        // normal week has to show the normal reference.
+        it('only applies to the week it was put on', async () => {
+          api.listDays.mockResolvedValue(SUMMER)
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await mark()
+          await userEvent.click(screen.getByRole('button', { name: 'Periodo anterior' }))
+          expect(container.querySelector('.sum-ref').textContent).toContain('Referencia:')
+        })
+
+        // A month is not a deload unit: it holds four or five weeks and only
+        // one of them is light.
+        it('is not offered on the month', async () => {
+          api.listDays.mockResolvedValue(SUMMER)
+          render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await userEvent.click(screen.getByRole('button', { name: 'Mes' }))
+          expect(screen.queryByRole('button', { name: 'Marcar descarga' })).toBeNull()
+        })
+      })
+
       it('spells out what the reference is', async () => {
         api.listDays.mockResolvedValue(SUMMER)
         const { container } = render(<Progress />)

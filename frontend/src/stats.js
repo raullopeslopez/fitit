@@ -247,6 +247,35 @@ function setsInWindow(days, { start, end }) {
   return { counts, total, unclassified }
 }
 
+// What a deload week is aiming at, per muscle: a third of your own recent
+// normal, taken from the eight weeks before it.
+//
+// A third of *yours* rather than a figure from a book, because the number that
+// matters is the one nobody can hold in their head — you do not remember what
+// your chest volume was in May, and the log does. The third itself is the dose
+// Bickel et al. (2011) found preserved eight months of hypertrophy in young
+// trained adults at a ninth of the original volume, and it sits inside the
+// 41–60% cut the tapering meta-analyses converge on. Both of those hold
+// intensity constant, which is why nothing here touches the weight: fewer sets,
+// same load, is the half of the evidence that is firm.
+//
+// The window stops the day before the week being deloaded, so a deload can
+// never raise the bar it is measured against.
+export function deloadTargets(days, weekStart, { weeks = 8 } = {}) {
+  const { counts } = setsInWindow(days, {
+    start: shiftDay(weekStart, -7 * weeks),
+    end: shiftDay(weekStart, -1),
+  })
+  const targets = {}
+  for (const [group, sets] of Object.entries(counts)) {
+    // Floored at one. A muscle you train at all still gets a set in a deload,
+    // and rounding half a set a week down to zero would read as "stop training
+    // calves" — which is the one instruction the evidence argues against.
+    targets[group] = Math.max(1, Math.round(sets / weeks / 3))
+  }
+  return targets
+}
+
 // One row per muscle group worked in a period, biggest first, each with the
 // change against the matching stretch of the period before. `index` is 0 for the
 // most recent period and counts backwards; past the start of the history it
