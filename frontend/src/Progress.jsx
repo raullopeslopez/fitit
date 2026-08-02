@@ -187,11 +187,26 @@ function PeriodSummary({ days }) {
   // number above, and meaningless once the period has closed, so it only shows
   // while one is running. Weeks once there is more than one, days below that:
   // "0.1 semanas" is arithmetic, "1 día" is a Saturday.
+  //
+  // A running week carries its denominator: "3 días" reads as a total, "3 de 7
+  // días" says how much of the week is still owed you — which is the whole
+  // reason the rows below stop short of a verdict. A month has no such tidy
+  // denominator, so it keeps the plain count.
+  const daysIn = Math.round(summary.weeks * 7)
   const elapsed = !summary.inProgress
     ? null
     : summary.averaged
       ? `${Math.round(summary.weeks * 10) / 10} semanas`
-      : plural(Math.round(summary.weeks * 7), 'día', 'días')
+      : byMonth
+        ? plural(daysIn, 'día', 'días')
+        : `${daysIn} de 7 días`
+
+  // Whether the reference has earned the right to call this good or short. A
+  // finished period has: everything that was going to happen, happened. A month
+  // reporting a weekly average has too — the average already accounts for how
+  // much of it has run. A week in progress has not, and judging it anyway told
+  // you every Monday that you were behind on a week you hadn't lived yet.
+  const judging = !summary.inProgress || summary.averaged
 
   const subtitle = [
     plural(current.sessions, 'entreno', 'entrenos'),
@@ -294,10 +309,17 @@ function PeriodSummary({ days }) {
                 </span>
                 <span
                   className={`sum-state${
-                    (summary.averaged ? row.perWeek : row.sets) < ZONE ? ' is-short' : ''
+                    judging && (summary.averaged ? row.perWeek : row.sets) < ZONE
+                      ? ' is-short'
+                      : ''
                   }`}
                 >
-                  {bandOf(summary.averaged ? row.perWeek : row.sets)}
+                  {/* Mid-week the row reports: what you have, and what it is
+                      aiming at. The red of a shortfall is a verdict too, so it
+                      waits for the same moment the words do. */}
+                  {judging
+                    ? bandOf(summary.averaged ? row.perWeek : row.sets)
+                    : `${row.sets} de ${ZONE}`}
                 </span>
               </span>
               {/* No "series" in month mode: the footer already says these are
@@ -327,15 +349,12 @@ function PeriodSummary({ days }) {
       {summary.rows.length > 0 && (
         <>
           <p className="hint sum-ref">{REFERENCE_COPY}</p>
-          {/* Monday reads as a near-empty week for everyone — that's the
-              calendar, not the training. A reference for a finished week has to
-              say so while one is still running, or it accuses you every Monday. */}
-          {summary.inProgress && (
-            <p className="hint sum-ref">
-              {byMonth
-                ? 'Mes en curso — la referencia es por semana completa.'
-                : 'Semana en curso — la referencia es para la semana completa.'}
-            </p>
+          {/* The month still needs saying out loud: its rows print a weekly
+              average against a weekly reference, on a card titled with a month.
+              The week needs nothing — its rows no longer pass a verdict there
+              would be anything to apologise for. */}
+          {summary.inProgress && byMonth && (
+            <p className="hint sum-ref">Mes en curso — la referencia es por semana completa.</p>
           )}
         </>
       )}
