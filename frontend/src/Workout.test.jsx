@@ -292,6 +292,7 @@ describe('Workout', () => {
       found: true,
       sets: [benchSet()],
       best_one_rm: 76,
+      best_by_reps: [{ reps: 8, weight: 60 }],
     })
     api.logSet.mockResolvedValue(
       workoutWith(benchSet({ id: 20, reps: 5, weight: 70 })), // 70x5 -> 81.7
@@ -665,6 +666,7 @@ describe('Workout', () => {
       found: true,
       sets: [benchSet()],
       best_one_rm: 76,
+      best_by_reps: [{ reps: 8, weight: 60 }],
     })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -688,6 +690,68 @@ describe('Workout', () => {
     // reload, which the banner never did.
     expect(await screen.findByText(/PR peso/i)).toBeInTheDocument()
     expect(screen.queryByText(/nuevo récord/i)).not.toBeInTheDocument()
+  })
+
+  // The bar used to be the last session alone, so any week following a lighter
+  // one turned into a run of records — and a badge that fires every session is
+  // a badge that says nothing. The record is against everything you have done.
+  it('does not award a record for beating only the last session', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      // Last time out was a light day: 50 x 8. The all-time bar is the 80 x 8
+      // from a month ago, and 70 does not clear it.
+      sets: [benchSet({ weight: 50 })],
+      best_one_rm: 101.3,
+      best_by_reps: [{ reps: 8, weight: 80 }],
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ id: 21, reps: 8, weight: 70 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.clear(screen.getByLabelText(/reps/i))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.clear(screen.getByLabelText(/peso/i))
+    await userEvent.type(screen.getByLabelText(/peso/i), '70')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(await screen.findByRole('button', { name: /editar serie 1/i })).toBeInTheDocument()
+    expect(screen.queryByText(/PR peso/i)).not.toBeInTheDocument()
+  })
+
+  // The other half of the same rule: clearing the all-time bar still counts,
+  // even on a lift whose last session was heavier than this one's opening sets.
+  it('awards a record for beating the all-time bar', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ weight: 50 })],
+      best_one_rm: 101.3,
+      best_by_reps: [{ reps: 8, weight: 80 }],
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ id: 22, reps: 8, weight: 85 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    await userEvent.clear(screen.getByLabelText(/reps/i))
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.clear(screen.getByLabelText(/peso/i))
+    await userEvent.type(screen.getByLabelText(/peso/i), '85')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(await screen.findByText(/PR peso/i)).toBeInTheDocument()
   })
 
   async function logOneSet() {
@@ -764,6 +828,7 @@ describe('Workout', () => {
       found: true,
       sets: [benchSet()],
       best_one_rm: 76,
+      best_by_reps: [{ reps: 8, weight: 60 }],
     })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -1459,6 +1524,7 @@ describe('Workout', () => {
       found: true,
       best_one_rm: 200,
       sets: [benchSet({ id: 90, weight: 200, reps: 8 })],
+      best_by_reps: [{ reps: 8, weight: 200 }],
     })
     await waitFor(() => expect(screen.getByText(/última vez/i)).toBeInTheDocument())
     expect(container.querySelectorAll('.pr-flag')).toHaveLength(0)
@@ -1483,9 +1549,9 @@ describe('Workout', () => {
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press', 1)
     })
 
-    // Without a prior best, prSetIds compares each set against the session's
-    // own running peak — so set 2 beating set 1 wore a PR badge while sitting
-    // far under the actual record. A wrong record is worse than no record.
+    // Without a prior best, the badge falls back to the session's own running
+    // peak — so set 2 beating set 1 wore a PR while sitting far under the
+    // actual record. A wrong record is worse than no record.
     it('does not award a PR to a set that only beats today’s earlier one', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(benchSet({ id: 1, weight: 50 }), benchSet({ id: 2, weight: 60 })),

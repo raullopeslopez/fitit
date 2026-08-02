@@ -1,4 +1,3 @@
-import { estimatedOneRm } from './format.js'
 import { MUSCLE_GROUPS } from './muscles.js'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -75,28 +74,6 @@ export function heatmapGrid(days, { weeks = 15, endDate } = {}) {
     cols.push(col)
   }
   return cols
-}
-
-// Which sets in a session are records worth flagging: a set qualifies only if
-// its estimated 1RM beats everything before it — the mark you walked in with
-// AND every set you've already done today. The bar rises as you lift, so a
-// session can only ever produce a rising sequence of flags.
-//
-// `priorBest` of null means there is no mark to beat yet: the first set sets
-// the baseline silently rather than calling itself a record.
-export function prSetIds(sets, priorBest = null) {
-  const ids = new Set()
-  let peak = priorBest
-  for (const set of sets) {
-    // Cardio sets carry duration/distance, not weight/reps — no 1RM to compare.
-    if (set.weight == null || set.reps == null) continue
-    // Kilos throughout: `priorBest` comes from the API in kilos, and a set
-    // logged in pounds must not win on the strength of its bigger number.
-    const oneRm = estimatedOneRm(set.weight, set.reps)
-    if (peak != null && oneRm > peak) ids.add(set.id)
-    if (peak == null || oneRm > peak) peak = oneRm
-  }
-  return ids
 }
 
 // --- What you trained --------------------------------------------------------
@@ -325,15 +302,16 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
 const isStrength = (set) => set.weight != null && set.reps != null
 
 // A weight record: more kilos than you had ever moved before at that many reps
-// *or more*. `prSetIds` above answers a different, looser question — it compares
-// estimated 1RMs, so a heavy single can beat a hard set of eight on paper. This
-// one only ever says "you had never moved this much for this many".
+// *or more*. Deliberately not an estimated-1RM comparison, which lets a heavy
+// single beat a hard set of eight on a formula nobody lifts. This one only ever
+// says "you had never moved this much for this many".
 //
-// `history` seeds the marks to beat without being flagged itself. With no
-// history at all the first set is a baseline rather than a record — the same
-// restraint `prSetIds` shows, because a first mark isn't an achievement.
-// `includeFirst` lifts that for the record ladder, where the first mark is the
-// first step of the story.
+// `history` seeds the marks to beat without being flagged itself, and it has to
+// be the whole history: seeded with one session, the bar drops to whatever that
+// session happened to be, and a light week makes records out of the next one.
+// With no history at all the first set is a baseline rather than a record —
+// a first mark isn't an achievement. `includeFirst` lifts that for the record
+// ladder, where the first mark is the first step of the story.
 export function weightPrs(sets, { history = [], includeFirst = false } = {}) {
   const ids = new Set()
   const prior = history.filter(isStrength)

@@ -389,8 +389,15 @@ function ExerciseCard({
   // Which rows earn the badge: a real weight record, more kilos than you had
   // ever moved at that many reps or more. The estimated 1RM this replaces let a
   // heavy single outrank a hard set of eight on a formula nobody lifted.
+  //
+  // Seeded from `best_by_reps` — the heaviest ever at each rep count — and not
+  // from `previous.sets`, which is the last session and only that. Against one
+  // session the bar drops every time you have a light week, so the week after
+  // it wore a badge on almost every row: records that were only ever "more than
+  // last Tuesday". A badge that fires every session is a badge that says
+  // nothing.
   const prIds = marksTrusted
-    ? weightPrs(sets, { history: previous?.sets ?? [] })
+    ? weightPrs(sets, { history: previous?.best_by_reps ?? [] })
     : new Set()
 
   // Reps alone make a set loggable: an empty weight field is the bodyweight
@@ -1244,7 +1251,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
 
         // Every card needs its marks, rebuilt ones included. Only the add path
         // used to fetch them, so reopening a workout lost the target on every
-        // card and left prSetIds comparing each set against the session's own
+        // card and left the badge comparing each set against the session's own
         // running peak — flagging set 2 as a record for beating set 1. The
         // current workout is excluded server-side, or the answer is your own
         // sets from ten minutes ago.
