@@ -193,11 +193,18 @@ contra tus series antes de enseñarlo.**
 ### C. Semana de descarga · **construido**
 
 `Progreso → Marcar descarga`. Mientras la semana está marcada, cada barra se mide contra
-**un tercio de tu media de las 8 semanas anteriores** en ese músculo, y ninguna fila dice
-que vas corto — ir por debajo es el plan de la semana.
+**un tercio de tu semana típica** en ese músculo, y ninguna fila dice que vas corto — ir
+por debajo es el plan de la semana.
 
 Por qué un tercio *tuyo* y no una cifra de libro: nadie recuerda cuál era su volumen de
 pecho en mayo, y el registro sí. Es lo único aquí que la app hace mejor que tú.
+
+**Típica, no media.** El divisor son las semanas en que entrenaste dentro de las últimas 8,
+no las ocho del calendario. La evidencia habla de una semana de entrenamiento —Bickel
+redujo desde una fase continua—, y unas vacaciones no son una semana floja: no son semana.
+Promediando sobre el calendario, una descarga tomada después de un tramo tranquilo pide un
+tercio de un número que nadie hizo nunca. Visto en producción con datos reales: cinco
+semanas vacías de ocho dejaban una semana real de 9 series de pecho en un objetivo de 1.
 
 La marca vive en el navegador (`fitit_deload_weeks`), no en el servidor. Es una anotación,
 no datos de entrenamiento: perderla no pierde ninguna serie, y la semana se sigue leyendo
