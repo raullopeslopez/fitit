@@ -880,9 +880,10 @@ describe('Progress', () => {
 
         it('retargets the bars at a third of your own recent average', async () => {
           api.listDays.mockResolvedValue([
-            // 24 sets of quads over the eight weeks before: 3/week, so the
-            // deload asks for 1. Three sets in is already a full bar.
-            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(24, 'Cuádriceps', 1) }] },
+            // One trained week behind it, carrying 3 sets of quads: the deload
+            // asks for a third of that, so 1. Three sets in is already a full
+            // bar — and the same 3 sets read as near-empty against the 20.
+            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(3, 'Cuádriceps', 1) }] },
             { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: many(3, 'Cuádriceps', 40) }] },
           ])
           const { container } = render(<Progress />)
@@ -896,7 +897,7 @@ describe('Progress', () => {
 
         it('stops asking for the zone and says what it wants instead', async () => {
           api.listDays.mockResolvedValue([
-            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(24, 'Cuádriceps', 1) }] },
+            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(3, 'Cuádriceps', 1) }] },
             { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: many(1, 'Cuádriceps', 40) }] },
           ])
           const { container } = render(<Progress />)
@@ -916,8 +917,8 @@ describe('Progress', () => {
 
           await mark()
           expect(container.querySelector('.sum-ref').textContent).toBe(
-            'Semana de descarga: el objetivo es 1/3 de tu media de las 8 semanas ' +
-              'anteriores. Mismo peso, menos series.',
+            'Semana de descarga: el objetivo es 1/3 de tu semana típica de las ' +
+              'últimas 8. Mismo peso, menos series.',
           )
         })
 

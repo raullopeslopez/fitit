@@ -261,17 +261,33 @@ function setsInWindow(days, { start, end }) {
 //
 // The window stops the day before the week being deloaded, so a deload can
 // never raise the bar it is measured against.
+//
+// The divisor is the weeks you *trained*, not the eight on the calendar. The
+// evidence is about a training week — Bickel reduced from a continuous phase —
+// and a holiday is not a light training week, it is no week at all. Averaged
+// over the calendar, a deload taken after a quiet stretch asks for a third of a
+// number nobody ever did: five empty weeks out of eight drop a real 9-set chest
+// week to a target of one.
 export function deloadTargets(days, weekStart, { weeks = 8 } = {}) {
-  const { counts } = setsInWindow(days, {
+  const window = {
     start: shiftDay(weekStart, -7 * weeks),
     end: shiftDay(weekStart, -1),
-  })
+  }
+  const { counts } = setsInWindow(days, window)
+  const trainedWeeks = new Set(
+    days
+      .filter((d) => d.date >= window.start && d.date <= window.end && dayTrained(d))
+      .map((d) => mondayOf(d.date)),
+  ).size
+  // Never zero: with no trained week there is nothing in `counts` either, so
+  // the loop below doesn't run — the floor only keeps the division honest.
+  const divisor = Math.max(1, trainedWeeks)
   const targets = {}
   for (const [group, sets] of Object.entries(counts)) {
     // Floored at one. A muscle you train at all still gets a set in a deload,
-    // and rounding half a set a week down to zero would read as "stop training
+    // and rounding a third of a set down to zero would read as "stop training
     // calves" — which is the one instruction the evidence argues against.
-    targets[group] = Math.max(1, Math.round(sets / weeks / 3))
+    targets[group] = Math.max(1, Math.round(sets / divisor / 3))
   }
   return targets
 }

@@ -148,9 +148,11 @@ const REFERENCE_COPY =
 // agree on cutting sets while holding the load, and the single trial on
 // stopping outright found it cost strength and bought no size, so the card says
 // "mismo peso" out loud: it is the half of the instruction people drop.
+// "Semana típica" and not "media": the average is taken over the weeks you
+// trained, so a month off doesn't quietly lower what the deload asks for.
 const DELOAD_COPY =
-  'Semana de descarga: el objetivo es 1/3 de tu media de las 8 semanas ' +
-  'anteriores. Mismo peso, menos series.'
+  'Semana de descarga: el objetivo es 1/3 de tu semana típica de las ' +
+  'últimas 8. Mismo peso, menos series.'
 
 // Where a row sits against that reference, said in words — and when it is short,
 // how short. The bar already draws the bands (a tick at 10, full at 20), but

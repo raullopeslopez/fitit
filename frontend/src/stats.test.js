@@ -182,34 +182,51 @@ describe('sessionsPerPeriod', () => {
 
 describe('deloadTargets', () => {
   // The week of Mon 20 jul is the one being deloaded, so the eight weeks it is
-  // measured against run 25 may – 19 jul.
+  // measured against run 25 may – 19 jul. Three of those eight were trained,
+  // all the same size; the rest are noise on either side of the window.
   const DELOADED = '2026-07-20'
   const HISTORY = [
     trained('2026-07-22', group('Pecho', 30)), // inside the deload week itself
-    trained('2026-06-15', group('Pecho', 24), group('Espalda', 96)),
+    trained('2026-07-06', group('Pecho', 8), group('Espalda', 12)),
+    trained('2026-06-15', group('Pecho', 8), group('Espalda', 12)),
+    trained('2026-06-01', group('Pecho', 8), group('Espalda', 12)),
     trained('2026-05-01', group('Hombro', 80)), // before the window opens
   ]
 
-  it('asks for a third of your own weekly average, not a number from a book', () => {
-    // 24 chest sets over eight weeks is 3/week, a third of which is 1.
-    // 96 back sets is 12/week, a third of which is 4.
-    expect(deloadTargets(HISTORY, DELOADED)).toMatchObject({ Pecho: 1, Espalda: 4 })
+  it('asks for a third of a typical training week', () => {
+    // 24 chest sets over the three weeks actually trained is 8/week, a third of
+    // which is 3. 36 back sets is 12/week, a third of which is 4.
+    expect(deloadTargets(HISTORY, DELOADED)).toMatchObject({ Pecho: 3, Espalda: 4 })
+  })
+
+  // The evidence behind the third — Bickel et al. reducing from a continuous
+  // training phase — is about a week you train, not about a calendar square.
+  // Dividing by eight puts the weeks you were away into the average as light
+  // training weeks, and a deload taken after a quiet stretch then asks for a
+  // third of a number nobody ever did.
+  it('is not diluted by the weeks you did not train', () => {
+    // Five of the eight weeks here are empty. Over the calendar, chest reads
+    // 3/week and the target would collapse to a single set.
+    expect(deloadTargets(HISTORY, DELOADED).Pecho).toBe(3)
   })
 
   it('ignores training from before the window opens', () => {
+    // And it must not count as a trained week either, or it would pull every
+    // other target down by widening the divisor.
     expect(deloadTargets(HISTORY, DELOADED).Hombro).toBeUndefined()
+    expect(deloadTargets(HISTORY, DELOADED).Espalda).toBe(4)
   })
 
   it('never counts the deload week itself', () => {
     // The 30 sets logged on the 22nd would drag the average up and let the week
     // raise the bar it is being measured against.
-    expect(deloadTargets(HISTORY, DELOADED).Pecho).toBe(1)
+    expect(deloadTargets(HISTORY, DELOADED).Pecho).toBe(3)
   })
 
   it('never asks for less than one set of a muscle you actually train', () => {
-    // 4 sets over eight weeks is 0.5/week; a third of that rounds to nothing,
-    // and a target of zero would read as "stop training calves".
-    const light = [trained('2026-06-15', group('Gemelo', 4))]
+    // One set in one trained week is a third of a set; rounding it down would
+    // read as "stop training calves".
+    const light = [trained('2026-06-15', group('Gemelo', 1))]
     expect(deloadTargets(light, DELOADED)).toEqual({ Gemelo: 1 })
   })
 
