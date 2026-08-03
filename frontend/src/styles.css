@@ -1664,7 +1664,13 @@ button.heat-cell {
   --hm-lab: 13px;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  /* Flush left, not centred. The grid used to be ten columns wide whatever the
+     log held, so it filled the card and centring cost nothing. Now it starts at
+     the first week you trained, and a short one floated to the middle of a card
+     whose title, chips and hint are all flush left — a gutter opened where the
+     weekday labels used to sit. Centring a box of variable width against fixed
+     left-aligned neighbours is what broke, not the width itself. */
+  justify-content: flex-start;
   gap: 6px;
   /* The week count is chosen to fit a phone card, so normally nothing overflows
      and no scrollbar appears. The fallback is scroll rather than the inherited

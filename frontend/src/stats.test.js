@@ -118,10 +118,39 @@ describe('muscleHeatmapGrid', () => {
   const grid = muscleHeatmapGrid(LOG, { weeks: 6, endDate: SUNDAY })
   const cell = (date) => grid.flat().find((c) => c.date === date)
 
-  it('is `weeks` columns of 7 days, ending on the week of the end date', () => {
-    expect(grid).toHaveLength(6)
+  it('is columns of 7 days, ending on the week of the end date', () => {
     expect(grid.every((col) => col.length === 7)).toBe(true)
     expect(grid.at(-1)[0].date).toBe('2026-07-20')
+  })
+
+  it('starts on the first week you trained, not `weeks` back on the calendar', () => {
+    // Asked for 6 weeks from 15 jun; the log starts 30 jun. The two columns
+    // before it are calendar, not history.
+    expect(grid).toHaveLength(4)
+    expect(grid[0][0].date).toBe('2026-06-29')
+  })
+
+  it('keeps `weeks` as a ceiling once the log is long enough to fill it', () => {
+    const long = muscleHeatmapGrid(
+      [trained('2026-06-16', group('Pecho', 3)), ...LOG],
+      { weeks: 6, endDate: SUNDAY },
+    )
+    expect(long).toHaveLength(6)
+    expect(long[0][0].date).toBe('2026-06-15')
+  })
+
+  it('keeps an empty week that sits between two you trained', () => {
+    // 6–12 jul has nothing, and that is the answer to "did I skip a week?".
+    const gap = grid.find((col) => col[0].date === '2026-07-06')
+    expect(gap).toBeDefined()
+    expect(gap.every((cell) => cell.total === 0)).toBe(true)
+  })
+
+  it('shows the current week even when nothing was ever logged', () => {
+    const empty = muscleHeatmapGrid([], { weeks: 6, endDate: SUNDAY })
+    expect(empty).toHaveLength(1)
+    expect(empty[0][0].date).toBe('2026-07-20')
+    expect(empty[0].some((cell) => cell.today)).toBe(true)
   })
 
   it('ranks a day’s groups by volume, so the cell knows its dominant colour', () => {

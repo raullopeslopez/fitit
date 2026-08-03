@@ -135,7 +135,19 @@ export function muscleHeatmapGrid(days, { weeks = 15, endDate } = {}) {
     }
     cols.push(col)
   }
-  return cols
+
+  // The weeks before your first logged one are calendar, not history, and they
+  // are not free: a column is 19px of a card that has about 300 to give, so on
+  // a young log seven empty columns pushed three of data into a third of the
+  // width. `weeks` is a ceiling from here on, not a count.
+  //
+  // Only the leading run goes. A gap *between* two trained weeks is the answer
+  // to "did I skip one?", and closing it would sit non-adjacent weeks side by
+  // side while the hint under the grid still promises one column per week.
+  const firstTrained = cols.findIndex((col) => col.some((cell) => cell.total > 0))
+  // An empty log still gets the current week: its today cell is the one you can
+  // still fill, and a card with no columns at all says nothing.
+  return firstTrained < 0 ? cols.slice(-1) : cols.slice(firstTrained)
 }
 
 // --- Periods -----------------------------------------------------------------
