@@ -97,7 +97,13 @@ describe('Heatmap', () => {
 
   it('spans each month label over its own columns and opens a gap at the change', () => {
     const { container } = render(
-      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+      <Heatmap
+        // Trained in the first week too, or the grid would start at the last
+        // one and there would be no month change left to label.
+        days={[day('2026-06-29', group('Pecho', 4)), day('2026-07-20', group('Pecho', 6))]}
+        weeks={4}
+        endDate={SUNDAY}
+      />,
     )
     // Four weeks back from 20 jul: 29 jun, 6 jul, 13 jul, 20 jul.
     const months = [...container.querySelectorAll('.heat-months span')]
@@ -111,7 +117,11 @@ describe('Heatmap', () => {
 
   it('labels each column with the Monday it starts on', () => {
     const { container } = render(
-      <Heatmap days={[day('2026-07-20', group('Pecho', 6))]} weeks={4} endDate={SUNDAY} />,
+      <Heatmap
+        days={[day('2026-06-29', group('Pecho', 4)), day('2026-07-20', group('Pecho', 6))]}
+        weeks={4}
+        endDate={SUNDAY}
+      />,
     )
     const weeks = [...container.querySelectorAll('.heat-weeks span')]
     expect(weeks.map((w) => w.textContent)).toEqual(['29', '6', '13', '20'])
@@ -150,9 +160,54 @@ describe('Heatmap', () => {
   // 15 weeks of 21px cells plus a seven-row chip column is ~500px of content in
   // a 320px card: on the phone the grid was clipped at both edges, the weekday
   // labels fell off the left and the chips ran past the bottom of the calendar.
-  it('shows a number of weeks that fits a phone', () => {
-    const { container } = render(<Heatmap days={[]} endDate={SUNDAY} />)
+  it('stops at a number of weeks that fits a phone', () => {
+    // 18 may is ten weeks back from the week of the 20th — the oldest column
+    // the card will draw however far the log goes.
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-04-06', group('Pecho', 4)), day('2026-05-18', group('Pecho', 4))]}
+        endDate={SUNDAY}
+      />,
+    )
     expect(container.querySelectorAll('.heat-col')).toHaveLength(10)
+    expect(container.querySelectorAll('.heat-weeks span')[0].textContent).toBe('18')
+  })
+
+  // Ten weeks is the ceiling, not the width. The card used to draw all ten
+  // whatever the log held, so a young one spent most of its width on months
+  // that predate the first workout.
+  it('starts at the first week you trained, not ten back on the calendar', () => {
+    const { container } = render(
+      <Heatmap days={[day('2026-07-13', group('Pecho', 4))]} endDate={SUNDAY} />,
+    )
+    const weeks = [...container.querySelectorAll('.heat-weeks span')]
+    expect(weeks.map((w) => w.textContent)).toEqual(['13', '20'])
+  })
+
+  // The labels are built from the grid, so they have to survive the trim with
+  // it: a month that lost all its columns must lose its label too, and the gap
+  // has to reopen at whatever month change is left.
+  it('re-spans the month labels over what is left after the trim', () => {
+    const { container } = render(
+      <Heatmap
+        days={[day('2026-06-29', group('Pecho', 4)), day('2026-07-20', group('Pecho', 6))]}
+        weeks={8}
+        endDate={SUNDAY}
+      />,
+    )
+    const months = [...container.querySelectorAll('.heat-months span')]
+    // Asked for 8 weeks from 8 jun; three of them predate the log and go, so
+    // "may"/the early june columns never reach the label row.
+    expect(months.map((m) => m.textContent)).toEqual(['jun', 'jul'])
+    expect(months[0].style.getPropertyValue('--cols')).toBe('1')
+    expect(months[1].style.getPropertyValue('--cols')).toBe('3')
+    expect(container.querySelectorAll('.heat-col')[1]).toHaveClass('is-month-start')
+  })
+
+  it('still draws the current week when nothing has ever been logged', () => {
+    const { container } = render(<Heatmap days={[]} endDate={SUNDAY} />)
+    expect(container.querySelectorAll('.heat-col')).toHaveLength(1)
+    expect(cellOn(container, SUNDAY)).toHaveClass('heat-today')
   })
 
   it('puts the chips under the grid, on one swipeable line', () => {
