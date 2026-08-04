@@ -379,14 +379,21 @@ async def previous_marks(
             bars[s.reps] = s.weight
     best_by_reps = [RepMark(reps=r, weight=w) for r, w in sorted(bars.items())]
 
-    last_workout_id = await session.scalar(
-        select(SetEntry.workout_id)
-        .join(Workout, Workout.id == SetEntry.workout_id)
-        .join(Day, Day.id == Workout.day_id)
-        .where(*scope)
-        .order_by(Day.date.desc(), Workout.id.desc())
-        .limit(1)
-    )
+    # The training day comes back with the workout id: the card dates the marks
+    # off this, and `created_at` on the sets answers a different question (when
+    # the row was written), which drifts the moment a session is logged on
+    # another date.
+    last = (
+        await session.execute(
+            select(SetEntry.workout_id, Day.date)
+            .join(Workout, Workout.id == SetEntry.workout_id)
+            .join(Day, Day.id == Workout.day_id)
+            .where(*scope)
+            .order_by(Day.date.desc(), Workout.id.desc())
+            .limit(1)
+        )
+    ).first()
+    last_workout_id, last_date = last if last is not None else (None, None)
     if last_workout_id is None:
         return PreviousMarks(exercise_name=exercise.name, found=False, sets=[], kind=exercise.kind)
 
@@ -403,6 +410,7 @@ async def previous_marks(
         found=True,
         best_one_rm=best_one_rm,
         best_by_reps=best_by_reps,
+        last_date=last_date,
         kind=exercise.kind,
         sets=[
             SetOut(

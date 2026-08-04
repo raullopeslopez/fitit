@@ -346,7 +346,11 @@ function ExerciseCard({
         return best == null || s.reps > best.reps ? s : best
       }, null))
     : null
-  const lastWhen = previous?.sets?.length ? daysAgoLabel(previous.sets[0].created_at) : null
+  // The day trained, not `sets[0].created_at`. That one is when the row was
+  // written: a session logged on another date dated three days of history as
+  // today. `last_date` comes from the same Day the backend used to pick this
+  // workout, so the label and the selection can no longer disagree.
+  const lastWhen = previous?.last_date ? daysAgoLabel(previous.last_date) : null
   // What a folded card still has to answer: did I do this, and what did I hit.
   // It names one real working set — not decoupled reps/weight ranges, where you
   // couldn't tell which weight went with which reps. When every set matched,

@@ -447,6 +447,34 @@ describe('Workout', () => {
     expect(await screen.findByText(/última vez/i)).toBeInTheDocument()
   })
 
+  // "Última vez · hace 3 días" was read off the set's `created_at`, which is
+  // when the row was written, not when I trained. Log Monday's session on
+  // Thursday — "Otra fecha", or a set added the next morning — and the card
+  // dated three days of history as today. The backend already picks the last
+  // workout by training day; the label now reads the same field.
+  it('dates the marks by the day I trained, not the day the row was written', async () => {
+    const iso = (daysBack) => {
+      const d = new Date()
+      d.setDate(d.getDate() - daysBack)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+      ).padStart(2, '0')}`
+    }
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      // Typed just now, trained three days ago.
+      sets: [benchSet({ id: 5, created_at: new Date().toISOString() })],
+      last_date: iso(3),
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    expect(await screen.findByText(/última vez · hace 3 días/i)).toBeInTheDocument()
+  })
+
   it('headers today’s logged sets as "Hoy" so they read apart from the previous marks', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
