@@ -11,7 +11,7 @@ import {
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
 import { fold, formatMonth, formatRange } from './format.js'
-import Heatmap from './Heatmap.jsx'
+import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
 import { deloadTargets, recordLadder, sessionsPerPeriod, setsPerMuscle } from './stats.js'
@@ -708,7 +708,7 @@ export default function Progress() {
           expect to be read. */}
       {days.length > 0 && <PeriodSummary days={days} />}
 
-      {days.length > 0 && <Heatmap days={days} />}
+      {days.length > 0 && <Rhythm days={days} />}
 
       {/* Not gated on exercises having loaded: the search box below is typeable
           the instant the screen mounts, so it must be on screen the instant the

@@ -1,59 +1,14 @@
 import {
-  dailySetCounts,
   deloadTargets,
-  heatmapGrid,
   lastTime,
   muscleByDay,
-  muscleHeatmapGrid,
+  muscleRhythm,
   recordLadder,
   sessionsPerPeriod,
   setsPerMuscle,
   trainingStats,
   weightPrs,
 } from './stats.js'
-
-const day = (date, ...setCounts) => ({
-  date,
-  workouts: setCounts.map((n) => ({ sets: Array.from({ length: n }, (_, i) => ({ id: i })) })),
-})
-
-describe('dailySetCounts', () => {
-  it("sums sets across a day's workouts", () => {
-    expect(dailySetCounts([day('2026-07-16', 3, 2)])['2026-07-16']).toBe(5)
-  })
-})
-
-describe('heatmapGrid', () => {
-  const grid = heatmapGrid([day('2026-07-16', 12)], { weeks: 15, endDate: '2026-07-16' })
-
-  it('is `weeks` columns of 7 days', () => {
-    expect(grid).toHaveLength(15)
-    expect(grid.every((col) => col.length === 7)).toBe(true)
-  })
-
-  it('buckets a set count into a heat level (12 sets -> level 3)', () => {
-    const cell = grid.flat().find((c) => c.date === '2026-07-16')
-    expect(cell.count).toBe(12)
-    expect(cell.level).toBe(3)
-    expect(cell.future).toBe(false)
-  })
-
-  it('flags days after the end date as future with no heat', () => {
-    const after = grid.flat().filter((c) => c.date > '2026-07-16')
-    expect(after.every((c) => c.future && c.level === 0)).toBe(true)
-  })
-
-  it('ends on the week that contains the end date', () => {
-    const lastCol = grid[grid.length - 1]
-    expect(lastCol.some((c) => c.date === '2026-07-16')).toBe(true)
-  })
-
-  it('marks exactly one cell as today', () => {
-    const todays = grid.flat().filter((c) => c.today)
-    expect(todays).toHaveLength(1)
-    expect(todays[0].date).toBe('2026-07-16')
-  })
-})
 
 describe('trainingStats', () => {
   it('counts total days and the streak of consecutive days ending at the most recent', () => {
@@ -114,72 +69,77 @@ describe('muscleByDay', () => {
   })
 })
 
-describe('muscleHeatmapGrid', () => {
-  const grid = muscleHeatmapGrid(LOG, { weeks: 6, endDate: SUNDAY })
-  const cell = (date) => grid.flat().find((c) => c.date === date)
+// One row per muscle, a day per column: the card answers *when*, and leaves
+// *how much* to the period summary above it. So there is no volume in here at
+// all — a day is trained or it isn't.
+describe('muscleRhythm', () => {
+  const rhythm = muscleRhythm(LOG, { weeks: 4, endDate: SUNDAY })
+  const row = (name) => rhythm.rows.find((r) => r.group === name)
 
-  it('is columns of 7 days, ending on the week of the end date', () => {
-    expect(grid.every((col) => col.length === 7)).toBe(true)
-    expect(grid.at(-1)[0].date).toBe('2026-07-20')
+  it('runs whole weeks back from the one you are in, ending today', () => {
+    // Four weeks counting the current one: 29 jun, 6, 13 and 20 jul. Starting
+    // on a Monday is what lets a week boundary fall every seven columns.
+    expect(rhythm.dates[0]).toBe('2026-06-29')
+    expect(rhythm.dates.at(-1)).toBe(SUNDAY)
+    expect(rhythm.dates).toHaveLength(28)
   })
 
-  it('starts on the first week you trained, not `weeks` back on the calendar', () => {
-    // Asked for 6 weeks from 15 jun; the log starts 30 jun. The two columns
-    // before it are calendar, not history.
-    expect(grid).toHaveLength(4)
-    expect(grid[0][0].date).toBe('2026-06-29')
+  it('stops at today, so the current week is as short as it really is', () => {
+    const midweek = muscleRhythm(LOG, { weeks: 4, endDate: '2026-07-22' })
+    expect(midweek.dates[0]).toBe('2026-06-29')
+    expect(midweek.dates.at(-1)).toBe('2026-07-22')
+    expect(midweek.dates).toHaveLength(24)
   })
 
-  it('keeps `weeks` as a ceiling once the log is long enough to fill it', () => {
-    const long = muscleHeatmapGrid(
-      [trained('2026-06-16', group('Pecho', 3)), ...LOG],
-      { weeks: 6, endDate: SUNDAY },
-    )
-    expect(long).toHaveLength(6)
-    expect(long[0][0].date).toBe('2026-06-15')
-  })
-
-  it('keeps an empty week that sits between two you trained', () => {
-    // 6–12 jul has nothing, and that is the answer to "did I skip a week?".
-    const gap = grid.find((col) => col[0].date === '2026-07-06')
-    expect(gap).toBeDefined()
-    expect(gap.every((cell) => cell.total === 0)).toBe(true)
-  })
-
-  it('shows the current week even when nothing was ever logged', () => {
-    const empty = muscleHeatmapGrid([], { weeks: 6, endDate: SUNDAY })
-    expect(empty).toHaveLength(1)
-    expect(empty[0][0].date).toBe('2026-07-20')
-    expect(empty[0].some((cell) => cell.today)).toBe(true)
-  })
-
-  it('ranks a day’s groups by volume, so the cell knows its dominant colour', () => {
-    expect(cell('2026-07-20').groups).toEqual([
-      { group: 'Pecho', sets: 4 },
-      { group: 'Tríceps', sets: 2 },
+  it('puts what you have left alone longest at the top', () => {
+    // Cuádriceps 30 jun, Pecho and Tríceps 20 jul, Espalda 22 jul. Ties break
+    // on the canonical order, so Pecho comes before Tríceps.
+    expect(rhythm.rows.map((r) => r.group)).toEqual([
+      'Cuádriceps',
+      'Pecho',
+      'Tríceps',
+      'Espalda',
     ])
+    expect(rhythm.rows.map((r) => r.since)).toEqual([26, 6, 6, 4])
   })
 
-  it('keeps the level buckets of the old heatmap (6 sets -> level 2)', () => {
-    expect(cell('2026-07-20').total).toBe(6)
-    expect(cell('2026-07-20').level).toBe(2)
-    expect(cell('2026-07-21').total).toBe(0)
-    expect(cell('2026-07-21').level).toBe(0)
+  it('says trained or not, and nothing about how much', () => {
+    const pecho = row('Pecho').days
+    expect(pecho.find((d) => d.date === '2026-07-20').worked).toBe(true)
+    expect(pecho.find((d) => d.date === '2026-07-21').worked).toBe(false)
+    // 20 jul was 4 sets of chest and 15 jul was 2, and the row draws them the
+    // same: volume belongs to the card above, which states it as a number.
+    expect(Object.keys(pecho[0])).toEqual(['date', 'worked'])
   })
 
-  it('counts an ungrouped set as volume even though it colours nothing', () => {
-    const days = [trained('2026-07-20', group('Pecho', 2), group(null, 3))]
-    const only = muscleHeatmapGrid(days, { weeks: 1, endDate: SUNDAY }).flat()
-    const day = only.find((c) => c.date === '2026-07-20')
-    expect(day.total).toBe(5)
-    expect(day.groups).toEqual([{ group: 'Pecho', sets: 2 }])
+  it('is 0 days since a muscle you trained today', () => {
+    const today = muscleRhythm(LOG, { weeks: 4, endDate: '2026-07-22' })
+    expect(today.rows.find((r) => r.group === 'Espalda').since).toBe(0)
   })
 
-  it('flags today and the rest of the week as future', () => {
-    expect(cell(SUNDAY).today).toBe(true)
-    expect(cell('2026-07-25').future).toBe(false)
-    const later = muscleHeatmapGrid(LOG, { weeks: 6, endDate: '2026-07-22' })
-    expect(later.flat().find((c) => c.date === '2026-07-25').future).toBe(true)
+  // The window is what you can see; the gap is what is true. A muscle last
+  // touched in May has an empty row either way, and "83" is the number that
+  // says which kind of empty it is.
+  it('counts the gap from the whole log, not from the edge of the window', () => {
+    const stale = muscleRhythm([trained('2026-05-04', group('Gemelo', 3)), ...LOG], {
+      weeks: 4,
+      endDate: SUNDAY,
+    })
+    const gemelo = stale.rows.find((r) => r.group === 'Gemelo')
+    expect(gemelo.since).toBe(83)
+    expect(gemelo.days.every((d) => !d.worked)).toBe(true)
+    expect(stale.rows[0].group).toBe('Gemelo')
+  })
+
+  it('gives a row to every muscle the log has ever held, and to no other', () => {
+    expect(muscleRhythm([], { weeks: 4, endDate: SUNDAY }).rows).toEqual([])
+    // An ungrouped set has no muscle to be a row about.
+    const untagged = muscleRhythm([trained('2026-07-20', group(null, 3))], {
+      weeks: 4,
+      endDate: SUNDAY,
+    })
+    expect(untagged.rows).toEqual([])
+    expect(untagged.dates).toHaveLength(28)
   })
 })
 

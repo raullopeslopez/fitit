@@ -102,8 +102,8 @@ describe('Progress', () => {
     expect(screen.getByText('15 × 15')).toBeInTheDocument()
     expect(screen.getByText('20 × 15')).toBeInTheDocument()
 
-    // Heatmap draws its own muscle legend above this card with the same chip
-    // labels, so the click has to stay scoped to Evolución's own chips.
+    // Ritmo por músculo names every muscle above this card, so the click has to
+    // stay scoped to Evolución's own chips.
     const evoCard = screen.getByText(/evolución/i).closest('.card')
     await userEvent.click(
       [...evoCard.querySelectorAll('.chip')].find((c) => /^Pecho$/i.test(c.textContent)),
@@ -209,8 +209,7 @@ describe('Progress', () => {
     ])
     render(<Progress />)
 
-    // A chip per muscle that has exercises. The heatmap has its own filter
-    // chips, so the picker's are the ones inside the form.
+    // A chip per muscle that has exercises — the picker's, inside the form.
     const chips = await screen.findAllByRole('button', { name: /pecho/i })
     expect(screen.getAllByRole('button', { name: /cuádriceps/i }).length).toBeGreaterThan(0)
 
@@ -615,7 +614,7 @@ describe('Progress', () => {
     ])
     render(<Progress />)
 
-    expect(await screen.findByText(/qué has entrenado/i)).toBeInTheDocument()
+    expect(await screen.findByText(/ritmo por músculo/i)).toBeInTheDocument()
     // Consistency scoring is gone: it never said anything about training.
     expect(screen.queryByText(/racha/i)).not.toBeInTheDocument()
   })
@@ -653,10 +652,10 @@ describe('Progress', () => {
 
       await screen.findByText('Esta semana')
       const summary = container.querySelector('.sum-head')
-      const heatmap = container.querySelector('.heatmap')
+      const rhythm = container.querySelector('.rhythm')
       expect(summary).not.toBeNull()
-      expect(heatmap).not.toBeNull()
-      expect(summary.compareDocumentPosition(heatmap) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(rhythm).not.toBeNull()
+      expect(summary.compareDocumentPosition(rhythm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     // Sets in one week, spread so every band of the reference is represented.

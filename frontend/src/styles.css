@@ -1589,213 +1589,119 @@ button.set-action {
   margin-bottom: 1rem;
 }
 
-/* The calendar of what you trained. Colour is the muscle and opacity the
-   volume; the amber intensity ramp and the streak hero it used to lead with
-   were both scoring consistency, which says nothing about training. */
-.heatmap {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  overflow-x: auto; /* never let the grid push the card wider than the screen */
-}
-.heat-days {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-top: 0; /* aligns with the grid rows */
-}
-.heat-daylabel {
-  height: 16px;
-  line-height: 16px;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--muted);
-}
-.heat-grid {
-  display: flex;
-  gap: 3px;
-}
-.heat-col {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.heat-cell {
-  width: 16px;
-  height: 16px;
-  min-height: 0; /* override the global button min-height:44px so cells stay square */
-  flex: none;
-  border: none;
-  border-radius: 3px;
-  padding: 0;
-  background: color-mix(in srgb, var(--muted) 14%, transparent);
-}
-button.heat-cell {
-  cursor: pointer;
-}
-.heat-future {
-  background: transparent;
-}
-/* Today, outlined rather than filled — it marks where you are in the grid
-   without claiming effort you haven't logged yet. */
-.heat-cell.heat-today {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.heat-readout {
-  margin: 0.9rem 0 0;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
+/* --- Ritmo por músculo -------------------------------------------------------
 
-/* --- What you trained -------------------------------------------------------
+   A row per muscle, a day per column. This replaced a week-by-weekday calendar
+   whose cells carried muscle *and* volume at 21px: the volume duplicated the
+   period summary directly above (which states it as a number against a
+   reference), and the nine hues left over had to name the muscle by themselves,
+   which needs a nine-chip legend that does not fit a phone card.
 
-   The calendar answers two questions at once without a legend for either:
-   *which* muscle by colour, *how much* by opacity. A column is a week, a row a
-   weekday, so a habit shows up as a horizontal band and a gap shows up as a
-   hole. Sizes come from one place because the labels have to keep step with
-   the cells — a 21px grid under 10px legends drifts out of alignment. */
-.heat-cal {
-  --hm-cell: 21px;
-  --hm-gap: 3px;
-  --hm-month-gap: 10px;
-  --hm-lab: 13px;
+   Moving the muscle to the y axis pays for both. The name labels the row, so
+   the colour rides a mark beside its name — the scope the palette was approved
+   for — and the legend is gone. The marks are binary: what is left to read is
+   frequency, as density along a row, and the gap at the end of one.
+
+   The track is `1fr` columns, not a fixed cell size. A window of 22–28 days
+   (whole weeks back, cut at today) is a different number of columns every day
+   of the week, and the old fixed grid left three quarters of the card empty on
+   a young log. Here the days divide whatever width there is. */
+.rhythm {
+  --rh-gap: 2px;
+  display: grid;
+  /* name · track · days-since. One grid for the whole block, with the head, the
+     rows and the foot as `display: contents`, so the month labels, the marks
+     and the week numbers land on the same columns by construction — any layout
+     that measures the track twice drifts between them. */
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 3px;
+}
+.rhythm-head,
+.rhythm-row,
+.rhythm-foot {
+  display: contents;
+}
+.rhythm-name {
   display: flex;
-  align-items: flex-start;
-  /* Flush left, not centred. The grid used to be ten columns wide whatever the
-     log held, so it filled the card and centring cost nothing. Now it starts at
-     the first week you trained, and a short one floated to the middle of a card
-     whose title, chips and hint are all flush left — a gutter opened where the
-     weekday labels used to sit. Centring a box of variable width against fixed
-     left-aligned neighbours is what broke, not the width itself. */
-  justify-content: flex-start;
+  align-items: center;
   gap: 6px;
-  /* The week count is chosen to fit a phone card, so normally nothing overflows
-     and no scrollbar appears. The fallback is scroll rather than the inherited
-     `visible`: on a narrow phone, or with the system font scaled up, a clipped
-     grid loses its left edge and its weekday labels with no way to reach them. */
-  overflow-x: auto;
-}
-/* One swipeable line under the grid, like the picker's. */
-.heat-chips {
-  margin-top: 0.85rem;
-}
-.heat-cal .heat-days {
-  padding-top: calc(var(--hm-lab) + 9px);
-  gap: var(--hm-gap);
-}
-.heat-cal .heat-daylabel,
-.heat-cal .heat-months,
-.heat-cal .heat-weeks {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--hm-lab);
+  font-size: 0.8rem;
   font-weight: 600;
-  /* Full-strength text, not muted: at 13px these are read, not skimmed. */
+  letter-spacing: 0.01em;
   color: var(--text);
-}
-.heat-cal .heat-daylabel {
-  height: var(--hm-cell);
-  line-height: var(--hm-cell);
-}
-.heat-cal .heat-grid,
-.heat-cal .heat-col {
-  gap: var(--hm-gap);
-}
-.heat-cal .heat-cell {
-  width: var(--hm-cell);
-  height: var(--hm-cell);
-}
-/* Each label spans its own month's columns and centres over them, so "jul"
-   sits over July rather than over the day July happens to start on. */
-.heat-months {
-  display: flex;
-  gap: var(--hm-gap);
-  margin-bottom: 7px;
-  line-height: calc(var(--hm-lab) + 2px);
-  overflow: visible;
-}
-.heat-months span {
-  flex: 0 0 auto;
-  width: calc(var(--hm-cell) * var(--cols, 1) + var(--hm-gap) * (var(--cols, 1) - 1));
-  text-align: center;
   white-space: nowrap;
 }
-/* The Monday each column starts on. One number per week is enough to locate
-   yourself; the month above does the rest. */
-.heat-weeks {
-  display: flex;
-  gap: var(--hm-gap);
-  margin-top: 6px;
+/* Same 8px as a Días breakdown part: on a 0.8rem line the 13px default becomes
+   the loudest thing on the row, and colour is never allowed to outrank the name
+   it belongs to. */
+.rhythm-name .dot {
+  width: 8px;
+  height: 8px;
 }
-.heat-weeks span {
-  flex: none;
-  width: var(--hm-cell);
-  text-align: center;
+.rhythm-track {
+  display: grid;
+  grid-template-columns: repeat(var(--days), 1fr);
+  gap: var(--rh-gap);
+  align-items: center;
 }
-/* The week you are in. Today's cell is already outlined, but at 21px it can't
-   say which of ten columns it belongs to — and the column is the unit this app
-   is measured in. A wash behind the column and its date in accent ink, drawn on
-   a pseudo-element so nothing in the grid moves: the labels below and the month
-   spans above are pinned to the same widths and drift the moment anything here
-   takes padding. */
-.heat-col {
-  position: relative;
-  z-index: 0;
+.rhythm-day {
+  height: 8px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
 }
-.heat-col.is-current::before {
-  content: '';
-  position: absolute;
-  inset: -3px -2px;
-  z-index: -1;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+.rhythm-day.is-worked {
+  background: var(--m);
 }
-.heat-weeks span.is-current {
+/* Weeks are readable without a rule: the window starts on a Monday, so every
+   seventh column opens a hairline gap. It is what makes "twice a week" a shape
+   rather than a count. */
+.rhythm-day.is-week-start {
+  margin-left: 3px;
+}
+/* Today, outlined rather than filled — it marks where the track ends without
+   claiming training that hasn't happened. */
+.rhythm-day.is-today {
+  outline: 1.5px solid var(--accent);
+  outline-offset: 1px;
+}
+.rhythm-months,
+.rhythm-weeks {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text);
+}
+/* Anchored to the day the run starts on, not centred over it. A month or a week
+   can be two columns wide here, and a centred label on a 14px box overlaps its
+   neighbour; a left edge is unambiguous at any width. */
+.rhythm-months span,
+.rhythm-weeks span {
+  grid-column: span var(--cols, 1);
+  white-space: nowrap;
+  overflow: visible;
+}
+.rhythm-months {
+  margin-bottom: 2px;
+}
+.rhythm-weeks {
+  margin-top: 3px;
+}
+/* The week you are in, in accent ink — the same mark the calendar used to put
+   on its current column. */
+.rhythm-weeks span.is-current {
   color: var(--accent-ink);
 }
-/* A new month opens a gap instead of a divider line — the same 10px on the
-   column, its date and its label, or the three drift apart. */
-.heat-col.is-month-start,
-.heat-weeks span.is-month-start,
-.heat-months span.is-month-start {
-  margin-left: var(--hm-month-gap);
-}
-/* Colour is the muscle, opacity the volume. A day split between two groups
-   splits the cell on the diagonal rather than picking a winner. */
-.heat-cell.is-worked {
-  background: color-mix(in srgb, var(--m-a) var(--fill, 100%), transparent);
-}
-.heat-cell.is-worked.is-split {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--m-a) var(--fill, 100%), transparent) 50%,
-    color-mix(in srgb, var(--m-b) var(--fill, 100%), transparent) 50%
-  );
-}
-.heat-v1 {
-  --fill: 25%;
-}
-.heat-v2 {
-  --fill: 50%;
-}
-.heat-v3 {
-  --fill: 75%;
-}
-.heat-v4 {
-  --fill: 100%;
-}
-/* Filtering doesn't hide the other days, it recedes them: the shape of the
-   month stays readable behind the one muscle you asked about. */
-.heat-cell.is-dimmed {
-  opacity: 0.22;
-}
-.heat-chips .chip {
-  min-height: 30px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.78rem;
+/* The only figure on the card, and the only one you can act on: everything else
+   here is something you already did. */
+.rhythm-since {
+  justify-self: end;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 /* --- Period summary ---------------------------------------------------------

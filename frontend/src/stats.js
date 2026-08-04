@@ -32,50 +32,6 @@ function mondayOf(iso) {
   return shiftDay(iso, -dow)
 }
 
-// How many sets were logged each day: { 'YYYY-MM-DD': n }. A set is a set —
-// strength or cardio — so a hard day counts higher regardless of exercise kind.
-export function dailySetCounts(days) {
-  const counts = {}
-  for (const day of days) {
-    counts[day.date] = day.workouts.reduce((n, w) => n + w.sets.length, 0)
-  }
-  return counts
-}
-
-// Buckets of daily set count → amber intensity 0–4 (0 = rest day).
-function heatLevel(count) {
-  if (count <= 0) return 0
-  if (count <= 4) return 1
-  if (count <= 9) return 2
-  if (count <= 14) return 3
-  return 4
-}
-
-// A GitHub-style grid: `weeks` columns × 7 rows (Mon…Sun), most recent week last.
-// Each cell is { date, count, level, future }. Days after `endDate` are `future`.
-export function heatmapGrid(days, { weeks = 15, endDate } = {}) {
-  const counts = dailySetCounts(days)
-  const end = endDate ?? todayIso()
-  const firstMonday = shiftDay(mondayOf(end), -(weeks - 1) * 7)
-  const cols = []
-  for (let c = 0; c < weeks; c++) {
-    const col = []
-    for (let r = 0; r < 7; r++) {
-      const date = shiftDay(firstMonday, c * 7 + r)
-      const count = counts[date] || 0
-      col.push({
-        date,
-        count,
-        level: heatLevel(count),
-        future: date > end,
-        today: date === end,
-      })
-    }
-    cols.push(col)
-  }
-  return cols
-}
-
 // --- What you trained --------------------------------------------------------
 
 // The muscle groups a day worked and how many sets each took:
@@ -98,7 +54,7 @@ export function muscleByDay(days) {
   return byDate
 }
 
-// Heaviest group first. Ties break on the canonical order so a cell's colour
+// Heaviest group first. Ties break on the canonical order so a list of groups
 // never depends on the order the sets happened to come back in.
 function rankGroups(counts) {
   return Object.entries(counts)
@@ -110,44 +66,56 @@ function rankGroups(counts) {
     )
 }
 
-// The same grid as `heatmapGrid`, but each cell carries the muscles behind its
-// volume: `{ date, total, groups, level, future, today }`. Colour comes from
-// `groups`, opacity from `level` — one cell, two things said at once.
-export function muscleHeatmapGrid(days, { weeks = 15, endDate } = {}) {
-  const totals = dailySetCounts(days)
+// A row per muscle over the last `weeks` weeks: `{ dates, rows }`, where a row
+// is `{ group, since, days: [{ date, worked }] }`.
+//
+// This card's job is *when* — how often, and what you have stopped touching.
+// *How much* is the period summary's, and it says it as a number against a
+// reference. So there is deliberately no volume in here: four sets of chest and
+// one warm-up draw the same mark, because the alternative is two cards
+// encoding the same variable and only one of them able to be precise about it.
+// That is also what frees the colour. The muscle names the row, so a hue no
+// longer has to carry identity on its own at 7px, and the nine-chip legend the
+// old grid needed goes with it.
+//
+// The window starts on a Monday so a week boundary falls every seven columns,
+// and ends today rather than on Sunday: the current week is drawn as short as
+// it really is, the same way the summary above refuses to judge a week it
+// hasn't lived.
+export function muscleRhythm(days, { weeks = 4, endDate } = {}) {
   const byDate = muscleByDay(days)
   const end = endDate ?? todayIso()
-  const firstMonday = shiftDay(mondayOf(end), -(weeks - 1) * 7)
-  const cols = []
-  for (let c = 0; c < weeks; c++) {
-    const col = []
-    for (let r = 0; r < 7; r++) {
-      const date = shiftDay(firstMonday, c * 7 + r)
-      const total = totals[date] || 0
-      col.push({
-        date,
-        total,
-        groups: rankGroups(byDate[date] || {}),
-        level: heatLevel(total),
-        future: date > end,
-        today: date === end,
-      })
+  const start = shiftDay(mondayOf(end), -(weeks - 1) * 7)
+  const dates = []
+  for (let d = start; d <= end; d = shiftDay(d, 1)) dates.push(d)
+
+  // The last day each group was trained, read from the whole log rather than
+  // from the window. A muscle last touched before the window has an empty row
+  // either way; `since` is the number that says *which kind* of empty — "83"
+  // and "29" are the same row and very different training.
+  const last = {}
+  for (const [date, counts] of Object.entries(byDate)) {
+    if (date > end) continue
+    for (const group of Object.keys(counts)) {
+      if (!last[group] || date > last[group]) last[group] = date
     }
-    cols.push(col)
   }
 
-  // The weeks before your first logged one are calendar, not history, and they
-  // are not free: a column is 19px of a card that has about 300 to give, so on
-  // a young log seven empty columns pushed three of data into a third of the
-  // width. `weeks` is a ceiling from here on, not a count.
-  //
-  // Only the leading run goes. A gap *between* two trained weeks is the answer
-  // to "did I skip one?", and closing it would sit non-adjacent weeks side by
-  // side while the hint under the grid still promises one column per week.
-  const firstTrained = cols.findIndex((col) => col.some((cell) => cell.total > 0))
-  // An empty log still gets the current week: its today cell is the one you can
-  // still fill, and a card with no columns at all says nothing.
-  return firstTrained < 0 ? cols.slice(-1) : cols.slice(firstTrained)
+  return {
+    dates,
+    rows: Object.keys(last)
+      .map((group) => ({
+        group,
+        since: daysBetween(last[group], end),
+        days: dates.map((date) => ({ date, worked: (byDate[date]?.[group] || 0) > 0 })),
+      }))
+      // Longest untouched first: the row order *is* the answer to "what should I
+      // train today", so the question costs no second control and no extra card.
+      .sort(
+        (a, b) =>
+          b.since - a.since || MUSCLE_GROUPS.indexOf(a.group) - MUSCLE_GROUPS.indexOf(b.group),
+      ),
+  }
 }
 
 // --- Periods -----------------------------------------------------------------
