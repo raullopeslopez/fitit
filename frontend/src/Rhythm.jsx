@@ -48,7 +48,6 @@ function weekRuns(dates) {
 // another control.
 export default function Rhythm({ days, weeks = 4, endDate }) {
   const { dates, rows } = muscleRhythm(days, { weeks, endDate })
-  const today = dates.at(-1)
 
   if (rows.length === 0) {
     return (
@@ -102,7 +101,6 @@ export default function Rhythm({ days, weeks = 4, endDate }) {
                     className={[
                       'rhythm-day',
                       d.worked && 'is-worked',
-                      d.date === today && 'is-today',
                       i > 0 && i % 7 === 0 && 'is-week-start',
                     ]
                       .filter(Boolean)

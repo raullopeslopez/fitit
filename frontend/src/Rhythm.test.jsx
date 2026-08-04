@@ -105,12 +105,14 @@ describe('Rhythm', () => {
     expect(weeks.at(-1)).toHaveClass('is-current')
   })
 
-  it('outlines today in every row, trained or not', () => {
+  // The calendar outlined today's cell. Here that outline would be drawn once
+  // per muscle — nine amber boxes on a column that is always the right edge,
+  // which is the accent spent on a position that never changes. The week number
+  // below says it once.
+  it('marks today once, on the week number, and not on every row', () => {
     const { container } = render(<Rhythm days={LOG} endDate={SUNDAY} />)
-    const today = container.querySelectorAll('.rhythm-day.is-today')
-    expect(today).toHaveLength(4) // one per muscle row
-    expect([...today].every((c) => c.dataset.date === SUNDAY)).toBe(true)
-    expect([...today].every((c) => !c.classList.contains('is-worked'))).toBe(true)
+    expect(container.querySelector('.rhythm-day.is-today')).toBeNull()
+    expect(container.querySelectorAll('.rhythm-weeks span.is-current')).toHaveLength(1)
   })
 
   // The legend existed because colour was carrying the muscle on its own. With

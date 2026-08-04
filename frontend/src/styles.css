@@ -1660,12 +1660,11 @@ button.set-action {
 .rhythm-day.is-week-start {
   margin-left: 3px;
 }
-/* Today, outlined rather than filled — it marks where the track ends without
-   claiming training that hasn't happened. */
-.rhythm-day.is-today {
-  outline: 1.5px solid var(--accent);
-  outline-offset: 1px;
-}
+/* No mark on today's cell. The calendar outlined it, and here that outline is
+   drawn once per muscle: nine amber boxes stacked in a column that is always the
+   right-hand edge, right next to a number — they read as a row of checkboxes,
+   and they spend the effort colour on a position that never changes. Which week
+   you are in is said once instead, on the week number below. */
 .rhythm-months,
 .rhythm-weeks {
   font-family: var(--font-mono);
@@ -1702,6 +1701,26 @@ button.set-action {
   font-variant-numeric: tabular-nums;
   font-size: 0.72rem;
   color: var(--muted);
+}
+/* On a 390px phone the days come out around 10px each, which is the size this
+   is drawn for. On a 320px one the same 23 columns fall to 3.5px and a trained
+   day becomes a hairline — so the fixed furniture gives way first: a smaller
+   name, tighter gutters, and the marks keep something to be seen with. */
+@media (max-width: 380px) {
+  .rhythm {
+    --rh-gap: 1px;
+    column-gap: 6px;
+  }
+  .rhythm-name {
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+  .rhythm-since {
+    font-size: 0.68rem;
+  }
+  .rhythm-day.is-week-start {
+    margin-left: 2px;
+  }
 }
 
 /* --- Period summary ---------------------------------------------------------
