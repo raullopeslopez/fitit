@@ -792,6 +792,17 @@ button.chart-title h2 {
   border-style: dashed;
   box-shadow: none;
 }
+/* What is still recovering, sitting between the header and the add form. No
+   card, no border, no colour: it is a note on the session, not a surface in it,
+   and colour here would read as a verdict on a line whose whole point is that
+   it only informs. Muted for the same reason — it is context you read once,
+   not a control you come back to. */
+.recent-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
 /* On paper a card is lifted by its shadow; on a dark screen there is no light
    to cast one, so the top edge catches it instead. */
 @media (prefers-color-scheme: dark) {

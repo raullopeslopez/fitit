@@ -174,21 +174,24 @@ Antes de proponer nada, lo que la base de datos ya guarda:
 
 Los tres temas son medibles con lo que hay. Ninguno necesita esquema nuevo.
 
-### A. Aviso de 48 horas · el más barato y el mejor respaldado
+### A. Aviso de 48 horas · **construido**
 
 Al abrir un entreno, si un grupo se trabajó hace menos de 48 h, decirlo. No bloquear,
 no regañar: informar, igual que la semana en curso informa y no dictamina (#85).
 
 Copy propuesto: **«Femoral, hace 26 h»**. Nada más. El número es el argumento.
 
-### B. Descanso entre series, medido y no prescrito
+### B. Descanso entre series, medido · **descartado**
 
-Calcular la mediana de descanso por ejercicio desde `created_at` y marcar los que van
-habitualmente por debajo de 90 s. Es un dato que ahora mismo nadie mira y que explica
-estancamientos reales.
+La idea era la mediana de descanso por ejercicio desde `created_at`, marcando los que
+van habitualmente por debajo de 90 s. La condición previa era validar que el registro es
+en tiempo real. Se validó contra producción el 2026-08-04 y **no lo es**: de 205 huecos
+entre series consecutivas del mismo ejercicio, 123 son de menos de 20 segundos. Se meten
+varias series de golpe, no una cada vez que termina el descanso.
 
-Riesgo honesto: si no registras en tiempo real, el dato es basura. **Hay que validarlo
-contra tus series antes de enseñarlo.**
+La mediana de los huecos que sí parecen descansos sale 2:36, pero es la mediana de un 36 %
+escogido justo por parecer plausible — circular. Los `created_at` miden el pulgar, no el
+descanso. No se construye.
 
 ### C. Semana de descarga · **construido**
 
@@ -218,8 +221,11 @@ interruptor es manual a propósito.
 
 - **Prescribir descanso entre series.** El dato es débil por encima de 90 s y convertiría
   el registro en un metrónomo.
-- **Un cronómetro de descanso.** Es la función que toda app de gimnasio tiene y nadie usa
-  dos veces. Los tiempos ya están en `created_at`.
+- **Prescribir un descanso concreto.** El dato es débil por encima de 90 s. (El
+  cronómetro opcional que la app ya tenía desde el 2026-07-20 no prescribe: por defecto
+  arranca en 90 s, que es justo el suelo que sale de §1, y se puede apagar. Esta sección
+  decía "ningún cronómetro" cuando ya había uno en producción — el doc se escribió
+  mirando la evidencia y no el código.)
 - **Recomendar frecuencia.** Con el volumen igualado da igual, y ya lo sabes.
 
 ---

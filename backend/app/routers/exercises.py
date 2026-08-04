@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, select, update
@@ -17,6 +19,7 @@ from ..schemas import (
     ExercisePatch,
     HistoryPoint,
     PreviousMarks,
+    RecentMuscle,
     RepMark,
     SetOut,
 )
@@ -329,6 +332,67 @@ async def best_marks(
         )
 
     return sorted(best.values(), key=lambda m: m.one_rm, reverse=True)[:limit]
+
+
+@router.get("/exercises/recently-trained", response_model=list[RecentMuscle])
+async def recently_trained(
+    exclude_workout_id: int | None = None,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[RecentMuscle]:
+    """Muscle groups trained today or yesterday, most recent first.
+
+    The evidence puts muscle recovery at roughly 48 hours, and "today or
+    yesterday" is that window in the unit the log actually keeps. It could be
+    computed to the hour from the sets' `created_at`, but that field says when
+    the row was written: a session entered after the fact would report the day
+    I typed it rather than the day I trained. Against real data the two disagree
+    on 4 sets in 277 — small, but the failure is silent and the extra precision
+    is false anyway, since the 48 hours is itself an approximation.
+
+    `exclude_workout_id` keeps the session you are standing in out of its own
+    answer. Without it, opening a workout tells you that you trained chest
+    today, which is the app reading its own notes back to you.
+    """
+    today = date.today()
+    conditions = [
+        Day.user_id == user_id,
+        Day.date >= today - timedelta(days=1),
+        Day.date <= today,
+    ]
+    if exclude_workout_id is not None:
+        conditions.append(Workout.id != exclude_workout_id)
+    rows = (
+        await session.execute(
+            select(Day.date, Exercise.muscle_group, Exercise.name, Exercise.kind)
+            .join(Workout, Workout.day_id == Day.id)
+            .join(SetEntry, SetEntry.workout_id == Workout.id)
+            .join(Exercise, Exercise.id == SetEntry.exercise_id)
+            .where(*conditions)
+            .distinct()
+        )
+    ).all()
+
+    # The primary group only. A bench press trains triceps, but indirect work is
+    # not a reason to call them unrecovered — the same rule the calendar follows.
+    latest: dict[str, date] = {}
+    for day, group, name, kind in rows:
+        # Same fallback as the exercise list: a row from before auto-tagging
+        # still has a group to answer with.
+        resolved = group or group_for(name, kind)
+        if resolved is None:  # cardio, and anything the classifier can't place
+            continue
+        if resolved not in latest or day > latest[resolved]:
+            latest[resolved] = day
+
+    def order(item: tuple[str, date]) -> tuple[date, int]:
+        group, day = item
+        # Most recent first; ties fall back to canonical order so the line does
+        # not reshuffle between renders.
+        index = MUSCLE_GROUPS.index(group) if group in MUSCLE_GROUPS else len(MUSCLE_GROUPS)
+        return (-day.toordinal(), index)
+
+    return [RecentMuscle(group=g, last_date=d) for g, d in sorted(latest.items(), key=order)]
 
 
 @router.get("/exercises/previous", response_model=PreviousMarks)

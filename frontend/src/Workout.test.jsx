@@ -51,6 +51,7 @@ describe('Workout', () => {
     localStorage.clear() // rest seconds and the repeat template are sticky prefs
     api.getWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: null, sets: [] })
     api.listExercises.mockResolvedValue([])
+    api.recentlyTrained.mockResolvedValue([])
     // The lock screen is off by default (it needs a permission), so unless a
     // test turns it on these are the quiet answers a browser with a service
     // worker and nothing queued would give.
@@ -60,6 +61,57 @@ describe('Workout', () => {
     notify.startRestNotice.mockResolvedValue({ ok: true, shown: 1 })
     notify.stopRestNotice.mockResolvedValue(true)
     wakelock.holdScreenAwake.mockReturnValue(() => {})
+  })
+
+  // Spec: backend/tests/features/recently_trained.feature. A muscle worked
+  // yesterday is still recovering, and the moment to know that is before you
+  // pick what to add — not after.
+  describe('what is still recent', () => {
+    const iso = (daysBack) => {
+      const d = new Date()
+      d.setDate(d.getDate() - daysBack)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+      ).padStart(2, '0')}`
+    }
+
+    it('names what I trained yesterday, above the exercises', async () => {
+      api.recentlyTrained.mockResolvedValue([
+        { group: 'Femoral', last_date: iso(1) },
+        { group: 'Cuádriceps', last_date: iso(1) },
+      ])
+      renderWorkout()
+
+      expect(await screen.findByText(/Entrenado ayer: Femoral, Cuádriceps/)).toBeInTheDocument()
+    })
+
+    it('separates today from yesterday on the one line', async () => {
+      api.recentlyTrained.mockResolvedValue([
+        { group: 'Pecho', last_date: iso(0) },
+        { group: 'Femoral', last_date: iso(1) },
+      ])
+      renderWorkout()
+
+      expect(await screen.findByText(/Entrenado hoy: Pecho · ayer: Femoral/)).toBeInTheDocument()
+    })
+
+    // Most sessions have nothing to report, and a line saying "todo recuperado"
+    // on those would be noise where the exercises should be.
+    it('says nothing at all when nothing is recent', async () => {
+      api.recentlyTrained.mockResolvedValue([])
+      renderWorkout()
+
+      await screen.findByLabelText(/ejercicio/i)
+      expect(screen.queryByText(/entrenado (hoy|ayer)/i)).not.toBeInTheDocument()
+    })
+
+    // It asks about everything except the session it is in, or it would report
+    // the sets I just logged as a reason not to log them.
+    it('leaves the session I am in out of the question', async () => {
+      renderWorkout()
+
+      await waitFor(() => expect(api.recentlyTrained).toHaveBeenCalledWith(1))
+    })
   })
 
   // Spec: the newest work comes first, and only what you're on stays open.

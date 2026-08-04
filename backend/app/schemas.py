@@ -180,6 +180,13 @@ class PreviousMarks(BaseModel):
     kind: str | None = None  # the exercise's kind, or None if it doesn't exist yet
 
 
+class RecentMuscle(BaseModel):
+    """A muscle group trained inside the recovery window, and the day it was."""
+
+    group: str
+    last_date: Date
+
+
 class LoginIn(BaseModel):
     username: str
     password: str
