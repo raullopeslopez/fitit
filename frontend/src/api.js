@@ -81,6 +81,17 @@ export function deleteDay(id) {
   return apiFetch(`/days/${id}`, { method: 'DELETE' })
 }
 
+// Muscle groups trained today or yesterday, most recent first — what is still
+// recovering when you open a session. Its own endpoint rather than a read over
+// `/days`: that one carries the whole log, which is hundreds of sets and
+// growing, to draw a single line.
+export function recentlyTrained(excludeWorkoutId = null) {
+  const params = new URLSearchParams()
+  if (excludeWorkoutId != null) params.set('exclude_workout_id', String(excludeWorkoutId))
+  const query = params.toString()
+  return apiFetch(`/exercises/recently-trained${query ? `?${query}` : ''}`)
+}
+
 // The marks to beat for one exercise. `excludeWorkoutId` is the session you're
 // standing in: without it, a card rebuilt from an open workout is handed its
 // own sets as the thing to beat.

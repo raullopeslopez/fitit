@@ -79,7 +79,21 @@ export function formatRange(startIso, endIso) {
 // Takes an API timestamp (UTC) and compares calendar days in the viewer's own
 // zone — 23:00 last night is "ayer" even though it's fifteen hours back.
 export function daysAgoLabel(timestamp, today = new Date()) {
-  const then = new Date(timestamp)
+  // A bare `YYYY-MM-DD` — which is what a training day is — would be parsed by
+  // `new Date()` as UTC midnight, landing on the day before anywhere west of
+  // Greenwich. Read the parts instead, so the date means the same local day it
+  // names. Full timestamps still go through Date: they carry their own zone.
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(timestamp ?? ''))
+  let then
+  if (parts) {
+    const [y, m, d] = parts.slice(1).map(Number)
+    then = new Date(y, m - 1, d)
+    // `new Date(2026, 12, 99)` doesn't throw, it rolls forward into next year.
+    // A date that doesn't come back as the one it was given never existed.
+    if (then.getMonth() !== m - 1 || then.getDate() !== d) return null
+  } else {
+    then = new Date(timestamp)
+  }
   if (Number.isNaN(then.getTime())) return null
   const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
   const days = Math.round((startOf(today) - startOf(then)) / 86400000)

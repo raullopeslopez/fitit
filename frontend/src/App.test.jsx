@@ -11,6 +11,10 @@ describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.resetAllMocks()
+    // Entreno asks what is still recovering as soon as it mounts. These specs
+    // are about navigation, so the quiet answer is the right one — but it has
+    // to be a promise, or the auto-mock hands the effect an undefined.
+    api.recentlyTrained.mockResolvedValue([])
   })
 
   it('shows the login screen when there is no token', () => {

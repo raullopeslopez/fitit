@@ -48,3 +48,17 @@ Feature: Show previous marks
     Then I see previous marks of 8 reps at 60 kg
     And the best estimated 1RM is 76.0
     And the bar to beat at 8 reps is 60 kg
+
+  # "Última vez · hace 3 días" was computed from the row's write timestamp, not
+  # from the day I trained. The backend already picks the last workout by
+  # training date, so the two disagree the moment I log a session on another
+  # date: Monday's workout entered on Thursday read as "hoy".
+  Scenario: The marks carry the day I trained, not the day I typed them
+    Given I logged "Bench Press" at 60 kg x 8 on "2026-07-20"
+    When I ask for the previous marks of "Bench Press"
+    Then the previous marks are dated "2026-07-20"
+
+  Scenario: A lift with no history has no date either
+    Given I have never logged "Face Pull"
+    When I ask for the previous marks of "Face Pull"
+    Then the previous marks have no date

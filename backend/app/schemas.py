@@ -171,7 +171,20 @@ class PreviousMarks(BaseModel):
     # Empty when the lift has no history — then the first set is a baseline,
     # not an achievement.
     best_by_reps: list[RepMark] = []
+    # The day those sets were trained. Not derivable from `sets[*].created_at`:
+    # that is when the row was written, and a session logged on another date
+    # ("Otra fecha", or a set added the next morning) makes the two disagree.
+    # The card prints "Última vez · hace 3 días" off this, so it has to be the
+    # day I trained. None when the lift has no history.
+    last_date: Date | None = None
     kind: str | None = None  # the exercise's kind, or None if it doesn't exist yet
+
+
+class RecentMuscle(BaseModel):
+    """A muscle group trained inside the recovery window, and the day it was."""
+
+    group: str
+    last_date: Date
 
 
 class LoginIn(BaseModel):

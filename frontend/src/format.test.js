@@ -44,8 +44,19 @@ describe('daysAgoLabel', () => {
     )
   })
 
+  // The training day arrives as a bare `YYYY-MM-DD`. `new Date('2026-07-23')`
+  // parses that as UTC midnight, which lands on the 22nd anywhere west of
+  // Greenwich — so the label would be a day out for half the planet. Read the
+  // parts, don't hand the string to Date.
+  it('reads a bare date as that local day, not as UTC midnight', () => {
+    expect(daysAgoLabel('2026-07-26', today)).toBe('hoy')
+    expect(daysAgoLabel('2026-07-25', today)).toBe('ayer')
+    expect(daysAgoLabel('2026-07-23', today)).toBe('hace 3 días')
+  })
+
   it('is null for a timestamp it cannot read', () => {
     expect(daysAgoLabel(undefined, today)).toBeNull()
+    expect(daysAgoLabel('2026-13-99', today)).toBeNull()
   })
 })
 

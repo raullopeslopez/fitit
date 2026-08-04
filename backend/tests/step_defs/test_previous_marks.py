@@ -87,3 +87,26 @@ def then_no_previous_marks(marks_response):
     body = marks_response.json()
     assert body["found"] is False
     assert body["sets"] == []
+
+
+@given(parsers.parse('I logged "{name}" at {weight:g} kg x {reps:d} on "{day}"'))
+def given_logged_on_day(client, name, weight, reps, day):
+    workout = client.post("/workouts", json={"date": day})
+    assert workout.status_code == 201, workout.text
+    logged = client.post(
+        f"/workouts/{workout.json()['id']}/sets",
+        json={"exercise_name": name, "reps": reps, "weight": weight},
+    )
+    assert logged.status_code == 201, logged.text
+
+
+@then(parsers.parse('the previous marks are dated "{day}"'))
+def then_marks_dated(marks_response, day):
+    assert marks_response.status_code == 200, marks_response.text
+    assert marks_response.json()["last_date"] == day
+
+
+@then("the previous marks have no date")
+def then_marks_have_no_date(marks_response):
+    assert marks_response.status_code == 200, marks_response.text
+    assert marks_response.json()["last_date"] is None

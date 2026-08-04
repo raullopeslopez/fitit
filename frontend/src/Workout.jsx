@@ -8,6 +8,7 @@ import {
   getWorkout,
   listExercises,
   logSet,
+  recentlyTrained,
   renameWorkout,
   setExerciseMuscle,
 } from './api.js'
@@ -346,7 +347,11 @@ function ExerciseCard({
         return best == null || s.reps > best.reps ? s : best
       }, null))
     : null
-  const lastWhen = previous?.sets?.length ? daysAgoLabel(previous.sets[0].created_at) : null
+  // The day trained, not `sets[0].created_at`. That one is when the row was
+  // written: a session logged on another date dated three days of history as
+  // today. `last_date` comes from the same Day the backend used to pick this
+  // workout, so the label and the selection can no longer disagree.
+  const lastWhen = previous?.last_date ? daysAgoLabel(previous.last_date) : null
   // What a folded card still has to answer: did I do this, and what did I hit.
   // It names one real working set — not decoupled reps/weight ranges, where you
   // couldn't tell which weight went with which reps. When every set matched,
@@ -1041,6 +1046,22 @@ function RestBar({ endsAt, total, onSkip }) {
 // same shape /workouts/{id} does, so waiting on a second round trip for it
 // bought a blank screen and nothing else. Absent (a resume from storage, or a
 // reload) the fetch below is the only source, exactly as before.
+// The one-line recovery note: "Entrenado hoy: Pecho · ayer: Femoral, Cuádriceps".
+// Bucketed by day rather than printed per group, or a line where everything
+// landed yesterday would repeat the word for each muscle. Null when there is
+// nothing to say, so the caller renders no element at all.
+function recentNote(recent, today = new Date()) {
+  const buckets = { hoy: [], ayer: [] }
+  for (const row of recent ?? []) {
+    const when = daysAgoLabel(row.last_date, today)
+    if (when in buckets) buckets[when].push(row.group)
+  }
+  const parts = ['hoy', 'ayer']
+    .filter((when) => buckets[when].length > 0)
+    .map((when) => `${when}: ${buckets[when].join(', ')}`)
+  return parts.length > 0 ? `Entrenado ${parts.join(' · ')}` : null
+}
+
 export default function Workout({ workoutId, onExit, initialWorkout = null, autoRename = false }) {
   const seed = initialWorkout?.id === workoutId ? initialWorkout : null
   const [workout, setWorkout] = useState(() => withQueued(seed))
@@ -1058,6 +1079,10 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // name -> sets logged against it in the whole log. This card can only see the
   // session it is standing in, and a re-tag moves all of them.
   const [countByName, setCountByName] = useState({})
+  // Muscle groups trained today or yesterday, most recent first — [] until the
+  // answer lands, so nothing flashes on screen before it is known.
+  const [recent, setRecent] = useState([])
+  const recentLine = recentNote(recent)
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
   // The header overflow: rename and delete are both rare, and delete is
@@ -1348,6 +1373,15 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    // Excluding this session, or it reports the sets you are logging right now
+    // as a reason not to log them. Best-effort like the autocomplete above: a
+    // failure costs one line of context, never the ability to train.
+    recentlyTrained(workoutId)
+      .then(setRecent)
+      .catch(() => {})
+  }, [workoutId])
 
   async function handleAddExercise(event) {
     event.preventDefault()
@@ -1781,6 +1815,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       {restEndsAt != null && (
         <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={skipRest} />
       )}
+
+      {/* What is still recovering, above the form so it lands before you choose
+          what to add. Muted and uncoloured on purpose: it informs, it does not
+          rule — the same stance the in-progress week takes. Absent entirely
+          when there is nothing to say, since most sessions have nothing. */}
+      {recentLine && <p className="recent-note">{recentLine}</p>}
 
       {/* The mechanism, not the log — dashed and unfilled so it reads as an
           empty slot rather than as one more exercise in the stack below it. */}
