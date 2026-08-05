@@ -255,6 +255,11 @@ function PeriodSummary({ days }) {
   // Never on a month (four or five weeks with one light one is a month, not a
   // short week), never while the week is still running (it hasn't come in yet),
   // and never on a deload, which already explains itself in its own words.
+  // One flag for both the cell and the column that holds it. Split in two,
+  // the container kept declaring a fourth column while the rows stopped
+  // supplying a fourth cell — and since `.sum-row` is `display: contents`,
+  // every name slid into the bar's column and the card read as scrambled.
+  const showDelta = summary.comparable && !deload
   const typical = byMonth || deload ? null : typicalWeekSets(days, current.start)
   const shortWeek = judging && typical != null && summary.sets < typical / 2
 
@@ -340,7 +345,7 @@ function PeriodSummary({ days }) {
       {summary.rows.length === 0 ? (
         <p className="hint">Nada registrado en este periodo.</p>
       ) : (
-        <div className={`sum-rows${summary.comparable ? ' has-delta' : ''}`}>
+        <div className={`sum-rows${showDelta ? ' has-delta' : ''}`}>
           {summary.rows.map((row) => (
             <div className="sum-row" key={row.group}>
               <span className="sum-name">{row.group}</span>
@@ -409,7 +414,7 @@ function PeriodSummary({ days }) {
                   than last week — the comparison reports a decision, not a
                   result. What the week is measured against is its own target,
                   which the state line to the left already gives as "3 de 4". */}
-              {summary.comparable && !deload && (
+              {showDelta && (
                 <span
                   className={`sum-delta${row.delta === 0 ? ' flat' : row.delta < 0 ? ' down' : ''}`}
                 >

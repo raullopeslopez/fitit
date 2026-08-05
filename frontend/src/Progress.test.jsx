@@ -931,6 +931,11 @@ describe('Progress', () => {
 
           await mark()
           expect(container.querySelector('.sum-delta')).toBeNull()
+          // And the grid has to stop reserving the column with it. The rows are
+          // `display: contents`, so a fourth column declared on the container
+          // while every row supplies three cells shifts the whole card by one:
+          // names land in the bar's column and bars in the value's.
+          expect(container.querySelector('.sum-rows').className).not.toContain('has-delta')
         })
 
         it('says what the week is for, in place of the standing reference', async () => {
