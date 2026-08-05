@@ -215,10 +215,20 @@ describe('sessionLength', () => {
     expect(sessionLength(live)).toBe('')
   })
 
-  it('speaks up once the last set is older than the rest that would follow it', () => {
+  // An hour of silence is not the end of a session: sets get logged in bursts,
+  // so a session that never stopped can go that long with nothing recorded.
+  it('still holds off an hour after the last set', () => {
+    const quiet = {
+      duration_seconds: 3900,
+      sets: [{ created_at: hoursAgo(3) }, { created_at: hoursAgo(1) }],
+    }
+    expect(sessionLength(quiet)).toBe('')
+  })
+
+  it('speaks up once the silence is longer than a session could hide', () => {
     const closed = {
       duration_seconds: 3900,
-      sets: [{ created_at: hoursAgo(2) }, { created_at: hoursAgo(1) }],
+      sets: [{ created_at: hoursAgo(4) }, { created_at: hoursAgo(2) }],
     }
     expect(sessionLength(closed)).toBe('1h 05')
   })

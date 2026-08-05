@@ -12,6 +12,19 @@ Feature: How long a session took
     And a set performed 20 minutes ago
     Then the workout took 30 minutes
 
+  # Sets get logged in bursts — several at once, right after they are done, so
+  # none is forgotten — which leaves long stretches with nothing recorded in the
+  # middle of a session that never stopped. An hour of silence is one of those,
+  # not a session that ended.
+  Scenario: An hour without logging is still the same session
+    Given an exercise "Bench Press"
+    And a workout started today
+    And a set performed 150 minutes ago
+    And a set performed 140 minutes ago
+    And a set performed 60 minutes ago
+    And a set performed 45 minutes ago
+    Then the workout took 105 minutes
+
   Scenario: A long break is not training
     Given an exercise "Bench Press"
     And a workout started today
