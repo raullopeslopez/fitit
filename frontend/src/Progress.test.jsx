@@ -979,6 +979,99 @@ describe('Progress', () => {
         })
       })
 
+      // A week that closed well under your normal one is a fact, not nine
+      // failures. Left alone the card printed "+7 a la zona" on every row and a
+      // red drop beside it — eighteen marks of shortfall for one light week,
+      // which could as easily have been the flu as a lapse. It gets one line,
+      // and the rows fall back to the plain "3 de 10" they already use while
+      // the week is still running.
+      describe('a week that came in short', () => {
+        const week = (id, date, n) => ({
+          id,
+          date,
+          workouts: [{ id, sets: many(n, 'Pecho', id * 100) }],
+        })
+        // Viewed week 13–19 jul: 9 sets against a normal week of 20.
+        const SHORT = [
+          week(3, '2026-07-15', 9),
+          week(2, '2026-07-08', 20),
+          week(1, '2026-07-01', 20),
+        ]
+        const back = async () =>
+          await userEvent.click(screen.getByRole('button', { name: 'Periodo anterior' }))
+
+        it('says it once, with the volume and what it is short of', async () => {
+          api.listDays.mockResolvedValue(SHORT)
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await back()
+          const line = container.querySelector('.sum-shortweek')
+          expect(line.textContent.replace(/\s+/g, ' ').trim()).toBe(
+            'Semana corta · 9 series, la mitad de tu semana típica',
+          )
+          // One line, not one per row.
+          expect(container.querySelectorAll('.sum-shortweek')).toHaveLength(1)
+        })
+
+        it('drops the per-row demands for the form the running week already uses', async () => {
+          api.listDays.mockResolvedValue(SHORT)
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await back()
+          expect(container.querySelector('.sum-state').textContent).toBe('9 de 10')
+          expect(container.querySelector('.sum-state.is-short')).toBeNull()
+          expect(screen.queryByText(/a la zona|al mínimo/)).toBeNull()
+        })
+
+        // The fraction is nearest-of-four, not literal: below half by
+        // construction, so "la mitad" only covers the top of the band and
+        // anything deeper has to say so.
+        it('names the fraction it actually is, not always a half', async () => {
+          api.listDays.mockResolvedValue([
+            week(3, '2026-07-15', 6),
+            week(2, '2026-07-08', 20),
+            week(1, '2026-07-01', 20),
+          ])
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await back()
+          expect(container.querySelector('.sum-shortweek').textContent).toContain(
+            'un tercio de tu semana típica',
+          )
+        })
+
+        // Half is the threshold, so a week that merely dipped is still judged
+        // the normal way. Otherwise the line turns up often enough to stop
+        // meaning anything.
+        it('leaves a week that only dipped alone', async () => {
+          api.listDays.mockResolvedValue([
+            week(3, '2026-07-15', 14),
+            week(2, '2026-07-08', 20),
+            week(1, '2026-07-01', 20),
+          ])
+          render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await back()
+          expect(screen.queryByText(/Semana corta/)).toBeNull()
+        })
+
+        // The deload has its own line saying the same thing on purpose, and two
+        // explanations of one week is one too many.
+        it('stays out of the way of a deload', async () => {
+          api.listDays.mockResolvedValue(SHORT)
+          render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          await back()
+          await userEvent.click(screen.getByRole('button', { name: 'Marcar descarga' }))
+          expect(screen.queryByText(/Semana corta/)).toBeNull()
+        })
+      })
+
       it('spells out what the reference is', async () => {
         api.listDays.mockResolvedValue(SUMMER)
         const { container } = render(<Progress />)
