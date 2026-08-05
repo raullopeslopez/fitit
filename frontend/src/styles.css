@@ -1028,12 +1028,6 @@ button.set-action {
   color: var(--muted);
   line-height: 1.6;
 }
-/* Marks the sets you've logged this session as distinct from the "Última vez"
-   history above — same label styling, so the two read as parallel sections. */
-.session-label {
-  margin: 0.9rem 0 0.3rem;
-}
-
 /* Steppers: −/value/+ so a straight repeat is one tap; the value stays typable.
    min-width:0 down the flex chain lets two steppers share a mobile row instead
    of forcing the input to its intrinsic width and overflowing the card. */

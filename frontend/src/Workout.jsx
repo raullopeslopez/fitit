@@ -685,13 +685,11 @@ function ExerciseCard({
 
       {sets.length > 0 ? (
         <>
-        {/* "Hoy" stays here and only here: this label's job is to separate the
-            sets you are logging now from the "Última vez" marks directly above
-            it. On the folded row there is nothing to separate them from.
-            No count on it: tonnage went first for being meaningless, and the
-            set count followed for being said twice already — the list below is
-            numbered S1, S2… and the folded row leads with "N series". */}
-        <div className="target-label session-label">Hoy</div>
+        {/* No header over the log. It said "Hoy · N series", then "Hoy", and
+            each cut left it saying less until it was naming the obvious: these
+            are the rows under the button you just pressed. What separates them
+            from the "Última vez" marks is that those sit above the form and
+            these below it — position already did the job the label claimed. */}
         <ol className="sets set-log">
           {sets.map((set, index) => (
             <li key={set.id}>
@@ -959,7 +957,8 @@ function CardioCard({
 
       {sets.length > 0 ? (
         <>
-          <div className="target-label session-label">Hoy</div>
+          {/* Same as the strength card: no "Hoy" over the log. The Total line
+              below is the header this section actually needed. */}
           <p className="set-summary">
             Total {formatDuration(totalSeconds)}
             {totalDistance ? ` · ${totalDistance} km` : ''}

@@ -527,7 +527,7 @@ describe('Workout', () => {
     expect(await screen.findByText(/última vez · hace 3 días/i)).toBeInTheDocument()
   })
 
-  it('headers today’s logged sets as "Hoy" so they read apart from the previous marks', async () => {
+  it('puts no header above today’s logged sets', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
@@ -545,10 +545,11 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    // Sólo "Hoy": la lista de abajo ya va numerada S1, S2… y la fila plegada
-    // ya dice cuántas series llevas. Un tercer recuento no informa de nada.
-    expect(await screen.findByText(/^Hoy$/)).toBeInTheDocument()
-    expect(screen.queryByText(/^Hoy · \d+ serie/)).not.toBeInTheDocument()
+    // The list itself is the separator: numbered rows under the log button,
+    // "Última vez" marks above it. A label saying "Hoy" over sets you just
+    // logged names what you are looking at while you look at it.
+    expect(await screen.findByText('60 kg x 8')).toBeInTheDocument()
+    expect(screen.queryByText(/^Hoy/)).not.toBeInTheDocument()
   })
 
   it('says there are no previous marks for a new exercise', async () => {
@@ -683,11 +684,11 @@ describe('Workout', () => {
     expect(await screen.findByRole('listitem')).toHaveTextContent(
       /24:30 · 5\.2 km · 4:43\/km/i,
     )
-    // "Última vez" (previous marks, absent here) vs "Hoy" (this session's log)
-    // must read as visually distinct sections.
-    // Cardio keeps a bare "Hoy" and its own Total: time and distance are real
-    // quantities, unlike the tonnage the strength card dropped.
-    expect(screen.getByText('Hoy')).toBeInTheDocument()
+    // No "Hoy" over the log here either. The Total line stays: time and
+    // distance are real quantities, unlike the tonnage the strength card
+    // dropped, and unlike a label that only names the obvious.
+    expect(screen.queryByText(/^Hoy/)).not.toBeInTheDocument()
+    expect(screen.getByText(/^Total /)).toBeInTheDocument()
   })
 
   it('renders the cardio card for a known cardio exercise', async () => {
