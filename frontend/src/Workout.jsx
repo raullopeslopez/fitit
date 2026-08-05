@@ -24,6 +24,7 @@ import {
   formatSet,
   formatTime,
   parseDuration,
+  sessionLength,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
@@ -1612,6 +1613,10 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
+  // How long this session took, from its own sets. Empty while it is still
+  // running, so the header simply doesn't carry it yet.
+  const took = sessionLength(workout)
+
   // A name nothing knows yet — the only case where the Fuerza/Cardio choice
   // has anything to decide.
   const typedName = exerciseInput.trim()
@@ -1685,7 +1690,14 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
               onClick={startRename}
             >
               <strong>{workout.name || 'Entreno'}</strong>
-              <span className="workout-date">{formatDate(workout.date)}</span>
+              {/* The length rides with the date, not on a line of its own: both
+                  answer "which session is this", and the header is already two
+                  rows tall. Empty string while the session is still running —
+                  see sessionLength. */}
+              <span className="workout-date">
+                {formatDate(workout.date)}
+                {took && ` · ${took}`}
+              </span>
             </button>
             <div className="head-menu">
               <button

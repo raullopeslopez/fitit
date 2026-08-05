@@ -1598,6 +1598,39 @@ describe('Workout', () => {
     expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument()
   })
 
+  // Nobody starts or stops a clock: the session's own sets say when it ran, so
+  // its length rides beside the date in the header, where you look to see which
+  // session this is. Spec: backend tests/features/session_length.feature.
+  it('says how long the session took, beside its date', async () => {
+    const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString()
+    api.getWorkout.mockResolvedValue({
+      ...workoutWith(
+        benchSet({ id: 1, created_at: hoursAgo(4) }),
+        benchSet({ id: 2, created_at: hoursAgo(3) }),
+      ),
+      duration_seconds: 3900,
+    })
+    renderWorkout()
+
+    expect(await screen.findByText(/jue, 16 jul 2026 · 1h 05/i)).toBeInTheDocument()
+  })
+
+  // Mid-session there is no total to give: it would grow every time you looked
+  // at it, which is a clock, and this screen deliberately hasn't got one.
+  it('holds the length back while the session is still running', async () => {
+    api.getWorkout.mockResolvedValue({
+      ...workoutWith(
+        benchSet({ id: 1, created_at: new Date(Date.now() - 3900_000).toISOString() }),
+        benchSet({ id: 2, created_at: new Date().toISOString() }),
+      ),
+      duration_seconds: 3900,
+    })
+    renderWorkout()
+
+    expect(await screen.findByText(/jue, 16 jul 2026/i)).toBeInTheDocument()
+    expect(screen.queryByText(/1h 05/)).not.toBeInTheDocument()
+  })
+
   it('renames the current workout', async () => {
     api.renameWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: 'Leg Day', sets: [] })
     renderWorkout()

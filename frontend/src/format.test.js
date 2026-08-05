@@ -12,6 +12,7 @@ import {
   formatSet,
   formatTime,
   parseDuration,
+  sessionLength,
 } from './format.js'
 
 describe('formatSet', () => {
@@ -173,5 +174,52 @@ describe('formatTime', () => {
   it('is empty for a set with no recorded moment', () => {
     expect(formatTime(null)).toBe('')
     expect(formatTime('not a date')).toBe('')
+  })
+})
+
+describe('sessionLength', () => {
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString()
+  const done = (seconds) => ({
+    duration_seconds: seconds,
+    sets: [{ created_at: hoursAgo(3) }, { created_at: hoursAgo(2) }],
+  })
+
+  it('reads an hour and five as "1h 05"', () => {
+    expect(sessionLength(done(3900))).toBe('1h 05')
+  })
+
+  it('reads under an hour in minutes', () => {
+    expect(sessionLength(done(2700))).toBe('45 min')
+  })
+
+  it('rounds to the nearest minute', () => {
+    expect(sessionLength(done(2680))).toBe('45 min')
+  })
+
+  it('says nothing when the backend has nothing to say', () => {
+    expect(sessionLength({ duration_seconds: null, sets: [] })).toBe('')
+    expect(sessionLength(undefined)).toBe('')
+  })
+
+  it('says nothing about a session under a minute', () => {
+    expect(sessionLength(done(40))).toBe('')
+  })
+
+  // A number that grows every time you look at it is a clock, and the session
+  // card deliberately has no clock. It appears once the block is closed.
+  it('holds off while the session is still running', () => {
+    const live = {
+      duration_seconds: 3900,
+      sets: [{ created_at: hoursAgo(1) }, { created_at: new Date().toISOString() }],
+    }
+    expect(sessionLength(live)).toBe('')
+  })
+
+  it('speaks up once the last set is older than the rest that would follow it', () => {
+    const closed = {
+      duration_seconds: 3900,
+      sets: [{ created_at: hoursAgo(2) }, { created_at: hoursAgo(1) }],
+    }
+    expect(sessionLength(closed)).toBe('1h 05')
   })
 })
