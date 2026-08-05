@@ -272,6 +272,30 @@ export function deloadTargets(days, weekStart, { weeks = 8 } = {}) {
   return targets
 }
 
+// How many sets a normal week of yours holds, over the `weeks` before the one
+// starting at `weekStart`. Null when there is no trained week behind it — then
+// there is no "normal" to compare anything against yet.
+//
+// Same shape as `deloadTargets`, and deliberately: the divisor is the weeks you
+// trained, not the weeks on the calendar, so a fortnight away doesn't quietly
+// halve what counts as a normal week. And the window stops the day before the
+// week being measured, or a light week would drag down the very average it is
+// being held against and rate itself normal.
+//
+// Whole sets, not the fractional per-muscle count: this is the figure the card
+// header already prints ("4 entrenos · 94 series"), and two numbers claiming to
+// be "series" in one card have to be the same number.
+export function typicalWeekSets(days, weekStart, { weeks = 8 } = {}) {
+  const window = { start: shiftDay(weekStart, -7 * weeks), end: shiftDay(weekStart, -1) }
+  const { total } = setsInWindow(days, window)
+  const trainedWeeks = new Set(
+    days
+      .filter((d) => d.date >= window.start && d.date <= window.end && dayTrained(d))
+      .map((d) => mondayOf(d.date)),
+  ).size
+  return trainedWeeks === 0 ? null : round1(total / trainedWeeks)
+}
+
 // One row per muscle group worked in a period, biggest first, each with the
 // change against the matching stretch of the period before. `index` is 0 for the
 // most recent period and counts backwards; past the start of the history it
