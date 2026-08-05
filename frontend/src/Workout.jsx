@@ -685,16 +685,13 @@ function ExerciseCard({
 
       {sets.length > 0 ? (
         <>
-        {/* Tonnage is gone: weight × reps summed is arithmetically true and
-            physically meaningless (1050 kg of cable crunches), and it was the
-            one figure here no decision depended on. The count stays — that is
-            the part you read between sets. */}
         {/* "Hoy" stays here and only here: this label's job is to separate the
             sets you are logging now from the "Última vez" marks directly above
-            it. On the folded row there is nothing to separate them from. */}
-        <div className="target-label session-label">
-          Hoy · {sets.length} {sets.length === 1 ? 'serie' : 'series'}
-        </div>
+            it. On the folded row there is nothing to separate them from.
+            No count on it: tonnage went first for being meaningless, and the
+            set count followed for being said twice already — the list below is
+            numbered S1, S2… and the folded row leads with "N series". */}
+        <div className="target-label session-label">Hoy</div>
         <ol className="sets set-log">
           {sets.map((set, index) => (
             <li key={set.id}>

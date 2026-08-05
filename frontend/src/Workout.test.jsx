@@ -545,7 +545,10 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    expect(await screen.findByText(/^Hoy · \d+ serie/)).toBeInTheDocument()
+    // Sólo "Hoy": la lista de abajo ya va numerada S1, S2… y la fila plegada
+    // ya dice cuántas series llevas. Un tercer recuento no informa de nada.
+    expect(await screen.findByText(/^Hoy$/)).toBeInTheDocument()
+    expect(screen.queryByText(/^Hoy · \d+ serie/)).not.toBeInTheDocument()
   })
 
   it('says there are no previous marks for a new exercise', async () => {
@@ -1019,7 +1022,9 @@ describe('Workout', () => {
     expect(row).toHaveTextContent(/S1/)
   })
 
-  it('counts the series in the session summary', async () => {
+  // The count lives on the folded header and nowhere else: open, the numbered
+  // list says it already.
+  it('counts the series on the folded card', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -1035,7 +1040,8 @@ describe('Workout', () => {
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-    expect(await screen.findByText(/3 series/i)).toBeInTheDocument()
+    await userEvent.click(cardToggle('Bench Press'))
+    expect(await foldedDigest(/3 series/i)).toBeInTheDocument()
   })
 
   it('does not celebrate a non-record set', async () => {
@@ -1066,8 +1072,9 @@ describe('Workout', () => {
   })
 
   // Tonnage was the one figure on the card no decision depended on: you don't
-  // change the next set because the sum reads 830. The count you do use stays.
-  it('reports the series count and no tonnage', async () => {
+  // change the next set because the sum reads 830. What you do read between
+  // sets is the numbered list itself — S1, S2 — not a total of anything.
+  it('numbers the sets and reports no tonnage', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({
       id: 1,
@@ -1084,7 +1091,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     // volume would have been 60*8 + 70*5 = 830; best 1RM = max(76.0, 81.7).
-    expect(await screen.findByText(/2 series/i)).toBeInTheDocument()
+    expect(await screen.findByText('S2')).toBeInTheDocument()
     expect(screen.queryByText(/volumen/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/830/)).not.toBeInTheDocument()
     // Nor any estimate standing in for what you lifted.
@@ -1861,7 +1868,7 @@ describe('Workout', () => {
       // No waitFor: the row is expected to be there already, with the request
       // still open. This is the whole point of the change.
       expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
-      expect(screen.getByText(/hoy · 1 serie/i)).toBeInTheDocument()
+      expect(screen.getByText('S1')).toBeInTheDocument()
     })
 
     it('marks the set as not yet saved, and clears the mark when it lands', async () => {
@@ -1889,12 +1896,12 @@ describe('Workout', () => {
 
       // Second set, logged before the first has come back.
       await userEvent.click(screen.getByRole('button', { name: /repetir serie/i }))
-      expect(screen.getByText(/hoy · 2 series/i)).toBeInTheDocument()
+      expect(screen.getByText('S2')).toBeInTheDocument()
 
       // The first response knows about one set only.
       pending[0](workoutWith(benchSet({ id: 77, reps: 8, weight: 60 })))
 
-      await waitFor(() => expect(screen.getByText(/hoy · 2 series/i)).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('S2')).toBeInTheDocument())
     })
 
     it('starts the rest clock on the tap, not on the round trip', async () => {
