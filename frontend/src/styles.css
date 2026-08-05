@@ -1826,6 +1826,19 @@ button.set-action {
 .sum-row {
   display: contents;
 }
+/* Column headings, riding the same grid as the rows so each label sits over
+   its own figures. `auto` sizing means the heading is what sets the delta
+   column's width — "vs. sem. ant." is wider than any delta in it, and that is
+   the point: the label is the thing that stops the number needing a footnote. */
+.sum-cols {
+  display: contents;
+}
+.sum-collab {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
 .sum-name {
   font-size: 0.8rem;
   font-weight: 600;
@@ -1898,13 +1911,17 @@ button.set-action {
   font-size: 0.74rem;
   color: var(--muted);
 }
+/* Plain ink by default. A gain used to wear the record colour, which said
+   "personal best" about a set count that merely beat last week — and the sign
+   in front of the number already says which way it went. Colour is left for
+   the one case that might ask for a decision: the drop. */
 .sum-delta {
   min-width: 26px;
   text-align: right;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.74rem;
-  color: var(--pr);
+  color: var(--text);
 }
 /* Mid-period: the comparison is between two unfinished stretches, so it reports
    in grey. Green and red are verdicts, and they wait for the period to close. */
@@ -1930,9 +1947,6 @@ button.set-action {
   margin-top: 0.6rem;
   padding-top: 0.4rem;
   border-top: 1px solid var(--border);
-}
-.sum-foot {
-  margin-top: 0.55rem;
 }
 
 /* --- Today's log ------------------------------------------------------------

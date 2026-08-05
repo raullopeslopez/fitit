@@ -689,8 +689,8 @@ describe('Progress', () => {
         expect([...container.querySelectorAll('.sum-state')].map((s) => s.textContent)).toEqual([
           '', // 22 — past the zone, and nothing about that is a demand
           '', // 12 — inside 10–20
-          '+4', // 6 — four short of the zone
-          '+8', // 2 — eight short of it
+          'faltan 4', // 6 — four short of the zone
+          'faltan 8', // 2 — eight short of it
         ])
       })
     })
@@ -708,7 +708,7 @@ describe('Progress', () => {
       await waitFor(() => {
         const rows = [...container.querySelectorAll('.sum-name')].map((n) => n.textContent)
         const states = [...container.querySelectorAll('.sum-state')].map((s) => s.textContent)
-        expect(states[rows.indexOf('Espalda')]).toBe('+10')
+        expect(states[rows.indexOf('Espalda')]).toBe('faltan 10')
       })
     })
 
@@ -721,8 +721,8 @@ describe('Progress', () => {
       await openMonth()
       await screen.findByText('Julio')
       // 1.9 sets of Pecho a week, so 8.1 short of the weekly zone.
-      expect(container.querySelector('.sum-val').textContent).toBe('1.9/sem')
-      expect(container.querySelector('.sum-state').textContent).toBe('+8.1')
+      expect(container.querySelector('.sum-val').textContent).toBe('1.9')
+      expect(container.querySelector('.sum-state').textContent).toBe('faltan 8.1')
     })
 
     it('breaks a month down into sets per muscle', async () => {
@@ -743,7 +743,7 @@ describe('Progress', () => {
       expect(await screen.findByText('Esta semana')).toBeInTheDocument()
       expect(screen.getByText(/2 entrenos · 5 series/)).toBeInTheDocument()
       // 5 this week against 2 the week before.
-      expect(container.querySelector('.sum-val').textContent).toBe('5 series')
+      expect(container.querySelector('.sum-val').textContent).toBe('5')
       expect(container.querySelector('.sum-delta').textContent).toBe('+3')
     })
 
@@ -762,7 +762,7 @@ describe('Progress', () => {
     })
 
     // "6.2 series/sem" wrapped onto two lines inside its column and broke the
-    // rhythm of every row. The footer already says the unit, so the row doesn't
+    // rhythm of every row. The column heading says the unit, so the row doesn't
     // have to spell it.
     it('states a monthly average short enough to fit its column', async () => {
       api.listDays.mockResolvedValue(SUMMER)
@@ -770,8 +770,8 @@ describe('Progress', () => {
 
       await openMonth()
       await screen.findByText('Julio')
-      expect(container.querySelector('.sum-val').textContent).toBe('1.9/sem')
-      expect(screen.getByText(/media de series por semana/i)).toBeInTheDocument()
+      expect(container.querySelector('.sum-val').textContent).toBe('1.9')
+      expect(container.querySelector('.sum-collab').textContent).toBe('media/sem')
     })
 
     // Every row read "+6.2" — the whole of its own value — because there was no
@@ -834,15 +834,51 @@ describe('Progress', () => {
       expect(container.querySelector('.sum-delta').textContent).toBe('')
     })
 
-    // The title says which week and the subtitle says how far into it you are,
-    // so a footer repeating "20–26 jul · en curso" is the same two facts a
-    // third time. What only the footer can say is what the deltas compare with.
-    it('keeps only the comparison in the footer', async () => {
+    // Two numbers per row and nothing saying which is which: "10" and "+10" sat
+    // side by side, one a total and the other a change, and the only thing that
+    // told them apart was a footnote at the bottom of the card. The columns say
+    // it themselves now, over the numbers they name — and the footer is gone,
+    // because it was the same sentence further away.
+    it('names its columns instead of explaining them in a footnote', async () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
       await screen.findByText('Esta semana')
-      expect(container.querySelector('.sum-foot').textContent).toBe('vs. semana anterior')
+      expect([...container.querySelectorAll('.sum-collab')].map((c) => c.textContent)).toEqual([
+        'series',
+        'vs. sem. ant.',
+      ])
+      expect(container.querySelector('.sum-foot')).toBeNull()
+    })
+
+    // Mid-period the comparison is against the same stretch of the period
+    // before, never the whole of it — the difference between "you are 12 down"
+    // and "you are 12 down on a week you are three days into".
+    it('says it compares like with like while the period is running', async () => {
+      vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
+      api.listDays.mockResolvedValue([
+        { id: 9, date: '2026-07-22', workouts: [{ id: 9, sets: [setOf(1, 'Pecho')] }] },
+        { id: 8, date: '2026-07-15', workouts: [{ id: 8, sets: sixOf('Pecho', 20) }] },
+      ])
+      const { container } = render(<Progress />)
+
+      await waitFor(() => expect(container.querySelector('.sum-delta')).not.toBeNull())
+      expect([...container.querySelectorAll('.sum-collab')].map((c) => c.textContent)).toEqual([
+        'series',
+        'vs. mismo tramo',
+      ])
+    })
+
+    // A gain is not a record, and it used to be printed in the record's colour.
+    // The sign already says which way it went; the colour is left for the one
+    // case that might want a decision.
+    it('colours a drop and leaves a gain in plain ink', async () => {
+      api.listDays.mockResolvedValue(SUMMER)
+      const { container } = render(<Progress />)
+
+      await screen.findByText('Esta semana')
+      expect(container.querySelector('.sum-delta').textContent).toBe('+3')
+      expect(container.querySelector('.sum-delta').className).toBe('sum-delta')
     })
 
     it('says nothing at all when there is nothing logged', async () => {
@@ -905,7 +941,7 @@ describe('Progress', () => {
         await screen.findByText('Esta semana')
         expect(widthOf(container, 0)).toBe('100%')
         // The count itself still tells the truth.
-        expect(container.querySelector('.sum-val').textContent).toBe('26 series')
+        expect(container.querySelector('.sum-val').textContent).toBe('26')
       })
 
       // A deload is the one week where training less is the plan. The card's
@@ -1145,7 +1181,7 @@ describe('Progress', () => {
 
 
         await waitFor(() => {
-          expect(container.querySelector('.sum-state').textContent).toBe('+4')
+          expect(container.querySelector('.sum-state').textContent).toBe('faltan 4')
         })
       })
 
@@ -1158,7 +1194,7 @@ describe('Progress', () => {
 
 
         await waitFor(() => {
-          expect(container.querySelector('.sum-state').textContent).toBe('+8')
+          expect(container.querySelector('.sum-state').textContent).toBe('faltan 8')
         })
         expect(container.querySelector('.sum-state.is-short')).toBeNull()
       })
@@ -1170,7 +1206,7 @@ describe('Progress', () => {
 
 
         await waitFor(() => {
-          expect(container.querySelector('.sum-state.is-short').textContent).toBe('+4')
+          expect(container.querySelector('.sum-state.is-short').textContent).toBe('faltan 4')
         })
       })
 
@@ -1216,8 +1252,10 @@ describe('Progress', () => {
     })
 
     // A month in progress against a finished one only ever counts down. The
-    // comparison is against the same stretch of it, and the footer has to say so
-    // or the number reads as the whole month.
+    // column heading has to say the comparison is against the same stretch of
+    // it, or the number reads as the whole month. Which month that is goes
+    // unsaid on purpose: the heading sizes the column, and "vs. mismo tramo de
+    // junio" would take a third of the card to name the month before this one.
     it('names the matching stretch it compared against', async () => {
       api.listDays.mockResolvedValue([
         ...SUMMER,
@@ -1226,7 +1264,7 @@ describe('Progress', () => {
       render(<Progress />)
 
       await openMonth()
-      expect(await screen.findByText(/vs\. mismo tramo de junio/i)).toBeInTheDocument()
+      expect(await screen.findByText('vs. mismo tramo')).toBeInTheDocument()
     })
 
     // Cardio and unrecognised lifts are volume that colours no row, so the bars
