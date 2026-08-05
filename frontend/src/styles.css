@@ -1836,7 +1836,7 @@ button.set-action {
 .sum-collab {
   font-size: 0.62rem;
   color: var(--muted);
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 .sum-name {
@@ -1903,8 +1903,12 @@ button.set-action {
 /* Sized by its content, not to a fixed column: at a scaled-up system font size
    an 86px box wrapped "6.2/sem" onto two lines and every row grew a second
    line. The bar gives up the width instead — it's a comparison, not a reading. */
+/* Centred, not right-aligned: the heading above sets the column's width and a
+   6-letter word over a 2-digit figure left the number hanging off the right of
+   its own label. Tabular figures keep the digits on a common grid anyway, which
+   is what right-alignment was there to buy. */
 .sum-val {
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -1917,7 +1921,7 @@ button.set-action {
    the one case that might ask for a decision: the drop. */
 .sum-delta {
   min-width: 26px;
-  text-align: right;
+  text-align: center;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.74rem;
