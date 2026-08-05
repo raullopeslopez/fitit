@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
-import { formatDayShort } from './format.js'
+import { formatDayShort, sessionLength } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { setRepeatTemplate } from './prefs.js'
 
@@ -222,8 +222,12 @@ export default function Days({ onOpenWorkout }) {
                     <span className="day-session-main">
                       <span className="day-session-top">
                         <span className="day-session-name">{w.name || 'Entreno'}</span>
+                        {/* How many, and how long they took. The second half is
+                            absent for a session still running and for one typed
+                            in afterwards — see sessionLength. */}
                         <span className="set-index">
                           {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
+                          {sessionLength(w) && ` · ${sessionLength(w)}`}
                         </span>
                       </span>
                       {/* The breakdown under the name, not beside it: three or

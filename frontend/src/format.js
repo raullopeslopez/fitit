@@ -163,3 +163,35 @@ export function formatCardioSet(set) {
   if (!set.distance) return dur
   return `${dur} · ${set.distance} km · ${formatPace(set.duration_seconds, set.distance)}`
 }
+
+// The gap that closes a session, mirroring the backend's own (see
+// `app/session_length.py`). Here it answers a different question: not "what
+// counts as training" but "is this session over" — which is what decides
+// whether there is a total to print at all.
+const SESSION_GAP_MS = 45 * 60 * 1000
+
+// How long a session took, as a line you'd say out loud: "1h 05", "45 min".
+// Empty string for every case where there is nothing to say, so a caller can
+// drop it into a template without a conditional around it.
+//
+// It stays quiet while you are still training. The backend will happily report
+// the span so far, but a total that grows each time you look at it is a clock,
+// and the session card deliberately hasn't got one — you asked for the number
+// at the end, not during. Once the last set is older than a rest could be, the
+// session is closed and the total appears.
+export function sessionLength(workout, now = Date.now()) {
+  const seconds = workout?.duration_seconds
+  if (!seconds || !Number.isFinite(seconds)) return ''
+  const last = (workout.sets ?? [])
+    .map((s) => Date.parse(s.created_at))
+    .filter((t) => Number.isFinite(t))
+    .reduce((latest, t) => (t > latest ? t : latest), -Infinity)
+  if (now - last < SESSION_GAP_MS) return ''
+  // Under a minute is two sets logged back to back — a correction, a false
+  // start. Rounding it up to "1 min" would put a session's worth of framing
+  // around something that never happened.
+  if (seconds < 60) return ''
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes} min`
+  return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}`
+}

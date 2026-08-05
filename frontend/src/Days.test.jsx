@@ -49,6 +49,48 @@ describe('Days', () => {
     expect(screen.getByText(/2 series/i)).toBeInTheDocument()
   })
 
+  // The row already says how many series; how long they took is the other half
+  // of "what was that session", and it costs no extra request — the day feed
+  // carries it. Spec: backend tests/features/session_length.feature.
+  it('says how long each session took, beside the series count', async () => {
+    const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString()
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Push',
+            duration_seconds: 3900,
+            sets: [
+              benchSet({ created_at: hoursAgo(4) }),
+              benchSet({ id: 11, created_at: hoursAgo(3) }),
+            ],
+          },
+        ],
+      },
+    ])
+    render(<Days onOpenWorkout={() => {}} />)
+
+    expect(await screen.findByText(/2 series · 1h 05/i)).toBeInTheDocument()
+  })
+
+  // A session with one set, or one typed in days later, has no length the
+  // backend is willing to claim. The row then says what it always said.
+  it('says only the series count when there is no length to report', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [{ id: 5, name: 'Push', duration_seconds: null, sets: [benchSet()] }],
+      },
+    ])
+    render(<Days onOpenWorkout={() => {}} />)
+
+    expect(await screen.findByText(/^1 serie$/i)).toBeInTheDocument()
+  })
+
   // Días already has the whole workout, sets included — hand it over so Entreno
   // can draw immediately instead of fetching what is already in memory.
   it('opens a workout when tapped, handing over the sets it already holds', async () => {
