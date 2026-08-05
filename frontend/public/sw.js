@@ -283,7 +283,12 @@ function parseSet(text, { weightless = false } = {}) {
 async function logAnother(custom = null) {
   const rest = await readState('rest', null)
   if (!rest) return
-  const payload = custom ? { ...rest.payload, ...custom } : rest.payload
+  // `template` is the set to repeat; the copy that gets queued is stamped with
+  // the moment of this tap. The server would otherwise stamp it on arrival —
+  // which, for a queue that drains when the phone next sees a network, can be
+  // an hour off, and that number is what a session's length is measured from.
+  const template = custom ? { ...rest.payload, ...custom } : rest.payload
+  const payload = { ...template, performed_at: new Date().toISOString() }
   const queue = await readState('queue', [])
   await writeState('queue', [
     ...queue,
@@ -296,7 +301,7 @@ async function logAnother(custom = null) {
   // on: on the way down a drop set, the next repeat is the weight you just named.
   const next = {
     ...rest,
-    payload,
+    payload: template,
     series: (rest.series ?? 0) + 1,
     endsAt: rest.seconds > 0 ? Date.now() + rest.seconds * 1000 : null,
   }

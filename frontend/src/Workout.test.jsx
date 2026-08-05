@@ -289,6 +289,32 @@ describe('Workout', () => {
       expect(screen.queryByRole('button', { name: 'Editar serie 2' })).not.toBeInTheDocument()
     })
 
+    // The server used to stamp the set when the request landed. In a basement
+    // that is minutes or hours after the lift, and it is the number a session's
+    // length gets measured from — so the moment travels with the set, from the
+    // tap, through the outbox, to whenever the network turns up.
+    it('sends the moment the set was done, not the moment the request goes out', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1, set_index: 0 })))
+      api.logSet.mockRejectedValue(new Error('offline'))
+      renderWorkout()
+
+      const tappedAt = Date.now()
+      await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+      const bench = within(cardToggle('Bench Press').closest('.card'))
+      await userEvent.type(bench.getByLabelText(/reps/i), '8')
+      await userEvent.type(bench.getByLabelText(/peso/i), '60')
+      await userEvent.click(bench.getByRole('button', { name: /registrar/i }))
+      await waitFor(() => expect(api.logSet).toHaveBeenCalled())
+
+      const sent = api.logSet.mock.calls[0][1]
+      expect(Date.parse(sent.performed_at)).toBeGreaterThanOrEqual(tappedAt)
+      expect(Date.parse(sent.performed_at)).toBeLessThanOrEqual(Date.now())
+      // And on disk with it: the request failed, so this copy is the one that
+      // will reach the server, whenever that is.
+      const queued = JSON.parse(localStorage.getItem('fitit_outbox'))
+      expect(queued[0].payload.performed_at).toBe(sent.performed_at)
+    })
+
     it('lets me keep two cards open at once, for supersets', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
@@ -593,6 +619,7 @@ describe('Workout', () => {
         weight: 60,
         rpe: null,
         note: null,
+        performed_at: expect.any(String),
       }),
     )
   })
@@ -623,6 +650,7 @@ describe('Workout', () => {
         weight: 60,
         rpe: null,
         note: null,
+        performed_at: expect.any(String),
       }),
     )
   })
@@ -678,6 +706,7 @@ describe('Workout', () => {
         duration_seconds: 1470,
         distance: 5.2, // kilometres; there is no other unit to send
         note: null,
+        performed_at: expect.any(String),
       }),
     )
     expect(await screen.findByRole('listitem')).toHaveTextContent(
@@ -735,6 +764,7 @@ describe('Workout', () => {
         weight: 60,
         rpe: 8,
         note: 'felt strong',
+        performed_at: expect.any(String),
       }),
     )
     expect(await screen.findByText(/RPE 8/i)).toBeInTheDocument()
@@ -1211,6 +1241,7 @@ describe('Workout', () => {
         weight: 60,
         rpe: null,
         note: null,
+        performed_at: expect.any(String),
       }),
     )
   })
@@ -2439,7 +2470,14 @@ describe('Workout', () => {
           {
             tmpId: 'sw-1',
             workoutId: 1,
-            payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 },
+            // Stamped by the worker when the lock-screen tap happened, and the
+            // page forwards it untouched: this set is older than the drain.
+            payload: {
+              exercise_name: 'Bench Press',
+              reps: 8,
+              weight: 60,
+              performed_at: '2026-07-16T18:20:00.000Z',
+            },
           },
         ],
         sent: 0,
@@ -2455,6 +2493,7 @@ describe('Workout', () => {
           exercise_name: 'Bench Press',
           reps: 8,
           weight: 60,
+          performed_at: '2026-07-16T18:20:00.000Z',
         }),
       )
       expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()

@@ -113,6 +113,11 @@ const REST = {
 
 const restNow = (overrides = {}) => ({ ...REST, endsAt: Date.now() + 90_000, ...overrides })
 
+// What goes on the wire is the set plus the moment it was done. The server
+// stamps on arrival otherwise, and arrival is whenever the phone next finds a
+// network — the wrong answer to "when did you lift this".
+const stamped = (extra = {}) => ({ ...REST.payload, ...extra, performed_at: expect.any(String) })
+
 describe('the rest notification', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -385,9 +390,30 @@ describe('+1 serie, from the lock screen', () => {
     const [url, options] = fetch.mock.calls[0]
     expect(url).toBe('/api/workouts/7/sets')
     expect(options.headers.Authorization).toBe('Bearer jwt-123')
-    expect(JSON.parse(options.body)).toEqual(REST.payload)
+    expect(JSON.parse(options.body)).toEqual(stamped())
     expect(await worker.state('queue')).toEqual([])
     expect(await worker.state('sent')).toBe(1)
+  })
+
+  // The set to repeat is kept for as long as the rest lasts, and gets repeated
+  // whenever you tap. Carrying a moment inside it would make every repeat claim
+  // the hour of the first set of the session.
+  it('stamps each repeat with the moment of its own tap', async () => {
+    const fetch = vi.fn().mockResolvedValue(new FakeResponse('{}'))
+    const worker = await resting({ fetch })
+
+    worker.dispatch('notificationclick', { action: 'log' })
+    await vi.advanceTimersByTimeAsync(0)
+    const first = JSON.parse(fetch.mock.calls[0][1].body).performed_at
+
+    await vi.advanceTimersByTimeAsync(180_000)
+    worker.dispatch('notificationclick', { action: 'log' })
+    await vi.advanceTimersByTimeAsync(0)
+    const second = JSON.parse(fetch.mock.calls[1][1].body).performed_at
+
+    expect(Date.parse(second) - Date.parse(first)).toBe(180_000)
+    // And the set held for the next repeat carries no moment of its own.
+    expect(await worker.state('rest')).toMatchObject({ payload: REST.payload })
   })
 
   it('writes the set to disk before it goes anywhere near the network', async () => {
@@ -404,7 +430,7 @@ describe('+1 serie, from the lock screen', () => {
     await vi.advanceTimersByTimeAsync(0)
 
     expect(queueWhenSent).toHaveLength(1)
-    expect(queueWhenSent[0].payload).toEqual(REST.payload)
+    expect(queueWhenSent[0].payload).toEqual(stamped())
   })
 
   it('keeps the set and confirms it anyway with no signal', async () => {
@@ -480,7 +506,7 @@ describe('+1 serie, from the lock screen', () => {
 
     const [handed] = port.postMessage.mock.calls[0]
     expect(handed.queued).toHaveLength(1)
-    expect(handed.queued[0].payload).toEqual(REST.payload)
+    expect(handed.queued[0].payload).toEqual(stamped())
     // Handed over means gone from here: the page owns them now, and two owners
     // is how one set gets logged twice.
     expect(await worker.state('queue')).toEqual([])
@@ -508,11 +534,7 @@ describe('+1 serie, from the lock screen', () => {
     worker.dispatch('notificationclick', { action: 'custom', reply: '32.5x12' })
     await vi.advanceTimersByTimeAsync(0)
 
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
-      exercise_name: 'Press banca',
-      reps: 12,
-      weight: 32.5,
-    })
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual(stamped({ reps: 12, weight: 32.5 }))
     expect(worker.shown[worker.shown.length - 1].body).toContain('Press banca · 32.5 kg x 12')
   })
 

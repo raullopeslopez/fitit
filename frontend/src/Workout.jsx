@@ -1415,7 +1415,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     // must not depend on a request succeeding right now. The set gets a string
     // id: nothing can mistake `tmp-3` for a server id and PATCH against it.
     // Spec: Workout.test.jsx "optimistic logging" / "logging with no signal".
-    const payload = { exercise_name: name, ...fields }
+    //
+    // The moment rides with the set. The server stamps on arrival, and arrival
+    // is when the phone next finds a network — which in a basement is an hour
+    // after the lift, and is the number a session's length is measured from.
+    const template = { exercise_name: name, ...fields }
+    const payload = { ...template, performed_at: new Date().toISOString() }
     const tmpId = `tmp-${(nextTmpId.current += 1)}`
     enqueueSet({ tmpId, workoutId: workout.id, payload })
     setWorkout(withQueued)
@@ -1426,8 +1431,11 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     // would. Cardio is the one exclusion: an interval you just ran is not an
     // interval you are about to run.
     const endsAt = startRest()
+    // The template, not the stamped payload: the worker repeats this set later,
+    // and a repeat done at 19:40 is not a set performed at 19:20. It stamps its
+    // own copy when the tap happens.
     const notice =
-      fields.kind === 'cardio' ? null : { series: setsFor(name).length + 1, payload }
+      fields.kind === 'cardio' ? null : { series: setsFor(name).length + 1, payload: template }
     if (notice) handOverSession(notice, endsAt)
     await flushQueue()
     // Again, now that the outbox has had its chance to drain: the worker holds
