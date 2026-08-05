@@ -909,6 +909,30 @@ describe('Progress', () => {
           expect(container.querySelector('.sum-state.is-short')).toBeNull()
         })
 
+        // The delta is the only thing on the row wearing a colour, which makes
+        // it the loudest mark on it. Silencing the words and leaving nine red
+        // negatives is silencing the quieter half: a deload is *defined* as
+        // less than last week, so the comparison carries nothing you didn't
+        // already decide. The row measures against the deload target instead,
+        // and that is what `3 de 4` already says.
+        it('drops the comparison with last week, which is the loudest mark on the row', async () => {
+          api.listDays.mockResolvedValue([
+            { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(6, 'Cuádriceps', 1) }] },
+            // Last week, so there is something to compare against...
+            { id: 2, date: '2026-07-15', workouts: [{ id: 2, sets: many(6, 'Cuádriceps', 20) }] },
+            // ...and a lighter one now, which is what a deload looks like.
+            { id: 3, date: '2026-07-22', workouts: [{ id: 3, sets: many(2, 'Cuádriceps', 40) }] },
+          ])
+          const { container } = render(<Progress />)
+          await screen.findByText('Esta semana')
+
+          // Unmarked, the drop is reported and coloured.
+          expect(container.querySelector('.sum-delta.down')).not.toBeNull()
+
+          await mark()
+          expect(container.querySelector('.sum-delta')).toBeNull()
+        })
+
         it('says what the week is for, in place of the standing reference', async () => {
           api.listDays.mockResolvedValue(SUMMER)
           const { container } = render(<Progress />)
