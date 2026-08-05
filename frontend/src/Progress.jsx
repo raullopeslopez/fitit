@@ -139,7 +139,6 @@ function Ladder({ rungs, color }) {
 // edge because nothing beat it, which reads as "done"; against a fixed reference
 // a full bar means the same thing in every row and every week.
 const REFERENCE = 20
-const MINIMUM = 4
 const ZONE = 10
 const REFERENCE_COPY =
   'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
@@ -160,24 +159,25 @@ const DELOAD_COPY =
   'Semana de descarga: el objetivo es 1/3 de tu semana típica de las ' +
   'últimas 8. Mismo peso, menos series.'
 
-// Where a row sits against that reference, said in words — and when it is short,
-// how short. The bar already draws the bands (a tick at 10, full at 20), but
-// reading it means decoding two tick positions against a fill; the row has to
-// say it. And it says the *gap*, not the total: 6 series is a number you have
-// already done, "+4 a la zona" is one you can act on in the next session.
+// How far the row is from the efficient band — and nothing else. Every other
+// thing the row could say is already said: the value column prints what you
+// did, and the bar draws where that sits against the reference. Naming the band
+// on top of both ("10 series" · "10 de 10" · a full bar) was the same fact
+// three times, on nine rows.
+//
+// So the line carries only the number neither of them can give you: the gap you
+// can close in the next session. In the zone it says nothing at all — a bar
+// past the tick is the whole message, and there is nothing to act on.
+//
+// One target, always the zone, so "+8" means the same thing on every row. The
+// old two-tier gap (to 4 if under the minimum, to 10 otherwise) made the number
+// change meaning halfway down the card without saying so.
 //
 // The gap is in whatever unit the row prints — a plain count in week mode, a
 // weekly average in month mode — because the reference has always been weekly
 // and the row's own figure is what the bar draws.
-//
-// Nothing above 20 is called a peak or an excess: the research this comes from
-// says returns fall off past the zone, not that more is wrong.
-function bandOf(shown) {
-  const short = (target) => `+${Math.round((target - shown) * 10) / 10}`
-  if (shown < MINIMUM) return `${short(MINIMUM)} al mínimo`
-  if (shown < ZONE) return `${short(ZONE)} a la zona`
-  if (shown <= REFERENCE) return 'en zona'
-  return 'sobre la zona'
+function gapTo(shown) {
+  return shown < ZONE ? `+${Math.round((ZONE - shown) * 10) / 10}` : ''
 }
 
 // Sets per muscle over a week or a month, with the arrows to walk back through
@@ -293,16 +293,23 @@ function PeriodSummary({ days }) {
       ? `vs. ${summary.inProgress ? 'mismo tramo de ' : ''}${formatMonth(previous.start)}`
       : `vs. ${summary.inProgress ? 'mismo tramo de la ' : ''}semana anterior`
 
+  // What only the footer can say. The week's range and "en curso" used to ride
+  // here too, and both were already on screen: the title names the week and the
+  // subtitle counts the days you are into it. The month keeps its unit line —
+  // rows printing "1.9/sem" under a title that says "Julio" need it.
   const footer = byMonth
     ? [against, summary.averaged ? 'media de series por semana' : 'series del mes hasta hoy']
         .filter(Boolean)
         .join(' · ')
-    : [formatRange(current.start, current.end), summary.inProgress && 'en curso', against]
-        .filter(Boolean)
-        .join(' · ')
+    : against || ''
 
   return (
     <div className="card">
+      {/* The card says what it is, like every other card on the screen
+          ("Evolución", "Ritmo por músculo"). It used to open on the period
+          alone — "Esta semana" answers *when*, never *what*, so the one card
+          the screen exists for was the only one that never named its subject. */}
+      <h2 className="sum-title">Series por músculo</h2>
       <div className="sum-head">
         <div className="sum-nav">
           <button
@@ -314,7 +321,9 @@ function PeriodSummary({ days }) {
           >
             ‹
           </button>
-          <h2>{title}</h2>
+          {/* Demoted under the card's name: the period is what the arrows
+              move, not what the card is about. */}
+          <h3>{title}</h3>
           <button
             type="button"
             className="secondary set-action sum-arrow"
@@ -387,16 +396,19 @@ function PeriodSummary({ days }) {
                       : ''
                   }`}
                 >
-                  {/* Mid-week the row reports: what you have, and what it is
-                      aiming at. The red of a shortfall is a verdict too, so it
-                      waits for the same moment the words do — and in a deload it
-                      never comes, because being under the usual number is the
-                      whole point of the week. */}
+                  {/* The gap, and only the gap — running week or closed, the
+                      number you can act on is the same one. What waits for the
+                      week to close is the red, not the words: a shortfall is a
+                      verdict, and there is nothing to be short of until the week
+                      is over. A deload replaces the reference outright, so it
+                      states its own target instead; a week that came in short
+                      says nothing here, because its one line above already did
+                      and the week is over anyway. */}
                   {deload
-                    ? `${row.sets} de ${targetFor(row.group) ?? ZONE}`
-                    : judging && !shortWeek
-                      ? bandOf(summary.averaged ? row.perWeek : row.sets)
-                      : `${row.sets} de ${ZONE}`}
+                    ? `objetivo ${targetFor(row.group) ?? ZONE}`
+                    : shortWeek
+                      ? ''
+                      : gapTo(summary.averaged ? row.perWeek : row.sets)}
                 </span>
               </span>
               {/* No "series" in month mode: the footer already says these are
@@ -407,19 +419,25 @@ function PeriodSummary({ days }) {
               </span>
               {/* Only when there is something to compare with — an empty
                   matching stretch makes every delta the row's own value again.
-                  A group that held steady gets "=", not a fake +0.
+                  A group that held steady leaves the cell empty: the column
+                  reports change, and no change is not something to report.
                   Gone in a deload: this is the only thing on the row wearing a
                   colour, so leaving nine red negatives up while the words go
                   quiet silences the quieter half. A deload is *defined* as less
                   than last week — the comparison reports a decision, not a
                   result. What the week is measured against is its own target,
-                  which the state line to the left already gives as "3 de 4". */}
+                  which the state line to the left already gives as "objetivo 4".
+                  And the colour keeps the same clock as the words: mid-week the
+                  delta compares two unfinished stretches, so it reports in grey
+                  and rules on nothing. */}
               {showDelta && (
                 <span
-                  className={`sum-delta${row.delta === 0 ? ' flat' : row.delta < 0 ? ' down' : ''}`}
+                  className={`sum-delta${
+                    !judging ? ' quiet' : row.delta < 0 ? ' down' : ''
+                  }`}
                 >
                   {row.delta === 0
-                    ? '='
+                    ? ''
                     : row.delta > 0
                       ? `+${row.delta}`
                       : `−${Math.abs(row.delta)}`}
@@ -471,7 +489,7 @@ function PeriodSummary({ days }) {
           {plural(summary.unclassified, 'serie', 'series')} sin músculo asignado
         </p>
       )}
-      <p className="hint sum-foot">{footer}</p>
+      {footer && <p className="hint sum-foot">{footer}</p>}
     </div>
   )
 }

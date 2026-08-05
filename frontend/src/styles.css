@@ -1733,6 +1733,12 @@ button.set-action {
    Sets per muscle over a week or a month, with the arrows to walk back through
    them. The bar is the comparison between groups; the number is the fact; the
    delta is the only thing that carries colour. */
+/* The card's name sits on its own line above the period controls: the row
+   below already carries two arrows and a chip, and a title sharing it read as
+   a fourth control. */
+.sum-title {
+  margin: 0 0 0.5rem;
+}
 .sum-head {
   display: flex;
   align-items: center;
@@ -1745,7 +1751,13 @@ button.set-action {
   align-items: center;
   gap: 0.35rem;
 }
-.sum-nav h2 {
+/* Under the title in the scale, over the body text: it labels what the arrows
+   move, so it has to be readable at a glance without competing with the h2. */
+.sum-nav h3 {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0;
   min-width: 88px;
   text-align: center;
@@ -1870,7 +1882,9 @@ button.set-action {
   font-size: 0.74rem;
   color: var(--pr);
 }
-.sum-delta.flat {
+/* Mid-period: the comparison is between two unfinished stretches, so it reports
+   in grey. Green and red are verdicts, and they wait for the period to close. */
+.sum-delta.quiet {
   color: var(--muted);
 }
 .sum-delta.down {
