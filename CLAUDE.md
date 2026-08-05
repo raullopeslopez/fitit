@@ -107,6 +107,34 @@ claims, and only one of them is what I asked about.
 - Site access is set to "on click" and the extension works anyway — it drives its own tab
   group. Never ask me to widen it to all sites.
 
+### Prod va con la extensión; localhost NO
+La extensión de Chrome no inyecta en `localhost` — falla con `Script injection timed out
+after 5000ms` y reintentar no arregla nada. No es un problema de permisos y no hace falta
+que yo toque nada. Para el dev server usa el Chromium de gstack, que sí entra:
+
+```bash
+B=~/.claude/skills/gstack/browse/dist/browse
+$B connect                       # lanza su propio Chromium, headed
+$B goto http://localhost:5173/
+$B js "localStorage.setItem('fitit_token','mock')"   # sin token la app se queda en el login
+$B goto http://localhost:5173/   # recarga ya autenticado
+$B viewport 430x932              # móvil, que es como la uso
+$B click "button[aria-label='Periodo anterior']"     # selectores CSS; `text=Progreso` también vale
+$B js "getComputedStyle(document.querySelector('.sum-delta')).color"
+$B screenshot --viewport <ruta.png>
+```
+
+- **Un backend local no existe.** El dev server proxea `/api` a `localhost:8000` y ahí no
+  hay nada (Postgres, sin `.env`). Levanta un mock HTTP mínimo en 8000 que devuelva
+  `/days`, `/exercises`, `/exercises/records`; usa `ThreadingHTTPServer`, con el de un
+  solo hilo la página se cuelga a medio cargar.
+- **Comprueba el color, no lo mires.** `$B js "getComputedStyle(...)"` distingue
+  `--muted` de `--danger`; una captura en JPEG no.
+- **Recoge lo que dejas montado:** dev server, mock y `$B stop` al terminar. Si el server
+  de browse ya cayó, el Chromium queda huérfano — mátalo por PID.
+- **Sigue siendo verdad que prod es lo primero.** Si el cambio ya está desplegado, ábrelo
+  ahí con la extensión y ahórrate todo esto.
+
 ## Working Style
 - When there are pending git changes, start with `git status` / `git diff` and finish/commit
   those before broad codebase exploration.
