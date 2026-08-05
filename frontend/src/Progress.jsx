@@ -369,8 +369,14 @@ function PeriodSummary({ days }) {
               </span>
               {/* Only when there is something to compare with — an empty
                   matching stretch makes every delta the row's own value again.
-                  A group that held steady gets "=", not a fake +0. */}
-              {summary.comparable && (
+                  A group that held steady gets "=", not a fake +0.
+                  Gone in a deload: this is the only thing on the row wearing a
+                  colour, so leaving nine red negatives up while the words go
+                  quiet silences the quieter half. A deload is *defined* as less
+                  than last week — the comparison reports a decision, not a
+                  result. What the week is measured against is its own target,
+                  which the state line to the left already gives as "3 de 4". */}
+              {summary.comparable && !deload && (
                 <span
                   className={`sum-delta${row.delta === 0 ? ' flat' : row.delta < 0 ? ' down' : ''}`}
                 >
