@@ -10,11 +10,17 @@ Spec: tests/features/session_length.feature
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, time, timedelta
 
-# The gap that ends a session. Rests run long — a heavy triple, a phone call,
-# a queue for the rack — but past three quarters of an hour you are not resting
-# between sets, you left. Without this cut, one forgotten session logged at 9:00
-# and picked up again at 22:00 reads as a thirteen-hour workout.
-GAP = timedelta(minutes=45)
+# The gap that ends a session. It is not "how long a rest can be" — it is how
+# long the app can hear nothing and still believe you are training. Sets are
+# logged in bursts, several at once right after they are done, so a session that
+# never stopped can go an hour with nothing recorded.
+#
+# It was 45 minutes and that was too tight: it cut a real session in two at an
+# 82-minute stretch of not logging, reporting 45 minutes for a workout that ran
+# over two hours. At 90 the same eight sessions of history keep every number
+# they had except that one, which recovers its 2h07 — and the cut still catches
+# what it is for: days left open and picked up hours later (4h21, 26h12).
+GAP = timedelta(minutes=90)
 
 # How far a set may sit from the day it belongs to and still date it. Sets are
 # stamped in UTC and the day is a local calendar date, so a late-evening session

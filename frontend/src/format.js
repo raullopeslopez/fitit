@@ -167,8 +167,10 @@ export function formatCardioSet(set) {
 // The gap that closes a session, mirroring the backend's own (see
 // `app/session_length.py`). Here it answers a different question: not "what
 // counts as training" but "is this session over" — which is what decides
-// whether there is a total to print at all.
-const SESSION_GAP_MS = 45 * 60 * 1000
+// whether there is a total to print at all. Same number for the same reason:
+// sets are logged in bursts, so an hour of silence is a session still running,
+// and printing a total then would print it mid-workout.
+const SESSION_GAP_MS = 90 * 60 * 1000
 
 // How long a session took, as a line you'd say out loud: "1h 05", "45 min".
 // Empty string for every case where there is nothing to say, so a caller can
