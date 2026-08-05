@@ -169,15 +169,20 @@ const DELOAD_COPY =
 // can close in the next session. In the zone it says nothing at all — a bar
 // past the tick is the whole message, and there is nothing to act on.
 //
-// One target, always the zone, so "+8" means the same thing on every row. The
-// old two-tier gap (to 4 if under the minimum, to 10 otherwise) made the number
+// One target, always the zone, so the number means the same thing on every row.
+// The old two-tier gap (to 4 if under the minimum, to 10 otherwise) made it
 // change meaning halfway down the card without saying so.
+//
+// "faltan 6" and not "+6": the row already carries a "+6" in the delta column,
+// pointing the other way in time. Two numbers of the same shape on one row, one
+// looking forward and one back, is a card you have to decode. The word costs
+// six characters and removes the ambiguity outright.
 //
 // The gap is in whatever unit the row prints — a plain count in week mode, a
 // weekly average in month mode — because the reference has always been weekly
 // and the row's own figure is what the bar draws.
 function gapTo(shown) {
-  return shown < ZONE ? `+${Math.round((ZONE - shown) * 10) / 10}` : ''
+  return shown < ZONE ? `faltan ${Math.round((ZONE - shown) * 10) / 10}` : ''
 }
 
 // Sets per muscle over a week or a month, with the arrows to walk back through
@@ -287,21 +292,18 @@ function PeriodSummary({ days }) {
   // collapse every time, which says something about the calendar and nothing
   // about the training. `comparable` is the other half — the stretch has to
   // have had something in it, or "+13" is just the row reading itself back.
+  // The heading over the delta column, and the whole of what used to be a
+  // footnote at the foot of the card. Sat down there, "vs. mismo tramo de la
+  // semana anterior" was a sentence you had to carry back up to a number four
+  // rows away; over the column it is read where it is needed. Short by
+  // necessity — the column is 26px of tabular figures and the heading sizes it.
   const against = !previous || !summary.comparable
     ? null
-    : byMonth
-      ? `vs. ${summary.inProgress ? 'mismo tramo de ' : ''}${formatMonth(previous.start)}`
-      : `vs. ${summary.inProgress ? 'mismo tramo de la ' : ''}semana anterior`
-
-  // What only the footer can say. The week's range and "en curso" used to ride
-  // here too, and both were already on screen: the title names the week and the
-  // subtitle counts the days you are into it. The month keeps its unit line —
-  // rows printing "1.9/sem" under a title that says "Julio" need it.
-  const footer = byMonth
-    ? [against, summary.averaged ? 'media de series por semana' : 'series del mes hasta hoy']
-        .filter(Boolean)
-        .join(' · ')
-    : against || ''
+    : summary.inProgress
+      ? 'vs. mismo tramo'
+      : byMonth
+        ? `vs. ${formatMonth(previous.start)}`
+        : 'vs. sem. ant.'
 
   return (
     <div className="card">
@@ -355,6 +357,19 @@ function PeriodSummary({ days }) {
         <p className="hint">Nada registrado en este periodo.</p>
       ) : (
         <div className={`sum-rows${showDelta ? ' has-delta' : ''}`}>
+          {/* One row of headings, in the same grid as the rows, so each label
+              sits over the figures it names. Two numbers per row and no labels
+              is a card you have to be told how to read: "10" and "+10" look
+              alike and mean nothing alike. The first two cells stay empty —
+              the muscle needs no heading and the bar has its own reference
+              line below. `display: contents`, so the cell count must match the
+              rows exactly or every column slides over by one. */}
+          <div className="sum-cols">
+            <span />
+            <span />
+            <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
+            {showDelta && <span className="sum-collab">{against}</span>}
+          </div>
           {summary.rows.map((row) => (
             <div className="sum-row" key={row.group}>
               <span className="sum-name">{row.group}</span>
@@ -411,12 +426,10 @@ function PeriodSummary({ days }) {
                       : gapTo(summary.averaged ? row.perWeek : row.sets)}
                 </span>
               </span>
-              {/* No "series" in month mode: the footer already says these are
-                  weekly averages of sets, and spelling it out per row wrapped
-                  the column onto two lines. */}
-              <span className="sum-val">
-                {summary.averaged ? `${row.perWeek}/sem` : plural(row.sets, 'serie', 'series')}
-              </span>
+              {/* The figure alone. The column heading says what it is — once,
+                  at the top — so repeating "series" on nine rows was the word
+                  that pushed the bars into half the width they had. */}
+              <span className="sum-val">{summary.averaged ? row.perWeek : row.sets}</span>
               {/* Only when there is something to compare with — an empty
                   matching stretch makes every delta the row's own value again.
                   A group that held steady leaves the cell empty: the column
@@ -489,7 +502,6 @@ function PeriodSummary({ days }) {
           {plural(summary.unclassified, 'serie', 'series')} sin músculo asignado
         </p>
       )}
-      {footer && <p className="hint sum-foot">{footer}</p>}
     </div>
   )
 }
