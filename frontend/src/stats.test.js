@@ -7,6 +7,7 @@ import {
   sessionsPerPeriod,
   setsPerMuscle,
   trainingStats,
+  typicalWeekSets,
   weightPrs,
 } from './stats.js'
 
@@ -567,5 +568,32 @@ describe('lastTime', () => {
 
   it('is null for an exercise with no history', () => {
     expect(lastTime(BENCH, 'Sentadilla', { today: '2026-07-23' })).toBeNull()
+  })
+})
+
+describe('typicalWeekSets', () => {
+  // The divisor is the weeks you trained, not the weeks on the calendar — the
+  // same choice the deload target makes, and for the same reason: a fortnight
+  // away is not two light weeks, it is not weeks.
+  const day = (date, n) => ({
+    date,
+    workouts: [{ id: 1, sets: Array.from({ length: n }, (_, i) => ({ id: i, muscle_group: 'Pecho' })) }],
+  })
+
+  it('averages over the weeks you trained, not the ones on the calendar', () => {
+    const days = [day('2026-07-06', 30), day('2026-06-29', 10)]
+    // Two trained weeks in the window, 40 sets between them.
+    expect(typicalWeekSets(days, '2026-07-13')).toBe(20)
+  })
+
+  it('is null when there is no trained week behind it', () => {
+    expect(typicalWeekSets([], '2026-07-13')).toBeNull()
+  })
+
+  // Or a light week would drag down the very average it is being measured
+  // against, and rate itself normal.
+  it('stops the day before the week it is measuring', () => {
+    const days = [day('2026-07-15', 2), day('2026-07-06', 20)]
+    expect(typicalWeekSets(days, '2026-07-13')).toBe(20)
   })
 })

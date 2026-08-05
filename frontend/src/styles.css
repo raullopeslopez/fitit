@@ -1823,6 +1823,17 @@ button.set-action {
 .sum-state.is-short {
   color: var(--text);
 }
+/* The one line a short week gets, in place of a demand on every row. Full ink,
+   not muted: it is the card's answer for that week, and the rows below it have
+   gone quiet precisely so this can be read once. No colour and no icon — it
+   describes, it does not rule, and a week that came in light is not a failure
+   the app is in a position to name. */
+.sum-shortweek {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.45;
+}
 .sum-bar {
   position: relative;
   height: 8px;

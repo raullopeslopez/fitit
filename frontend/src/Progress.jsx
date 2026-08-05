@@ -14,7 +14,13 @@ import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
-import { deloadTargets, recordLadder, sessionsPerPeriod, setsPerMuscle } from './stats.js'
+import {
+  deloadTargets,
+  recordLadder,
+  sessionsPerPeriod,
+  setsPerMuscle,
+  typicalWeekSets,
+} from './stats.js'
 import { showKg } from './units.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -237,6 +243,32 @@ function PeriodSummary({ days }) {
   // you every Monday that you were behind on a week you hadn't lived yet.
   const judging = !summary.inProgress || summary.averaged
 
+  // A week that closed under half of a normal one. Said once, at the top, and
+  // the rows stop demanding: nine "+7 a la zona" plus nine red drops is
+  // eighteen marks of failure for a week that could as easily have been the flu
+  // as a lapse, and none of them is actionable — the week is over.
+  //
+  // Half rather than a per-row rule because one visible threshold beats nine
+  // implicit ones, and any threshold here is a judgement call. It sits above the
+  // deload's third on purpose: a deload is a plan, this is only a description.
+  //
+  // Never on a month (four or five weeks with one light one is a month, not a
+  // short week), never while the week is still running (it hasn't come in yet),
+  // and never on a deload, which already explains itself in its own words.
+  const typical = byMonth || deload ? null : typicalWeekSets(days, current.start)
+  const shortWeek = judging && typical != null && summary.sets < typical / 2
+
+  // The ratio in the words you'd actually use. Only ever below a half by
+  // construction, so these four cover it — and "menos de un cuarto" rather than
+  // a fifth or a sixth, because past that the fraction stops being the point.
+  const shareOfTypical = () => {
+    const ratio = summary.sets / typical
+    if (ratio >= 0.42) return 'la mitad'
+    if (ratio >= 0.29) return 'un tercio'
+    if (ratio >= 0.22) return 'un cuarto'
+    return 'menos de un cuarto'
+  }
+
   const subtitle = [
     plural(current.sessions, 'entreno', 'entrenos'),
     plural(summary.sets, 'serie', 'series'),
@@ -344,6 +376,7 @@ function PeriodSummary({ days }) {
                   className={`sum-state${
                     judging &&
                     !deload &&
+                    !shortWeek &&
                     (summary.averaged ? row.perWeek : row.sets) < ZONE
                       ? ' is-short'
                       : ''
@@ -356,7 +389,7 @@ function PeriodSummary({ days }) {
                       whole point of the week. */}
                   {deload
                     ? `${row.sets} de ${targetFor(row.group) ?? ZONE}`
-                    : judging
+                    : judging && !shortWeek
                       ? bandOf(summary.averaged ? row.perWeek : row.sets)
                       : `${row.sets} de ${ZONE}`}
                 </span>
@@ -390,6 +423,12 @@ function PeriodSummary({ days }) {
             </div>
           ))}
         </div>
+      )}
+      {shortWeek && (
+        <p className="sum-shortweek">
+          Semana corta · {plural(summary.sets, 'serie', 'series')}, {shareOfTypical()} de tu semana
+          típica
+        </p>
       )}
       {summary.rows.length > 0 && (
         <>
