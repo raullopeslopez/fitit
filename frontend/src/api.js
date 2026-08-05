@@ -113,6 +113,16 @@ export function setExerciseMuscle(exerciseId, muscleGroup) {
   })
 }
 
+// Set (or clear, with null) the standing note on an exercise — the grip, the
+// seat height, the shoulder that complains. One per exercise, shown on the card
+// every session, unlike the per-set note which belongs to one row of one log.
+export function setExerciseNote(exerciseId, note) {
+  return apiFetch(`/exercises/${exerciseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
+}
+
 // Rename an exercise in place; every past set follows (they reference it by id).
 export function renameExercise(exerciseId, name) {
   return apiFetch(`/exercises/${exerciseId}`, {

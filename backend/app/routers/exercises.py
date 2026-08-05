@@ -40,6 +40,7 @@ def _to_exercise_out(exercise: Exercise, set_count: int) -> ExerciseOut:
         name=exercise.name,
         muscle_group=exercise.muscle_group or group_for(exercise.name, exercise.kind),
         kind=exercise.kind,
+        note=exercise.note,
         set_count=set_count,
     )
 
@@ -121,7 +122,7 @@ async def update_exercise(
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> ExerciseOut:
-    """Rename an exercise and/or override its muscle group.
+    """Rename an exercise, override its muscle group, and/or set its standing note.
 
     Only the fields present in the request are touched, so a name-only edit
     leaves the muscle group alone (and vice versa). Renaming is in place: every
@@ -156,6 +157,11 @@ async def update_exercise(
         exercise.name = new_name
     if "muscle_group" in fields:
         exercise.muscle_group = payload.muscle_group
+    if "note" in fields:
+        # A cleared input arrives as "" and means the same as null: no note. One
+        # of the two reaching storage would leave an empty string the client
+        # renders as a blank line under the exercise name.
+        exercise.note = payload.note or None
     await session.commit()
     await session.refresh(exercise)
     return _to_exercise_out(exercise, await _count_sets(session, exercise.id))

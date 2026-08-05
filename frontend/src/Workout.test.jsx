@@ -450,32 +450,6 @@ describe('Workout', () => {
     expect(screen.getByRole('button', { name: /registrar 25 × 15/i })).toBeInTheDocument()
   })
 
-  it('clears the note and RPE after logging so they are not carried into the next set', async () => {
-    // Weight and reps repeat; the per-set qualia do not. A stale "felt strong"
-    // or RPE 8 silently riding onto the next set is worse than an empty field.
-    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Apertura', found: false, sets: [] })
-    api.logSet.mockResolvedValue(
-      workoutWith(benchSet({ id: 31, exercise_name: 'Apertura', reps: 15, weight: 25 })),
-    )
-    renderWorkout()
-
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Apertura')
-    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await userEvent.type(screen.getByLabelText(/reps/i), '15')
-    await userEvent.type(screen.getByLabelText(/peso/i), '25')
-    await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
-    await userEvent.type(screen.getByLabelText(/^rpe$/i), '8')
-    await userEvent.type(screen.getByLabelText(/^nota$/i), 'felt strong')
-    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-
-    await screen.findByText(/25 kg x 15/i)
-    // Logging folds the extras back up, and folded means empty — reopening
-    // must not hand you the last set's qualia.
-    await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
-    expect(screen.getByLabelText(/^rpe$/i)).toHaveValue('')
-    expect(screen.getByLabelText(/^nota$/i)).toHaveValue('')
-  })
-
   // A set that came in as 135 lb was migrated to its kilos, so it reads and
   // seeds the stepper as 61.2 like any other kilo set — there is no conversion
   // left at the edge, only rounding.
@@ -739,39 +713,6 @@ describe('Workout', () => {
     expect(document.querySelector('.dot-cardio')).toBeInTheDocument()
   })
 
-  it('logs a set with RPE and a note', async () => {
-    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
-    api.logSet.mockResolvedValue({
-      id: 1,
-      date: '2026-07-16',
-      name: null,
-      sets: [benchSet({ rpe: 8, note: 'felt strong' })],
-    })
-    renderWorkout()
-
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
-    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-    await userEvent.type(screen.getByLabelText(/reps/i), '8')
-    await userEvent.type(screen.getByLabelText(/peso/i), '60')
-    await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
-    await userEvent.type(screen.getByLabelText(/^rpe$/i), '8')
-    await userEvent.type(screen.getByLabelText(/^nota$/i), 'felt strong')
-    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-
-    await waitFor(() =>
-      expect(api.logSet).toHaveBeenCalledWith(1, {
-        exercise_name: 'Bench Press',
-        reps: 8,
-        weight: 60,
-        rpe: 8,
-        note: 'felt strong',
-        performed_at: expect.any(String),
-      }),
-    )
-    expect(await screen.findByText(/RPE 8/i)).toBeInTheDocument()
-    expect(screen.getByText(/felt strong/i)).toBeInTheDocument()
-  })
-
   // The record is marked where the record is: on the row, not in a banner that
   // covers the log for a moment and then leaves nothing behind.
   it('marks a real weight record on the set that took it', async () => {
@@ -1001,7 +942,7 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false })
     renderWorkout()
 
-    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
     expect(screen.queryByRole('button', { name: /registradas en/i })).not.toBeInTheDocument()
   })
 
@@ -1151,7 +1092,7 @@ describe('Workout', () => {
       expect(screen.queryByLabelText(/grupo muscular de/i)).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /registradas en/i })).not.toBeInTheDocument()
 
-      await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
       expect(screen.getByLabelText(/grupo muscular de/i)).toBeInTheDocument()
     })
   })
@@ -1247,26 +1188,28 @@ describe('Workout', () => {
     )
   })
 
-  it('edits RPE and note on a set inline', async () => {
-    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 8, weight: 60, rpe: 9, note: 'tough' }))
+  // The one-off note survives here and nowhere else: something true of *this*
+  // set ("me falló el hombro") still has a place, but you reach it by tapping
+  // the set it is about, not by carrying a spare field through every log.
+  it('edits the note on a set inline', async () => {
+    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 8, weight: 60, note: 'tough' }))
     await logBenchSet()
 
     await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
-    await userEvent.type(screen.getByLabelText(/editar rpe/i), '9')
+    expect(screen.queryByLabelText(/editar rpe/i)).not.toBeInTheDocument()
     await userEvent.type(screen.getByLabelText(/editar nota/i), 'tough')
-    await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^guardar$/i }))
 
     await waitFor(() =>
       expect(api.editSet).toHaveBeenCalledWith(10, {
         exercise_name: 'Bench Press',
         reps: 8,
         weight: 60,
-        rpe: 9,
+        rpe: null,
         note: 'tough',
       }),
     )
-    expect(await screen.findByText(/RPE 9/i)).toBeInTheDocument()
-    expect(screen.getByText(/tough/i)).toBeInTheDocument()
+    expect(await screen.findByText(/tough/i)).toBeInTheDocument()
   })
 
   it('keeps the set and shows an error when delete fails', async () => {
@@ -1356,7 +1299,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     const card = (await screen.findByRole('heading', { name: /Bench Press/ })).closest('.card')
-    await userEvent.click(within(card).getByRole('button', { name: /^corregir$/i }))
+    await userEvent.click(within(card).getByRole('button', { name: /editar ejercicio/i }))
     expect(card.querySelectorAll('.dot')).toHaveLength(1)
   })
 
@@ -1369,7 +1312,7 @@ describe('Workout', () => {
     renderWorkout()
 
     // The newest card is open; the editor lives behind Corregir at its foot.
-    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
     const select = await screen.findByLabelText(/grupo muscular de Bench Press/i)
     expect(select).toHaveValue('Pecho')
 
@@ -1389,7 +1332,7 @@ describe('Workout', () => {
     api.setExerciseMuscle.mockResolvedValue({ id: 2, name: 'Bench Press', muscle_group: null })
     renderWorkout()
 
-    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
     const select = screen.getByLabelText(/grupo muscular de Bench Press/i)
     await userEvent.selectOptions(select, 'Sin grupo')
 
@@ -1411,7 +1354,7 @@ describe('Workout', () => {
       api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
       api.listExercises.mockResolvedValue(exercises)
       renderWorkout()
-      await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       return screen.getByLabelText(/grupo muscular de Bench Press/i)
     }
 
@@ -1811,10 +1754,19 @@ describe('Workout', () => {
     expect(repeat.compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  // RPE and nota are optional, cleared after every log, and untouched in a
-  // straight-sets session — but they pushed Registrar two rows down the card.
-  describe('RPE and nota', () => {
-    it('stay folded until asked for', async () => {
+  // The log form asks for reps and weight and nothing else. RPE was filled on 1
+  // set in 277 and read by nothing in the app; the per-set note on 6, and what
+  // it carried was almost always true of the lift rather than of that set — so
+  // the note moved to the exercise, where it is worth reading before every rep.
+  describe('nota del ejercicio', () => {
+    const standing = (note = null) => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
+      api.listExercises.mockResolvedValue([
+        { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 0, note },
+      ])
+    }
+
+    it('leaves the log form with nothing but reps and weight', async () => {
       api.getPreviousMarks.mockResolvedValue({
         exercise_name: 'Bench Press',
         found: false,
@@ -1826,10 +1778,44 @@ describe('Workout', () => {
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
       await screen.findByRole('button', { name: /registrar/i })
+      expect(screen.queryByRole('button', { name: /rpe/i })).not.toBeInTheDocument()
       expect(screen.queryByLabelText(/^RPE$/i)).not.toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: /rpe.*nota/i }))
-      expect(screen.getByLabelText(/^RPE$/i)).toBeInTheDocument()
-      expect(screen.getByLabelText(/^Nota$/i)).toBeInTheDocument()
+      expect(screen.queryByLabelText(/^Nota$/i)).not.toBeInTheDocument()
+    })
+
+    it('shows the standing note on the open card, under the name', async () => {
+      standing('agarre ancho, banco en 3')
+      renderWorkout()
+
+      expect(await screen.findByText('agarre ancho, banco en 3')).toBeInTheDocument()
+    })
+
+    it('writes a note from the same fold that corrects the muscle', async () => {
+      standing()
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: 'agarre ancho' })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.type(screen.getByLabelText(/nota de Bench Press/i), 'agarre ancho')
+      await userEvent.click(screen.getByRole('button', { name: /guardar nota/i }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, 'agarre ancho'))
+      expect(await screen.findByText('agarre ancho')).toBeInTheDocument()
+    })
+
+    // Emptying the field is how you take a note back, and an empty string is
+    // not a note — it would leave a blank line under the exercise name forever.
+    it('clears the note when the field is emptied', async () => {
+      standing('agarre ancho')
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: null })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.clear(screen.getByLabelText(/nota de Bench Press/i))
+      await userEvent.click(screen.getByRole('button', { name: /guardar nota/i }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, null))
+      await waitFor(() => expect(screen.queryByText('agarre ancho')).not.toBeInTheDocument())
     })
   })
 
