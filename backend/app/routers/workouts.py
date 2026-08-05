@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -58,6 +58,35 @@ def _validate_metrics(payload: SetIn, kind: str) -> None:
             raise HTTPException(
                 status_code=422, detail="strength set has no duration or distance"
             )
+
+
+# How stale a client's own timestamp may be and still be believed. The outbox
+# drains on the next network the phone sees, so a set can legitimately arrive
+# hours late — a week covers the phone left in a drawer. Past that, the value is
+# not a late set, it's a wrong clock, and a wrong clock backdating sets rewrites
+# a day that was already closed.
+_MOMENT_MAX_AGE = timedelta(days=7)
+# Clock skew the other way. Phones run a little fast; "tomorrow" is not skew.
+_MOMENT_MAX_SKEW = timedelta(minutes=2)
+
+
+def _moment_of(performed_at: datetime | None) -> datetime:
+    """When the set was done: the client's own time when it's plausible, else now.
+
+    Never raises. A set already performed must not be refused over the clock
+    that timed it — falling back to arrival time loses precision, refusing
+    loses the set.
+
+    Spec: tests/features/set_moment.feature
+    """
+    now = datetime.now(UTC)
+    if performed_at is None:
+        return now
+    # A client that sends no offset means UTC; it has no other clock to mean.
+    moment = performed_at if performed_at.tzinfo else performed_at.replace(tzinfo=UTC)
+    if moment > now + _MOMENT_MAX_SKEW or moment < now - _MOMENT_MAX_AGE:
+        return now
+    return moment
 
 
 def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
@@ -244,6 +273,7 @@ async def log_set(
             note=payload.note or None,
             duration_seconds=payload.duration_seconds,
             distance=payload.distance,
+            created_at=_moment_of(payload.performed_at),
         )
     )
     await session.commit()

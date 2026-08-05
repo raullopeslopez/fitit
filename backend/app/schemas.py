@@ -73,6 +73,14 @@ class SetIn(BaseModel):
     # Cardio metrics (duration required for cardio, distance optional).
     duration_seconds: int | None = Field(default=None, ge=1, le=86400)
     distance: float | None = Field(default=None, ge=0, le=100000)  # kilometres
+    # When the set was actually done, sent by the client. A set logged in a
+    # basement sits in the outbox until the phone finds a network, so arrival
+    # time answers a different question — and it is the one a session's length
+    # gets measured from. Optional: an older client still logs sets, they just
+    # stamp on arrival. Only honoured on create; correcting a set's reps has no
+    # business moving it in time.
+    # Spec: tests/features/set_moment.feature
+    performed_at: datetime | None = None
 
 
 class SetOut(BaseModel):
