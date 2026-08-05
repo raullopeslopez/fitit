@@ -127,6 +127,12 @@ class WorkoutOut(BaseModel):
     date: Date  # the day this workout belongs to
     name: str | None = None
     sets: list[SetOut] = []
+    # How long the session took, derived from the sets' own moments — never
+    # stored, so correcting or deleting a set can't leave a stale total behind.
+    # None when there is nothing honest to say: a single set has no span, and a
+    # session typed in days later times the typing.
+    # Spec: tests/features/session_length.feature
+    duration_seconds: int | None = None
 
 
 class DayOut(BaseModel):

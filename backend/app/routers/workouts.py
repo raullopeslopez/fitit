@@ -11,6 +11,7 @@ from ..exercise_repo import find_exercise, get_or_create_exercise
 from ..models import Day, Exercise, SetEntry, Workout
 from ..muscles import group_for, secondaries_for
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
+from ..session_length import session_length
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -96,6 +97,7 @@ def _to_workout_out(workout: Workout, day_date: date) -> WorkoutOut:
         date=day_date,
         name=workout.name,
         sets=[_set_out(s, s.exercise) for s in workout.sets],
+        duration_seconds=session_length((s.created_at for s in workout.sets), day_date),
     )
 
 
