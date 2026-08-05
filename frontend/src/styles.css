@@ -421,8 +421,15 @@ h2 {
   line-height: 1;
 }
 /* A quiet text affordance, not a control competing with Registrar. */
-.extras-toggle {
-  margin: 0.1rem 0 0.6rem;
+/* The exercise's standing note, above the form because it is read before the
+   first rep. Muted and italic like the per-set note it replaces — it is context
+   for the numbers, never one of them, so it takes no ink and no accent. */
+.exercise-note {
+  margin: 0.1rem 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.35;
 }
 /* Tap-to-edit surfaces: the row, the workout title, the chart title. They read
    as content, so the only affordance is the press — no frame, no fill, nothing
@@ -1516,6 +1523,23 @@ button.set-action {
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--muted);
+}
+/* The note editor, same shape as the muscle row above it: label left, control
+   filling the rest, save on its own line so the field keeps its width on a
+   phone. Both live in the one fold you open to fix something about the lift. */
+.note-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.note-edit input {
+  flex: 1;
+  min-width: 8rem;
+  min-height: 44px;
+}
+.note-edit button {
+  flex-basis: 100%;
 }
 .muscle-edit-select {
   margin-left: auto;

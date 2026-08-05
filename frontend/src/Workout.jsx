@@ -11,6 +11,7 @@ import {
   recentlyTrained,
   renameWorkout,
   setExerciseMuscle,
+  setExerciseNote,
 } from './api.js'
 import { getToken } from './auth.js'
 import {
@@ -71,7 +72,7 @@ import { holdScreenAwake } from './wakelock.js'
 // and travels as null, not 0. Logged as 0 it became a number: it charted, it
 // could take a record, and the row read "0×12". Reps are what make it a set, so
 // those are still required.
-function validateSet(reps, weight, rpe) {
+function validateSet(reps, weight) {
   const r = Number(reps)
   if (!Number.isInteger(r) || r < 1) {
     return { error: 'Introduce reps: un número entero de 1 o más.' }
@@ -83,15 +84,7 @@ function validateSet(reps, weight, rpe) {
       return { error: 'Introduce un peso de 0 o más, o déjalo vacío si es sin peso.' }
     }
   }
-  let rpeValue = null
-  if (rpe != null && String(rpe).trim() !== '') {
-    const rp = Number(rpe)
-    if (!Number.isFinite(rp) || rp < 1 || rp > 10) {
-      return { error: 'El RPE debe estar entre 1 y 10.' }
-    }
-    rpeValue = rp
-  }
-  return { reps: r, weight: w, rpe: rpeValue }
+  return { reps: r, weight: w }
 }
 
 // Seed the steppers from the last previous mark so a straight repeat is one tap
@@ -158,6 +151,9 @@ function bump(current, delta, min) {
 function ExerciseCard({
   name,
   muscle,
+  // The standing note on the exercise — how you do this lift, every session.
+  // Null when there isn't one; the card then shows no line at all.
+  note = null,
   // Sets already logged against this exercise, across the whole log — not just
   // this session, which is all this card can see. It comes from /exercises and
   // is what the re-tag confirmation counts out loud.
@@ -168,6 +164,7 @@ function ExerciseCard({
   onEditSet,
   onDeleteSet,
   onChangeMuscle,
+  onChangeNote,
   open = true,
   onToggle,
   // Unfolds the card without the toggle's "or fold it again": a chip has to
@@ -181,15 +178,12 @@ function ExerciseCard({
   const [weight, setWeight] = useState(
     seed && seed.weight != null ? String(showKg(seed.weight)) : '',
   )
-  const [rpe, setRpe] = useState('')
-  const [note, setNote] = useState('')
-  // RPE and nota are optional and cleared after every log, so in a straight-sets
-  // session they are two input rows you never touch pushing Registrar down the
-  // card. Folded, "hidden" also has to mean "empty" — see toggleExtras.
-  const [showExtras, setShowExtras] = useState(false)
-  // Re-tagging the muscle and relabelling the unit are both once-in-a-lifetime
-  // corrections, and both were permanent controls on a card you open to log.
+  // Re-tagging the muscle and writing the standing note are both things you do
+  // once in an exercise's life, so they share one fold on a card you open to log.
   const [showFixes, setShowFixes] = useState(false)
+  // The standing note, being edited. Seeded from the exercise each time the fold
+  // opens, so an abandoned edit doesn't survive as a draft nobody asked for.
+  const [noteDraft, setNoteDraft] = useState(note ?? '')
   // A re-tag the user has asked for but not yet confirmed — `{ group }`, where
   // a null group means "Sin grupo". Null while nothing is pending. The select
   // stays controlled by `muscle` throughout, so backing out needs no undoing:
@@ -215,7 +209,6 @@ function ExerciseCard({
   const [editingId, setEditingId] = useState(null)
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
-  const [editRpe, setEditRpe] = useState('')
   const [editNote, setEditNote] = useState('')
   const [error, setError] = useState('')
 
@@ -246,9 +239,17 @@ function ExerciseCard({
     if (!(await onChangeMuscle(name, from))) setLastRetag({ from })
   }
 
+  // An emptied field is how you take the note back, so "" travels as null — the
+  // API stores no note either way, and the card has nothing to render.
+  async function saveNote(event) {
+    event.preventDefault()
+    const next = noteDraft.trim()
+    if (await onChangeNote(name, next || null)) setShowFixes(false)
+  }
+
   async function handleLogSet(event) {
     event.preventDefault()
-    const valid = validateSet(reps, weight, rpe)
+    const valid = validateSet(reps, weight)
     if (valid.error) {
       setError(valid.error)
       return
@@ -256,18 +257,15 @@ function ExerciseCard({
     setError('')
     // Keep the weight and reps you just logged: straight sets are the common
     // case (3×25×15), so the next set should be one tap on the button, not a
-    // re-entry into blank fields. The per-set qualia don't carry, though — a
-    // stale RPE or note riding silently onto the next set is worse than empty.
-    setRpe('')
-    setNote('')
-    setShowExtras(false)
+    // re-entry into blank fields.
     try {
       await onLogSet(name, {
         reps: valid.reps,
         weight: valid.weight,
-
-        rpe: valid.rpe,
-        note: note.trim() || null,
+        // Neither is asked for while logging any more. A set can still carry a
+        // note, written afterwards from the row itself; nothing writes an RPE.
+        rpe: null,
+        note: null,
       })
     } catch {
       setError('No se pudo registrar la serie.')
@@ -282,8 +280,8 @@ function ExerciseCard({
       await onLogSet(name, {
         reps: last.reps,
         weight: last.weight,
-        rpe: last.rpe ?? null,
-        note: last.note ?? null,
+        rpe: null,
+        note: null,
       })
     } catch {
       setError('No se pudo registrar la serie.')
@@ -297,12 +295,11 @@ function ExerciseCard({
     // Edited in the unit you're reading in, not the one it was logged in — the
     // row above the form says 135 lb, so the field has to say 135 too.
     setEditWeight(set.weight == null ? '' : String(showKg(set.weight)))
-    setEditRpe(set.rpe != null ? String(set.rpe) : '')
     setEditNote(set.note || '')
   }
 
   async function handleSaveEdit(set) {
-    const valid = validateSet(editReps, editWeight, editRpe)
+    const valid = validateSet(editReps, editWeight)
     if (valid.error) {
       setError(valid.error)
       return
@@ -312,7 +309,9 @@ function ExerciseCard({
       await onEditSet(set, {
         reps: valid.reps,
         weight: valid.weight,
-        rpe: valid.rpe,
+        // Left as it was found. Nothing in the app writes an RPE any more, but
+        // a set logged back when the field existed keeps the one it carries.
+        rpe: set.rpe ?? null,
         note: editNote.trim() || null,
       })
       setEditingId(null)
@@ -413,18 +412,6 @@ function ExerciseCard({
     ? `Registrar ${weight === '' ? 'corporal' : weight} × ${reps}`
     : 'Registrar serie'
 
-  // Folding the extras clears them: a value you can't see must not ride onto
-  // the set you're about to log.
-  function toggleExtras() {
-    setShowExtras((open) => {
-      if (open) {
-        setRpe('')
-        setNote('')
-      }
-      return !open
-    })
-  }
-
   return (
     <div className={`card ${open ? 'card-hero' : 'card-quiet is-folded'}`}>
       {/* The whole header is the fold control: a wide target for a thumb. */}
@@ -483,22 +470,36 @@ function ExerciseCard({
 
       {!open ? null : (
         <>
-      {/* Re-tagging the classifier's guess happens once in an exercise's life,
-          so it doesn't earn a permanent control on a card you open twenty times
-          a session. Kept out of the header so the fold target stays full-width
-          (DESIGN.md), but up top rather than under the set log — buried below a
-          growing list of sets, it was practically unreachable by the time you'd
-          actually want it. The unit relabel that used to sit beside it is gone
-          with the toggle that made it necessary. */}
+      {/* The standing note, read before the first rep — which is why it sits
+          above the form rather than in it. It is the exercise's, not the
+          session's, so it is here every time this card opens until you take it
+          away. Nothing shows when there is none: an empty line under the name
+          would be a field asking to be filled, and this one is worth nothing
+          unless you actually had something to say. */}
+      {note && <p className="exercise-note">{note}</p>}
+
+      {/* Correcting the classifier's guess and writing that note are both things
+          you do once in an exercise's life, so they share one fold on a card you
+          open twenty times a session. Kept out of the header so the fold target
+          stays full-width (DESIGN.md), but up top rather than under the set log —
+          buried below a growing list of sets, it was practically unreachable by
+          the time you'd actually want it. */}
       {onChangeMuscle && (
         <>
           <button
             type="button"
             className="unit-fix fixes-toggle"
             aria-expanded={showFixes}
-            onClick={() => setShowFixes((v) => !v)}
+            onClick={() =>
+              setShowFixes((v) => {
+                // Opening reseeds the draft from the exercise, so an edit you
+                // walked away from doesn't sit there pretending to be saved.
+                if (!v) setNoteDraft(note ?? '')
+                return !v
+              })
+            }
           >
-            Corregir
+            Editar ejercicio
           </button>
           {showFixes && (
             <div className="card-fixes">
@@ -520,6 +521,26 @@ function ExerciseCard({
                   ))}
                 </select>
               </div>
+              {onChangeNote && (
+                <form className="note-edit" onSubmit={saveNote}>
+                  <label className="muscle-edit-heading" htmlFor={`exnote-${name}`}>
+                    Nota
+                  </label>
+                  <input
+                    id={`exnote-${name}`}
+                    aria-label={`Nota de ${name}`}
+                    maxLength={200}
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="agarre, altura del banco, molestias…"
+                  />
+                  {/* Explicit, not save-on-blur: on a phone the keyboard closing
+                      is not the same gesture as deciding you meant it. */}
+                  <button type="submit" className="secondary">
+                    Guardar nota
+                  </button>
+                </form>
+              )}
               {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
             </div>
           )}
@@ -622,37 +643,6 @@ function ExerciseCard({
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          className="unit-fix extras-toggle"
-          aria-expanded={showExtras}
-          onClick={toggleExtras}
-        >
-          {showExtras ? '− RPE y nota' : '+ RPE y nota'}
-        </button>
-        {showExtras && (
-          <div className="row">
-            <div className="field field-unit">
-              <label htmlFor={`rpe-${name}`}>RPE</label>
-              <input
-                id={`rpe-${name}`}
-                inputMode="decimal"
-                value={rpe}
-                onChange={(e) => setRpe(e.target.value)}
-                placeholder="1–10"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor={`note-${name}`}>Nota</label>
-              <input
-                id={`note-${name}`}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="opcional"
-              />
-            </div>
-          </div>
-        )}
         {/* The button states exactly what it will log, so a repeat is one tap.
             It never disables itself waiting on the request: the set is already
             in the list below, and a second tap means a second set, which is
@@ -715,13 +705,6 @@ function ExerciseCard({
                     onChange={(e) => setEditWeight(e.target.value)}
                   />
                   <input
-                    aria-label="Editar RPE"
-                    inputMode="decimal"
-                    placeholder="RPE"
-                    value={editRpe}
-                    onChange={(e) => setEditRpe(e.target.value)}
-                  />
-                  <input
                     aria-label="Editar nota"
                     className="set-edit-note"
                     placeholder="nota"
@@ -754,7 +737,6 @@ function ExerciseCard({
                   </span>
                   <span className="set-val">
                     {formatSet(set)}
-                    {set.rpe ? ` · RPE ${set.rpe}` : ''}
                   </span>
                   {prIds.has(set.id) && (
                     <span className="pr-flag" title="Más peso que nunca a estas reps">
@@ -779,7 +761,6 @@ function ExerciseCard({
                     </span>
                     <span className="set-val">
                       {formatSet(set)}
-                      {set.rpe ? ` · RPE ${set.rpe}` : ''}
                     </span>
                     {prIds.has(set.id) && (
                       <span className="pr-flag" title="Más peso que nunca a estas reps">
@@ -1072,6 +1053,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   const [toggled, setToggled] = useState({})
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
   const [muscleByName, setMuscleByName] = useState({}) // name -> muscle group
+  const [noteByName, setNoteByName] = useState({}) // name -> standing note
   const [idByName, setIdByName] = useState({}) // name -> exercise id, for re-tagging
   // name -> sets logged against it in the whole log. This card can only see the
   // session it is standing in, and a re-tag moves all of them.
@@ -1365,6 +1347,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       .then((list) => {
         setKnown(list.map((e) => e.name))
         setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
+        setNoteByName(Object.fromEntries(list.map((e) => [e.name, e.note ?? null])))
         setIdByName(Object.fromEntries(list.map((e) => [e.name, e.id])))
         setCountByName(Object.fromEntries(list.map((e) => [e.name, e.set_count ?? 0])))
       })
@@ -1551,6 +1534,20 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       return true
     } catch {
       setError('No se pudo cambiar el grupo muscular.')
+      return false
+    }
+  }
+
+  async function changeNoteFor(name, note) {
+    const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
+    if (id == null) return false
+    setError('')
+    try {
+      const updated = await setExerciseNote(id, note)
+      setNoteByName((n) => ({ ...n, [name]: updated.note ?? null }))
+      return true
+    } catch {
+      setError('No se pudo guardar la nota.')
       return false
     }
   }
@@ -1918,6 +1915,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             key={ex.name}
             name={ex.name}
             muscle={muscleByName[ex.name] ?? null}
+            note={noteByName[ex.name] ?? null}
             setCount={countByName[ex.name] ?? 0}
             previous={ex.previous}
             sets={setsFor(ex.name)}
@@ -1925,6 +1923,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             onEditSet={editSetFor}
             onDeleteSet={deleteSetFor}
             onChangeMuscle={changeMuscleFor}
+            onChangeNote={changeNoteFor}
             open={isOpen(ex.name, index)}
             onToggle={() => toggleCard(ex.name, index)}
             onOpen={() => openCard(ex.name)}

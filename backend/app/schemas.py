@@ -28,6 +28,8 @@ class ExerciseOut(BaseModel):
     name: str
     muscle_group: str | None = None
     kind: str = "strength"
+    # A standing note about the lift itself, shown on the card every session.
+    note: str | None = None
     # How many sets are already logged against this exercise. The muscle group
     # lives here, not on the set, so re-tagging re-buckets all of them at once —
     # the client needs the number to say so before it happens, and the card you
@@ -43,6 +45,9 @@ class ExercisePatch(BaseModel):
     # A new display name. Renaming is in place, so past sets follow (they
     # reference the exercise by id). Omitted leaves the name untouched.
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    # The standing note. Omitted leaves it untouched; null (or an empty string,
+    # which is what clearing the input actually sends) erases it.
+    note: str | None = Field(default=None, max_length=200)
 
 
 class ExerciseMerge(BaseModel):

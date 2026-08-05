@@ -38,6 +38,11 @@ class Exercise(Base):
     )
     name: Mapped[str] = mapped_column(String(120), index=True)
     muscle_group: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    # The one thing worth remembering about how you do this lift — the grip, the
+    # seat height, the shoulder that complains. It hangs off the exercise, not
+    # off a set, because it is true of every session and you want it in front of
+    # you before the first rep, not buried in last week's log.
+    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # "strength" (weight × reps) or "cardio" (duration + optional distance).
     kind: Mapped[str] = mapped_column(
         String(16), default="strength", server_default="strength", nullable=False
