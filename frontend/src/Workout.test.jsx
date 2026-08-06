@@ -1507,6 +1507,66 @@ describe('Workout', () => {
     })
   })
 
+  // A name contained in one you already have had no way in at all: the go key
+  // takes the first suggestion, so `Peso Muerto` always stood up `Peso Muerto
+  // Rumano` and the lift you meant could not be created. The list itself now
+  // carries the way out.
+  describe('creating a name that looks like one you have', () => {
+    const rumano = () =>
+      api.listExercises.mockResolvedValue([
+        { id: 1, name: 'Peso Muerto Rumano', muscle_group: 'Femoral' },
+      ])
+
+    it('offers to create what you typed, under the lookalike', async () => {
+      rumano()
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Peso Muerto')
+
+      expect(await screen.findByRole('button', { name: 'Crear «Peso Muerto»' })).toBeInTheDocument()
+      // The suggestion it is offered beside, not instead of.
+      expect(screen.getByRole('button', { name: 'Peso Muerto Rumano' })).toBeInTheDocument()
+    })
+
+    it('stands the card up under the name you typed', async () => {
+      rumano()
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Peso Muerto',
+        found: false,
+        sets: [],
+      })
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Peso Muerto')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «Peso Muerto»' }))
+
+      expect(await screen.findByRole('heading', { level: 2, name: /^Peso Muerto$/ })).toBeInTheDocument()
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Peso Muerto', 1)
+    })
+
+    it('says nothing when the name is one you already have', async () => {
+      rumano()
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'peso muerto rumano')
+
+      await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
+      expect(screen.queryByRole('button', { name: /^Crear/ })).not.toBeInTheDocument()
+    })
+
+    it('stays out of the way when nothing looks like it', async () => {
+      rumano()
+      renderWorkout()
+
+      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Face Pull')
+
+      // Nothing matched, so Añadir ejercicio already creates what you typed —
+      // a second control for the same job would be one path too many.
+      await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
+      expect(screen.queryByRole('button', { name: /^Crear/ })).not.toBeInTheDocument()
+    })
+  })
+
   it('loads the exercises already logged in the workout', async () => {
     api.getWorkout.mockResolvedValue({
       id: 1,

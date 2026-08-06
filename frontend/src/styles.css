@@ -507,6 +507,12 @@ button.chart-title h2 {
   font-family: var(--font-body);
   font-weight: 600;
 }
+/* The create row is the exception in the list, not one more result: lighter
+   than the names above it so the eye still lands on what you already lift. */
+.search-results .set-row-new {
+  font-weight: 500;
+  color: var(--muted);
+}
 
 /* Corrections, folded away right under the header. */
 .fixes-toggle {
@@ -1350,6 +1356,13 @@ button.set-action {
 .dot-cardio {
   background: transparent;
   border: 1.5px solid var(--accent);
+}
+/* A name that does not exist yet has no muscle to colour by either. Dashed and
+   unfilled, the same "empty slot" the compose card is drawn with — it reads as
+   a lift you are about to make, not as one of the ones listed above it. */
+.dot-new {
+  background: transparent;
+  border: 1.5px dashed var(--muted);
 }
 
 /* Muscle tag on an exercise heading (Workout). */
