@@ -1628,6 +1628,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   const matches = typedName
     ? known.filter((n) => fold(n).includes(fold(typedName)) && !standing.has(fold(n))).slice(0, 8)
     : []
+  // The way out of the substring trap: `Peso Muerto` is contained in `Peso
+  // Muerto Rumano`, so the go key below would forever stand up the Rumano and
+  // the lift you meant could never be created. Only offered when something did
+  // match — with an empty list `Añadir ejercicio` already creates what you
+  // typed, and a second control for that same job is one path too many.
+  const canCreateTyped = isNewExercise && matches.length > 0
 
   if (!workout) {
     // The way out matters more now that the app can reopen straight into a
@@ -1861,6 +1867,21 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
                 </button>
               </li>
             ))}
+            {/* Last, because it is the rarer intent: you are usually looking for
+                a lift you have. Hollow dot for the same reason cardio's is —
+                nothing to colour by until the exercise exists. */}
+            {canCreateTyped && (
+              <li>
+                <button
+                  type="button"
+                  className="set-row set-row-new"
+                  onClick={() => addExercise(typedName)}
+                >
+                  <span className="dot dot-new" aria-hidden="true" />
+                  Crear «{typedName}»
+                </button>
+              </li>
+            )}
           </ul>
         )}
         {/* Kind only decides anything for a name the backend has never seen —
