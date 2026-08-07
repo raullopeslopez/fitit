@@ -5,7 +5,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from .config import settings
 
 # Lazy: does not open a connection until a session is actually used.
-engine = create_async_engine(settings.database_url, future=True)
+#
+# Neon hangs up on an idle connection after about five minutes, and a rest that
+# long between two sets is ordinary training, not an edge case. Without these
+# the pool hands out the dead socket and the request 500s on its first query,
+# losing a set the user actually performed. See tests/test_db_engine.py.
+engine = create_async_engine(
+    settings.database_url,
+    future=True,
+    pool_pre_ping=True,  # cheap liveness check; swaps a dead connection for a fresh one
+    pool_recycle=240,  # retire under Neon's cutoff, so the pre-ping rarely has to fire
+)
 SessionMaker = async_sessionmaker(engine, expire_on_commit=False)
 
 
