@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
-import { formatDayShort, sessionLength } from './format.js'
+import { formatDayShort, formatDayStamp, sessionLength } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { setRepeatTemplate } from './prefs.js'
 
@@ -48,15 +48,24 @@ export default function Days({ onOpenWorkout }) {
   // untagged sets keep their own entries rather than being dropped: the parts
   // have to add up to the total beside the name, or the arithmetic looks broken
   // — the same rule the Progreso summary follows.
+  // Four groups printed at one weight make you add them up to find out what the
+  // day was, so the biggest is marked `top` and goes to ink while the rest stay
+  // muted — hierarchy, not colour, the same rule the folded digest follows.
+  // Nothing is marked when every group got the same: lifting all of them is
+  // lifting none of them, and a full-body day reading flat is the honest one.
   function breakdownOf(workout) {
     const counts = {}
     for (const set of workout.sets) {
       const key = set.kind === 'cardio' ? CARDIO : (set.muscle_group ?? UNGROUPED)
       counts[key] = (counts[key] || 0) + 1
     }
-    return [...MUSCLE_GROUPS, CARDIO, UNGROUPED]
+    const parts = [...MUSCLE_GROUPS, CARDIO, UNGROUPED]
       .filter((key) => counts[key])
       .map((key) => ({ key, sets: counts[key] }))
+    const most = Math.max(0, ...parts.map((p) => p.sets))
+    const leaders = parts.filter((p) => p.sets === most)
+    const flat = leaders.length === parts.length
+    return parts.map((part) => ({ ...part, top: !flat && part.sets === most }))
   }
 
   function openMenu(dayId) {
@@ -155,56 +164,62 @@ export default function Days({ onOpenWorkout }) {
             className={`day-block${day.date === todayISO() ? ' is-today' : ''}`}
             key={day.id}
           >
-            {/* A ruled line, not a card: the date is the margin note and the
-                sessions hang off it. Cards cost ~100px of chrome per day. */}
-            <div className="day-head">
-              <h2 className="day-date">
-                {formatDayShort(day.date)}
-                {day.date === todayISO() && <span className="today-badge">HOY</span>}
-              </h2>
-              <span className="day-line" aria-hidden="true" />
-              <div className="head-menu">
-                <button
-                  type="button"
-                  className="secondary set-action head-menu-btn"
-                  aria-haspopup="true"
-                  aria-expanded={menuFor === day.id}
-                  aria-label={`Acciones del día ${formatDayShort(day.date)}`}
-                  onClick={() => openMenu(day.id)}
-                >
-                  ⋯
-                </button>
-                {menuFor === day.id && (
-                  <div className="head-menu-pop">
+            {/* A margin note, not a card and no longer a rule across the row:
+                the date sets in a left gutter and the sessions hang off it.
+                The rule it replaces ran from the date to the overflow, which
+                put a horizontal cut between a date and its own session — so it
+                read as a divider above the session rather than as its stamp.
+                What separates one day from the next is now the hairline over
+                the whole block, date included. */}
+            <h2 className="day-date">
+              {formatDayStamp(day.date).map((line) => (
+                <span className="day-date-line" key={line}>
+                  {line}
+                </span>
+              ))}
+              {day.date === todayISO() && <span className="today-badge">HOY</span>}
+            </h2>
+            <div className="head-menu day-menu">
+              <button
+                type="button"
+                className="secondary set-action head-menu-btn"
+                aria-haspopup="true"
+                aria-expanded={menuFor === day.id}
+                aria-label={`Acciones del día ${formatDayShort(day.date)}`}
+                onClick={() => openMenu(day.id)}
+              >
+                ⋯
+              </button>
+              {menuFor === day.id && (
+                <div className="head-menu-pop">
+                  <button
+                    type="button"
+                    className="secondary set-action head-menu-item"
+                    disabled={creating || day.workouts.length === 0}
+                    onClick={() => handleRepeat(day)}
+                  >
+                    Repetir
+                  </button>
+                  {/* Two taps to delete: the first only arms it. */}
+                  {confirmingDelete ? (
                     <button
                       type="button"
-                      className="secondary set-action head-menu-item"
-                      disabled={creating || day.workouts.length === 0}
-                      onClick={() => handleRepeat(day)}
+                      className="secondary set-action head-menu-item head-menu-danger"
+                      onClick={() => handleDeleteDay(day.id)}
                     >
-                      Repetir
+                      Sí, borrar día
                     </button>
-                    {/* Two taps to delete: the first only arms it. */}
-                    {confirmingDelete ? (
-                      <button
-                        type="button"
-                        className="secondary set-action head-menu-item head-menu-danger"
-                        onClick={() => handleDeleteDay(day.id)}
-                      >
-                        Sí, borrar día
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="secondary set-action head-menu-item head-menu-danger"
-                        onClick={() => setConfirmingDelete(true)}
-                      >
-                        Borrar día
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="secondary set-action head-menu-item head-menu-danger"
+                      onClick={() => setConfirmingDelete(true)}
+                    >
+                      Borrar día
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <ul className="sets day-sessions">
               {day.workouts.map((w) => (
@@ -222,13 +237,18 @@ export default function Days({ onOpenWorkout }) {
                     <span className="day-session-main">
                       <span className="day-session-top">
                         <span className="day-session-name">{w.name || 'Entreno'}</span>
-                        {/* How many, and how long they took. The second half is
-                            absent for a session still running and for one typed
-                            in afterwards — see sessionLength. */}
-                        <span className="set-index">
+                        {/* How many, and how long they took — two elements, not
+                            one string, because they are not equally interesting.
+                            The count is what you scan a week of days for; the
+                            duration is context, so it sets smaller and muted.
+                            It is absent altogether for a session still running
+                            and for one typed in afterwards — see sessionLength. */}
+                        <span className="set-index day-session-count">
                           {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
-                          {sessionLength(w) && ` · ${sessionLength(w)}`}
                         </span>
+                        {sessionLength(w) && (
+                          <span className="day-session-len">{sessionLength(w)}</span>
+                        )}
                       </span>
                       {/* The breakdown under the name, not beside it: three or
                           four groups will not share a line with the name and
@@ -236,7 +256,10 @@ export default function Days({ onOpenWorkout }) {
                       {w.sets.length > 0 && (
                         <span className="day-parts">
                           {breakdownOf(w).map((part) => (
-                            <span className="day-part" key={part.key}>
+                            <span
+                              className={`day-part${part.top ? ' is-top' : ''}`}
+                              key={part.key}
+                            >
                               <span
                                 className={`dot${part.key === CARDIO ? ' dot-cardio' : ''}`}
                                 aria-hidden="true"
