@@ -866,7 +866,13 @@ button.chart-title h2 {
   color: var(--muted);
 }
 /* `series` spelled out on every row was one word repeated down a column. The
-   figure keeps its weight, the unit shrinks out of the way. */
+   figure keeps its weight, the unit shrinks out of the way.
+
+   It does *not* also wear `.set-index`, which is what it wore first. That class
+   is declared 600 lines further down at the same specificity, so it won the
+   cascade and painted the count `--muted` — the ink half of "count in ink,
+   duration muted" never shipped, and the two were told apart only by size.
+   Every property `.set-index` gave is declared here anyway. */
 .day-session-count {
   flex: none;
   font-family: var(--font-mono);

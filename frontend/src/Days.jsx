@@ -298,7 +298,7 @@ export default function Days({ onOpenWorkout }) {
                     <span className="day-part-rest"> +{parts.length - 1}</span>
                   )}
                 </span>
-                <span className="set-index day-session-count">
+                <span className="day-session-count">
                   {w.sets.length}
                   <span className="day-count-unit"> SER</span>
                 </span>
