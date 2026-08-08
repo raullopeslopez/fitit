@@ -45,6 +45,21 @@ export function formatDayShort(iso, today = new Date()) {
   return (y === today.getFullYear() ? stamp : `${stamp} ${y}`).toUpperCase()
 }
 
+// The same stamp, broken where a narrow margin can break it: ["JUE 16", "JUL"].
+// The day list sets the date in a left gutter rather than on a rule across the
+// row, so the sessions hang off it the way DESIGN.md describes — and a gutter is
+// only as narrow as its longest line. Weekday and day never split (they are read
+// as one token, "which day"); the month follows; the year, printed only when it
+// isn't this one, takes a third line rather than widening the gutter for the
+// fifty-one weeks that don't need it.
+export function formatDayStamp(iso, today = new Date()) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const weekday = DIAS[new Date(y, m - 1, d).getDay()]
+  const lines = [`${weekday} ${d}`, MESES[m - 1]]
+  if (y !== today.getFullYear()) lines.push(String(y))
+  return lines.map((line) => line.toUpperCase())
+}
+
 const MESES_LARGOS = [
   'enero',
   'febrero',

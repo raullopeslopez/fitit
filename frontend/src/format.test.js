@@ -4,6 +4,7 @@ import {
   formatCardioSet,
   formatClock,
   formatDayShort,
+  formatDayStamp,
   daysAgoLabel,
   formatDuration,
   formatMonth,
@@ -86,6 +87,20 @@ describe('formatDayShort', () => {
   // implied. A day from another year has to say so.
   it('adds the year only when it is not the current one', () => {
     expect(formatDayShort('2025-12-31', new Date(2026, 6, 24))).toBe('MIÉ 31 DIC 2025')
+  })
+})
+
+describe('formatDayStamp', () => {
+  // The same stamp, broken where the margin can break it. The day list sets the
+  // date in a narrow left gutter, and `JUE 16 JUL` on one line would set the
+  // gutter's width for every day in the list.
+  it('breaks the stamp into gutter lines', () => {
+    expect(formatDayStamp('2026-07-16', new Date(2026, 6, 24))).toEqual(['JUE 16', 'JUL'])
+  })
+  // The year is rare and it is the longest token; it gets its own line rather
+  // than widening the gutter for the fifty-one weeks that don't need it.
+  it('gives another year its own line', () => {
+    expect(formatDayStamp('2025-12-31', new Date(2026, 6, 24))).toEqual(['MIÉ 31', 'DIC', '2025'])
   })
 })
 

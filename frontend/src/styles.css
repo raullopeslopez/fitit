@@ -612,39 +612,70 @@ button.chart-title h2 {
 /* A day is a ruled entry in a logbook, not a card. A card spent ~100px of
    border, padding and shadow to carry one row of content, so three days filled
    a phone; ruled, seven do. The date is the margin note and the sessions hang
-   off it — hierarchy by weight and colour instead of by box. */
+   off it — hierarchy by weight and colour instead of by box.
+
+   The margin is now a real one. The first version drew the rule *across* the
+   row, from the date to the overflow, which put a horizontal cut between a date
+   and its own session: the line read as a divider above the session rather than
+   as the date's own stamp. The date sets in a left gutter instead, the session
+   hangs to its right, and the hairline separating one day from the next sits
+   over the whole block — date included, which is the only place it says
+   "new day" instead of "new section". */
 .day-block {
-  margin-bottom: 0.5rem;
+  display: grid;
+  grid-template-columns: 3.6rem 1fr auto;
+  column-gap: 0.7rem;
+  align-items: start;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
 }
-.day-head {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
+/* The first block keeps its rule rather than losing it as a tidy-up: today is
+   almost always the first block, and the accent hairline over it is what marks
+   today now that there is no rule running across the row to take the colour. */
+/* All three children are pinned to row 1. Naming only the column is not enough:
+   auto-placement runs left to right and the overflow (column 3) comes before
+   the session list (column 2) in the markup, so the list wrapped onto a second
+   row and hung a date's worth of empty space over every day. */
 .day-date {
-  flex: none;
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin: 0;
+  padding-top: 0.62rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
   font-weight: 500;
+  line-height: 1.25;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
-/* The rule runs from the date to the overflow, so the eye reads date → session
-   without a box to draw it. */
-.day-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
+.day-menu {
+  grid-row: 1;
+  grid-column: 3;
+  padding-top: 0.3rem;
 }
-.day-sessions {
-  margin-top: 0;
+/* Hangs off the date, and pays for its own padding exactly once. `.sets` gives
+   every list a 0.9rem top margin and every row 0.55rem of padding — on top of
+   the 0.55rem `.link-row` already has — which put ~32px of nothing between a
+   date and the session under it. The old override lost the cascade: it was
+   written above `.sets` with the same specificity. */
+.day-block .day-sessions {
+  grid-row: 1;
+  grid-column: 2;
+  margin: 0;
 }
-/* Marks the current day so it doesn't blend into the history list below it. */
+.day-block .day-sessions > li {
+  padding: 0;
+}
+/* Marks the current day so it doesn't blend into the history list below it.
+   In the gutter it takes its own line under the stamp — beside it, it set the
+   width of a column that every other day then had to sit in. */
 .today-badge {
   display: inline-block;
-  margin-left: 0.5rem;
+  margin-top: 0.25rem;
   padding: 0.05rem 0.35rem;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   border-radius: 4px;
@@ -654,17 +685,17 @@ button.chart-title h2 {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  vertical-align: 0.2em;
 }
 /* And the whole entry with it. The badge is a 0.68rem chip on a muted line —
    readable once you are looking at it, invisible when you are scanning for
-   "where am I now" from the top of a list. Today's date goes to ink and its
-   rule takes the accent, so the current entry is the one the eye lands on. */
+   "where am I now" from the top of a list. Today's date goes to ink and the
+   hairline over its block takes the accent, so the current entry is the one the
+   eye lands on. */
 .day-block.is-today .day-date {
   color: var(--text);
 }
-.day-block.is-today .day-line {
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
+.day-block.is-today {
+  border-top-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* A session row is two lines: what it was + how much, then what it cost per
@@ -689,20 +720,45 @@ button.chart-title h2 {
 .day-session-top .set-index {
   flex: none;
 }
+/* The count is the figure you scan a week of days for; the duration is context.
+   As one mono string (`20 series · 41 min`) they read at one weight and became
+   the widest thing on the row, competing with the session's own name. */
+.day-session-count {
+  color: var(--text);
+}
+.day-session-len {
+  flex: none;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
 /* Wraps rather than scrolls: this is content, not a filter — a group hidden
    past the right edge is a group you don't know you trained. */
 .day-parts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.1rem 0.55rem;
+  gap: 0.15rem 0.9rem;
   font-weight: 400;
 }
+/* Three times the space between pairs as inside one (0.9rem against 0.3rem), so
+   `Espalda 10` reads as one token. A literal `·` separator was tried first and
+   removed: the row wraps, and a separator on every part but the last leaves one
+   dangling at the end of a wrapped line, which reads as a typo. Distance is the
+   separator. */
 .day-part {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   font-size: 0.8rem;
   color: var(--muted);
+}
+/* The group the session was mostly about goes to ink; the rest stay muted, so
+   "when did I last really train back" is answered without reading a number.
+   Hierarchy, not colour — the dots already carry the muscle. */
+.day-part.is-top {
+  color: var(--text);
 }
 /* Small enough to sit on a 0.8rem line without becoming the loudest thing on
    the row: colour still rides a mark, never the text. */
@@ -713,10 +769,12 @@ button.chart-title h2 {
 .day-part .dot-cardio {
   border-width: 1.5px;
 }
+/* The number takes its part's colour rather than always ink: a muted label with
+   a full-strength figure beside it splits a pair that is read as one thing, and
+   it left every group looking equally loud — the thing `is-top` exists to fix. */
 .day-part-n {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: var(--text);
 }
 
 .link-row {

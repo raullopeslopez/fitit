@@ -43,7 +43,9 @@ describe('Days', () => {
     ])
     render(<Days onOpenWorkout={() => {}} />)
 
-    expect(await screen.findByText(/16 JUL/)).toBeInTheDocument()
+    // The stamp is set in the left gutter, one token per line.
+    expect(await screen.findByText('JUE 16')).toBeInTheDocument()
+    expect(screen.getAllByText('JUL')).toHaveLength(2)
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText('Legs')).toBeInTheDocument()
     expect(screen.getByText(/2 series/i)).toBeInTheDocument()
@@ -52,6 +54,10 @@ describe('Days', () => {
   // The row already says how many series; how long they took is the other half
   // of "what was that session", and it costs no extra request — the day feed
   // carries it. Spec: backend tests/features/session_length.feature.
+  //
+  // They are two elements rather than one string because they are not equally
+  // interesting: the count is the figure you scan a week of days for, the
+  // duration is context. One mono blob gave them the same weight.
   it('says how long each session took, beside the series count', async () => {
     const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString()
     api.listDays.mockResolvedValue([
@@ -71,9 +77,10 @@ describe('Days', () => {
         ],
       },
     ])
-    render(<Days onOpenWorkout={() => {}} />)
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
 
-    expect(await screen.findByText(/2 series · 1h 05/i)).toBeInTheDocument()
+    expect(await screen.findByText('2 series')).toBeInTheDocument()
+    expect(container.querySelector('.day-session-len').textContent).toBe('1h 05')
   })
 
   // A session with one set, or one typed in days later, has no length the
@@ -86,9 +93,10 @@ describe('Days', () => {
         workouts: [{ id: 5, name: 'Push', duration_seconds: null, sets: [benchSet()] }],
       },
     ])
-    render(<Days onOpenWorkout={() => {}} />)
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
 
     expect(await screen.findByText(/^1 serie$/i)).toBeInTheDocument()
+    expect(container.querySelector('.day-session-len')).toBeNull()
   })
 
   // Días already has the whole workout, sets included — hand it over so Entreno
@@ -286,6 +294,64 @@ describe('Days', () => {
     expect(container.querySelectorAll('.day-part .dot-cardio').length).toBe(1)
   })
 
+  // Four groups printed at one weight make you add up to find out what the day
+  // was. The biggest one goes to ink and the rest stay muted, so scrolling a
+  // week answers "when did I last really do back" without reading a number.
+  it('lifts the group a session was mostly about', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Pull',
+            sets: [
+              benchSet({ muscle_group: 'Espalda' }),
+              benchSet({ id: 11, muscle_group: 'Espalda' }),
+              benchSet({ id: 12, muscle_group: 'Bíceps' }),
+            ],
+          },
+        ],
+      },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Pull')
+    await waitFor(() => {
+      expect([...container.querySelectorAll('.day-part.is-top')].map((p) => p.textContent)).toEqual(
+        ['Espalda 2'],
+      )
+    })
+  })
+
+  // Lifting every group is the same as lifting none, and costs the eye a line
+  // of ink to learn nothing. A session with no clear main muscle says so by
+  // staying flat — which is also the honest reading of a full-body day.
+  it('lifts nothing when every group got the same', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [
+          {
+            id: 5,
+            name: 'Full body',
+            sets: [
+              benchSet({ muscle_group: 'Espalda' }),
+              benchSet({ id: 11, muscle_group: 'Pecho' }),
+            ],
+          },
+        ],
+      },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Full body')
+    await waitFor(() => expect(container.querySelectorAll('.day-part').length).toBe(2))
+    expect(container.querySelectorAll('.day-part.is-top').length).toBe(0)
+  })
+
   it('leaves an empty session with no breakdown at all', async () => {
     api.listDays.mockResolvedValue([
       {
@@ -311,10 +377,10 @@ describe('Days', () => {
       ])
       render(<Days onOpenWorkout={() => {}} />)
 
-      const todayHeading = await screen.findByText(/16 JUL/)
-      const pastHeading = screen.getByText(/15 JUL/)
-      expect(todayHeading.closest('.day-head')).toHaveTextContent('HOY')
-      expect(pastHeading.closest('.day-head')).not.toHaveTextContent('HOY')
+      const todayHeading = await screen.findByText('JUE 16')
+      const pastHeading = screen.getByText('MIÉ 15')
+      expect(todayHeading.closest('.day-date')).toHaveTextContent('HOY')
+      expect(pastHeading.closest('.day-date')).not.toHaveTextContent('HOY')
       // The badge alone is a 0.68rem chip on a muted line; the whole entry is
       // marked so today reads as today from across the list.
       expect(todayHeading.closest('.day-block')).toHaveClass('is-today')
