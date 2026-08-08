@@ -60,6 +60,35 @@ export function formatDayStamp(iso, today = new Date()) {
   return lines.map((line) => line.toUpperCase())
 }
 
+const isoOf = (dt) =>
+  `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(
+    dt.getDate(),
+  ).padStart(2, '0')}`
+
+// The Monday of the week a date falls in. Monday–Sunday because that is the
+// week a Spanish calendar draws and the week a training block is planned in —
+// `getDay()` counts from Sunday, so it is rotated before it is subtracted, or
+// every Sunday lands in the week that hasn't started yet.
+export function isoWeekStart(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7))
+  return isoOf(dt)
+}
+
+// What to call a week in the day list: the two you can place without reading a
+// date get words, everything older gets the Monday it started on. Uppercase and
+// mono, like every other stamp on this screen — a week is data too.
+export function formatWeekLabel(weekStartIso, today = new Date()) {
+  const current = isoWeekStart(isoOf(today))
+  if (weekStartIso === current) return 'ESTA SEMANA'
+  const [cy, cm, cd] = current.split('-').map(Number)
+  const previous = new Date(cy, cm - 1, cd - 7)
+  if (weekStartIso === isoOf(previous)) return 'SEMANA ANTERIOR'
+  const [, m, d] = weekStartIso.split('-').map(Number)
+  return `SEMANA DEL ${d} ${MESES[m - 1].toUpperCase()}`
+}
+
 const MESES_LARGOS = [
   'enero',
   'febrero',
@@ -196,19 +225,36 @@ const SESSION_GAP_MS = 90 * 60 * 1000
 // and the session card deliberately hasn't got one — you asked for the number
 // at the end, not during. Once the last set is older than a rest could be, the
 // session is closed and the total appears.
-export function sessionLength(workout, now = Date.now()) {
+// How long a closed session took, in whole minutes, or null when there is
+// nothing to say. The gate is the interesting half and both formats below share
+// it, so "is this session over" is decided in exactly one place.
+function closedSessionMinutes(workout, now) {
   const seconds = workout?.duration_seconds
-  if (!seconds || !Number.isFinite(seconds)) return ''
+  if (!seconds || !Number.isFinite(seconds)) return null
   const last = (workout.sets ?? [])
     .map((s) => Date.parse(s.created_at))
     .filter((t) => Number.isFinite(t))
     .reduce((latest, t) => (t > latest ? t : latest), -Infinity)
-  if (now - last < SESSION_GAP_MS) return ''
+  if (now - last < SESSION_GAP_MS) return null
   // Under a minute is two sets logged back to back — a correction, a false
   // start. Rounding it up to "1 min" would put a session's worth of framing
   // around something that never happened.
-  if (seconds < 60) return ''
-  const minutes = Math.round(seconds / 60)
+  if (seconds < 60) return null
+  return Math.round(seconds / 60)
+}
+
+export function sessionLength(workout, now = Date.now()) {
+  const minutes = closedSessionMinutes(workout, now)
+  if (minutes == null) return ''
   if (minutes < 60) return `${minutes} min`
   return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}`
+}
+
+// The same total, for a column of them: `58′`, and `64′` for a session that
+// crossed the hour. The day list prints one of these per row, so it has to keep
+// one width and stay a number — `1h 05` among digits reads as a sentence. The
+// prose form above stays on the session header, where there is one of them.
+export function sessionMinutes(workout, now = Date.now()) {
+  const minutes = closedSessionMinutes(workout, now)
+  return minutes == null ? '' : `${minutes}′`
 }
