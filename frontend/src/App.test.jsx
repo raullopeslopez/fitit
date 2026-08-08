@@ -50,7 +50,7 @@ describe('App', () => {
     render(<App />)
 
     // days view -> open a workout
-    await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     expect(await screen.findByLabelText(/ejercicio/i)).toBeInTheDocument()
 
     // back to the days view via the bottom nav
@@ -99,7 +99,7 @@ describe('App', () => {
     api.listExercises.mockResolvedValue([])
     const { unmount } = render(<App />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     await screen.findByLabelText(/ejercicio/i)
     await userEvent.click(screen.getByRole('button', { name: 'Días' }))
     await screen.findByRole('button', { name: /empezar entreno/i })

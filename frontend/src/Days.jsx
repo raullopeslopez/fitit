@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
-import { formatDayShort, formatDayStamp, sessionLength } from './format.js'
+import {
+  formatDayStamp,
+  formatWeekLabel,
+  isoWeekStart,
+  sessionLength,
+  sessionMinutes,
+} from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { setRepeatTemplate } from './prefs.js'
 
@@ -13,10 +19,77 @@ function todayISO() {
 // breakdown rather than falling in with the lifts nobody has tagged yet.
 const CARDIO = 'Cardio'
 
+// How long a press has to last to mean "act on this day" rather than "open it".
+// Long enough that a tap can't overshoot into it, short enough to be found by
+// somebody who suspects it's there.
+const LONG_PRESS_MS = 550
+
+// The canonical display order, used to break ties in the seam so two groups on
+// the same count don't swap places between renders.
+const PART_ORDER = [...MUSCLE_GROUPS, CARDIO, UNGROUPED]
+
+const ONE_DAY_MS = 86400000
+
 // The exercises a session worked, each once, in the order they were worked.
 // That order is the plan: repeat the session and you start where you started.
 function exerciseNames(workout) {
   return [...new Set(workout.sets.map((s) => s.exercise_name))]
+}
+
+function setsIn(day) {
+  return day.workouts.reduce((n, w) => n + w.sets.length, 0)
+}
+
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
+// The list, cut into weeks. The one question a lifter asks this screen is "how
+// much have I done this week", and it could only be answered by counting rows —
+// so each run of days gets a mono rule naming its week and totalling it. No new
+// surface, one line of type, and the ruled entries get the section rhythm they
+// lacked. Runs, not a map: `days` arrives newest-first and stays that way, so
+// consecutive days in the same week are already adjacent.
+function weeksOf(days) {
+  const weeks = []
+  for (const day of days) {
+    const key = isoWeekStart(day.date)
+    const open = weeks[weeks.length - 1]
+    if (open && open.key === key) open.days.push(day)
+    else weeks.push({ key, days: [day] })
+  }
+  return weeks.map((week) => {
+    const sets = week.days.reduce((n, day) => n + setsIn(day), 0)
+    return {
+      ...week,
+      label: formatWeekLabel(week.key),
+      totals: `${plural(week.days.length, 'DÍA', 'DÍAS')} · ${plural(sets, 'SERIE', 'SERIES')}`,
+    }
+  })
+}
+
+// The days between two trained ones, said out loud. Only trained days exist in
+// the list, so a four-day gap and a single rest day drew the same thing — two
+// adjacent rules — and the cadence of a week, which is the whole point of
+// grouping it by week, could not be read at all.
+//
+// One day off is named (`VIE · DESCANSO`) because naming it is what makes it a
+// rest rather than an absence; a run of them is counted, because listing four
+// weekdays would cost more room than the week itself.
+function restBetween(newerIso, olderIso) {
+  const newer = Date.parse(`${newerIso}T00:00:00`)
+  const older = Date.parse(`${olderIso}T00:00:00`)
+  const missed = Math.round((newer - older) / ONE_DAY_MS) - 1
+  if (missed < 1) return null
+  if (missed > 1) return `${missed} DÍAS SIN ENTRENAR`
+  // Built from local parts, never through `toISOString()`: east of Greenwich
+  // local midnight is the previous day in UTC, so round-tripping the date to
+  // name the day off named the day before it.
+  const [y, m, d] = newerIso.split('-').map(Number)
+  const off = new Date(y, m - 1, d - 1)
+  const iso = `${off.getFullYear()}-${String(off.getMonth() + 1).padStart(2, '0')}-${String(
+    off.getDate(),
+  ).padStart(2, '0')}`
+  const [stamp] = formatDayStamp(iso)
+  return `${stamp.split(' ')[0]} · DESCANSO`
 }
 
 export default function Days({ onOpenWorkout }) {
@@ -25,11 +98,17 @@ export default function Days({ onOpenWorkout }) {
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
   const [backfill, setBackfill] = useState(false)
-  // Which day has its overflow open, and whether its delete is armed. Rare and
-  // irreversible actions live in there rather than beside the row you tap.
+  // Which day has its sheet open, and whether its delete is armed. Deleting a
+  // day is irreversible and rare, so it lives behind a press and hold rather
+  // than paying 44px on every row for a control nobody touches in a month.
   const [menuFor, setMenuFor] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
+
+  // A press that became a hold must not also land as a tap on the row it was
+  // held over: the sheet would open behind the session it just opened.
+  const pressTimer = useRef(null)
+  const heldRef = useRef(false)
 
   useEffect(() => {
     listDays()
@@ -37,40 +116,46 @@ export default function Days({ onOpenWorkout }) {
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
 
-  // What a session cost, per muscle, in canonical order. Every set carries its
-  // own group, so this needs nothing the list didn't already fetch — it used to
+  useEffect(() => () => clearTimeout(pressTimer.current), [])
+
+  // What a session cost, per muscle, biggest first. Every set carries its own
+  // group, so this needs nothing the list didn't already fetch — it used to
   // cross-reference /exercises by name, a second request and a map that went
   // stale the moment you re-tagged a lift.
   //
-  // The count is the point. A row of anonymous dots said *which* groups a day
-  // touched and nothing about how much, so six sets of chest and one warm-up of
-  // shoulders drew exactly the same mark as a real push session. Cardio and
-  // untagged sets keep their own entries rather than being dropped: the parts
-  // have to add up to the total beside the name, or the arithmetic looks broken
-  // — the same rule the Progreso summary follows.
-  // Four groups printed at one weight make you add them up to find out what the
-  // day was, so the biggest is marked `top` and goes to ink while the rest stay
-  // muted — hierarchy, not colour, the same rule the folded digest follows.
-  // Nothing is marked when every group got the same: lifting all of them is
-  // lifting none of them, and a full-body day reading flat is the honest one.
+  // Cardio and untagged sets keep their own entries rather than being dropped:
+  // the seam draws a proportion, and a proportion of some of the sets is a
+  // proportion of nothing. Ordered by size so the segment the label names is
+  // the one the eye lands on first, with the canonical order breaking ties.
   function breakdownOf(workout) {
     const counts = {}
     for (const set of workout.sets) {
       const key = set.kind === 'cardio' ? CARDIO : (set.muscle_group ?? UNGROUPED)
       counts[key] = (counts[key] || 0) + 1
     }
-    const parts = [...MUSCLE_GROUPS, CARDIO, UNGROUPED]
-      .filter((key) => counts[key])
+    return PART_ORDER.filter((key) => counts[key])
       .map((key) => ({ key, sets: counts[key] }))
-    const most = Math.max(0, ...parts.map((p) => p.sets))
-    const leaders = parts.filter((p) => p.sets === most)
-    const flat = leaders.length === parts.length
-    return parts.map((part) => ({ ...part, top: !flat && part.sets === most }))
+      .sort((a, b) => b.sets - a.sets || PART_ORDER.indexOf(a.key) - PART_ORDER.indexOf(b.key))
   }
 
-  function openMenu(dayId) {
+  function startPress(dayId) {
+    heldRef.current = false
+    clearTimeout(pressTimer.current)
+    pressTimer.current = setTimeout(() => {
+      heldRef.current = true
+      setConfirmingDelete(false)
+      setMenuFor(dayId)
+    }, LONG_PRESS_MS)
+  }
+
+  function endPress() {
+    clearTimeout(pressTimer.current)
+  }
+
+  function closeSheets() {
+    setMenuFor(null)
     setConfirmingDelete(false)
-    setMenuFor((current) => (current === dayId ? null : dayId))
+    setBackfill(false)
   }
 
   // Today's session, if there is one. Its existence is what the primary button
@@ -102,6 +187,7 @@ export default function Days({ onOpenWorkout }) {
     setCreating(true)
     try {
       const workout = await createWorkout({ date, name: name.trim() || null })
+      setBackfill(false)
       onOpenWorkout(workout.id, workout)
     } catch {
       setError('No se pudo empezar el entreno.')
@@ -116,7 +202,7 @@ export default function Days({ onOpenWorkout }) {
     const source = day.workouts[0]
     if (!source) return
     setError('')
-    setMenuFor(null)
+    closeSheets()
     setCreating(true)
     try {
       const workout = await createWorkout({ date: todayISO(), name: source.name ?? null })
@@ -131,7 +217,7 @@ export default function Days({ onOpenWorkout }) {
 
   async function handleDeleteDay(id) {
     setError('')
-    setMenuFor(null)
+    closeSheets()
     try {
       await deleteDay(id)
       setDays((list) => list.filter((d) => d.id !== id))
@@ -140,11 +226,107 @@ export default function Days({ onOpenWorkout }) {
     }
   }
 
-  const ctaLabel = creating
-    ? 'Empezando…'
-    : todaySession
-      ? `Continuar entreno${todaySession.name ? ` · ${todaySession.name}` : ''}`
-      : 'Empezar entreno'
+  // No session name on the button. The row already says which session is open —
+  // that is what `EN CURSO` is for — and carrying it here meant a label that had
+  // to ellipsise the moment a session was called something descriptive.
+  const ctaLabel = creating ? 'Empezando…' : todaySession ? 'Continuar entreno' : 'Empezar entreno'
+
+  const weeks = days ? weeksOf(days) : []
+  const currentWeek = isoWeekStart(todayISO())
+
+  function renderSession(day, w, isPast) {
+    // The one state the list could not express: a session still running. It
+    // takes the slot the duration would have, and they are mutually exclusive
+    // by construction — an open session has no length to report yet.
+    const live = day.date === todayISO() && !sessionLength(w)
+    const took = sessionMinutes(w)
+    const parts = breakdownOf(w)
+    return (
+      <li className="day-session-row" key={w.id}>
+        {/* Hand the workout over, not just its id: this list already holds
+            every set, so Entreno can draw before it fetches. The date comes
+            from the day rather than the workout, so the seed is renderable
+            without depending on the nested workout carrying a field it
+            doesn't need here. */}
+        <button
+          type="button"
+          className="link-row day-session"
+          onClick={() => {
+            if (heldRef.current) {
+              heldRef.current = false
+              return
+            }
+            onOpenWorkout(w.id, { ...w, date: day.date })
+          }}
+        >
+          <span className="day-session-main">
+            <span className="day-session-top">
+              <span className="day-session-name">{w.name || 'Entreno'}</span>
+              {live ? (
+                <span className="day-live">
+                  <span className="day-live-dot" aria-hidden="true" />
+                  EN CURSO
+                </span>
+              ) : (
+                took && <span className="day-session-len">{took}</span>
+              )}
+            </span>
+            {w.sets.length > 0 && (
+              <span className="day-session-bottom">
+                {/* One fixed line whatever the session was. Naming every group
+                    wrapped to two or three lines, so a full-body day stood
+                    twice as tall as a push day and the list lost the rhythm
+                    you scan it by — and with four similar counts, marking the
+                    biggest in ink stopped saying anything at all. The seam
+                    carries the proportion on a mark, which is the only thing
+                    the muscle palette is ever allowed to do. */}
+                <span className="day-seam" aria-hidden="true">
+                  {parts.map((part) => (
+                    <span
+                      key={part.key}
+                      className={part.key === CARDIO ? 'seam-cardio' : undefined}
+                      style={{
+                        flexGrow: part.sets,
+                        ...(part.key === CARDIO ? {} : { background: muscleColor(part.key) }),
+                      }}
+                    />
+                  ))}
+                </span>
+                <span className="day-parts">
+                  <span className="day-part-top">{parts[0].key}</span>
+                  {parts.length > 1 && (
+                    <span className="day-part-rest"> +{parts.length - 1}</span>
+                  )}
+                </span>
+                <span className="set-index day-session-count">
+                  {w.sets.length}
+                  <span className="day-count-unit"> SER</span>
+                </span>
+              </span>
+            )}
+          </span>
+        </button>
+        {/* Repeating a session is the fastest way to log one, and it was hidden
+            behind a menu that every day paid 44px for. It gets those 44px
+            instead — but never on the session already running, where repeating
+            today into today is the split-session the CTA exists to prevent. */}
+        {isPast && (
+          <button
+            type="button"
+            className="day-repeat"
+            aria-label={`Repetir ${w.name || 'Entreno'}`}
+            disabled={creating}
+            onClick={() => handleRepeat(day)}
+          >
+            ⟳
+          </button>
+        )}
+        <span className="day-chevron" aria-hidden="true">
+          ›
+        </span>
+      </li>
+    )
+  }
 
   return (
     <section className="days">
@@ -159,122 +341,55 @@ export default function Days({ onOpenWorkout }) {
       ) : days.length === 0 ? (
         <p className="hint">Aún no hay días. Empieza un entreno abajo.</p>
       ) : (
-        days.map((day) => (
-          <div
-            className={`day-block${day.date === todayISO() ? ' is-today' : ''}`}
-            key={day.id}
-          >
-            {/* A margin note, not a card and no longer a rule across the row:
-                the date sets in a left gutter and the sessions hang off it.
-                The rule it replaces ran from the date to the overflow, which
-                put a horizontal cut between a date and its own session — so it
-                read as a divider above the session rather than as its stamp.
-                What separates one day from the next is now the hairline over
-                the whole block, date included. */}
-            <h2 className="day-date">
-              {formatDayStamp(day.date).map((line) => (
-                <span className="day-date-line" key={line}>
-                  {line}
-                </span>
-              ))}
-              {day.date === todayISO() && <span className="today-badge">HOY</span>}
-            </h2>
-            <div className="head-menu day-menu">
-              <button
-                type="button"
-                className="secondary set-action head-menu-btn"
-                aria-haspopup="true"
-                aria-expanded={menuFor === day.id}
-                aria-label={`Acciones del día ${formatDayShort(day.date)}`}
-                onClick={() => openMenu(day.id)}
-              >
-                ⋯
-              </button>
-              {menuFor === day.id && (
-                <div className="head-menu-pop">
-                  <button
-                    type="button"
-                    className="secondary set-action head-menu-item"
-                    disabled={creating || day.workouts.length === 0}
-                    onClick={() => handleRepeat(day)}
-                  >
-                    Repetir
-                  </button>
-                  {/* Two taps to delete: the first only arms it. */}
-                  {confirmingDelete ? (
-                    <button
-                      type="button"
-                      className="secondary set-action head-menu-item head-menu-danger"
-                      onClick={() => handleDeleteDay(day.id)}
-                    >
-                      Sí, borrar día
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="secondary set-action head-menu-item head-menu-danger"
-                      onClick={() => setConfirmingDelete(true)}
-                    >
-                      Borrar día
-                    </button>
-                  )}
-                </div>
-              )}
+        weeks.map((week) => (
+          <div className="week" key={week.key}>
+            <div className="week-head">
+              <span className="week-label">{week.label}</span>
+              <span className="week-totals">{week.totals}</span>
             </div>
-            <ul className="sets day-sessions">
-              {day.workouts.map((w) => (
-                <li key={w.id}>
-                  {/* Hand the workout over, not just its id: this list already
-                      holds every set, so Entreno can draw before it fetches.
-                      The date comes from the day rather than the workout, so
-                      the seed is renderable without depending on the nested
-                      workout carrying a field it doesn't need here. */}
-                  <button
-                    type="button"
-                    className="link-row day-session"
-                    onClick={() => onOpenWorkout(w.id, { ...w, date: day.date })}
+            {week.days.map((day, i) => {
+              // Rest markers only inside the week you are still filling.
+              // History doesn't need them: a week that is over is a week whose
+              // gaps you can't act on, and drawing them would make the older
+              // list mostly hairline.
+              const previous = week.days[i - 1]
+              const rest =
+                week.key === currentWeek && previous ? restBetween(previous.date, day.date) : null
+              return (
+                <div className="day-slot" key={day.id}>
+                  {rest && (
+                    <div className="day-rest">
+                      <span className="day-rest-label">{rest}</span>
+                      <span className="day-rest-line" aria-hidden="true" />
+                    </div>
+                  )}
+                  {/* A margin note, not a card: the date sets in a left gutter
+                      and the sessions hang off it, with the hairline over the
+                      whole block — date included, which is the only place it
+                      says "new day" rather than "new section". */}
+                  <div
+                    className={`day-block${day.date === todayISO() ? ' is-today' : ''}`}
+                    onPointerDown={() => startPress(day.id)}
+                    onPointerUp={endPress}
+                    onPointerLeave={endPress}
+                    onPointerCancel={endPress}
                   >
-                    <span className="day-session-main">
-                      <span className="day-session-top">
-                        <span className="day-session-name">{w.name || 'Entreno'}</span>
-                        {/* How many, and how long they took — two elements, not
-                            one string, because they are not equally interesting.
-                            The count is what you scan a week of days for; the
-                            duration is context, so it sets smaller and muted.
-                            It is absent altogether for a session still running
-                            and for one typed in afterwards — see sessionLength. */}
-                        <span className="set-index day-session-count">
-                          {w.sets.length} serie{w.sets.length === 1 ? '' : 's'}
+                    <h2 className="day-date">
+                      {formatDayStamp(day.date).map((line, n) => (
+                        <span className={n === 0 ? 'day-date-day' : 'day-date-rest'} key={line}>
+                          {line}
                         </span>
-                        {sessionLength(w) && (
-                          <span className="day-session-len">{sessionLength(w)}</span>
-                        )}
-                      </span>
-                      {/* The breakdown under the name, not beside it: three or
-                          four groups will not share a line with the name and
-                          the total on a phone. */}
-                      {w.sets.length > 0 && (
-                        <span className="day-parts">
-                          {breakdownOf(w).map((part) => (
-                            <span
-                              className={`day-part${part.top ? ' is-top' : ''}`}
-                              key={part.key}
-                            >
-                              <span
-                                className={`dot${part.key === CARDIO ? ' dot-cardio' : ''}`}
-                                aria-hidden="true"
-                                style={{ '--chip': muscleColor(part.key) }}
-                              />
-                              {part.key} <span className="day-part-n">{part.sets}</span>
-                            </span>
-                          ))}
-                        </span>
+                      ))}
+                    </h2>
+                    <ul className="sets day-sessions">
+                      {day.workouts.map((w) =>
+                        renderSession(day, w, day.date !== todayISO() || !!sessionLength(w)),
                       )}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    </ul>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         ))
       )}
@@ -282,52 +397,98 @@ export default function Days({ onOpenWorkout }) {
       {/* The list scrolls; the way into a session doesn't. Pinned above the tab
           bar because that's where a thumb already is, one-handed, mid-gym. */}
       <div className="days-cta">
-        {backfill && (
-          <form className="backfill" onSubmit={handleCreate}>
-            <div className="row">
-              <div className="field">
-                <label htmlFor="workout-date">Fecha</label>
-                <input
-                  id="workout-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="workout-name">Nombre (opcional)</label>
-                <input
-                  id="workout-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="p. ej. Empuje"
-                />
-              </div>
-            </div>
-            <button type="submit" className="btn-full" disabled={creating}>
-              {creating ? 'Empezando…' : 'Crear entreno'}
-            </button>
-          </form>
-        )}
-        <div className="days-start">
-          <button
-            type="button"
-            className="btn-full btn-log"
-            onClick={todaySession ? () => onOpenWorkout(todaySession.id, todaySession) : startToday}
-            disabled={creating}
-          >
-            {ctaLabel}
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            aria-expanded={backfill}
-            onClick={() => setBackfill((v) => !v)}
-          >
-            Otra fecha
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn-full btn-log"
+          onClick={todaySession ? () => onOpenWorkout(todaySession.id, todaySession) : startToday}
+          disabled={creating}
+        >
+          {ctaLabel}
+        </button>
+        {/* A framed button beside the primary action read as half as important
+            as starting a session, for something done once a month. Quiet link,
+            same treatment Salir already earned. */}
+        <button
+          type="button"
+          className="days-backfill"
+          aria-expanded={backfill}
+          onClick={() => setBackfill(true)}
+        >
+          Anotar otra fecha
+        </button>
       </div>
+
+      {backfill && (
+        <div className="sheet-scrim" onClick={closeSheets}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Anotar otra fecha"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <form className="backfill" onSubmit={handleCreate}>
+              <div className="row">
+                <div className="field">
+                  <label htmlFor="workout-date">Fecha</label>
+                  <input
+                    id="workout-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="workout-name">Nombre (opcional)</label>
+                  <input
+                    id="workout-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="p. ej. Empuje"
+                  />
+                </div>
+              </div>
+              <button type="submit" className="btn-full" disabled={creating}>
+                {creating ? 'Empezando…' : 'Crear entreno'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {menuFor != null && (
+        <div className="sheet-scrim" onClick={closeSheets}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Acciones del día"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Two taps to delete: the first only arms it. */}
+            {confirmingDelete ? (
+              <button
+                type="button"
+                className="sheet-item sheet-danger"
+                onClick={() => handleDeleteDay(menuFor)}
+              >
+                Sí, borrar día
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="sheet-item sheet-danger"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Borrar día
+              </button>
+            )}
+            <button type="button" className="sheet-item" onClick={closeSheets}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

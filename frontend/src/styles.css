@@ -155,15 +155,20 @@ h2 {
 .wordmark-swap {
   font-weight: 400;
 }
-/* Salir: a quiet muted link. Framed and amber it was the second-loudest thing
-   on the screen you open mid-set, for something you press once a month. */
+/* Salir: a text link, never a frame — framed and amber it was the second-loudest
+   thing on the screen you open mid-set, for something you press once a month.
+   But quiet had gone as far as illegible: 13.6px in `--muted` in the corner
+   hardest to reach one-handed, with a 36px target. Ink and 15px, at a real 44px,
+   is still a link and is now hittable. */
 .link-btn {
+  display: inline-flex;
+  align-items: center;
   background: transparent;
   border: none;
-  color: var(--muted);
-  font-size: 0.85rem;
+  color: var(--text);
+  font-size: 0.9375rem;
   font-weight: 600;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.4rem 0.25rem;
 }
 .link-btn:hover:not(:disabled) {
@@ -225,28 +230,21 @@ h2 {
   z-index: 11;
   max-width: 480px;
   margin: 0 auto;
-  padding: 0.6rem 1rem;
+  padding: 10px 16px 8px;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
 }
-/* Room for the pinned bar, so the oldest day never sits under it. */
+/* Room for the pinned bar, so the oldest day never sits under it. Measured, not
+   guessed: the bar is 114px tall and floats 57px above the bottom on the tab
+   bar, so its top edge is 170px up. The old 4.5rem never covered even the
+   one-row bar it was written for — the last day was always half hidden. */
 .days {
-  padding-bottom: 4.5rem;
+  padding-bottom: 11rem;
 }
-.backfill {
-  margin-bottom: 0.6rem;
-}
-.days-start {
-  display: flex;
-  gap: 0.6rem;
-}
-.days-start > .btn-full {
-  flex: 1;
-}
-.days-start > .secondary {
-  flex: 0 0 auto;
-  white-space: nowrap;
+/* The primary action fills the bar, at a height a thumb finds without aiming. */
+.days-cta > .btn-full {
+  min-height: 52px;
 }
 /* Between-sets countdown. Sits above the cards because it's the only thing on
    screen that's running whether you look at it or not. */
@@ -609,41 +607,110 @@ button.chart-title h2 {
   margin-bottom: 1rem;
 }
 
+/* A week is the unit a lifter plans in, so the list is cut into weeks: a mono
+   rule naming the week and totalling it. Not a surface — one line of type, no
+   box, no fill. "How much have I done this week" was answerable only by
+   counting rows, and the ruled entries had no section rhythm to scan by. */
+.week-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 0 0.375rem;
+}
+.week:first-of-type .week-head {
+  padding-top: 0;
+}
+.week-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--text);
+}
+.week-totals {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* The days you didn't train. Only trained days exist in the list, so a four-day
+   gap and a single rest day drew the same thing — two adjacent rules — and the
+   cadence of a week, which is the point of grouping by week, could not be read.
+   Its own rule is `--border`, weaker than a day's: a rest is subordinate to the
+   day it sits under, and a marker that outweighed a session would invert that. */
+.day-rest {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0 0.5rem 3px;
+  border-top: 1px solid var(--border);
+}
+.day-rest-label {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.656rem;
+  letter-spacing: 0.1em;
+  color: var(--accent-ink);
+}
+/* Dashed and amber at 55%: the week's cadence reads in the app's own colour
+   without standing up to the CTA, and a broken line is silence drawn. */
+.day-rest-line {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 55%, transparent) 0 3px,
+    transparent 3px 7px
+  );
+}
+
 /* A day is a ruled entry in a logbook, not a card. A card spent ~100px of
    border, padding and shadow to carry one row of content, so three days filled
    a phone; ruled, seven do. The date is the margin note and the sessions hang
    off it — hierarchy by weight and colour instead of by box.
 
-   The margin is now a real one. The first version drew the rule *across* the
-   row, from the date to the overflow, which put a horizontal cut between a date
-   and its own session: the line read as a divider above the session rather than
-   as the date's own stamp. The date sets in a left gutter instead, the session
+   The margin is a real one. The first version drew the rule *across* the row,
+   from the date to the overflow, which put a horizontal cut between a date and
+   its own session: the line read as a divider above the session rather than as
+   the date's own stamp. The date sets in a left gutter instead, the session
    hangs to its right, and the hairline separating one day from the next sits
    over the whole block — date included, which is the only place it says
-   "new day" instead of "new section". */
+   "new day" instead of "new section".
+
+   That hairline is no longer `--border`. At 1px of the same grey used between
+   set rows inside a card, the boundary between two days weighed the same as the
+   boundary between two sets of the same exercise, so nothing on the screen said
+   which scale you were reading. */
 .day-block {
   display: grid;
-  grid-template-columns: 3.6rem 1fr auto;
+  grid-template-columns: 3.6rem minmax(0, 1fr) auto;
   column-gap: 0.7rem;
-  align-items: start;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border);
+  align-items: center;
+  padding: 15px 0 11px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 17%, transparent);
 }
-/* The first block keeps its rule rather than losing it as a tidy-up: today is
-   almost always the first block, and the accent hairline over it is what marks
-   today now that there is no rule running across the row to take the colour. */
-/* All three children are pinned to row 1. Naming only the column is not enough:
-   auto-placement runs left to right and the overflow (column 3) comes before
-   the session list (column 2) in the markup, so the list wrapped onto a second
-   row and hung a date's worth of empty space over every day. */
+/* Today: heavier and in the accent, one pixel of the top padding given back so
+   the block keeps its height. This is one of today's two cues — the other is
+   the date in ink — replacing three, one of which (the HOY chip) added a whole
+   line to the gutter and made today's row taller than every other. */
+.day-block.is-today {
+  border-top: 2px solid var(--accent);
+  padding-top: 14px;
+}
+/* Both children are pinned to row 1. Naming only the column is not enough:
+   auto-placement runs left to right, so a child given column 2 after one given
+   column 3 wraps onto a second row. */
 .day-date {
   grid-row: 1;
   grid-column: 1;
+  align-self: center;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   margin: 0;
-  padding-top: 0.62rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
@@ -652,10 +719,13 @@ button.chart-title h2 {
   letter-spacing: 0.06em;
   color: var(--muted);
 }
-.day-menu {
-  grid-row: 1;
-  grid-column: 3;
-  padding-top: 0.3rem;
+/* "Which day" is the half you read; the month is the half you already know.
+   Splitting them is what lets the stamp sit in a 3.6rem gutter and still lead. */
+.day-date-day {
+  color: var(--text);
+}
+.day-date-rest {
+  color: var(--muted);
 }
 /* Hangs off the date, and pays for its own padding exactly once. `.sets` gives
    every list a 0.9rem top margin and every row 0.55rem of padding — on top of
@@ -667,64 +737,78 @@ button.chart-title h2 {
   grid-column: 2;
   margin: 0;
 }
+/* `.sets li` is written for a set list inside a card: it wraps, and it hands
+   every child 0.5rem of gap. Here the row is one line by definition — the
+   repeat glyph and the chevron belong at its right edge, and wrapping dropped
+   them onto a line of their own under every day. Specificity, not order: the
+   `.sets li` rule lives 300 lines further down. */
 .day-block .day-sessions > li {
   padding: 0;
-}
-/* Marks the current day so it doesn't blend into the history list below it.
-   In the gutter it takes its own line under the stamp — beside it, it set the
-   width of a column that every other day then had to sit in. */
-.today-badge {
-  display: inline-block;
-  margin-top: 0.25rem;
-  padding: 0.05rem 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent-ink);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
-/* And the whole entry with it. The badge is a 0.68rem chip on a muted line —
-   readable once you are looking at it, invisible when you are scanning for
-   "where am I now" from the top of a list. Today's date goes to ink and the
-   hairline over its block takes the accent, so the current entry is the one the
-   eye lands on. */
-.day-block.is-today .day-date {
-  color: var(--text);
-}
-.day-block.is-today {
-  border-top-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  gap: 0;
+  border-bottom: none;
+  flex-wrap: nowrap;
 }
 
-/* A session row is two lines: what it was + how much, then what it cost per
-   muscle. The breakdown is the answer to "was that a real back day or two
-   sets of curls" — dots alone only ever said *which* groups were touched. */
+/* A session row is two lines of constant height: what it was and when it ended,
+   then the seam, the group it was about, and the count. */
+.day-session-row {
+  display: flex;
+  align-items: center;
+}
+/* The row's tappable area takes the space the two glyphs don't. `.link-row` is
+   `width: 100%` for the screens it was written for, which here pushed its own
+   siblings out of the line. */
+.day-block .day-session {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
 .day-session-main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 6px;
 }
 .day-session-top {
   display: flex;
   align-items: baseline;
-  gap: 0.75rem;
+  gap: 10px;
 }
 .day-session-name {
   flex: 1;
   min-width: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.day-session-top .set-index {
+/* The one state the list could not express: a session still running. It takes
+   the slot the duration would have taken, and the two are mutually exclusive by
+   construction — an open session has no length to report. This is where today's
+   third cue went: from a chip repeating what the date already said, to the only
+   thing on the row that is news. */
+.day-live {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.656rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
-/* The count is the figure you scan a week of days for; the duration is context.
-   As one mono string (`20 series · 41 min`) they read at one weight and became
-   the widest thing on the row, competing with the session's own name. */
-.day-session-count {
-  color: var(--text);
+.day-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
 }
 .day-session-len {
   flex: none;
@@ -734,49 +818,184 @@ button.chart-title h2 {
   font-weight: 400;
   color: var(--muted);
 }
-/* Wraps rather than scrolls: this is content, not a filter — a group hidden
-   past the right edge is a group you don't know you trained. */
-.day-parts {
+.day-session-bottom {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem 0.9rem;
-  font-weight: 400;
-}
-/* Three times the space between pairs as inside one (0.9rem against 0.3rem), so
-   `Espalda 10` reads as one token. A literal `·` separator was tried first and
-   removed: the row wraps, and a separator on every part but the last leaves one
-   dangling at the end of a wrapped line, which reads as a typo. Distance is the
-   separator. */
-.day-part {
-  display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-/* The group the session was mostly about goes to ink; the rest stay muted, so
-   "when did I last really train back" is answered without reading a number.
-   Hierarchy, not colour — the dots already carry the muscle. */
-.day-part.is-top {
-  color: var(--text);
-}
-/* Small enough to sit on a 0.8rem line without becoming the loudest thing on
-   the row: colour still rides a mark, never the text. */
-.day-part .dot {
-  width: 8px;
-  height: 8px;
-}
-.day-part .dot-cardio {
-  border-width: 1.5px;
-}
-/* The number takes its part's colour rather than always ink: a muted label with
-   a full-strength figure beside it splits a pair that is read as one thing, and
-   it left every group looking equally loud — the thing `is-top` exists to fix. */
-.day-part-n {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  gap: 9px;
 }
 
+/* The breakdown as one fixed line: a proportional seam instead of a list of
+   names. Naming every group wrapped to two or three lines, so a full-body day
+   stood twice as tall as a push day and the list lost the rhythm you scan it
+   by — and with four similar counts, lifting the biggest to ink stopped saying
+   anything. The seam says the same thing in 56px, at constant height, with the
+   colour riding a mark rather than text: exactly the scope the muscle palette
+   was approved for. */
+.day-seam {
+  flex: none;
+  display: flex;
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.day-seam > span {
+  flex-basis: 0;
+  min-width: 1px;
+}
+/* Cardio has no muscle group by design, so it takes no muscle colour: a striped
+   segment in `--muted` reads as "counted, not a muscle". */
+.seam-cardio {
+  background: repeating-linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 4px);
+}
+/* The main group in ink beside the seam; everything else collapses to a count,
+   because the seam has already drawn what those groups were worth. */
+.day-parts {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.day-part-top {
+  color: var(--text);
+}
+.day-part-rest {
+  color: var(--muted);
+}
+/* `series` spelled out on every row was one word repeated down a column. The
+   figure keeps its weight, the unit shrinks out of the way. */
+.day-session-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.day-count-unit {
+  font-size: 0.656rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* Repeating a session is the fastest way to log one, and it sat behind a `⋯`
+   that every day paid 44px for in order to hold one useful action and one
+   destructive one. It gets those 44px; the destructive one went to a press and
+   hold, and the day block lost its third column. */
+.day-repeat {
+  flex: none;
+  min-width: 36px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.day-repeat:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+@media (hover: hover) {
+  .day-repeat:hover:not(:disabled) {
+    color: var(--accent-ink);
+  }
+}
+/* The chevron leaves `.link-row::after` for this screen only: it has to sit to
+   the right of the repeat glyph, and a pseudo-element on the row can only ever
+   be at the row's own edge. Two classes deep on purpose — at equal specificity
+   `.link-row::after` wins on order, and the row drew both chevrons. */
+.day-session-row > .day-session::after {
+  content: none;
+}
+.day-chevron {
+  flex: none;
+  padding-left: 2px;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+@media (hover: hover) {
+  .day-session:hover ~ .day-chevron {
+    color: var(--accent-ink);
+    transform: translateX(3px);
+  }
+}
+
+/* One action in the pinned bar. `Otra fecha` was a framed button beside the
+   primary one, so a monthly backfill read as half as important as starting a
+   session — and its form expanded upward over the list it was meant to add to.
+   It becomes a quiet link, the treatment `Salir` already earned, and its form
+   becomes a sheet. */
+.days-backfill {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .days-backfill:hover {
+    color: var(--text);
+  }
+}
+
+/* A sheet, for the two things that are not the list: the backfill form and the
+   day's destructive action. Bottom-anchored because that is where the thumb
+   is, and because a form that expands over the list hides the thing it edits. */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, #000 55%, transparent);
+}
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.sheet-item {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sheet-item:last-child {
+  margin-bottom: 0;
+}
+.sheet-danger {
+  color: var(--danger);
+}
 .link-row {
   width: 100%;
   display: flex;
@@ -976,8 +1195,17 @@ button {
      CTA fill and became amber text on an amber block, near-illegible. */
   button.card-toggle:hover:not(:disabled),
   button.unit-fix:hover:not(:disabled),
-  button.link-row:hover:not(:disabled) {
+  button.link-row:hover:not(:disabled),
+  button.day-repeat:hover:not(:disabled),
+  button.days-backfill:hover:not(:disabled) {
     background: none;
+  }
+  /* A sheet item is a surface already; the pointer lifts it rather than
+     replacing it with the CTA fill — which turned `Borrar día` into an amber
+     block with red text on it, the third time this list has had to be extended
+     for a new ghost button. */
+  button.sheet-item:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 8%, var(--surface-raised));
   }
   /* The tap-to-edit surfaces answer a pointer the way they answer a thumb:
      a veil, not the CTA fill. Without this they inherited `button:hover` and
