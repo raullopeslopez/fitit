@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Days from './Days.jsx'
@@ -19,9 +19,13 @@ function benchSet(overrides = {}) {
   }
 }
 
-// The day overflow holds the rare actions; open it before reaching for them.
-async function openDayMenu() {
-  await userEvent.click(screen.getByRole('button', { name: /acciones del/i }))
+// Deleting a day is the one action left without a control of its own: press and
+// hold a day to reach it. Real timers, because the press is timed on one.
+async function longPressDay(container) {
+  const block = container.querySelector('.day-block')
+  fireEvent.pointerDown(block)
+  await new Promise((resolve) => setTimeout(resolve, 700))
+  fireEvent.pointerUp(block)
 }
 
 describe('Days', () => {
@@ -41,14 +45,132 @@ describe('Days', () => {
       },
       { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
     ])
-    render(<Days onOpenWorkout={() => {}} />)
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
 
     // The stamp is set in the left gutter, one token per line.
     expect(await screen.findByText('JUE 16')).toBeInTheDocument()
     expect(screen.getAllByText('JUL')).toHaveLength(2)
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText('Legs')).toBeInTheDocument()
-    expect(screen.getByText(/2 series/i)).toBeInTheDocument()
+    // `series` spelled out on every row was the same word repeated down the
+    // column; the count keeps a unit, abbreviated.
+    expect(container.querySelector('.day-session-count').textContent).toBe('2 SER')
+  })
+
+  // "How much have I done this week" was answerable only by counting rows. A
+  // mono rule per week — no new surface, one line of type — turns a scroll into
+  // a report, and gives the ruled entries the section rhythm they lacked.
+  it('groups the list by week, with each week’s totals', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 3, date: '2026-08-08', workouts: [{ id: 7, name: 'Pull', sets: [benchSet()] }] },
+        {
+          id: 2,
+          date: '2026-08-06',
+          workouts: [{ id: 6, name: 'Push', sets: [benchSet(), benchSet({ id: 11 })] }],
+        },
+        // Monday starts the week, so 2 Aug (a Sunday) belongs to the one before.
+        { id: 1, date: '2026-08-02', workouts: [{ id: 5, name: 'Pierna', sets: [benchSet()] }] },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('ESTA SEMANA')
+      const heads = [...container.querySelectorAll('.week-head')].map((h) => h.textContent)
+      expect(heads).toEqual(['ESTA SEMANA2 DÍAS · 3 SERIES', 'SEMANA ANTERIOR1 DÍA · 1 SERIE'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('dates a week older than last one', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 1, date: '2026-07-22', workouts: [{ id: 5, name: 'Push', sets: [benchSet()] }] },
+      ])
+      render(<Days onOpenWorkout={() => {}} />)
+
+      expect(await screen.findByText('SEMANA DEL 20 JUL')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Only trained days exist in the list, so a four-day gap and a single rest day
+  // drew the same thing: two adjacent rules. The cadence of a week is the point
+  // of grouping it, and it can't be read if the silence isn't drawn.
+  it('names the days you did not train, inside the current week', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 3, date: '2026-08-08', workouts: [{ id: 7, name: 'Pull', sets: [benchSet()] }] },
+        { id: 2, date: '2026-08-06', workouts: [{ id: 6, name: 'Push', sets: [benchSet()] }] },
+        { id: 1, date: '2026-08-03', workouts: [{ id: 5, name: 'Pierna', sets: [benchSet()] }] },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Pull')
+      await waitFor(() => {
+        expect([...container.querySelectorAll('.day-rest')].map((r) => r.textContent)).toEqual([
+          // One day off is named; a run of them is counted.
+          'VIE · DESCANSO',
+          '2 DÍAS SIN ENTRENAR',
+        ])
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // History doesn't need it: a rest day matters while the week is still yours
+  // to fill, and past weeks would be mostly hairline.
+  it('leaves older weeks without rest markers', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 2, date: '2026-07-24', workouts: [{ id: 6, name: 'Push', sets: [benchSet()] }] },
+        { id: 1, date: '2026-07-21', workouts: [{ id: 5, name: 'Pierna', sets: [benchSet()] }] },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Push')
+      expect(container.querySelectorAll('.day-rest').length).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Today carried three cues for one fact — accent hairline, ink date and a HOY
+  // chip — and the chip added a third line to the gutter, so today's row stood
+  // taller than every other. The hairline and the ink stay; the attention goes
+  // to the one state the list could not express: the session still running.
+  it('stamps the running session EN CURSO instead of badging today', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        {
+          id: 2,
+          date: '2026-08-08',
+          workouts: [{ id: 6, name: 'Pull', duration_seconds: null, sets: [benchSet()] }],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Pull')
+      expect(container.querySelector('.day-live').textContent).toContain('EN CURSO')
+      expect(container.querySelector('.today-badge')).toBeNull()
+      expect(screen.queryByText('HOY')).not.toBeInTheDocument()
+      // The stamp and the duration share a slot; only one of them is ever true.
+      expect(container.querySelector('.day-session-len')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // The row already says how many series; how long they took is the other half
@@ -79,8 +201,10 @@ describe('Days', () => {
     ])
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
-    expect(await screen.findByText('2 series')).toBeInTheDocument()
-    expect(container.querySelector('.day-session-len').textContent).toBe('1h 05')
+    await screen.findByText('Push')
+    // Total minutes with a prime, so a column of them keeps one width and stays
+    // a number. `1h 05` lives on the session header, not here.
+    expect(container.querySelector('.day-session-len').textContent).toBe('65′')
   })
 
   // A session with one set, or one typed in days later, has no length the
@@ -95,7 +219,8 @@ describe('Days', () => {
     ])
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
-    expect(await screen.findByText(/^1 serie$/i)).toBeInTheDocument()
+    await screen.findByText('Push')
+    expect(container.querySelector('.day-session-count').textContent).toBe('1 SER')
     expect(container.querySelector('.day-session-len')).toBeNull()
   })
 
@@ -107,7 +232,7 @@ describe('Days', () => {
     api.listDays.mockResolvedValue([{ id: 1, date: '2026-07-15', workouts: [workout] }])
     render(<Days onOpenWorkout={onOpen} />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /Legs/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     // Sets and all, plus the day's date, so Entreno can draw its header too.
     expect(onOpen).toHaveBeenCalledWith(4, { ...workout, date: '2026-07-15' })
   })
@@ -138,7 +263,9 @@ describe('Days', () => {
       ])
       render(<Days onOpenWorkout={onOpen} />)
 
-      const cta = await screen.findByRole('button', { name: /continuar entreno · Push/i })
+      // No session name on the button: the row already says it, and with it the
+      // label had to ellipsise on a long one.
+      const cta = await screen.findByRole('button', { name: /^continuar entreno$/i })
       await userEvent.click(cta)
 
       expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
@@ -153,29 +280,32 @@ describe('Days', () => {
     api.createWorkout.mockResolvedValue({ id: 9, date: '2026-07-10', name: 'Morning', sets: [] })
     render(<Days onOpenWorkout={onOpen} />)
 
-    // The date+name form only appears when you choose another date.
-    await userEvent.click(screen.getByRole('button', { name: /otra fecha/i }))
-    await userEvent.clear(screen.getByLabelText(/fecha/i))
-    await userEvent.type(screen.getByLabelText(/fecha/i), '2026-07-10')
-    await userEvent.type(screen.getByLabelText(/nombre/i), 'Morning')
+    // The backfill form is a sheet now, opened from a quiet link under the CTA:
+    // a framed button beside the primary action read as half as important as
+    // starting a session, and its form expanded upward over the list.
+    await userEvent.click(screen.getByRole('button', { name: /anotar otra fecha/i }))
+    await userEvent.clear(screen.getByLabelText('Fecha'))
+    await userEvent.type(screen.getByLabelText('Fecha'), '2026-07-10')
+    await userEvent.type(screen.getByLabelText(/^nombre/i), 'Morning')
     await userEvent.click(screen.getByRole('button', { name: /crear entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-10', name: 'Morning' })
     expect(onOpen).toHaveBeenCalledWith(9, expect.objectContaining({ id: 9 }))
   })
 
-  // Borrar día sat next to the row your thumb aims at, at full button weight.
-  // It's irreversible and rare: it belongs behind the overflow, armed twice.
-  it('deletes a day from the overflow, after confirming', async () => {
+  // The `⋯` charged every day 44px to hold one useful action and one
+  // destructive one. The useful one moved onto the row; the destructive one is
+  // irreversible and rare, so it goes behind a press and hold, still armed twice.
+  it('deletes a day from a long press, after confirming', async () => {
     api.deleteDay.mockResolvedValue(null)
     api.listDays.mockResolvedValue([
       { id: 7, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
     ])
-    render(<Days onOpenWorkout={() => {}} />)
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
     await screen.findByText('Legs')
 
-    await openDayMenu()
-    await userEvent.click(screen.getByRole('button', { name: /^borrar día$/i }))
+    await longPressDay(container)
+    await userEvent.click(await screen.findByRole('button', { name: /^borrar día$/i }))
     expect(api.deleteDay).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: /sí, borrar día/i }))
 
@@ -183,7 +313,42 @@ describe('Days', () => {
     expect(screen.queryByText('Legs')).not.toBeInTheDocument()
   })
 
-  // The fastest session to log is one already written down.
+  // A tap is not a press: opening a session is the thing this row does forty
+  // times a week, and it must survive the gesture that reaches the sheet.
+  it('opens the session on a tap, not the delete sheet', async () => {
+    const onOpen = vi.fn()
+    api.listDays.mockResolvedValue([
+      { id: 7, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    render(<Days onOpenWorkout={onOpen} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
+    expect(onOpen).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: /^borrar día$/i })).not.toBeInTheDocument()
+  })
+
+  // Repeating today's session into today is starting a second workout on a day
+  // you already trained — the exact thing the CTA exists to prevent.
+  it('keeps the repeat glyph off the session already running', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-16T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [benchSet()] }] },
+        { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [benchSet()] }] },
+      ])
+      render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Push')
+      expect(screen.queryByRole('button', { name: /repetir Push/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /repetir Legs/i })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // The fastest session to log is one already written down — so it stops being
+  // the thing hidden behind a menu and becomes a 44px glyph on the row itself.
   it('repeats a past session into today, exercises and all', async () => {
     const onOpen = vi.fn()
     api.listDays.mockResolvedValue([
@@ -207,8 +372,7 @@ describe('Days', () => {
     render(<Days onOpenWorkout={onOpen} />)
     await screen.findByText('Pull')
 
-    await openDayMenu()
-    await userEvent.click(screen.getByRole('button', { name: /repetir/i }))
+    await userEvent.click(screen.getByRole('button', { name: /repetir Pull/i }))
 
     await waitFor(() => expect(onOpen).toHaveBeenCalledWith(12, expect.objectContaining({ id: 12 })))
     expect(api.createWorkout).toHaveBeenCalledWith(
@@ -227,7 +391,7 @@ describe('Days', () => {
   // A row of anonymous dots said *which* groups a day worked and nothing about
   // how much: six sets of chest and one warm-up of shoulders drew the same two
   // dots as a real push session. The count is the part you read.
-  it('breaks a session down into sets per muscle', async () => {
+  it('carries the breakdown as one proportional seam', async () => {
     api.listDays.mockResolvedValue([
       {
         id: 2,
@@ -235,12 +399,17 @@ describe('Days', () => {
         workouts: [
           {
             id: 5,
-            name: 'Push',
+            name: 'Pull',
             sets: [
-              benchSet({ exercise_name: 'Press banca', muscle_group: 'Pecho' }),
-              benchSet({ id: 11, exercise_name: 'Press militar', muscle_group: 'Hombro' }),
-              // A second chest lift doesn't earn a second entry, it adds to one.
-              benchSet({ id: 12, exercise_name: 'Aperturas', muscle_group: 'Pecho' }),
+              ...Array.from({ length: 10 }, (_, i) =>
+                benchSet({ id: 100 + i, muscle_group: 'Espalda' }),
+              ),
+              ...Array.from({ length: 6 }, (_, i) =>
+                benchSet({ id: 200 + i, muscle_group: 'Bíceps' }),
+              ),
+              ...Array.from({ length: 4 }, (_, i) =>
+                benchSet({ id: 300 + i, muscle_group: 'Core' }),
+              ),
             ],
           },
         ],
@@ -248,21 +417,42 @@ describe('Days', () => {
     ])
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
-    await screen.findByText('Push')
-    await waitFor(() => {
-      expect([...container.querySelectorAll('.day-part')].map((p) => p.textContent)).toEqual([
-        'Pecho 2',
-        'Hombro 1',
-      ])
-    })
-    // Every part still carries its muscle colour, so the row reads at a glance.
-    expect(container.querySelectorAll('.day-part .dot').length).toBe(2)
+    await screen.findByText('Pull')
+    await waitFor(() => expect(container.querySelector('.day-seam')).not.toBeNull())
+    // One segment per group, widest first, each weighted by its own set count —
+    // the proportion is the information, and it costs one line whatever the
+    // session was. Naming every group wrapped to three lines on a full-body day.
+    expect(
+      [...container.querySelectorAll('.day-seam span')].map((s) => s.style.flexGrow),
+    ).toEqual(['10', '6', '4'])
+    // The main group stays in ink beside it; the rest collapse to a count.
+    expect(container.querySelector('.day-parts').textContent).toBe('Espalda +2')
     expect(api.listExercises).not.toHaveBeenCalled()
   })
 
-  // The parts have to add up to the total beside the name, or the arithmetic
-  // just looks broken — so sets no group claims are named rather than dropped.
-  it('names the sets no muscle group claims', async () => {
+  // One group is the whole session, so there is no remainder to report — and
+  // `Pecho +0` would be a number printed to say nothing happened.
+  it('drops the +N when a session worked one group', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-16',
+        workouts: [
+          { id: 5, name: 'Banca', sets: [benchSet({ muscle_group: 'Pecho' })] },
+        ],
+      },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Banca')
+    await waitFor(() => expect(container.querySelector('.day-parts').textContent).toBe('Pecho'))
+  })
+
+  // The seam has to account for every set, or the proportion it draws is of
+  // something other than the session — so sets no group claims keep a segment.
+  // Cardio's is striped in `--muted` rather than coloured: it has no muscle
+  // group by design, and the palette is for muscles.
+  it('gives cardio and untagged sets their own segment', async () => {
     api.listDays.mockResolvedValue([
       {
         id: 2,
@@ -284,72 +474,12 @@ describe('Days', () => {
 
     await screen.findByText('Varios')
     await waitFor(() => {
-      expect([...container.querySelectorAll('.day-part')].map((p) => p.textContent)).toEqual([
-        'Pecho 1',
-        'Cardio 1',
-        'Sin grupo 1',
-      ])
+      expect(container.querySelectorAll('.day-seam span').length).toBe(3)
     })
-    // Cardio keeps its amber-ring dot: it has no muscle group by design.
-    expect(container.querySelectorAll('.day-part .dot-cardio').length).toBe(1)
-  })
-
-  // Four groups printed at one weight make you add up to find out what the day
-  // was. The biggest one goes to ink and the rest stay muted, so scrolling a
-  // week answers "when did I last really do back" without reading a number.
-  it('lifts the group a session was mostly about', async () => {
-    api.listDays.mockResolvedValue([
-      {
-        id: 2,
-        date: '2026-07-16',
-        workouts: [
-          {
-            id: 5,
-            name: 'Pull',
-            sets: [
-              benchSet({ muscle_group: 'Espalda' }),
-              benchSet({ id: 11, muscle_group: 'Espalda' }),
-              benchSet({ id: 12, muscle_group: 'Bíceps' }),
-            ],
-          },
-        ],
-      },
-    ])
-    const { container } = render(<Days onOpenWorkout={() => {}} />)
-
-    await screen.findByText('Pull')
-    await waitFor(() => {
-      expect([...container.querySelectorAll('.day-part.is-top')].map((p) => p.textContent)).toEqual(
-        ['Espalda 2'],
-      )
-    })
-  })
-
-  // Lifting every group is the same as lifting none, and costs the eye a line
-  // of ink to learn nothing. A session with no clear main muscle says so by
-  // staying flat — which is also the honest reading of a full-body day.
-  it('lifts nothing when every group got the same', async () => {
-    api.listDays.mockResolvedValue([
-      {
-        id: 2,
-        date: '2026-07-16',
-        workouts: [
-          {
-            id: 5,
-            name: 'Full body',
-            sets: [
-              benchSet({ muscle_group: 'Espalda' }),
-              benchSet({ id: 11, muscle_group: 'Pecho' }),
-            ],
-          },
-        ],
-      },
-    ])
-    const { container } = render(<Days onOpenWorkout={() => {}} />)
-
-    await screen.findByText('Full body')
-    await waitFor(() => expect(container.querySelectorAll('.day-part').length).toBe(2))
-    expect(container.querySelectorAll('.day-part.is-top').length).toBe(0)
+    expect(container.querySelectorAll('.day-seam .seam-cardio').length).toBe(1)
+    // Three groups of one: the leader is whichever comes first canonically, and
+    // the other two are still owed to the reader as a count.
+    expect(container.querySelector('.day-parts').textContent).toBe('Pecho +2')
   })
 
   it('leaves an empty session with no breakdown at all', async () => {
@@ -364,9 +494,12 @@ describe('Days', () => {
 
     await screen.findByText('Vacío')
     expect(container.querySelector('.day-parts')).toBeNull()
+    expect(container.querySelector('.day-seam')).toBeNull()
   })
 
-  it('badges today’s day so it reads apart from recent history', async () => {
+  // Today keeps two cues and no chip: its date in ink, and a heavier accent
+  // hairline over the block. Both ride things the row already had.
+  it('marks today’s block without adding a line to it', async () => {
     // Only fake Date — testing-library's async queries poll via real timers.
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-07-16T12:00:00'))
@@ -379,10 +512,6 @@ describe('Days', () => {
 
       const todayHeading = await screen.findByText('JUE 16')
       const pastHeading = screen.getByText('MIÉ 15')
-      expect(todayHeading.closest('.day-date')).toHaveTextContent('HOY')
-      expect(pastHeading.closest('.day-date')).not.toHaveTextContent('HOY')
-      // The badge alone is a 0.68rem chip on a muted line; the whole entry is
-      // marked so today reads as today from across the list.
       expect(todayHeading.closest('.day-block')).toHaveClass('is-today')
       expect(pastHeading.closest('.day-block')).not.toHaveClass('is-today')
     } finally {

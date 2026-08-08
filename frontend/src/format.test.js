@@ -5,6 +5,9 @@ import {
   formatClock,
   formatDayShort,
   formatDayStamp,
+  formatWeekLabel,
+  isoWeekStart,
+  sessionMinutes,
   daysAgoLabel,
   formatDuration,
   formatMonth,
@@ -101,6 +104,59 @@ describe('formatDayStamp', () => {
   // than widening the gutter for the fifty-one weeks that don't need it.
   it('gives another year its own line', () => {
     expect(formatDayStamp('2025-12-31', new Date(2026, 6, 24))).toEqual(['MIÉ 31', 'DIC', '2025'])
+  })
+})
+
+describe('isoWeekStart', () => {
+  // Monday–Sunday, the week a Spanish calendar draws and the week a training
+  // block is planned in. Sunday belongs to the week that is ending, not the one
+  // about to start — the commonest off-by-one in a week grouping.
+  it('walks back to Monday', () => {
+    expect(isoWeekStart('2026-08-08')).toBe('2026-08-03')
+    expect(isoWeekStart('2026-08-03')).toBe('2026-08-03')
+  })
+  it('keeps Sunday in the week that is ending', () => {
+    expect(isoWeekStart('2026-08-09')).toBe('2026-08-03')
+    expect(isoWeekStart('2026-08-10')).toBe('2026-08-10')
+  })
+  it('crosses a month and a year without losing the day', () => {
+    expect(isoWeekStart('2026-01-01')).toBe('2025-12-29')
+  })
+})
+
+describe('formatWeekLabel', () => {
+  const today = new Date(2026, 7, 8)
+
+  // The two weeks you can place without reading a date get words; everything
+  // older gets the Monday it started on, in the day list's own stamp format.
+  it('names the near weeks in words', () => {
+    expect(formatWeekLabel('2026-08-03', today)).toBe('ESTA SEMANA')
+    expect(formatWeekLabel('2026-07-27', today)).toBe('SEMANA ANTERIOR')
+  })
+  it('dates the older ones', () => {
+    expect(formatWeekLabel('2026-07-20', today)).toBe('SEMANA DEL 20 JUL')
+  })
+})
+
+describe('sessionMinutes', () => {
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString()
+  const done = (seconds) => ({ duration_seconds: seconds, sets: [{ created_at: hoursAgo(4) }] })
+
+  // The day row prints a total in minutes with a prime — `58′`, and `64′` for a
+  // session that crossed the hour. One token, one width, and it stays a number:
+  // `1h 05` in a column of digits is a sentence. The prose form stays on the
+  // session header, where there is one of them and room to say it.
+  it('reads a closed session as total minutes', () => {
+    expect(sessionMinutes(done(3480))).toBe('58′')
+    expect(sessionMinutes(done(3840))).toBe('64′')
+  })
+  // Same gate as sessionLength: nothing to say while the session is still
+  // running, and nothing for a session too short to have happened.
+  it('stays quiet for a session that is not over, or never was one', () => {
+    const live = { duration_seconds: 3600, sets: [{ created_at: new Date().toISOString() }] }
+    expect(sessionMinutes(live)).toBe('')
+    expect(sessionMinutes(done(40))).toBe('')
+    expect(sessionMinutes({ duration_seconds: null, sets: [] })).toBe('')
   })
 })
 
