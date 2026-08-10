@@ -149,12 +149,35 @@
 //                    Bíceps   +0.5 per pulldown, pull-up and row
 //                    Femoral  +0.5 per squat/press/lunge and per deadlift
 //
-// Nothing here corrects for it, because correcting means inventing an assumed
-// weekly press/pull volume and no source gives one. What it means in practice:
-// on those four rows the fill sits a little further right than RP would draw it,
-// so "bajo" is under-reported and "sobre" over-reported. Femoral is the sharpest
-// case — a squat-and-deadlift week can push it past 12 on indirect volume alone.
-// Flagged rather than fudged; fixing it properly is its own piece of work.
+// Measured against three real weeks of the user's log, the damage was not
+// theoretical: Bíceps read 29.5 sets one week off 16 direct and 13.5 collected
+// from rows and pulldowns, and Bíceps, Tríceps and Hombro all reported "sobre"
+// in weeks where their direct work sat comfortably inside the band. The screen
+// would have said "cut your biceps volume" to somebody doing a normal amount of
+// direct bicep work.
+//
+// So it is corrected, and without inventing an assumed press volume: the log
+// already knows exactly how many half-sets landed on a group indirectly, week by
+// week. `setsInWindow` reports them, and everything below judges
+//
+//     direct = total − indirect
+//
+// against RP's published band, which is the one comparison the landmarks were
+// written for. No constant, no assumption, no averaging across weeks.
+//
+// Fractional counting stays as the app's unit — the user's call, and the reason
+// is that the total is a real quantity the log went to some trouble to compute.
+// So a row keeps printing the fractional total while its *state* answers RP's
+// question about direct work. `effectiveBand` exists for the seam that opens
+// between those two: it restates the band in total-units (band + indirect), so a
+// row printing 29.5 can print a band of 21.5–33.5 beneath it and have the two
+// agree. Whether a row shows the raw band, the effective band, or neither is a
+// display decision and belongs to the row, not here.
+//
+// One thing this does not fix, and cannot: the four inflated groups still have
+// a *noisier* number than the five clean ones, because half a set is a coarser
+// instrument than a whole one. It changes what the number is worth, not whether
+// it is right.
 
 import { MUSCLE_GROUPS } from './muscles.js'
 
@@ -207,32 +230,65 @@ export function bandFor(group) {
   return Object.prototype.hasOwnProperty.call(BANDS, group) ? BANDS[group] : null
 }
 
-// Where `sets` sits against the group's band.
+// The band restated in the units a row actually prints. RP bands direct work;
+// a Fitit row prints direct + indirect. Adding the week's own indirect volume to
+// both bounds puts them on the same scale as the printed number, so a row
+// showing 29.5 can show 21.5–33.5 beside it without the two contradicting
+// each other. Purely a presentation helper — `bandState` does not use it,
+// because `total >= mev + indirect` and `direct >= mev` are the same statement
+// and the second one is the one worth writing down.
+export function effectiveBand(group, indirect = 0) {
+  const band = bandFor(group)
+  if (!band) return null
+  const i = Math.max(0, indirect)
+  return { mv: round1(band.mv + i), mev: round1(band.mev + i), mrv: round1(band.mrv + i) }
+}
+
+// Where a week's work sits against the group's band.
+//
+// `sets` is the fractional total the row prints; `indirect` is how much of it
+// arrived as another lift's secondary group (`setsPerMuscle` reports it per
+// row). The judgement is made on the difference, because that is the only
+// quantity RP's landmarks describe.
 //
 // `gap` is the only number on a row you can act on in the next session, so it is
-// reported only where it exists — under MEV — and in the same fractional unit
-// the row prints, since a bench press deposits 0.5 into two other rows.
+// reported only where it exists — under MEV — and it counts **direct sets**,
+// which is also the only kind you can decide to add. Ten more sets of rows will
+// not close a bicep gap, and a gap that could be closed by accident would be
+// advice nobody can follow.
 //
 // Both bounds are inclusive: MEV is the minimum *effective* volume, so being at
 // it is being in the band, and MRV is the most you can recover from, so being at
 // it is still recoverable.
-export function bandState(group, sets) {
+export function bandState(group, sets, indirect = 0) {
   const band = bandFor(group)
-  if (!band) return { state: 'sin-banda', gap: 0, band: null }
-  if (sets > band.mrv) return { state: 'sobre', gap: 0, band }
-  if (sets >= band.mev) return { state: 'zona', gap: 0, band }
+  if (!band) return { state: 'sin-banda', gap: 0, band: null, direct: 0 }
+  // Compared unrounded and reported rounded. Rounding first would promote 5.96
+  // direct sets to 6 and call a shortfall "en zona" — the exact hair's-breadth
+  // case the 0.1 floor below exists to keep honest.
+  const exact = Math.max(0, sets - Math.max(0, indirect))
+  const direct = round1(exact)
+  if (exact > band.mrv) return { state: 'sobre', gap: 0, band, direct }
+  if (exact >= band.mev) return { state: 'zona', gap: 0, band, direct }
   // Floored at 0.1: a hair under MEV rounds to a gap of zero, and "+0 al mínimo"
   // reads as "you are there" on the one row that is not.
-  return { state: 'bajo', gap: Math.max(0.1, round1(band.mev - sets)), band }
+  return { state: 'bajo', gap: Math.max(0.1, round1(band.mev - exact)), band, direct }
 }
 
 // 0..1 along the track, with the band pinned to MEV_AT…MRV_AT on every group.
 // See the comment on those constants for why. 0 for a group with no band: there
 // is nothing to fill against.
-export function bandPosition(group, sets) {
+//
+// Fills on **direct** sets, the same quantity `bandState` judges, so the mark
+// and the word under it can never disagree. The alternative — filling on the
+// printed total against the effective band — puts a row with zero direct work
+// a quarter of the way up its runway, which reads as progress toward a minimum
+// that pulling and pressing do not move you toward.
+export function bandPosition(group, sets, indirect = 0) {
   const band = bandFor(group)
   if (!band) return 0
   const { mev, mrv } = band
+  sets = Math.max(0, sets - Math.max(0, indirect))
   if (sets <= mev) {
     // mev === 0 (Core) makes the runway zero-width — zero sets already meets the
     // minimum, so the fill starts at the mark rather than dividing by zero.

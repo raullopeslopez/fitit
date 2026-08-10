@@ -203,6 +203,11 @@ export function sessionsPerPeriod(days, period = 'week', { endDate } = {}) {
 // sets no muscle claimed at all — cardio, and lifts the classifier can't place.
 function setsInWindow(days, { start, end }) {
   const counts = {}
+  // The half-sets inside `counts` that came from a lift's *secondary* groups
+  // rather than from direct work. Tracked separately because RP's volume
+  // landmarks are written for direct sets only — see volume.js — so a row
+  // cannot be judged without knowing how much of its number was indirect.
+  const indirect = {}
   let total = 0
   let unclassified = 0
   for (const day of days) {
@@ -220,11 +225,12 @@ function setsInWindow(days, { start, end }) {
         // breaking.
         for (const group of set.secondary_groups ?? []) {
           counts[group] = (counts[group] || 0) + 0.5
+          indirect[group] = (indirect[group] || 0) + 0.5
         }
       }
     }
   }
-  return { counts, total, unclassified }
+  return { counts, indirect, total, unclassified }
 }
 
 // What a deload week is aiming at, per muscle: a third of your own recent
@@ -342,6 +348,11 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
     group,
     sets: round1(sets),
     perWeek: round1(sets / nowWeeks),
+    // How much of `sets` arrived as somebody else's secondary. Reported in both
+    // units, matching `sets`/`perWeek`, so a consumer never holds a raw count
+    // against an averaged one. A band can only be applied once this is known.
+    indirect: round1(now.indirect[group] || 0),
+    indirectPerWeek: round1((now.indirect[group] || 0) / nowWeeks),
     delta: round1(shown(sets, nowWeeks) - shown(then.counts[group] || 0, thenWeeks)),
   }))
 

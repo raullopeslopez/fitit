@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { MUSCLE_GROUPS } from './muscles.js'
-import { BANDS, bandFor, bandPosition, bandState, MEV_AT, MRV_AT } from './volume.js'
+import {
+  BANDS,
+  bandFor,
+  bandPosition,
+  bandState,
+  effectiveBand,
+  MEV_AT,
+  MRV_AT,
+} from './volume.js'
 
 describe('BANDS', () => {
   it('carries one band per muscle group, and no group the app cannot draw', () => {
@@ -39,7 +47,12 @@ describe('bandFor', () => {
 
 describe('bandState', () => {
   it('calls a shortfall bajo and says how many sets are missing', () => {
-    expect(bandState('Pecho', 3)).toEqual({ state: 'bajo', gap: 3, band: bandFor('Pecho') })
+    expect(bandState('Pecho', 3)).toEqual({
+      state: 'bajo',
+      gap: 3,
+      band: bandFor('Pecho'),
+      direct: 3,
+    })
   })
 
   it('counts the gap in the same fractional unit the rows print', () => {
@@ -55,7 +68,12 @@ describe('bandState', () => {
   })
 
   it('calls MEV itself en zona — the minimum is inside the band, not below it', () => {
-    expect(bandState('Pecho', 6)).toEqual({ state: 'zona', gap: 0, band: bandFor('Pecho') })
+    expect(bandState('Pecho', 6)).toEqual({
+      state: 'zona',
+      gap: 0,
+      band: bandFor('Pecho'),
+      direct: 6,
+    })
   })
 
   it('calls MRV itself en zona and only past it sobre', () => {
@@ -64,7 +82,12 @@ describe('bandState', () => {
   })
 
   it('has no state for a group with no band', () => {
-    expect(bandState('Sin grupo', 12)).toEqual({ state: 'sin-banda', gap: 0, band: null })
+    expect(bandState('Sin grupo', 12)).toEqual({
+      state: 'sin-banda',
+      gap: 0,
+      band: null,
+      direct: 0,
+    })
   })
 
   it('reads zero sets of core as inside the band, because RP puts its MEV at zero', () => {
@@ -157,5 +180,68 @@ describe('bandPosition', () => {
   it('draws nothing for a group with no band', () => {
     expect(bandPosition('Sin grupo', 12)).toBe(0)
     expect(bandPosition(null, 12)).toBe(0)
+  })
+})
+
+// Indirect volume: the correction that made the model survive real data. Before
+// it, three of the user's nine rows reported "sobre" every week off half-sets
+// collected from other lifts — see the block at the top of volume.js.
+describe('indirect volume', () => {
+  it('judges direct work, not the printed total', () => {
+    // The real case: 16 direct bicep sets plus 13.5 collected from rows and
+    // pulldowns. The total clears an MRV of 20; the direct work does not.
+    expect(bandState('Bíceps', 29.5, 13.5).state).toBe('zona')
+    expect(bandState('Bíceps', 29.5, 13.5).direct).toBe(16)
+    expect(bandState('Bíceps', 29.5, 0).state).toBe('sobre')
+  })
+
+  it('still calls a genuine excess a genuine excess', () => {
+    // Pecho is never anybody's secondary, so its number is direct work whole.
+    expect(bandState('Pecho', 24, 0).state).toBe('sobre')
+  })
+
+  it('counts the gap in direct sets, the only kind you can decide to add', () => {
+    // 6 of the 8 on this row came from pulling. The advice is 6 curls, not 2.
+    const { state, gap } = bandState('Bíceps', 8, 6)
+    expect(state).toBe('bajo')
+    expect(gap).toBe(6)
+  })
+
+  it('leaves a row of pure indirect volume at the foot of its runway', () => {
+    // Pressing does not move you toward a direct triceps minimum, so the fill
+    // must not claim it does.
+    expect(bandPosition('Tríceps', 8, 8)).toBe(0)
+    expect(bandState('Tríceps', 8, 8).state).toBe('bajo')
+  })
+
+  it('defaults to treating everything as direct, so old callers are unchanged', () => {
+    expect(bandState('Espalda', 12)).toEqual(bandState('Espalda', 12, 0))
+    expect(bandPosition('Espalda', 12)).toBe(bandPosition('Espalda', 12, 0))
+  })
+
+  it('ignores a negative or impossible indirect count', () => {
+    expect(bandState('Pecho', 10, -5).direct).toBe(10)
+    expect(bandState('Pecho', 10, 99).direct).toBe(0)
+  })
+
+  it('restates the band in printed units so a row can show both', () => {
+    expect(effectiveBand('Bíceps', 13.5)).toEqual({ mv: 17.5, mev: 21.5, mrv: 33.5 })
+    expect(effectiveBand('Bíceps', 0)).toEqual(BANDS['Bíceps'])
+    expect(effectiveBand('Sin grupo', 4)).toBeNull()
+  })
+
+  it('keeps the two readings of the same week consistent', () => {
+    // total >= effective mev is the same statement as direct >= mev, and the
+    // screen would contradict itself if they ever came apart.
+    for (const group of MUSCLE_GROUPS) {
+      for (const indirect of [0, 2.5, 7, 13.5]) {
+        for (const direct of [0, 3, 8, 14, 21, 30]) {
+          const total = direct + indirect
+          const eff = effectiveBand(group, indirect)
+          expect(bandState(group, total, indirect).state === 'bajo').toBe(total < eff.mev)
+          expect(bandState(group, total, indirect).state === 'sobre').toBe(total > eff.mrv)
+        }
+      }
+    }
   })
 })
