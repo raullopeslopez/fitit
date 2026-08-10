@@ -10,7 +10,12 @@
 import { useEffect } from 'react'
 
 import { PeriodSummary } from '../Progress.jsx'
-import { days } from './fixture.js'
+import { days, emptyWeekDays, noHistoryDays } from './fixture.js'
+
+// `?caso=vacia` and `?caso=nueva` put the bench on the two weeks that have no
+// rows to draw — the ones that are almost entirely copy, and so the ones a
+// static mock cannot be judged from.
+const CASES = { llena: days, vacia: emptyWeekDays, nueva: noHistoryDays }
 
 // Dark is the design's primary target (DESIGN.md: "dark-first"), but the theme
 // is chosen by `prefers-color-scheme`, so the bench showed whatever the machine
@@ -50,11 +55,13 @@ function useForcedTheme(theme) {
 }
 
 export default function VolumeHarness() {
-  const theme = new URLSearchParams(location.search).get('theme') ?? 'dark'
+  const params = new URLSearchParams(location.search)
+  const theme = params.get('theme') ?? 'dark'
   useForcedTheme(theme)
+  const fixture = CASES[params.get('caso')] ?? days
   return (
     <div className="app">
-      <PeriodSummary days={days} />
+      <PeriodSummary days={fixture} />
     </div>
   )
 }

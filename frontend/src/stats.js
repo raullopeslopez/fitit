@@ -336,12 +336,22 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
   // answer to "am I training what I think I'm training"; dropping the row hid
   // the one case worth seeing.
   //
-  // Seeded from the whole period before, not from the stretch of it the deltas
-  // compare against: that stretch is one day long on the 1st of a month, so a
+  // Seeded from the whole stretch before, not from the slice of it the deltas
+  // compare against: that slice is one day long on the 1st of a month, so a
   // muscle trained all July but not on its 1st fell off the board on exactly
-  // the day its absence mattered. One period back is still a bound — otherwise
-  // every group ever trained queues up at the bottom forever.
-  const silent = Object.keys(setsInWindow(days, previousPeriod(current, period)).counts)
+  // the day its absence mattered.
+  //
+  // Eight weeks of it, and not one period — the same window `typicalWeekSets`
+  // and `deloadTargets` already call "your recent normal". One period back held
+  // a silent muscle's row for exactly one week of silence, so a group you
+  // stopped training vanished on the *second* week, which is the first week the
+  // absence means anything: the row disappeared precisely as it acquired
+  // something to say. Still bounded, because a mistagged set from March should
+  // not pin a row forever; nine groups is the ceiling either way.
+  const silent = Object.keys(
+    setsInWindow(days, { start: shiftDay(current.start, -56), end: shiftDay(current.start, -1) })
+      .counts,
+  )
   const counts = { ...Object.fromEntries(silent.map((g) => [g, 0])), ...now.counts }
 
   const rows = rankGroups(counts).map(({ group, sets }) => ({

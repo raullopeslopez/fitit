@@ -287,6 +287,55 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek, delta, qu
   )
 }
 
+// What the card says when the period it is on holds nothing to draw. Three
+// different facts, so three different sentences: a week that has not started
+// yet, a week that was skipped, and an account that has never logged a set.
+//
+// None of them draws rows. Nine runways at zero, each printing the whole of its
+// band as a shortfall, is a verdict on a week nobody has lived — DESIGN.md
+// 2026-08-05 settled that a running week is never told it is behind, and on a
+// Monday *every* row is at zero. The blank card that would otherwise result is
+// the opposite failure, and the shipped one: the week you are actually in went
+// unmentioned by the screen that exists to measure it.
+//
+// So a running week hands over the only figures on screen that are real and
+// final — last week's close, and which muscles ended under their band. That is
+// where "what should today be" is answered from, and it is answered in this
+// card's own currency (sets against a band), which is why it does not repeat
+// what Ritmo por músculo already says with frequency.
+function EmptyPeriod({ headline, aside, owed }) {
+  const shown = owed?.slice(0, 4) ?? []
+  return (
+    <div className="sum-empty-wrap">
+      <p className="sum-empty">{headline}</p>
+      {aside && <p className="hint sum-handover">{aside}</p>}
+      {owed?.length === 0 && <p className="sum-owed">Todo cerró en zona.</p>}
+      {owed?.length > 0 && (
+        <p className="sum-owed">
+          <span className="sum-owed-lab">
+            {owed.length === 1 ? 'Cerró bajo su zona' : 'Cerraron bajo su zona'}
+          </span>
+          {shown.map((group) => (
+            /* The dot, because this list names muscles and every other place
+               this app names one puts its colour on a mark beside it. */
+            <span className="sum-owed-item" key={group}>
+              <span
+                className="sum-dot"
+                style={{ '--chip': muscleColor(group) }}
+                aria-hidden="true"
+              />
+              <span className="sum-owed-name">{group}</span>
+            </span>
+          ))}
+          {owed.length > shown.length && (
+            <span className="sum-owed-more">y {owed.length - shown.length} más</span>
+          )}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // Sets per muscle over a week or a month, with the arrows to walk back through
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
@@ -368,7 +417,61 @@ export function PeriodSummary({ days }) {
   // every name slid into the bar's column and the card read as scrambled.
   const showDelta = summary.comparable && !deload
   const typical = byMonth || deload ? null : typicalWeekSets(days, current.start)
-  const shortWeek = judging && typical != null && summary.sets < typical / 2
+
+  // Nothing to draw: either no muscle claimed a set in this period, or no set
+  // was logged in it at all. The second one still produces rows — a group that
+  // has gone quiet holds its row at zero — and those are exactly the rows that
+  // must not be drawn, because nine of them at once is nine reproaches.
+  const hasHistory = days.some((day) => day.workouts.some((w) => w.sets.length > 0))
+  const empty = summary.rows.length === 0 || summary.sets === 0
+
+  // A week with nothing in it was never short of anything: "0 series, menos de
+  // un cuarto de tu semana típica" measures a week that never started against
+  // one that did.
+  const shortWeek = judging && !empty && typical != null && summary.sets < typical / 2
+
+  // Last week's close, handed to a Monday that has nothing of its own. Only for
+  // a running week — a month has no tidy predecessor to borrow from, and a past
+  // week you are browsing is being read, not planned from.
+  const handover =
+    empty && !byMonth && summary.inProgress && hasHistory && at + 1 < periods.length
+      ? setsPerMuscle(days, { period, index: at + 1 })
+      : null
+  // Ordered by how much each one was short, so the first name is the one with
+  // most owed to it. Judged with exactly the call the row makes, so the list
+  // and the rows behind the ‹ arrow can never disagree.
+  const owed =
+    handover && handover.sets > 0
+      ? handover.rows
+          .map((row) => ({ group: row.group, ...bandState(row.group, row.sets) }))
+          .filter((row) => row.state === 'bajo')
+          .sort((a, b) => b.gap - a.gap)
+          .map((row) => row.group)
+      : null
+
+  const headline = !hasHistory
+    ? 'Todavía no hay series registradas.'
+    : summary.sets > 0
+      ? 'Ninguna serie con músculo asignado.'
+      : summary.inProgress
+        ? byMonth
+          ? 'El mes aún no tiene series.'
+          : 'La semana aún no tiene series.'
+        : byMonth
+          ? 'Mes sin entrenar.'
+          : 'Semana sin entrenar.'
+
+  const aside = !hasHistory
+    ? 'Con el primer entreno esta tarjeta empieza a medir cada músculo contra su zona semanal.'
+    : !handover
+      ? null
+      : handover.sets > 0
+        ? `La pasada cerró con ${plural(handover.sets, 'serie', 'series')} en ${plural(
+            periods[at + 1].sessions,
+            'entreno',
+            'entrenos',
+          )}.`
+        : 'La pasada tampoco tuvo ninguna.'
 
   // The ratio in the words you'd actually use. Only ever below a half by
   // construction, so these four cover it — and "menos de un cuarto" rather than
@@ -381,11 +484,20 @@ export function PeriodSummary({ days }) {
     return 'menos de un cuarto'
   }
 
-  const subtitle = [
-    plural(current.sessions, 'entreno', 'entrenos'),
-    plural(summary.sets, 'serie', 'series'),
-    elapsed,
-  ]
+  // "0 entrenos · 0 series" under a line that already says the week is empty is
+  // the same nothing said twice, and it reads as a scorecard. What survives is
+  // the denominator — "1 de 7 días" is the whole reason nothing is owed yet.
+  const subtitle = (
+    !hasHistory
+      ? [] // no week to be one-seventh of the way through
+      : empty
+      ? [elapsed]
+      : [
+          plural(current.sessions, 'entreno', 'entrenos'),
+          plural(summary.sets, 'serie', 'series'),
+          elapsed,
+        ]
+  )
     .filter(Boolean)
     .join(' · ')
 
@@ -414,6 +526,10 @@ export function PeriodSummary({ days }) {
           alone — "Esta semana" answers *when*, never *what*, so the one card
           the screen exists for was the only one that never named its subject. */}
       <h2 className="sum-title">Series por músculo</h2>
+      {/* An account with nothing in it has no period to be on: both arrows are
+          dead, and `Mes` swaps one empty view for another. A first screen made
+          of inert controls is worse than a first screen made of one sentence. */}
+      {hasHistory && (
       <div className="sum-head">
         <div className="sum-nav">
           <button
@@ -453,10 +569,11 @@ export function PeriodSummary({ days }) {
           </button>
         </div>
       </div>
-      <p className="hint sum-sub">{subtitle}</p>
+      )}
+      {subtitle && <p className="hint sum-sub">{subtitle}</p>}
 
-      {summary.rows.length === 0 ? (
-        <p className="hint">Nada registrado en este periodo.</p>
+      {empty ? (
+        <EmptyPeriod headline={headline} aside={aside} owed={owed} />
       ) : (
         <div className={`sum-rows${showDelta ? ' has-delta' : ''}`}>
           {/* One row of headings, in the same grid as the rows, so each label
@@ -514,7 +631,7 @@ export function PeriodSummary({ days }) {
           típica
         </p>
       )}
-      {summary.rows.length > 0 && (
+      {!empty && (
         <>
           <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>
           {/* The month still needs saying out loud: its rows print a weekly
@@ -530,7 +647,7 @@ export function PeriodSummary({ days }) {
           text control, the same one corrections use, and never a button with
           content weight. It sits under the reference it replaces, because that
           line is the thing it changes. */}
-      {!byMonth && summary.rows.length > 0 && (
+      {!byMonth && !empty && (
         <button
           type="button"
           className="unit-fix sum-deload"
@@ -571,6 +688,10 @@ function frequencies(days) {
 export default function Progress() {
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
   const [days, setDays] = useState([]) // the whole log; everything here is derived from it
+  // An empty log and a log that hasn't arrived are the same `[]`, and the
+  // summary card now has something to say about the first one. Saying it before
+  // the request answers tells a returning user their account is empty.
+  const [daysLoaded, setDaysLoaded] = useState(false)
   const [freq, setFreq] = useState({})
   // Two jobs, two states. One `name` doing both meant the charted lift was
   // printed as the card title, as the field's value and as the active chip —
@@ -748,6 +869,7 @@ export default function Progress() {
         if (top) selectLift(top[0])
       })
       .catch(() => {})
+      .finally(() => setDaysLoaded(true))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -834,7 +956,7 @@ export default function Progress() {
           the foot, under the calendar and the whole Evolución apparatus — three
           scrolls down on a phone, which is where you put something you don't
           expect to be read. */}
-      {days.length > 0 && <PeriodSummary days={days} />}
+      {daysLoaded && <PeriodSummary days={days} />}
 
       {days.length > 0 && <Rhythm days={days} />}
 

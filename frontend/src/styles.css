@@ -2301,6 +2301,60 @@ button.set-action {
   color: var(--text);
   line-height: 1.45;
 }
+/* --- The period with nothing in it -----------------------------------------
+   Where nine rows would have gone. It is deliberately not a centred, iconed,
+   bordered empty state: this card is an instrument readout and the readout says
+   "no reading". Left-aligned on the same margin as the rows, same type sizes,
+   no box of its own — it reads as the card being honest, not as a placeholder
+   screen that took the card's place. */
+.sum-empty-wrap {
+  padding: 0.55rem 0 0.1rem;
+  border-top: 1px solid var(--border);
+}
+/* Ink, at the size the short-week line uses: it is the card's answer, and the
+   only sentence on it. */
+.sum-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+.sum-handover {
+  margin: 0.3rem 0 0;
+  font-size: 0.74rem;
+}
+/* Last week's shortfalls, the one actionable thing a blank Monday can hold.
+   Wrapping row of name+dot pairs, spaced rather than punctuated — the day list
+   settled that a `·` between pairs leaves one dangling at a wrapped line end.
+   No colour on the words; the dot carries the muscle, same as every other
+   place this app names one. */
+.sum-owed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.7rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.sum-owed-lab {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.sum-owed-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.sum-owed-name {
+  font-weight: 600;
+}
+.sum-owed-more {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
 .sum-bar {
   position: relative;
   height: 8px;
