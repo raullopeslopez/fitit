@@ -677,9 +677,10 @@ describe('Progress', () => {
     }
 
     // One number per row. The row already prints what you did ("6 series") and
-    // the bar already draws where that sits, so the state line only carries what
-    // neither of them can: how many sets short of the zone you are. In the zone
-    // it says nothing — a full bar past the tick is the whole message.
+    // the track already draws where that sits, so the state line only carries
+    // what neither of them can: how many sets short of the band you are. Inside
+    // it, and past it, it says nothing — the mark's position is the message, and
+    // nothing above the band is called an excess.
     it('says only what is missing, and nothing at all once you are in the zone', async () => {
       api.listDays.mockResolvedValue(bands({ Core: 22, Pecho: 12, Espalda: 6, Hombro: 2 }))
       const { container } = render(<Progress />)
@@ -687,10 +688,10 @@ describe('Progress', () => {
 
       await waitFor(() => {
         expect([...container.querySelectorAll('.sum-state')].map((s) => s.textContent)).toEqual([
-          '', // 22 — past the zone, and nothing about that is a demand
-          '', // 12 — inside 10–20
-          'faltan 4', // 6 — four short of the zone
-          'faltan 8', // 2 — eight short of it
+          '', // 22 — inside Core's 0–25, which has no floor at all
+          '', // 12 — inside Pecho's 6–20
+          'faltan 4', // 6 — four short of Espalda's 10
+          'faltan 6', // 2 — six short of Hombro's 8
         ])
       })
     })
@@ -720,9 +721,9 @@ describe('Progress', () => {
 
       await openMonth()
       await screen.findByText('Julio')
-      // 1.9 sets of Pecho a week, so 8.1 short of the weekly zone.
+      // 1.9 sets of Pecho a week, so 4.1 short of Pecho's own floor of 6.
       expect(container.querySelector('.sum-val').textContent).toBe('1.9')
-      expect(container.querySelector('.sum-state').textContent).toBe('faltan 8.1')
+      expect(container.querySelector('.sum-state').textContent).toBe('faltan 4.1')
     })
 
     it('breaks a month down into sets per muscle', async () => {
@@ -888,11 +889,11 @@ describe('Progress', () => {
       expect(screen.queryByRole('button', { name: /^mes$/i })).not.toBeInTheDocument()
     })
 
-    // The weekly-set reference (docs/investigacion-series-semana.md). A bar
-    // scaled to your own biggest muscle answers "which do I train most" and
-    // quietly implies you are done: five sets of chest filled the bar edge to
-    // edge because nothing beat it. Against a fixed 20 a full bar means the
-    // same thing in every row, every week.
+    // The weekly-set reference, one band per muscle (volume.js). What the row
+    // has to answer is under / inside / over, and it has to answer it down a
+    // column of nine without being read one row at a time — so the band is
+    // pinned to the same stretch of every track and the mark is the only thing
+    // that moves.
     describe('the weekly-set reference', () => {
       const leg = (id, group) => ({
         id,
@@ -905,43 +906,105 @@ describe('Progress', () => {
       const many = (n, group, from) =>
         Array.from({ length: n }, (_, i) => leg(from + i, group))
 
-      const widthOf = (container, index) =>
-        container.querySelectorAll('.sum-fill')[index].style.width
+      const pctOf = (el, prop) => parseFloat(el.style[prop])
+      const markAt = (container, index) =>
+        pctOf(container.querySelectorAll('.sum-mark')[index], 'left')
+      const zoneOf = (container, index) => {
+        const zone = container.querySelectorAll('.sum-zone')[index]
+        return [pctOf(zone, 'left'), pctOf(zone, 'left') + pctOf(zone, 'width')]
+      }
+      const tailOf = (container, index) => {
+        const tail = container.querySelectorAll('.sum-track')[index].querySelector('.sum-tail')
+        return tail && [pctOf(tail, 'left'), pctOf(tail, 'left') + pctOf(tail, 'width')]
+      }
 
-      it('scales the bar against 20 sets, not against your biggest muscle', async () => {
-        api.listDays.mockResolvedValue([
-          {
-            id: 1,
-            date: '2026-07-22',
-            workouts: [
-              { id: 1, sets: [...many(5, 'Cuádriceps', 1), ...many(2, 'Gemelo', 20)] },
-            ],
-          },
-        ])
+      // The mechanism the whole row rests on. Femoral's band is 4–12 and
+      // Hombro's is 8–25, so on a track linear in sets they would draw two
+      // differently-placed rectangles and comparing nine rows would mean
+      // decoding nine scales first. Pinned instead, the bands stack into one
+      // column and being outside it is the same picture on every row.
+      it('puts every muscle band on the same stretch of track', async () => {
+        api.listDays.mockResolvedValue(bands({ Femoral: 5, Hombro: 5 }))
         const { container } = render(<Progress />)
 
-
         await screen.findByText('Esta semana')
-        // 5/20 and 2/20 — neither is anywhere near a full bar.
-        expect(widthOf(container, 0)).toBe('25%')
-        expect(widthOf(container, 1)).toBe('10%')
+        expect(zoneOf(container, 0)).toEqual(zoneOf(container, 1))
+        // And the same count still reads differently, which is the point: five
+        // sets is inside Femoral's band and well under Hombro's.
+        expect(markAt(container, 0)).toBeGreaterThan(zoneOf(container, 0)[0])
+        expect(markAt(container, 1)).toBeLessThan(zoneOf(container, 1)[0])
       })
 
-      it('caps the bar at the reference instead of overflowing it', async () => {
+      // Outside the band the mark drags a tail back to the edge it missed, so
+      // the shortfall is drawn at the same scale as everything else and the row
+      // can be read without reading a number.
+      it('drags a tail back to the edge a mark missed, on whichever side', async () => {
+        api.listDays.mockResolvedValue(bands({ Hombro: 30, Bíceps: 2 }))
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        const [low, high] = zoneOf(container, 0)
+        // 30 against an MRV of 25: the tail runs from the band's far edge out
+        // to the mark.
+        expect(markAt(container, 0)).toBeGreaterThan(high)
+        expect(tailOf(container, 0)).toEqual([high, markAt(container, 0)])
+        // 2 against an MEV of 8: from the mark in to the band's near edge.
+        expect(markAt(container, 1)).toBeLessThan(low)
+        expect(tailOf(container, 1)).toEqual([markAt(container, 1), low])
+      })
+
+      it('leaves a row inside its band with no tail at all', async () => {
+        api.listDays.mockResolvedValue(bands({ Pecho: 12 }))
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        const [low, high] = zoneOf(container, 0)
+        expect(markAt(container, 0)).toBeGreaterThan(low)
+        expect(markAt(container, 0)).toBeLessThan(high)
+        expect(tailOf(container, 0)).toBeNull()
+      })
+
+      // The bar this replaced ran to a flat 20 and capped there, so 20 sets and
+      // 40 sets drew the identical full bar — "over" and "at the top of the
+      // band" were the same picture, which is the one distinction the card
+      // exists to make.
+      it('stops drawing every count past the band as the same full bar', async () => {
         api.listDays.mockResolvedValue([
           {
             id: 1,
             date: '2026-07-22',
-            workouts: [{ id: 1, sets: many(26, 'Cuádriceps', 1) }],
+            workouts: [{ id: 1, sets: [...many(26, 'Cuádriceps', 1), ...many(20, 'Gemelo', 90)] }],
           },
         ])
         const { container } = render(<Progress />)
 
-
         await screen.findByText('Esta semana')
-        expect(widthOf(container, 0)).toBe('100%')
+        // Both are over — Cuádriceps past 18, Gemelo past 16 — and they sit in
+        // visibly different places.
+        const [, high] = zoneOf(container, 0)
+        expect(markAt(container, 0)).toBeGreaterThan(high)
+        expect(markAt(container, 1)).toBeGreaterThan(high)
+        expect(markAt(container, 0)).toBeGreaterThan(markAt(container, 1) + 5)
         // The count itself still tells the truth.
         expect(container.querySelector('.sum-val').textContent).toBe('26')
+      })
+
+      // Core is the one row with two of the three states: RP put ab MEV at zero,
+      // so nothing is ever owed. It has to draw as "inside", not as a blank.
+      it('never tells you that you owe your abs anything', async () => {
+        api.listDays.mockResolvedValue([
+          { id: 1, date: '2026-07-22', workouts: [{ id: 1, sets: many(3, 'Pecho', 1) }] },
+          // Core trained last week and not this one, so it holds a row at zero.
+          { id: 2, date: '2026-07-15', workouts: [{ id: 2, sets: many(4, 'Core', 40) }] },
+        ])
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        const names = [...container.querySelectorAll('.sum-name')].map((n) => n.textContent)
+        const core = names.indexOf('Core')
+        expect(container.querySelectorAll('.sum-state')[core].textContent).toBe('')
+        expect(tailOf(container, core)).toBeNull()
+        expect(markAt(container, core)).toBe(zoneOf(container, core)[0])
       })
 
       // A deload is the one week where training less is the plan. The card's
@@ -956,21 +1019,31 @@ describe('Progress', () => {
         const mark = async () =>
           await userEvent.click(screen.getByRole('button', { name: 'Marcar descarga' }))
 
-        it('retargets the bars at a third of your own recent average', async () => {
+        // The band is the wrong reference for a week that is aiming at a third
+        // of your own normal, so it goes and a single target rule takes its
+        // place — at the same x, so neither the geometry nor the row height
+        // moves when the week is marked.
+        it('retargets the row at a third of your own recent average', async () => {
           api.listDays.mockResolvedValue([
             // One trained week behind it, carrying 3 sets of quads: the deload
-            // asks for a third of that, so 1. Three sets in is already a full
-            // bar — and the same 3 sets read as near-empty against the 20.
+            // asks for a third of that, so 1. Three sets is triple the target —
+            // and the same 3 sets sit well under the standing band of 8–18.
             { id: 1, date: '2026-06-10', workouts: [{ id: 1, sets: many(3, 'Cuádriceps', 1) }] },
             { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: many(3, 'Cuádriceps', 40) }] },
           ])
           const { container } = render(<Progress />)
           await screen.findByText('Esta semana')
 
-          // Against the standing reference those 3 sets are a near-empty bar.
-          expect(widthOf(container, 0)).toBe('15%')
+          // Against the standing band those 3 sets are short of the near edge.
+          const [low] = zoneOf(container, 0)
+          expect(markAt(container, 0)).toBeLessThan(low)
+
           await mark()
-          expect(widthOf(container, 0)).toBe('100%')
+          // The band is gone, the target rule stands where its near edge was,
+          // and 3 against a target of 1 runs the mark to the end of the track.
+          expect(container.querySelector('.sum-zone')).toBeNull()
+          expect(pctOf(container.querySelector('.sum-goal'), 'left')).toBe(low)
+          expect(markAt(container, 0)).toBe(100)
         })
 
         it('stops asking for the zone and says what it wants instead', async () => {
@@ -1038,7 +1111,7 @@ describe('Progress', () => {
 
           await mark()
           await userEvent.click(screen.getByRole('button', { name: 'Quitar descarga' }))
-          expect(container.querySelector('.sum-ref').textContent).toContain('Referencia:')
+          expect(container.querySelector('.sum-ref').textContent).toContain('margen productivo')
         })
 
         // The mark belongs to one week, not to the card. Walking back to a
@@ -1050,7 +1123,7 @@ describe('Progress', () => {
 
           await mark()
           await userEvent.click(screen.getByRole('button', { name: 'Periodo anterior' }))
-          expect(container.querySelector('.sum-ref').textContent).toContain('Referencia:')
+          expect(container.querySelector('.sum-ref').textContent).toContain('margen productivo')
         })
 
         // A month is not a deload unit: it holds four or five weeks and only
@@ -1164,8 +1237,8 @@ describe('Progress', () => {
 
         await screen.findByText('Esta semana')
         expect(container.querySelector('.sum-ref').textContent).toBe(
-          'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
-            '10–20 es la zona eficiente. Barra llena = 20. ' +
+          'La franja es el margen productivo de ese músculo: por debajo la marca se ' +
+            'sale por la izquierda, por encima por la derecha. ' +
             'Un músculo secundario cuenta media serie.',
         )
       })
@@ -1176,12 +1249,12 @@ describe('Progress', () => {
       // and only the verdict waits.
       it('states the gap without judging it while the week is still running', async () => {
         vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
-        api.listDays.mockResolvedValue(bands({ Pecho: 6 }))
+        api.listDays.mockResolvedValue(bands({ Pecho: 4 }))
         const { container } = render(<Progress />)
 
 
         await waitFor(() => {
-          expect(container.querySelector('.sum-state').textContent).toBe('faltan 4')
+          expect(container.querySelector('.sum-state').textContent).toBe('faltan 2')
         })
       })
 
@@ -1194,19 +1267,19 @@ describe('Progress', () => {
 
 
         await waitFor(() => {
-          expect(container.querySelector('.sum-state').textContent).toBe('faltan 8')
+          expect(container.querySelector('.sum-state').textContent).toBe('faltan 4')
         })
         expect(container.querySelector('.sum-state.is-short')).toBeNull()
       })
 
       it('passes the verdict once the week is closed', async () => {
-        // Sunday: 20–26 jul is done, so 6 sets really is 4 short of the zone.
-        api.listDays.mockResolvedValue(bands({ Pecho: 6 }))
+        // Sunday: 20–26 jul is done, so 4 sets really is 2 short of Pecho's 6.
+        api.listDays.mockResolvedValue(bands({ Pecho: 4 }))
         const { container } = render(<Progress />)
 
 
         await waitFor(() => {
-          expect(container.querySelector('.sum-state.is-short').textContent).toBe('faltan 4')
+          expect(container.querySelector('.sum-state.is-short').textContent).toBe('faltan 2')
         })
       })
 

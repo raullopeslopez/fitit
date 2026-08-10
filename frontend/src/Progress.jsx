@@ -22,6 +22,7 @@ import {
   typicalWeekSets,
 } from './stats.js'
 import { showKg } from './units.js'
+import { bandFor, bandPosition, bandState } from './volume.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
@@ -129,20 +130,16 @@ function Ladder({ rungs, color }) {
   )
 }
 
-// The weekly-set reference, from docs/investigacion-series-semana.md: 4 sets a
-// week per muscle is the minimum dose that grows anything, 10–20 is where each
-// set still buys a lot, and past that the returns fall off — there is no peak to
-// aim at, so the copy never says "óptimo".
-//
-// The bar is drawn against this fixed 20 rather than against your own biggest
-// muscle. Scaled to the biggest row, five sets of chest filled the bar edge to
-// edge because nothing beat it, which reads as "done"; against a fixed reference
-// a full bar means the same thing in every row and every week.
-const REFERENCE = 20
-const ZONE = 10
+// The weekly-set reference. It used to be one flat 10–20 for all nine groups,
+// which is the figure docs/investigacion-series-semana.md settles on — but a
+// single number cannot be right for calves and lats at once, and the row was
+// paying for that twice: a bar that ran to a fixed 20 drew 20 sets and 40 sets
+// identically, so "over" and "at the top of the band" were the same picture.
+// `volume.js` carries a band per muscle now (mv / mev / mrv), and the row is
+// drawn against that group's own band.
 const REFERENCE_COPY =
-  'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
-  '10–20 es la zona eficiente. Barra llena = 20. ' +
+  'La franja es el margen productivo de ese músculo: por debajo la marca se ' +
+  'sale por la izquierda, por encima por la derecha. ' +
   'Un músculo secundario cuenta media serie.'
 
 // The one week where the standing reference is the wrong question. Marked as a
@@ -159,36 +156,141 @@ const DELOAD_COPY =
   'Semana de descarga: el objetivo es 1/3 de tu semana típica de las ' +
   'últimas 8. Mismo peso, menos series.'
 
-// How far the row is from the efficient band — and nothing else. Every other
-// thing the row could say is already said: the value column prints what you
-// did, and the bar draws where that sits against the reference. Naming the band
-// on top of both ("10 series" · "10 de 10" · a full bar) was the same fact
-// three times, on nine rows.
+// Where the band sits on every row's track, read back out of the model instead
+// of written down twice. By contract `bandPosition` lands every group's mev and
+// mrv on the same two fractions — that is the whole point of it — so asking one
+// group answers for all nine, and the channel can never drift out of step with
+// the marks inside it.
+const CHANNEL = (() => {
+  for (const group of MUSCLE_GROUPS) {
+    const band = bandFor(group)
+    if (band) {
+      return { lo: bandPosition(group, band.mev), hi: bandPosition(group, band.mrv) }
+    }
+  }
+  return { lo: 0.38, hi: 0.74 }
+})()
+
+const clamp01 = (n) => Math.min(1, Math.max(0, n))
+const pct = (n) => `${Math.round(clamp01(n) * 1000) / 10}%`
+
+// What the row says out loud to a screen reader, which cannot see that the mark
+// is left of the band.
+const SPOKEN = {
+  bajo: 'por debajo de la zona',
+  zona: 'en zona',
+  sobre: 'por encima de la zona',
+  'sin-banda': 'sin zona de referencia',
+}
+
+// One muscle, its weekly sets, and where that lands against its own productive
+// band — and the last of those three is the one the row is built to answer.
 //
-// So the line carries only the number neither of them can give you: the gap you
-// can close in the next session. In the zone it says nothing at all — a bar
-// past the tick is the whole message, and there is nothing to act on.
+// The old row drew a fill from zero to a flat 20 with a tick at 10, which asked
+// you to decode two tick positions against a length, and could not tell 20 sets
+// from 40 because both filled the bar. This one places a single mark on a track
+// whose band always occupies the same stretch, so nine rows stack their bands
+// into one column and the only thing that moves is the mark. Outside it, the
+// mark drags a tail back to the edge it missed: the tail *is* the shortfall,
+// drawn at the same scale as everything else, which is why the row can be read
+// without reading a number at all.
 //
-// One target, always the zone, so the number means the same thing on every row.
-// The old two-tier gap (to 4 if under the minimum, to 10 otherwise) made it
-// change meaning halfway down the card without saying so.
-//
-// "faltan 6" and not "+6": the row already carries a "+6" in the delta column,
-// pointing the other way in time. Two numbers of the same shape on one row, one
-// looking forward and one back, is a card you have to decode. The word costs
-// six characters and removes the ambiguity outright.
-//
-// The gap is in whatever unit the row prints — a plain count in week mode, a
-// weekly average in month mode — because the reference has always been weekly
-// and the row's own figure is what the bar draws.
-function gapTo(shown) {
-  return shown < ZONE ? `faltan ${Math.round((ZONE - shown) * 10) / 10}` : ''
+// No colour on any of it. Under, inside and over are position and nothing else
+// — a red/green verdict would spend the semantic colours on a set count, and
+// the muscle palette is already committed to identity. The one hue on the row
+// is the dot beside the name, the same mark Días and the exercise cards use.
+function VolumeRow({ group, shown, deload, target, judging, shortWeek, delta, quiet }) {
+  const { state, gap, band } = bandState(group, shown)
+  const { lo, hi } = CHANNEL
+
+  // A deload replaces the band outright — the week is aiming at a third of your
+  // own normal, so a productive-range channel is the wrong reference to draw.
+  // The band's own left edge becomes the target rule, which keeps the geometry
+  // and the row height identical while the meaning underneath changes.
+  const goal = deload ? (target ?? band?.mev ?? 1) : null
+  const at = deload ? clamp01((shown / Math.max(goal, 0.1)) * lo) : bandPosition(group, shown)
+
+  const tail = deload
+    ? [Math.min(at, lo), Math.max(at, lo)]
+    : state === 'bajo'
+      ? [at, lo]
+      : state === 'sobre'
+        ? [hi, at]
+        : null
+
+  // Only the gap, and only when there is one. In the zone the mark inside the
+  // channel is the whole message; over it, nothing is owed and nothing above the
+  // band is called an excess. A deload states the target it swapped in instead.
+  const words = deload
+    ? `objetivo ${goal}`
+    : shortWeek
+      ? ''
+      : state === 'bajo'
+        ? `faltan ${gap}`
+        : state === 'sin-banda'
+          ? 'sin zona'
+          : ''
+
+  return (
+    <div className="sum-row">
+      <span className="sum-id">
+        <span className="sum-label">
+          <span
+            className="sum-dot"
+            style={{ '--chip': muscleColor(group) }}
+            aria-hidden="true"
+          />
+          <span className="sum-name">{group}</span>
+        </span>
+        <span className="sum-figs">
+          <span className="sum-val">{shown}</span>
+          <span
+            className={`sum-state${
+              judging && !deload && !shortWeek && state === 'bajo' ? ' is-short' : ''
+            }`}
+          >
+            {words}
+          </span>
+        </span>
+      </span>
+      <span
+        className="sum-track"
+        role="img"
+        aria-label={`${group}: ${shown} — ${deload ? `objetivo ${goal}` : SPOKEN[state]}`}
+      >
+        <span className="sum-axis" aria-hidden="true" />
+        {band && !deload && (
+          <span
+            className="sum-zone"
+            style={{ left: pct(lo), width: pct(hi - lo) }}
+            aria-hidden="true"
+          />
+        )}
+        {deload && <span className="sum-goal" style={{ left: pct(lo) }} aria-hidden="true" />}
+        {tail && tail[1] - tail[0] > 0.001 && (
+          <span
+            className="sum-tail"
+            style={{ left: pct(tail[0]), width: pct(tail[1] - tail[0]) }}
+            aria-hidden="true"
+          />
+        )}
+        {(band || deload) && (
+          <span className="sum-mark" style={{ left: pct(at) }} aria-hidden="true" />
+        )}
+      </span>
+      {delta != null && (
+        <span className={`sum-delta${quiet ? ' quiet' : delta < 0 ? ' down' : ''}`}>
+          {delta === 0 ? '' : delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`}
+        </span>
+      )}
+    </div>
+  )
 }
 
 // Sets per muscle over a week or a month, with the arrows to walk back through
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
-function PeriodSummary({ days }) {
+export function PeriodSummary({ days }) {
   // The week is the unit the reference is written in (4 / 10–20 sets a week),
   // and the question the card answers — "am I training what I think I'm
   // training" — is a this-week question. Opening on the month meant the number
@@ -358,105 +460,51 @@ function PeriodSummary({ days }) {
       ) : (
         <div className={`sum-rows${showDelta ? ' has-delta' : ''}`}>
           {/* One row of headings, in the same grid as the rows, so each label
-              sits over the figures it names. Two numbers per row and no labels
-              is a card you have to be told how to read: "10" and "+10" look
-              alike and mean nothing alike. The first two cells stay empty —
-              the muscle needs no heading and the bar has its own reference
-              line below. `display: contents`, so the cell count must match the
+              sits over the figures it names. Three numbers on a row and no
+              labels is a card you have to be told how to read: "14", "+3" and
+              a mark on a track look alike and mean nothing alike. The band's
+              own label rides over the stretch of track the band occupies —
+              once, at the top, the way RP heads its week columns — because
+              nine repetitions of it would be the noise the row is trying to
+              remove. `display: contents`, so the cell count must match the
               rows exactly or every column slides over by one. */}
           <div className="sum-cols">
-            <span />
-            <span />
             <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
+            <span className="sum-colzone">
+              <span
+                className="sum-zonelab"
+                style={
+                  deload
+                    ? { left: pct(CHANNEL.lo), transform: 'translateX(-50%)' }
+                    : { left: pct(CHANNEL.lo), width: pct(CHANNEL.hi - CHANNEL.lo) }
+                }
+              >
+                {deload ? 'objetivo' : 'zona'}
+              </span>
+            </span>
             {showDelta && <span className="sum-collab">{against}</span>}
           </div>
           {summary.rows.map((row) => (
-            <div className="sum-row" key={row.group}>
-              <span className="sum-name">{row.group}</span>
-              {/* The bar and the words under it are one column: the state line
-                  rides in the vertical slack the 8px bar leaves inside a row
-                  sized by its 0.8rem name, so naming the band costs ~5px a row
-                  instead of a second full-width line. */}
-              <span className="sum-gauge">
-                <span className="sum-bar">
-                  {/* Whatever the row prints is what the bar draws: the monthly
-                      figure is a weekly average, and the reference is weekly. */}
-                  <span
-                    className="sum-fill"
-                    style={{
-                      width: `${Math.min(
-                        Math.round(
-                          ((summary.averaged ? row.perWeek : row.sets) /
-                            (targetFor(row.group) ?? REFERENCE)) *
-                            100,
-                        ),
-                        100,
-                      )}%`,
-                      '--chip': muscleColor(row.group),
-                    }}
-                  />
-                  {/* The 10-set edge of the efficient band, recessive on purpose:
-                      it's a reading aid, not a target line to be chased. Gone in
-                      a deload week: the bar is drawing a different scale, and a
-                      mark at half of a third means nothing. */}
-                  {!deload && <span className="sum-tick" aria-hidden="true" />}
-                </span>
-                <span
-                  className={`sum-state${
-                    judging &&
-                    !deload &&
-                    !shortWeek &&
-                    (summary.averaged ? row.perWeek : row.sets) < ZONE
-                      ? ' is-short'
-                      : ''
-                  }`}
-                >
-                  {/* The gap, and only the gap — running week or closed, the
-                      number you can act on is the same one. What waits for the
-                      week to close is the red, not the words: a shortfall is a
-                      verdict, and there is nothing to be short of until the week
-                      is over. A deload replaces the reference outright, so it
-                      states its own target instead; a week that came in short
-                      says nothing here, because its one line above already did
-                      and the week is over anyway. */}
-                  {deload
-                    ? `objetivo ${targetFor(row.group) ?? ZONE}`
-                    : shortWeek
-                      ? ''
-                      : gapTo(summary.averaged ? row.perWeek : row.sets)}
-                </span>
-              </span>
-              {/* The figure alone. The column heading says what it is — once,
-                  at the top — so repeating "series" on nine rows was the word
-                  that pushed the bars into half the width they had. */}
-              <span className="sum-val">{summary.averaged ? row.perWeek : row.sets}</span>
-              {/* Only when there is something to compare with — an empty
-                  matching stretch makes every delta the row's own value again.
-                  A group that held steady leaves the cell empty: the column
-                  reports change, and no change is not something to report.
-                  Gone in a deload: this is the only thing on the row wearing a
-                  colour, so leaving nine red negatives up while the words go
-                  quiet silences the quieter half. A deload is *defined* as less
-                  than last week — the comparison reports a decision, not a
-                  result. What the week is measured against is its own target,
-                  which the state line to the left already gives as "objetivo 4".
-                  And the colour keeps the same clock as the words: mid-week the
-                  delta compares two unfinished stretches, so it reports in grey
-                  and rules on nothing. */}
-              {showDelta && (
-                <span
-                  className={`sum-delta${
-                    !judging ? ' quiet' : row.delta < 0 ? ' down' : ''
-                  }`}
-                >
-                  {row.delta === 0
-                    ? ''
-                    : row.delta > 0
-                      ? `+${row.delta}`
-                      : `−${Math.abs(row.delta)}`}
-                </span>
-              )}
-            </div>
+            /* The delta is passed as a value rather than rendered here, and it
+               is `null` when there is nothing to compare with — an empty
+               matching stretch makes every delta the row's own value again.
+               Gone in a deload too: this is the only thing on the row wearing a
+               colour, so leaving nine red negatives up while the words go quiet
+               silences the quieter half. A deload is *defined* as less than last
+               week; the comparison would report a decision, not a result. And
+               the colour keeps the same clock as the words — mid-week it
+               compares two unfinished stretches, so it reports in grey. */
+            <VolumeRow
+              key={row.group}
+              group={row.group}
+              shown={summary.averaged ? row.perWeek : row.sets}
+              deload={deload}
+              target={targetFor(row.group)}
+              judging={judging}
+              shortWeek={shortWeek}
+              delta={showDelta ? row.delta : null}
+              quiet={!judging}
+            />
           ))}
         </div>
       )}

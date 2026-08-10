@@ -2106,24 +2106,33 @@ button.set-action {
 .sum-sub {
   margin: 0.15rem 0 0.6rem;
 }
-/* One grid for every row rather than a flex box per row: the name column then
-   sizes itself to the longest muscle there is and all the bars still start on
-   the same line. The 56px fixed column it replaces fit "Femoral" and let
-   "Cuádriceps" run under its own bar. */
+/* One grid for every row rather than a flex box per row: the identity column
+   sizes itself to the longest muscle there is and all nine tracks still start
+   on the same line — which is the whole mechanism, because the bands only stack
+   into one readable column if the tracks are pixel-aligned.
+   `row-gap: 0`, and the rows are separated by a hairline instead: a gap would
+   cut the band column into nine floating rectangles, and it is the unbroken
+   vertical stretch of it that you read the marks against. */
 .sum-rows {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  column-gap: 0.55rem;
-  row-gap: 0.4rem;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  column-gap: 0.6rem;
+  row-gap: 0;
 }
-/* Only when there are deltas to put there — an always-declared fourth column
+/* Only when there are deltas to put there — an always-declared third column
    leaves a column gap hanging off the right edge of every row without one. */
 .sum-rows.has-delta {
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
 }
 .sum-row {
   display: contents;
+}
+/* The rule between one muscle and the next, on every cell of the row since
+   `display: contents` leaves no row box to carry it. RP's row discipline: nine
+   ruled rows of constant height are what makes the list scannable at all. */
+.sum-row > * {
+  border-top: 1px solid var(--border);
 }
 /* Column headings, riding the same grid as the rows so each label sits over
    its own figures. `auto` sizing means the heading is what sets the delta
@@ -2137,18 +2146,61 @@ button.set-action {
   color: var(--muted);
   text-align: center;
   white-space: nowrap;
+  padding-bottom: 0.3rem;
 }
-.sum-name {
-  font-size: 0.8rem;
-  font-weight: 600;
+/* The band's name, over the stretch of track the band occupies and nowhere
+   else. Said once at the top rather than on nine rows — the row's whole claim
+   is that you don't have to read it. */
+.sum-colzone {
+  position: relative;
 }
-/* Bar + the words under it, in one grid cell. A full-width second line per row
-   would have added ~14px nine times over; stacked inside the bar's own column
-   it uses the slack an 8px bar leaves in a row sized by its 0.8rem name. */
-.sum-gauge {
+.sum-zonelab {
+  position: absolute;
+  bottom: 0.3rem;
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+/* Name over figure, RP's hierarchy: the muscle is what you look for, the count
+   is what you came for, and both sit in a fixed-width block so the track always
+   starts at the same x. */
+.sum-id {
   display: flex;
   flex-direction: column;
-  gap: 0.22rem;
+  justify-content: center;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.42rem 0;
+}
+.sum-label {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-width: 0;
+}
+/* The only colour on the row, and it rides a mark beside the name it belongs
+   to — the same dot Días and the exercise cards use. The mark on the track
+   stays ink on purpose: nine hues out there would give nine different
+   salIences to the one thing the eye is supposed to compare. */
+.sum-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chip, var(--muted));
+}
+.sum-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sum-figs {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
   min-width: 0;
 }
 /* Which band of the reference this row is in, and — when it is under one — how
@@ -2156,7 +2208,7 @@ button.set-action {
    the emphasis is hierarchy, ink against muted. The rows with something owed
    are the ones that read first. */
 .sum-state {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -2164,6 +2216,75 @@ button.set-action {
 }
 .sum-state.is-short {
   color: var(--text);
+}
+/* --- The track ---------------------------------------------------------------
+
+   Where the row answers its question. Every group's band lands on the same
+   stretch of it — `bandPosition` is built to guarantee that — so nine tracks
+   stack their bands into a single tinted column with two edges running the
+   height of the card, and the only thing that varies down the list is where
+   each mark sits against it. Under is left of the column, over is right of it,
+   and neither needs a number or a colour to say so.
+
+   Full cell height, no vertical padding: the column has to be continuous or it
+   stops being a column. */
+.sum-track {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+/* A rail for the mark to sit on, so a mark far left isn't floating in space. */
+.sum-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+/* The productive band. Tinted rather than outlined, and edge to edge
+   vertically, because the nine of them are meant to fuse into one shape. */
+.sum-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+}
+/* A deload has no band, only a number, so the channel collapses to the one rule
+   the week is aiming at. Same x as the band's near edge, so the geometry — and
+   the row height — do not move when the week is marked. */
+.sum-goal {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--text) 34%, transparent);
+}
+/* How far off the band this row is, drawn instead of written: the tail spans
+   from the mark to the edge it missed, at the same scale as everything else on
+   the track. It is also the redundant cue for the state — a row with a tail is
+   a row outside the band, and which side it leaves on says which way. */
+.sum-tail {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--text) 34%, transparent);
+}
+/* The set count itself. A needle rather than a dot: its position is the only
+   variable on the track that carries meaning, and an edge reads more precisely
+   against the band's edge than the centre of a circle does. */
+.sum-mark {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 15px;
+  margin: -7.5px 0 0 -1.5px;
+  border-radius: 1.5px;
+  background: var(--text);
 }
 /* The one line a short week gets, in place of a demand on every row. Full ink,
    not muted: it is the card's answer for that week, and the rows below it have
