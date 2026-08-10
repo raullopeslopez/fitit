@@ -2085,8 +2085,11 @@ button.set-action {
   min-width: 88px;
   text-align: center;
 }
+/* DESIGN.md: 44px minimum on interactive controls. `button.set-action` gives
+   the height; the width was 32px, which fails in the direction a thumb misses
+   in on a control sitting between two others. */
 .sum-arrow.sum-arrow {
-  min-width: 32px;
+  min-width: 44px;
   border-color: transparent;
   color: var(--muted);
 }
@@ -2097,10 +2100,12 @@ button.set-action {
   display: flex;
   gap: 0.3rem;
 }
+/* 44px tall like every other control: at 30px it was the one thing on this
+   card a thumb had to aim at vertically. */
 .sum-seg .chip {
-  min-height: 30px;
-  padding: 0.15rem 0.65rem;
-  font-size: 0.78rem;
+  min-height: 44px;
+  padding: 0.15rem 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 .sum-sub {
@@ -2112,18 +2117,21 @@ button.set-action {
    into one readable column if the tracks are pixel-aligned.
    `row-gap: 0`, and the rows are separated by a hairline instead: a gap would
    cut the band column into nine floating rectangles, and it is the unbroken
-   vertical stretch of it that you read the marks against. */
+   vertical stretch of it that you read the marks against.
+
+   Three columns, spec-sheet order: what it is, what it was, where that lands.
+   The count used to sit in the identity column with the name stacked over it,
+   which put ~250px of card between a figure and the mark that explains it —
+   with the week-over-week delta taking a fifth of the width in between. The
+   delta is gone (it answers a different question) and the count moved to its
+   own column hard against the track, so the eye goes number → mark in one
+   move. */
 .sum-rows {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
   align-items: stretch;
-  column-gap: 0.6rem;
+  column-gap: 0.55rem;
   row-gap: 0;
-}
-/* Only when there are deltas to put there — an always-declared third column
-   leaves a column gap hanging off the right edge of every row without one. */
-.sum-rows.has-delta {
-  grid-template-columns: auto 1fr auto;
 }
 .sum-row {
   display: contents;
@@ -2135,16 +2143,18 @@ button.set-action {
   border-top: 1px solid var(--border);
 }
 /* Column headings, riding the same grid as the rows so each label sits over
-   its own figures. `auto` sizing means the heading is what sets the delta
-   column's width — "vs. sem. ant." is wider than any delta in it, and that is
-   the point: the label is the thing that stops the number needing a footnote. */
+   its own figures. The identity column's heading is empty and has to exist
+   anyway: the rows are `display: contents`, so one missing cell slides every
+   column over by one. */
 .sum-cols {
   display: contents;
 }
+/* DESIGN.md Label, 0.8rem — the smallest size the scale defines. These were
+   0.62rem (9.92px), off the bottom of it. */
 .sum-collab {
-  font-size: 0.62rem;
+  font-size: 0.8rem;
   color: var(--muted);
-  text-align: center;
+  text-align: right;
   white-space: nowrap;
   padding-bottom: 0.3rem;
 }
@@ -2157,21 +2167,22 @@ button.set-action {
 .sum-zonelab {
   position: absolute;
   bottom: 0.3rem;
-  font-size: 0.62rem;
+  font-size: 0.8rem;
   color: var(--muted);
   text-align: center;
   white-space: nowrap;
 }
-/* Name over figure, RP's hierarchy: the muscle is what you look for, the count
-   is what you came for, and both sit in a fixed-width block so the track always
-   starts at the same x. */
+/* The muscle and, under it, whatever is still owed. Support for the figure in
+   the next column, not the headline it used to be: the name outweighed the
+   count in both size and weight, so the smallest, faintest token on the row
+   was the one the card exists to report. */
 .sum-id {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.1rem;
+  gap: 0.05rem;
   min-width: 0;
-  padding: 0.42rem 0;
+  padding: 0.4rem 0;
 }
 .sum-label {
   display: flex;
@@ -2190,25 +2201,27 @@ button.set-action {
   border-radius: 50%;
   background: var(--chip, var(--muted));
 }
+/* DESIGN.md Meta/small: 0.85rem, weight 400. Ink, because it is the row's
+   identity and has to be legible at arm's length — but no longer bold, and no
+   longer the largest thing on the row. */
 .sum-name {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sum-figs {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  min-width: 0;
-}
 /* Which band of the reference this row is in, and — when it is under one — how
    far off. No colour on it: a gap is not a record and not a destructive act, so
    the emphasis is hierarchy, ink against muted. The rows with something owed
-   are the ones that read first. */
+   are the ones that read first.
+   A block with a floor rather than an inline span, so the line is reserved on
+   every row: an empty inline box has no height, and rows would stand at two
+   different heights depending on whether anything was owed. */
 .sum-state {
-  font-size: 0.66rem;
+  display: block;
+  min-height: 1.1rem;
+  font-size: 0.8rem;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -2246,15 +2259,22 @@ button.set-action {
      read by was drawn fainter than the ruling it has to be told apart from. */
   background: color-mix(in srgb, var(--text) 5%, transparent);
 }
-/* The productive band. Tinted rather than outlined, and edge to edge
-   vertically, because the nine of them are meant to fuse into one shape. */
+/* The productive band. Tinted *and* outlined, edge to edge vertically, because
+   the nine of them are meant to fuse into one shape.
+
+   The edges are non-text UI components carrying the whole message, so WCAG's
+   3:1 floor applies to them against the card they sit on — which is the ratio
+   nobody had measured. At 38% they composited to 3.34 on dark and **2.40** on
+   light, and light had never been looked at at all. 55% of the ink over
+   `--surface` measures 4.6 dark / 4.0 light. The fill has no floor (the edges
+   carry the boundary) but goes up with them, so the block reads as a block. */
 .sum-zone {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(in srgb, var(--text) 15%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--text) 38%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--text) 38%, transparent);
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text) 55%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text) 55%, transparent);
 }
 /* A deload has no band, only a number, so the channel collapses to the one rule
    the week is aiming at. Same x as the band's near edge, so the geometry — and
@@ -2264,19 +2284,21 @@ button.set-action {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: color-mix(in srgb, var(--text) 34%, transparent);
+  background: color-mix(in srgb, var(--text) 55%, transparent);
 }
 /* How far off the band this row is, drawn instead of written: the tail spans
    from the mark to the edge it missed, at the same scale as everything else on
    the track. It is also the redundant cue for the state — a row with a tail is
-   a row outside the band, and which side it leaves on says which way. */
+   a row outside the band, and which side it leaves on says which way.
+   Same 3:1 floor as the band's edges, and it missed in both themes at 34%:
+   2.93 on dark, 2.16 on light. */
 .sum-tail {
   position: absolute;
   top: 50%;
   height: 2px;
   margin-top: -1px;
   border-radius: 1px;
-  background: color-mix(in srgb, var(--text) 34%, transparent);
+  background: color-mix(in srgb, var(--text) 55%, transparent);
 }
 /* The set count itself. A needle rather than a dot: its position is the only
    variable on the track that carries meaning, and an edge reads more precisely
@@ -2285,10 +2307,36 @@ button.set-action {
   position: absolute;
   top: 50%;
   width: 3px;
-  height: 15px;
-  margin: -7.5px 0 0 -1.5px;
+  height: 16px;
+  margin: -8px 0 0 -1.5px;
   border-radius: 1.5px;
   background: var(--text);
+}
+/* Which side of the band the needle is on, said by the needle itself. Position
+   alone cannot say it at the edges: 8.5 sets against an MEV of 8 lands ~3px
+   inside the band and 17 against an MRV of 16 ~4px outside it, so "just
+   inside" and "just outside" — the two rows a real week actually produces at
+   the edges — drew the same picture and you had to fall back on reading the
+   digit. The caret points back at the band, so it carries the direction too:
+   a shape, not a distance, and legible at any gap. Ink, like everything else
+   on the track; no colour is spent on it. */
+.sum-mark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-top: -4px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+.sum-mark.is-under::after {
+  left: 4px;
+  border-left: 5px solid var(--text);
+}
+.sum-mark.is-over::after {
+  right: 4px;
+  border-right: 5px solid var(--text);
 }
 /* The one line a short week gets, in place of a demand on every row. Full ink,
    not muted: it is the card's answer for that week, and the rows below it have
@@ -2297,73 +2345,36 @@ button.set-action {
    the app is in a position to name. */
 .sum-shortweek {
   margin: 0.5rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text);
   line-height: 1.45;
 }
-.sum-bar {
-  position: relative;
-  height: 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--text) 7%, transparent);
-  overflow: hidden;
-}
-/* The 10-set edge of the efficient band, on a bar that runs to 20. Recessive by
-   design — a full-height rule here would read as a target to hit. */
-.sum-tick {
-  position: absolute;
-  left: 50%;
-  top: 1px;
-  bottom: 1px;
-  width: 1px;
-  background: color-mix(in srgb, var(--text) 20%, transparent);
-}
-.sum-fill {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-  background: var(--chip, var(--muted));
-}
-/* Sized by its content, not to a fixed column: at a scaled-up system font size
-   an 86px box wrapped "6.2/sem" onto two lines and every row grew a second
-   line. The bar gives up the width instead — it's a comparison, not a reading. */
-/* Centred, not right-aligned: the heading above sets the column's width and a
-   6-letter word over a 2-digit figure left the number hanging off the right of
-   its own label. Tabular figures keep the digits on a common grid anyway, which
-   is what right-alignment was there to buy. */
+/* The figure the screen exists for, and now the loudest token on the row:
+   DESIGN.md's big-stat size (1.4rem / 600 / Geist Mono, tabular). It was
+   0.74rem in `--muted` — smaller than the smallest size the scale defines and
+   quieter than its own label, which is why RP still out-scanned this row for
+   row. Right-aligned against the track, so the number and the mark that
+   explains it are one saccade apart, and the digits stack on a common grid
+   down the nine rows. */
 .sum-val {
-  text-align: center;
+  align-self: center;
+  text-align: right;
   white-space: nowrap;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.74rem;
-  color: var(--muted);
-}
-/* Plain ink by default. A gain used to wear the record colour, which said
-   "personal best" about a set count that merely beat last week — and the sign
-   in front of the number already says which way it went. Colour is left for
-   the one case that might ask for a decision: the drop. */
-.sum-delta {
-  min-width: 26px;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.74rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: var(--text);
-}
-/* Mid-period: the comparison is between two unfinished stretches, so it reports
-   in grey. Green and red are verdicts, and they wait for the period to close. */
-.sum-delta.quiet {
-  color: var(--muted);
-}
-.sum-delta.down {
-  color: var(--danger);
+  padding: 0.4rem 0;
 }
 /* Sits with the rows it explains, not with the footnotes below them. */
 .sum-rest,
 .sum-ref {
   margin: 0.5rem 0 0;
-  font-size: 0.74rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 /* The deload switch sits directly under the reference line it replaces, since
    that line is the thing it changes. A hairline separates a control from the

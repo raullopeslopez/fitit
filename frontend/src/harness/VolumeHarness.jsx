@@ -10,7 +10,7 @@
 import { useEffect } from 'react'
 
 import { PeriodSummary } from '../Progress.jsx'
-import { days } from './fixture.js'
+import { days, mondayDays } from './fixture.js'
 
 // Dark is the design's primary target (DESIGN.md: "dark-first"), but the theme
 // is chosen by `prefers-color-scheme`, so the bench showed whatever the machine
@@ -50,11 +50,15 @@ function useForcedTheme(theme) {
 }
 
 export default function VolumeHarness() {
-  const theme = new URLSearchParams(location.search).get('theme') ?? 'dark'
-  useForcedTheme(theme)
+  const params = new URLSearchParams(location.search)
+  useForcedTheme(params.get('theme') ?? 'dark')
+  // `&case=monday`: one session, fifteen sets, most of the list untouched —
+  // the week five days out of seven actually looks like, and the one the
+  // full-spread fixture cannot show.
+  const bench = params.get('case') === 'monday' ? mondayDays : days
   return (
     <div className="app">
-      <PeriodSummary days={days} />
+      <PeriodSummary days={bench} />
     </div>
   )
 }

@@ -137,9 +137,15 @@ function Ladder({ rungs, color }) {
 // identically, so "over" and "at the top of the band" were the same picture.
 // `volume.js` carries a band per muscle now (mv / mev / mrv), and the row is
 // drawn against that group's own band.
+//
+// Two lines, and neither of them is a key to the picture. "Por debajo la marca
+// se sale por la izquierda" taught you to read a chart you have already read,
+// and a chart that needs teaching has lost the argument — it went. What no
+// track can state stays: that the band is *this* muscle's own range rather than
+// one shared number (the single fact a reader cannot infer from nine identical
+// stripes), and that a compound lift pays its secondary groups half a set.
 const REFERENCE_COPY =
-  'La franja es el margen productivo de ese músculo: por debajo la marca se ' +
-  'sale por la izquierda, por encima por la derecha. ' +
+  'La franja es el margen productivo de ese músculo: cada uno tiene el suyo. ' +
   'Un músculo secundario cuenta media serie.'
 
 // The one week where the standing reference is the wrong question. Marked as a
@@ -199,7 +205,13 @@ const SPOKEN = {
 // — a red/green verdict would spend the semantic colours on a set count, and
 // the muscle palette is already committed to identity. The one hue on the row
 // is the dot beside the name, the same mark Días and the exercise cards use.
-function VolumeRow({ group, shown, deload, target, judging, shortWeek, delta, quiet }) {
+//
+// The count is the loudest token on the row, and it sits immediately left of
+// the track: it was the smallest and faintest thing here, 250px away from the
+// mark that explains it, which is the whole figure the card exists for reading
+// last. Name over it in support, spec-sheet order — label left, value right,
+// track after.
+function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
   const { state, gap, band } = bandState(group, shown)
   const { lo, hi } = CHANNEL
 
@@ -231,6 +243,14 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek, delta, qu
           ? 'sin zona'
           : ''
 
+  // Which side of the band the mark is on, said by the mark itself. Position
+  // cannot resolve it at the edges — 8.5 sets against an MEV of 8 lands three
+  // pixels inside the band and 17 against an MRV of 16 four pixels outside it,
+  // and both are rows a real week produces. A caret pointing back at the band
+  // is a shape rather than a distance, so it reads at any gap; it is redundant
+  // with the position and the tail, and it costs no colour.
+  const facing = deload ? '' : state === 'bajo' ? ' is-under' : state === 'sobre' ? ' is-over' : ''
+
   return (
     <div className="sum-row">
       <span className="sum-id">
@@ -242,17 +262,15 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek, delta, qu
           />
           <span className="sum-name">{group}</span>
         </span>
-        <span className="sum-figs">
-          <span className="sum-val">{shown}</span>
-          <span
-            className={`sum-state${
-              judging && !deload && !shortWeek && state === 'bajo' ? ' is-short' : ''
-            }`}
-          >
-            {words}
-          </span>
+        <span
+          className={`sum-state${
+            judging && !deload && !shortWeek && state === 'bajo' ? ' is-short' : ''
+          }`}
+        >
+          {words}
         </span>
       </span>
+      <span className="sum-val">{shown}</span>
       <span
         className="sum-track"
         role="img"
@@ -275,14 +293,9 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek, delta, qu
           />
         )}
         {(band || deload) && (
-          <span className="sum-mark" style={{ left: pct(at) }} aria-hidden="true" />
+          <span className={`sum-mark${facing}`} style={{ left: pct(at) }} aria-hidden="true" />
         )}
       </span>
-      {delta != null && (
-        <span className={`sum-delta${quiet ? ' quiet' : delta < 0 ? ' down' : ''}`}>
-          {delta === 0 ? '' : delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`}
-        </span>
-      )}
     </div>
   )
 }
@@ -300,7 +313,6 @@ export function PeriodSummary({ days }) {
   const periods = sessionsPerPeriod(days, period)
   const at = Math.min(index, periods.length - 1)
   const current = periods[at]
-  const previous = periods[at + 1]
   const summary = setsPerMuscle(days, { period, index: at })
   const byMonth = period === 'month'
 
@@ -362,11 +374,6 @@ export function PeriodSummary({ days }) {
   // Never on a month (four or five weeks with one light one is a month, not a
   // short week), never while the week is still running (it hasn't come in yet),
   // and never on a deload, which already explains itself in its own words.
-  // One flag for both the cell and the column that holds it. Split in two,
-  // the container kept declaring a fourth column while the rows stopped
-  // supplying a fourth cell — and since `.sum-row` is `display: contents`,
-  // every name slid into the bar's column and the card read as scrambled.
-  const showDelta = summary.comparable && !deload
   const typical = byMonth || deload ? null : typicalWeekSets(days, current.start)
   const shortWeek = judging && typical != null && summary.sets < typical / 2
 
@@ -388,24 +395,6 @@ export function PeriodSummary({ days }) {
   ]
     .filter(Boolean)
     .join(' · ')
-
-  // Against the same stretch of the period before, never against the whole of
-  // it: a month on its second day compared with a finished one reads as a
-  // collapse every time, which says something about the calendar and nothing
-  // about the training. `comparable` is the other half — the stretch has to
-  // have had something in it, or "+13" is just the row reading itself back.
-  // The heading over the delta column, and the whole of what used to be a
-  // footnote at the foot of the card. Sat down there, "vs. mismo tramo de la
-  // semana anterior" was a sentence you had to carry back up to a number four
-  // rows away; over the column it is read where it is needed. Short by
-  // necessity — the column is 26px of tabular figures and the heading sizes it.
-  const against = !previous || !summary.comparable
-    ? null
-    : summary.inProgress
-      ? 'vs. mismo tramo'
-      : byMonth
-        ? `vs. ${formatMonth(previous.start)}`
-        : 'vs. sem. ant.'
 
   return (
     <div className="card">
@@ -458,17 +447,17 @@ export function PeriodSummary({ days }) {
       {summary.rows.length === 0 ? (
         <p className="hint">Nada registrado en este periodo.</p>
       ) : (
-        <div className={`sum-rows${showDelta ? ' has-delta' : ''}`}>
+        <div className="sum-rows">
           {/* One row of headings, in the same grid as the rows, so each label
-              sits over the figures it names. Three numbers on a row and no
-              labels is a card you have to be told how to read: "14", "+3" and
-              a mark on a track look alike and mean nothing alike. The band's
-              own label rides over the stretch of track the band occupies —
-              once, at the top, the way RP heads its week columns — because
-              nine repetitions of it would be the noise the row is trying to
-              remove. `display: contents`, so the cell count must match the
-              rows exactly or every column slides over by one. */}
+              sits over the figures it names. The band's own label rides over
+              the stretch of track the band occupies — once, at the top, the
+              way RP heads its week columns — because nine repetitions of it
+              would be the noise the row is trying to remove. `display:
+              contents`, so the cell count must match the rows exactly or every
+              column slides over by one: the identity column keeps an empty
+              heading cell for that reason alone. */}
           <div className="sum-cols">
+            <span className="sum-colgap" aria-hidden="true" />
             <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
             <span className="sum-colzone">
               <span
@@ -482,18 +471,8 @@ export function PeriodSummary({ days }) {
                 {deload ? 'objetivo' : 'zona'}
               </span>
             </span>
-            {showDelta && <span className="sum-collab">{against}</span>}
           </div>
           {summary.rows.map((row) => (
-            /* The delta is passed as a value rather than rendered here, and it
-               is `null` when there is nothing to compare with — an empty
-               matching stretch makes every delta the row's own value again.
-               Gone in a deload too: this is the only thing on the row wearing a
-               colour, so leaving nine red negatives up while the words go quiet
-               silences the quieter half. A deload is *defined* as less than last
-               week; the comparison would report a decision, not a result. And
-               the colour keeps the same clock as the words — mid-week it
-               compares two unfinished stretches, so it reports in grey. */
             <VolumeRow
               key={row.group}
               group={row.group}
@@ -502,8 +481,6 @@ export function PeriodSummary({ days }) {
               target={targetFor(row.group)}
               judging={judging}
               shortWeek={shortWeek}
-              delta={showDelta ? row.delta : null}
-              quiet={!judging}
             />
           ))}
         </div>

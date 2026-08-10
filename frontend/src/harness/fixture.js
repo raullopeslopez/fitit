@@ -221,4 +221,49 @@ function lastWeek() {
 // Newest first, the order `/days` returns.
 export const days = [...thisWeek(), ...lastWeek()].sort((a, b) => (a.date < b.date ? 1 : -1))
 
+// The case above flatters, and in one specific way: it packs a whole week of
+// volume into however many days the week has had, so on a Monday the card says
+// `1 de 7 días` over needles spread the width of the track. That is not a
+// Monday. A real one is one session, ~15 sets, and it is the picture this
+// design has to survive five days out of seven — eight needles stacked at the
+// far left, eight tails of almost the same length, and the two or three groups
+// you actually trained the only ones anywhere near their band.
+//
+// `?harness=volume&case=monday`. Separate export on purpose: `days` is what the
+// other benches are pinned to and it does not move.
+const MONDAY = [
+  ['Press banca', 'Pecho', ['Tríceps', 'Hombro'], 4], // Pecho 4, Tríceps 2, Hombro 2
+  ['Press militar', 'Hombro', ['Tríceps', 'Core'], 3], // Hombro 3, Tríceps 1.5, Core 1.5
+  ['Elevaciones laterales', 'Hombro', [], 4], // Hombro 4
+  ['Extensión en polea', 'Tríceps', [], 4], // Tríceps 4
+]
+
+function mondayWeek() {
+  const sets = []
+  for (const [name, primary, secondaries, count] of MONDAY) {
+    for (let i = 0; i < count; i += 1) sets.push(strengthSet(name, primary, secondaries))
+  }
+  const date = isoOf(monday)
+  return [
+    {
+      id: 800,
+      date,
+      workouts: [
+        {
+          id: 800,
+          date,
+          name: 'Push',
+          sets: sets.map((s, i) => ({ ...s, set_index: i, created_at: `${date}T09:00:00.000000Z` })),
+        },
+      ],
+    },
+  ]
+}
+
+// A full week behind it, so every group still holds a row: without it the six
+// untrained muscles vanish and the bench stops showing the thing it is for.
+export const mondayDays = [...mondayWeek(), ...lastWeek()].sort((a, b) =>
+  a.date < b.date ? 1 : -1,
+)
+
 export default days
