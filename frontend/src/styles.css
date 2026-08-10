@@ -2240,7 +2240,11 @@ button.set-action {
   right: 0;
   top: 50%;
   height: 1px;
-  background: color-mix(in srgb, var(--text) 9%, transparent);
+  /* 5%, not 9%. The axis is scaffolding: it says where the track runs and
+     nothing else. At 9% it composited to rgb(41,43,46) against the band's
+     rgb(39,41,44) — a contrast ratio of 1.027, so the one element the screen is
+     read by was drawn fainter than the ruling it has to be told apart from. */
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 /* The productive band. Tinted rather than outlined, and edge to edge
    vertically, because the nine of them are meant to fuse into one shape. */
@@ -2248,9 +2252,9 @@ button.set-action {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(in srgb, var(--text) 8%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  background: color-mix(in srgb, var(--text) 15%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text) 38%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text) 38%, transparent);
 }
 /* A deload has no band, only a number, so the channel collapses to the one rule
    the week is aiming at. Same x as the band's near edge, so the geometry — and
