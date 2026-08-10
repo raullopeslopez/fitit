@@ -337,14 +337,33 @@ describe('Days', () => {
         { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [benchSet()] }] },
         { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [benchSet()] }] },
       ])
-      render(<Days onOpenWorkout={() => {}} />)
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
 
       await screen.findByText('Push')
       expect(screen.queryByRole('button', { name: /repetir Push/i })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: /repetir Legs/i })).toBeInTheDocument()
+      // Its column is still reserved, so the set counts stay one column.
+      expect(container.querySelector('.day-repeat-empty')).not.toBeNull()
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  // The chevron was a `<span>` outside the row's own button, so the one glyph
+  // that said "go in here" was the only dead pixel on the row — and it sat
+  // flush, 0px, against a 44px button that creates today's session. Aiming at
+  // it did nothing on a tap and opened the delete sheet on a hold. The row is
+  // the way in; the right edge now means exactly one thing.
+  it('leaves the row’s right edge to the repeat glyph alone', async () => {
+    api.listDays.mockResolvedValue([
+      { id: 7, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [benchSet()] }] },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    await screen.findByText('Legs')
+    expect(container.querySelector('.day-chevron')).toBeNull()
+    // The tappable row and the repeat button, and nothing else on the line.
+    expect(container.querySelectorAll('.day-session-row > *').length).toBe(2)
   })
 
   // The fastest session to log is one already written down — so it stops being

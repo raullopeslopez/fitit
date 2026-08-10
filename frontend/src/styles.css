@@ -894,6 +894,9 @@ button.chart-title h2 {
   flex: none;
   min-width: 36px;
   min-height: 44px;
+  /* Detached from the count, so the button reads as the row's edge rather than
+     as another figure in its right column. */
+  margin-left: 12px;
   padding: 0;
   border: none;
   background: transparent;
@@ -912,28 +915,19 @@ button.chart-title h2 {
     color: var(--accent-ink);
   }
 }
-/* The chevron leaves `.link-row::after` for this screen only: it has to sit to
-   the right of the repeat glyph, and a pseudo-element on the row can only ever
-   be at the row's own edge. Two classes deep on purpose — at equal specificity
-   `.link-row::after` wins on order, and the row drew both chevrons. */
+/* No chevron on a day row, from `.link-row::after` or anywhere else. It was a
+   `<span>` outside the row's button, so the glyph that said "go in here" was
+   the only dead pixel on the row — nothing on a tap, the delete sheet on a
+   hold — sitting flush against a 44px button that creates today's session.
+   Aim a thumb at it and you either did nothing or logged a workout.
+
+   Removing it costs no function, only the cue that the row leads somewhere,
+   and every row in this list leads somewhere: the cue is redundant after the
+   first use, and the press veil is what answers the finger anyway — the same
+   trade DESIGN.md already took for the tap-to-edit rows. Two classes deep on
+   purpose: at equal specificity `.link-row::after` wins on source order. */
 .day-session-row > .day-session::after {
   content: none;
-}
-.day-chevron {
-  flex: none;
-  padding-left: 2px;
-  color: var(--muted);
-  font-size: 1.25rem;
-  line-height: 1;
-  transition:
-    transform 0.15s ease,
-    color 0.15s ease;
-}
-@media (hover: hover) {
-  .day-session:hover ~ .day-chevron {
-    color: var(--accent-ink);
-    transform: translateX(3px);
-  }
 }
 
 /* One action in the pinned bar. `Otra fecha` was a framed button beside the

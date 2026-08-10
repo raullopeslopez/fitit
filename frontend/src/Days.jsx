@@ -309,8 +309,15 @@ export default function Days({ onOpenWorkout }) {
         {/* Repeating a session is the fastest way to log one, and it was hidden
             behind a menu that every day paid 44px for. It gets those 44px
             instead — but never on the session already running, where repeating
-            today into today is the split-session the CTA exists to prevent. */}
-        {isPast && (
+            today into today is the split-session the CTA exists to prevent.
+
+            It has the right edge to itself. A chevron sat here first, flush
+            against it: a `<span>` outside this button, so the one glyph on the
+            row that said "go in here" was also the only part of the row that
+            did nothing when tapped — and missing it by a few pixels repeated a
+            workout. Every row in this list opens; the cue was redundant the
+            moment it had to share the corner with a real control. */}
+        {isPast ? (
           <button
             type="button"
             className="day-repeat"
@@ -320,10 +327,14 @@ export default function Days({ onOpenWorkout }) {
           >
             ⟳
           </button>
+        ) : (
+          // The column is reserved even where there is no button to put in it.
+          // Dropping it let the running session's row run 48px further right
+          // than every other, and the set counts are a right-aligned column of
+          // tabular figures — one of them stepping out is the whole point of
+          // setting them in mono.
+          <span className="day-repeat day-repeat-empty" aria-hidden="true" />
         )}
-        <span className="day-chevron" aria-hidden="true">
-          ›
-        </span>
       </li>
     )
   }
