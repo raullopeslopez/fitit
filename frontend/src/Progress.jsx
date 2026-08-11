@@ -385,7 +385,18 @@ function EmptyPeriod({ headline, aside, owed }) {
 // Sets per muscle over a week or a month, with the arrows to walk back through
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
-export function PeriodSummary({ days }) {
+//
+// Two variants, one set of rows. `card` is Progreso: a titled surface with the
+// whole apparatus — arrows back through the history, `Mes`, the reference
+// footnote, the deload switch. `week` is Días, where this block is the *first
+// thing in the app* and is not a card at all: it renders as the current week's
+// own rule in the day list, in the list's mono typography, with the sessions
+// hanging underneath it. Everything that is a control or an explanation is
+// dropped there — DESIGN.md, "Días carries only what you touch mid-session" —
+// and everything that is a reading stays, at the same 52.56px pitch, because
+// the rows are what both screens are for.
+export function PeriodSummary({ days, variant = 'card' }) {
+  const asWeek = variant === 'week'
   // The week is the unit the reference is written in (4 / 10–20 sets a week),
   // and the question the card answers — "am I training what I think I'm
   // training" — is a this-week question. Opening on the month meant the number
@@ -515,7 +526,9 @@ export function PeriodSummary({ days }) {
           : 'Semana sin entrenar.'
 
   const aside = !hasHistory
-    ? 'Con el primer entreno esta tarjeta empieza a medir cada músculo contra su zona semanal.'
+    ? `Con el primer entreno ${
+        asWeek ? 'esta pantalla' : 'esta tarjeta'
+      } empieza a medir cada músculo contra su zona semanal.`
     : !handover
       ? null
       : handover.sets > 0
@@ -555,6 +568,88 @@ export function PeriodSummary({ days }) {
           plural(current.sessions, 'entreno', 'entrenos'),
           plural(summary.sets, 'serie', 'series'),
         ].join(' · ')
+
+  // The rows themselves, or the sentence that stands in for them. Built once
+  // and placed by whichever chrome is wrapping them: this is the whole of what
+  // Días and Progreso have in common, and the only thing either screen is for.
+  const body = empty ? (
+    <EmptyPeriod headline={headline} aside={aside} owed={owed} />
+  ) : (
+    <div className="sum-rows">
+      {/* One row of headings, in the same grid as the rows, so each label
+          sits over the figures it names. The band's own label rides over
+          the stretch of track the band occupies — once, at the top, the
+          way RP heads its week columns — because nine repetitions of it
+          would be the noise the row is trying to remove. `display:
+          contents`, so the cell count must match the rows exactly or every
+          column slides over by one: the identity column keeps an empty
+          heading cell for that reason alone. */}
+      <div className="sum-cols">
+        <span className="sum-colgap" aria-hidden="true" />
+        <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
+        <span className="sum-colzone">
+          <span
+            className="sum-zonelab"
+            style={
+              deload
+                ? { left: pct(CHANNEL.lo), transform: 'translateX(-50%)' }
+                : { left: pct(CHANNEL.lo), width: pct(CHANNEL.hi - CHANNEL.lo) }
+            }
+          >
+            {deload ? 'objetivo' : 'zona'}
+          </span>
+        </span>
+      </div>
+      {summary.rows.map((row) => (
+        <VolumeRow
+          key={row.group}
+          group={row.group}
+          shown={summary.averaged ? row.perWeek : row.sets}
+          deload={deload}
+          target={targetFor(row.group)}
+          judging={judging}
+          shortWeek={shortWeek}
+        />
+      ))}
+    </div>
+  )
+
+  const short = shortWeek && (
+    <p className="sum-shortweek">
+      Semana corta · {plural(summary.sets, 'serie', 'series')}, {shareOfTypical()} de tu semana
+      típica
+    </p>
+  )
+
+  // Días. The block *is* the current week's rule in the day list, so it takes
+  // the list's own head — mono, uppercase, no surface, one line of type — and
+  // then hands the space straight to the rows.
+  //
+  // The right-hand token leads with the position in the week rather than with
+  // a total, and that is the one place the two screens' copy diverges. Every
+  // other rule in the list totals a *closed* week (`5 DÍAS · 107 SERIES`), and
+  // nine set counts sitting under a rule shaped like that read as a finished
+  // account of the week. `DÍA 6 DE 7` is a place in the week, `5 DÍAS` is a
+  // count of trained ones; the two shapes differ because the two facts do.
+  if (asWeek) {
+    const weekRule = [
+      `DÍA ${daysIn} DE 7`,
+      summary.sets > 0 && plural(current.sessions, 'ENTRENO', 'ENTRENOS'),
+      summary.sets > 0 && plural(summary.sets, 'SERIE', 'SERIES'),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    return (
+      <>
+        <div className="week-head">
+          <span className="week-label">ESTA SEMANA</span>
+          <span className="week-totals">{weekRule}</span>
+        </div>
+        {body}
+        {short}
+      </>
+    )
+  }
 
   return (
     <div className="card">
@@ -618,53 +713,8 @@ export function PeriodSummary({ days }) {
         </p>
       )}
 
-      {empty ? (
-        <EmptyPeriod headline={headline} aside={aside} owed={owed} />
-      ) : (
-        <div className="sum-rows">
-          {/* One row of headings, in the same grid as the rows, so each label
-              sits over the figures it names. The band's own label rides over
-              the stretch of track the band occupies — once, at the top, the
-              way RP heads its week columns — because nine repetitions of it
-              would be the noise the row is trying to remove. `display:
-              contents`, so the cell count must match the rows exactly or every
-              column slides over by one: the identity column keeps an empty
-              heading cell for that reason alone. */}
-          <div className="sum-cols">
-            <span className="sum-colgap" aria-hidden="true" />
-            <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
-            <span className="sum-colzone">
-              <span
-                className="sum-zonelab"
-                style={
-                  deload
-                    ? { left: pct(CHANNEL.lo), transform: 'translateX(-50%)' }
-                    : { left: pct(CHANNEL.lo), width: pct(CHANNEL.hi - CHANNEL.lo) }
-                }
-              >
-                {deload ? 'objetivo' : 'zona'}
-              </span>
-            </span>
-          </div>
-          {summary.rows.map((row) => (
-            <VolumeRow
-              key={row.group}
-              group={row.group}
-              shown={summary.averaged ? row.perWeek : row.sets}
-              deload={deload}
-              target={targetFor(row.group)}
-              judging={judging}
-              shortWeek={shortWeek}
-            />
-          ))}
-        </div>
-      )}
-      {shortWeek && (
-        <p className="sum-shortweek">
-          Semana corta · {plural(summary.sets, 'serie', 'series')}, {shareOfTypical()} de tu semana
-          típica
-        </p>
-      )}
+      {body}
+      {short}
       {!empty && (
         <>
           <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>
