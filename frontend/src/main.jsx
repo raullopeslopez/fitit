@@ -2,15 +2,28 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 
 import App from './App.jsx'
-import VolumeHarness from './harness/VolumeHarness.jsx'
 import './styles.css'
 
-// Dev bench for the per-muscle volume row, on a query string and nothing else.
-const harness = new URLSearchParams(location.search).get('harness') === 'volume'
+// Dev benches, on a query string and nothing else: `volume` is the per-muscle
+// row on its own, `dias` is the whole screen with a fixture behind it. Loaded
+// lazily so neither the fixtures nor the fetch stub can reach a real build.
+const harness = new URLSearchParams(location.search).get('harness')
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>{harness ? <VolumeHarness /> : <App />}</React.StrictMode>,
-)
+const root = ReactDOM.createRoot(document.getElementById('root'))
+
+async function mount() {
+  if (harness === 'volume') {
+    const { default: VolumeHarness } = await import('./harness/VolumeHarness.jsx')
+    return <VolumeHarness />
+  }
+  if (harness === 'dias') {
+    const { default: DaysHarness } = await import('./harness/DaysHarness.jsx')
+    return <DaysHarness />
+  }
+  return <App />
+}
+
+mount().then((tree) => root.render(<React.StrictMode>{tree}</React.StrictMode>))
 
 // Register the service worker so the app is installable and loads its shell offline.
 if ('serviceWorker' in navigator) {

@@ -78,7 +78,98 @@ describe('Days', () => {
 
       await screen.findByText('ESTA SEMANA')
       const heads = [...container.querySelectorAll('.week-head')].map((h) => h.textContent)
-      expect(heads).toEqual(['ESTA SEMANA2 DÍAS · 3 SERIES', 'SEMANA ANTERIOR1 DÍA · 1 SERIE'])
+      // The week you are in reports its *position* — nine set counts under a
+      // rule reading "2 DÍAS" are a finished week; under "DÍA 6 DE 7" they are
+      // a week two thirds through. Closed weeks keep the plain totals.
+      expect(heads).toEqual([
+        'ESTA SEMANADÍA 6 DE 7 · 2 ENTRENOS · 3 SERIES',
+        'SEMANA ANTERIOR1 DÍA · 1 SERIE',
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Días is the app's default screen and weekly sets per muscle is what it is
+  // now about, so the volume block opens it: the same rows Progreso draws, in
+  // the day list's own typography, with the log hanging underneath. Nothing is
+  // hidden and nothing moves — the CTA stays pinned above the tab bar.
+  it('opens on this week’s volume, above the day list', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        {
+          id: 3,
+          date: '2026-08-08',
+          workouts: [
+            {
+              id: 7,
+              name: 'Pull',
+              sets: [
+                benchSet({ id: 20, muscle_group: 'Espalda', secondary_groups: ['Bíceps'] }),
+                benchSet({ id: 21, muscle_group: 'Espalda', secondary_groups: ['Bíceps'] }),
+              ],
+            },
+          ],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('ESTA SEMANA')
+      await waitFor(() => expect(container.querySelector('.sum-rows')).toBeTruthy())
+      expect([...container.querySelectorAll('.sum-name')].map((n) => n.textContent)).toEqual([
+        'Espalda',
+        'Bíceps',
+      ])
+      // Volume first, then the log.
+      const rows = container.querySelector('.sum-rows')
+      const firstDay = container.querySelector('.day-block')
+      expect(rows.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // One rule for the week, not two.
+      expect(screen.getAllByText('ESTA SEMANA')).toHaveLength(1)
+      // Progreso's apparatus does not come with it: the arrows, the month, the
+      // deload switch and the footnote are things you go to Progreso for.
+      expect(screen.queryByText('Series por músculo')).toBeNull()
+      expect(screen.queryByLabelText('Periodo anterior')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Mes' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Marcar descarga' })).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // The bug the redesign inherited: `weeksOf` built its rules out of the days
+  // that exist, so a week with nothing logged in it had no rule at all and the
+  // list opened on SEMANA ANTERIOR. A week is a calendar week, not a log entry
+  // — and the Monday with nothing in it is the one that most needs answering.
+  it('keeps ESTA SEMANA when nothing has been logged in it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-10T09:00:00')) // a Monday
+    try {
+      api.listDays.mockResolvedValue([
+        {
+          id: 2,
+          date: '2026-08-06',
+          workouts: [
+            {
+              id: 6,
+              name: 'Pierna',
+              sets: [benchSet({ id: 30, muscle_group: 'Cuádriceps', secondary_groups: [] })],
+            },
+          ],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('SEMANA ANTERIOR')
+      expect([...container.querySelectorAll('.week-label')].map((l) => l.textContent)).toEqual([
+        'ESTA SEMANA',
+        'SEMANA ANTERIOR',
+      ])
+      // And it says what it is, rather than drawing nine rows of zero.
+      expect(screen.getByText('La semana aún no tiene series.')).toBeInTheDocument()
+      expect(container.querySelector('.week-totals').textContent).toBe('DÍA 1 DE 7')
     } finally {
       vi.useRealTimers()
     }
