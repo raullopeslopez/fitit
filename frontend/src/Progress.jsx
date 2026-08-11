@@ -230,18 +230,49 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
         ? [hi, at]
         : null
 
+  // The shortfall drawn while the week can still supply it. `judging` has held
+  // the ink off the *words* since a Monday first read as nine reproaches — but
+  // the tail was invented after that rule was written and never came under it,
+  // so a Tuesday with fifteen sets logged printed five muted words under five
+  // full-strength leader lines saying the same thing louder. The letter of the
+  // rule was kept and its reason lost. Same switch, both channels.
+  //
+  // Only the shortfall. A tail past the far edge measures work already done: it
+  // is as true on a Tuesday as on a Sunday and it can only grow, so dimming it
+  // would be the card hedging about a fact. A deload's below-goal tail counts as
+  // a shortfall — Wednesday of a deload week has not missed its third either.
+  const behind = deload ? at < lo : state === 'bajo'
+  const provisional = !judging && behind
+
+  // Zero sets against a band that asks for none. RP puts ab MEV at zero, so the
+  // number and the band are both right and nothing is owed — but the needle
+  // lands exactly on the band's near edge and the state line stays silent,
+  // which is the same picture eight sets of squats earn. "Never touched" and
+  // "trained enough" came out identical, on the one row where they are furthest
+  // apart.
+  //
+  // The needle goes: its position here is a coincidence of the geometry, not a
+  // measurement, and RP's own answer for a week it has not reached yet is to
+  // draw nothing at all — absence looks like absence. One muted word takes its
+  // place so a missing needle cannot read as a rendering fault. Muted and never
+  // ink, in any state: this is a description of the week, not a demand on it,
+  // and it does not wait for the week to close the way `faltan N` waits.
+  const untouched = !deload && shown === 0 && state === 'zona'
+
   // Only the gap, and only when there is one. In the zone the mark inside the
   // channel is the whole message; over it, nothing is owed and nothing above the
   // band is called an excess. A deload states the target it swapped in instead.
   const words = deload
     ? `objetivo ${goal}`
-    : shortWeek
-      ? ''
-      : state === 'bajo'
-        ? `faltan ${gap}`
-        : state === 'sin-banda'
-          ? 'sin zona'
-          : ''
+    : untouched
+      ? 'sin tocar'
+      : shortWeek
+        ? ''
+        : state === 'bajo'
+          ? `faltan ${gap}`
+          : state === 'sin-banda'
+            ? 'sin zona'
+            : ''
 
   // Which side of the band the mark is on, said by the mark itself. Position
   // cannot resolve it at the edges — 8.5 sets against an MEV of 8 lands three
@@ -274,7 +305,9 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
       <span
         className="sum-track"
         role="img"
-        aria-label={`${group}: ${shown} — ${deload ? `objetivo ${goal}` : SPOKEN[state]}`}
+        aria-label={`${group}: ${shown} — ${
+          deload ? `objetivo ${goal}` : untouched ? 'sin tocar' : SPOKEN[state]
+        }`}
       >
         <span className="sum-axis" aria-hidden="true" />
         {band && !deload && (
@@ -287,12 +320,12 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
         {deload && <span className="sum-goal" style={{ left: pct(lo) }} aria-hidden="true" />}
         {tail && tail[1] - tail[0] > 0.001 && (
           <span
-            className="sum-tail"
+            className={`sum-tail${provisional ? ' is-provisional' : ''}`}
             style={{ left: pct(tail[0]), width: pct(tail[1] - tail[0]) }}
             aria-hidden="true"
           />
         )}
-        {(band || deload) && (
+        {(band || deload) && !untouched && (
           <span className={`sum-mark${facing}`} style={{ left: pct(at) }} aria-hidden="true" />
         )}
       </span>

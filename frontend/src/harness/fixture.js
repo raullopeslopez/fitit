@@ -326,6 +326,51 @@ function previousWeek() {
 
 export const emptyWeekDays = previousWeek().sort((a, b) => (a.date < b.date ? 1 : -1))
 
+// --- The muscle nobody touched (`?harness=volume&caso=intacto`) --------------
+//
+// The one row RP's landmarks put a floor of zero under. Core at literally no
+// sets is `en zona` by the arithmetic — abs need no direct work and the number
+// is right — so the card used to draw it with a needle on the band's near edge
+// and nothing to read, which is exactly what eight sets of squats draws. Two
+// opposite facts, one picture, and no bench case produced it: `llena` gives
+// Core 12.5 and `lunes` gives it 1.5.
+//
+// Three weeks, because the row has to be judgeable in both tenses: this one
+// running with Core at zero, the one before it *closed* with Core at zero
+// (press ‹), and one further back holding 8 sets of it — without that the group
+// falls out of the eight-week window and there is no row at all to look at.
+const QUIET_CORE = {
+  Pecho: 14,
+  Hombro: 12,
+  Bíceps: 9,
+  Espalda: 8, // under 10 — a deficit tail above Core
+  Tríceps: 7,
+  Femoral: 6,
+  Cuádriceps: 5, // under 8
+  Gemelo: 4, // under 8
+}
+
+function flatWeek(id, offset, spec) {
+  const date = isoOf(shift(monday, offset))
+  const sets = []
+  for (const [group, n] of Object.entries(spec)) {
+    for (let i = 0; i < n; i += 1) {
+      sets.push({
+        ...strengthSet(FILLER[group], group, []),
+        set_index: sets.length,
+        created_at: `${date}T18:30:00.000000Z`,
+      })
+    }
+  }
+  return { id, date, workouts: [{ id, date, name: 'Full body', sets }] }
+}
+
+export const quietCoreDays = [
+  flatWeek(870, 0, QUIET_CORE),
+  flatWeek(871, -7, QUIET_CORE),
+  flatWeek(872, -14, { ...QUIET_CORE, Core: 8 }),
+].sort((a, b) => (a.date < b.date ? 1 : -1))
+
 // An account that has never logged anything. `[]` is the whole fixture, and
 // that is the point: the first screen has to be designed for it, because it is
 // the only screen every single user sees.

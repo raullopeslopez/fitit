@@ -2330,6 +2330,29 @@ button.set-action {
   border-radius: 1px;
   background: color-mix(in srgb, var(--text) 55%, transparent);
 }
+/* The same tail, while the week it measures can still supply the sets. The
+   words have waited for the week to close since a Monday first read as nine
+   reproaches; the tail was invented afterwards and never came under the rule,
+   so a Tuesday drew five muted words under five full-strength ~95px lines
+   saying the same thing louder. The letter held — nothing was in ink — and the
+   reason behind it did not, because the letter was written when words were the
+   only channel on the row.
+
+   Weight comes off two ways at once, and neither is colour: half the ink
+   (2px → 1px) and one step down the same ink ramp the band edges ride. The
+   chroma step is small on purpose — the tail is a non-text UI element carrying
+   the message, so its floor is 3:1 against the card, and light starts at 3.96
+   with barely one step of room. At 50% of `--text` it composites to 4.86 on
+   dark and 3.39 on light, both clear. The thickness does the rest of the work,
+   and costs the floor nothing.
+
+   Positioned off the track's midline like the full-strength one, so the row
+   pitch does not move: 52.56px in every state and both themes. */
+.sum-tail.is-provisional {
+  height: 1px;
+  margin-top: -0.5px;
+  background: color-mix(in srgb, var(--text) 50%, transparent);
+}
 /* The set count itself. A needle rather than a dot: its position is the only
    variable on the track that carries meaning, and an edge reads more precisely
    against the band's edge than the centre of a circle does. */
