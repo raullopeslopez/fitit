@@ -207,9 +207,12 @@ export const BANDS = {
 // the fill edge. Same fraction, same meaning, nine rows deep.
 //
 // The three segments and what they are worth:
-//   0 → mev   the shortfall runway, 0…MEV_AT. Gets the widest segment because it
-//             is the only region carrying an actionable number (the gap), and it
-//             needs enough resolution that one missing set is visible.
+//   0 → mev   the shortfall runway, 0…MEV_AT. The one segment that is *not*
+//             normalised per muscle — it runs on a shared absolute sets scale,
+//             see RUNWAY_SETS below, so the tail is the missing work at full
+//             size. Gets the widest segment because it is the only region
+//             carrying an actionable number (the gap), and it needs enough
+//             resolution that one missing set is visible.
 //   mev → mrv the productive zone, MEV_AT…MRV_AT.
 //   mrv → ∞   the tail, MRV_AT…1, full at one further band-width past mrv. The
 //             smallest segment: it is unbounded, and per DESIGN.md over the zone
@@ -220,6 +223,32 @@ export const BANDS = {
 // the drawn layout, not just to this file.
 export const MEV_AT = 0.38
 export const MRV_AT = 0.74
+
+// How many missing sets the runway spans, end to end. The zone and the tail are
+// normalised per muscle because their job is to be comparable *as positions* —
+// "inside" means the same thing on nine different bands. The runway's job is
+// the opposite: it is the only place on the track carrying a quantity you can
+// act on, and the quantity is a number of sets, so it gets an absolute scale
+// shared by all nine rows. A gap of four draws the same length wherever it is.
+//
+// Normalising it too was the bug this constant fixes. `sets / mev` put every
+// muscle at zero on the identical pixel — the picture that is true five days
+// out of seven carried no information at all — and it ranked a shortfall of 4
+// on Femoral (mev 4, so the whole runway) ahead of one of 5 on Bíceps (mev 8,
+// so five eighths of it), which is the drawing contradicting the digit printed
+// beside it.
+//
+// The value is the largest MEV in the table — Espalda's 10 — and it is read out
+// of BANDS rather than typed, so it cannot drift. That is the worst real case:
+// a shortfall is `mev - direct` with direct floored at zero, so it can never
+// exceed the group's own MEV, and therefore never exceeds this. Reading the max
+// out of the table rather than fixing it at 10 is what keeps that true when a
+// band moves. Should something ever hand in a shortfall past the end anyway,
+// `clamp01` pins the mark at the foot of the track: two rows owing 11 and 14
+// would draw the same maximal tail, which understates the worse one rather
+// than drawing it outside the track — the safe direction, and `faltan N` still
+// separates them in words.
+export const RUNWAY_SETS = Math.max(...Object.values(BANDS).map((b) => b.mev))
 
 const round1 = (n) => Math.round(n * 10) / 10
 const clamp01 = (n) => Math.min(1, Math.max(0, n))
@@ -290,9 +319,14 @@ export function bandPosition(group, sets, indirect = 0) {
   const { mev, mrv } = band
   sets = Math.max(0, sets - Math.max(0, indirect))
   if (sets <= mev) {
-    // mev === 0 (Core) makes the runway zero-width — zero sets already meets the
-    // minimum, so the fill starts at the mark rather than dividing by zero.
-    return mev > 0 ? clamp01((sets / mev) * MEV_AT) : MEV_AT
+    // Below the minimum the mark is placed by the **shortfall in sets**, on the
+    // scale every row shares (see RUNWAY_SETS). So the tail the mark drags back
+    // to the band edge is the missing work drawn at full size, and the five
+    // rows of a blank Monday fan out into a staircase instead of stacking on
+    // one pixel. mev === 0 (Core) needs no special case any more: zero sets
+    // already meets the minimum, the shortfall is zero, and the mark lands on
+    // MEV_AT without anything dividing by mev.
+    return clamp01(MEV_AT * (1 - (mev - sets) / RUNWAY_SETS))
   }
   const width = mrv - mev
   if (sets <= mrv) return MEV_AT + ((sets - mev) / width) * (MRV_AT - MEV_AT)

@@ -8,7 +8,12 @@ import {
   effectiveBand,
   MEV_AT,
   MRV_AT,
+  RUNWAY_SETS,
 } from './volume.js'
+
+// How long a tail the row draws to the left of the band: the distance from the
+// mark back to the edge it missed. This is the shape the screen is judged on.
+const tailOf = (group, sets, indirect = 0) => MEV_AT - bandPosition(group, sets, indirect)
 
 describe('BANDS', () => {
   it('carries one band per muscle group, and no group the app cannot draw', () => {
@@ -132,17 +137,23 @@ describe('bandPosition', () => {
     expect(1 - MRV_AT).toBeLessThan(MEV_AT)
   })
 
-  it('starts empty at zero sets', () => {
-    expect(bandPosition('Pecho', 0)).toBe(0)
+  it('empties the whole runway for the worst shortfall the bands allow', () => {
+    // Espalda has the highest MEV of the nine, so a zero week owes 10 sets —
+    // the longest tail anything can draw, and the reason the runway is scaled
+    // to exactly that. Nothing ever needs more room than there is.
     expect(bandPosition('Espalda', 0)).toBe(0)
+    expect(RUNWAY_SETS).toBe(Math.max(...MUSCLE_GROUPS.map((g) => BANDS[g].mev)))
   })
 
   it('starts at the MEV mark when MEV is zero — zero sets already meets it', () => {
     expect(bandPosition('Core', 0)).toBeCloseTo(MEV_AT, 10)
   })
 
-  it('runs the approach to MEV proportionally', () => {
-    expect(bandPosition('Pecho', 3)).toBeCloseTo(MEV_AT / 2, 10)
+  it('runs the approach to MEV in sets, not in fractions of the muscle', () => {
+    // Pecho owes 6 at zero, so it starts 6/10 of the runway out — not at the
+    // foot of it. A row that owes less starts nearer the band.
+    expect(bandPosition('Pecho', 0)).toBeCloseTo(MEV_AT * (1 - 6 / RUNWAY_SETS), 10)
+    expect(bandPosition('Pecho', 3)).toBeCloseTo(MEV_AT * (1 - 3 / RUNWAY_SETS), 10)
   })
 
   it('runs the zone proportionally between the two marks', () => {
@@ -183,6 +194,88 @@ describe('bandPosition', () => {
   })
 })
 
+// The runway — everything left of the band — is one shared absolute scale in
+// sets. It used to be normalised per muscle, which made every muscle at zero
+// land on the identical pixel however many sets it owed, and ranked Femoral's
+// shortfall of 4 ahead of Bíceps' 5 because 4 is a bigger *fraction* of an MEV
+// of 4 than 5 is of 8. The tail is the shortfall or it is decoration.
+describe('the shortfall runway', () => {
+  it('draws the same gap the same length on every row', () => {
+    for (const gap of [1, 2, 4, 6]) {
+      const lengths = MUSCLE_GROUPS.filter((g) => BANDS[g].mev >= gap).map((g) =>
+        tailOf(g, BANDS[g].mev - gap),
+      )
+      expect(lengths.length, `groups able to owe ${gap}`).toBeGreaterThan(1)
+      for (const len of lengths) expect(len, `gap ${gap}`).toBeCloseTo(lengths[0], 10)
+    }
+  })
+
+  it('draws a bigger gap longer, in a fixed ratio', () => {
+    // Ten sets short of Espalda against four short of Cuádriceps: two and a
+    // half times the tail, because it is two and a half times the shortfall.
+    expect(tailOf('Espalda', 0) / tailOf('Cuádriceps', 4)).toBeCloseTo(2.5, 10)
+    expect(tailOf('Espalda', 0)).toBeCloseTo(MEV_AT, 10)
+  })
+
+  it('ranks tails exactly the way `faltan N` ranks them', () => {
+    // The property that was broken: the picture and the digit disagreed about
+    // which row was furthest behind. Every pair of short rows, across every
+    // group and a spread of counts.
+    const short = []
+    for (const group of MUSCLE_GROUPS) {
+      for (const sets of [0, 0.5, 1, 2.5, 4, 5, 7, 9.5]) {
+        const { state, gap } = bandState(group, sets)
+        if (state === 'bajo') short.push({ group, sets, gap, tail: tailOf(group, sets) })
+      }
+    }
+    expect(short.length).toBeGreaterThan(20)
+    for (const a of short) {
+      for (const b of short) {
+        const label = `${a.group} ${a.sets} vs ${b.group} ${b.sets}`
+        if (a.gap > b.gap + 0.05) expect(a.tail, label).toBeGreaterThan(b.tail)
+        if (Math.abs(a.gap - b.gap) < 1e-9) expect(a.tail, label).toBeCloseTo(b.tail, 10)
+      }
+    }
+  })
+
+  it('separates a week of nothing into a staircase instead of nine identical rows', () => {
+    // The case that is true five days out of seven. Ranked by what each muscle
+    // owes, longest first, and no two rows owing different amounts drawing the
+    // same tail.
+    const zeros = MUSCLE_GROUPS.filter((g) => BANDS[g].mev > 0).map((g) => ({
+      group: g,
+      tail: tailOf(g, 0),
+    }))
+    const byTail = [...zeros].sort((a, b) => b.tail - a.tail).map((r) => r.group)
+    const byGap = [...zeros].sort((a, b) => BANDS[b.group].mev - BANDS[a.group].mev).map((r) => r.group)
+    expect(byTail.map((g) => BANDS[g].mev)).toEqual(byGap.map((g) => BANDS[g].mev))
+    // Espalda 10 · Cuádriceps/Gemelo/Hombro/Bíceps 8 · Pecho/Tríceps 6 ·
+    // Femoral 4 — four distinct lengths, not one.
+    expect(new Set(zeros.map((r) => Math.round(r.tail * 1e6))).size).toBe(4)
+  })
+
+  it('resolves one missing set as a visible step', () => {
+    // 1 set is 1/10th of the runway. On the 237px track the row draws, that is
+    // ~9px — wider than the needle, so a step is a step and not a rounding.
+    const step = tailOf('Espalda', 9) - tailOf('Espalda', 10)
+    expect(step).toBeCloseTo(MEV_AT / RUNWAY_SETS, 10)
+    expect(step * 237).toBeGreaterThan(4)
+  })
+
+  it('clamps at the foot rather than running off the left edge', () => {
+    // Nothing in BANDS can owe more than the runway shows, but a future band
+    // with a higher MEV would, and a negative position would draw the tail
+    // outside the track. It pins to zero and stops, which understates a gap
+    // it cannot draw instead of misplacing it.
+    for (const group of MUSCLE_GROUPS) {
+      for (const sets of [-50, -1, 0]) {
+        expect(bandPosition(group, sets), `${group} ${sets}`).toBeGreaterThanOrEqual(0)
+      }
+    }
+    expect(bandPosition('Espalda', -20)).toBe(0)
+  })
+})
+
 // Indirect volume: the correction that made the model survive real data. Before
 // it, three of the user's nine rows reported "sobre" every week off half-sets
 // collected from other lifts — see the block at the top of volume.js.
@@ -207,10 +300,11 @@ describe('indirect volume', () => {
     expect(gap).toBe(6)
   })
 
-  it('leaves a row of pure indirect volume at the foot of its runway', () => {
-    // Pressing does not move you toward a direct triceps minimum, so the fill
-    // must not claim it does.
-    expect(bandPosition('Tríceps', 8, 8)).toBe(0)
+  it('leaves a row of pure indirect volume exactly where a blank week sits', () => {
+    // Pressing does not move you toward a direct triceps minimum, so the mark
+    // must not claim it does: eight indirect sets draw the same tail as none.
+    expect(bandPosition('Tríceps', 8, 8)).toBe(bandPosition('Tríceps', 0))
+    expect(tailOf('Tríceps', 8, 8)).toBeCloseTo(MEV_AT * (6 / RUNWAY_SETS), 10)
     expect(bandState('Tríceps', 8, 8).state).toBe('bajo')
   })
 
