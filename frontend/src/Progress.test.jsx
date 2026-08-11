@@ -1323,6 +1323,179 @@ describe('Progress', () => {
 
       expect(await screen.findByText(/1 serie sin músculo asignado/i)).toBeInTheDocument()
     })
+
+    // Monday morning, nothing logged since the week turned over — the live
+    // state of a real account roughly one day in seven. Nine rows at zero, each
+    // demanding its whole band, is a verdict on a week that has not happened
+    // yet (DESIGN.md 2026-08-05: "nunca mientras la semana corre"). The rows go
+    // and the week says what it is, once, in the numbers that *are* final.
+    describe('una semana sin nada dentro', () => {
+      const setsOf = (spec, from) => {
+        let id = from
+        const out = []
+        for (const [group, n] of Object.entries(spec)) {
+          for (let i = 0; i < n; i += 1) {
+            out.push({
+              id: (id += 1),
+              exercise_name: group,
+              muscle_group: group,
+              set_index: 0,
+              weight: 40,
+              reps: 10,
+            })
+          }
+        }
+        return out
+      }
+
+      // 20–26 jul closed with two sessions and 17 sets: Pecho landed in its
+      // band, Espalda and Bíceps under theirs. 27 jul is the Monday after.
+      const LAST_WEEK = [
+        { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: setsOf({ Pecho: 8, Espalda: 4 }, 500) }] },
+        { id: 1, date: '2026-07-20', workouts: [{ id: 1, sets: setsOf({ Pecho: 2, Bíceps: 3 }, 700) }] },
+      ]
+
+      beforeEach(() => {
+        vi.setSystemTime(new Date(2026, 6, 27, 8)) // Monday
+      })
+
+      it('no dibuja nueve carriles pidiendo series', async () => {
+        api.listDays.mockResolvedValue(LAST_WEEK)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelectorAll('.sum-row')).toHaveLength(0)
+        expect(screen.queryByText(/faltan/)).toBeNull()
+      })
+
+      it('dice una vez que la semana todavía está en blanco', async () => {
+        api.listDays.mockResolvedValue(LAST_WEEK)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelector('.sum-empty').textContent).toBe(
+          'La semana aún no tiene series.',
+        )
+        // No verdict either: a week nobody has lived cannot have come in short.
+        expect(container.querySelector('.sum-shortweek')).toBeNull()
+      })
+
+      // The only numbers on a Monday that are real are last week's, and they
+      // are final. Handing them over is what turns a blank card into the answer
+      // to "what should today be".
+      it('entrega el cierre de la semana anterior', async () => {
+        api.listDays.mockResolvedValue(LAST_WEEK)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelector('.sum-handover').textContent).toBe(
+          'La pasada cerró con 17 series en 2 entrenos.',
+        )
+        expect(container.querySelector('.sum-owed-lab').textContent).toBe(
+          'Cerraron bajo su zona',
+        )
+        expect(
+          [...container.querySelectorAll('.sum-owed-name')].map((n) => n.textContent),
+        ).toEqual(['Espalda', 'Bíceps'])
+      })
+
+      it('lo dice también cuando no se quedó nada corto', async () => {
+        api.listDays.mockResolvedValue([
+          { id: 1, date: '2026-07-22', workouts: [{ id: 1, sets: setsOf({ Pecho: 12 }, 500) }] },
+        ])
+        render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(screen.getByText('Todo cerró en zona.')).toBeInTheDocument()
+      })
+
+      // A week you skipped, looked at afterwards. "Semana corta · 0 series,
+      // menos de un cuarto de tu semana típica" measures a week that never
+      // started against one that did.
+      it('una semana cerrada sin entrenar no es una semana corta', async () => {
+        api.listDays.mockResolvedValue([
+          { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: setsOf({ Pecho: 12 }, 500) }] },
+          { id: 1, date: '2026-07-08', workouts: [{ id: 1, sets: setsOf({ Pecho: 12 }, 700) }] },
+        ])
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        // ‹ twice: 20–26 jul has work, 13–19 jul has none.
+        const back = screen.getByRole('button', { name: 'Periodo anterior' })
+        await userEvent.click(back)
+        await userEvent.click(back)
+        expect(container.querySelector('.sum-empty').textContent).toBe('Semana sin entrenar.')
+        expect(container.querySelector('.sum-shortweek')).toBeNull()
+      })
+
+      // Nine empty runways is the worst possible first screen, and "le debes 6
+      // series al pecho" is a strange first sentence to say to someone who has
+      // never logged a set.
+      it('una cuenta nueva ve una frase, no una semana', async () => {
+        api.listDays.mockResolvedValue([])
+        const { container } = render(<Progress />)
+
+        expect(await screen.findByText('Todavía no hay series registradas.')).toBeInTheDocument()
+        expect(container.querySelectorAll('.sum-row')).toHaveLength(0)
+        // Nothing to walk back through, and no month to switch to either.
+        expect(container.querySelector('.sum-head')).toBeNull()
+        expect(screen.queryByText(/entrenos/)).toBeNull()
+        // Nor a denominator: there is no week to be one-seventh of the way
+        // through when there has never been a set.
+        expect(container.querySelector('.sum-sub')).toBeNull()
+      })
+
+      // A request that failed and a log that is empty are not the same fact,
+      // and this card is the one place in the app where confusing them is
+      // loudest: it tells somebody with months of training that they have never
+      // trained. The backend sleeps on the free tier, so a cold start is the
+      // most likely first frame this card ever draws.
+      //
+      // Silence is the right answer, because it is what the screen said before
+      // the empty state existed. Saying "no se pudo cargar" here would be a
+      // second claim on a screen that already cannot support the first one.
+      it('un /days que falla no es una cuenta nueva', async () => {
+        api.listDays.mockRejectedValue(new Error('offline'))
+        const { container } = render(<Progress />)
+
+        await waitFor(() => expect(api.listDays).toHaveBeenCalled())
+        expect(screen.queryByText('Todavía no hay series registradas.')).toBeNull()
+        expect(screen.queryByText('La semana aún no tiene series.')).toBeNull()
+        expect(container.querySelector('.sum-empty')).toBeNull()
+        expect(container.querySelectorAll('.sum-row')).toHaveLength(0)
+      })
+
+      // The log arrives over the network, and `days` is `[]` until it does —
+      // the same shape a new account has forever. Reporting the empty state
+      // before the answer is in is the one thing worse than reporting nothing.
+      it('no llama vacía una cuenta que todavía está cargando', async () => {
+        api.listDays.mockReturnValue(new Promise(() => {}))
+        const { container } = render(<Progress />)
+
+        expect(container.querySelector('.sum-empty')).toBeNull()
+        expect(container.querySelector('.card')).not.toBeNull() // Evolución still draws
+      })
+
+      // A muscle at zero holds its row — but it only held it for one week, so
+      // a group you stopped training vanished on the second week of silence,
+      // which is the first week the absence means anything.
+      it('mantiene la fila de un músculo callado más de una semana', async () => {
+        api.listDays.mockResolvedValue([
+          { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: setsOf({ Pecho: 8 }, 500) }] },
+          { id: 1, date: '2026-07-01', workouts: [{ id: 1, sets: setsOf({ Espalda: 10 }, 700) }] },
+        ])
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        // ‹ once: 20–26 jul, where Pecho trained and Espalda has been quiet for
+        // three weeks.
+        await userEvent.click(screen.getByRole('button', { name: 'Periodo anterior' }))
+        const names = [...container.querySelectorAll('.sum-name')].map((n) => n.textContent)
+        expect(names).toContain('Espalda')
+        const states = [...container.querySelectorAll('.sum-state')].map((s) => s.textContent)
+        expect(states[names.indexOf('Espalda')]).toBe('faltan 10')
+      })
+    })
   })
 
   // Exporting is a once-a-month act of bookkeeping. It sits with the numbers

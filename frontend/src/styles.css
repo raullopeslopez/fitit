@@ -2386,6 +2386,90 @@ button.set-action {
    row. Right-aligned against the track, so the number and the mark that
    explains it are one saccade apart, and the digits stack on a common grid
    down the nine rows. */
+/* --- The period with nothing in it -----------------------------------------
+   Where nine rows would have gone. It is deliberately not a centred, iconed,
+   bordered empty state: this card is an instrument readout and the readout says
+   "no reading". Left-aligned on the same margin as the rows, same type sizes,
+   no box of its own — it reads as the card being honest, not as a placeholder
+   screen that took the card's place. */
+.sum-empty-wrap {
+  padding: 0.55rem 0 0.1rem;
+  border-top: 1px solid var(--border);
+}
+/* Ink, at the size the short-week line uses: it is the card's answer, and the
+   only sentence on it. */
+.sum-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+.sum-handover {
+  margin: 0.3rem 0 0;
+  font-size: 0.74rem;
+}
+/* Last week's shortfalls, the one actionable thing a blank Monday can hold.
+   Wrapping row of name+dot pairs, spaced rather than punctuated — the day list
+   settled that a `·` between pairs leaves one dangling at a wrapped line end.
+   No colour on the words; the dot carries the muscle, same as every other
+   place this app names one. */
+.sum-owed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.7rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.sum-owed-lab {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.sum-owed-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.sum-owed-name {
+  font-weight: 600;
+}
+.sum-owed-more {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.sum-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  overflow: hidden;
+}
+/* The 10-set edge of the efficient band, on a bar that runs to 20. Recessive by
+   design — a full-height rule here would read as a target to hit. */
+.sum-tick {
+  position: absolute;
+  left: 50%;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  background: color-mix(in srgb, var(--text) 20%, transparent);
+}
+.sum-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--chip, var(--muted));
+}
+/* Sized by its content, not to a fixed column: at a scaled-up system font size
+   an 86px box wrapped "6.2/sem" onto two lines and every row grew a second
+   line. The bar gives up the width instead — it's a comparison, not a reading. */
+/* Centred, not right-aligned: the heading above sets the column's width and a
+   6-letter word over a 2-digit figure left the number hanging off the right of
+   its own label. Tabular figures keep the digits on a common grid anyway, which
+   is what right-alignment was there to buy. */
 .sum-val {
   align-self: center;
   text-align: right;

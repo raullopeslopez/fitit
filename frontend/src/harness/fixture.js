@@ -265,5 +265,70 @@ function mondayWeek() {
 export const mondayDays = [...mondayWeek(), ...lastWeek()].sort((a, b) =>
   a.date < b.date ? 1 : -1,
 )
+// --- The week with nothing in it (`?harness=volume&caso=vacia`) --------------
+//
+// Not a variant of the bench above: that one is engineered to hold nine band
+// states at once, and the whole point here is that a week with nothing in it
+// has no states to hold. What it needs instead is a *plausible* week behind it,
+// because the empty state is judged on what it hands over — four sessions, 44
+// sets, and two groups that genuinely finished under their band (Cuádriceps 4
+// against a floor of 8, Gemelo 4 against 8). Everything else closed inside.
+//
+// This is the live state of the author's own account on the morning of 10 Aug
+// 2026, and it is the state roughly one day in seven is in.
+const PREVIOUS = [
+  // [name, primary, secondaries, sets]
+  [
+    ['Press banca', 'Pecho', ['Tríceps', 'Hombro'], 4],
+    ['Press militar', 'Hombro', ['Tríceps', 'Core'], 3],
+    ['Elevaciones laterales', 'Hombro', [], 3],
+    ['Extensión en polea', 'Tríceps', [], 3],
+  ],
+  [
+    ['Jalón neutro', 'Espalda', ['Bíceps'], 4],
+    ['Remo con barra', 'Espalda', ['Bíceps'], 4],
+    ['Curl con mancuerna', 'Bíceps', [], 3],
+  ],
+  [
+    ['Prensa', 'Cuádriceps', ['Femoral'], 4],
+    ['Curl femoral', 'Femoral', [], 3],
+    ['Gemelo en máquina', 'Gemelo', [], 4],
+  ],
+  [
+    ['Press banca', 'Pecho', ['Tríceps', 'Hombro'], 3],
+    ['Remo con barra', 'Espalda', ['Bíceps'], 3],
+    ['Rueda abdominal', 'Core', [], 3],
+  ],
+]
+
+function previousWeek() {
+  const names = ['Push', 'Pull', 'Pierna', 'Full body']
+  // Mon / Wed / Fri / Sat of the week before this one.
+  return [-7, -5, -3, -2].map((offset, slot) => {
+    const date = isoOf(shift(monday, offset))
+    const sets = []
+    for (const [name, primary, secondaries, count] of PREVIOUS[slot]) {
+      for (let i = 0; i < count; i += 1) {
+        sets.push({
+          ...strengthSet(name, primary, secondaries),
+          set_index: sets.length,
+          created_at: `${date}T18:30:00.000000Z`,
+        })
+      }
+    }
+    return {
+      id: 800 + slot,
+      date,
+      workouts: [{ id: 800 + slot, date, name: names[slot], sets }],
+    }
+  })
+}
+
+export const emptyWeekDays = previousWeek().sort((a, b) => (a.date < b.date ? 1 : -1))
+
+// An account that has never logged anything. `[]` is the whole fixture, and
+// that is the point: the first screen has to be designed for it, because it is
+// the only screen every single user sees.
+export const noHistoryDays = []
 
 export default days

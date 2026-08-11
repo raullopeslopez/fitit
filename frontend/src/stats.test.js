@@ -233,6 +233,10 @@ describe('setsPerMuscle', () => {
       { group: 'Espalda', sets: 5, perWeek: 5, indirect: 0, indirectPerWeek: 0, delta: 5 },
       { group: 'Pecho', sets: 4, perWeek: 4, indirect: 0, indirectPerWeek: 0, delta: 2 },
       { group: 'Tríceps', sets: 2, perWeek: 2, indirect: 0, indirectPerWeek: 0, delta: 2 },
+      // Last trained on 30 jun, three weeks back — still inside the eight-week
+      // memory, so it holds its row at zero rather than disappearing on the
+      // week its absence started to mean something.
+      { group: 'Cuádriceps', sets: 0, perWeek: 0, indirect: 0, indirectPerWeek: 0, delta: 0 },
     ])
   })
 
@@ -241,7 +245,19 @@ describe('setsPerMuscle', () => {
     expect(before.start).toBe('2026-07-13')
     expect(before.rows).toEqual([
       { group: 'Pecho', sets: 2, perWeek: 2, indirect: 0, indirectPerWeek: 0, delta: 2 },
+      { group: 'Cuádriceps', sets: 0, perWeek: 0, indirect: 0, indirectPerWeek: 0, delta: 0 },
     ])
+  })
+
+  // Eight weeks and not forever: a group logged once in March, or a set that
+  // was mistagged, would otherwise pin an empty row to the card permanently.
+  it('lets go of a muscle that has been silent for two months', () => {
+    const old = [
+      trained('2026-07-22', group('Espalda', 5)),
+      trained('2026-05-01', group('Gemelo', 6)),
+    ]
+    const week = setsPerMuscle(old, { period: 'week', index: 0, endDate: SUNDAY })
+    expect(week.rows.map((r) => r.group)).toEqual(['Espalda'])
   })
 
   it('reports a weekly average in month mode, against the month before', () => {

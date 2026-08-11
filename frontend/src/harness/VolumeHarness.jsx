@@ -10,7 +10,24 @@
 import { useEffect } from 'react'
 
 import { PeriodSummary } from '../Progress.jsx'
-import { days, mondayDays } from './fixture.js'
+import { days, emptyWeekDays, mondayDays, noHistoryDays } from './fixture.js'
+
+// The four weeks worth benching. `llena` spreads every band state across nine
+// rows at once, which is the only way to judge the row itself; `lunes` is the
+// week five days out of seven actually look like; `vacia` and `nueva` have no
+// rows to draw at all and are therefore almost entirely copy, which a static
+// mock cannot be judged from.
+//
+// Two pieces arrived with two spellings — `?caso=` and `?case=` — so both keys
+// are read and the Spanish values are canonical. `case=monday` is kept because
+// it is written into briefs already in flight, and costs one line.
+const CASES = {
+  llena: days,
+  lunes: mondayDays,
+  monday: mondayDays,
+  vacia: emptyWeekDays,
+  nueva: noHistoryDays,
+}
 
 // Dark is the design's primary target (DESIGN.md: "dark-first"), but the theme
 // is chosen by `prefers-color-scheme`, so the bench showed whatever the machine
@@ -52,13 +69,10 @@ function useForcedTheme(theme) {
 export default function VolumeHarness() {
   const params = new URLSearchParams(location.search)
   useForcedTheme(params.get('theme') ?? 'dark')
-  // `&case=monday`: one session, fifteen sets, most of the list untouched —
-  // the week five days out of seven actually looks like, and the one the
-  // full-spread fixture cannot show.
-  const bench = params.get('case') === 'monday' ? mondayDays : days
+  const fixture = CASES[params.get('caso') ?? params.get('case')] ?? days
   return (
     <div className="app">
-      <PeriodSummary days={bench} />
+      <PeriodSummary days={fixture} />
     </div>
   )
 }
