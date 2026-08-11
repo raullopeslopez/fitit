@@ -1237,32 +1237,67 @@ describe('Progress', () => {
       })
     })
 
-    // The average is only readable next to the span it was taken over: 1.9/sem
-    // means one thing after four weeks and quite another after two days.
-    it('states how far into the period you are, while it is still running', async () => {
-      api.listDays.mockResolvedValue(SUMMER)
-      render(<Progress />)
+    // The line under the nav welded three facts at one weight — sessions, sets,
+    // and how far into the period you were — and the third is the one that
+    // decides how to read the other two. It leads now, and it is the only thing
+    // in that line wearing ink.
+    describe('the line that says what the numbers below mean', () => {
+      const stage = (c) => c.querySelector('.sum-stage')?.textContent ?? null
+      const sub = (c) => c.querySelector('.sum-sub').textContent
 
-      // 1–26 jul is 26 days: 3.7 weeks in, not a finished month.
-      await openMonth()
-      expect(await screen.findByText(/3\.7 semanas/)).toBeInTheDocument()
+      it('leads with the day of the week you are on, not the days you trained', async () => {
+        vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
+        api.listDays.mockResolvedValue(SUMMER)
+        const { container } = render(<Progress />)
 
-      await openMonth()
+        await screen.findByText('Esta semana')
+        // "3 de 7 días" sat last and muted beside "2 entrenos", where it reads
+        // as three days trained. It is the denominator of every figure on the
+        // card — the only reason nine rows of counts aren't a finished week —
+        // so it goes first, in ink, and names what it counts.
+        expect(stage(container)).toBe('Día 3 de 7')
+        expect(sub(container)).toBe('Día 3 de 7 · 2 entrenos · 5 series')
+      })
 
-      // 20–26 jul with today the 26th: the week is closed, and a closed period
-      // needs no caveat about how much of it happened.
-      expect(await screen.findByText('Esta semana')).toBeInTheDocument()
-      expect(screen.queryByText(/días$/)).not.toBeInTheDocument()
-    })
+      it('says nothing once the week is closed', async () => {
+        api.listDays.mockResolvedValue(SUMMER) // Sunday 26 jul: 20–26 is over
+        const { container } = render(<Progress />)
 
-    it('counts the days elapsed of a week still running', async () => {
-      vi.setSystemTime(new Date(2026, 6, 22, 12)) // Wednesday
-      api.listDays.mockResolvedValue(SUMMER)
-      render(<Progress />)
+        await screen.findByText('Esta semana')
+        // A finished week's counts mean exactly what they say. Stamping it
+        // "cerrada" would be a second cue for a fact the disabled ›, the date
+        // range and the rows' verdicts already carry — the mistake the `HOY`
+        // chip made on Días.
+        expect(stage(container)).toBeNull()
+        expect(sub(container)).toBe('2 entrenos · 5 series')
+      })
 
-      // Mon 20 to Wed 22. The denominator is the point: "3 días" alone reads as
-      // a total, "3 de 7 días" says how much of the week is still to come.
-      expect(await screen.findByText(/3 de 7 días/)).toBeInTheDocument()
+      it('states the month is averaging, because the chip that did it cannot', async () => {
+        api.listDays.mockResolvedValue(SUMMER)
+        const { container } = render(<Progress />)
+
+        await openMonth()
+        await screen.findByText('Julio')
+        // `Mes` silently reprices every row from a count to a weekly average —
+        // a large state change wearing a 57px chip. And the span is half the
+        // sentence: 1.9/sem means one thing after four weeks and another after
+        // two days.
+        expect(stage(container)).toBe('Media de 3.7 semanas')
+      })
+
+      it('counts the day of the month while a month is too young to average', async () => {
+        vi.setSystemTime(new Date(2026, 7, 3, 12)) // 3 aug, three days in
+        api.listDays.mockResolvedValue([
+          { id: 1, date: '2026-08-01', workouts: [{ id: 1, sets: [bench(1, 60, 8)] }] },
+        ])
+        const { container } = render(<Progress />)
+
+        await openMonth()
+        await screen.findByText('Agosto')
+        // Under a week there is no rate to report, so the rows print plain
+        // counts and the marker counts days — of 31, not of 7.
+        expect(stage(container)).toBe('Día 3 de 31')
+      })
     })
 
     // Cardio and unrecognised lifts are volume that colours no row, so the bars

@@ -337,23 +337,36 @@ export function PeriodSummary({ days }) {
       ? 'Esta semana'
       : formatRange(current.start, current.end)
 
-  // How much of the period you have actually done — the divisor behind every
-  // number above, and meaningless once the period has closed, so it only shows
-  // while one is running. Weeks once there is more than one, days below that:
-  // "0.1 semanas" is arithmetic, "1 día" is a Saturday.
+  // The one token in the header that says what every number under it *means*,
+  // and the only one of them in ink.
   //
-  // A running week carries its denominator: "3 días" reads as a total, "3 de 7
-  // días" says how much of the week is still owed you — which is the whole
-  // reason the rows below stop short of a verdict. A month has no such tidy
-  // denominator, so it keeps the plain count.
+  // It replaces a subtitle that welded three facts at one weight — sessions,
+  // sets, and how far in you were — where the third is the only one that
+  // decides how to read the other two, and was the faintest thing on the line.
+  // Two cases, one job:
+  //
+  //  - A period still running prints how far into it you are. "3 días" reads as
+  //    a total and "3 de 7 días" read as three days *trained* sitting next to
+  //    "2 entrenos"; "Día 3 de 7" is a position, and it is the whole reason
+  //    nine rows of counts are not a finished week.
+  //  - A month reporting weekly averages prints that it is, because `Mes`
+  //    reprices every row on the card from a count to a rate and a 57px chip
+  //    cannot carry a change that size. The span rides with it: 1.9/sem after
+  //    3.7 weeks and 1.9/sem after two days are different claims.
+  //
+  // A closed week gets nothing. Its counts mean exactly what they say, and the
+  // disabled ›, the date range in the nav and the rows' own verdicts already
+  // say it is over — a fourth cue is the mistake the `HOY` chip made on Días.
   const daysIn = Math.round(summary.weeks * 7)
-  const elapsed = !summary.inProgress
-    ? null
+  // 7 for a week; for a month, the day number its last date carries.
+  const periodDays = byMonth ? Number(current.end.slice(8, 10)) : 7
+  const stage = !summary.inProgress
+    ? summary.averaged
+      ? 'Media semanal'
+      : null
     : summary.averaged
-      ? `${Math.round(summary.weeks * 10) / 10} semanas`
-      : byMonth
-        ? plural(daysIn, 'día', 'días')
-        : `${daysIn} de 7 días`
+      ? `Media de ${Math.round(summary.weeks * 10) / 10} semanas`
+      : `Día ${daysIn} de ${periodDays}`
 
   // Whether the reference has earned the right to call this good or short. A
   // finished period has: everything that was going to happen, happened. A month
@@ -388,13 +401,13 @@ export function PeriodSummary({ days }) {
     return 'menos de un cuarto'
   }
 
-  const subtitle = [
+  // What the period held. Kept, and demoted: the rows below already carry the
+  // volume broken down the way this card asks you to read it, so the totals are
+  // context for the marker, not the headline they used to share with it.
+  const counts = [
     plural(current.sessions, 'entreno', 'entrenos'),
     plural(summary.sets, 'serie', 'series'),
-    elapsed,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  ].join(' · ')
 
   return (
     <div className="card">
@@ -442,7 +455,13 @@ export function PeriodSummary({ days }) {
           </button>
         </div>
       </div>
-      <p className="hint sum-sub">{subtitle}</p>
+      {/* One line, two registers. The marker is ink and leads; the totals stay
+          muted behind it. Hierarchy, not colour — nothing here is a record and
+          nothing here is destructive. */}
+      <p className="sum-sub">
+        {stage && <span className="sum-stage">{stage}</span>}
+        {stage ? ` · ${counts}` : counts}
+      </p>
 
       {summary.rows.length === 0 ? (
         <p className="hint">Nada registrado en este periodo.</p>

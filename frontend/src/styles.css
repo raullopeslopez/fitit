@@ -2074,13 +2074,17 @@ button.set-action {
   align-items: center;
   gap: 0.35rem;
 }
-/* Under the title in the scale, over the body text: it labels what the arrows
-   move, so it has to be readable at a glance without competing with the h2. */
+/* It labels what the arrows move. That is a control's label, not a second
+   heading, and it was dressed as one: Space Grotesk 600 at 0.95rem (15.2px), a
+   size DESIGN.md's scale does not define, in the display face reserved for
+   headings. Now Body — 1rem Geist 400 — which is on the scale, is the face for
+   labels and running text, and reads plainly under the 1.15rem Space Grotesk
+   h2 above it instead of arguing with it. */
 .sum-nav h3 {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
   margin: 0;
   min-width: 88px;
   text-align: center;
@@ -2108,8 +2112,27 @@ button.set-action {
   font-size: 0.8rem;
   cursor: pointer;
 }
+/* The header's small print, in two registers. It was `.hint` — 0.9rem (14.4px),
+   another size off DESIGN.md's scale — with all three of its facts in `--muted`
+   at one weight. Now Meta, 0.85rem, and the muted default belongs to the totals
+   only. */
 .sum-sub {
   margin: 0.15rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* What the numbers below mean: `Día 1 de 7`, `Media de 3.7 semanas`. Ink,
+   because it is the token that stops the rest of the card being read as a
+   finished week, and it was the quietest thing on the line. Geist Mono and
+   tabular because it is a figure over a denominator (DESIGN.md: numbers are
+   Geist Mono), and because the denominator has to hold its column as the day
+   count walks 1 → 7 rather than shuffling the words after it. No colour: a
+   position in the week is neither a record nor a destructive act. */
+.sum-stage {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--text);
 }
 /* One grid for every row rather than a flex box per row: the identity column
    sizes itself to the longest muscle there is and all nine tracks still start
