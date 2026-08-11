@@ -1485,6 +1485,26 @@ describe('Progress', () => {
         expect(container.querySelector('.sum-sub')).toBeNull()
       })
 
+      // A request that failed and a log that is empty are not the same fact,
+      // and this card is the one place in the app where confusing them is
+      // loudest: it tells somebody with months of training that they have never
+      // trained. The backend sleeps on the free tier, so a cold start is the
+      // most likely first frame this card ever draws.
+      //
+      // Silence is the right answer, because it is what the screen said before
+      // the empty state existed. Saying "no se pudo cargar" here would be a
+      // second claim on a screen that already cannot support the first one.
+      it('un /days que falla no es una cuenta nueva', async () => {
+        api.listDays.mockRejectedValue(new Error('offline'))
+        const { container } = render(<Progress />)
+
+        await waitFor(() => expect(api.listDays).toHaveBeenCalled())
+        expect(screen.queryByText('Todavía no hay series registradas.')).toBeNull()
+        expect(screen.queryByText('La semana aún no tiene series.')).toBeNull()
+        expect(container.querySelector('.sum-empty')).toBeNull()
+        expect(container.querySelectorAll('.sum-row')).toHaveLength(0)
+      })
+
       // The log arrives over the network, and `days` is `[]` until it does —
       // the same shape a new account has forever. Reporting the empty state
       // before the answer is in is the one thing worse than reporting nothing.

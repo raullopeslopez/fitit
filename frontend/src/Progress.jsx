@@ -867,9 +867,18 @@ export default function Progress() {
         setFreq(counts)
         const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
         if (top) selectLift(top[0])
+        // Set from the answer, never from the settlement. In `finally` this
+        // also fires on a rejection, and then an empty `days` — which is only
+        // the initial state — gets read as "this account has never trained".
+        // The card would tell somebody with months of log that they have never
+        // logged a set, and it would do it most often on a cold start, which
+        // on a free tier that sleeps is the frame it draws most.
+        //
+        // `Array.isArray` rather than truthiness because the endpoint answering
+        // with something that is not a list is also not an answer.
+        if (Array.isArray(loaded)) setDaysLoaded(true)
       })
       .catch(() => {})
-      .finally(() => setDaysLoaded(true))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
