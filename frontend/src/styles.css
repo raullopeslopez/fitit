@@ -2221,6 +2221,13 @@ button.set-action {
 .sum-state {
   display: block;
   min-height: 1.1rem;
+  /* Pinned to the same 1.1rem the empty box reserves. Without it the line box
+     of 0.8rem text resolves to ~1.2rem, so the three rows carrying `faltan N`
+     stood 1.6px taller than the six without — measured 54.16 against 52.56.
+     Small enough to look like nothing and still enough to break the pitch the
+     list is scanned by, which is the one thing nine stacked rows have to keep
+     (DESIGN.md: "una fila de sesión son dos líneas de altura constante"). */
+  line-height: 1.1rem;
   font-size: 0.8rem;
   color: var(--muted);
   white-space: nowrap;
