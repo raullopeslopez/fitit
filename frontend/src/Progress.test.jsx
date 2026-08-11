@@ -732,7 +732,7 @@ describe('Progress', () => {
 
       await openMonth()
       expect(await screen.findByText('Julio')).toBeInTheDocument()
-      expect(screen.getByText(/3 entrenos/)).toBeInTheDocument()
+      expect(screen.getByText(/0\.8 entrenos\/sem/)).toBeInTheDocument()
       expect(container.querySelector('.sum-name').textContent).toBe('Pecho')
     })
 
@@ -1351,7 +1351,7 @@ describe('Progress', () => {
         await waitFor(() => {
           expect(container.querySelector('.sum-tail')).not.toBeNull()
         })
-        expect(container.querySelector('.sum-stage').textContent).toContain('Media')
+        expect(container.querySelector('.sum-collab').textContent).toBe('media/sem')
         expect(container.querySelector('.sum-tail').className).toBe('sum-tail')
       })
 
@@ -1395,25 +1395,45 @@ describe('Progress', () => {
         const { container } = render(<Progress />)
 
         await screen.findByText('Esta semana')
-        // A finished week's counts mean exactly what they say. Stamping it
-        // "cerrada" would be a second cue for a fact the disabled ›, the date
-        // range and the rows' verdicts already carry — the mistake the `HOY`
-        // chip made on Días.
+        // A finished week's counts mean exactly what they say, and the nav
+        // title flipping `Esta semana` → `20–26 jul` plus the rows' verdicts
+        // going muted → ink already say it is over. A third cue is the mistake
+        // the `HOY` chip made on Días.
         expect(stage(container)).toBeNull()
         expect(sub(container)).toBe('2 entrenos · 5 series')
       })
 
-      it('states the month is averaging, because the chip that did it cannot', async () => {
+      // The marker used to weld its span to the counts with the same `·` that
+      // welds the counts to each other, so `Media de 3.7 semanas · 3 entrenos`
+      // read as three sessions *a week* — an ordinary weekly rate, and wrong by
+      // a factor of four. The fix is not a different separator: every figure on
+      // the line is now printed in the unit the rows are printed in, so the
+      // marker can scope forward all it likes.
+      it('prints the month counts at the rate the rows are printed', async () => {
         api.listDays.mockResolvedValue(SUMMER)
         const { container } = render(<Progress />)
 
         await openMonth()
         await screen.findByText('Julio')
-        // `Mes` silently reprices every row from a count to a weekly average —
-        // a large state change wearing a 57px chip. And the span is half the
-        // sentence: 1.9/sem means one thing after four weeks and another after
-        // two days.
-        expect(stage(container)).toBe('Media de 3.7 semanas')
+        // The span is the one thing neither the `/sem` on each figure nor the
+        // `media/sem` heading over the rows can say: 1.9/sem after 3.7 weeks
+        // and 1.9/sem after two days are different claims.
+        expect(stage(container)).toBe('3.7 semanas')
+        expect(sub(container)).toBe('3.7 semanas · 0.8 entrenos/sem · 1.9 series/sem')
+      })
+
+      // Three sentences saying "these are weekly averages" — the marker, the
+      // `media/sem` heading and a footer after the rows — is the `HOY`-chip
+      // mistake one view over. The unit rides each figure now, which is the
+      // strongest of the three, so the prose goes.
+      it('never says "media" in words when the figures carry the unit', async () => {
+        api.listDays.mockResolvedValue(SUMMER)
+        render(<Progress />)
+
+        await openMonth()
+        await screen.findByText('Julio')
+        expect(screen.queryByText(/Mes en curso/)).toBeNull()
+        expect(screen.queryByText(/^Media/)).toBeNull()
       })
 
       it('counts the day of the month while a month is too young to average', async () => {
@@ -1426,8 +1446,26 @@ describe('Progress', () => {
         await openMonth()
         await screen.findByText('Agosto')
         // Under a week there is no rate to report, so the rows print plain
-        // counts and the marker counts days — of 31, not of 7.
+        // counts and the marker counts days — of 31, not of 7. The header
+        // counts follow the rows: no `/sem` on a card that is not averaging.
         expect(stage(container)).toBe('Día 3 de 31')
+        expect(sub(container)).toBe('Día 3 de 31 · 1 entreno · 1 serie')
+      })
+
+      // A closed month keeps its span and loses its prose. `Media semanal` sat
+      // where the span goes and said what `/sem` and `media/sem` now both say,
+      // while the one thing a reader cannot recover — how many weeks the
+      // averages divide by — went unprinted.
+      it('gives a closed month its span, not the word "media"', async () => {
+        vi.setSystemTime(new Date(2026, 7, 10, 12)) // 10 aug, so July is closed
+        api.listDays.mockResolvedValue(SUMMER)
+        const { container } = render(<Progress />)
+
+        await openMonth()
+        await screen.findByText('Agosto')
+        await userEvent.click(screen.getByRole('button', { name: 'Periodo anterior' }))
+        await screen.findByText('Julio')
+        expect(sub(container)).toBe('4.4 semanas · 0.7 entrenos/sem · 1.6 series/sem')
       })
     })
 
@@ -1625,6 +1663,105 @@ describe('Progress', () => {
         expect(names).toContain('Espalda')
         const states = [...container.querySelectorAll('.sum-state')].map((s) => s.textContent)
         expect(states[names.indexOf('Espalda')]).toBe('faltan 10')
+      })
+    })
+
+    // A week you ran in and did not lift in. Every group is seeded at zero from
+    // the eight weeks behind it, so `rows` is nine long and `sets` is above
+    // zero: the card drew nine deficit runways over a week in which something
+    // did happen. "Nothing was classified" and "nothing happened" are different
+    // sentences, and only the second one has no rows.
+    describe('una semana de solo cardio', () => {
+      const setsOf = (spec, from) => {
+        let id = from
+        const out = []
+        for (const [group, n] of Object.entries(spec)) {
+          for (let i = 0; i < n; i += 1) {
+            out.push({
+              id: (id += 1),
+              exercise_name: group,
+              muscle_group: group,
+              set_index: 0,
+              weight: 40,
+              reps: 10,
+            })
+          }
+        }
+        return out
+      }
+
+      const run = (id) => ({
+        id,
+        exercise_name: 'Cinta',
+        muscle_group: null,
+        set_index: 0,
+        duration_seconds: 1500,
+        distance: 4.2,
+      })
+
+      // Nine groups last week, so every one of them holds a seeded row this
+      // week — the exact input that produced nine reproaches.
+      const LAST_WEEK = {
+        Pecho: 8,
+        Espalda: 8,
+        Hombro: 8,
+        Bíceps: 6,
+        Tríceps: 6,
+        Cuádriceps: 4,
+        Femoral: 4,
+        Gemelo: 4,
+        Core: 4,
+      }
+
+      const CARDIO = [
+        { id: 3, date: '2026-07-29', workouts: [{ id: 3, sets: [run(1), run(2), run(3)] }] },
+        { id: 2, date: '2026-07-22', workouts: [{ id: 2, sets: setsOf(LAST_WEEK, 500) }] },
+      ]
+
+      beforeEach(() => {
+        vi.setSystemTime(new Date(2026, 6, 29, 12)) // Wednesday, week of 27 jul
+      })
+
+      it('no dibuja nueve carriles a cero sobre una semana en la que entrenaste', async () => {
+        api.listDays.mockResolvedValue(CARDIO)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelectorAll('.sum-row')).toHaveLength(0)
+        expect(screen.queryByText(/faltan/)).toBeNull()
+      })
+
+      it('dice qué pasó de verdad, y lo dice una sola vez', async () => {
+        api.listDays.mockResolvedValue(CARDIO)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelector('.sum-empty').textContent).toBe(
+          'Ninguna serie con músculo asignado.',
+        )
+        // The footnote under the rows says the same thing, and there are no
+        // rows for it to sit under.
+        expect(container.querySelector('.sum-rest')).toBeNull()
+      })
+
+      it('conserva las cuentas: algo se registró', async () => {
+        api.listDays.mockResolvedValue(CARDIO)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelector('.sum-sub').textContent).toBe(
+          'Día 3 de 7 · 1 entreno · 3 series',
+        )
+      })
+
+      it('entrega el cierre de la semana anterior, como cualquier semana sin filas', async () => {
+        api.listDays.mockResolvedValue(CARDIO)
+        const { container } = render(<Progress />)
+
+        await screen.findByText('Esta semana')
+        expect(container.querySelector('.sum-handover').textContent).toBe(
+          'La pasada cerró con 52 series en 1 entreno.',
+        )
       })
     })
   })

@@ -2121,7 +2121,7 @@ button.set-action {
   font-size: 0.85rem;
   color: var(--muted);
 }
-/* What the numbers below mean: `Día 1 de 7`, `Media de 3.7 semanas`. Ink,
+/* The denominator of everything below: `Día 1 de 7`, `1.6 semanas`. Ink,
    because it is the token that stops the rest of the card being read as a
    finished week, and it was the quietest thing on the line. Geist Mono and
    tabular because it is a figure over a denominator (DESIGN.md: numbers are

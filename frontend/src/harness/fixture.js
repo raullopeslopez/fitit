@@ -326,6 +326,45 @@ function previousWeek() {
 
 export const emptyWeekDays = previousWeek().sort((a, b) => (a.date < b.date ? 1 : -1))
 
+// --- The week you ran in and did not lift in (`?harness=volume&caso=cardio`) --
+//
+// The state no bench case covered, and the one that could only be found by
+// importing `stats.js` into Node: a week with real sets in it and no
+// *classified* volume. Cardio has no muscle group by design, so `counts` comes
+// back empty — but a lifter who trained in the previous eight weeks still gets
+// all nine rows seeded at zero, and `sets` is above zero because the runs are
+// sets. The card therefore satisfied every "is this empty" test it had and drew
+// nine deficit runways over a week in which something plainly happened.
+//
+// Same previous week as `vacia`, because the handover is the same handover: the
+// only figures on screen that are real and final are last week's. The
+// difference is entirely in the current week, which is the point.
+function cardioWeek() {
+  // Monday always exists; today only differs from it after Monday. Two runs
+  // rather than one so the sessions count is not the singular that hides a
+  // plural bug.
+  const dates = [...new Set([isoOf(monday), isoOf(today)])]
+  return dates.map((date, slot) => ({
+    id: 850 + slot,
+    date,
+    workouts: [
+      {
+        id: 850 + slot,
+        date,
+        name: 'Cardio',
+        sets: [
+          { ...cardioSet('Cinta', 1800, 5.4), set_index: 0, created_at: `${date}T07:10:00.000000Z` },
+          { ...cardioSet('Bici estática', 1200, 8), set_index: 1, created_at: `${date}T07:40:00.000000Z` },
+        ],
+      },
+    ],
+  }))
+}
+
+export const cardioOnlyDays = [...cardioWeek(), ...previousWeek()].sort((a, b) =>
+  a.date < b.date ? 1 : -1,
+)
+
 // --- The muscle nobody touched (`?harness=volume&caso=intacto`) --------------
 //
 // The one row RP's landmarks put a floor of zero under. Core at literally no

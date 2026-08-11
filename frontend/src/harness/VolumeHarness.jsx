@@ -11,6 +11,7 @@ import { useEffect } from 'react'
 
 import { PeriodSummary } from '../Progress.jsx'
 import {
+  cardioOnlyDays,
   days,
   emptyWeekDays,
   mondayDays,
@@ -18,14 +19,18 @@ import {
   quietCoreDays,
 } from './fixture.js'
 
-// The five weeks worth benching. `llena` spreads every band state across nine
+// The six weeks worth benching. `llena` spreads every band state across nine
 // rows at once, which is the only way to judge the row itself; `lunes` is the
 // week five days out of seven actually look like; `vacia` and `nueva` have no
 // rows to draw at all and are therefore almost entirely copy, which a static
 // mock cannot be judged from; `intacto` is the one row RP puts a floor of zero
 // under, where "never touched" and "trained enough" draw the same picture
 // unless something is done about it — and no other case produces it, since
-// `llena` gives Core 12.5 and `lunes` gives it 1.5.
+// `llena` gives Core 12.5 and `lunes` gives it 1.5. `cardio` is a week with
+// real sets and no classified volume, which every other case says nothing
+// about: it had rows seeded at zero *and* a set count above zero, so it slipped
+// past both halves of the old empty test and drew nine deficits over a week you
+// trained in. A state with no bench case is a state nobody looks at twice.
 //
 // Two pieces arrived with two spellings — `?caso=` and `?case=` — so both keys
 // are read and the Spanish values are canonical. `case=monday` is kept because
@@ -37,6 +42,7 @@ const CASES = {
   vacia: emptyWeekDays,
   nueva: noHistoryDays,
   intacto: quietCoreDays,
+  cardio: cardioOnlyDays,
 }
 
 // Dark is the design's primary target (DESIGN.md: "dark-first"), but the theme

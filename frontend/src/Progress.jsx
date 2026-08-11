@@ -420,7 +420,9 @@ export function PeriodSummary({ days }) {
       : formatRange(current.start, current.end)
 
   // The one token in the header that says what every number under it *means*,
-  // and the only one of them in ink.
+  // and the only one of them in ink. It is **the denominator, never the unit**:
+  // the figures beside it carry their own unit, and the rows carry theirs in
+  // the `media/sem` heading directly over them.
   //
   // It replaces a subtitle that welded three facts at one weight — sessions,
   // sets, and how far in you were — where the third is the only one that
@@ -428,27 +430,29 @@ export function PeriodSummary({ days }) {
   // Two cases, one job:
   //
   //  - A period still running prints how far into it you are. "3 días" reads as
-  //    a total and "3 de 7 días" read as three days *trained* sitting next to
-  //    "2 entrenos"; "Día 3 de 7" is a position, and it is the whole reason
-  //    nine rows of counts are not a finished week.
-  //  - A month reporting weekly averages prints that it is, because `Mes`
-  //    reprices every row on the card from a count to a rate and a 57px chip
-  //    cannot carry a change that size. The span rides with it: 1.9/sem after
-  //    3.7 weeks and 1.9/sem after two days are different claims.
+  //    a total and "3 de 7 días" reads as three days *trained* sitting next to
+  //    "2 entrenos"; "Día 3 de 7" is a position. What it uniquely adds is the
+  //    *fraction* — a Tuesday against a Sunday — which is what decides how to
+  //    read `faltan 10`, and it earns that most on the week with nothing in it.
+  //  - A month reporting weekly averages prints the span it averaged over,
+  //    because 1.9/sem after 3.7 weeks and 1.9/sem after two days are different
+  //    claims and nothing else on the card can say which one this is. It does
+  //    *not* print the word "media": the `/sem` riding each figure and the
+  //    `media/sem` heading over the rows both say it, on the figures rather
+  //    than beside them, and a third saying is the `HOY`-chip mistake.
   //
   // A closed week gets nothing. Its counts mean exactly what they say, and the
-  // disabled ›, the date range in the nav and the rows' own verdicts already
-  // say it is over — a fourth cue is the mistake the `HOY` chip made on Días.
+  // nav title flipping `Esta semana` → `20–26 jul`, plus the rows' verdicts
+  // going muted → ink, already say it is over.
   const daysIn = Math.round(summary.weeks * 7)
   // 7 for a week; for a month, the day number its last date carries.
   const periodDays = byMonth ? Number(current.end.slice(8, 10)) : 7
-  const stage = !summary.inProgress
-    ? summary.averaged
-      ? 'Media semanal'
+  const spanWeeks = Math.round(summary.weeks * 10) / 10
+  const stage = summary.averaged
+    ? plural(spanWeeks, 'semana', 'semanas')
+    : summary.inProgress
+      ? `Día ${daysIn} de ${periodDays}`
       : null
-    : summary.averaged
-      ? `Media de ${Math.round(summary.weeks * 10) / 10} semanas`
-      : `Día ${daysIn} de ${periodDays}`
 
   // Whether the reference has earned the right to call this good or short. A
   // finished period has: everything that was going to happen, happened. A month
@@ -471,12 +475,22 @@ export function PeriodSummary({ days }) {
   // and never on a deload, which already explains itself in its own words.
   const typical = byMonth || deload ? null : typicalWeekSets(days, current.start)
 
-  // Nothing to draw: either no muscle claimed a set in this period, or no set
-  // was logged in it at all. The second one still produces rows — a group that
-  // has gone quiet holds its row at zero — and those are exactly the rows that
-  // must not be drawn, because nine of them at once is nine reproaches.
+  // Nothing to draw: no muscle claimed a set in this period. One test, because
+  // there is one condition — a row is drawable when it has volume in it.
+  //
+  // `rows` is not the test. A quiet group holds its row at zero for eight weeks
+  // (P4 widened that from one period, which is right for a normal week), so
+  // anyone who has lifted at all recently gets nine seeded rows no matter what
+  // this week holds — and nine rows all at zero is the whole band printed nine
+  // times as a shortfall, the "nueve reproaches" of DESIGN.md 2026-08-10.
+  //
+  // `summary.sets` is not the test either, and that was the subtler miss: a
+  // week of nothing but cardio has sets above zero and nine seeded rows, so it
+  // passed both halves of the old condition and drew nine deficits over a week
+  // in which you did train. "Nothing was classified" and "nothing happened" are
+  // different sentences — the first keeps its counts and says so in words.
   const hasHistory = days.some((day) => day.workouts.some((w) => w.sets.length > 0))
-  const empty = summary.rows.length === 0 || summary.sets === 0
+  const empty = !summary.rows.some((row) => row.sets > 0)
 
   // A week with nothing in it was never short of anything: "0 series, menos de
   // un cuarto de tu semana típica" measures a week that never started against
@@ -541,20 +555,37 @@ export function PeriodSummary({ days }) {
   // volume broken down the way this card asks you to read it, so the totals are
   // context for the marker, not the headline they used to share with it.
   //
+  // **Printed in whatever unit the rows are printed in.** A month averages, so
+  // its counts average too. Left as month totals they sat behind a marker
+  // reading "Media de 1.6 semanas", joined to it by the same `·` that joins
+  // them to each other — so the modifier scoped forward onto them and `4
+  // entrenos` read as four sessions a week when the rate was 2.5. `193 series`
+  // self-corrects by absurdity; four sessions a week does not. No separator
+  // fixes that reliably, so the register does: with `/sem` on every figure the
+  // marker cannot mis-scope, because there is nothing left to mis-scope onto.
+  //
   // Dropped entirely when the period holds no sets, because "0 entrenos · 0
   // series" under a line already saying the week is empty is the same nothing
   // said twice, and it reads as a scorecard. The test is `summary.sets`, not
-  // `empty`: a week of nothing but cardio has no muscle rows and so is "empty"
-  // to everything below, but it did have sessions and it did have sets, and
-  // deleting them is the one branch where somebody might want confirmation the
-  // week was seen at all.
+  // `empty`: a cardio-only week draws no rows and so is "empty" to everything
+  // below, but it did have sessions and it did have sets, and those counts are
+  // the only thing on the card saying the week was not blank.
+  const rate = (n) => Math.round((n / summary.weeks) * 10) / 10
   const counts =
     !hasHistory || summary.sets === 0
       ? null
-      : [
-          plural(current.sessions, 'entreno', 'entrenos'),
-          plural(summary.sets, 'serie', 'series'),
-        ].join(' · ')
+      : summary.averaged
+        ? [
+            `${plural(rate(current.sessions), 'entreno', 'entrenos')}/sem`,
+            // `perWeek` rather than a second division: stats.js already
+            // publishes this figure at this rounding, and two roundings of one
+            // number is how a header and a row come to disagree by a tenth.
+            `${plural(summary.perWeek, 'serie', 'series')}/sem`,
+          ].join(' · ')
+        : [
+            plural(current.sessions, 'entreno', 'entrenos'),
+            plural(summary.sets, 'serie', 'series'),
+          ].join(' · ')
 
   return (
     <div className="card">
@@ -665,18 +696,12 @@ export function PeriodSummary({ days }) {
           típica
         </p>
       )}
-      {!empty && (
-        <>
-          <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>
-          {/* The month still needs saying out loud: its rows print a weekly
-              average against a weekly reference, on a card titled with a month.
-              The week needs nothing — its rows no longer pass a verdict there
-              would be anything to apologise for. */}
-          {summary.inProgress && byMonth && (
-            <p className="hint sum-ref">Mes en curso — la referencia es por semana completa.</p>
-          )}
-        </>
-      )}
+      {/* No footer about the month averaging. It was the third place on one
+          card saying "these are weekly averages" — after the header marker and
+          the `media/sem` column heading — and the weakest of the three, because
+          it sat *after* the rows it was meant to condition. The heading is the
+          strongest: it stands directly over the figures it reprices. */}
+      {!empty && <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>}
       {/* Rare by definition — six to eight weeks apart — so it takes a quiet
           text control, the same one corrections use, and never a button with
           content weight. It sits under the reference it replaces, because that
@@ -695,8 +720,12 @@ export function PeriodSummary({ days }) {
           design, and a lift the classifier doesn't recognise has none yet.
           Left unsaid it reads as a bug — and it's fixable from the exercise,
           which is worth knowing. (The rows themselves outrun the set count on
-          purpose: a press puts 1 into Pecho and half into two more.) */}
-      {summary.unclassified > 0 && (
+          purpose: a press puts 1 into Pecho and half into two more.)
+
+          Not when there are no rows: with nothing classified at all the empty
+          state's own headline is already this sentence, and a footnote with
+          nothing above it to annotate is the same fact printed twice. */}
+      {!empty && summary.unclassified > 0 && (
         <p className="hint sum-rest">
           {plural(summary.unclassified, 'serie', 'series')} sin músculo asignado
         </p>
