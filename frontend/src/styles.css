@@ -230,10 +230,34 @@ h2 {
   z-index: 11;
   max-width: 480px;
   margin: 0 auto;
-  padding: 10px 16px 8px;
+  /* No bottom padding: it went to `.days-backfill`, which needed 44px and
+     could not have them by growing the bar. The link is centred in its own
+     target, so the space is still there — it is just tappable now. */
+  padding: 10px 16px 0;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
+}
+/* The list runs under the bar, and the bar's top edge was a guillotine: at the
+   scroll position the screen opens on, a session's name (`Full body`) is cut
+   in half horizontally with nothing to explain it, which reads as a rendering
+   fault rather than as "there is more below". Content dissolves into the page
+   before it reaches the rule instead. Not part of the bar's box — it hangs
+   above it — so nothing inside the bar moves, and it never eats a tap. */
+.days-cta::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--bg),
+    color-mix(in srgb, var(--bg) 55%, transparent) 55%,
+    color-mix(in srgb, var(--bg) 0%, transparent)
+  );
 }
 /* Room for the pinned bar, so the oldest day never sits under it. Measured, not
    guessed: the bar is 114px tall and floats 57px above the bottom on the tab
@@ -789,7 +813,27 @@ button.chart-title h2 {
    the slot the duration would have taken, and the two are mutually exclusive by
    construction — an open session has no length to report. This is where today's
    third cue went: from a chip repeating what the date already said, to the only
-   thing on the row that is news. */
+   thing on the row that is news.
+
+   Contrast, measured in both themes, because this is the one badge on the
+   screen that carries a state nothing else says. It failed AA on paper and had
+   never been checked there: `--accent-ink` `#c2440f` over a 16%-accent pill
+   composites against `#f1d9cc` for **3.76**, under the 4.5 floor that 10.5px
+   text sits on. The fill was eating exactly the contrast `--accent-ink` was
+   chosen to buy — that token is defined against the paper background, and
+   tinting the ground *toward* the ink is how you spend it.
+
+   So on light the pill stops being a wash and becomes a chip: `--surface` for
+   the ground (5.09 against the same ink) with the accent riding the edge as an
+   inset ring instead of the fill. No new hue, and no layout: an inset shadow
+   has no box. Dark keeps the wash it already passes on (5.64) — it is written
+   as the override rather than light, because that is the block the benches
+   re-assert to force a theme.
+
+   The size goes with it. 0.656rem (10.5px) was off the bottom of DESIGN.md's
+   scale, whose smallest step is Label 12.8px; at `line-height: 1` the taller
+   type still measures 14.8px against the 15px the old box took, so the row does
+   not move. */
 .day-live {
   flex: none;
   display: inline-flex;
@@ -797,12 +841,24 @@ button.chart-title h2 {
   gap: 5px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--surface);
+  /* Full strength, not a tint: the ring is the only thing separating a white
+     chip from warm paper, and at 45% it composited to 1.79 against both sides.
+     `--accent` measures 3.70 on the chip and 3.31 on the page — over the 3:1
+     floor a non-text component carries. */
+  box-shadow: inset 0 0 0 1px var(--accent);
   color: var(--accent-ink);
   font-family: var(--font-mono);
-  font-size: 0.656rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1;
   letter-spacing: 0.08em;
+}
+@media (prefers-color-scheme: dark) {
+  .day-live {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: none;
+  }
 }
 .day-live-dot {
   width: 5px;
@@ -935,10 +991,17 @@ button.chart-title h2 {
    session — and its form expanded upward over the list it was meant to add to.
    It becomes a quiet link, the treatment `Salir` already earned, and its form
    becomes a sheet. */
+/* 44px, DESIGN.md's floor, and it was 36 — a short target in the corner a
+   one-handed thumb rests in, directly under the primary action, which is the
+   worst place on the screen to be missable. The 8px comes out of the bar's own
+   bottom padding rather than out of the bar's height: the CTA is measured at
+   780–832 in every case and adding height to a bottom-anchored bar would push
+   it up. The label ends up 4px lower and further from the button above it,
+   which is the other half of the same complaint. */
 .days-backfill {
   display: block;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.4rem 1rem;
   border: none;
   border-radius: var(--radius-control);
@@ -2512,6 +2575,29 @@ button.set-action {
   margin: 0.5rem 0 0;
   font-size: 0.85rem;
   line-height: 1.45;
+}
+/* The same note on Días, doing two jobs for one line of type.
+
+   (1) It is the caption the picture arrived without. Días draws the nine tracks
+   and the word `zona` and nothing else, and nine stripes at the same x on the
+   same grid read as one shared 10–20 — under which `Core 1.5 · en zona` over
+   `Pecho 4 · faltan 2` looks like the row contradicting itself.
+
+   (2) It is the seam. `.sum-rows` ended flush against the first `.day-block`,
+   so that block's `2px solid var(--accent)` — the only coloured horizontal line
+   on the screen — read as the volume table's bottom rule instead of as a date
+   stamp, and two lists scanned at completely different speeds had nothing
+   between them. Prose in the body face does that better than a gap would: it
+   changes the register, not just the distance.
+
+   Bound to the rows above it (0.4rem) and loose below (0.625rem), because it
+   annotates the first and separates the second. The whole thing costs ~36px,
+   taken off the day list, which is the trade this screen is for. */
+.sum-ref-week {
+  margin: 0.4rem 0 0.625rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
 }
 /* The deload switch sits directly under the reference line it replaces, since
    that line is the thing it changes. A hairline separates a control from the

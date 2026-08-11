@@ -128,12 +128,84 @@ describe('Days', () => {
       expect(rows.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       // One rule for the week, not two.
       expect(screen.getAllByText('ESTA SEMANA')).toHaveLength(1)
-      // Progreso's apparatus does not come with it: the arrows, the month, the
-      // deload switch and the footnote are things you go to Progreso for.
+      // Progreso's apparatus does not come with it: the arrows, the month and
+      // the deload switch are things you go to Progreso for. (The reference
+      // caption is not apparatus — see the test below.)
       expect(screen.queryByText('Series por músculo')).toBeNull()
       expect(screen.queryByLabelText('Periodo anterior')).toBeNull()
       expect(screen.queryByRole('button', { name: 'Mes' })).toBeNull()
       expect(screen.queryByRole('button', { name: 'Marcar descarga' })).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // The picture moved to Días and its caption stayed on Progreso. What the
+  // track cannot draw is that every row's band is *that muscle's own*: nine
+  // stripes at the same x on the same nine-row grid read as one shared 10–20,
+  // and then `Core 1.5 en zona` above `Pecho 4 · faltan 2` looks like the row
+  // contradicting itself. So the one sentence no track can state comes with the
+  // rows — and it doubles as the seam, because `.sum-rows` and the first
+  // `.day-block` were flush and the day's amber date rule read as the volume
+  // table's bottom rule.
+  it('carries the caption that says each band is that muscle’s own', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        {
+          id: 3,
+          date: '2026-08-08',
+          workouts: [
+            {
+              id: 7,
+              name: 'Pull',
+              sets: [benchSet({ id: 20, muscle_group: 'Espalda', secondary_groups: [] })],
+            },
+          ],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await waitFor(() => expect(container.querySelector('.sum-rows')).toBeTruthy())
+      const ref = container.querySelector('.sum-ref-week')
+      expect(ref.textContent).toBe('La zona es la de cada músculo, no la misma para todos.')
+      // Under the rows it annotates, over the list it separates.
+      const rows = container.querySelector('.sum-rows')
+      const firstDay = container.querySelector('.day-block')
+      expect(rows.compareDocumentPosition(ref) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(ref.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // Progreso's own two-sentence footnote does not come with it: this screen
+      // gets the one line, not the apparatus.
+      expect(container.querySelector('.sum-ref')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // A week with nothing in it draws no rows, so there is no picture to caption
+  // and the sentence would be annotating three sentences about last week.
+  it('drops the caption on a week with no rows to annotate', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-10T09:00:00')) // a Monday
+    try {
+      api.listDays.mockResolvedValue([
+        {
+          id: 2,
+          date: '2026-08-06',
+          workouts: [
+            {
+              id: 6,
+              name: 'Pierna',
+              sets: [benchSet({ id: 30, muscle_group: 'Cuádriceps', secondary_groups: [] })],
+            },
+          ],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('La semana aún no tiene series.')
+      expect(container.querySelector('.sum-ref-week')).toBeNull()
     } finally {
       vi.useRealTimers()
     }

@@ -148,6 +148,17 @@ const REFERENCE_COPY =
   'La franja es el margen productivo de ese músculo: cada uno tiene el suyo. ' +
   'Un músculo secundario cuenta media serie.'
 
+// The same fact, in the one line Días can pay for — and it is the line Días
+// most needs, because Días is the screen you open the app on. The picture went
+// there and the caption stayed here: nine stripes drawn at the same x on the
+// same nine-row grid *look* like one shared 10–20 range, and under that reading
+// `Core 1.5 · en zona` sitting over `Pecho 4 · faltan 2` is the row
+// contradicting itself. It says `zona` and not `franja` because `zona` is the
+// word printed over the track on that screen; the second sentence — how a
+// compound counts — is arithmetic you can look up on Progreso, and it does not
+// change how the drawing reads.
+const WEEK_REFERENCE_COPY = 'La zona es la de cada músculo, no la misma para todos.'
+
 // The one week where the standing reference is the wrong question. Marked as a
 // deload, every row is measured against a third of your own recent average
 // instead — and nothing is called short, because training less is the plan.
@@ -678,6 +689,18 @@ export function PeriodSummary({ days, variant = 'card' }) {
         </div>
         {body}
         {short}
+        {/* The one line of the footnote that Días cannot do without, and the
+            seam between two blocks read at different speeds. `.sum-rows` ended
+            flush against the first `.day-block`, so that day's `2px` amber date
+            rule — the only coloured horizontal line on the screen — read as the
+            volume table's bottom border rather than as a date stamp. A caption
+            under the picture and a gap over the list are the same 30px.
+
+            Nothing to caption on a week with no rows: the empty state is three
+            sentences about last week, and a note explaining a track that isn't
+            drawn is worse than no note. A deload week keeps the deload's own
+            words — the band it measures against is not the standing one. */}
+        {!empty && <p className="sum-ref-week">{deload ? DELOAD_COPY : WEEK_REFERENCE_COPY}</p>}
       </>
     )
   }
