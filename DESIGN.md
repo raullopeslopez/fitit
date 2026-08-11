@@ -44,6 +44,26 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
   | Big stat (PR/1RM) | 1.4rem / 22.4px | 600 | Geist Mono | 0, tabular-nums |
   | Meta/small | 0.85rem / 13.6px | 400 | Geist | 0 |
   | Label | 0.8rem / 12.8px | 600 | Geist | 0.01em |
+  | Micro (stamp) | 0.7rem / 11.2px | 600 | Geist Mono | 0.06–0.14em, uppercase |
+- **Below Label there is exactly one step, and it is not for reading.** The stylesheet had
+  drifted to nine distinct sizes under 12.8px — 12.48, 12.0, 11.84, 11.52, 11.2, 11.0,
+  10.88, 10.5, 10.4 — which is not a scale, it is the absence of one. Two different things
+  were hiding in that drift, and they want opposite answers:
+  - **Prose that had simply been shrunk** — a hint, a caption, the list of muscles a week
+    still owes. There is no case for setting a sentence below the smallest step the scale
+    defines: on paper, `--muted` at 11.84px is where a label stops being quiet and starts
+    being unread. **Anything read as a sentence is Label 12.8px or larger, no exceptions.**
+    If prose seems to need less than 12.8px, the prose is too long, not the type too big.
+  - **Stamps** — uppercase, letterspaced marks that annotate a figure instead of being read
+    as words: the `SER` after a set count, `ESTA SEMANA`, `VIE · DESCANSO`. An instrument
+    needs these, and it needs them below the reading sizes: a gauge's tick labels are
+    smaller than anything you read off it, and a unit set at the same size as its quantity
+    turns `15 SER` from one reading into two tokens of equal weight. So **Micro exists, and
+    only for uppercase letterspaced non-prose stamps** — a unit, a column head, a section
+    rule. It is not an escape hatch: if it has a lowercase letter in it, it is not a stamp.
+  A **nav caption is not a stamp** — `Días`, `Progreso` are words you read, so the bottom
+  tabs sit at Label, not Micro. They fit: the tab's 56px `min-height` governs the bar's
+  height, so the caption grows inside a box that does not move.
 
 ## Color
 - **Approach:** restrained — monochrome instrument palette + a single "effort" accent.
@@ -119,6 +139,38 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   (below 3:1 on white). It is dismissable here and only here because the rule
   above already forces relief: every mark in this palette sits beside its
   muscle's name in ink, so colour is never carrying identity alone.
+
+  **The palette now renders on four surfaces, not two, and the light figures get
+  worse on the fourth.** Días draws these dots with no card under them, so they
+  sit on the page background — `#0B0C0E` on dark and warm paper `#F4F2EE` on
+  light — rather than on `#15171A` / `#FFFFFF`. Re-run on all four: lightness
+  band, chroma floor, CVD separation and the normal-vision floor pass
+  everywhere, and the worst adjacent pair is unchanged (`#199e70 ↔ #c98500`
+  ΔE 8.4 protan on dark, `#0089a0 ↔ #8b4bc0` ΔE 8.8 deutan on light). What moves
+  is the light WARN, because paper is darker than white:
+
+  | hue | grupo | on `#FFFFFF` (card) | on `#F4F2EE` (Días) |
+  |-----|-------|--------------------|---------------------|
+  | `#e87ba4` | Cuádriceps | 2.69 | 2.41 |
+  | `#eda100` | Hombro | 2.17 | **1.94** |
+  | `#1baf7a` | Bíceps | 2.82 | 2.52 |
+
+  So Hombro's real floor is 1.94, not the 2.17 this section used to imply. The
+  dismissal still stands for the same reason and no other — on Días every dot is
+  7px of colour sitting immediately left of its muscle's name in ink at 15.9:1 —
+  but the number a reader should be arguing with is 1.94. **Do not "fix" this by
+  darkening the hues**: the lightness band is what the CVD separation was solved
+  inside, and moving a hue out of it re-opens the whole pairlist.
+
+  **A muscle dot must never be readable as a band mark**, since Días puts both in
+  one row. They are kept apart on three axes at once and it only takes one:
+  the dot is round (7×7, `border-radius: 50%`) and every band mark is a straight
+  edge (1px zone rule, 2px tail, 3×16 needle); the dot lives in the name column
+  and the band marks live in the track, so they never share an x; and — the axis
+  that cannot degrade — **every band mark is achromatic** (`--text` at 18 / 55 /
+  100%, channel spread ≤ 5) while every hue in this palette clears the chroma
+  floor by a wide margin (lowest spread 131, `#008300`). Grey is the band's
+  vocabulary and colour is the muscle's, and neither may borrow from the other.
 
 ## Spacing
 - **Base unit:** 4px.

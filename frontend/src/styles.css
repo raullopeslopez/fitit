@@ -166,7 +166,10 @@ h2 {
   background: transparent;
   border: none;
   color: var(--text);
-  font-size: 0.9375rem;
+  /* Body. 15px was a hand-picked value one pixel under the step it was reaching
+     for; the 44px target already governs the box, so the type grows and nothing
+     moves. */
+  font-size: 1rem;
   font-weight: 600;
   min-height: 44px;
   padding: 0.4rem 0.25rem;
@@ -201,7 +204,12 @@ h2 {
   border: none;
   border-radius: 0;
   color: var(--muted);
-  font-size: 0.72rem;
+  /* Label, not Micro. `Días` and `Progreso` are words you read, not stamps that
+     annotate a figure, and DESIGN.md puts the sub-Label step out of bounds for
+     anything with a lowercase letter in it. The bar does not grow: `min-height`
+     is 56px and the stack (8 + 16 icon + 1.6 gap + 15.4 caption + 8) comes to
+     49px, so the extra 1.28px is spent inside slack the box already had. */
+  font-size: 0.8rem;
   font-weight: 600;
   min-height: 56px;
   padding: 0.5rem 0;
@@ -645,9 +653,12 @@ button.chart-title h2 {
 .week:first-of-type .week-head {
   padding-top: 0;
 }
+/* Both at Micro (DESIGN.md): uppercase, letterspaced, mono — a section rule and
+   its total, stamped on the list rather than read as a sentence. 0.6875rem was
+   a value invented for this one rule. */
 .week-label {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.14em;
   color: var(--text);
@@ -655,7 +666,7 @@ button.chart-title h2 {
 .week-totals {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -675,7 +686,8 @@ button.chart-title h2 {
 .day-rest-label {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 0.656rem;
+  /* Micro: `VIE · DESCANSO` is a stamp on a hairline, not prose. */
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   color: var(--accent-ink);
 }
@@ -803,7 +815,15 @@ button.chart-title h2 {
   flex: 1;
   min-width: 0;
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  /* Meta, down from a hand-picked 0.92rem. Two steps were available and the
+     screen's thesis picks between them: the day list is subordinate to the
+     volume block above it, so the name snaps *down* to the step the volume
+     block's own muscle names sit on (13.6px) rather than up to Body. The two
+     lists' name tokens now weigh the same and are told apart by face — Space
+     Grotesk here, Geist there — instead of by 1.1px. Snapping down also can
+     only free space above the fold, never eat it, which matters on a screen
+     whose CTA is pinned. */
+  font-size: 0.85rem;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -866,11 +886,14 @@ button.chart-title h2 {
   border-radius: 50%;
   background: currentColor;
 }
+/* Label, and the same Label `.day-live` takes. The two share one slot and are
+   mutually exclusive by construction, so at 12px against 12.8px the row's right
+   edge changed size depending on whether the session had finished. */
 .day-session-len {
   flex: none;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 400;
   color: var(--muted);
 }
@@ -936,8 +959,13 @@ button.chart-title h2 {
   font-size: 0.85rem;
   color: var(--text);
 }
+/* Micro: `SER` is the unit on a tabular figure — the case the step exists for.
+   It stays a step under the count it modifies (11.2 against 13.6) so `15 SER`
+   reads as one figure with a unit rather than two tokens of equal weight, and
+   it is an inline box smaller than its parent's, so the right column DESIGN.md
+   aligned does not move. */
 .day-count-unit {
-  font-size: 0.656rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
@@ -958,7 +986,9 @@ button.chart-title h2 {
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 17px;
+  /* A mono glyph used as an icon sits at Body, same as `.tab-icon`. 17px was
+     the only bare pixel size left on this screen. */
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -1959,9 +1989,14 @@ button.set-action {
   color: var(--muted);
 }
 
+/* Meta. A hint is secondary prose and there is a step for that; 0.9rem was
+   between two of them. This one is shared with Progreso, Entreno and Ritmo, so
+   it is the single change in this pass that reaches off the main screen — kept
+   because the alternative was a Días-only override putting two sizes in the
+   file for one idea. */
 .hint {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin: 0.9rem 0 0;
 }
 
@@ -2486,14 +2521,19 @@ button.set-action {
    only sentence on it. */
 .sum-empty {
   margin: 0;
-  font-size: 0.82rem;
+  /* Meta — which is what the comment above already claimed. It shipped at
+     0.82rem against `.sum-shortweek`'s 0.85rem, so "the size the short-week
+     line uses" was off by half a pixel and off the scale besides. */
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
   line-height: 1.45;
 }
 .sum-handover {
   margin: 0.3rem 0 0;
-  font-size: 0.74rem;
+  /* Label: still a step under the sentence above it, but a sentence itself, and
+     DESIGN.md puts the floor for prose at 12.8px. */
+  font-size: 0.8rem;
 }
 /* Last week's shortfalls, the one actionable thing a blank Monday can hold.
    Wrapping row of name+dot pairs, spaced rather than punctuated — the day list
@@ -2506,13 +2546,16 @@ button.set-action {
   align-items: baseline;
   gap: 0.2rem 0.7rem;
   margin: 0.45rem 0 0;
-  font-size: 0.78rem;
+  /* Label for the whole group. The label, the names and the overflow count ran
+     at 0.74 / 0.78 / 0.74rem — a 0.64px spread nobody can see, three
+     declarations spent on a hierarchy that colour and weight were already
+     carrying (`--muted` label, 600 name). One size, and the two overrides go. */
+  font-size: 0.8rem;
   color: var(--text);
   line-height: 1.5;
 }
 .sum-owed-lab {
   color: var(--muted);
-  font-size: 0.74rem;
 }
 .sum-owed-item {
   display: inline-flex;
@@ -2524,7 +2567,6 @@ button.set-action {
 }
 .sum-owed-more {
   color: var(--muted);
-  font-size: 0.74rem;
 }
 .sum-bar {
   position: relative;
