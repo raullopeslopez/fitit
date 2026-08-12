@@ -973,10 +973,19 @@ button.chart-title h2 {
 /* Repeating a session is the fastest way to log one, and it sat behind a `⋯`
    that every day paid 44px for in order to hold one useful action and one
    destructive one. It gets those 44px; the destructive one went to a press and
-   hold, and the day block lost its third column. */
+   hold, and the day block lost its third column.
+
+   It gets those 44px in *both* directions, which took two goes. The rule said
+   36 while the comment said 44, and 36 is not a rounding error here: the row
+   behind the button is the link into the session, so a tap landing 4px left of
+   the glyph opens the day instead of repeating it — the same mis-aim the
+   2026-08-10 entry removed the chevron to fix, arrived at from the other side.
+   The 8px comes out of slack that already existed: `.day-session-row` ends at
+   402.8 inside a block that ends at 414, so the tabular count column does not
+   move. */
 .day-repeat {
   flex: none;
-  min-width: 36px;
+  min-width: 44px;
   min-height: 44px;
   /* Detached from the count, so the button reads as the row's edge rather than
      as another figure in its right column. */
