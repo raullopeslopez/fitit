@@ -203,6 +203,11 @@ export function sessionsPerPeriod(days, period = 'week', { endDate } = {}) {
 // sets no muscle claimed at all — cardio, and lifts the classifier can't place.
 function setsInWindow(days, { start, end }) {
   const counts = {}
+  // The half-sets inside `counts` that came from a lift's *secondary* groups
+  // rather than from direct work. Tracked separately because RP's volume
+  // landmarks are written for direct sets only — see volume.js — so a row
+  // cannot be judged without knowing how much of its number was indirect.
+  const indirect = {}
   let total = 0
   let unclassified = 0
   for (const day of days) {
@@ -220,11 +225,12 @@ function setsInWindow(days, { start, end }) {
         // breaking.
         for (const group of set.secondary_groups ?? []) {
           counts[group] = (counts[group] || 0) + 0.5
+          indirect[group] = (indirect[group] || 0) + 0.5
         }
       }
     }
   }
-  return { counts, total, unclassified }
+  return { counts, indirect, total, unclassified }
 }
 
 // What a deload week is aiming at, per muscle: a third of your own recent
@@ -330,18 +336,33 @@ export function setsPerMuscle(days, { period = 'week', index = 0, endDate } = {}
   // answer to "am I training what I think I'm training"; dropping the row hid
   // the one case worth seeing.
   //
-  // Seeded from the whole period before, not from the stretch of it the deltas
-  // compare against: that stretch is one day long on the 1st of a month, so a
+  // Seeded from the whole stretch before, not from the slice of it the deltas
+  // compare against: that slice is one day long on the 1st of a month, so a
   // muscle trained all July but not on its 1st fell off the board on exactly
-  // the day its absence mattered. One period back is still a bound — otherwise
-  // every group ever trained queues up at the bottom forever.
-  const silent = Object.keys(setsInWindow(days, previousPeriod(current, period)).counts)
+  // the day its absence mattered.
+  //
+  // Eight weeks of it, and not one period — the same window `typicalWeekSets`
+  // and `deloadTargets` already call "your recent normal". One period back held
+  // a silent muscle's row for exactly one week of silence, so a group you
+  // stopped training vanished on the *second* week, which is the first week the
+  // absence means anything: the row disappeared precisely as it acquired
+  // something to say. Still bounded, because a mistagged set from March should
+  // not pin a row forever; nine groups is the ceiling either way.
+  const silent = Object.keys(
+    setsInWindow(days, { start: shiftDay(current.start, -56), end: shiftDay(current.start, -1) })
+      .counts,
+  )
   const counts = { ...Object.fromEntries(silent.map((g) => [g, 0])), ...now.counts }
 
   const rows = rankGroups(counts).map(({ group, sets }) => ({
     group,
     sets: round1(sets),
     perWeek: round1(sets / nowWeeks),
+    // How much of `sets` arrived as somebody else's secondary. Reported in both
+    // units, matching `sets`/`perWeek`, so a consumer never holds a raw count
+    // against an averaged one. A band can only be applied once this is known.
+    indirect: round1(now.indirect[group] || 0),
+    indirectPerWeek: round1((now.indirect[group] || 0) / nowWeeks),
     delta: round1(shown(sets, nowWeeks) - shown(then.counts[group] || 0, thenWeeks)),
   }))
 

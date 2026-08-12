@@ -22,6 +22,7 @@ import {
   typicalWeekSets,
 } from './stats.js'
 import { showKg } from './units.js'
+import { bandFor, bandPosition, bandState } from './volume.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
@@ -129,21 +130,34 @@ function Ladder({ rungs, color }) {
   )
 }
 
-// The weekly-set reference, from docs/investigacion-series-semana.md: 4 sets a
-// week per muscle is the minimum dose that grows anything, 10–20 is where each
-// set still buys a lot, and past that the returns fall off — there is no peak to
-// aim at, so the copy never says "óptimo".
+// The weekly-set reference. It used to be one flat 10–20 for all nine groups,
+// which is the figure docs/investigacion-series-semana.md settles on — but a
+// single number cannot be right for calves and lats at once, and the row was
+// paying for that twice: a bar that ran to a fixed 20 drew 20 sets and 40 sets
+// identically, so "over" and "at the top of the band" were the same picture.
+// `volume.js` carries a band per muscle now (mv / mev / mrv), and the row is
+// drawn against that group's own band.
 //
-// The bar is drawn against this fixed 20 rather than against your own biggest
-// muscle. Scaled to the biggest row, five sets of chest filled the bar edge to
-// edge because nothing beat it, which reads as "done"; against a fixed reference
-// a full bar means the same thing in every row and every week.
-const REFERENCE = 20
-const ZONE = 10
+// Two lines, and neither of them is a key to the picture. "Por debajo la marca
+// se sale por la izquierda" taught you to read a chart you have already read,
+// and a chart that needs teaching has lost the argument — it went. What no
+// track can state stays: that the band is *this* muscle's own range rather than
+// one shared number (the single fact a reader cannot infer from nine identical
+// stripes), and that a compound lift pays its secondary groups half a set.
 const REFERENCE_COPY =
-  'Referencia: 4 series/semana es el mínimo que produce crecimiento. ' +
-  '10–20 es la zona eficiente. Barra llena = 20. ' +
+  'La franja es el margen productivo de ese músculo: cada uno tiene el suyo. ' +
   'Un músculo secundario cuenta media serie.'
+
+// The same fact, in the one line Días can pay for — and it is the line Días
+// most needs, because Días is the screen you open the app on. The picture went
+// there and the caption stayed here: nine stripes drawn at the same x on the
+// same nine-row grid *look* like one shared 10–20 range, and under that reading
+// `Core 1.5 · en zona` sitting over `Pecho 4 · faltan 2` is the row
+// contradicting itself. It says `zona` and not `franja` because `zona` is the
+// word printed over the track on that screen; the second sentence — how a
+// compound counts — is arithmetic you can look up on Progreso, and it does not
+// change how the drawing reads.
+const WEEK_REFERENCE_COPY = 'La zona es la de cada músculo, no la misma para todos.'
 
 // The one week where the standing reference is the wrong question. Marked as a
 // deload, every row is measured against a third of your own recent average
@@ -159,36 +173,241 @@ const DELOAD_COPY =
   'Semana de descarga: el objetivo es 1/3 de tu semana típica de las ' +
   'últimas 8. Mismo peso, menos series.'
 
-// How far the row is from the efficient band — and nothing else. Every other
-// thing the row could say is already said: the value column prints what you
-// did, and the bar draws where that sits against the reference. Naming the band
-// on top of both ("10 series" · "10 de 10" · a full bar) was the same fact
-// three times, on nine rows.
+// Where the band sits on every row's track, read back out of the model instead
+// of written down twice. By contract `bandPosition` lands every group's mev and
+// mrv on the same two fractions — that is the whole point of it — so asking one
+// group answers for all nine, and the channel can never drift out of step with
+// the marks inside it.
+const CHANNEL = (() => {
+  for (const group of MUSCLE_GROUPS) {
+    const band = bandFor(group)
+    if (band) {
+      return { lo: bandPosition(group, band.mev), hi: bandPosition(group, band.mrv) }
+    }
+  }
+  return { lo: 0.38, hi: 0.74 }
+})()
+
+const clamp01 = (n) => Math.min(1, Math.max(0, n))
+const pct = (n) => `${Math.round(clamp01(n) * 1000) / 10}%`
+
+// What the row says out loud to a screen reader, which cannot see that the mark
+// is left of the band.
+const SPOKEN = {
+  bajo: 'por debajo de la zona',
+  zona: 'en zona',
+  sobre: 'por encima de la zona',
+  'sin-banda': 'sin zona de referencia',
+}
+
+// One muscle, its weekly sets, and where that lands against its own productive
+// band — and the last of those three is the one the row is built to answer.
 //
-// So the line carries only the number neither of them can give you: the gap you
-// can close in the next session. In the zone it says nothing at all — a bar
-// past the tick is the whole message, and there is nothing to act on.
+// The old row drew a fill from zero to a flat 20 with a tick at 10, which asked
+// you to decode two tick positions against a length, and could not tell 20 sets
+// from 40 because both filled the bar. This one places a single mark on a track
+// whose band always occupies the same stretch, so nine rows stack their bands
+// into one column and the only thing that moves is the mark. Outside it, the
+// mark drags a tail back to the edge it missed: the tail *is* the shortfall,
+// drawn at the same scale as everything else, which is why the row can be read
+// without reading a number at all.
 //
-// One target, always the zone, so the number means the same thing on every row.
-// The old two-tier gap (to 4 if under the minimum, to 10 otherwise) made it
-// change meaning halfway down the card without saying so.
+// No colour on any of it. Under, inside and over are position and nothing else
+// — a red/green verdict would spend the semantic colours on a set count, and
+// the muscle palette is already committed to identity. The one hue on the row
+// is the dot beside the name, the same mark Días and the exercise cards use.
 //
-// "faltan 6" and not "+6": the row already carries a "+6" in the delta column,
-// pointing the other way in time. Two numbers of the same shape on one row, one
-// looking forward and one back, is a card you have to decode. The word costs
-// six characters and removes the ambiguity outright.
+// The count is the loudest token on the row, and it sits immediately left of
+// the track: it was the smallest and faintest thing here, 250px away from the
+// mark that explains it, which is the whole figure the card exists for reading
+// last. Name over it in support, spec-sheet order — label left, value right,
+// track after.
+function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
+  const { state, gap, band } = bandState(group, shown)
+  const { lo, hi } = CHANNEL
+
+  // A deload replaces the band outright — the week is aiming at a third of your
+  // own normal, so a productive-range channel is the wrong reference to draw.
+  // The band's own left edge becomes the target rule, which keeps the geometry
+  // and the row height identical while the meaning underneath changes.
+  const goal = deload ? (target ?? band?.mev ?? 1) : null
+  const at = deload ? clamp01((shown / Math.max(goal, 0.1)) * lo) : bandPosition(group, shown)
+
+  const tail = deload
+    ? [Math.min(at, lo), Math.max(at, lo)]
+    : state === 'bajo'
+      ? [at, lo]
+      : state === 'sobre'
+        ? [hi, at]
+        : null
+
+  // The shortfall drawn while the week can still supply it. `judging` has held
+  // the ink off the *words* since a Monday first read as nine reproaches — but
+  // the tail was invented after that rule was written and never came under it,
+  // so a Tuesday with fifteen sets logged printed five muted words under five
+  // full-strength leader lines saying the same thing louder. The letter of the
+  // rule was kept and its reason lost. Same switch, both channels.
+  //
+  // Only the shortfall. A tail past the far edge measures work already done: it
+  // is as true on a Tuesday as on a Sunday and it can only grow, so dimming it
+  // would be the card hedging about a fact. A deload's below-goal tail counts as
+  // a shortfall — Wednesday of a deload week has not missed its third either.
+  const behind = deload ? at < lo : state === 'bajo'
+  const provisional = !judging && behind
+
+  // Zero sets against a band that asks for none. RP puts ab MEV at zero, so the
+  // number and the band are both right and nothing is owed — but the needle
+  // lands exactly on the band's near edge and the state line stays silent,
+  // which is the same picture eight sets of squats earn. "Never touched" and
+  // "trained enough" came out identical, on the one row where they are furthest
+  // apart.
+  //
+  // The needle goes: its position here is a coincidence of the geometry, not a
+  // measurement, and RP's own answer for a week it has not reached yet is to
+  // draw nothing at all — absence looks like absence. One muted word takes its
+  // place so a missing needle cannot read as a rendering fault. Muted and never
+  // ink, in any state: this is a description of the week, not a demand on it,
+  // and it does not wait for the week to close the way `faltan N` waits.
+  const untouched = !deload && shown === 0 && state === 'zona'
+
+  // Only the gap, and only when there is one. In the zone the mark inside the
+  // channel is the whole message; over it, nothing is owed and nothing above the
+  // band is called an excess. A deload states the target it swapped in instead.
+  const words = deload
+    ? `objetivo ${goal}`
+    : untouched
+      ? 'sin tocar'
+      : shortWeek
+        ? ''
+        : state === 'bajo'
+          ? `faltan ${gap}`
+          : state === 'sin-banda'
+            ? 'sin zona'
+            : ''
+
+  // Which side of the band the mark is on, said by the mark itself. Position
+  // cannot resolve it at the edges — 8.5 sets against an MEV of 8 lands three
+  // pixels inside the band and 17 against an MRV of 16 four pixels outside it,
+  // and both are rows a real week produces. A caret pointing back at the band
+  // is a shape rather than a distance, so it reads at any gap; it is redundant
+  // with the position and the tail, and it costs no colour.
+  const facing = deload ? '' : state === 'bajo' ? ' is-under' : state === 'sobre' ? ' is-over' : ''
+
+  return (
+    <div className="sum-row">
+      <span className="sum-id">
+        <span className="sum-label">
+          <span
+            className="sum-dot"
+            style={{ '--chip': muscleColor(group) }}
+            aria-hidden="true"
+          />
+          <span className="sum-name">{group}</span>
+        </span>
+        <span
+          className={`sum-state${
+            judging && !deload && !shortWeek && state === 'bajo' ? ' is-short' : ''
+          }`}
+        >
+          {words}
+        </span>
+      </span>
+      <span className="sum-val">{shown}</span>
+      <span
+        className="sum-track"
+        role="img"
+        aria-label={`${group}: ${shown} — ${
+          deload ? `objetivo ${goal}` : untouched ? 'sin tocar' : SPOKEN[state]
+        }`}
+      >
+        <span className="sum-axis" aria-hidden="true" />
+        {band && !deload && (
+          <span
+            className="sum-zone"
+            style={{ left: pct(lo), width: pct(hi - lo) }}
+            aria-hidden="true"
+          />
+        )}
+        {deload && <span className="sum-goal" style={{ left: pct(lo) }} aria-hidden="true" />}
+        {tail && tail[1] - tail[0] > 0.001 && (
+          <span
+            className={`sum-tail${provisional ? ' is-provisional' : ''}`}
+            style={{ left: pct(tail[0]), width: pct(tail[1] - tail[0]) }}
+            aria-hidden="true"
+          />
+        )}
+        {(band || deload) && !untouched && (
+          <span className={`sum-mark${facing}`} style={{ left: pct(at) }} aria-hidden="true" />
+        )}
+      </span>
+    </div>
+  )
+}
+
+// What the card says when the period it is on holds nothing to draw. Three
+// different facts, so three different sentences: a week that has not started
+// yet, a week that was skipped, and an account that has never logged a set.
 //
-// The gap is in whatever unit the row prints — a plain count in week mode, a
-// weekly average in month mode — because the reference has always been weekly
-// and the row's own figure is what the bar draws.
-function gapTo(shown) {
-  return shown < ZONE ? `faltan ${Math.round((ZONE - shown) * 10) / 10}` : ''
+// None of them draws rows. Nine runways at zero, each printing the whole of its
+// band as a shortfall, is a verdict on a week nobody has lived — DESIGN.md
+// 2026-08-05 settled that a running week is never told it is behind, and on a
+// Monday *every* row is at zero. The blank card that would otherwise result is
+// the opposite failure, and the shipped one: the week you are actually in went
+// unmentioned by the screen that exists to measure it.
+//
+// So a running week hands over the only figures on screen that are real and
+// final — last week's close, and which muscles ended under their band. That is
+// where "what should today be" is answered from, and it is answered in this
+// card's own currency (sets against a band), which is why it does not repeat
+// what Ritmo por músculo already says with frequency.
+function EmptyPeriod({ headline, aside, owed }) {
+  const shown = owed?.slice(0, 4) ?? []
+  return (
+    <div className="sum-empty-wrap">
+      <p className="sum-empty">{headline}</p>
+      {aside && <p className="hint sum-handover">{aside}</p>}
+      {owed?.length === 0 && <p className="sum-owed">Todo cerró en zona.</p>}
+      {owed?.length > 0 && (
+        <p className="sum-owed">
+          <span className="sum-owed-lab">
+            {owed.length === 1 ? 'Cerró bajo su zona' : 'Cerraron bajo su zona'}
+          </span>
+          {shown.map((group) => (
+            /* The dot, because this list names muscles and every other place
+               this app names one puts its colour on a mark beside it. */
+            <span className="sum-owed-item" key={group}>
+              <span
+                className="sum-dot"
+                style={{ '--chip': muscleColor(group) }}
+                aria-hidden="true"
+              />
+              <span className="sum-owed-name">{group}</span>
+            </span>
+          ))}
+          {owed.length > shown.length && (
+            <span className="sum-owed-more">y {owed.length - shown.length} más</span>
+          )}
+        </p>
+      )}
+    </div>
+  )
 }
 
 // Sets per muscle over a week or a month, with the arrows to walk back through
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
-function PeriodSummary({ days }) {
+//
+// Two variants, one set of rows. `card` is Progreso: a titled surface with the
+// whole apparatus — arrows back through the history, `Mes`, the reference
+// footnote, the deload switch. `week` is Días, where this block is the *first
+// thing in the app* and is not a card at all: it renders as the current week's
+// own rule in the day list, in the list's mono typography, with the sessions
+// hanging underneath it. Everything that is a control or an explanation is
+// dropped there — DESIGN.md, "Días carries only what you touch mid-session" —
+// and everything that is a reading stays, at the same 52.56px pitch, because
+// the rows are what both screens are for.
+export function PeriodSummary({ days, variant = 'card' }) {
+  const asWeek = variant === 'week'
   // The week is the unit the reference is written in (4 / 10–20 sets a week),
   // and the question the card answers — "am I training what I think I'm
   // training" — is a this-week question. Opening on the month meant the number
@@ -198,7 +417,6 @@ function PeriodSummary({ days }) {
   const periods = sessionsPerPeriod(days, period)
   const at = Math.min(index, periods.length - 1)
   const current = periods[at]
-  const previous = periods[at + 1]
   const summary = setsPerMuscle(days, { period, index: at })
   const byMonth = period === 'month'
 
@@ -223,23 +441,40 @@ function PeriodSummary({ days }) {
       ? 'Esta semana'
       : formatRange(current.start, current.end)
 
-  // How much of the period you have actually done — the divisor behind every
-  // number above, and meaningless once the period has closed, so it only shows
-  // while one is running. Weeks once there is more than one, days below that:
-  // "0.1 semanas" is arithmetic, "1 día" is a Saturday.
+  // The one token in the header that says what every number under it *means*,
+  // and the only one of them in ink. It is **the denominator, never the unit**:
+  // the figures beside it carry their own unit, and the rows carry theirs in
+  // the `media/sem` heading directly over them.
   //
-  // A running week carries its denominator: "3 días" reads as a total, "3 de 7
-  // días" says how much of the week is still owed you — which is the whole
-  // reason the rows below stop short of a verdict. A month has no such tidy
-  // denominator, so it keeps the plain count.
+  // It replaces a subtitle that welded three facts at one weight — sessions,
+  // sets, and how far in you were — where the third is the only one that
+  // decides how to read the other two, and was the faintest thing on the line.
+  // Two cases, one job:
+  //
+  //  - A period still running prints how far into it you are. "3 días" reads as
+  //    a total and "3 de 7 días" reads as three days *trained* sitting next to
+  //    "2 entrenos"; "Día 3 de 7" is a position. What it uniquely adds is the
+  //    *fraction* — a Tuesday against a Sunday — which is what decides how to
+  //    read `faltan 10`, and it earns that most on the week with nothing in it.
+  //  - A month reporting weekly averages prints the span it averaged over,
+  //    because 1.9/sem after 3.7 weeks and 1.9/sem after two days are different
+  //    claims and nothing else on the card can say which one this is. It does
+  //    *not* print the word "media": the `/sem` riding each figure and the
+  //    `media/sem` heading over the rows both say it, on the figures rather
+  //    than beside them, and a third saying is the `HOY`-chip mistake.
+  //
+  // A closed week gets nothing. Its counts mean exactly what they say, and the
+  // nav title flipping `Esta semana` → `20–26 jul`, plus the rows' verdicts
+  // going muted → ink, already say it is over.
   const daysIn = Math.round(summary.weeks * 7)
-  const elapsed = !summary.inProgress
-    ? null
-    : summary.averaged
-      ? `${Math.round(summary.weeks * 10) / 10} semanas`
-      : byMonth
-        ? plural(daysIn, 'día', 'días')
-        : `${daysIn} de 7 días`
+  // 7 for a week; for a month, the day number its last date carries.
+  const periodDays = byMonth ? Number(current.end.slice(8, 10)) : 7
+  const spanWeeks = Math.round(summary.weeks * 10) / 10
+  const stage = summary.averaged
+    ? plural(spanWeeks, 'semana', 'semanas')
+    : summary.inProgress
+      ? `Día ${daysIn} de ${periodDays}`
+      : null
 
   // Whether the reference has earned the right to call this good or short. A
   // finished period has: everything that was going to happen, happened. A month
@@ -260,13 +495,74 @@ function PeriodSummary({ days }) {
   // Never on a month (four or five weeks with one light one is a month, not a
   // short week), never while the week is still running (it hasn't come in yet),
   // and never on a deload, which already explains itself in its own words.
-  // One flag for both the cell and the column that holds it. Split in two,
-  // the container kept declaring a fourth column while the rows stopped
-  // supplying a fourth cell — and since `.sum-row` is `display: contents`,
-  // every name slid into the bar's column and the card read as scrambled.
-  const showDelta = summary.comparable && !deload
   const typical = byMonth || deload ? null : typicalWeekSets(days, current.start)
-  const shortWeek = judging && typical != null && summary.sets < typical / 2
+
+  // Nothing to draw: no muscle claimed a set in this period. One test, because
+  // there is one condition — a row is drawable when it has volume in it.
+  //
+  // `rows` is not the test. A quiet group holds its row at zero for eight weeks
+  // (P4 widened that from one period, which is right for a normal week), so
+  // anyone who has lifted at all recently gets nine seeded rows no matter what
+  // this week holds — and nine rows all at zero is the whole band printed nine
+  // times as a shortfall, the "nueve reproaches" of DESIGN.md 2026-08-10.
+  //
+  // `summary.sets` is not the test either, and that was the subtler miss: a
+  // week of nothing but cardio has sets above zero and nine seeded rows, so it
+  // passed both halves of the old condition and drew nine deficits over a week
+  // in which you did train. "Nothing was classified" and "nothing happened" are
+  // different sentences — the first keeps its counts and says so in words.
+  const hasHistory = days.some((day) => day.workouts.some((w) => w.sets.length > 0))
+  const empty = !summary.rows.some((row) => row.sets > 0)
+
+  // A week with nothing in it was never short of anything: "0 series, menos de
+  // un cuarto de tu semana típica" measures a week that never started against
+  // one that did.
+  const shortWeek = judging && !empty && typical != null && summary.sets < typical / 2
+
+  // Last week's close, handed to a Monday that has nothing of its own. Only for
+  // a running week — a month has no tidy predecessor to borrow from, and a past
+  // week you are browsing is being read, not planned from.
+  const handover =
+    empty && !byMonth && summary.inProgress && hasHistory && at + 1 < periods.length
+      ? setsPerMuscle(days, { period, index: at + 1 })
+      : null
+  // Ordered by how much each one was short, so the first name is the one with
+  // most owed to it. Judged with exactly the call the row makes, so the list
+  // and the rows behind the ‹ arrow can never disagree.
+  const owed =
+    handover && handover.sets > 0
+      ? handover.rows
+          .map((row) => ({ group: row.group, ...bandState(row.group, row.sets) }))
+          .filter((row) => row.state === 'bajo')
+          .sort((a, b) => b.gap - a.gap)
+          .map((row) => row.group)
+      : null
+
+  const headline = !hasHistory
+    ? 'Todavía no hay series registradas.'
+    : summary.sets > 0
+      ? 'Ninguna serie con músculo asignado.'
+      : summary.inProgress
+        ? byMonth
+          ? 'El mes aún no tiene series.'
+          : 'La semana aún no tiene series.'
+        : byMonth
+          ? 'Mes sin entrenar.'
+          : 'Semana sin entrenar.'
+
+  const aside = !hasHistory
+    ? `Con el primer entreno ${
+        asWeek ? 'esta pantalla' : 'esta tarjeta'
+      } empieza a medir cada músculo contra su zona semanal.`
+    : !handover
+      ? null
+      : handover.sets > 0
+        ? `La pasada cerró con ${plural(handover.sets, 'serie', 'series')} en ${plural(
+            periods[at + 1].sessions,
+            'entreno',
+            'entrenos',
+          )}.`
+        : 'La pasada tampoco tuvo ninguna.'
 
   // The ratio in the words you'd actually use. Only ever below a half by
   // construction, so these four cover it — and "menos de un cuarto" rather than
@@ -279,31 +575,135 @@ function PeriodSummary({ days }) {
     return 'menos de un cuarto'
   }
 
-  const subtitle = [
-    plural(current.sessions, 'entreno', 'entrenos'),
-    plural(summary.sets, 'serie', 'series'),
-    elapsed,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  // What the period held. Kept, and demoted: the rows below already carry the
+  // volume broken down the way this card asks you to read it, so the totals are
+  // context for the marker, not the headline they used to share with it.
+  //
+  // **Printed in whatever unit the rows are printed in.** A month averages, so
+  // its counts average too. Left as month totals they sat behind a marker
+  // reading "Media de 1.6 semanas", joined to it by the same `·` that joins
+  // them to each other — so the modifier scoped forward onto them and `4
+  // entrenos` read as four sessions a week when the rate was 2.5. `193 series`
+  // self-corrects by absurdity; four sessions a week does not. No separator
+  // fixes that reliably, so the register does: with `/sem` on every figure the
+  // marker cannot mis-scope, because there is nothing left to mis-scope onto.
+  //
+  // Dropped entirely when the period holds no sets, because "0 entrenos · 0
+  // series" under a line already saying the week is empty is the same nothing
+  // said twice, and it reads as a scorecard. The test is `summary.sets`, not
+  // `empty`: a cardio-only week draws no rows and so is "empty" to everything
+  // below, but it did have sessions and it did have sets, and those counts are
+  // the only thing on the card saying the week was not blank.
+  const rate = (n) => Math.round((n / summary.weeks) * 10) / 10
+  const counts =
+    !hasHistory || summary.sets === 0
+      ? null
+      : summary.averaged
+        ? [
+            `${plural(rate(current.sessions), 'entreno', 'entrenos')}/sem`,
+            // `perWeek` rather than a second division: stats.js already
+            // publishes this figure at this rounding, and two roundings of one
+            // number is how a header and a row come to disagree by a tenth.
+            `${plural(summary.perWeek, 'serie', 'series')}/sem`,
+          ].join(' · ')
+        : [
+            plural(current.sessions, 'entreno', 'entrenos'),
+            plural(summary.sets, 'serie', 'series'),
+          ].join(' · ')
 
-  // Against the same stretch of the period before, never against the whole of
-  // it: a month on its second day compared with a finished one reads as a
-  // collapse every time, which says something about the calendar and nothing
-  // about the training. `comparable` is the other half — the stretch has to
-  // have had something in it, or "+13" is just the row reading itself back.
-  // The heading over the delta column, and the whole of what used to be a
-  // footnote at the foot of the card. Sat down there, "vs. mismo tramo de la
-  // semana anterior" was a sentence you had to carry back up to a number four
-  // rows away; over the column it is read where it is needed. Short by
-  // necessity — the column is 26px of tabular figures and the heading sizes it.
-  const against = !previous || !summary.comparable
-    ? null
-    : summary.inProgress
-      ? 'vs. mismo tramo'
-      : byMonth
-        ? `vs. ${formatMonth(previous.start)}`
-        : 'vs. sem. ant.'
+  // The rows themselves, or the sentence that stands in for them. Built once
+  // and placed by whichever chrome is wrapping them: this is the whole of what
+  // Días and Progreso have in common, and the only thing either screen is for.
+  const body = empty ? (
+    <EmptyPeriod headline={headline} aside={aside} owed={owed} />
+  ) : (
+    <div className="sum-rows">
+      {/* One row of headings, in the same grid as the rows, so each label
+          sits over the figures it names. The band's own label rides over
+          the stretch of track the band occupies — once, at the top, the
+          way RP heads its week columns — because nine repetitions of it
+          would be the noise the row is trying to remove. `display:
+          contents`, so the cell count must match the rows exactly or every
+          column slides over by one: the identity column keeps an empty
+          heading cell for that reason alone. */}
+      <div className="sum-cols">
+        <span className="sum-colgap" aria-hidden="true" />
+        <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
+        <span className="sum-colzone">
+          <span
+            className="sum-zonelab"
+            style={
+              deload
+                ? { left: pct(CHANNEL.lo), transform: 'translateX(-50%)' }
+                : { left: pct(CHANNEL.lo), width: pct(CHANNEL.hi - CHANNEL.lo) }
+            }
+          >
+            {deload ? 'objetivo' : 'zona'}
+          </span>
+        </span>
+      </div>
+      {summary.rows.map((row) => (
+        <VolumeRow
+          key={row.group}
+          group={row.group}
+          shown={summary.averaged ? row.perWeek : row.sets}
+          deload={deload}
+          target={targetFor(row.group)}
+          judging={judging}
+          shortWeek={shortWeek}
+        />
+      ))}
+    </div>
+  )
+
+  const short = shortWeek && (
+    <p className="sum-shortweek">
+      Semana corta · {plural(summary.sets, 'serie', 'series')}, {shareOfTypical()} de tu semana
+      típica
+    </p>
+  )
+
+  // Días. The block *is* the current week's rule in the day list, so it takes
+  // the list's own head — mono, uppercase, no surface, one line of type — and
+  // then hands the space straight to the rows.
+  //
+  // The right-hand token leads with the position in the week rather than with
+  // a total, and that is the one place the two screens' copy diverges. Every
+  // other rule in the list totals a *closed* week (`5 DÍAS · 107 SERIES`), and
+  // nine set counts sitting under a rule shaped like that read as a finished
+  // account of the week. `DÍA 6 DE 7` is a place in the week, `5 DÍAS` is a
+  // count of trained ones; the two shapes differ because the two facts do.
+  if (asWeek) {
+    const weekRule = [
+      `DÍA ${daysIn} DE 7`,
+      summary.sets > 0 && plural(current.sessions, 'ENTRENO', 'ENTRENOS'),
+      summary.sets > 0 && plural(summary.sets, 'SERIE', 'SERIES'),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    return (
+      <>
+        <div className="week-head">
+          <span className="week-label">ESTA SEMANA</span>
+          <span className="week-totals">{weekRule}</span>
+        </div>
+        {body}
+        {short}
+        {/* The one line of the footnote that Días cannot do without, and the
+            seam between two blocks read at different speeds. `.sum-rows` ended
+            flush against the first `.day-block`, so that day's `2px` amber date
+            rule — the only coloured horizontal line on the screen — read as the
+            volume table's bottom border rather than as a date stamp. A caption
+            under the picture and a gap over the list are the same 30px.
+
+            Nothing to caption on a week with no rows: the empty state is three
+            sentences about last week, and a note explaining a track that isn't
+            drawn is worse than no note. A deload week keeps the deload's own
+            words — the band it measures against is not the standing one. */}
+        {!empty && <p className="sum-ref-week">{deload ? DELOAD_COPY : WEEK_REFERENCE_COPY}</p>}
+      </>
+    )
+  }
 
   return (
     <div className="card">
@@ -312,6 +712,10 @@ function PeriodSummary({ days }) {
           alone — "Esta semana" answers *when*, never *what*, so the one card
           the screen exists for was the only one that never named its subject. */}
       <h2 className="sum-title">Series por músculo</h2>
+      {/* An account with nothing in it has no period to be on: both arrows are
+          dead, and `Mes` swaps one empty view for another. A first screen made
+          of inert controls is worse than a first screen made of one sentence. */}
+      {hasHistory && (
       <div className="sum-head">
         <div className="sum-nav">
           <button
@@ -351,138 +755,31 @@ function PeriodSummary({ days }) {
           </button>
         </div>
       </div>
-      <p className="hint sum-sub">{subtitle}</p>
-
-      {summary.rows.length === 0 ? (
-        <p className="hint">Nada registrado en este periodo.</p>
-      ) : (
-        <div className={`sum-rows${showDelta ? ' has-delta' : ''}`}>
-          {/* One row of headings, in the same grid as the rows, so each label
-              sits over the figures it names. Two numbers per row and no labels
-              is a card you have to be told how to read: "10" and "+10" look
-              alike and mean nothing alike. The first two cells stay empty —
-              the muscle needs no heading and the bar has its own reference
-              line below. `display: contents`, so the cell count must match the
-              rows exactly or every column slides over by one. */}
-          <div className="sum-cols">
-            <span />
-            <span />
-            <span className="sum-collab">{summary.averaged ? 'media/sem' : 'series'}</span>
-            {showDelta && <span className="sum-collab">{against}</span>}
-          </div>
-          {summary.rows.map((row) => (
-            <div className="sum-row" key={row.group}>
-              <span className="sum-name">{row.group}</span>
-              {/* The bar and the words under it are one column: the state line
-                  rides in the vertical slack the 8px bar leaves inside a row
-                  sized by its 0.8rem name, so naming the band costs ~5px a row
-                  instead of a second full-width line. */}
-              <span className="sum-gauge">
-                <span className="sum-bar">
-                  {/* Whatever the row prints is what the bar draws: the monthly
-                      figure is a weekly average, and the reference is weekly. */}
-                  <span
-                    className="sum-fill"
-                    style={{
-                      width: `${Math.min(
-                        Math.round(
-                          ((summary.averaged ? row.perWeek : row.sets) /
-                            (targetFor(row.group) ?? REFERENCE)) *
-                            100,
-                        ),
-                        100,
-                      )}%`,
-                      '--chip': muscleColor(row.group),
-                    }}
-                  />
-                  {/* The 10-set edge of the efficient band, recessive on purpose:
-                      it's a reading aid, not a target line to be chased. Gone in
-                      a deload week: the bar is drawing a different scale, and a
-                      mark at half of a third means nothing. */}
-                  {!deload && <span className="sum-tick" aria-hidden="true" />}
-                </span>
-                <span
-                  className={`sum-state${
-                    judging &&
-                    !deload &&
-                    !shortWeek &&
-                    (summary.averaged ? row.perWeek : row.sets) < ZONE
-                      ? ' is-short'
-                      : ''
-                  }`}
-                >
-                  {/* The gap, and only the gap — running week or closed, the
-                      number you can act on is the same one. What waits for the
-                      week to close is the red, not the words: a shortfall is a
-                      verdict, and there is nothing to be short of until the week
-                      is over. A deload replaces the reference outright, so it
-                      states its own target instead; a week that came in short
-                      says nothing here, because its one line above already did
-                      and the week is over anyway. */}
-                  {deload
-                    ? `objetivo ${targetFor(row.group) ?? ZONE}`
-                    : shortWeek
-                      ? ''
-                      : gapTo(summary.averaged ? row.perWeek : row.sets)}
-                </span>
-              </span>
-              {/* The figure alone. The column heading says what it is — once,
-                  at the top — so repeating "series" on nine rows was the word
-                  that pushed the bars into half the width they had. */}
-              <span className="sum-val">{summary.averaged ? row.perWeek : row.sets}</span>
-              {/* Only when there is something to compare with — an empty
-                  matching stretch makes every delta the row's own value again.
-                  A group that held steady leaves the cell empty: the column
-                  reports change, and no change is not something to report.
-                  Gone in a deload: this is the only thing on the row wearing a
-                  colour, so leaving nine red negatives up while the words go
-                  quiet silences the quieter half. A deload is *defined* as less
-                  than last week — the comparison reports a decision, not a
-                  result. What the week is measured against is its own target,
-                  which the state line to the left already gives as "objetivo 4".
-                  And the colour keeps the same clock as the words: mid-week the
-                  delta compares two unfinished stretches, so it reports in grey
-                  and rules on nothing. */}
-              {showDelta && (
-                <span
-                  className={`sum-delta${
-                    !judging ? ' quiet' : row.delta < 0 ? ' down' : ''
-                  }`}
-                >
-                  {row.delta === 0
-                    ? ''
-                    : row.delta > 0
-                      ? `+${row.delta}`
-                      : `−${Math.abs(row.delta)}`}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
       )}
-      {shortWeek && (
-        <p className="sum-shortweek">
-          Semana corta · {plural(summary.sets, 'serie', 'series')}, {shareOfTypical()} de tu semana
-          típica
+      {/* One line, two registers. The marker is ink and leads; the totals stay
+          muted behind it. Hierarchy, not colour — nothing here is a record and
+          nothing here is destructive. Absent altogether on an account with no
+          history: there is no week to be one-seventh of the way through. */}
+      {hasHistory && (stage || counts) && (
+        <p className="sum-sub">
+          {stage && <span className="sum-stage">{stage}</span>}
+          {stage && counts ? ` · ${counts}` : counts}
         </p>
       )}
-      {summary.rows.length > 0 && (
-        <>
-          <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>
-          {/* The month still needs saying out loud: its rows print a weekly
-              average against a weekly reference, on a card titled with a month.
-              The week needs nothing — its rows no longer pass a verdict there
-              would be anything to apologise for. */}
-          {summary.inProgress && byMonth && (
-            <p className="hint sum-ref">Mes en curso — la referencia es por semana completa.</p>
-          )}
-        </>
-      )}
+
+      {body}
+      {short}
+      {/* No footer about the month averaging. It was the third place on one
+          card saying "these are weekly averages" — after the header marker and
+          the `media/sem` column heading — and the weakest of the three, because
+          it sat *after* the rows it was meant to condition. The heading is the
+          strongest: it stands directly over the figures it reprices. */}
+      {!empty && <p className="hint sum-ref">{deload ? DELOAD_COPY : REFERENCE_COPY}</p>}
       {/* Rare by definition — six to eight weeks apart — so it takes a quiet
           text control, the same one corrections use, and never a button with
           content weight. It sits under the reference it replaces, because that
           line is the thing it changes. */}
-      {!byMonth && summary.rows.length > 0 && (
+      {!byMonth && !empty && (
         <button
           type="button"
           className="unit-fix sum-deload"
@@ -496,8 +793,12 @@ function PeriodSummary({ days }) {
           design, and a lift the classifier doesn't recognise has none yet.
           Left unsaid it reads as a bug — and it's fixable from the exercise,
           which is worth knowing. (The rows themselves outrun the set count on
-          purpose: a press puts 1 into Pecho and half into two more.) */}
-      {summary.unclassified > 0 && (
+          purpose: a press puts 1 into Pecho and half into two more.)
+
+          Not when there are no rows: with nothing classified at all the empty
+          state's own headline is already this sentence, and a footnote with
+          nothing above it to annotate is the same fact printed twice. */}
+      {!empty && summary.unclassified > 0 && (
         <p className="hint sum-rest">
           {plural(summary.unclassified, 'serie', 'series')} sin músculo asignado
         </p>
@@ -523,6 +824,10 @@ function frequencies(days) {
 export default function Progress() {
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
   const [days, setDays] = useState([]) // the whole log; everything here is derived from it
+  // An empty log and a log that hasn't arrived are the same `[]`, and the
+  // summary card now has something to say about the first one. Saying it before
+  // the request answers tells a returning user their account is empty.
+  const [daysLoaded, setDaysLoaded] = useState(false)
   const [freq, setFreq] = useState({})
   // Two jobs, two states. One `name` doing both meant the charted lift was
   // printed as the card title, as the field's value and as the active chip —
@@ -698,6 +1003,16 @@ export default function Progress() {
         setFreq(counts)
         const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
         if (top) selectLift(top[0])
+        // Set from the answer, never from the settlement. In `finally` this
+        // also fires on a rejection, and then an empty `days` — which is only
+        // the initial state — gets read as "this account has never trained".
+        // The card would tell somebody with months of log that they have never
+        // logged a set, and it would do it most often on a cold start, which
+        // on a free tier that sleeps is the frame it draws most.
+        //
+        // `Array.isArray` rather than truthiness because the endpoint answering
+        // with something that is not a list is also not an answer.
+        if (Array.isArray(loaded)) setDaysLoaded(true)
       })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -786,7 +1101,7 @@ export default function Progress() {
           the foot, under the calendar and the whole Evolución apparatus — three
           scrolls down on a phone, which is where you put something you don't
           expect to be read. */}
-      {days.length > 0 && <PeriodSummary days={days} />}
+      {daysLoaded && <PeriodSummary days={days} />}
 
       {days.length > 0 && <Rhythm days={days} />}
 
