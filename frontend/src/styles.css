@@ -166,7 +166,10 @@ h2 {
   background: transparent;
   border: none;
   color: var(--text);
-  font-size: 0.9375rem;
+  /* Body. 15px was a hand-picked value one pixel under the step it was reaching
+     for; the 44px target already governs the box, so the type grows and nothing
+     moves. */
+  font-size: 1rem;
   font-weight: 600;
   min-height: 44px;
   padding: 0.4rem 0.25rem;
@@ -201,7 +204,12 @@ h2 {
   border: none;
   border-radius: 0;
   color: var(--muted);
-  font-size: 0.72rem;
+  /* Label, not Micro. `Días` and `Progreso` are words you read, not stamps that
+     annotate a figure, and DESIGN.md puts the sub-Label step out of bounds for
+     anything with a lowercase letter in it. The bar does not grow: `min-height`
+     is 56px and the stack (8 + 16 icon + 1.6 gap + 15.4 caption + 8) comes to
+     49px, so the extra 1.28px is spent inside slack the box already had. */
+  font-size: 0.8rem;
   font-weight: 600;
   min-height: 56px;
   padding: 0.5rem 0;
@@ -230,10 +238,34 @@ h2 {
   z-index: 11;
   max-width: 480px;
   margin: 0 auto;
-  padding: 10px 16px 8px;
+  /* No bottom padding: it went to `.days-backfill`, which needed 44px and
+     could not have them by growing the bar. The link is centred in its own
+     target, so the space is still there — it is just tappable now. */
+  padding: 10px 16px 0;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
+}
+/* The list runs under the bar, and the bar's top edge was a guillotine: at the
+   scroll position the screen opens on, a session's name (`Full body`) is cut
+   in half horizontally with nothing to explain it, which reads as a rendering
+   fault rather than as "there is more below". Content dissolves into the page
+   before it reaches the rule instead. Not part of the bar's box — it hangs
+   above it — so nothing inside the bar moves, and it never eats a tap. */
+.days-cta::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--bg),
+    color-mix(in srgb, var(--bg) 55%, transparent) 55%,
+    color-mix(in srgb, var(--bg) 0%, transparent)
+  );
 }
 /* Room for the pinned bar, so the oldest day never sits under it. Measured, not
    guessed: the bar is 114px tall and floats 57px above the bottom on the tab
@@ -621,9 +653,12 @@ button.chart-title h2 {
 .week:first-of-type .week-head {
   padding-top: 0;
 }
+/* Both at Micro (DESIGN.md): uppercase, letterspaced, mono — a section rule and
+   its total, stamped on the list rather than read as a sentence. 0.6875rem was
+   a value invented for this one rule. */
 .week-label {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.14em;
   color: var(--text);
@@ -631,7 +666,7 @@ button.chart-title h2 {
 .week-totals {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -651,7 +686,8 @@ button.chart-title h2 {
 .day-rest-label {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 0.656rem;
+  /* Micro: `VIE · DESCANSO` is a stamp on a hairline, not prose. */
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   color: var(--accent-ink);
 }
@@ -779,7 +815,15 @@ button.chart-title h2 {
   flex: 1;
   min-width: 0;
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  /* Meta, down from a hand-picked 0.92rem. Two steps were available and the
+     screen's thesis picks between them: the day list is subordinate to the
+     volume block above it, so the name snaps *down* to the step the volume
+     block's own muscle names sit on (13.6px) rather than up to Body. The two
+     lists' name tokens now weigh the same and are told apart by face — Space
+     Grotesk here, Geist there — instead of by 1.1px. Snapping down also can
+     only free space above the fold, never eat it, which matters on a screen
+     whose CTA is pinned. */
+  font-size: 0.85rem;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -789,7 +833,27 @@ button.chart-title h2 {
    the slot the duration would have taken, and the two are mutually exclusive by
    construction — an open session has no length to report. This is where today's
    third cue went: from a chip repeating what the date already said, to the only
-   thing on the row that is news. */
+   thing on the row that is news.
+
+   Contrast, measured in both themes, because this is the one badge on the
+   screen that carries a state nothing else says. It failed AA on paper and had
+   never been checked there: `--accent-ink` `#c2440f` over a 16%-accent pill
+   composites against `#f1d9cc` for **3.76**, under the 4.5 floor that 10.5px
+   text sits on. The fill was eating exactly the contrast `--accent-ink` was
+   chosen to buy — that token is defined against the paper background, and
+   tinting the ground *toward* the ink is how you spend it.
+
+   So on light the pill stops being a wash and becomes a chip: `--surface` for
+   the ground (5.09 against the same ink) with the accent riding the edge as an
+   inset ring instead of the fill. No new hue, and no layout: an inset shadow
+   has no box. Dark keeps the wash it already passes on (5.64) — it is written
+   as the override rather than light, because that is the block the benches
+   re-assert to force a theme.
+
+   The size goes with it. 0.656rem (10.5px) was off the bottom of DESIGN.md's
+   scale, whose smallest step is Label 12.8px; at `line-height: 1` the taller
+   type still measures 14.8px against the 15px the old box took, so the row does
+   not move. */
 .day-live {
   flex: none;
   display: inline-flex;
@@ -797,12 +861,24 @@ button.chart-title h2 {
   gap: 5px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--surface);
+  /* Full strength, not a tint: the ring is the only thing separating a white
+     chip from warm paper, and at 45% it composited to 1.79 against both sides.
+     `--accent` measures 3.70 on the chip and 3.31 on the page — over the 3:1
+     floor a non-text component carries. */
+  box-shadow: inset 0 0 0 1px var(--accent);
   color: var(--accent-ink);
   font-family: var(--font-mono);
-  font-size: 0.656rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1;
   letter-spacing: 0.08em;
+}
+@media (prefers-color-scheme: dark) {
+  .day-live {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: none;
+  }
 }
 .day-live-dot {
   width: 5px;
@@ -810,11 +886,14 @@ button.chart-title h2 {
   border-radius: 50%;
   background: currentColor;
 }
+/* Label, and the same Label `.day-live` takes. The two share one slot and are
+   mutually exclusive by construction, so at 12px against 12.8px the row's right
+   edge changed size depending on whether the session had finished. */
 .day-session-len {
   flex: none;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 400;
   color: var(--muted);
 }
@@ -880,8 +959,13 @@ button.chart-title h2 {
   font-size: 0.85rem;
   color: var(--text);
 }
+/* Micro: `SER` is the unit on a tabular figure — the case the step exists for.
+   It stays a step under the count it modifies (11.2 against 13.6) so `15 SER`
+   reads as one figure with a unit rather than two tokens of equal weight, and
+   it is an inline box smaller than its parent's, so the right column DESIGN.md
+   aligned does not move. */
 .day-count-unit {
-  font-size: 0.656rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
@@ -889,10 +973,19 @@ button.chart-title h2 {
 /* Repeating a session is the fastest way to log one, and it sat behind a `⋯`
    that every day paid 44px for in order to hold one useful action and one
    destructive one. It gets those 44px; the destructive one went to a press and
-   hold, and the day block lost its third column. */
+   hold, and the day block lost its third column.
+
+   It gets those 44px in *both* directions, which took two goes. The rule said
+   36 while the comment said 44, and 36 is not a rounding error here: the row
+   behind the button is the link into the session, so a tap landing 4px left of
+   the glyph opens the day instead of repeating it — the same mis-aim the
+   2026-08-10 entry removed the chevron to fix, arrived at from the other side.
+   The 8px comes out of slack that already existed: `.day-session-row` ends at
+   402.8 inside a block that ends at 414, so the tabular count column does not
+   move. */
 .day-repeat {
   flex: none;
-  min-width: 36px;
+  min-width: 44px;
   min-height: 44px;
   /* Detached from the count, so the button reads as the row's edge rather than
      as another figure in its right column. */
@@ -902,7 +995,9 @@ button.chart-title h2 {
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 17px;
+  /* A mono glyph used as an icon sits at Body, same as `.tab-icon`. 17px was
+     the only bare pixel size left on this screen. */
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -935,10 +1030,17 @@ button.chart-title h2 {
    session — and its form expanded upward over the list it was meant to add to.
    It becomes a quiet link, the treatment `Salir` already earned, and its form
    becomes a sheet. */
+/* 44px, DESIGN.md's floor, and it was 36 — a short target in the corner a
+   one-handed thumb rests in, directly under the primary action, which is the
+   worst place on the screen to be missable. The 8px comes out of the bar's own
+   bottom padding rather than out of the bar's height: the CTA is measured at
+   780–832 in every case and adding height to a bottom-anchored bar would push
+   it up. The label ends up 4px lower and further from the button above it,
+   which is the other half of the same complaint. */
 .days-backfill {
   display: block;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.4rem 1rem;
   border: none;
   border-radius: var(--radius-control);
@@ -1896,9 +1998,14 @@ button.set-action {
   color: var(--muted);
 }
 
+/* Meta. A hint is secondary prose and there is a step for that; 0.9rem was
+   between two of them. This one is shared with Progreso, Entreno and Ritmo, so
+   it is the single change in this pass that reaches off the main screen — kept
+   because the alternative was a Días-only override putting two sizes in the
+   file for one idea. */
 .hint {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin: 0.9rem 0 0;
 }
 
@@ -2074,19 +2181,26 @@ button.set-action {
   align-items: center;
   gap: 0.35rem;
 }
-/* Under the title in the scale, over the body text: it labels what the arrows
-   move, so it has to be readable at a glance without competing with the h2. */
+/* It labels what the arrows move. That is a control's label, not a second
+   heading, and it was dressed as one: Space Grotesk 600 at 0.95rem (15.2px), a
+   size DESIGN.md's scale does not define, in the display face reserved for
+   headings. Now Body — 1rem Geist 400 — which is on the scale, is the face for
+   labels and running text, and reads plainly under the 1.15rem Space Grotesk
+   h2 above it instead of arguing with it. */
 .sum-nav h3 {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
   margin: 0;
   min-width: 88px;
   text-align: center;
 }
+/* DESIGN.md: 44px minimum on interactive controls. `button.set-action` gives
+   the height; the width was 32px, which fails in the direction a thumb misses
+   in on a control sitting between two others. */
 .sum-arrow.sum-arrow {
-  min-width: 32px;
+  min-width: 44px;
   border-color: transparent;
   color: var(--muted);
 }
@@ -2097,66 +2211,154 @@ button.set-action {
   display: flex;
   gap: 0.3rem;
 }
+/* 44px tall like every other control: at 30px it was the one thing on this
+   card a thumb had to aim at vertically. */
 .sum-seg .chip {
-  min-height: 30px;
-  padding: 0.15rem 0.65rem;
-  font-size: 0.78rem;
+  min-height: 44px;
+  padding: 0.15rem 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
 }
+/* The header's small print, in two registers. It was `.hint` — 0.9rem (14.4px),
+   another size off DESIGN.md's scale — with all three of its facts in `--muted`
+   at one weight. Now Meta, 0.85rem, and the muted default belongs to the totals
+   only. */
 .sum-sub {
   margin: 0.15rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
-/* One grid for every row rather than a flex box per row: the name column then
-   sizes itself to the longest muscle there is and all the bars still start on
-   the same line. The 56px fixed column it replaces fit "Femoral" and let
-   "Cuádriceps" run under its own bar. */
+/* The denominator of everything below: `Día 1 de 7`, `1.6 semanas`. Ink,
+   because it is the token that stops the rest of the card being read as a
+   finished week, and it was the quietest thing on the line. Geist Mono and
+   tabular because it is a figure over a denominator (DESIGN.md: numbers are
+   Geist Mono), and because the denominator has to hold its column as the day
+   count walks 1 → 7 rather than shuffling the words after it. No colour: a
+   position in the week is neither a record nor a destructive act. */
+.sum-stage {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--text);
+}
+/* One grid for every row rather than a flex box per row: the identity column
+   sizes itself to the longest muscle there is and all nine tracks still start
+   on the same line — which is the whole mechanism, because the bands only stack
+   into one readable column if the tracks are pixel-aligned.
+   `row-gap: 0`, and the rows are separated by a hairline instead: a gap would
+   cut the band column into nine floating rectangles, and it is the unbroken
+   vertical stretch of it that you read the marks against.
+
+   Three columns, spec-sheet order: what it is, what it was, where that lands.
+   The count used to sit in the identity column with the name stacked over it,
+   which put ~250px of card between a figure and the mark that explains it —
+   with the week-over-week delta taking a fifth of the width in between. The
+   delta is gone (it answers a different question) and the count moved to its
+   own column hard against the track, so the eye goes number → mark in one
+   move. */
 .sum-rows {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
+  grid-template-columns: auto auto 1fr;
+  align-items: stretch;
   column-gap: 0.55rem;
-  row-gap: 0.4rem;
-}
-/* Only when there are deltas to put there — an always-declared fourth column
-   leaves a column gap hanging off the right edge of every row without one. */
-.sum-rows.has-delta {
-  grid-template-columns: auto 1fr auto auto;
+  row-gap: 0;
 }
 .sum-row {
   display: contents;
 }
+/* The rule between one muscle and the next, on every cell of the row since
+   `display: contents` leaves no row box to carry it. RP's row discipline: nine
+   ruled rows of constant height are what makes the list scannable at all. */
+.sum-row > * {
+  border-top: 1px solid var(--border);
+}
 /* Column headings, riding the same grid as the rows so each label sits over
-   its own figures. `auto` sizing means the heading is what sets the delta
-   column's width — "vs. sem. ant." is wider than any delta in it, and that is
-   the point: the label is the thing that stops the number needing a footnote. */
+   its own figures. The identity column's heading is empty and has to exist
+   anyway: the rows are `display: contents`, so one missing cell slides every
+   column over by one. */
 .sum-cols {
   display: contents;
 }
+/* DESIGN.md Label, 0.8rem — the smallest size the scale defines. These were
+   0.62rem (9.92px), off the bottom of it. */
 .sum-collab {
-  font-size: 0.62rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  padding-bottom: 0.3rem;
+}
+/* The band's name, over the stretch of track the band occupies and nowhere
+   else. Said once at the top rather than on nine rows — the row's whole claim
+   is that you don't have to read it. */
+.sum-colzone {
+  position: relative;
+}
+.sum-zonelab {
+  position: absolute;
+  bottom: 0.3rem;
+  font-size: 0.8rem;
   color: var(--muted);
   text-align: center;
   white-space: nowrap;
 }
-.sum-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-/* Bar + the words under it, in one grid cell. A full-width second line per row
-   would have added ~14px nine times over; stacked inside the bar's own column
-   it uses the slack an 8px bar leaves in a row sized by its 0.8rem name. */
-.sum-gauge {
+/* The muscle and, under it, whatever is still owed. Support for the figure in
+   the next column, not the headline it used to be: the name outweighed the
+   count in both size and weight, so the smallest, faintest token on the row
+   was the one the card exists to report. */
+.sum-id {
   display: flex;
   flex-direction: column;
-  gap: 0.22rem;
+  justify-content: center;
+  gap: 0.05rem;
   min-width: 0;
+  padding: 0.4rem 0;
+}
+.sum-label {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-width: 0;
+}
+/* The only colour on the row, and it rides a mark beside the name it belongs
+   to — the same dot Días and the exercise cards use. The mark on the track
+   stays ink on purpose: nine hues out there would give nine different
+   salIences to the one thing the eye is supposed to compare. */
+.sum-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chip, var(--muted));
+}
+/* DESIGN.md Meta/small: 0.85rem, weight 400. Ink, because it is the row's
+   identity and has to be legible at arm's length — but no longer bold, and no
+   longer the largest thing on the row. */
+.sum-name {
+  font-size: 0.85rem;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* Which band of the reference this row is in, and — when it is under one — how
    far off. No colour on it: a gap is not a record and not a destructive act, so
    the emphasis is hierarchy, ink against muted. The rows with something owed
-   are the ones that read first. */
+   are the ones that read first.
+   A block with a floor rather than an inline span, so the line is reserved on
+   every row: an empty inline box has no height, and rows would stand at two
+   different heights depending on whether anything was owed. */
 .sum-state {
-  font-size: 0.68rem;
+  display: block;
+  min-height: 1.1rem;
+  /* Pinned to the same 1.1rem the empty box reserves. Without it the line box
+     of 0.8rem text resolves to ~1.2rem, so the three rows carrying `faltan N`
+     stood 1.6px taller than the six without — measured 54.16 against 52.56.
+     Small enough to look like nothing and still enough to break the pitch the
+     list is scanned by, which is the one thing nine stacked rows have to keep
+     (DESIGN.md: "una fila de sesión son dos líneas de altura constante"). */
+  line-height: 1.1rem;
+  font-size: 0.8rem;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -2165,6 +2367,137 @@ button.set-action {
 .sum-state.is-short {
   color: var(--text);
 }
+/* --- The track ---------------------------------------------------------------
+
+   Where the row answers its question. Every group's band lands on the same
+   stretch of it — `bandPosition` is built to guarantee that — so nine tracks
+   stack their bands into a single tinted column with two edges running the
+   height of the card, and the only thing that varies down the list is where
+   each mark sits against it. Under is left of the column, over is right of it,
+   and neither needs a number or a colour to say so.
+
+   Full cell height, no vertical padding: the column has to be continuous or it
+   stops being a column. */
+.sum-track {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+/* A rail for the mark to sit on, so a mark far left isn't floating in space. */
+.sum-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  /* 5%, not 9%. The axis is scaffolding: it says where the track runs and
+     nothing else. At 9% it composited to rgb(41,43,46) against the band's
+     rgb(39,41,44) — a contrast ratio of 1.027, so the one element the screen is
+     read by was drawn fainter than the ruling it has to be told apart from. */
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+/* The productive band. Tinted *and* outlined, edge to edge vertically, because
+   the nine of them are meant to fuse into one shape.
+
+   The edges are non-text UI components carrying the whole message, so WCAG's
+   3:1 floor applies to them against the card they sit on — which is the ratio
+   nobody had measured. At 38% they composited to 3.34 on dark and **2.40** on
+   light, and light had never been looked at at all. 55% of the ink over
+   `--surface` measures 4.6 dark / 4.0 light. The fill has no floor (the edges
+   carry the boundary) but goes up with them, so the block reads as a block. */
+.sum-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text) 55%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text) 55%, transparent);
+}
+/* A deload has no band, only a number, so the channel collapses to the one rule
+   the week is aiming at. Same x as the band's near edge, so the geometry — and
+   the row height — do not move when the week is marked. */
+.sum-goal {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--text) 55%, transparent);
+}
+/* How far off the band this row is, drawn instead of written: the tail spans
+   from the mark to the edge it missed, at the same scale as everything else on
+   the track. It is also the redundant cue for the state — a row with a tail is
+   a row outside the band, and which side it leaves on says which way.
+   Same 3:1 floor as the band's edges, and it missed in both themes at 34%:
+   2.93 on dark, 2.16 on light. */
+.sum-tail {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--text) 55%, transparent);
+}
+/* The same tail, while the week it measures can still supply the sets. The
+   words have waited for the week to close since a Monday first read as nine
+   reproaches; the tail was invented afterwards and never came under the rule,
+   so a Tuesday drew five muted words under five full-strength ~95px lines
+   saying the same thing louder. The letter held — nothing was in ink — and the
+   reason behind it did not, because the letter was written when words were the
+   only channel on the row.
+
+   Weight comes off two ways at once, and neither is colour: half the ink
+   (2px → 1px) and one step down the same ink ramp the band edges ride. The
+   chroma step is small on purpose — the tail is a non-text UI element carrying
+   the message, so its floor is 3:1 against the card, and light starts at 3.96
+   with barely one step of room. At 50% of `--text` it composites to 4.86 on
+   dark and 3.39 on light, both clear. The thickness does the rest of the work,
+   and costs the floor nothing.
+
+   Positioned off the track's midline like the full-strength one, so the row
+   pitch does not move: 52.56px in every state and both themes. */
+.sum-tail.is-provisional {
+  height: 1px;
+  margin-top: -0.5px;
+  background: color-mix(in srgb, var(--text) 50%, transparent);
+}
+/* The set count itself. A needle rather than a dot: its position is the only
+   variable on the track that carries meaning, and an edge reads more precisely
+   against the band's edge than the centre of a circle does. */
+.sum-mark {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  margin: -8px 0 0 -1.5px;
+  border-radius: 1.5px;
+  background: var(--text);
+}
+/* Which side of the band the needle is on, said by the needle itself. Position
+   alone cannot say it at the edges: 8.5 sets against an MEV of 8 lands ~3px
+   inside the band and 17 against an MRV of 16 ~4px outside it, so "just
+   inside" and "just outside" — the two rows a real week actually produces at
+   the edges — drew the same picture and you had to fall back on reading the
+   digit. The caret points back at the band, so it carries the direction too:
+   a shape, not a distance, and legible at any gap. Ink, like everything else
+   on the track; no colour is spent on it. */
+.sum-mark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-top: -4px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+.sum-mark.is-under::after {
+  left: 4px;
+  border-left: 5px solid var(--text);
+}
+.sum-mark.is-over::after {
+  right: 4px;
+  border-right: 5px solid var(--text);
+}
 /* The one line a short week gets, in place of a demand on every row. Full ink,
    not muted: it is the card's answer for that week, and the rows below it have
    gone quiet precisely so this can be read once. No colour and no icon — it
@@ -2172,9 +2505,77 @@ button.set-action {
    the app is in a position to name. */
 .sum-shortweek {
   margin: 0.5rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text);
   line-height: 1.45;
+}
+/* The figure the screen exists for, and now the loudest token on the row:
+   DESIGN.md's big-stat size (1.4rem / 600 / Geist Mono, tabular). It was
+   0.74rem in `--muted` — smaller than the smallest size the scale defines and
+   quieter than its own label, which is why RP still out-scanned this row for
+   row. Right-aligned against the track, so the number and the mark that
+   explains it are one saccade apart, and the digits stack on a common grid
+   down the nine rows. */
+/* --- The period with nothing in it -----------------------------------------
+   Where nine rows would have gone. It is deliberately not a centred, iconed,
+   bordered empty state: this card is an instrument readout and the readout says
+   "no reading". Left-aligned on the same margin as the rows, same type sizes,
+   no box of its own — it reads as the card being honest, not as a placeholder
+   screen that took the card's place. */
+.sum-empty-wrap {
+  padding: 0.55rem 0 0.1rem;
+  border-top: 1px solid var(--border);
+}
+/* Ink, at the size the short-week line uses: it is the card's answer, and the
+   only sentence on it. */
+.sum-empty {
+  margin: 0;
+  /* Meta — which is what the comment above already claimed. It shipped at
+     0.82rem against `.sum-shortweek`'s 0.85rem, so "the size the short-week
+     line uses" was off by half a pixel and off the scale besides. */
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+.sum-handover {
+  margin: 0.3rem 0 0;
+  /* Label: still a step under the sentence above it, but a sentence itself, and
+     DESIGN.md puts the floor for prose at 12.8px. */
+  font-size: 0.8rem;
+}
+/* Last week's shortfalls, the one actionable thing a blank Monday can hold.
+   Wrapping row of name+dot pairs, spaced rather than punctuated — the day list
+   settled that a `·` between pairs leaves one dangling at a wrapped line end.
+   No colour on the words; the dot carries the muscle, same as every other
+   place this app names one. */
+.sum-owed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.7rem;
+  margin: 0.45rem 0 0;
+  /* Label for the whole group. The label, the names and the overflow count ran
+     at 0.74 / 0.78 / 0.74rem — a 0.64px spread nobody can see, three
+     declarations spent on a hierarchy that colour and weight were already
+     carrying (`--muted` label, 600 name). One size, and the two overrides go. */
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.sum-owed-lab {
+  color: var(--muted);
+}
+.sum-owed-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.sum-owed-name {
+  font-weight: 600;
+}
+.sum-owed-more {
+  color: var(--muted);
 }
 .sum-bar {
   position: relative;
@@ -2207,38 +2608,47 @@ button.set-action {
    its own label. Tabular figures keep the digits on a common grid anyway, which
    is what right-alignment was there to buy. */
 .sum-val {
-  text-align: center;
+  align-self: center;
+  text-align: right;
   white-space: nowrap;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.74rem;
-  color: var(--muted);
-}
-/* Plain ink by default. A gain used to wear the record colour, which said
-   "personal best" about a set count that merely beat last week — and the sign
-   in front of the number already says which way it went. Colour is left for
-   the one case that might ask for a decision: the drop. */
-.sum-delta {
-  min-width: 26px;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.74rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: var(--text);
-}
-/* Mid-period: the comparison is between two unfinished stretches, so it reports
-   in grey. Green and red are verdicts, and they wait for the period to close. */
-.sum-delta.quiet {
-  color: var(--muted);
-}
-.sum-delta.down {
-  color: var(--danger);
+  padding: 0.4rem 0;
 }
 /* Sits with the rows it explains, not with the footnotes below them. */
 .sum-rest,
 .sum-ref {
   margin: 0.5rem 0 0;
-  font-size: 0.74rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+/* The same note on Días, doing two jobs for one line of type.
+
+   (1) It is the caption the picture arrived without. Días draws the nine tracks
+   and the word `zona` and nothing else, and nine stripes at the same x on the
+   same grid read as one shared 10–20 — under which `Core 1.5 · en zona` over
+   `Pecho 4 · faltan 2` looks like the row contradicting itself.
+
+   (2) It is the seam. `.sum-rows` ended flush against the first `.day-block`,
+   so that block's `2px solid var(--accent)` — the only coloured horizontal line
+   on the screen — read as the volume table's bottom rule instead of as a date
+   stamp, and two lists scanned at completely different speeds had nothing
+   between them. Prose in the body face does that better than a gap would: it
+   changes the register, not just the distance.
+
+   Bound to the rows above it (0.4rem) and loose below (0.625rem), because it
+   annotates the first and separates the second. The whole thing costs ~36px,
+   taken off the day list, which is the trade this screen is for. */
+.sum-ref-week {
+  margin: 0.4rem 0 0.625rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
 }
 /* The deload switch sits directly under the reference line it replaces, since
    that line is the thing it changes. A hairline separates a control from the

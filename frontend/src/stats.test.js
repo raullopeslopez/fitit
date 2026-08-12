@@ -230,16 +230,34 @@ describe('setsPerMuscle', () => {
     const week = setsPerMuscle(LOG, { period: 'week', index: 0, endDate: SUNDAY })
     expect(week).toMatchObject({ start: '2026-07-20', end: '2026-07-26', sets: 11 })
     expect(week.rows).toEqual([
-      { group: 'Espalda', sets: 5, perWeek: 5, delta: 5 },
-      { group: 'Pecho', sets: 4, perWeek: 4, delta: 2 },
-      { group: 'Tríceps', sets: 2, perWeek: 2, delta: 2 },
+      { group: 'Espalda', sets: 5, perWeek: 5, indirect: 0, indirectPerWeek: 0, delta: 5 },
+      { group: 'Pecho', sets: 4, perWeek: 4, indirect: 0, indirectPerWeek: 0, delta: 2 },
+      { group: 'Tríceps', sets: 2, perWeek: 2, indirect: 0, indirectPerWeek: 0, delta: 2 },
+      // Last trained on 30 jun, three weeks back — still inside the eight-week
+      // memory, so it holds its row at zero rather than disappearing on the
+      // week its absence started to mean something.
+      { group: 'Cuádriceps', sets: 0, perWeek: 0, indirect: 0, indirectPerWeek: 0, delta: 0 },
     ])
   })
 
   it('walks back a period at a time', () => {
     const before = setsPerMuscle(LOG, { period: 'week', index: 1, endDate: SUNDAY })
     expect(before.start).toBe('2026-07-13')
-    expect(before.rows).toEqual([{ group: 'Pecho', sets: 2, perWeek: 2, delta: 2 }])
+    expect(before.rows).toEqual([
+      { group: 'Pecho', sets: 2, perWeek: 2, indirect: 0, indirectPerWeek: 0, delta: 2 },
+      { group: 'Cuádriceps', sets: 0, perWeek: 0, indirect: 0, indirectPerWeek: 0, delta: 0 },
+    ])
+  })
+
+  // Eight weeks and not forever: a group logged once in March, or a set that
+  // was mistagged, would otherwise pin an empty row to the card permanently.
+  it('lets go of a muscle that has been silent for two months', () => {
+    const old = [
+      trained('2026-07-22', group('Espalda', 5)),
+      trained('2026-05-01', group('Gemelo', 6)),
+    ]
+    const week = setsPerMuscle(old, { period: 'week', index: 0, endDate: SUNDAY })
+    expect(week.rows.map((r) => r.group)).toEqual(['Espalda'])
   })
 
   it('reports a weekly average in month mode, against the month before', () => {
@@ -277,9 +295,9 @@ describe('setsPerMuscle counting secondary muscles', () => {
     })
     // Tied at 2, so canonical order breaks it: Hombro precedes Tríceps.
     expect(week.rows).toEqual([
-      { group: 'Pecho', sets: 4, perWeek: 4, delta: 4 },
-      { group: 'Hombro', sets: 2, perWeek: 2, delta: 2 },
-      { group: 'Tríceps', sets: 2, perWeek: 2, delta: 2 },
+      { group: 'Pecho', sets: 4, perWeek: 4, indirect: 0, indirectPerWeek: 0, delta: 4 },
+      { group: 'Hombro', sets: 2, perWeek: 2, indirect: 2, indirectPerWeek: 2, delta: 2 },
+      { group: 'Tríceps', sets: 2, perWeek: 2, indirect: 2, indirectPerWeek: 2, delta: 2 },
     ])
   })
 
@@ -300,6 +318,8 @@ describe('setsPerMuscle counting secondary muscles', () => {
     const week = setsPerMuscle(days, { period: 'week', endDate: SUNDAY })
     const triceps = week.rows.find((r) => r.group === 'Tríceps')
     expect(triceps.sets).toBe(9.5)
+    // 3 direct sets of extensions; the other 6.5 came off the presses and dips.
+    expect(triceps.indirect).toBe(6.5)
   })
 
   it('leaves the logged set count alone — only the muscle rows are fractional', () => {
@@ -317,7 +337,9 @@ describe('setsPerMuscle counting secondary muscles', () => {
       period: 'week',
       endDate: SUNDAY,
     })
-    expect(week.rows).toEqual([{ group: 'Pecho', sets: 4, perWeek: 4, delta: 4 }])
+    expect(week.rows).toEqual([
+      { group: 'Pecho', sets: 4, perWeek: 4, indirect: 0, indirectPerWeek: 0, delta: 4 },
+    ])
   })
 
   // Colour answers "what did I train that day", which is the direct work. If a
