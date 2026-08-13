@@ -78,23 +78,22 @@ describe('Days', () => {
 
       await screen.findByText('ESTA SEMANA')
       const heads = [...container.querySelectorAll('.week-head')].map((h) => h.textContent)
-      // The week you are in reports its *position* — nine set counts under a
-      // rule reading "2 DÍAS" are a finished week; under "DÍA 6 DE 7" they are
-      // a week two thirds through. Closed weeks keep the plain totals.
-      expect(heads).toEqual([
-        'ESTA SEMANADÍA 6 DE 7 · 2 ENTRENOS · 3 SERIES',
-        'SEMANA ANTERIOR1 DÍA · 1 SERIE',
-      ])
+      // Every week is totalled the same way, the one you are in included. It
+      // used to report its position instead ("DÍA 6 DE 7") because the volume
+      // block hung off that rule; the block lives on Progreso now, so the rule
+      // goes back to counting what the list under it holds.
+      expect(heads).toEqual(['ESTA SEMANA2 DÍAS · 3 SERIES', 'SEMANA ANTERIOR1 DÍA · 1 SERIE'])
     } finally {
       vi.useRealTimers()
     }
   })
 
-  // Días is the app's default screen and weekly sets per muscle is what it is
-  // now about, so the volume block opens it: the same rows Progreso draws, in
-  // the day list's own typography, with the log hanging underneath. Nothing is
-  // hidden and nothing moves — the CTA stays pinned above the tab bar.
-  it('opens on this week’s volume, above the day list', async () => {
+  // Días is the log: the days you trained, in order, with `Empezar entreno`
+  // pinned under them. Sets per muscle is a reading, not a thing you touch
+  // mid-session, and it has a screen of its own — DESIGN.md, "Días carries only
+  // what you touch mid-session". Opening the app on nine rows of analysis put
+  // the day list, which is what this tab is for, below the fold.
+  it('opens on the day list, with no volume block over it', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-08T12:00:00'))
     try {
@@ -117,75 +116,24 @@ describe('Days', () => {
       const { container } = render(<Days onOpenWorkout={() => {}} />)
 
       await screen.findByText('ESTA SEMANA')
-      await waitFor(() => expect(container.querySelector('.sum-rows')).toBeTruthy())
-      expect([...container.querySelectorAll('.sum-name')].map((n) => n.textContent)).toEqual([
-        'Espalda',
-        'Bíceps',
-      ])
-      // Volume first, then the log.
-      const rows = container.querySelector('.sum-rows')
+      expect(container.querySelector('.sum-rows')).toBeNull()
+      expect(container.querySelector('.sum-ref-week')).toBeNull()
+      // Nothing of the block's copy is left behind either.
+      expect(screen.queryByText('La zona es la de cada músculo, no la misma para todos.')).toBeNull()
+      // The week's rule is immediately followed by the day it heads.
+      const head = container.querySelector('.week-head')
       const firstDay = container.querySelector('.day-block')
-      expect(rows.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-      // One rule for the week, not two.
-      expect(screen.getAllByText('ESTA SEMANA')).toHaveLength(1)
-      // Progreso's apparatus does not come with it: the arrows, the month and
-      // the deload switch are things you go to Progreso for. (The reference
-      // caption is not apparatus — see the test below.)
-      expect(screen.queryByText('Series por músculo')).toBeNull()
-      expect(screen.queryByLabelText('Periodo anterior')).toBeNull()
-      expect(screen.queryByRole('button', { name: 'Mes' })).toBeNull()
-      expect(screen.queryByRole('button', { name: 'Marcar descarga' })).toBeNull()
+      expect(head.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }
   })
 
-  // The picture moved to Días and its caption stayed on Progreso. What the
-  // track cannot draw is that every row's band is *that muscle's own*: nine
-  // stripes at the same x on the same nine-row grid read as one shared 10–20,
-  // and then `Core 1.5 en zona` above `Pecho 4 · faltan 2` looks like the row
-  // contradicting itself. So the one sentence no track can state comes with the
-  // rows — and it doubles as the seam, because `.sum-rows` and the first
-  // `.day-block` were flush and the day's amber date rule read as the volume
-  // table's bottom rule.
-  it('carries the caption that says each band is that muscle’s own', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
-    try {
-      api.listDays.mockResolvedValue([
-        {
-          id: 3,
-          date: '2026-08-08',
-          workouts: [
-            {
-              id: 7,
-              name: 'Pull',
-              sets: [benchSet({ id: 20, muscle_group: 'Espalda', secondary_groups: [] })],
-            },
-          ],
-        },
-      ])
-      const { container } = render(<Days onOpenWorkout={() => {}} />)
-
-      await waitFor(() => expect(container.querySelector('.sum-rows')).toBeTruthy())
-      const ref = container.querySelector('.sum-ref-week')
-      expect(ref.textContent).toBe('La zona es la de cada músculo, no la misma para todos.')
-      // Under the rows it annotates, over the list it separates.
-      const rows = container.querySelector('.sum-rows')
-      const firstDay = container.querySelector('.day-block')
-      expect(rows.compareDocumentPosition(ref) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-      expect(ref.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-      // Progreso's own two-sentence footnote does not come with it: this screen
-      // gets the one line, not the apparatus.
-      expect(container.querySelector('.sum-ref')).toBeNull()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  // A week with nothing in it draws no rows, so there is no picture to caption
-  // and the sentence would be annotating three sentences about last week.
-  it('drops the caption on a week with no rows to annotate', async () => {
+  // A week with nothing logged in it used to explain itself here — "La semana
+  // aún no tiene series", plus what last week closed with. That sentence belongs
+  // to the volume block, and the block is on Progreso now: an empty week on
+  // Días is a rule with no days under it, which is what an empty week is.
+  it('says nothing about volume on a week with nothing logged', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-10T09:00:00')) // a Monday
     try {
@@ -204,8 +152,9 @@ describe('Days', () => {
       ])
       const { container } = render(<Days onOpenWorkout={() => {}} />)
 
-      await screen.findByText('La semana aún no tiene series.')
-      expect(container.querySelector('.sum-ref-week')).toBeNull()
+      await screen.findByText('SEMANA ANTERIOR')
+      expect(screen.queryByText('La semana aún no tiene series.')).toBeNull()
+      expect(container.querySelector('.sum-rows')).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -239,9 +188,9 @@ describe('Days', () => {
         'ESTA SEMANA',
         'SEMANA ANTERIOR',
       ])
-      // And it says what it is, rather than drawing nine rows of zero.
-      expect(screen.getByText('La semana aún no tiene series.')).toBeInTheDocument()
-      expect(container.querySelector('.week-totals').textContent).toBe('DÍA 1 DE 7')
+      // With nothing in it there is nothing to total, so the rule carries the
+      // week's name and stops there.
+      expect(container.querySelector('.week-totals').textContent).toBe('')
     } finally {
       vi.useRealTimers()
     }

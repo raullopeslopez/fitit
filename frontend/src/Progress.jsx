@@ -148,17 +148,6 @@ const REFERENCE_COPY =
   'La franja es el margen productivo de ese músculo: cada uno tiene el suyo. ' +
   'Un músculo secundario cuenta media serie.'
 
-// The same fact, in the one line Días can pay for — and it is the line Días
-// most needs, because Días is the screen you open the app on. The picture went
-// there and the caption stayed here: nine stripes drawn at the same x on the
-// same nine-row grid *look* like one shared 10–20 range, and under that reading
-// `Core 1.5 · en zona` sitting over `Pecho 4 · faltan 2` is the row
-// contradicting itself. It says `zona` and not `franja` because `zona` is the
-// word printed over the track on that screen; the second sentence — how a
-// compound counts — is arithmetic you can look up on Progreso, and it does not
-// change how the drawing reads.
-const WEEK_REFERENCE_COPY = 'La zona es la de cada músculo, no la misma para todos.'
-
 // The one week where the standing reference is the wrong question. Marked as a
 // deload, every row is measured against a third of your own recent average
 // instead — and nothing is called short, because training less is the plan.
@@ -295,7 +284,10 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
 
   return (
     <div className="sum-row">
-      <span className="sum-id">
+      {/* `is-bare` when the row has nothing owed to say: the annotation's
+          reserved line is then split around the name rather than stacked under
+          it, so the name lands on the same centre line as its figure. */}
+      <span className={`sum-id${words ? '' : ' is-bare'}`}>
         <span className="sum-label">
           <span
             className="sum-dot"
@@ -397,17 +389,12 @@ function EmptyPeriod({ headline, aside, owed }) {
 // them. The question is "am I training what I think I'm training", so the bar
 // compares groups and the delta is the only thing wearing a colour.
 //
-// Two variants, one set of rows. `card` is Progreso: a titled surface with the
-// whole apparatus — arrows back through the history, `Mes`, the reference
-// footnote, the deload switch. `week` is Días, where this block is the *first
-// thing in the app* and is not a card at all: it renders as the current week's
-// own rule in the day list, in the list's mono typography, with the sessions
-// hanging underneath it. Everything that is a control or an explanation is
-// dropped there — DESIGN.md, "Días carries only what you touch mid-session" —
-// and everything that is a reading stays, at the same 52.56px pitch, because
-// the rows are what both screens are for.
-export function PeriodSummary({ days, variant = 'card' }) {
-  const asWeek = variant === 'week'
+// One card, on Progreso, and nowhere else. It briefly had a second, chromeless
+// variant opening Días — same rows, no arrows, no `Mes`, no deload switch — and
+// that put nine rows of analysis between you and the log on the tab you are in
+// mid-session, which is the trade DESIGN.md's "Días carries only what you touch
+// mid-session" exists to refuse. Reading belongs on the reading screen.
+export function PeriodSummary({ days }) {
   // The week is the unit the reference is written in (4 / 10–20 sets a week),
   // and the question the card answers — "am I training what I think I'm
   // training" — is a this-week question. Opening on the month meant the number
@@ -551,9 +538,7 @@ export function PeriodSummary({ days, variant = 'card' }) {
           : 'Semana sin entrenar.'
 
   const aside = !hasHistory
-    ? `Con el primer entreno ${
-        asWeek ? 'esta pantalla' : 'esta tarjeta'
-      } empieza a medir cada músculo contra su zona semanal.`
+    ? 'Con el primer entreno esta tarjeta empieza a medir cada músculo contra su zona semanal.'
     : !handover
       ? null
       : handover.sets > 0
@@ -662,48 +647,6 @@ export function PeriodSummary({ days, variant = 'card' }) {
       típica
     </p>
   )
-
-  // Días. The block *is* the current week's rule in the day list, so it takes
-  // the list's own head — mono, uppercase, no surface, one line of type — and
-  // then hands the space straight to the rows.
-  //
-  // The right-hand token leads with the position in the week rather than with
-  // a total, and that is the one place the two screens' copy diverges. Every
-  // other rule in the list totals a *closed* week (`5 DÍAS · 107 SERIES`), and
-  // nine set counts sitting under a rule shaped like that read as a finished
-  // account of the week. `DÍA 6 DE 7` is a place in the week, `5 DÍAS` is a
-  // count of trained ones; the two shapes differ because the two facts do.
-  if (asWeek) {
-    const weekRule = [
-      `DÍA ${daysIn} DE 7`,
-      summary.sets > 0 && plural(current.sessions, 'ENTRENO', 'ENTRENOS'),
-      summary.sets > 0 && plural(summary.sets, 'SERIE', 'SERIES'),
-    ]
-      .filter(Boolean)
-      .join(' · ')
-    return (
-      <>
-        <div className="week-head">
-          <span className="week-label">ESTA SEMANA</span>
-          <span className="week-totals">{weekRule}</span>
-        </div>
-        {body}
-        {short}
-        {/* The one line of the footnote that Días cannot do without, and the
-            seam between two blocks read at different speeds. `.sum-rows` ended
-            flush against the first `.day-block`, so that day's `2px` amber date
-            rule — the only coloured horizontal line on the screen — read as the
-            volume table's bottom border rather than as a date stamp. A caption
-            under the picture and a gap over the list are the same 30px.
-
-            Nothing to caption on a week with no rows: the empty state is three
-            sentences about last week, and a note explaining a track that isn't
-            drawn is worse than no note. A deload week keeps the deload's own
-            words — the band it measures against is not the standing one. */}
-        {!empty && <p className="sum-ref-week">{deload ? DELOAD_COPY : WEEK_REFERENCE_COPY}</p>}
-      </>
-    )
-  }
 
   return (
     <div className="card">
