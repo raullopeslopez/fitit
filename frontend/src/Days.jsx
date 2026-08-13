@@ -10,7 +10,6 @@ import {
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { setRepeatTemplate } from './prefs.js'
-import { PeriodSummary } from './Progress.jsx'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -365,21 +364,17 @@ export default function Days({ onOpenWorkout }) {
       ) : (
         weeks.map((week) => (
           <div className="week" key={week.key}>
-            {/* The week you are in opens the app with what it is made of.
-                Weekly sets per muscle is the figure this screen is now about,
-                so the current week's rule is not a one-line total but the
-                volume block itself — nine rows, the same ones Progreso draws,
-                at the same pitch — with the sessions that produced them hanging
-                directly underneath. Nothing is hidden and nothing is nested:
-                the list scrolls past it and `Empezar entreno` never moves. */}
-            {week.key === currentWeek ? (
-              <PeriodSummary days={days} variant="week" />
-            ) : (
-              <div className="week-head">
-                <span className="week-label">{week.label}</span>
-                <span className="week-totals">{week.totals}</span>
-              </div>
-            )}
+            {/* One rule per week, the one you are in included. It carried the
+                whole volume block for a while — nine rows of sets per muscle,
+                above the log — and that pushed the day list, which is what this
+                tab is, below the fold to make room for a reading you cannot act
+                on mid-session. The block lives on Progreso, where the arrows and
+                the month and the deload switch already were; here the rule goes
+                back to naming a week and totalling it. */}
+            <div className="week-head">
+              <span className="week-label">{week.label}</span>
+              <span className="week-totals">{week.totals}</span>
+            </div>
             {week.days.map((day, i) => {
               // Rest markers only inside the week you are still filling.
               // History doesn't need them: a week that is over is a week whose

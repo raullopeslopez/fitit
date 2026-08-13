@@ -2314,6 +2314,22 @@ button.set-action {
   min-width: 0;
   padding: 0.4rem 0;
 }
+/* Six of the nine rows have nothing owed, and on those the reserved annotation
+   box sat under the name as dead weight inside a centred stack — so the name
+   was pushed 9px above the row's middle while its own figure and its own mark
+   stayed dead centre. Every label in the column was off its number.
+
+   The reserve is still spent, just split above and below instead of piled
+   underneath: same 1.1rem + the gap, so the row's pitch is identical to the
+   pitch of a row that does carry `faltan 8`, and the list still scans on one
+   constant rhythm. On the rows that do say something the name keeps riding
+   high, which is what the upper line of a two-line stack is supposed to do. */
+.sum-id.is-bare {
+  padding-block: calc(0.4rem + (1.1rem + 0.05rem) / 2);
+}
+.sum-id.is-bare .sum-state {
+  display: none;
+}
 .sum-label {
   display: flex;
   align-items: center;
@@ -2608,8 +2624,15 @@ button.set-action {
    its own label. Tabular figures keep the digits on a common grid anyway, which
    is what right-alignment was there to buy. */
 .sum-val {
-  align-self: center;
-  text-align: right;
+  /* Stretched to the row like the other two cells, with the figure centred
+     inside it — not `align-self: center`, which is what it used to be. That
+     shrink-wrapped the cell to the height of its own text, so its `border-top`
+     landed 7px below the rules on the name and the track and the row's hairline
+     came out in three pieces with the middle one dropped. The figure sits
+     exactly where it did; only the rule it hangs from moved back up. */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   white-space: nowrap;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -2626,29 +2649,6 @@ button.set-action {
   margin: 0.5rem 0 0;
   font-size: 0.85rem;
   line-height: 1.45;
-}
-/* The same note on Días, doing two jobs for one line of type.
-
-   (1) It is the caption the picture arrived without. Días draws the nine tracks
-   and the word `zona` and nothing else, and nine stripes at the same x on the
-   same grid read as one shared 10–20 — under which `Core 1.5 · en zona` over
-   `Pecho 4 · faltan 2` looks like the row contradicting itself.
-
-   (2) It is the seam. `.sum-rows` ended flush against the first `.day-block`,
-   so that block's `2px solid var(--accent)` — the only coloured horizontal line
-   on the screen — read as the volume table's bottom rule instead of as a date
-   stamp, and two lists scanned at completely different speeds had nothing
-   between them. Prose in the body face does that better than a gap would: it
-   changes the register, not just the distance.
-
-   Bound to the rows above it (0.4rem) and loose below (0.625rem), because it
-   annotates the first and separates the second. The whole thing costs ~36px,
-   taken off the day list, which is the trade this screen is for. */
-.sum-ref-week {
-  margin: 0.4rem 0 0.625rem;
-  font-size: 0.85rem;
-  line-height: 1.45;
-  color: var(--muted);
 }
 /* The deload switch sits directly under the reference line it replaces, since
    that line is the thing it changes. A hairline separates a control from the
