@@ -130,30 +130,31 @@ h2 {
   align-items: center;
   margin-bottom: 1.25rem;
 }
-/* The wordmark: lowercase, tight, with the second i raised to a capital and
-   dropped to regular weight — one letter echoing the bar-and-plates icon.
-   The mark rides beside it as its own glyph now, sized off the wordmark's
-   own font-size so it scales with it wherever the wordmark is used.
-   `mark.png` (see make_icons.py's `draw_mark_tight`) is a dedicated crop for
-   this spot — the app-icon PNGs carry ~45% padding for Android's maskable
-   safe zone, which read as dead air between the plates and the text when
-   reused here; no amount of shrinking `gap` fixed that, since the space was
-   baked into the image, not the layout. */
+/* The wordmark is the brand kit's horizontal lockup, rebuilt in CSS: the
+   "celda" isotype beside the name, all lowercase. The proportions come from
+   `brand/fitit-logo-horizontal.svg`, expressed in `em` so the whole lockup
+   scales off the font-size wherever it's used: isotype 76u against a 96u
+   type size (0.79em), the air between them 28u (0.29em), tracking −0.055em.
+   The isotype is inline SVG, not an image — see Wordmark.jsx: its ink has to
+   follow the theme, and a PNG can't.
+   The capital-I swap is gone with the old bar-and-plates mark it echoed; the
+   kit sets the name in one weight, one case. */
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 0.2em;
+  gap: 0.29em;
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.0375em;
+  letter-spacing: -0.055em;
 }
 .wordmark-icon {
-  height: 1em;
-  width: auto;
+  height: 0.79em;
+  width: 0.79em;
   display: block;
-}
-.wordmark-swap {
-  font-weight: 400;
+  /* The lockup sits the isotype a touch below the cap line, as in the kit,
+     where the grid's baseline drops just under the type's. */
+  margin-top: 0.04em;
+  flex: none;
 }
 /* Salir: a text link, never a frame — framed and amber it was the second-loudest
    thing on the screen you open mid-set, for something you press once a month.

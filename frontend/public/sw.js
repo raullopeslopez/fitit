@@ -2,7 +2,7 @@
 // index.html — and the new hashed asset names it references — is picked up on the
 // next load; hashed static assets stay cache-first since their names change per
 // build. /api is always network. Bump CACHE to purge older caches on activate.
-const CACHE = 'fitit-v3'
+const CACHE = 'fitit-v4'
 
 // The rest state, and the sets logged from the lock screen. Kept in a *separate*
 // cache so the shell can be purged on every deploy without taking a set with it.

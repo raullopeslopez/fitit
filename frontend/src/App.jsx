@@ -5,6 +5,7 @@ import Login from './Login.jsx'
 import Progress from './Progress.jsx'
 import Register from './Register.jsx'
 import Workout from './Workout.jsx'
+import Wordmark from './Wordmark.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 
@@ -79,12 +80,7 @@ export default function App() {
   return (
     <div className="container">
       <header className="app-header">
-        <h1 className="wordmark">
-          <img src="/mark.png" alt="" className="wordmark-icon" />
-          <span className="wordmark-text">
-            fit<span className="wordmark-swap">I</span>t
-          </span>
-        </h1>
+        <Wordmark />
         {/* Salir is a rare action. Framed, it was the second-loudest thing on
             the screen you open mid-set; it reads as a quiet text link now. */}
         <button type="button" className="link-btn" onClick={handleLogout}>

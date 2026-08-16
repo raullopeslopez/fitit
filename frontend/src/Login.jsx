@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { login } from './api.js'
+import Wordmark from './Wordmark.jsx'
 
 export default function Login({ onAuthenticated, onSwitchToRegister }) {
   const [username, setUsername] = useState('')
@@ -25,12 +26,7 @@ export default function Login({ onAuthenticated, onSwitchToRegister }) {
   return (
     <div className="login-wrap">
       <div className="card login-card">
-        <h1 className="wordmark">
-          <img src="/mark.png" alt="" className="wordmark-icon" />
-          <span className="wordmark-text">
-            fit<span className="wordmark-swap">I</span>t
-          </span>
-        </h1>
+        <Wordmark />
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="username">Usuario</label>
