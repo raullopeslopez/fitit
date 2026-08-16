@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import ColdStart from './ColdStart.jsx'
 import Days from './Days.jsx'
 import Login from './Login.jsx'
 import Progress from './Progress.jsx'
@@ -7,6 +8,7 @@ import Register from './Register.jsx'
 import Workout from './Workout.jsx'
 import Wordmark from './Wordmark.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
+import { useColdStart } from './coldstart.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 
 export default function App() {
@@ -22,6 +24,9 @@ export default function App() {
   const [openWorkoutAutoRename, setOpenWorkoutAutoRename] = useState(false)
   const [view, setView] = useState('days')
   const [showRegister, setShowRegister] = useState(false)
+  // Is the backend awake? Only asked once per launch, and only ever seen on the
+  // launch that has to wake it.
+  const boot = useColdStart({ enabled: Boolean(token) })
 
   function openWorkout(id, seed = null, autoRename = false) {
     setOpenWorkoutId(id)
@@ -68,6 +73,24 @@ export default function App() {
       <Login
         onAuthenticated={handleAuthenticated}
         onSwitchToRegister={() => setShowRegister(true)}
+      />
+    )
+  }
+
+  // The launch gate. `probing` is the first 800 ms — nothing is drawn, because a
+  // screen that flashes for the length of a normal request is worse than none.
+  // Past that the wait is real and gets said out loud; `local` and `ready` both
+  // hand over to the app, one with a backend behind it and one without.
+  if (boot.phase === 'probing') {
+    return <div className="container cold-blank" aria-hidden="true" />
+  }
+  if (boot.phase === 'waiting' || boot.phase === 'failed') {
+    return (
+      <ColdStart
+        phase={boot.phase}
+        attempt={boot.attempt}
+        onRetry={boot.retry}
+        onLocal={boot.goLocal}
       />
     )
   }

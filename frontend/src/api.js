@@ -57,6 +57,14 @@ export async function apiFetch(path, options = {}) {
   return res.json()
 }
 
+// The launch probe. Public and tiny, so what it measures is the container being
+// awake and nothing else — on the free tier that is a request the first launch
+// of the day pays for and every other one doesn't. `options` carries the abort
+// signal that lets the launch screen give up on an attempt.
+export function checkHealth(options = {}) {
+  return apiFetch('/health', options)
+}
+
 export function createWorkout({ name = null, date = null } = {}) {
   return apiFetch('/workouts', { method: 'POST', body: JSON.stringify({ name, date }) })
 }

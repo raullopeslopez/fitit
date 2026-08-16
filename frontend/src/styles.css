@@ -2752,3 +2752,206 @@ button.set-chip:active:not(:disabled) {
   background: color-mix(in srgb, var(--chip, var(--muted)) 34%, transparent);
   transform: none;
 }
+
+/* --- La espera que solo existe cuando la hay (ColdStart) ------------------ */
+/* El backend duerme en el plan gratuito de Render, así que el primer arranque
+   del día puede tardar. Esta pantalla no cuenta eso: cuenta la sesión que vienes
+   a registrar. Sin nav inferior — no hay a dónde ir hasta que haya datos — así
+   que recupera el padding que `.container` reserva para la barra. */
+.cold,
+.cold-blank {
+  min-height: 100dvh;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+}
+.cold {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-top: 2.5rem;
+}
+.cold-brand {
+  display: flex;
+  align-items: center;
+}
+
+/* La tarjeta manda: alto fijo para que el cambio de dato no mueva la barra ni
+   los puntos de debajo. */
+.cold-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.15rem;
+  min-height: 15rem;
+  margin-bottom: 0;
+}
+.cold-kicker {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.cold-slide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: cold-rise 0.45s ease both;
+}
+.cold-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.5rem;
+  text-wrap: pretty;
+}
+/* El color de músculo va en la marca, nunca en el texto (DESIGN.md). */
+.cold-dot {
+  width: 10px;
+  height: 10px;
+}
+.cold-text {
+  margin: 0;
+  max-width: 32ch;
+  color: var(--muted);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* El dato, como en todo el resto de la app: mono y tabular. */
+.cold-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  min-height: 2.6rem;
+}
+.cold-stat-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.3rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+}
+.cold-stat-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* Ámbar para lo que se mueve, el ámbar profundo del récord para la marca. Las
+   dos únicas excepciones al texto en tinta, y las dos por lo mismo: el número
+   dice que ha pasado algo. */
+.cold-stat.tone-accent .cold-stat-value {
+  color: var(--accent-ink);
+}
+.cold-stat.tone-pr .cold-stat-value {
+  color: var(--pr);
+}
+
+/* La barra nunca llega al final: no sabemos cuánto tarda el despertar, y una
+   barra llena con nada detrás es la única mentira que esta pantalla no puede
+   permitirse. El barrido dice "sigue vivo" sin poner un número a la espera. */
+.cold-bar {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.cold-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s linear;
+}
+.cold-bar-sweep {
+  position: absolute;
+  inset: 0;
+  width: 28%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface) 70%, transparent),
+    transparent
+  );
+  animation: cold-sweep 1.9s ease-in-out infinite;
+}
+
+.cold-dots {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+}
+.cold-tick {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s ease;
+}
+.cold-tick.is-on {
+  background: var(--accent);
+}
+
+/* La salida y las acciones del error: apiladas, ancho completo, en el pulgar. */
+.cold-escape,
+.cold-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  animation: cold-rise 0.35s ease both;
+}
+.cold-escape .hint {
+  margin: 0;
+}
+.cold-fail-title {
+  margin: 0;
+  text-wrap: pretty;
+}
+/* Lo que tranquiliza no va en rojo: el rojo es lo destructivo en esta app. Una
+   nota sobre lienzo, con el borde de siempre. */
+.cold-note {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@keyframes cold-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cold-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cold-slide,
+  .cold-escape,
+  .cold-actions {
+    animation: none;
+  }
+  .cold-bar-sweep {
+    display: none;
+  }
+  .cold-bar-fill {
+    transition: none;
+  }
+}
