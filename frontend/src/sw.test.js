@@ -635,10 +635,10 @@ describe('the shell cache', () => {
     const worker = bootWorker()
     await worker.caches.open('fitit-v2')
     await worker.caches.open('fitit-state')
-    await worker.caches.open('fitit-v3')
+    await worker.caches.open('fitit-v4')
 
     await worker.dispatch('activate')
 
-    expect([...worker.caches.stores.keys()].sort()).toEqual(['fitit-state', 'fitit-v3'])
+    expect([...worker.caches.stores.keys()].sort()).toEqual(['fitit-state', 'fitit-v4'])
   })
 })
