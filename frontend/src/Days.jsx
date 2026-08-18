@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
+import { buildBootSummary } from './coldstart.js'
 import {
   formatDayStamp,
   formatWeekLabel,
@@ -9,6 +10,7 @@ import {
   sessionMinutes,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
+import { cacheBootSummary } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
 
 function todayISO() {
@@ -112,7 +114,13 @@ export default function Days({ onOpenWorkout }) {
 
   useEffect(() => {
     listDays()
-      .then(setDays)
+      .then((loaded) => {
+        setDays(loaded)
+        // What the launch screen will have to show next time the backend is
+        // asleep. Written here because this is the one place the whole log
+        // passes through, and read on a launch where nothing has arrived yet.
+        cacheBootSummary(buildBootSummary(loaded))
+      })
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
 

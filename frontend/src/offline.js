@@ -115,3 +115,30 @@ export function cachedMarks(name) {
   const hit = readMarks()[name]
   return hit ? { ...hit, stale: true } : null
 }
+
+// ---------------------------------------------------------------------------
+// The boot summary: five numbers about the user, kept so the launch screen has
+// something true to show while the first request is still out. Not the log
+// itself — that is hundreds of sets and growing, and this is read on a launch
+// where nothing has arrived yet.
+// ---------------------------------------------------------------------------
+
+const BOOT_KEY = 'fitit_boot_summary'
+
+export function cacheBootSummary(summary) {
+  if (!summary) return
+  try {
+    localStorage.setItem(BOOT_KEY, JSON.stringify(summary))
+  } catch {
+    // A full quota must never take down the screen that just loaded fine.
+  }
+}
+
+export function cachedBootSummary() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(BOOT_KEY))
+    return stored && typeof stored === 'object' ? stored : null
+  } catch {
+    return null
+  }
+}

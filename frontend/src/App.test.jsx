@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import App from './App.jsx'
@@ -82,6 +82,75 @@ describe('App', () => {
 
     expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
     expect(api.getWorkout).not.toHaveBeenCalled()
+  })
+
+  // The launch screen is for the launch that has to wake the backend, and for
+  // no other. On the normal open it must never be seen — not even for a frame.
+  it('goes straight into the app when the first request lands fast', async () => {
+    setToken('tok')
+    api.checkHealth.mockResolvedValue({ status: 'ok' })
+    api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
+    render(<App />)
+
+    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(screen.queryByText('Tu primera sesión')).not.toBeInTheDocument()
+  })
+
+  it('puts the waiting screen up once the first request has been out 800 ms', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    setToken('tok')
+    let wake
+    api.checkHealth.mockReturnValue(
+      new Promise((resolve) => {
+        wake = resolve
+      }),
+    )
+    api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
+    render(<App />)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700)
+    })
+    expect(screen.queryByText('Tu primera sesión')).not.toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200)
+    })
+    expect(screen.getByText('Tu primera sesión')).toBeInTheDocument()
+
+    // …and it gets out of the way the moment the backend answers.
+    await act(async () => {
+      wake({ status: 'ok' })
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(screen.queryByText('Tu primera sesión')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    vi.useRealTimers()
+  })
+
+  it('gives up after a minute and offers the way out', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    setToken('tok')
+    api.checkHealth.mockReturnValue(new Promise(() => {}))
+    api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
+    render(<App />)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60000)
+    })
+    expect(screen.getByText('No hemos podido cargar tu sesión')).toBeInTheDocument()
+
+    // Logging on the device is always an option: the app already keeps sets in
+    // an outbox, so the way out is the app itself, not a lesser copy of it.
+    await act(async () => {
+      screen.getByRole('button', { name: /empezar a registrar ya/i }).click()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(screen.getByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    vi.useRealTimers()
   })
 
   it('forgets the open workout once you leave it', async () => {
