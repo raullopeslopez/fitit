@@ -6,6 +6,13 @@ WORKDIR /fe
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+# Vite inlines VITE_* at build time, not at boot, so this has to cross into the
+# build stage explicitly: Render passes its env vars as docker build args, but
+# a build arg no `ARG` line declares is invisible inside `RUN`. Without these
+# two lines the variable can be set correctly in the dashboard and the Google
+# button still never appears — a misconfiguration with no error anywhere.
+ARG VITE_GOOGLE_CLIENT_ID=""
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 RUN npm run build
 
 # --- backend + serve everything ---
