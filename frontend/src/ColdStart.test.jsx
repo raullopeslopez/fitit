@@ -39,7 +39,10 @@ async function tick(ms) {
 describe('ColdStart', () => {
   beforeEach(() => {
     localStorage.clear()
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    // El reloj va congelado en el mismo día que el fixture. La tarjeta de
+    // sesión dice "Hoy" o "Tu última sesión" según la fecha real, así que sin
+    // congelarlo el test aprueba o falla según el día en que se ejecute.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date(2026, 7, 16, 10, 0, 0) })
   })
 
   afterEach(() => {
