@@ -19,6 +19,10 @@ class FakeResponse {
     return JSON.parse(this.body)
   }
 
+  async text() {
+    return this.body
+  }
+
   clone() {
     return this
   }
@@ -96,7 +100,25 @@ function bootWorker({ fetch = vi.fn(), clients = [] } = {}) {
     return hit ? JSON.parse(hit.body) : undefined
   }
 
-  return { self, caches, shown, live, dispatch, state, fetch }
+  // A fetch event is answered, not awaited: the handler hands its response back
+  // through respondWith. Drive one and get that response, once anything the
+  // handler parked on waitUntil (the background cache write) has settled too.
+  const navigate = (url = 'https://fitit.test/') => {
+    let answered
+    const waited = []
+    const event = {
+      request: { method: 'GET', url, mode: 'navigate' },
+      respondWith: (p) => void (answered = p),
+      waitUntil: (p) => waited.push(p),
+    }
+    ;(listeners.get('fetch') ?? []).forEach((fn) => fn(event))
+    return Promise.resolve(answered).then(async (res) => {
+      await Promise.all(waited)
+      return res
+    })
+  }
+
+  return { self, caches, shown, live, dispatch, navigate, state, fetch }
 }
 
 const REST = {
@@ -630,15 +652,73 @@ describe('+1 serie, from the lock screen', () => {
   })
 })
 
+// What Render's free plan answers with while the container wakes up: its own
+// page, HTTP 200, from its edge — the app never gets a say. Nothing of ours in it.
+const RENDER_WAITING_PAGE =
+  '<!doctype html><html><body><h1>APPLICATION LOADING</h1><p>SERVICE WAKING UP ...</p></body></html>'
+
+const SHELL = (build = 'a') =>
+  `<!doctype html><html><head><meta name="fitit-shell" content="1" /></head>` +
+  `<body><div id="root"></div><script src="/assets/index-${build}.js"></script></body></html>`
+
+describe('opening the app on a sleeping backend', () => {
+  it('shows our own screen instead of the hosting page while the container wakes', async () => {
+    const worker = bootWorker({ fetch: vi.fn(async () => new FakeResponse(RENDER_WAITING_PAGE)) })
+    await (await worker.caches.open('fitit-v5')).put('/', new FakeResponse(SHELL()))
+
+    const res = await worker.navigate()
+
+    expect(await res.text()).toContain('id="root"')
+  })
+
+  it('never lets the hosting page take the place of the cached app', async () => {
+    const worker = bootWorker({ fetch: vi.fn(async () => new FakeResponse(RENDER_WAITING_PAGE)) })
+    await (await worker.caches.open('fitit-v5')).put('/', new FakeResponse(SHELL()))
+
+    await worker.navigate()
+
+    const kept = await (await worker.caches.open('fitit-v5')).match('/')
+    expect(await kept.text()).toContain('id="root"')
+  })
+
+  it('hands the hosting page through on a phone that has never opened the app', async () => {
+    const worker = bootWorker({ fetch: vi.fn(async () => new FakeResponse(RENDER_WAITING_PAGE)) })
+
+    const res = await worker.navigate()
+
+    expect(await res.text()).toContain('APPLICATION LOADING')
+  })
+
+  it('still picks up a fresh deploy when the server answers with the app', async () => {
+    const worker = bootWorker({ fetch: vi.fn(async () => new FakeResponse(SHELL('new'))) })
+    await (await worker.caches.open('fitit-v5')).put('/', new FakeResponse(SHELL('old')))
+
+    const res = await worker.navigate()
+
+    expect(await res.text()).toContain('index-new.js')
+    const stored = await (await worker.caches.open('fitit-v5')).match('/')
+    expect(await stored.text()).toContain('index-new.js')
+  })
+
+  it('falls back to the cached app with no network at all', async () => {
+    const worker = bootWorker({ fetch: vi.fn(async () => { throw new Error('offline') }) })
+    await (await worker.caches.open('fitit-v5')).put('/', new FakeResponse(SHELL()))
+
+    const res = await worker.navigate()
+
+    expect(await res.text()).toContain('id="root"')
+  })
+})
+
 describe('the shell cache', () => {
   it('purges old builds without taking the queued sets with them', async () => {
     const worker = bootWorker()
     await worker.caches.open('fitit-v2')
     await worker.caches.open('fitit-state')
-    await worker.caches.open('fitit-v4')
+    await worker.caches.open('fitit-v5')
 
     await worker.dispatch('activate')
 
-    expect([...worker.caches.stores.keys()].sort()).toEqual(['fitit-state', 'fitit-v4'])
+    expect([...worker.caches.stores.keys()].sort()).toEqual(['fitit-state', 'fitit-v5'])
   })
 })
