@@ -27,6 +27,21 @@ export async function register(username, password) {
   return data.access_token
 }
 
+// Trades the ID token Google handed the page for one of ours. Same shape of
+// answer as login/register, so the caller cannot tell which door was used.
+export async function googleLogin(credential) {
+  const res = await fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+  if (!res.ok) {
+    throw new Error('google sign-in rejected')
+  }
+  const data = await res.json()
+  return data.access_token
+}
+
 // Authenticated request against the backend. Attaches the stored JWT, prefixes
 // /api (Vite proxy), and on 401 drops the token + notifies the app to log out.
 export async function apiFetch(path, options = {}) {
