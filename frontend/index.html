@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fitit</title>
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- El service worker mira esta marca antes de creerse que una respuesta HTML
+         es la app: el plan gratuito de Render contesta al primer GET del día con
+         una página suya de "application loading", y sin marca no hay forma de
+         distinguirla de nosotros. Si desaparece, sw.js deja de cachear el shell. -->
+    <meta name="fitit-shell" content="1" />
     <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b0c0e" media="(prefers-color-scheme: dark)" />
     <!-- El SVG lleva la tinta atada al tema (barra de pestañas clara u oscura);
