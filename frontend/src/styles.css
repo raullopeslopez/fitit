@@ -2955,3 +2955,36 @@ button.set-chip:active:not(:disabled) {
     transition: none;
   }
 }
+
+/* --- Entrar con Google -------------------------------------------------------
+
+   The button itself is drawn by Google inside `.google-signin-slot` and cannot
+   be restyled — their branding terms are the reason DESIGN.md's type and colour
+   stop at this one element. What is ours is the space around it and the rule
+   that separates it from the password form, and those stay on the system.
+
+   The separator says "o" rather than "o entra con tu contraseña" because the
+   two fields under it already say that, at 44px each. */
+.google-signin {
+  margin-bottom: 1rem;
+}
+.google-signin-slot {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+.google-signin-or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.google-signin-or::before,
+.google-signin-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}

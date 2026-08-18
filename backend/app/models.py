@@ -22,10 +22,19 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    # Null for an account that only ever signs in with Google: there is no
+    # password to hash, and a placeholder hash would be a password nobody set.
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Deliberately not writable over HTTP. Linking a Google sign-in to an
+    # existing account keys off this column, so an address the user merely
+    # typed at registration would be a way into somebody else's history.
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    # Google's stable per-account id (`sub`). Survives the user renaming
+    # themselves or changing their Gmail address, which the email does not.
+    google_sub: Mapped[str | None] = mapped_column(
+        String(255), unique=True, index=True, nullable=True
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Exercise(Base):
@@ -33,9 +42,7 @@ class Exercise(Base):
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_exercises_user_id_name"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120), index=True)
     muscle_group: Mapped[str | None] = mapped_column(String(60), nullable=True)
     # The one thing worth remembering about how you do this lift — the grip, the
@@ -58,13 +65,9 @@ class Day(Base):
     __table_args__ = (UniqueConstraint("user_id", "date", name="uq_days_user_id_date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     date: Mapped[date] = mapped_column(Date, index=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Newest first, matching the day feed itself (Day.date.desc()). The workout
     # you're still in is the one you want at the top of the screen, not the one
@@ -80,13 +83,9 @@ class Workout(Base):
     __tablename__ = "workouts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    day_id: Mapped[int] = mapped_column(
-        ForeignKey("days.id", ondelete="CASCADE"), index=True
-    )
+    day_id: Mapped[int] = mapped_column(ForeignKey("days.id", ondelete="CASCADE"), index=True)
     name: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     day: Mapped["Day"] = relationship(back_populates="workouts")
     sets: Mapped[list["SetEntry"]] = relationship(

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacidad · Fitit</title>
+    <meta name="description" content="Qué datos guarda Fitit, dónde viven y cómo borrarlos." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0c0e" media="(prefers-color-scheme: dark)" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Geist:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Los mismos tokens que la app (DESIGN.md): claro por defecto, oscuro
+         cuando el sistema lo pide. Esta página se sirve fuera del bundle de
+         React, así que los lleva encima en vez de importarlos. */
+      :root {
+        --bg: #f4f2ee;
+        --surface: #ffffff;
+        --fg: #15171a;
+        --muted: #616875;
+        --border: #e6e2da;
+        --accent: #e4571b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b0c0e;
+          --surface: #15171a;
+          --fg: #f2f3f5;
+          --muted: #9ba1a9;
+          --border: #24272c;
+          --accent: #ff6a2c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 2rem 1rem 4rem;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: Geist, system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.75rem 1.5rem 2.25rem;
+      }
+      h1,
+      h2 {
+        font-family: 'Space Grotesk', Geist, system-ui, sans-serif;
+        line-height: 1.25;
+      }
+      h1 {
+        font-size: 1.6rem;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 2rem 0 0.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border);
+      }
+      h2:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin: 0 0 1.5rem;
+      }
+      .lead {
+        font-size: 1.05rem;
+      }
+      ul {
+        padding-left: 1.15rem;
+      }
+      li {
+        margin-bottom: 0.4rem;
+      }
+      a {
+        color: var(--accent);
+      }
+      strong {
+        font-weight: 600;
+      }
+      .back {
+        display: inline-block;
+        margin-top: 2rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.5rem 0 0;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.5rem 0.6rem 0.5rem 0;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        font-size: 0.95rem;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacidad en Fitit</h1>
+      <p class="updated">Última actualización: 18 de agosto de 2026</p>
+
+      <p class="lead">
+        Fitit es una aplicación personal para registrar entrenamientos. No vende datos, no
+        muestra publicidad y no lleva ninguna herramienta de analítica ni de seguimiento. Esta
+        página cuenta exactamente qué se guarda, dónde está y cómo se borra.
+      </p>
+
+      <h2>Quién responde de tus datos</h2>
+      <p>
+        Raúl López, como responsable del tratamiento. Para cualquier cosa relacionada con tus
+        datos —incluido borrarlos— escribe a
+        <a href="mailto:raullopeslopez@gmail.com">raullopeslopez@gmail.com</a>.
+      </p>
+
+      <h2>Qué se guarda</h2>
+      <table>
+        <tr>
+          <th>Cuenta</th>
+          <td>
+            Tu nombre de usuario y tu contraseña, que se guarda
+            <strong>cifrada con bcrypt</strong> y nunca en claro: no es recuperable, ni siquiera
+            por quien administra la aplicación.
+          </td>
+        </tr>
+        <tr>
+          <th>Google</th>
+          <td>
+            Si entras con Google, se guardan
+            <strong>tu dirección de correo verificada y el identificador de tu cuenta de
+            Google</strong>, y nada más. No se guarda tu nombre ni tu foto de perfil, y Fitit no
+            puede leer tu correo, tus contactos ni ningún otro servicio de Google. Las cuentas
+            que solo usan Google no tienen contraseña.
+          </td>
+        </tr>
+        <tr>
+          <th>Entrenamiento</th>
+          <td>
+            Lo que registras: ejercicios y su grupo muscular, series con peso y repeticiones,
+            esfuerzo percibido (RPE), duración y distancia en cardio, las notas que escribas y
+            las fechas y horas de cada sesión.
+          </td>
+        </tr>
+      </table>
+      <p>
+        No se pide ni se guarda nada más: ni nombre real, ni edad, ni peso corporal, ni teléfono,
+        ni ubicación, ni datos de pago.
+      </p>
+
+      <h2>Dónde están</h2>
+      <ul>
+        <li>La aplicación se ejecuta en <strong>Render</strong>, en su región de Fráncfort.</li>
+        <li>
+          La base de datos está en <strong>Neon</strong>, en <code>aws-eu-central-1</code>
+          (Fráncfort).
+        </li>
+      </ul>
+      <p>
+        Ambos están en Alemania, de modo que
+        <strong>tus datos no salen de la Unión Europea</strong>. No hay copias en ningún otro
+        sitio ni transferencias internacionales.
+      </p>
+
+      <h2>Con quién se comparten</h2>
+      <p>Con nadie. No hay cesiones ni venta de datos a terceros. Intervienen únicamente:</p>
+      <ul>
+        <li>
+          <strong>Render</strong> y <strong>Neon</strong>, que alojan la aplicación y la base de
+          datos por encargo y no usan tus datos para nada propio.
+        </li>
+        <li>
+          <strong>Google</strong>, solo si eliges entrar con Google: Google confirma quién eres y
+          entrega a Fitit tu correo verificado. Fitit no le comunica a Google nada sobre tus
+          entrenamientos.
+        </li>
+        <li>
+          <strong>Google Fonts</strong>, de donde la aplicación descarga sus tipografías. Esa
+          descarga hace que Google reciba la dirección IP de tu navegador, como ocurre con
+          cualquier archivo que se pide a otro servidor.
+        </li>
+      </ul>
+
+      <h2>Cookies</h2>
+      <p>
+        Fitit <strong>no usa cookies</strong>, ni propias ni de terceros, ni de seguimiento ni de
+        publicidad. Tu sesión se mantiene con una credencial guardada en el almacenamiento local
+        de tu navegador, que desaparece al cerrar sesión o al borrar los datos del sitio.
+      </p>
+
+      <h2>Notificaciones</h2>
+      <p>
+        Los avisos de descanso los genera tu propio navegador en el dispositivo, si le das
+        permiso. <strong>No hay servidor de notificaciones push</strong>: nada de lo que aparece
+        en tu pantalla de bloqueo sale del teléfono.
+      </p>
+
+      <h2>Cuánto tiempo se conservan</h2>
+      <p>
+        Mientras tengas la cuenta. Si pides que se borre, se elimina la cuenta y con ella todos
+        los entrenamientos, series y ejercicios asociados, sin quedar copias.
+      </p>
+
+      <h2>Tus derechos</h2>
+      <p>
+        Puedes ejercer los derechos que te da el RGPD —acceso, rectificación, supresión,
+        portabilidad, limitación y oposición— escribiendo a
+        <a href="mailto:raullopeslopez@gmail.com">raullopeslopez@gmail.com</a>. La propia
+        aplicación incluye además una <strong>exportación a CSV</strong> de tus datos de
+        entrenamiento, que puedes descargar cuando quieras sin pedir permiso a nadie. Si crees
+        que no se han tratado bien tus datos, puedes reclamar ante la Agencia Española de
+        Protección de Datos (<a href="https://www.aepd.es">aepd.es</a>).
+      </p>
+
+      <h2>Cambios en esta política</h2>
+      <p>
+        Si cambia lo que se recoge o dónde se guarda, cambiará esta página y con ella la fecha de
+        arriba.
+      </p>
+
+      <a class="back" href="/">← Volver a Fitit</a>
+    </main>
+  </body>
+</html>

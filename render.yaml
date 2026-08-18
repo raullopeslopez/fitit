@@ -28,3 +28,20 @@ services:
         sync: false
       - key: AUTH_PASSWORD
         sync: false
+      # Google sign-in. The OAuth *web* client id from the Google Cloud console.
+      # Unset means the feature is simply off: the button is not rendered and
+      # /auth/google refuses every token.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      # The same id again, for the React build. Two variables and not one
+      # because they are consumed at different times — the backend reads its
+      # copy at boot, Vite bakes this one into the bundle at build time (see
+      # the ARG in ./Dockerfile).
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      # Read once, by the add_google_sign_in migration, to put an email on the
+      # account AUTH_USERNAME seeded — which is what makes the first Google tap
+      # open *that* account instead of creating an empty second one. Set it
+      # before the deploy that runs the migration or not at all.
+      - key: AUTH_EMAIL
+        sync: false

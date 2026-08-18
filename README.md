@@ -58,6 +58,38 @@ data. Requesting another user's workout, set, day or exercise by id is a 404.
 by the `add_users_table` migration, to seed the first account on a database that
 predates the users table — keep them set until that migration has run.
 
+### Signing in with Google
+
+`POST /auth/google` takes the ID token Google Identity Services hands the page
+(`{"credential": "..."}`) and answers with the same `TokenOut` as `/auth/login`.
+It registers on first sight, so there is no separate sign-up route.
+
+Which account it opens is decided in order of how much the identity is worth:
+
+1. `users.google_sub` — Google's immutable account id. Survives the person
+   renaming themselves or changing their Gmail address.
+2. `users.email` — how an account that predates all this gets *adopted* rather
+   than shadowed by an empty twin. **Nothing over HTTP can write this column.**
+   An email the user merely typed would be a way into somebody else's history,
+   so the only thing that sets it is the `add_google_sign_in` migration, from
+   `AUTH_EMAIL`.
+3. Otherwise a new account, username derived from the address's local part.
+
+Both ends need the OAuth **web** client id from the Google Cloud console — the
+backend to check the token's audience, the frontend to ask for one:
+
+- backend: `GOOGLE_CLIENT_ID`. Unset means the feature is off and
+  `/auth/google` refuses everything, rather than trusting tokens minted for
+  whoever else's app.
+- frontend: `VITE_GOOGLE_CLIENT_ID`, at **build** time (Vite inlines it). Unset
+  and the button renders nothing at all — better than one that fails on the tap.
+
+In the console the client needs `http://localhost:5173` and the production
+origin under *Authorized JavaScript origins*. No redirect URIs: the browser
+never leaves the page. Scopes stay at `openid email profile`, which are
+non-sensitive — no Google verification review, no user cap — but publishing the
+consent screen still requires a privacy policy URL.
+
 ## Database migrations
 
 Schema changes are Alembic migrations (Postgres in dev/prod; tests use SQLite).
@@ -137,6 +169,13 @@ Steps:
      `add_users_table` migration reads them once, on the deploy that introduces
      the users table; after that everyone registers their own account and these
      are only needed again for a fresh database. (`JWT_SECRET` is generated.)
+   - `GOOGLE_CLIENT_ID` → enables `/auth/google`. Leave it unset to keep Google
+     sign-in off.
+   - `AUTH_EMAIL` → **set this before the deploy that runs `add_google_sign_in`,
+     or not at all.** The migration stamps it on the account `AUTH_USERNAME`
+     seeded, which is what makes the first Google tap open that account instead
+     of creating an empty second one. Setting it afterwards does nothing; the
+     fix at that point is an `UPDATE` by hand.
 5. Deploy. `alembic upgrade head` runs on container start against Neon (creating the
    schema on first deploy); health check is `/api/health`.
 

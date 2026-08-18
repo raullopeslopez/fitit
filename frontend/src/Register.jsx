@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { register } from './api.js'
+import GoogleSignIn from './GoogleSignIn.jsx'
 import Wordmark from './Wordmark.jsx'
 
 export default function Register({ onAuthenticated, onSwitchToLogin }) {
@@ -31,6 +32,11 @@ export default function Register({ onAuthenticated, onSwitchToLogin }) {
     <div className="login-wrap">
       <div className="card login-card">
         <Wordmark />
+        {/* Same button as on the login screen, and deliberately so: with
+            Google there is no difference between creating an account and
+            opening one, so making the user pick the right screen first would
+            be a step invented by this app. */}
+        <GoogleSignIn onAuthenticated={onAuthenticated} />
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="username">Usuario</label>

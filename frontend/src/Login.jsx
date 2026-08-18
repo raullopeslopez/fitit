@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { login } from './api.js'
+import GoogleSignIn from './GoogleSignIn.jsx'
 import Wordmark from './Wordmark.jsx'
 
 export default function Login({ onAuthenticated, onSwitchToRegister }) {
@@ -27,6 +28,7 @@ export default function Login({ onAuthenticated, onSwitchToRegister }) {
     <div className="login-wrap">
       <div className="card login-card">
         <Wordmark />
+        <GoogleSignIn onAuthenticated={onAuthenticated} />
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="username">Usuario</label>

@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     # used to be the whole auth system. Unused at runtime after that.
     auth_username: str = "fitit"
     auth_password: str = "changeme"
+    # Also read once, by the google_sign_in migration, to stamp an email on
+    # that same seeded account so the first Google sign-in adopts it instead of
+    # opening an empty twin. Blank means skip — nothing to link.
+    auth_email: str = ""
+    # The OAuth web client from the Google Cloud console. Empty means the
+    # feature is simply off: /auth/google refuses everything rather than
+    # accepting tokens minted for whoever else's app.
+    google_client_id: str = ""
 
     @field_validator("database_url")
     @classmethod

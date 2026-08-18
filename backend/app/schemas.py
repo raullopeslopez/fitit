@@ -231,6 +231,16 @@ class RegisterIn(BaseModel):
         return value
 
 
+class GoogleCredentialIn(BaseModel):
+    """The ID token Google Identity Services hands the page, verbatim.
+
+    Named `credential` because that is what Google calls it in the callback,
+    and a field renamed in transit is a field somebody mismatches later.
+    """
+
+    credential: str = Field(min_length=1)
+
+
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
