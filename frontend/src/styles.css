@@ -1929,19 +1929,27 @@ button.set-action {
 /* The note editor, same shape as the muscle row above it: label left, control
    filling the rest, save on its own line so the field keeps its width on a
    phone. Both live in the one fold you open to fix something about the lift. */
-.note-edit {
+.note-edit,
+.name-edit {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.note-edit input {
+.note-edit input,
+.name-edit input {
   flex: 1;
   min-width: 8rem;
   min-height: 44px;
 }
-.note-edit button {
+.note-edit button,
+.name-edit button {
   flex-basis: 100%;
+}
+/* The rename's own complaint, under the field it belongs to. */
+.name-edit .rename-alert {
+  flex-basis: 100%;
+  margin: 0;
 }
 .muscle-edit-select {
   margin-left: auto;

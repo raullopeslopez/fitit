@@ -9,6 +9,7 @@ import {
   listExercises,
   logSet,
   recentlyTrained,
+  renameExercise,
   renameWorkout,
   setExerciseMuscle,
   setExerciseNote,
@@ -38,6 +39,7 @@ import {
   enqueueSet,
   queuedFor,
   readQueue,
+  renameQueued,
   retryable,
 } from './offline.js'
 import {
@@ -165,6 +167,9 @@ function ExerciseCard({
   onDeleteSet,
   onChangeMuscle,
   onChangeNote,
+  // Renames the exercise itself. Returns true, or the complaint to print beside
+  // the field — only the parent knows whether the name was already one of yours.
+  onChangeName,
   open = true,
   onToggle,
   // Unfolds the card without the toggle's "or fold it again": a chip has to
@@ -184,6 +189,10 @@ function ExerciseCard({
   // The standing note, being edited. Seeded from the exercise each time the fold
   // opens, so an abandoned edit doesn't survive as a draft nobody asked for.
   const [noteDraft, setNoteDraft] = useState(note ?? '')
+  // The name, being edited, and whatever went wrong last time it was sent.
+  // Seeded from the exercise on every open, same as the note above.
+  const [nameDraft, setNameDraft] = useState(name)
+  const [nameError, setNameError] = useState('')
   // A re-tag the user has asked for but not yet confirmed — `{ group }`, where
   // a null group means "Sin grupo". Null while nothing is pending. The select
   // stays controlled by `muscle` throughout, so backing out needs no undoing:
@@ -245,6 +254,24 @@ function ExerciseCard({
     event.preventDefault()
     const next = noteDraft.trim()
     if (await onChangeNote(name, next || null)) setShowFixes(false)
+  }
+
+  // Rename the exercise itself. A blank field or the name it already has is a
+  // field you tapped and walked away from, not a rename — and an exercise with
+  // no name is a card you can never find again.
+  //
+  // On success this card re-renders under the new name and the fold shuts with
+  // it. On failure the complaint stays beside the field that caused it: the
+  // page-foot alert is off the bottom of a phone by the time you've typed.
+  async function saveName(event) {
+    event.preventDefault()
+    const next = nameDraft.trim()
+    if (!next || next === name) {
+      setNameError('')
+      return
+    }
+    const result = await onChangeName(name, next)
+    setNameError(result === true ? '' : result)
   }
 
   async function handleLogSet(event) {
@@ -492,9 +519,13 @@ function ExerciseCard({
             aria-expanded={showFixes}
             onClick={() =>
               setShowFixes((v) => {
-                // Opening reseeds the draft from the exercise, so an edit you
-                // walked away from doesn't sit there pretending to be saved.
-                if (!v) setNoteDraft(note ?? '')
+                // Opening reseeds the drafts from the exercise, so an edit
+                // you walked away from doesn't sit there pretending to be saved.
+                if (!v) {
+                  setNoteDraft(note ?? '')
+                  setNameDraft(name)
+                  setNameError('')
+                }
                 return !v
               })
             }
@@ -503,6 +534,30 @@ function ExerciseCard({
           </button>
           {showFixes && (
             <div className="card-fixes">
+              {/* First in the fold: the name is the exercise's identity, the
+                  group and the note are things said about it. */}
+              {onChangeName && (
+                <form className="name-edit" onSubmit={saveName}>
+                  <label className="muscle-edit-heading" htmlFor={`exname-${name}`}>
+                    Nombre
+                  </label>
+                  <input
+                    id={`exname-${name}`}
+                    aria-label={`Nombre de ${name}`}
+                    maxLength={120}
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                  />
+                  <button type="submit" className="secondary">
+                    Guardar nombre
+                  </button>
+                  {nameError && (
+                    <p role="alert" className="alert rename-alert">
+                      {nameError}
+                    </p>
+                  )}
+                </form>
+              )}
               <div className="muscle-edit">
                 {/* No dot here: the header tag already carries the coloured
                     identity chip. This row is the control, not a second chip. */}
@@ -1552,6 +1607,58 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     }
   }
 
+  // Rename the exercise in place. The row keeps its id, so every set ever logged
+  // against it follows on the server — but this screen reads its own state by
+  // name, so the name has to move through every map keyed by it, the session's
+  // sets, and the outbox. That last one is not cosmetic: an unsent set names its
+  // exercise by string, and the server takes that name at face value, so a
+  // queued row would stand the old exercise straight back up on the next drain.
+  //
+  // Answers true, or the complaint the card prints beside the field. A 409 is
+  // the name already being one of yours; folding the two together is Progreso's
+  // job — it can rebuild the whole log behind a merge, and this screen is a
+  // session in progress — so here we name the collision and say where to go.
+  async function changeNameFor(name, next) {
+    const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
+    if (id == null) return 'No se pudo cambiar el nombre.'
+    setError('')
+    try {
+      const { name: renamed } = await renameExercise(id, next)
+      renameQueued(name, renamed)
+      // Move the entry rather than adding one: a map left holding both names
+      // would keep the old card's group, note and fold state alive forever.
+      const rekey = (map) => {
+        if (!(name in map)) return map
+        const { [name]: value, ...rest } = map
+        return { ...rest, [renamed]: value }
+      }
+      setIdByName(rekey)
+      setMuscleByName(rekey)
+      setNoteByName(rekey)
+      setCountByName(rekey)
+      setToggled(rekey)
+      setKnown((list) => list.map((n) => (n === name ? renamed : n)))
+      setExercises((list) => list.map((e) => (e.name === name ? { ...e, name: renamed } : e)))
+      setWorkout((w) =>
+        w
+          ? {
+              ...w,
+              sets: w.sets.map((s) =>
+                s.exercise_name === name ? { ...s, exercise_name: renamed } : s,
+              ),
+            }
+          : w,
+      )
+      return true
+    } catch (err) {
+      const taken = known.find((n) => n !== name && fold(n) === fold(next))
+      if (err?.status === 409 && taken) {
+        return `Ya existe "${taken}". Puedes fusionarlos desde Progreso.`
+      }
+      return 'No se pudo cambiar el nombre.'
+    }
+  }
+
   // Many cards may be open at once: folding one shut when you open another
   // would fight supersets, where you're genuinely working two lifts together.
   const isOpen = (name, index) => toggled[name] ?? index === 0
@@ -1945,6 +2052,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             onDeleteSet={deleteSetFor}
             onChangeMuscle={changeMuscleFor}
             onChangeNote={changeNoteFor}
+            onChangeName={changeNameFor}
             open={isOpen(ex.name, index)}
             onToggle={() => toggleCard(ex.name, index)}
             onOpen={() => openCard(ex.name)}

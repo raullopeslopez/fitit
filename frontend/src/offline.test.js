@@ -10,6 +10,7 @@ import {
   enqueueSet,
   queuedFor,
   readQueue,
+  renameQueued,
   retryable,
 } from './offline.js'
 
@@ -69,6 +70,28 @@ describe('the outbox', () => {
     clearQueued()
 
     expect(readQueue()).toEqual([])
+  })
+
+  // An exercise renamed while sets are still unsent. The payload names its
+  // exercise by string and the server takes that name at face value, so a
+  // queued row left alone stands the old exercise straight back up on the drain
+  // — the very duplicate the rename was there to get rid of.
+  it('carries queued sets over when their exercise is renamed', () => {
+    enqueueSet(bench('tmp-1'))
+    enqueueSet({ tmpId: 'tmp-2', workoutId: 1, payload: { exercise_name: 'Dominadas', reps: 6 } })
+
+    renameQueued('Bench Press', 'Press banca')
+
+    expect(readQueue().map((e) => e.payload.exercise_name)).toEqual(['Press banca', 'Dominadas'])
+  })
+
+  // Renaming touches localStorage on every save, and most saves have nothing
+  // queued. Writing the same array back would be a needless write on the hot
+  // path of a phone that may be about to die.
+  it('leaves the queue alone when nothing in it carries that name', () => {
+    renameQueued('Bench Press', 'Press banca')
+
+    expect(localStorage.getItem('fitit_outbox')).toBeNull()
   })
 
   describe('deciding what is worth retrying', () => {
