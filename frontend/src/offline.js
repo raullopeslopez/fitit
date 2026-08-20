@@ -42,6 +42,22 @@ export function clearQueued() {
   writeQueue([])
 }
 
+// An exercise renamed while sets are still unsent. The outbox names its
+// exercise by string and the server takes that name at face value, so a queued
+// set would quietly stand the old exercise back up on the next drain — the very
+// duplicate the rename was there to get rid of.
+export function renameQueued(from, to) {
+  const entries = readQueue()
+  if (!entries.some((e) => e.payload?.exercise_name === from)) return
+  writeQueue(
+    entries.map((e) =>
+      e.payload?.exercise_name === from
+        ? { ...e, payload: { ...e.payload, exercise_name: to } }
+        : e,
+    ),
+  )
+}
+
 // The backlog belonging to one workout. Another session's unsent sets are still
 // owed to the server, but they have no business on this card.
 export function queuedFor(workoutId) {

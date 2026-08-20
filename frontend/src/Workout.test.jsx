@@ -1879,6 +1879,123 @@ describe('Workout', () => {
     })
   })
 
+  // A name is wrong most often the moment after you type it — in the session,
+  // on the card you are staring at. Sending you to Progreso to fix a typo you
+  // can see from here is a trip across the app for one letter.
+  describe('renombrar el ejercicio', () => {
+    const standing = () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
+      api.listExercises.mockResolvedValue([
+        { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 3, note: null },
+        { id: 3, name: 'Dominadas', muscle_group: 'Espalda', set_count: 9, note: null },
+      ])
+    }
+
+    const rename = async (typed) => {
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, typed)
+      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+    }
+
+    it('renames from the same fold that corrects the muscle', async () => {
+      standing()
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      await rename('Press banca')
+
+      await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(2, 'Press banca'))
+      expect(await screen.findByRole('button', { name: /Press banca/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Bench Press/i })).not.toBeInTheDocument()
+    })
+
+    // The rename keeps the id, so the sets are the same rows — but this screen
+    // reads them by name, and a card that renames itself out from under its own
+    // log looks like the session lost the work.
+    it('keeps the sets on the card it renamed', async () => {
+      standing()
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      await rename('Press banca')
+
+      await screen.findByRole('button', { name: /Press banca/i })
+      expect(screen.getByRole('button', { name: /editar serie 1/i })).toBeInTheDocument()
+    })
+
+    // Unsent sets name their exercise by string, and the server takes that name
+    // at face value — so a set still in the outbox would quietly stand the old
+    // exercise back up the next time the queue drains.
+    it('carries unsent sets over to the new name', async () => {
+      standing()
+      localStorage.setItem(
+        'fitit_outbox',
+        JSON.stringify([
+          {
+            tmpId: 'tmp-1',
+            workoutId: 1,
+            payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 },
+          },
+        ]),
+      )
+      // The queue only survives a mount if the flush keeps failing; a set that
+      // sends is a set that leaves the outbox before the rename gets there.
+      api.logSet.mockRejectedValue(new Error('Failed to fetch'))
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      await rename('Press banca')
+
+      await waitFor(() =>
+        expect(JSON.parse(localStorage.getItem('fitit_outbox'))[0].payload.exercise_name).toBe(
+          'Press banca',
+        ),
+      )
+    })
+
+    // 409: the name is already one of yours. Folding the two together is
+    // Progreso's job — it can rebuild the whole log behind the merge — so here
+    // the complaint names the collision and says where to go.
+    it('names the exercise the new name collided with', async () => {
+      standing()
+      const conflict = new Error('conflict')
+      conflict.status = 409
+      api.renameExercise.mockRejectedValue(conflict)
+      renderWorkout()
+
+      await rename('Dominadas')
+
+      expect(await screen.findByText(/ya existe "Dominadas"/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Bench Press/i })).toBeInTheDocument()
+    })
+
+    it('says so when the rename could not be sent', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(new Error('offline'))
+      renderWorkout()
+
+      await rename('Press banca')
+
+      expect(await screen.findByText(/no se pudo cambiar el nombre/i)).toBeInTheDocument()
+    })
+
+    // Tapping the field and walking away is not a rename, and neither is
+    // clearing it: an exercise with no name is a card you cannot find again.
+    it('does not send a blank or unchanged name', async () => {
+      standing()
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+      await userEvent.clear(screen.getByLabelText(/nombre de Bench Press/i))
+      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+
+      expect(api.renameExercise).not.toHaveBeenCalled()
+    })
+  })
+
   // Repetir (from Días) hands the session over as a list of names. The cards
   // are already standing when you arrive, each with its previous marks loaded,
   // so a repeat session is taps on steppers rather than five lookups.
