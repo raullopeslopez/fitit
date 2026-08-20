@@ -354,7 +354,9 @@ describe('Days', () => {
     api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-19', name: null, sets: [] })
     render(<Days onOpenWorkout={onOpen} />)
 
-    await userEvent.click(screen.getByRole('button', { name: /empezar entreno/i }))
+    // El botón no dice cuál de las dos cosas es hasta que el log contesta:
+    // `Empezar` y `Continuar` dependen de si hoy ya tiene sesión.
+    await userEvent.click(await screen.findByRole('button', { name: /empezar entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
     // The third argument tells Entreno to open straight into naming it — no

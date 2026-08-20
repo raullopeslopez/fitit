@@ -51,6 +51,7 @@ import {
   startRestNotice,
   stopRestNotice,
 } from './notify.js'
+import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
 import {
   REST_OPTIONS,
@@ -1742,6 +1743,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // typed, and a second control for that same job is one path too many.
   const canCreateTyped = isNewExercise && matches.length > 0
 
+  // El esqueleto de la pantalla, con el mismo umbral que Días.
+  const waiting = useWaitFlag(!workout && !error)
+
   if (!workout) {
     // The way out matters more now that the app can reopen straight into a
     // workout: if that one is gone, an alert with no button is a dead end.
@@ -1754,9 +1758,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
           ← Días
         </button>
       </>
-    ) : (
-      <p className="hint">Cargando…</p>
-    )
+    ) : waiting ? (
+      // Dos tarjetas plegadas y la de añadir, que es la forma que va a tener
+      // esto en cuanto conteste el servidor. `Cargando…` no reservaba ninguna
+      // de las dos, así que la sesión entera saltaba al llegar.
+      <WorkoutSkeleton onExit={onExit} />
+    ) : null
   }
 
   return (
