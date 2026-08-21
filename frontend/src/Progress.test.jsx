@@ -25,6 +25,21 @@ const BENCH_DAYS = [
   { id: 1, date: '2026-07-01', workouts: [{ id: 1, sets: [bench(1, 80, 5)] }] },
 ]
 
+// Qué ejercicio está graficado. El título de la tarjeta volvió a ser un
+// título — tocarlo ya no renombra, porque renombrar vive dentro del editor —
+// así que lo que responde a "¿de qué va esta gráfica?" es su texto y nada más.
+// Comparación exacta y acotada a la tarjeta: la hoja del editor repite el
+// nombre en su cabecera, y "Fondo" es prefijo de "Fondos".
+const chartedName = () => document.querySelector('.chart-title h2')?.textContent ?? null
+const charted = (name) => waitFor(() => expect(chartedName()).toBe(name))
+
+// El editor es una hoja, y una hoja es un diálogo — así que "el diálogo" tiene
+// que decir cuál. Estos dos son los que se abren *encima* de ella.
+const retagDialog = () =>
+  screen.queryByRole('dialog', { name: /^(Mover|Quitar el grupo de) / })
+const findRetagDialog = () =>
+  screen.findByRole('dialog', { name: /^(Mover|Quitar el grupo de) / })
+
 describe('Progress', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -98,7 +113,7 @@ describe('Progress', () => {
     const { container } = render(<Progress />)
 
     // Opens on Curl Predicador (only lift with more than one set).
-    expect(await screen.findByRole('button', { name: /renombrar Curl Predicador Máq\./i })).toBeInTheDocument()
+    await charted('Curl Predicador Máq.')
     expect(screen.getByText('15 × 15')).toBeInTheDocument()
     expect(screen.getByText('20 × 15')).toBeInTheDocument()
 
@@ -108,7 +123,7 @@ describe('Progress', () => {
     await userEvent.click(
       [...evoCard.querySelectorAll('.chip')].find((c) => /^Pecho$/i.test(c.textContent)),
     )
-    await screen.findByRole('button', { name: /renombrar Press banca/i })
+    await charted('Press banca')
 
     // Only Press banca's own points remain; the curl's survive nowhere.
     expect(screen.queryByText('15 × 15')).not.toBeInTheDocument()
@@ -132,7 +147,7 @@ describe('Progress', () => {
     await userEvent.click(
       [...card.querySelectorAll('.chip')].find((c) => /cuádriceps/i.test(c.textContent)),
     )
-    expect(await screen.findByRole('button', { name: /renombrar Sentadilla/i })).toBeInTheDocument()
+    await charted('Sentadilla')
   })
 
   // The last record sits on the right edge of the chart, so its label ran off
@@ -186,7 +201,7 @@ describe('Progress', () => {
 
     // Bench Press is logged more often, so it charts without any typing, and
     // the charted lift is named once — by the card it titles.
-    expect(await screen.findByRole('button', { name: /renombrar Bench Press/i })).toBeInTheDocument()
+    await charted('Bench Press')
   })
 
   it('groups lifts by muscle and charts one on selecting a muscle', async () => {
@@ -215,9 +230,7 @@ describe('Progress', () => {
 
     // Selecting Pecho charts that muscle's top lift.
     await userEvent.click(chips.at(-1))
-    expect(
-      await screen.findByRole('button', { name: /renombrar Press banca/i }),
-    ).toBeInTheDocument()
+    await charted('Press banca')
   })
 
   // The search box is the general way into the card — anything the muscle
@@ -246,7 +259,7 @@ describe('Progress', () => {
       expect(svg).not.toBeNull()
       return svg
     })
-    const picker = screen.getByLabelText(/ejercicio/i)
+    const picker = screen.getByLabelText('Ejercicio')
     expect(picker.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
@@ -267,7 +280,7 @@ describe('Progress', () => {
 
     // Everything is still one tap or one search away.
     await userEvent.click(screen.getByRole('button', { name: /cuádriceps/i }))
-    expect(await screen.findByRole('button', { name: /renombrar Sentadilla/i })).toBeInTheDocument()
+    await charted('Sentadilla')
   })
 
   // The box only ever fired on an exact, full-name match, so typing "gemelo"
@@ -283,15 +296,13 @@ describe('Progress', () => {
       api.listExercises.mockResolvedValue(exercises)
       render(<Progress />)
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'gemelo')
 
       const result = await screen.findByRole('button', { name: /Gemelo Máq\./i })
       expect(screen.queryByRole('button', { name: /Press banca/i })).not.toBeInTheDocument()
       await userEvent.click(result)
 
-      expect(
-        await screen.findByRole('button', { name: /renombrar Gemelo Máq\./i }),
-      ).toBeInTheDocument()
+      await charted('Gemelo Máq.')
     })
 
     // "Máq." is not something anyone types with the accent on a phone keyboard.
@@ -299,7 +310,7 @@ describe('Progress', () => {
       api.listExercises.mockResolvedValue(exercises)
       render(<Progress />)
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'MAQ')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'MAQ')
       expect(await screen.findByRole('button', { name: /Gemelo Máq\./i })).toBeInTheDocument()
     })
 
@@ -309,7 +320,7 @@ describe('Progress', () => {
       api.listExercises.mockResolvedValue(exercises)
       render(<Progress />)
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Sentadilla{enter}')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Sentadilla{enter}')
 
       expect(await screen.findByText(/ningún ejercicio con ese nombre/i)).toBeInTheDocument()
       expect(screen.queryByText(/no hay datos para graficar/i)).not.toBeInTheDocument()
@@ -323,12 +334,12 @@ describe('Progress', () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
     render(<Progress />)
 
-    const box = await screen.findByLabelText(/ejercicio/i)
+    const box = await screen.findByLabelText('Ejercicio')
     await userEvent.type(box, 'Press banca')
 
     await waitFor(() => expect(box).toHaveValue(''))
     // The name is stated once, as the thing the card is about.
-    expect(screen.getByRole('button', { name: /renombrar Press banca/i })).toBeInTheDocument()
+    await charted('Press banca')
   })
 
   // Picking a known lift already loads it from the chips; making the text field
@@ -337,11 +348,9 @@ describe('Progress', () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
     render(<Progress />)
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
 
-    expect(
-      await screen.findByRole('button', { name: /renombrar Press banca/i }),
-    ).toBeInTheDocument()
+    await charted('Press banca')
   })
 
   // Renaming a lift and re-tagging its group are corrections, the same shape as
@@ -350,15 +359,57 @@ describe('Progress', () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
     render(<Progress />)
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
-    await screen.findByRole('button', { name: /renombrar Press banca/i })
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
+    await charted('Press banca')
 
-    // The name titles the chart card and is the rename control itself, so only
-    // the group select is left to fold away.
-    expect(screen.getByRole('button', { name: /renombrar Press banca/i })).toBeInTheDocument()
+    // Nada de esto está en la tarjeta hasta que abres el editor: ni el nombre,
+    // ni el grupo. La tarjeta es la gráfica; corregir es otra cosa.
     expect(screen.queryByLabelText(/grupo/i)).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
+    expect(screen.queryByLabelText(/nombre del ejercicio/i)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     expect(screen.getByLabelText(/grupo/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/nombre del ejercicio/i)).toBeInTheDocument()
+  })
+
+  // Lo mismo que en Entreno, desde el otro lado de la app: abrir el editor deja
+  // el cursor dentro del nombre, con la errata a mano y sin un segundo toque.
+  it('el toque en Editar ejercicio deja el cursor en el nombre', async () => {
+    api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
+    render(<Progress />)
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
+    await charted('Press banca')
+
+    await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
+    const input = screen.getByLabelText(/nombre del ejercicio/i)
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe('Press banca'.length)
+  })
+
+  // Exportar es «lo más raro de esta pantalla» (DESIGN.md) y venía vestido de
+  // botón: caja, tinta plena, 1rem, centrado — más fuerte que la única puerta
+  // para renombrar un ejercicio. DESIGN.md dice que las acciones raras no se
+  // llevan controles con peso de contenido, así que baja al mismo registro
+  // callado que el editor.
+  it('Exportar CSV no se viste de botón con caja', async () => {
+    api.listDays.mockResolvedValue([
+      {
+        id: 1,
+        date: '2026-07-15',
+        workouts: [
+          {
+            id: 4,
+            name: 'Push',
+            sets: [{ id: 1, exercise_name: 'Bench', reps: 5, weight: 80, unit: 'kg' }],
+          },
+        ],
+      },
+    ])
+    render(<Progress />)
+
+    const csv = await screen.findByRole('button', { name: /exportar csv/i })
+    expect(csv).not.toHaveClass('secondary')
+    expect(csv).toHaveClass('unit-fix')
   })
 
   it('lets you correct a mis-guessed muscle group', async () => {
@@ -382,7 +433,7 @@ describe('Progress', () => {
     api.setExerciseMuscle.mockResolvedValue({ id: 7, name: 'Press banca', muscle_group: 'Hombro' })
     render(<Progress />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
     const select = screen.getByLabelText(/grupo/i)
     expect(select).toHaveValue('Pecho')
 
@@ -421,7 +472,7 @@ describe('Progress', () => {
       api.listDays.mockResolvedValue(PRESS_DAYS)
       api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
       render(<Progress />)
-      await userEvent.click(await screen.findByRole('button', { name: /^corregir$/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       return screen.getByLabelText(/grupo/i)
     }
 
@@ -430,7 +481,7 @@ describe('Progress', () => {
 
       await userEvent.selectOptions(select, 'Hombro')
 
-      const dialog = await screen.findByRole('dialog')
+      const dialog = await findRetagDialog()
       expect(dialog).toHaveTextContent(/6 series/i)
       expect(api.setExerciseMuscle).not.toHaveBeenCalled()
     })
@@ -446,7 +497,7 @@ describe('Progress', () => {
 
       await userEvent.selectOptions(select, 'Hombro')
       await userEvent.click(
-        within(await screen.findByRole('dialog')).getByRole('button', { name: /sí, mover/i }),
+        within(await findRetagDialog()).getByRole('button', { name: /sí, mover/i }),
       )
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
 
@@ -460,7 +511,7 @@ describe('Progress', () => {
       await userEvent.click(await screen.findByRole('button', { name: /deshacer/i }))
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenLastCalledWith(7, 'Pecho'))
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(retagDialog()).not.toBeInTheDocument()
       expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Pecho')
     })
 
@@ -469,7 +520,7 @@ describe('Progress', () => {
 
       await userEvent.selectOptions(select, 'Hombro')
       await userEvent.click(
-        within(await screen.findByRole('dialog')).getByRole('button', { name: /cancelar/i }),
+        within(await findRetagDialog()).getByRole('button', { name: /cancelar/i }),
       )
 
       expect(api.setExerciseMuscle).not.toHaveBeenCalled()
@@ -508,13 +559,13 @@ describe('Progress', () => {
       ])
       render(<Progress />)
 
-      expect(await screen.findByRole('button', { name: /renombrar Press banca/i })).toBeInTheDocument()
+      await charted('Press banca')
       const chip = screen.getByRole('button', { name: /sin grupo/i })
       await userEvent.click(chip)
 
       // It behaves like a muscle chip: it selects, and it charts its lift.
       expect(chip).toHaveAttribute('aria-pressed', 'true')
-      expect(await screen.findByRole('button', { name: /renombrar Rodillo/i })).toBeInTheDocument()
+      await charted('Rodillo')
     })
 
     it('stays away when every exercise carries a group', async () => {
@@ -549,18 +600,19 @@ describe('Progress', () => {
     api.renameExercise.mockResolvedValue({ id: 7, name: 'Press de banca', muscle_group: 'Pecho' })
     render(<Progress />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /renombrar Press banca/i }))
+    await charted('Press banca')
+    await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     const input = screen.getByLabelText(/nombre del ejercicio/i)
     await userEvent.clear(input)
     await userEvent.type(input, 'Press de banca')
     await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
 
     await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(7, 'Press de banca'))
-    // The editor closes and the new name titles the card.
-    expect(
-      await screen.findByRole('button', { name: /renombrar Press de banca/i }),
-    ).toBeInTheDocument()
-    expect(screen.queryByLabelText(/nombre del ejercicio/i)).not.toBeInTheDocument()
+    // La tarjeta de detrás pasa a llamarse como acabas de llamarla, y la hoja
+    // sigue abierta con su cabecera diciendo lo mismo: ese es el acuse de
+    // recibo. Cerrarla sería echarte de donde estabas por haber acertado.
+    await charted('Press de banca')
+    expect(screen.getByRole('dialog', { name: /^Editar Press de banca$/ })).toBeInTheDocument()
   })
 
   it('lets you rename an exercise that has no chart data yet', async () => {
@@ -585,7 +637,7 @@ describe('Progress', () => {
 
     expect(await screen.findByText(/no hay datos para graficar/i)).toBeInTheDocument()
     // The card is titled and renameable even with nothing to chart.
-    expect(screen.getByRole('button', { name: /renombrar Correr/i })).toBeInTheDocument()
+    await charted('Correr')
   })
 
   it('shows the calendar of what you trained when there are training days', async () => {
@@ -1796,7 +1848,7 @@ describe('Progress', () => {
     api.getExerciseHistory.mockResolvedValue([])
     render(<Progress />)
 
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Squat{enter}')
+    await userEvent.type(screen.getByLabelText('Ejercicio'), 'Squat{enter}')
 
     expect(await screen.findByText(/aún no hay datos/i)).toBeInTheDocument()
   })
@@ -1816,8 +1868,8 @@ describe('Progress', () => {
 
     async function openFixes() {
       render(<Progress />)
-      await screen.findByRole('button', { name: /renombrar Fondo/i })
-      await userEvent.click(screen.getByRole('button', { name: /^corregir$/i }))
+      await charted('Fondo')
+      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     }
 
     beforeEach(() => {
@@ -1835,13 +1887,14 @@ describe('Progress', () => {
       await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
       // Irreversible and it takes history with it, so the confirmation has to
       // name the damage — not just ask "are you sure".
-      const dialog = await screen.findByRole('dialog')
+      const dialog = await screen.findByRole('dialog', { name: /^Eliminar Fondo$/ })
       expect(dialog).toHaveTextContent(/4 series/i)
       expect(api.deleteExercise).not.toHaveBeenCalled()
 
       await userEvent.click(within(dialog).getByRole('button', { name: /sí, eliminar/i }))
       await waitFor(() => expect(api.deleteExercise).toHaveBeenCalledWith(32))
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      // Se va el ejercicio y con él la hoja que hablaba de él: ni un diálogo.
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
 
     it('backs out of the deletion when you cancel', async () => {
@@ -1849,11 +1902,13 @@ describe('Progress', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
       await userEvent.click(
-        within(await screen.findByRole('dialog')).getByRole('button', { name: /cancelar/i }),
+        within(
+          await screen.findByRole('dialog', { name: /^Eliminar Fondo$/ }),
+        ).getByRole('button', { name: /cancelar/i }),
       )
 
       expect(api.deleteExercise).not.toHaveBeenCalled()
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: /^Eliminar Fondo$/ })).not.toBeInTheDocument()
     })
 
     it('offers to merge when the name you want is already taken', async () => {
@@ -1863,7 +1918,8 @@ describe('Progress', () => {
       api.mergeExercise.mockResolvedValue({ id: 20, name: 'Fondos', muscle_group: 'Pecho' })
       render(<Progress />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /renombrar Fondo/i }))
+      await charted('Fondo')
+      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
       const input = screen.getByLabelText(/nombre del ejercicio/i)
       await userEvent.clear(input)
       await userEvent.type(input, 'Fondos')
@@ -1877,7 +1933,7 @@ describe('Progress', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /fusionar con Fondos/i }))
       await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(32, 20))
-      expect(await screen.findByRole('button', { name: /renombrar Fondos/i })).toBeInTheDocument()
+      await charted('Fondos')
     })
   })
 })

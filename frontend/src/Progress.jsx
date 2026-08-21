@@ -10,6 +10,7 @@ import {
 } from './api.js'
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
+import { ExerciseEditor } from './ExerciseEditor.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
@@ -779,7 +780,6 @@ export default function Progress() {
   const [query, setQuery] = useState('') // what you are typing to find one
   const [muscle, setMuscle] = useState(null) // selected muscle filter
   const [error, setError] = useState('')
-  const [editingName, setEditingName] = useState(false) // inline rename open?
   const [nameDraft, setNameDraft] = useState('')
   // The rename's own complaint, beside its field — the page-foot alert is too
   // far from the thumb that typed to be read at all on a phone.
@@ -792,9 +792,10 @@ export default function Progress() {
   // through — see requestRetag/undoRetag below.
   const [pendingRetag, setPendingRetag] = useState(null)
   const [lastRetag, setLastRetag] = useState(null)
-  // Rename and re-tag are corrections, the same shape as the ones on an
-  // exercise card: rare, and they were sitting inside the content.
-  const [showFixes, setShowFixes] = useState(false)
+  // ¿Está abierta la hoja del editor? Renombrar y reetiquetar son correcciones,
+  // de la misma forma que las de una tarjeta de ejercicio en Entreno: raras, y
+  // estaban metidas dentro del contenido.
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const muscleOf = (lift) => exercises.find((e) => e.name === lift)?.muscle_group ?? null
 
@@ -825,7 +826,9 @@ export default function Progress() {
   async function renameCurrent(id, draft) {
     const trimmed = draft.trim()
     if (!trimmed || trimmed === name) {
-      setEditingName(false)
+      // Un campo que tocaste y dejaste como estaba no es un renombrado. La hoja
+      // se queda abierta: cerrarla aquí sería castigar el haber dudado.
+      setNameError('')
       return
     }
     setNameError('')
@@ -834,7 +837,8 @@ export default function Progress() {
       const updated = await renameExercise(id, trimmed)
       setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: updated.name } : e)))
       setName(updated.name)
-      setEditingName(false)
+      // La hoja sigue abierta y su cabecera ya dice el nombre nuevo: eso es el
+      // acuse de recibo, y no hace falta ninguno más.
     } catch (err) {
       const taken = exercises.find((e) => e.id !== id && fold(e.name) === fold(trimmed))
       if (err?.status === 409 && taken) {
@@ -854,7 +858,8 @@ export default function Progress() {
       const target = await mergeExercise(current.id, clash.id)
       setExercises((list) => list.filter((e) => e.id !== current.id))
       setName(target.name)
-      setEditingName(false)
+      // Este ejercicio ya no existe: la hoja iba de él, así que se va con él.
+      setEditorOpen(false)
       setNameError('')
       setClash(null)
       await reloadLog()
@@ -872,7 +877,7 @@ export default function Progress() {
       const left = exercises.filter((e) => e.id !== current.id)
       setExercises(left)
       setConfirmingDelete(false)
-      setEditingName(false)
+      setEditorOpen(false)
       setName('')
       setMuscle(null)
       await reloadLog()
@@ -976,7 +981,8 @@ export default function Progress() {
     // it isn't in any group because it isn't anything.
     const picked = exercises.find((e) => e.name === trimmed)
     setMuscle(picked ? (picked.muscle_group ?? UNGROUPED) : null)
-    setEditingName(false)
+    // Cambiar de ejercicio cierra la hoja: iba del anterior.
+    setEditorOpen(false)
     setError('')
     setNameError('')
     setClash(null)
@@ -1126,66 +1132,17 @@ export default function Progress() {
             )}
           </div>
         )}
-        {/* Name + group editing lives here regardless of whether there's a
-            chart: you must be able to rename a cardio or brand-new lift too,
-            not just one with records. Folded, because both are rare
-            corrections and this card is content. */}
+        {/* El nombre titula la tarjeta — una gráfica sin nombre es una gráfica
+            cuyo sujeto hay que ir a buscar — y ya no es un botón. Tocar el
+            título abría un renombrado en línea que nadie encontraba nunca, y
+            era la tercera puerta a lo mismo: una pantalla no puede tener dos
+            formas distintas de arreglar un ejercicio. Ahora hay una, al pie, y
+            el título vuelve a ser lo que parece: un título. */}
         {current && (
-          <>
-            {/* The name titles the card — a chart of nothing named is a chart
-                you have to go looking for the subject of — and tapping it is
-                how you rename it. */}
-            {editingName ? (
-              <form
-                className="exercise-rename chart-title"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  renameCurrent(current.id, nameDraft)
-                }}
-              >
-                <input
-                  aria-label="Nombre del ejercicio"
-                  value={nameDraft}
-                  onChange={(e) => setNameDraft(e.target.value)}
-                  maxLength={120}
-                  autoFocus
-                />
-                <button type="submit" className="secondary set-action">
-                  Guardar nombre
-                </button>
-                {nameError && (
-                  <p role="alert" className="alert rename-alert">
-                    {nameError}
-                  </p>
-                )}
-                {/* The name is taken because you already have that exercise —
-                    so the useful move isn't renaming, it's folding this one
-                    into it. One tap, and its sets go too. */}
-                {clash && (
-                  <button
-                    type="button"
-                    className="secondary set-action merge-action"
-                    onClick={mergeIntoClash}
-                  >
-                    Fusionar con {clash.name}
-                  </button>
-                )}
-              </form>
-            ) : (
-              <button
-                type="button"
-                className="chart-title"
-                aria-label={`Renombrar ${current.name}`}
-                onClick={() => {
-                  setNameDraft(current.name)
-                  setEditingName(true)
-                }}
-              >
-                <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-                <h2>{current.name}</h2>
-              </button>
-            )}
-          </>
+          <div className="chart-title">
+            <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+            <h2>{current.name}</h2>
+          </div>
         )}
         {rungs.length === 0 ? (
           /* Three different silences. Nothing picked yet; a known lift with no
@@ -1216,27 +1173,92 @@ export default function Progress() {
             </p>
           </>
         )}
-        {/* At the foot of the card, per DESIGN.md — between the title and the
-            chart it read as a second heading on the thing you came to look
-            at. Renaming and re-tagging are corrections, not content. */}
+        {/* Al pie de la tarjeta, según DESIGN.md — entre el título y la gráfica
+            se leía como un segundo encabezado sobre la cosa que has venido a
+            mirar. Renombrar y reetiquetar son correcciones, no contenido.
+
+            Es la misma puerta que hay en Entreno: mismo texto, mismo trato,
+            misma hoja. Antes aquí ponía `Corregir` y allí `Editar ejercicio`,
+            dos palabras para una sola cosa — y encima esta solo llevaba a la
+            mitad de ella, porque el nombre se cambiaba tocando el título. */}
         {current && (
           <>
             <button
               type="button"
-              className="unit-fix fixes-toggle"
-              aria-expanded={showFixes}
-              onClick={() => setShowFixes((v) => !v)}
+              className="unit-fix exercise-edit"
+              // Mismo motivo y misma forma que en Entreno: el `›` vive en un
+              // `::after` y se colaba en el nombre accesible ("Editar
+              // ejercicio, mayor que"). La etiqueta visible va entera y
+              // primero, para no romperle el control por voz a nadie.
+              aria-label={`Editar ejercicio ${current.name}`}
+              aria-haspopup="dialog"
+              aria-expanded={editorOpen}
+              onClick={() => {
+                // Abrir resiembra el borrador del nombre desde el ejercicio, y
+                // se lleva por delante la queja y la colisión de la vez pasada.
+                setNameDraft(current.name)
+                setNameError('')
+                setClash(null)
+                setEditorOpen(true)
+              }}
             >
-              Corregir
+              Editar ejercicio
             </button>
-            {showFixes && (
+            <ExerciseEditor
+              name={current.name}
+              open={editorOpen}
+              onClose={() => setEditorOpen(false)}
+            >
+              {/* Cuerpo provisional: los campos de siempre, tal cual, mientras
+                  las piezas siguientes reconstruyen el interior de la hoja.
+                  Primero el nombre, que es la identidad del ejercicio; el grupo
+                  y el borrado son cosas que se dicen sobre él. */}
               <div className="card-fixes">
+                <form
+                  className="name-edit"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    renameCurrent(current.id, nameDraft)
+                  }}
+                >
+                  <label className="muscle-edit-heading" htmlFor="exercise-name">
+                    Nombre
+                  </label>
+                  <input
+                    id="exercise-name"
+                    aria-label="Nombre del ejercicio"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={120}
+                  />
+                  <button type="submit" className="secondary">
+                    Guardar nombre
+                  </button>
+                  {nameError && (
+                    <p role="alert" className="alert rename-alert">
+                      {nameError}
+                    </p>
+                  )}
+                  {/* El nombre está cogido porque ese ejercicio ya es tuyo, así
+                      que lo útil no es renombrar sino plegar este en aquel. Un
+                      toque, y sus series se van con él. */}
+                  {clash && (
+                    <button
+                      type="button"
+                      className="secondary set-action merge-action"
+                      onClick={mergeIntoClash}
+                    >
+                      Fusionar con {clash.name}
+                    </button>
+                  )}
+                </form>
                 <div className="muscle-edit">
-                  <label htmlFor="muscle-select" className="muscle-edit-label">
+                  <label htmlFor="muscle-select" className="muscle-edit-heading">
                     Grupo
                   </label>
                   <select
                     id="muscle-select"
+                    className="muscle-edit-select"
                     value={current.muscle_group ?? ''}
                     onChange={(e) => requestRetag(e.target.value || null)}
                   >
@@ -1262,7 +1284,7 @@ export default function Progress() {
                   Eliminar ejercicio
                 </button>
               </div>
-            )}
+            </ExerciseEditor>
           </>
         )}
       </div>
@@ -1322,7 +1344,11 @@ export default function Progress() {
           thing on this screen — so it sits at the bottom of it. */}
       {days.length > 0 && (
         <div className="export-row">
-          <button type="button" className="secondary" onClick={() => downloadCsv(days)}>
+          {/* Callado, como el editor: DESIGN.md dice que las acciones raras no
+              se llevan controles con peso de contenido, y ésta es la más rara
+              de todas. Iba de botón con caja y salía más fuerte que la única
+              puerta para renombrar un ejercicio. */}
+          <button type="button" className="unit-fix export-csv" onClick={() => downloadCsv(days)}>
             Exportar CSV
           </button>
         </div>

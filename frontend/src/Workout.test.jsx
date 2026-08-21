@@ -34,8 +34,19 @@ function pullSet(overrides = {}) {
 
 const workoutWith = (...sets) => ({ id: 1, date: '2026-07-16', name: null, sets })
 
-// The header of each exercise card is its expand/collapse control.
-const cardToggle = (name) => screen.getByRole('button', { name: new RegExp(name, 'i') })
+// The header of each exercise card is its expand/collapse control. Two buttons
+// on an open card carry the exercise's name — the header and the row that opens
+// the editor — so both of these drop the one that is a door to a dialog.
+const cardToggles = (name) =>
+  screen
+    .queryAllByRole('button', { name: new RegExp(name, 'i') })
+    .filter((b) => b.getAttribute('aria-haspopup') !== 'dialog')
+
+const cardToggle = (name) => {
+  const [found] = cardToggles(name)
+  if (!found) throw new Error(`no exercise card named ${name}`)
+  return found
+}
 
 // The folded digest is split into spans (muted count/reps, ink weight, a "tope"
 // tag), so its text spans several nodes. Match on the whole card-digest element.
@@ -101,7 +112,7 @@ describe('Workout', () => {
       api.recentlyTrained.mockResolvedValue([])
       renderWorkout()
 
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
       expect(screen.queryByText(/entrenado (hoy|ayer)/i)).not.toBeInTheDocument()
     })
 
@@ -137,7 +148,7 @@ describe('Workout', () => {
       renderWorkout()
 
       await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
-      await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Sentadilla')
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
       await waitFor(() =>
@@ -353,7 +364,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     const readout = (await screen.findByText(/última vez/i)).closest('.target')
@@ -377,7 +388,7 @@ describe('Workout', () => {
     )
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '5')
@@ -400,7 +411,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     const readout = (await screen.findByText(/última vez/i)).closest('.target')
@@ -417,7 +428,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByText(/última vez/i)
 
@@ -437,7 +448,7 @@ describe('Workout', () => {
     )
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Apertura')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Apertura')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '15')
     await userEvent.type(screen.getByLabelText(/peso/i), '25')
@@ -461,7 +472,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByText(/última vez/i)
 
@@ -477,7 +488,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByText(/última vez/i)
 
@@ -493,7 +504,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     expect(await screen.findByText(/última vez/i)).toBeInTheDocument()
@@ -521,7 +532,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     expect(await screen.findByText(/última vez · hace 3 días/i)).toBeInTheDocument()
@@ -541,7 +552,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
@@ -560,7 +571,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Face Pull')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Face Pull')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     expect(await screen.findByText(/sin marcas anteriores/i)).toBeInTheDocument()
@@ -580,7 +591,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -605,14 +616,14 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue(workoutWith(benchSet({ weight: 60 })))
     renderWorkout()
-    await screen.findByLabelText(/ejercicio/i)
+    await screen.findByLabelText('Ejercicio')
 
     await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
     expect(screen.queryByRole('button', { name: 'lb' })).not.toBeInTheDocument()
     expect(screen.queryByRole('group', { name: /^unidad$/i })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
 
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(screen.getByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -662,11 +673,11 @@ describe('Workout', () => {
       sets: [cardioSet()],
     })
     renderWorkout()
-    await screen.findByLabelText(/ejercicio/i)
+    await screen.findByLabelText('Ejercicio')
 
     // Name it first: the kind toggle only appears once what you've typed is a
     // name nothing knows yet, which is the only time the choice matters.
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Correr')
+    await userEvent.type(screen.getByLabelText('Ejercicio'), 'Correr')
     await userEvent.click(screen.getByRole('button', { name: /cardio/i }))
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
@@ -703,7 +714,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Correr')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Correr')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     // Cardio card: a duration field, and no weight steppers.
@@ -731,7 +742,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     // Steppers are seeded from the previous mark — clear before entering the PR set.
     await userEvent.clear(screen.getByLabelText(/reps/i))
@@ -768,7 +779,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
@@ -798,7 +809,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
@@ -822,7 +833,7 @@ describe('Workout', () => {
     })
     const { container } = renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByRole('button', { name: /registrar/i })
 
@@ -844,7 +855,7 @@ describe('Workout', () => {
       name: null,
       sets: [benchSet()],
     })
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -875,7 +886,7 @@ describe('Workout', () => {
 
   it('does not start a countdown when rest is switched off', async () => {
     renderWorkout()
-    await screen.findByLabelText(/ejercicio/i)
+    await screen.findByLabelText('Ejercicio')
     // Rest lives in the header overflow now, under its "Descanso" label.
     await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
     await userEvent.click(screen.getByRole('button', { name: /^sin$/i }))
@@ -900,7 +911,7 @@ describe('Workout', () => {
     localStorage.setItem('fitit_rest_until', String(Date.now() - 5_000))
     renderWorkout()
 
-    await screen.findByLabelText(/ejercicio/i)
+    await screen.findByLabelText('Ejercicio')
     expect(screen.queryByRole('button', { name: /saltar/i })).not.toBeInTheDocument()
   })
 
@@ -921,7 +932,7 @@ describe('Workout', () => {
     })
     const { container } = renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '3')
@@ -961,7 +972,7 @@ describe('Workout', () => {
     })
     const { container } = renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
@@ -983,7 +994,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -1006,7 +1017,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -1031,7 +1042,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.clear(screen.getByLabelText(/reps/i))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
@@ -1056,7 +1067,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -1105,7 +1116,7 @@ describe('Workout', () => {
     api.getPreviousMarks.mockRejectedValue(new Error('network'))
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     expect(await screen.findByLabelText(/reps/i)).toBeInTheDocument()
@@ -1126,7 +1137,7 @@ describe('Workout', () => {
       sets: [benchSet()],
     })
     renderWorkout()
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -1230,7 +1241,7 @@ describe('Workout', () => {
   it('does not log a set with empty reps and warns', async () => {
     api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
     renderWorkout()
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     await userEvent.type(screen.getByLabelText(/peso/i), '60')
@@ -1243,7 +1254,7 @@ describe('Workout', () => {
   it('does not log a set with a negative weight and warns', async () => {
     api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
     renderWorkout()
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     await userEvent.type(screen.getByLabelText(/reps/i), '8')
@@ -1258,11 +1269,11 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByRole('heading', { name: /Bench Press/i })
 
-    await userEvent.type(screen.getByLabelText(/ejercicio/i), 'Squat')
+    await userEvent.type(screen.getByLabelText('Ejercicio'), 'Squat')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByRole('heading', { name: /Squat/i })
 
@@ -1278,7 +1289,7 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     const heading = await screen.findByRole('heading', { name: /Bench Press/ })
@@ -1295,12 +1306,27 @@ describe('Workout', () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     renderWorkout()
 
-    await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     const card = (await screen.findByRole('heading', { name: /Bench Press/ })).closest('.card')
     await userEvent.click(within(card).getByRole('button', { name: /editar ejercicio/i }))
     expect(card.querySelectorAll('.dot')).toHaveLength(1)
+  })
+
+  // Un toque en «Editar ejercicio» tiene que dejarme escribiendo. Si el foco se
+  // queda en el botón, renombrar cuesta dos toques y el botón miente.
+  it('el toque en Editar ejercicio deja el cursor en el nombre', async () => {
+    api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
+    api.listExercises.mockResolvedValue([
+      { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 0 },
+    ])
+    renderWorkout()
+
+    await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+    const input = await screen.findByLabelText(/nombre de Bench Press/i)
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe('Bench Press'.length)
   })
 
   it('lets me re-label an exercise muscle group from the workout', async () => {
@@ -1358,12 +1384,19 @@ describe('Workout', () => {
       return screen.getByLabelText(/grupo muscular de Bench Press/i)
     }
 
+    // The editor is a sheet now, and a sheet is a dialog — so "the dialog" has
+    // to say which one. This one is the re-tag confirmation, which names the
+    // move in its heading; the sheet underneath is called "Editar Bench Press".
+    const retagDialog = () => screen.queryByRole('dialog', { name: /(mover|quitar).*Bench Press|Bench Press.*a Hombro/i })
+    const findRetagDialog = () =>
+      screen.findByRole('dialog', { name: /(mover|quitar).*Bench Press|Bench Press.*a Hombro/i })
+
     it('asks first, naming how many logged sets would move', async () => {
       const select = await openCorrector()
 
       await userEvent.selectOptions(select, 'Hombro')
 
-      const dialog = await screen.findByRole('dialog')
+      const dialog = await findRetagDialog()
       expect(dialog).toHaveTextContent(/4 series/i)
       expect(dialog).toHaveTextContent(/Hombro/)
       expect(api.setExerciseMuscle).not.toHaveBeenCalled()
@@ -1380,11 +1413,11 @@ describe('Workout', () => {
 
       await userEvent.selectOptions(select, 'Hombro')
       await userEvent.click(
-        within(await screen.findByRole('dialog')).getByRole('button', { name: /sí, mover/i }),
+        within(await findRetagDialog()).getByRole('button', { name: /sí, mover/i }),
       )
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(retagDialog()).not.toBeInTheDocument()
     })
 
     it('leaves the group untouched when you cancel, select included', async () => {
@@ -1392,7 +1425,7 @@ describe('Workout', () => {
 
       await userEvent.selectOptions(select, 'Hombro')
       await userEvent.click(
-        within(await screen.findByRole('dialog')).getByRole('button', { name: /cancelar/i }),
+        within(await findRetagDialog()).getByRole('button', { name: /cancelar/i }),
       )
 
       expect(api.setExerciseMuscle).not.toHaveBeenCalled()
@@ -1413,7 +1446,7 @@ describe('Workout', () => {
       await userEvent.selectOptions(select, 'Hombro')
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(retagDialog()).not.toBeInTheDocument()
     })
 
     it('offers to put it back afterwards', async () => {
@@ -1457,7 +1490,7 @@ describe('Workout', () => {
       someKnown()
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'gemelo')
 
       expect(await screen.findByRole('button', { name: 'Gemelo Máq.' })).toBeInTheDocument()
       // Only what matches: the other lift is not offered.
@@ -1482,14 +1515,14 @@ describe('Workout', () => {
       })
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'gemelo')
       await userEvent.click(await screen.findByRole('button', { name: 'Gemelo Máq.' }))
 
       expect(
         await screen.findByRole('heading', { level: 2, name: /Gemelo Máq\./i }),
       ).toBeInTheDocument()
       // The box holds what you are typing, not what you already found.
-      expect(screen.getByLabelText(/ejercicio/i)).toHaveValue('')
+      expect(screen.getByLabelText('Ejercicio')).toHaveValue('')
     })
 
     it('does not offer an exercise already standing in this session', async () => {
@@ -1499,7 +1532,7 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'gemelo')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'gemelo')
 
       await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
       // The heading is the card that is already up; no suggestion row beside it.
@@ -1521,7 +1554,7 @@ describe('Workout', () => {
       rumano()
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Peso Muerto')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Peso Muerto')
 
       expect(await screen.findByRole('button', { name: 'Crear «Peso Muerto»' })).toBeInTheDocument()
       // The suggestion it is offered beside, not instead of.
@@ -1537,7 +1570,7 @@ describe('Workout', () => {
       })
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Peso Muerto')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Peso Muerto')
       await userEvent.click(await screen.findByRole('button', { name: 'Crear «Peso Muerto»' }))
 
       expect(await screen.findByRole('heading', { level: 2, name: /^Peso Muerto$/ })).toBeInTheDocument()
@@ -1548,7 +1581,7 @@ describe('Workout', () => {
       rumano()
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'peso muerto rumano')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'peso muerto rumano')
 
       await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
       expect(screen.queryByRole('button', { name: /^Crear/ })).not.toBeInTheDocument()
@@ -1558,7 +1591,7 @@ describe('Workout', () => {
       rumano()
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Face Pull')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Face Pull')
 
       // Nothing matched, so Añadir ejercicio already creates what you typed —
       // a second control for the same job would be one path too many.
@@ -1759,7 +1792,7 @@ describe('Workout', () => {
 
     it('keeps the weight unit and rest out of the logging path', async () => {
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       expect(screen.queryByRole('group', { name: /^unidad$/i })).not.toBeInTheDocument()
       expect(
@@ -1769,7 +1802,7 @@ describe('Workout', () => {
 
     it('still reaches rest from the header overflow', async () => {
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       await openSettings()
       expect(screen.getByRole('group', { name: /descanso entre series/i })).toBeInTheDocument()
@@ -1787,14 +1820,14 @@ describe('Workout', () => {
       ])
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Press banca')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
       expect(screen.queryByRole('group', { name: /fuerza o cardio/i })).not.toBeInTheDocument()
     })
 
     it('appears for a name nothing knows yet', async () => {
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Face Pull')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Face Pull')
       expect(screen.getByRole('group', { name: /fuerza o cardio/i })).toBeInTheDocument()
     })
   })
@@ -1834,7 +1867,7 @@ describe('Workout', () => {
       })
       renderWorkout()
 
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Bench Press')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
       await screen.findByRole('button', { name: /registrar/i })
@@ -1907,8 +1940,8 @@ describe('Workout', () => {
       await rename('Press banca')
 
       await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(2, 'Press banca'))
-      expect(await screen.findByRole('button', { name: /Press banca/i })).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /Bench Press/i })).not.toBeInTheDocument()
+      await waitFor(() => expect(cardToggles('Press banca')).toHaveLength(1))
+      expect(cardToggles('Bench Press')).toHaveLength(0)
     })
 
     // The rename keeps the id, so the sets are the same rows — but this screen
@@ -1921,7 +1954,7 @@ describe('Workout', () => {
 
       await rename('Press banca')
 
-      await screen.findByRole('button', { name: /Press banca/i })
+      await waitFor(() => expect(cardToggles('Press banca')).toHaveLength(1))
       expect(screen.getByRole('button', { name: /editar serie 1/i })).toBeInTheDocument()
     })
 
@@ -1968,7 +2001,7 @@ describe('Workout', () => {
       await rename('Dominadas')
 
       expect(await screen.findByText(/ya existe "Dominadas"/i)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /Bench Press/i })).toBeInTheDocument()
+      expect(cardToggles('Bench Press')).toHaveLength(1)
     })
 
     it('says so when the rename could not be sent', async () => {
@@ -2010,7 +2043,7 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      expect(await screen.findByRole('button', { name: /Dominadas/i })).toBeInTheDocument()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
       expect(cardToggle('Remo')).toBeInTheDocument()
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Dominadas', 1)
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Remo', 1)
@@ -2023,8 +2056,8 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      await screen.findByLabelText(/ejercicio/i)
-      expect(screen.queryByRole('button', { name: /Dominadas/i })).not.toBeInTheDocument()
+      await screen.findByLabelText('Ejercicio')
+      expect(cardToggles('Dominadas')).toHaveLength(0)
     })
 
     // Log two of the five and reopen the app: the three you haven't touched
@@ -2418,7 +2451,7 @@ describe('Workout', () => {
       it('explains that it waits for a set, before any set exists', async () => {
         turnNoticeOn()
         renderWorkout()
-        await screen.findByLabelText(/ejercicio/i)
+        await screen.findByLabelText('Ejercicio')
 
         await openMenu()
 
@@ -2470,7 +2503,7 @@ describe('Workout', () => {
 
       it('says nothing at all while the setting is off', async () => {
         renderWorkout()
-        await screen.findByLabelText(/ejercicio/i)
+        await screen.findByLabelText('Ejercicio')
 
         await openMenu()
 
@@ -2543,7 +2576,7 @@ describe('Workout', () => {
       it('has nothing to announce before the first set', async () => {
         turnNoticeOn()
         renderWorkout()
-        await screen.findByLabelText(/ejercicio/i)
+        await screen.findByLabelText('Ejercicio')
 
         pocket()
 
@@ -2611,7 +2644,7 @@ describe('Workout', () => {
       api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Cinta', found: false, sets: [] })
       api.logSet.mockResolvedValue(workoutWith())
       renderWorkout()
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Cinta')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Cinta')
       await userEvent.click(screen.getByRole('button', { name: /^cardio$/i }))
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
       await userEvent.type(await screen.findByLabelText(/duración/i), '20:00')
@@ -2705,7 +2738,7 @@ describe('Workout', () => {
         return () => {}
       })
       const { container } = renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       await act(async () => announce({ type: 'sets-logged', endsAt: Date.now() + 90_000 }))
 
@@ -2727,7 +2760,7 @@ describe('Workout', () => {
       notify.notificationState.mockReturnValue('default')
       notify.askForNotifications.mockResolvedValue(true)
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
       const notice = screen.getByRole('group', { name: /pantalla bloqueada/i })
@@ -2740,7 +2773,7 @@ describe('Workout', () => {
     it('offers nothing to tap when the browser has already said no', async () => {
       notify.notificationState.mockReturnValue('denied')
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
 
@@ -2751,7 +2784,7 @@ describe('Workout', () => {
     it('says nothing at all where the browser cannot do this', async () => {
       notify.notificationState.mockReturnValue('unsupported')
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
 
@@ -2764,7 +2797,7 @@ describe('Workout', () => {
       const release = vi.fn()
       wakelock.holdScreenAwake.mockReturnValue(release)
       const view = renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       expect(wakelock.holdScreenAwake).toHaveBeenCalled()
       view.unmount()
@@ -2775,7 +2808,7 @@ describe('Workout', () => {
       const release = vi.fn()
       wakelock.holdScreenAwake.mockReturnValue(release)
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
       const toggle = screen.getByRole('group', { name: /pantalla encendida/i })
@@ -2788,7 +2821,7 @@ describe('Workout', () => {
     it('does not take the screen when the session was told not to', async () => {
       localStorage.setItem('fitit_screen_awake', 'off')
       renderWorkout()
-      await screen.findByLabelText(/ejercicio/i)
+      await screen.findByLabelText('Ejercicio')
 
       expect(wakelock.holdScreenAwake).not.toHaveBeenCalled()
     })
@@ -2798,7 +2831,7 @@ describe('Workout', () => {
     const onExit = vi.fn()
     api.deleteWorkout.mockResolvedValue(null)
     renderWorkout({ onExit })
-    await screen.findByLabelText(/ejercicio/i)
+    await screen.findByLabelText('Ejercicio')
 
     // Destructive + irreversible: tucked in the overflow menu and gated on a
     // second, explicit tap so a stray thumb can't wipe the workout.
@@ -2828,7 +2861,7 @@ describe('Workout', () => {
     async function addFondos() {
       api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Fondos', found: false })
       renderWorkout()
-      await userEvent.type(await screen.findByLabelText(/ejercicio/i), 'Fondos')
+      await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Fondos')
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
       await screen.findByLabelText(/^reps/i)
     }

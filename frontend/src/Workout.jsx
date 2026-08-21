@@ -15,6 +15,7 @@ import {
   setExerciseNote,
 } from './api.js'
 import { getToken } from './auth.js'
+import { ExerciseEditor } from './ExerciseEditor.jsx'
 import {
   daysAgoLabel,
   estimatedOneRm,
@@ -183,9 +184,10 @@ function ExerciseCard({
   const [weight, setWeight] = useState(
     seed && seed.weight != null ? String(showKg(seed.weight)) : '',
   )
-  // Re-tagging the muscle and writing the standing note are both things you do
-  // once in an exercise's life, so they share one fold on a card you open to log.
-  const [showFixes, setShowFixes] = useState(false)
+  // ¿Está abierta la hoja del editor? Renombrar, reetiquetar y escribir la nota
+  // son cosas que se hacen una vez en la vida de un ejercicio, así que comparten
+  // una hoja que se pone encima de la tarjeta que abres veinte veces por sesión.
+  const [editorOpen, setEditorOpen] = useState(false)
   // The standing note, being edited. Seeded from the exercise each time the fold
   // opens, so an abandoned edit doesn't survive as a draft nobody asked for.
   const [noteDraft, setNoteDraft] = useState(note ?? '')
@@ -253,7 +255,7 @@ function ExerciseCard({
   async function saveNote(event) {
     event.preventDefault()
     const next = noteDraft.trim()
-    if (await onChangeNote(name, next || null)) setShowFixes(false)
+    if (await onChangeNote(name, next || null)) setEditorOpen(false)
   }
 
   // Rename the exercise itself. A blank field or the name it already has is a
@@ -505,37 +507,55 @@ function ExerciseCard({
           unless you actually had something to say. */}
       {note && <p className="exercise-note">{note}</p>}
 
-      {/* Correcting the classifier's guess and writing that note are both things
-          you do once in an exercise's life, so they share one fold on a card you
-          open twenty times a session. Kept out of the header so the fold target
-          stays full-width (DESIGN.md), but up top rather than under the set log —
-          buried below a growing list of sets, it was practically unreachable by
-          the time you'd actually want it. */}
+      {/* La única puerta al editor del ejercicio, la misma que hay en Progreso:
+          mismo texto, mismo trato y el mismo destino. Antes esto abría un
+          pliegue aquí dentro que empujaba la página 257 px hacia abajo — el
+          registro que estabas usando se iba de la pantalla para hacer sitio a un
+          renombrado que haces dos veces al año. Ahora abre una hoja fija, y la
+          columna de contenido no se mueve.
+
+          Fuera de la cabecera, para que el objetivo del pliegue siga siendo de
+          ancho completo (DESIGN.md), y arriba en vez de bajo el registro:
+          enterrado bajo una lista de series que crece, era inalcanzable justo
+          cuando lo querías. */}
       {onChangeMuscle && (
         <>
           <button
             type="button"
-            className="unit-fix fixes-toggle"
-            aria-expanded={showFixes}
-            onClick={() =>
-              setShowFixes((v) => {
-                // Opening reseeds the drafts from the exercise, so an edit
-                // you walked away from doesn't sit there pretending to be saved.
-                if (!v) {
-                  setNoteDraft(note ?? '')
-                  setNameDraft(name)
-                  setNameError('')
-                }
-                return !v
-              })
-            }
+            className="unit-fix exercise-edit"
+            // El `›` es un `::after`, y un pseudoelemento no se puede marcar
+            // `aria-hidden`: sin esto el lector de pantalla dice "Editar
+            // ejercicio, mayor que". La casa ya resuelve esto igual en la
+            // navegación de periodo de Progreso — etiqueta explícita, y el
+            // glifo se queda donde debe estar, en el dibujo.
+            //
+            // Lleva el nombre dentro por dos razones. Una pantalla de supersets
+            // tiene varias tarjetas abiertas y "Editar ejercicio" repetido no
+            // dice cuál. Y empieza por la etiqueta visible entera, que es lo que
+            // exige el control por voz: quien dice "pulsa Editar ejercicio"
+            // tiene que acertar, y una etiqueta que no contenga lo que se lee en
+            // pantalla lo deja sin ese botón.
+            aria-label={`Editar ejercicio ${name}`}
+            aria-haspopup="dialog"
+            aria-expanded={editorOpen}
+            onClick={() => {
+              // Abrir resiembra los borradores desde el ejercicio, para que una
+              // edición que abandonaste no se quede ahí fingiendo estar guardada.
+              setNoteDraft(note ?? '')
+              setNameDraft(name)
+              setNameError('')
+              setEditorOpen(true)
+            }}
           >
             Editar ejercicio
           </button>
-          {showFixes && (
+          <ExerciseEditor name={name} open={editorOpen} onClose={() => setEditorOpen(false)}>
+            {/* Cuerpo provisional: los campos de siempre, tal cual, mientras las
+                piezas siguientes reconstruyen el interior de la hoja. Viven aquí
+                y no en un pliegue para que solo haya una puerta. */}
             <div className="card-fixes">
-              {/* First in the fold: the name is the exercise's identity, the
-                  group and the note are things said about it. */}
+              {/* Primero, el nombre: es la identidad del ejercicio; el grupo y
+                  la nota son cosas que se dicen sobre él. */}
               {onChangeName && (
                 <form className="name-edit" onSubmit={saveName}>
                   <label className="muscle-edit-heading" htmlFor={`exname-${name}`}>
@@ -598,7 +618,7 @@ function ExerciseCard({
               )}
               {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
             </div>
-          )}
+          </ExerciseEditor>
           {pendingRetag && (
             <RetagConfirm
               name={name}
