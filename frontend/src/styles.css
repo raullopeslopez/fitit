@@ -1190,9 +1190,23 @@ button.workout-title:active:not(:disabled) {
    para caber. */
 .exercise-editor {
   animation: editor-rise 150ms ease-out;
+  /* Con el teclado abierto el velo se encoge (`--kb-inset`), y entonces la
+     hoja tiene que caber en lo que queda o el botón que confirma se sale por
+     abajo otra vez. Alto máximo con desplazamiento propio; `overscroll-behavior`
+     para que llegar al final de la hoja no siga arrastrando el registro que
+     hay detrás. */
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .sheet-scrim:has(.exercise-editor) {
   animation: editor-veil 80ms ease-out;
+  /* Lo que el teclado tapa, medido con `visualViewport` desde el componente.
+     Vale 0 mientras no hay teclado, que es siempre en escritorio. Es el
+     cinturón del `interactive-widget=resizes-content` del `index.html`: en los
+     navegadores que ignoran esa directiva (iOS) éste es el único aviso de que
+     hay un teclado delante. */
+  bottom: var(--kb-inset, 0px);
 }
 @keyframes editor-rise {
   from {
@@ -1262,10 +1276,74 @@ button.workout-title:active:not(:disabled) {
 /* El cuerpo provisional que las dos pantallas siguen pasando como `children`
    hasta que las piezas siguientes lo reconstruyan: sin su regla superior, que
    aquí duplicaría la de la cabecera. */
-.exercise-editor .card-fixes {
+.exercise-editor .card-fixes,
+.editor-inplace .card-fixes {
   margin-top: 0.9rem;
   padding-top: 0;
   border-top: 0;
+}
+
+/* ── El editor en sitio (`?editor=inline`) ────────────────────────────────
+   La caja rival. Dos críticos independientes dijeron lo mismo sin hablarse:
+   una hoja modal que apaga el 62,8 % de la pantalla es demasiada ceremonia
+   para arreglar una errata, y lo que tapa es justo el registro que estás
+   corrigiendo. Esto es la otra respuesta: el panel nace del propio botón,
+   dentro de la tarjeta, y no apaga nada.
+
+   El hueco existe para que el panel tenga desde dónde colgar sin ocupar
+   flujo: `position: relative` y altura cero, así que `absolute` se mide desde
+   la puerta y la columna de contenido no se mueve ni un píxel — la misma
+   promesa que daba la hoja, por otro camino. La única altura que el hueco
+   llega a tener se la pone el componente, y sólo para lo que el panel
+   sobresale por debajo de su propia tarjeta (Progreso, donde el botón es el
+   último hijo y debajo no hay documento al que desplazarse). Crecer por
+   debajo de la tarjeta no mueve nada de lo que estabas mirando. */
+.editor-inplace-slot {
+  position: relative;
+}
+.editor-inplace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Por encima de lo que tapa y por debajo de la hoja (40) y de las barras
+     fijas: esto no es una capa de la pantalla, es una capa de la tarjeta. */
+  z-index: 3;
+  padding: 1rem;
+  /* Opaco a propósito: debajo hay una lista de series y un formulario, y una
+     transparencia aquí serían dos textos en el mismo sitio. `--surface-raised`
+     limpio, sin el baño ámbar del 7 % que lleva la tarjeta hero, así que el
+     panel se lee como un plano distinto sin necesidad de sombra. */
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* La regla de la casa para el relieve en oscuro: no hay luz que proyecte
+     sombra, así que el canto de arriba la recoge. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  animation: editor-unfold 150ms ease-out;
+  /* El componente sube el panel cuando no cabe entre el botón y el borde útil
+     —la barra de pestañas, o el teclado— y le pone aquí el alto que queda. Si
+     ni subiendo cabe, lo que sobra se desplaza dentro del panel en vez de
+     salirse por arriba; `overscroll-behavior` para que llegar al final no siga
+     arrastrando la tarjeta que hay debajo. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* Baja desde la puerta, no sube desde el pulgar: aquí el origen del gesto es
+   el botón que acabas de tocar, que está justo encima. */
+@keyframes editor-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-inplace {
+    animation: none;
+  }
+}
+.editor-inplace .editor-placeholder {
+  margin-bottom: 0;
 }
 .link-row {
   width: 100%;
