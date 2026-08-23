@@ -66,10 +66,16 @@ export function ExerciseEditor({
   nameError,
   nameExtra,
   more,
+  moreLabel,
 }) {
   const panelRef = useRef(null)
   const slotRef = useRef(null)
   const [moreOpen, setMoreOpen] = useState(false)
+  // ¿Queda algo en pantalla que diga qué ejercicio es esto? Lo mide `fit`,
+  // porque es él quien sabe lo que el panel tapa. Empieza en `true` para que
+  // el primer pintado no traiga un rótulo que a lo mejor sobra: `fit` corre en
+  // un efecto de layout, o sea antes de que se pinte nada.
+  const [nameOnScreen, setNameOnScreen] = useState(true)
 
   // `onClose` llega como una lambda nueva en cada render de quien llama, así
   // que un efecto que dependa de ella se desmonta y se vuelve a montar cada
@@ -84,7 +90,10 @@ export function ExerciseEditor({
   // Abrir es empezar de cero. Si el segundo panel se quedase abierto de la vez
   // pasada, el editor volvería a nacer con los 294 px que este cambio quita.
   useEffect(() => {
-    if (open) setMoreOpen(false)
+    if (open) {
+      setMoreOpen(false)
+      setNameOnScreen(true)
+    }
   }, [open])
 
   // De dónde veniste, para poder devolverte ahí. Se captura en cuanto se abre
@@ -140,6 +149,44 @@ export function ExerciseEditor({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
+  // Tocar fuera cierra. El crítico lo midió: tocando el campo de otra tarjeta
+  // el foco se iba allí y el editor se quedaba abierto detrás, con un
+  // renombrado sin confirmar dentro. Un panel que no es modal y que tampoco se
+  // va cuando dejas de mirarlo no es ninguna de las dos cosas: se queda de
+  // capa fantasma tapando el registro mientras tú ya estás en otra cosa.
+  //
+  // Cierra y **tira el borrador**, que es lo que ya hacen el aspa, Escape y el
+  // gesto de atrás — y lo que exige la regla de la casa que resiembra el
+  // borrador al abrir, precisamente «para que una edición que abandonaste no
+  // se quede ahí fingiendo estar guardada». Guardar el borrador de una salida
+  // accidental sería inventar un tercer estado —ni guardado ni descartado— que
+  // ninguna otra salida del panel produce. DESIGN.md ya dice lo mismo del
+  // único modal que hay: tocar el velo es cancelar, «la salida tiene que ser
+  // tan fácil como la entrada». Aquí el velo es el resto de la pantalla.
+  //
+  // `pointerdown` y no `click`: así el toque cierra el panel *y* llega a lo que
+  // apuntabas, que sigue en su sitio porque el hueco no ocupa flujo. Un toque,
+  // una cosa.
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      const panel = panelRef.current
+      const slot = slotRef.current
+      if (!panel || panel.contains(e.target)) return
+      // El disparador se apaña solo: su `onClick` alterna, así que cerrarlo
+      // también desde aquí haría que un toque valiese por dos y el panel
+      // volviese a abrirse en el mismo gesto.
+      if (slot?.previousElementSibling?.contains(e.target)) return
+      // Los diálogos que este panel abre —confirmar el reetiquetado, confirmar
+      // el borrado— se pintan fuera de él. Cerrar el editor al tocarlos dejaría
+      // a alguien confirmando algo cuyo origen acaba de desaparecer.
+      if (e.target.closest?.('[role="dialog"], .dialog-backdrop')) return
+      onCloseRef.current()
+    }
+    document.addEventListener('pointerdown', onDown, true)
+    return () => document.removeEventListener('pointerdown', onDown, true)
   }, [open])
 
   // El gesto de atrás de Android. Sin esto, «atrás» con el editor abierto se
@@ -229,30 +276,55 @@ export function ExerciseEditor({
       muted.clear()
     }
 
+    // Todo lo que el panel puede llegar a partir o a tapar. Se recorre entero
+    // porque la regla de abajo no distingue quién es quién: el disparador no
+    // tiene ningún privilegio sobre la fila de peso y reps.
+    const INTERACTIVE = 'a[href], button, input, select, textarea, [tabindex]'
+    const crossables = () => {
+      const out = []
+      for (const el of document.querySelectorAll(INTERACTIVE)) {
+        // Lo de dentro del panel, no. Las barras fijas tampoco: viven por
+        // encima (`z-index: 10` contra 3), así que solapar con ellas no
+        // significa que el panel las tape — significa que ellas tapan al panel.
+        // Y nada que *contenga* al hueco: un contenedor con `tabindex` que
+        // abarque media página cruzaría los dos cantos siempre y el panel se
+        // pasaría la vida subiendo para esquivar su propio abuelo.
+        if (panel.contains(el) || el.contains(slot)) continue
+        if (el.closest('.bottom-nav, .days-cta')) continue
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.height === 0) continue
+        out.push(r)
+      }
+      return out
+    }
+
     // No se puede tabular hasta un botón que no se ve y no se puede pulsar.
     // Esto no convierte el panel en modal —el resto de la pantalla sigue viva y
     // sigue siendo alcanzable— sino que retira exactamente lo que el panel
     // esconde, calculado por solapamiento real y no por adivinar quién está
-    // debajo. El criterio es el centro del control: uno tapado a medias todavía
-    // se ve y se apunta; uno cuyo centro está bajo una superficie opaca, no.
+    // debajo.
+    //
+    // El criterio era el centro del control, y el centro es justo lo que falla
+    // cuando algo queda tapado por su mitad de abajo: medido en Progreso, una
+    // fila de siete chips tapada 35,1 px de 36 dejaba tres chips `inert` y un
+    // cuarto vivo detrás de una astilla de 0,9 px. Con el solapamiento el
+    // criterio es uno solo. Y como la regla de colocación de abajo ya garantiza
+    // que nada quede partido, «solapa» y «está tapado entero» son la misma cosa
+    // salvo en el caso residual en que el panel no puede subir más — y ahí
+    // sigue mandando el solapamiento, porque un control cuya mitad útil está
+    // bajo una superficie opaca no se puede pulsar.
     const hideCovered = (panelRect) => {
       const stale = new Set(muted)
-      const candidates = document.querySelectorAll(
-        'a[href], button, input, select, textarea, [tabindex]',
-      )
-      for (const el of candidates) {
-        // Lo de dentro del panel, no. Las barras fijas tampoco: viven por
-        // encima (`z-index: 10` contra 3), así que solapar con ellas no
-        // significa que el panel las tape — significa que ellas tapan al panel.
-        if (panel.contains(el) || el.closest('.bottom-nav, .days-cta')) continue
+      for (const el of document.querySelectorAll(INTERACTIVE)) {
+        if (panel.contains(el) || el.contains(slot)) continue
+        if (el.closest('.bottom-nav, .days-cta')) continue
         const r = el.getBoundingClientRect()
-        const cx = r.left + r.width / 2
-        const cy = r.top + r.height / 2
+        if (r.width === 0 || r.height === 0) continue
         const covered =
-          cy > panelRect.top &&
-          cy < panelRect.bottom &&
-          cx > panelRect.left &&
-          cx < panelRect.right
+          r.left < panelRect.right &&
+          r.right > panelRect.left &&
+          r.top < panelRect.bottom &&
+          r.bottom > panelRect.top
         if (covered) {
           el.setAttribute('inert', '')
           muted.add(el)
@@ -265,16 +337,84 @@ export function ExerciseEditor({
       }
     }
 
+    // ── Quién dice qué ejercicio es esto ──────────────────────────────────
+    // El campo *es* el título, y eso se sostiene mientras el título de la
+    // tarjeta siga a la vista detrás. Con el teclado arriba no sigue: medido en
+    // Entreno, el panel tapa `Hombro / Press militar` entero (44 de 44) y la
+    // nota del ejercicio entera, y lo único que queda en pantalla con el nombre
+    // es tu propio borrador — que en cuanto le borras una letra ya no dice cuál
+    // era. Así que el panel se pone el nombre encima, pero sólo entonces: con
+    // el título a la vista, repetirlo dentro es exactamente el rótulo
+    // redundante que este panel quitó.
+    //
+    // Se busca el nombre por el texto de la página en vez de por una clase
+    // concreta, porque las dos pantallas lo escriben en sitios distintos y una
+    // tercera lo escribiría en otro. Si no lo lleva nadie, esto no opina: el
+    // panel no ha tapado ningún título, porque no había.
+    //
+    // «A la vista» no es «tiene un píxel dentro de la pantalla», pero tampoco
+    // es «no le falta ni uno». El nombre es una línea de texto: cortarle dos
+    // píxeles por arriba no le quita nada que se leyera, y partirlo por la
+    // mitad lo deja en un renglón de palos. La regla anterior descartaba
+    // cualquier caja con el `top` negativo, y medido en Entreno con la página
+    // en 419 eso significaba dar por perdido un `SPAN.card-name` en −2,2..25,5
+    // —el 92 % en pantalla, legible de sobra— y meter dentro del panel un
+    // `Editando · Press militar` con el nombre a la vista justo encima: el
+    // rótulo redundante que este panel quitó, devuelto por la puerta de atrás.
+    // Así que se mide lo que queda en pie —dentro de la pantalla, por encima
+    // del borde útil y fuera del panel— y con más de la mitad basta.
+    const nameStillReadable = (panelRect, usableBottom) => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+      let found = false
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.data.includes(name)) continue
+        const el = node.parentElement
+        if (!el || panel.contains(el)) continue
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.height === 0) continue
+        found = true
+        const top = Math.max(r.top, 0)
+        const bottom = Math.min(r.bottom, usableBottom)
+        let visible = bottom - top
+        // El panel sólo tapa lo que tiene debajo, no lo que le pasa por el
+        // lado: la resta se hace únicamente si comparten columna.
+        if (r.left < panelRect.right && r.right > panelRect.left) {
+          visible -= Math.max(
+            0,
+            Math.min(bottom, panelRect.bottom) - Math.max(top, panelRect.top),
+          )
+        }
+        if (visible >= r.height / 2) return true
+      }
+      return !found
+    }
+
     const fit = () => {
       // Se mide con el panel en su sitio natural y sin tope de altura, porque
       // las dos cosas que aplicamos —`top` y `max-height`— cambian justo lo que
-      // hay que medir. `offsetHeight` y no el rectángulo: el rectángulo trae la
-      // animación de entrada (`translateY(-8px)`) dentro, y medir a media
-      // animación deja el cálculo 8 px corto.
+      // hay que medir.
+      //
+      // El alto sale del rectángulo y no de `offsetHeight`, que redondea al
+      // entero. Ese medio píxel es exactamente un canto que cae dentro de un
+      // control en vez de fuera: medido en Progreso a 430×932 con la página en
+      // 735 y el segundo panel abierto, la cuenta creía aterrizar en 874,9 —el
+      // pie exacto del disparador, rozándolo sin tocarlo— mientras el panel de
+      // verdad acababa en 874,5 y le partía 43,6 px de 44. Con el nombre en
+      // colisión el mismo entero de más dejaba además una astilla de 0,2 px
+      // *viva*, porque `hideCovered` medía con él.
+      //
+      // Lo que no se puede sacar del rectángulo es el `top`: ahí sí entra la
+      // animación de entrada y medir a media animación deja la cuenta 8 px
+      // corta. El alto no, porque `editor-unfold` sólo traslada — no escala—,
+      // así que es el bueno desde el primer fotograma. Por eso el origen
+      // vertical se sigue tomando del hueco, que no se anima.
       panel.style.top = '0px'
       panel.style.maxHeight = 'none'
       const slotTop = slot.getBoundingClientRect().top
-      const height = panel.offsetHeight
+      // El mismo rectángulo da el ancho, que es lo que decide qué controles
+      // están en la columna del panel y cuáles pasan de largo por los lados.
+      const box = panel.getBoundingClientRect()
+      const height = box.height
 
       const vv = window.visualViewport
       const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
@@ -297,7 +437,6 @@ export function ExerciseEditor({
       // literalmente de él.
       const trigger = slot.previousElementSibling
       const triggerRect = trigger?.getBoundingClientRect()
-      const triggerBottom = triggerRect ? triggerRect.bottom : -Infinity
 
       // La cuenta de la pantalla sólo tiene sentido mientras se vea la puerta.
       // Si la tarjeta entera se ha ido del viewport —la página se ha movido
@@ -321,39 +460,89 @@ export function ExerciseEditor({
       // quedaban fuera del panel y detrás de la barra.
       const needed = Math.ceil(height - (limit - slotTop))
 
-      // ── El disparador: o no se toca, o se tapa entero ───────────────────
+      // ── Nada queda partido: ni el disparador ni lo que haya al otro lado ──
       // La queja del crítico no era «has tapado el botón», era «has tapado los
       // 9 últimos píxeles de un objetivo de 44»: un control cortado por una
       // superficie opaca no se lee como tapado, se lee como roto. Lo que hay
-      // que prohibir, entonces, no es cruzar la puerta sino cruzarla a medias.
+      // que prohibir, entonces, no es cruzar un control sino cruzarlo a medias.
       //
-      // Así que de las subidas posibles sólo valen dos familias: quedarse en o
-      // por debajo del canto inferior del disparador (`capTrigger`, no lo toca)
-      // o llegar hasta su canto superior (`coverTrigger`, lo tapa entero). Se
-      // sube lo que haga falta y, si eso cae justo en medio, se redondea hacia
-      // arriba hasta taparlo del todo. Cuando el panel lo tapa entero la puerta
-      // deja de existir: está en `aria-expanded="true"`, sale del orden de
-      // tabulación y no hace nada mientras el panel esté abierto. La puerta se
-      // convierte en la habitación.
+      // Eso valía sólo para el disparador —el hermano de justo antes del
+      // hueco—, y el defecto gordo estaba en el otro canto y en todo lo demás.
+      // Medido en Entreno a 430×932 con la página a 200 y a 419, el segundo
+      // panel cerrado, sin que el usuario haya tocado nada: el canto de abajo
+      // aterrizaba en 478,8 dentro de la fila de peso y reps (464,3–516,3) y
+      // dejaba **seis controles vivos partidos a 14,5 de 52**, con los rótulos
+      // `Peso · kg` y `Reps` comidos, de modo que la fila se leía
+      // `− ▢ + − ▢ +`. Y en Progreso, al chocar el nombre con el segundo panel
+      // abierto, el canto de arriba tapaba una fila de chips 35,1 de 36 y
+      // dejaba una astilla viva de 0,9 px.
       //
-      // La versión anterior de esta regla era un tope duro en `capTrigger`, y
-      // el tope duro es lo que rompe con el teclado delante: medido en Entreno
-      // con el viewport a 430×602 (un IME de ~330 px), el hueco cae en 549, la
-      // barra de pestañas sube a 545 y el panel se quedaba con **8 px de alto**
-      // — `Guardar nombre` en y606, fuera de la pantalla entera. El botón que
-      // confirma la edición, otra vez detrás del teclado. Con esta regla sube
-      // los 134 que hacen falta y se ve el panel completo.
-      const capTrigger = Math.floor(slotTop - triggerBottom)
-      const coverTrigger = triggerRect
-        ? Math.ceil(slotTop - triggerRect.top)
-        : capTrigger
+      // La regla es la misma de siempre con el reparto ampliado: **ningún canto
+      // del panel puede quedarse dentro de un control**. Y la corrección es una
+      // sola cuenta para los dos cantos, porque son el mismo movimiento visto
+      // desde dos sitios — *subir el panel hasta que el techo de la fila
+      // ofendida quede en el canto o por encima de él*:
+      //
+      // - si el canto de **arriba** parte una fila, subir hasta su techo la
+      //   tapa entera (lo que ya hacía `coverTrigger`);
+      // - si el canto de **abajo** parte una fila, subir hasta su techo la deja
+      //   intacta.
+      //
+      // Se sube y nunca se baja, porque bajar por debajo de `needed` recorta el
+      // panel, y el panel es lo que estás usando. Dicho del derecho: de todas
+      // las posiciones en las que el panel se ve entero, se toma la que tapa
+      // menos y no parte nada. Se itera porque arreglar un canto puede meter al
+      // otro en una fila nueva — en Entreno pasa siempre: los 15 px que salvan
+      // la fila de peso y reps meten el canto de arriba dentro del disparador,
+      // y de ahí salen los 56 que lo tapan entero.
+      //
+      // Cuando el panel tapa el disparador entero la puerta deja de existir:
+      // sale del orden de tabulación y su segundo toque cierra, que es lo que
+      // hace honesto el `aria-expanded`.
+      //
+      // Sin tope duro arriba: el tope duro es lo que rompía con el teclado
+      // delante. Medido en Entreno con el viewport a 430×602 (un IME de ~330
+      // px), el hueco cae en 549, la barra de pestañas sube a 545 y el panel se
+      // quedaba con **8 px de alto** — `Guardar nombre` en y606, fuera de la
+      // pantalla entera. El único tope es el aire de arriba.
       const maxLift = Math.floor(slotTop - TOP_GAP)
       let lift = Math.max(0, Math.min(needed, maxLift))
-      if (lift > capTrigger && lift < coverTrigger) lift = Math.min(coverTrigger, maxLift)
-      panel.style.top = `${-lift}px`
-      panel.style.maxHeight = `${Math.max(0, Math.floor(limit - (slotTop - lift)))}px`
 
-      hideCovered(panel.getBoundingClientRect())
+      const rects = crossables()
+      const sliceBump = (candidate) => {
+        const top = slotTop - candidate
+        const bottom = Math.min(top + height, limit)
+        let bump = 0
+        for (const r of rects) {
+          if (r.left >= box.right || r.right <= box.left) continue
+          if (r.top < top && r.bottom > top) bump = Math.max(bump, top - r.top)
+          if (r.top < bottom && r.bottom > bottom) bump = Math.max(bump, bottom - r.top)
+        }
+        return bump
+      }
+      // Ocho vueltas de sobra: cada una despeja al menos una fila y la subida
+      // está acotada por el aire de arriba. El tope existe para que un layout
+      // imposible no cuelgue la pantalla, no porque se espere llegar a él.
+      for (let i = 0; i < 8; i += 1) {
+        const bump = sliceBump(lift)
+        if (bump <= 0) break
+        const next = Math.min(maxLift, Math.ceil(lift + bump))
+        if (next <= lift) break
+        lift = next
+      }
+
+      const panelTop = slotTop - lift
+      panel.style.top = `${-lift}px`
+      panel.style.maxHeight = `${Math.max(0, Math.floor(limit - panelTop))}px`
+
+      const panelRect = {
+        top: panelTop,
+        bottom: Math.min(panelTop + height, limit),
+        left: box.left,
+        right: box.right,
+      }
+      hideCovered(panelRect)
+      setNameOnScreen(nameStillReadable(panelRect, usableBottom))
     }
 
     fit()
@@ -364,6 +553,42 @@ export function ExerciseEditor({
     const vv = window.visualViewport
     vv?.addEventListener('resize', fit)
     window.addEventListener('resize', fit)
+
+    // ── Y al desplazar la página ────────────────────────────────────────────
+    // Todo lo que el panel puede partir cuelga del documento y se mueve con
+    // él, así que los cantos aguantaban un scroll sin recalcular nada. El
+    // borde útil no se mueve: la barra de pestañas y el teclado están clavados
+    // al viewport, y en cuanto la tarjeta baja, el pie del panel se les mete
+    // debajo. Medido en Progreso abriendo con la página en 857 y subiendo a
+    // 735 sin tocar el editor: el panel conservaba la subida de antes, acababa
+    // en 905,5 con el canto de la barra en 875, y `Eliminar ejercicio` —44 px,
+    // el control más grave que hay aquí dentro— quedaba partido 13,5 px por
+    // una superficie opaca. El mismo defecto de esta vuelta, producido por el
+    // dedo en vez de por el primer pintado.
+    //
+    // Un fotograma como mucho: `fit` recorre todos los controles de la página
+    // y todo su texto, y eso no puede ir una vez por evento de scroll. En
+    // captura porque `scroll` no burbujea y la página puede desplazarse desde
+    // un contenedor interior.
+    //
+    // Esto no mete un salto bajo el pulgar: cuando lo que ata al panel es el
+    // canto de abajo, mover la página lo deja clavado donde estaba en pantalla
+    // —lo que cambia es su distancia a una tarjeta que sí se ha movido—, y
+    // cuando no lo está, es que le sobra sitio y no se mueve nadie.
+    let frame = 0
+    const hasFrames = typeof requestAnimationFrame === 'function'
+    const onScroll = () => {
+      if (!hasFrames) {
+        fit()
+        return
+      }
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        fit()
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     // El cuerpo, no sólo la caja. El panel crece solo cuando aparece el aviso
     // de nombre repetido, la oferta de fusión, el deshacer del reetiquetado o
     // el segundo paso — y en cuanto `fit` le ha puesto un tope de altura, su
@@ -383,10 +608,19 @@ export function ExerciseEditor({
     return () => {
       vv?.removeEventListener('resize', fit)
       window.removeEventListener('resize', fit)
+      window.removeEventListener('scroll', onScroll, true)
+      if (frame && hasFrames) cancelAnimationFrame(frame)
       ro?.disconnect()
       release()
     }
-  }, [open, moreOpen])
+    // `nameOnScreen` está aquí a propósito, aunque lo escriba este mismo
+    // efecto: el rótulo que aparece cuando el título queda tapado hace el panel
+    // más alto, y eso cambia la cuenta. Volver a entrar la rehace antes de
+    // pintar, en vez de esperar al `ResizeObserver` y regalar un salto de un
+    // fotograma. No hay bucle porque el cambio sólo va en un sentido: el rótulo
+    // sube el panel, subir el panel tapa más, y lo que ya estaba tapado no se
+    // destapa.
+  }, [open, moreOpen, name, nameOnScreen])
 
   if (!open) return null
 
@@ -399,6 +633,13 @@ export function ExerciseEditor({
         aria-label={`Editar ${name}`}
       >
         <form className="editor-name" onSubmit={onSubmitName}>
+          {/* Sólo cuando el panel se ha llevado por delante el único sitio de
+              la pantalla que decía qué ejercicio es esto. El campo de abajo
+              lleva tu borrador, y un borrador a medio escribir no nombra nada;
+              esto lleva el nombre guardado, que es contra lo que estás
+              editando. Con el título a la vista no sale: sería el rótulo
+              repetido que este panel quitó. */}
+          {!nameOnScreen && <p className="editor-context">Editando · {name}</p>}
           {/* El campo *es* el título. Lleva la cara de display y el cuerpo del
               nombre de un ejercicio en cualquier otra pantalla, porque es el
               mismo dato; lo que lo delata como editable es el marco, no un
@@ -437,15 +678,23 @@ export function ExerciseEditor({
               // nombre del ejercicio en la etiqueta hablada por lo mismo que el
               // campo de arriba. `aria-expanded` porque no lleva a otra
               // pantalla: despliega ésta.
+              //
+              // El rótulo lo pone quien llena el cajón. Antes ponía
+              // `Más ajustes`, que es el nombre más vago disponible: nombra un
+              // contenedor, no lo que hay dentro. Y no se puede arreglar con
+              // una constante, porque el cajón no lleva lo mismo en las dos
+              // pantallas — en Entreno grupo y nota, en Progreso grupo y
+              // borrado —, así que una etiqueta fija mentiría en una de las
+              // dos. La escribe el llamante, que es el único que sabe.
               <button
                 type="button"
                 className="editor-more"
-                aria-label={`Más ajustes de ${name}`}
+                aria-label={`${moreLabel} de ${name}`}
                 aria-expanded={moreOpen}
                 aria-controls="editor-more-pane"
                 onClick={() => setMoreOpen((v) => !v)}
               >
-                Más ajustes
+                {moreLabel}
               </button>
             )}
           </div>

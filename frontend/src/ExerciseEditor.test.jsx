@@ -98,26 +98,27 @@ describe('ExerciseEditor', () => {
 // corregir una errata. El grupo muscular y el borrado no son lo que vienes a
 // hacer; siguen estando, un toque más lejos y con su nombre escrito en la
 // puerta.
-describe('ExerciseEditor: Más ajustes', () => {
+describe('ExerciseEditor: el segundo paso', () => {
   const withMore = (props = {}) =>
     editor({
       more: (
         <>
-          <label htmlFor="g">Grupo</label>
+          <label htmlFor="g">Grupo muscular</label>
           <select id="g" defaultValue="Pecho">
             <option>Pecho</option>
           </select>
           <button type="button">Eliminar ejercicio</button>
         </>
       ),
+      moreLabel: 'Grupo y eliminar',
       ...props,
     })
 
   it('empieza cerrado: el panel abierto es sólo el nombre y su confirmación', () => {
     withMore()
-    expect(screen.queryByLabelText('Grupo')).toBeNull()
+    expect(screen.queryByLabelText('Grupo muscular')).toBeNull()
     expect(screen.queryByRole('button', { name: /eliminar ejercicio/i })).toBeNull()
-    expect(screen.getByRole('button', { name: /^Más ajustes/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Grupo y eliminar/ })).toHaveAttribute(
       'aria-expanded',
       'false',
     )
@@ -125,26 +126,26 @@ describe('ExerciseEditor: Más ajustes', () => {
 
   it('un toque lo abre, otro lo cierra', async () => {
     withMore()
-    const more = screen.getByRole('button', { name: /^Más ajustes/ })
+    const more = screen.getByRole('button', { name: /^Grupo y eliminar/ })
     await userEvent.click(more)
     expect(more).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByLabelText('Grupo')).toBeInTheDocument()
+    expect(screen.getByLabelText('Grupo muscular')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /eliminar ejercicio/i })).toBeInTheDocument()
     await userEvent.click(more)
-    expect(screen.queryByLabelText('Grupo')).toBeNull()
+    expect(screen.queryByLabelText('Grupo muscular')).toBeNull()
   })
 
   // El nombre accesible empieza por la etiqueta visible entera —el control por
-  // voz necesita acertar con «pulsa Más ajustes»— y lleva el ejercicio detrás
+  // voz necesita acertar con «pulsa Grupo y eliminar»— y lleva el ejercicio detrás
   // porque en un superset hay varias tarjetas abiertas a la vez.
   it('lo dice entero para quien no lo ve', () => {
     withMore()
-    expect(screen.getByRole('button', { name: 'Más ajustes de Press banca' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Grupo y eliminar de Press banca' })).toBeInTheDocument()
   })
 
   it('sin nada detrás, no hay puerta que abrir', () => {
     editor()
-    expect(screen.queryByRole('button', { name: /más ajustes/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /grupo y/i })).toBeNull()
   })
 
   // Cerrar y volver a abrir es empezar de nuevo: si el segundo panel se
@@ -165,12 +166,13 @@ describe('ExerciseEditor: Más ajustes', () => {
             onNameDraftChange={() => {}}
             onSubmitName={(e) => e.preventDefault()}
             more={<p>ajustes del ejercicio</p>}
+            moreLabel="Grupo y nota"
           />
         </>
       )
     }
     render(<Harness />)
-    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
     expect(screen.getByText('ajustes del ejercicio')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
@@ -246,24 +248,43 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     slotTop,
     panelHeight,
     navTop,
+    // El alto de verdad del panel, con decimales. Por defecto el mismo que
+    // `offsetHeight`, porque casi todas estas pruebas no van de eso; las que sí
+    // lo separan reproducen el medio píxel que `offsetHeight` se come.
+    panelRectHeight = panelHeight,
     triggerTop = slotTop - 56,
     cardTop = 100,
     cardBottom = navTop + 500,
+    underTop = slotTop + 10,
+    underHeight = 44,
+    sliverTop = null,
+    sliverHeight = 10,
+    titleTop = 0,
   }) {
-    const state = { panelHeight }
+    // `shift` finge el desplazamiento de la página: todo lo que vive en el
+    // documento baja, y la barra fija se queda donde está. Es la única
+    // diferencia que produce un scroll, y es la que el panel tiene que ver.
+    const state = { panelHeight, panelRectHeight, shift: 0 }
     const origRect = Element.prototype.getBoundingClientRect
     Element.prototype.getBoundingClientRect = function fake() {
       const cl = this.classList
-      if (cl?.contains('editor-inplace-slot')) return rect(slotTop, slotTop)
+      const d = state.shift
+      if (cl?.contains('editor-inplace-slot')) return rect(slotTop + d, slotTop + d)
       if (cl?.contains('editor-inplace')) {
-        const top = slotTop + (parseFloat(this.style.top) || 0)
-        return rect(top, top + state.panelHeight)
+        const top = slotTop + d + (parseFloat(this.style.top) || 0)
+        return rect(top, top + state.panelRectHeight)
       }
-      if (cl?.contains('exercise-edit')) return rect(triggerTop, triggerTop + 44)
-      if (cl?.contains('card')) return rect(cardTop, cardBottom)
+      if (cl?.contains('exercise-edit')) return rect(triggerTop + d, triggerTop + d + 44)
+      if (cl?.contains('card')) return rect(cardTop + d, cardBottom + d)
       if (cl?.contains('bottom-nav')) return rect(navTop, navTop + 57)
-      if (cl?.contains('under-panel')) return rect(slotTop + 10, slotTop + 54)
+      if (cl?.contains('under-panel')) return rect(underTop + d, underTop + d + underHeight)
+      if (cl?.contains('sliver')) {
+        return sliverTop === null
+          ? rect(-999, -999)
+          : rect(sliverTop + d, sliverTop + d + sliverHeight)
+      }
       if (cl?.contains('far-below')) return rect(navTop - 20, navTop)
+      if (cl?.contains('exercise-title')) return rect(titleTop + d, titleTop + d + 44)
       return origRect.call(this)
     }
     const origHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
@@ -281,6 +302,12 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     // entere, que es justo el caso que el `ResizeObserver` no ve.
     teardown.grow = (h) => {
       state.panelHeight = h
+      state.panelRectHeight = h
+    }
+    // Y para las que mueven la página debajo de un editor abierto.
+    teardown.scrollTo = (d) => {
+      state.shift = d
+      window.dispatchEvent(new Event('scroll'))
     }
     return teardown
   }
@@ -302,6 +329,7 @@ describe('ExerciseEditor: dónde cae el panel', () => {
   function Card({ open = true, onClose = () => {} }) {
     return (
       <div className="card">
+        <h2 className="exercise-title">Press banca</h2>
         <button type="button" className="exercise-edit">
           Editar ejercicio Press banca
         </button>
@@ -318,6 +346,9 @@ describe('ExerciseEditor: dónde cae el panel', () => {
         </button>
         <button type="button" className="far-below">
           Editar serie 1
+        </button>
+        <button type="button" className="sliver">
+          Pecho
         </button>
       </div>
     )
@@ -378,6 +409,51 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     expect(panel.style.top).toBe('-56px')
   })
 
+  // ── Y la misma regla para todo lo demás que el canto cruza ───────────────
+  // La regla del disparador («o no se toca, o se tapa entero») valía sólo para
+  // el hermano de justo antes del hueco, y el defecto gordo de esta vuelta
+  // estaba en el otro canto. Medido en Entreno a 430×932 con la página a 200:
+  // el hueco cae en 348,8, el panel mide 130 y su canto de abajo aterriza en
+  // 478,8 — dentro de la fila de peso y reps, que va de 464,3 a 516,3. Seis
+  // controles vivos partidos a 14,5 de 52 (el 27 %), con los rótulos
+  // `Peso · kg` y `Reps` comidos, y sin que el usuario haya hecho nada: es lo
+  // que hace abrir el editor, por defecto, en la pantalla que usas entre
+  // series.
+  it('el canto de abajo no parte la fila de peso y reps', () => {
+    restore = fakeLayout({
+      slotTop: 349,
+      panelHeight: 130,
+      navTop: 875,
+      triggerTop: 293,
+      cardTop: 167,
+      cardBottom: 743,
+      underTop: 464,
+      underHeight: 52,
+    })
+    const { panel } = open()
+    // Sin subir, el canto cae en 479 y parte la fila. Subiendo los 15 que la
+    // libran, el canto de *arriba* cae en 334 y parte el disparador (293–337),
+    // así que se sube hasta taparlo entero: 56. El canto de abajo acaba en
+    // 423, en el aire que hay entre el registro y la fila.
+    expect(panel.style.top).toBe('-56px')
+    expect(document.querySelector('.under-panel')).not.toHaveAttribute('inert')
+  })
+
+  it('si el canto de abajo cae en el aire, no sube nada', () => {
+    restore = fakeLayout({
+      slotTop: 349,
+      panelHeight: 100,
+      navTop: 875,
+      triggerTop: 293,
+      cardTop: 167,
+      cardBottom: 743,
+      underTop: 464,
+      underHeight: 52,
+    })
+    const { panel } = open()
+    expect(panel.style.top).toBe('0px')
+  })
+
   // El teclado, que es donde el tope duro de la versión anterior se rompió.
   // Medido en Entreno con el viewport a 430×602 (un IME de ~330 px): hueco en
   // 549, disparador en 493–537 y la barra de pestañas subida a 545. Parando en
@@ -413,10 +489,12 @@ describe('ExerciseEditor: dónde cae el panel', () => {
       cardBottom: 784,
     })
     const { panel } = open()
-    // 784 − 765 = 19 px dentro de la tarjeta para 130 de panel: sube 111 y
-    // acaba clavado en el pie de la tarjeta.
-    expect(panel.style.top).toBe('-111px')
-    expect(panel.style.maxHeight).toBe('130px')
+    // 784 − 765 = 19 px dentro de la tarjeta para 130 de panel: hacen falta
+    // 111 para que el panel entero esté a la vista. Pero con 111 el canto de
+    // abajo cae en 784 y `Registrar serie` empieza en 775, así que lo partiría
+    // por la mitad: 9 px más y el canto para justo en su techo.
+    expect(panel.style.top).toBe('-120px')
+    expect(panel.style.maxHeight).toBe('139px')
   })
 
   // El recorte que sólo se ve en pantalla. Si la tarjeta ya obliga a cruzar el
@@ -455,8 +533,10 @@ describe('ExerciseEditor: dónde cae el panel', () => {
       cardBottom: 1641,
     })
     const { panel } = open()
-    expect(panel.style.top).toBe('-111px')
-    expect(panel.style.maxHeight).toBe('130px')
+    // Mismos 111 de antes, más los 9 que hacen falta para no partir en dos el
+    // control que hay justo debajo del hueco.
+    expect(panel.style.top).toBe('-120px')
+    expect(panel.style.maxHeight).toBe('139px')
   })
 
   it('sube lo justo para no quedarse debajo de la barra de pestañas', () => {
@@ -504,12 +584,14 @@ describe('ExerciseEditor: dónde cae el panel', () => {
         cardBottom: 784,
       })
       const { panel } = open()
-      expect(panel.style.top).toBe('-111px')
+      expect(panel.style.top).toBe('-120px')
       expect(observed.has(panel.querySelector('form'))).toBe(true)
       restore.grow(233)
       act(() => notify([]))
-      expect(panel.style.top).toBe('-214px')
-      expect(panel.style.maxHeight).toBe('233px')
+      // 214 para que quepan los 233, y 9 más por lo mismo de siempre: el canto
+      // de abajo no puede quedarse dentro de `Registrar serie`.
+      expect(panel.style.top).toBe('-223px')
+      expect(panel.style.maxHeight).toBe('242px')
     } finally {
       vi.unstubAllGlobals()
     }
@@ -525,6 +607,118 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     expect(document.querySelector('.far-below')).not.toHaveAttribute('inert')
   })
 
+  // El caso de Progreso, y la otra mitad del mismo defecto. Medido a 430×932
+  // con la página a 735, el nombre chocado y el segundo paso abierto: el panel
+  // arrancaba en 524,9 y la fila de chips de músculo va de 524 a 560, así que
+  // los tapaba 35,1 de 36 y dejaba una astilla viva de 0,9 px. Con el criterio
+  // del centro, tres chips salían del orden de tabulación y el cuarto no.
+  // Ahora el canto sube esos 0,9 y los tapa enteros: uno solo, y todos igual.
+  it('el canto de arriba no deja astillas de una fila de chips', () => {
+    restore = fakeLayout({
+      slotTop: 553,
+      panelHeight: 350,
+      navTop: 875,
+      triggerTop: 497,
+      cardTop: 47,
+      cardBottom: 572,
+      sliverTop: 191,
+      sliverHeight: 36,
+    })
+    const { panel } = open()
+    // 331 para que quepan los 350 dentro de la tarjeta; con 331 el canto de
+    // arriba cae en 222, dentro de los chips (191–227). Sube los 31 que faltan.
+    expect(panel.style.top).toBe('-362px')
+    expect(document.querySelector('.sliver')).toHaveAttribute('inert')
+  })
+
+  // Y cuando subir más no es una opción —porque el panel se saldría de la
+  // pantalla por arriba— el panel se queda rozando algo. Entonces el criterio
+  // de qué sale del orden de tabulación tiene que ser el solapamiento y no el
+  // centro: un control tapado en su mitad de abajo tiene el centro fuera del
+  // panel y aun así no se puede pulsar por donde importa.
+  it('lo que sólo roza también sale del orden de tabulación', () => {
+    restore = fakeLayout({
+      slotTop: 28,
+      panelHeight: 30,
+      navTop: 700,
+      triggerTop: -28,
+      cardTop: -200,
+      cardBottom: 700,
+      underTop: 38,
+      underHeight: 44,
+      sliverTop: 2,
+      sliverHeight: 10,
+    })
+    open()
+    // El panel se queda en 8 (los 8 px de aire de arriba) y roza 4 px de un
+    // control de 10 cuyo centro está en 7, o sea por encima del panel.
+    expect(document.querySelector('.sliver')).toHaveAttribute('inert')
+  })
+
+  // ── El medio píxel que dejaba un control partido ────────────────────────
+  // `offsetHeight` devuelve un entero, y el panel de verdad no mide un entero.
+  // Medido en Progreso a 430×932 con la página en 735 y el segundo panel
+  // abierto: la cuenta creía que el canto de abajo aterrizaba en 874,9 —el pie
+  // exacto del disparador, o sea rozándolo sin tocarlo— mientras que el panel
+  // acababa en 874,5 y le partía 43,6 px de 44. Con el nombre en colisión el
+  // mismo error dejaba además una astilla de 0,2 px *viva*, porque el
+  // solapamiento que decide quién sale del orden de tabulación se medía con el
+  // mismo entero de más. Medio píxel no es un detalle cuando lo que decide es
+  // si un canto cae dentro o fuera de un control.
+  it('el canto de abajo se mide con el alto de verdad, no con el entero', () => {
+    restore = fakeLayout({
+      slotTop: 886.9,
+      panelHeight: 261,
+      panelRectHeight: 260.6,
+      // La barra, lejos: aquí quien acota es el pie de la tarjeta, y así el
+      // único canto en juego es el del disparador.
+      navTop: 1400,
+      triggerTop: 830.9,
+      cardTop: 100,
+      cardBottom: 875,
+      underTop: 2000,
+    })
+    const { panel } = open()
+    // Con 261 la cuenta sube 273 y se queda «rozando» el pie del disparador.
+    // Con 260,6 el canto cae en 874,5, dentro de él, y sube los 43,6 que hacen
+    // falta para dejarlo entero por debajo: 317.
+    expect(panel.style.top).toBe('-317px')
+    expect(document.querySelector('.exercise-edit')).not.toHaveAttribute('inert')
+  })
+
+  // ── La página se mueve; la barra de pestañas, no ─────────────────────────
+  // Todo lo que el panel puede partir cuelga del documento y se desplaza con
+  // él, y por eso los cantos aguantaban un scroll sin recalcular nada. El
+  // borde útil no: la barra fija y el teclado están clavados al viewport.
+  // Medido en Progreso abriendo con la página en 857 y subiendo a 735 sin
+  // tocar el editor: el panel conservaba la subida de antes, su pie acababa en
+  // 905,5 con el canto de la barra en 875, y `Eliminar ejercicio` —44 px, el
+  // control más grave del editor— quedaba partido 13,5 px por una superficie
+  // opaca. El mismo defecto que esta vuelta viene a quitar, sólo que producido
+  // por el dedo en vez de por el primer pintado.
+  it('mover la página debajo del panel lo vuelve a colocar', async () => {
+    restore = fakeLayout({
+      slotTop: 765,
+      panelHeight: 260,
+      navTop: 875,
+      triggerTop: 709,
+      cardTop: 100,
+      cardBottom: 1400,
+      underTop: 2000,
+    })
+    const { panel } = open()
+    // 875 − 765 = 110 de sitio para 260: sube 150 y el pie queda clavado en la
+    // barra.
+    expect(panel.style.top).toBe('-150px')
+    await act(async () => {
+      restore.scrollTo(100)
+    })
+    // La tarjeta ha bajado 100, la barra sigue en 875: hacen falta 100 más.
+    // El panel no se mueve ni un píxel en pantalla — lo que cambia es su
+    // distancia a una tarjeta que sí se ha movido.
+    await waitFor(() => expect(panel.style.top).toBe('-250px'))
+  })
+
   it('al cerrarse devuelve al orden de tabulación lo que había tapado', async () => {
     restore = fakeLayout({ slotTop: 765, panelHeight: 60, navTop: 875 })
     function Harness() {
@@ -535,5 +729,186 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     expect(document.querySelector('.under-panel')).toHaveAttribute('inert')
     await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
     expect(document.querySelector('.under-panel')).not.toHaveAttribute('inert')
+  })
+})
+
+// ── Tocar fuera cierra ────────────────────────────────────────────────────
+// Medido por el crítico: tocando el campo de otra tarjeta el foco se iba allí
+// y el editor se quedaba abierto detrás, con un renombrado sin confirmar
+// dentro. Un panel que no es modal y tampoco se va cuando dejas de mirarlo no
+// es ninguna de las dos cosas. DESIGN.md ya lo dice del único modal que hay
+// («tocar el velo es cancelar: la salida tiene que ser tan fácil como la
+// entrada»), y aquí el resto de la pantalla *es* el velo.
+describe('ExerciseEditor: tocar fuera', () => {
+  function Harness({ onClose }) {
+    return (
+      <div>
+        <button type="button" className="exercise-edit">
+          Editar ejercicio Press banca
+        </button>
+        <ExerciseEditor
+          name="Press banca"
+          open
+          onClose={onClose}
+          nameDraft="Press banca"
+          onNameDraftChange={() => {}}
+          onSubmitName={(e) => e.preventDefault()}
+        />
+        <button type="button">Registrar serie</button>
+        <div role="dialog" aria-label="Eliminar Press banca">
+          <button type="button">Sí, eliminar</button>
+        </div>
+      </div>
+    )
+  }
+
+  it('un toque en cualquier otro sitio de la pantalla lo cierra', async () => {
+    const onClose = vi.fn()
+    render(<Harness onClose={onClose} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar serie' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('tocar dentro del panel no lo cierra', async () => {
+    const onClose = vi.fn()
+    render(<Harness onClose={onClose} />)
+    await userEvent.click(screen.getByLabelText('Nombre de Press banca'))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  // El disparador se apaña solo: su `onClick` alterna, y si además lo cerrase
+  // esto, un toque valdría por dos y el panel volvería a abrirse.
+  it('tocar el disparador no lo cierra por aquí', async () => {
+    const onClose = vi.fn()
+    render(<Harness onClose={onClose} />)
+    await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  // Los diálogos que este panel abre —confirmar el reetiquetado, confirmar el
+  // borrado— se pintan fuera de él. Cerrar el editor al tocarlos dejaría al
+  // usuario confirmando algo cuyo origen acaba de desaparecer.
+  it('tocar un diálogo que el propio panel abrió no lo cierra', async () => {
+    const onClose = vi.fn()
+    render(<Harness onClose={onClose} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, eliminar' }))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+})
+
+// ── La puerta dice lo que hay detrás ──────────────────────────────────────
+// `Más ajustes` nombra un cajón, no su contenido, y encima el cajón no lleva
+// lo mismo en las dos pantallas: en Entreno hay grupo y nota, en Progreso
+// grupo y borrado. Lo nombra quien lo llena.
+describe('ExerciseEditor: el rótulo del segundo paso', () => {
+  it('lo pone quien pasa el contenido, y va también en la etiqueta hablada', () => {
+    editor({ more: <p>ajustes</p>, moreLabel: 'Grupo y nota' })
+    expect(screen.getByRole('button', { name: 'Grupo y nota de Press banca' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Grupo y nota/ })).toHaveTextContent('Grupo y nota')
+    expect(screen.queryByText('Más ajustes')).toBeNull()
+  })
+})
+
+// ── Cuando el panel se lleva por delante el título ────────────────────────
+// Medido en Entreno con el teclado arriba: el panel tapa `Press militar`
+// entero y la nota del ejercicio entera, y en ese momento no queda nada en
+// pantalla que diga qué estás editando — porque lo único que se lee es tu
+// propio borrador a medio escribir, que en cuanto diverge del nombre guardado
+// ya no lo dice. El panel se pone el nombre encima sólo entonces: si el título
+// se ve, repetirlo dentro es el rótulo redundante que este panel quitó.
+describe('ExerciseEditor: quién nombra el ejercicio', () => {
+  const rect = (t, b) => ({
+    top: t,
+    bottom: b,
+    left: 36,
+    right: 394,
+    width: 358,
+    height: b - t,
+    x: 36,
+    y: t,
+    toJSON() {},
+  })
+
+  function mount({ titleTop }) {
+    const origRect = Element.prototype.getBoundingClientRect
+    Element.prototype.getBoundingClientRect = function fake() {
+      const cl = this.classList
+      if (cl?.contains('editor-inplace-slot')) return rect(400, 400)
+      if (cl?.contains('editor-inplace')) {
+        const top = 400 + (parseFloat(this.style.top) || 0)
+        return rect(top, top + 130)
+      }
+      if (cl?.contains('exercise-edit')) return rect(344, 388)
+      // La tarjeta acaba justo debajo del hueco, así que el panel sube 110 y
+      // se pone donde estaba la cabecera: es la forma corta de reproducir lo
+      // que en el móvil hace el teclado.
+      if (cl?.contains('card')) return rect(100, 420)
+      if (cl?.contains('exercise-title')) return rect(titleTop, titleTop + 44)
+      return origRect.call(this)
+    }
+    const origHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get() {
+        return this.classList?.contains('editor-inplace') ? 130 : 0
+      },
+    })
+    render(
+      <div className="card">
+        <h2 className="exercise-title">Press militar</h2>
+        <button type="button" className="exercise-edit">
+          Editar ejercicio Press militar
+        </button>
+        <ExerciseEditor
+          name="Press militar"
+          open
+          onClose={() => {}}
+          nameDraft="Press milita"
+          onNameDraftChange={() => {}}
+          onSubmitName={(e) => e.preventDefault()}
+        />
+      </div>,
+    )
+    return () => {
+      Element.prototype.getBoundingClientRect = origRect
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', origHeight)
+    }
+  }
+
+  let restore = () => {}
+  beforeEach(() => {
+    window.innerHeight = 932
+  })
+  afterEach(() => restore())
+
+  it('con el título a la vista no repite el nombre dentro', () => {
+    restore = mount({ titleTop: 200 })
+    expect(screen.queryByText(/Editando/)).toBeNull()
+  })
+
+  it('con el título tapado, el panel dice qué ejercicio es', () => {
+    restore = mount({ titleTop: 350 })
+    expect(screen.getByText('Editando · Press militar')).toBeInTheDocument()
+  })
+
+  // «A la vista» no es «tiene un píxel dentro de la pantalla», pero tampoco es
+  // «no le falta ni uno». El nombre es una línea de texto: cortarle dos
+  // píxeles por arriba no le quita nada que se leyera. Medido en Entreno con
+  // la página en 419, `SPAN.card-name` cae en −2,2..25,5 —el 92 % en pantalla,
+  // perfectamente legible— y la regla anterior, que descartaba cualquier caja
+  // con `top` negativo, daba el título por perdido y metía dentro del panel un
+  // `Editando · Press militar` con el nombre a la vista justo encima. Es el
+  // rótulo redundante que este panel quitó, devuelto por la puerta de atrás.
+  it('un título rozado por el canto de la pantalla sigue nombrando el ejercicio', () => {
+    restore = mount({ titleTop: -2 })
+    expect(screen.queryByText(/Editando/)).toBeNull()
+  })
+
+  // Y el otro lado de la misma regla: cuando lo que queda es una tira, ya no
+  // nombra nada. Media caja es el corte, porque una línea de texto partida por
+  // la mitad deja de leerse como palabra.
+  it('un título casi entero fuera de pantalla ya no lo nombra', () => {
+    restore = mount({ titleTop: -40 })
+    expect(screen.getByText('Editando · Press militar')).toBeInTheDocument()
   })
 })

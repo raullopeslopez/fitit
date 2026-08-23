@@ -1194,6 +1194,13 @@ export default function Progress() {
               aria-haspopup="dialog"
               aria-expanded={editorOpen}
               onClick={() => {
+                // El segundo toque cierra. Antes no hacía nada, y un control
+                // que se anuncia desplegado (`aria-expanded="true"`) y se niega
+                // a plegarse es una mentira que el pulgar encuentra sola.
+                if (editorOpen) {
+                  setEditorOpen(false)
+                  return
+                }
                 // Abrir resiembra el borrador del nombre desde el ejercicio, y
                 // se lleva por delante la queja y la colisión de la vez pasada.
                 setNameDraft(current.name)
@@ -1234,11 +1241,18 @@ export default function Progress() {
               // El segundo paso. Reetiquetar y borrar son exactamente lo que
               // DESIGN.md llama acciones raras, y traerlas al primer panel es
               // lo que lo hacía medir 294 px en una tarjeta que da 137.
+              //
+              // El rótulo dice lo que hay dentro, y aquí dentro hay el grupo y
+              // el borrado — no lo mismo que en Entreno, que es por lo que el
+              // rótulo lo pone el llamante. `Eliminar` con las mismas letras
+              // que el botón que abre: la puerta nombra lo que hay detrás con
+              // la palabra con la que lo vas a encontrar.
+              moreLabel="Grupo y eliminar"
               more={
                 <>
                   <div className="muscle-edit">
                     <label htmlFor="muscle-select" className="muscle-edit-heading">
-                      Grupo
+                      Grupo muscular
                     </label>
                     <select
                       id="muscle-select"

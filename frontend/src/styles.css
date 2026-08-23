@@ -606,6 +606,15 @@ button.workout-title:active:not(:disabled) {
   line-height: 1;
   transition: transform 0.15s ease;
 }
+/* Abierto, el chevrón mira hacia abajo, igual que el del segundo paso: no
+   lleva a otro sitio, despliega éste. Era la última mentira que le quedaba a
+   esta puerta —el crítico midió las otras dos, que el segundo toque no hacía
+   nada y que seguía enfocable debajo del panel—: se anunciaba desplegada en
+   `aria-expanded` y a la vez dibujaba la flecha de irse a otra pantalla. Lo
+   que se oye y lo que se ve, ahora dicen lo mismo. */
+.unit-fix.exercise-edit[aria-expanded='true']::after {
+  transform: rotate(90deg);
+}
 /* El velo gris mientras el dedo está abajo, igual que `.set-row` y `.link-row`,
    y sin el `translateY(1px)` global: un empujón de un píxel debajo del pulgar
    no lo ve nadie. Exportar comparte el trato porque ahora comparte el registro. */
@@ -615,7 +624,11 @@ button.workout-title:active:not(:disabled) {
   transform: none;
 }
 @media (hover: hover) {
-  .unit-fix.exercise-edit:hover::after {
+  /* Menos el rato en que está desplegada: ahí el chevrón ya está girado y el
+     empujoncito de «esto va a otro sitio» sería justo lo contrario de lo que
+     pasa. Mismo peso que la regla de arriba y va después, así que sin el
+     `:not` la ganaría con el ratón encima. */
+  .unit-fix.exercise-edit:hover:not([aria-expanded='true'])::after {
     transform: translateX(3px);
   }
 }
@@ -633,6 +646,11 @@ button.workout-title:active:not(:disabled) {
   align-self: flex-start;
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  /* 44, y aquí menos que en ningún sitio se discute: es el control de mayor
+     consecuencia del editor —se lleva meses de registro— y medía 39. Un
+     objetivo pequeño en un control irreversible es el peor sitio para
+     ahorrarse cinco píxeles. */
+  min-height: 44px;
 }
 @media (hover: hover) {
   .secondary.delete-exercise:hover:not(:disabled) {
@@ -1180,6 +1198,18 @@ button.workout-title:active:not(:disabled) {
    cara de display y el cuerpo del nombre de un ejercicio en cualquier otra
    pantalla, y lo que lo delata como editable es el marco, no una palabra
    encima. */
+/* El nombre guardado, y sólo cuando el panel se ha llevado por delante el
+   único sitio de la pantalla que lo decía. Rótulo apagado a 12,8 px, que es el
+   escalón más pequeño que DESIGN.md deja para algo que se lee como palabras —
+   Micro es sólo para marcas en versales, y un nombre de ejercicio no lo es. */
+.editor-context {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
 .editor-head {
   display: flex;
   align-items: center;
@@ -2170,14 +2200,22 @@ button.set-action {
 }
 .note-edit button {
   flex-basis: 100%;
+  /* 44, no los 39 que hereda de `button.secondary`: está dentro del editor y
+     es el botón que confirma la nota. */
+  min-height: 44px;
 }
 .muscle-edit-select {
   margin-left: auto;
   min-height: 44px;
 }
+/* 44 px, como todo lo que se toca (DESIGN.md). Medía 36 porque este selector
+   —`.muscle-edit select`, más específico y más abajo en el fichero— le pasaba
+   por encima al `min-height: 44px` de la clase de al lado, así que el 44 que
+   estaba escrito no llegaba a pintarse nunca. El cuerpo se queda en 0.85rem:
+   lo que hay que arreglar es el objetivo del dedo, no el tamaño de la letra. */
 .muscle-edit select {
   width: auto;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
 }

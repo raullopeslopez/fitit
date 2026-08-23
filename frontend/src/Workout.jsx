@@ -539,6 +539,15 @@ function ExerciseCard({
             aria-haspopup="dialog"
             aria-expanded={editorOpen}
             onClick={() => {
+              // El segundo toque cierra. Antes no hacía nada: el botón seguía
+              // ahí, enfocable y en `aria-expanded="true"`, y el pulgar que
+              // volvía a él no conseguía plegar lo que el propio botón decía
+              // tener desplegado. Un control que se anuncia abierto y se niega
+              // a cerrarse es una mentira que se encuentra sola.
+              if (editorOpen) {
+                setEditorOpen(false)
+                return
+              }
               // Abrir resiembra los borradores desde el ejercicio, para que una
               // edición que abandonaste no se quede ahí fingiendo estar guardada.
               setNoteDraft(note ?? '')
@@ -561,13 +570,28 @@ function ExerciseCard({
             // que vienes a hacer cuando abres esto —lo que vienes a hacer es
             // corregir el nombre—, y traerlos al primer panel es lo que hacía
             // que tapase el formulario de registro entero.
+            // Lo que hay detrás, dicho en el rótulo. En esta pantalla el cajón
+            // lleva el grupo y la nota; en Progreso lleva otra cosa, así que
+            // esto no puede ser una constante del componente.
+            moreLabel="Grupo y nota"
             more={
               <>
                 <div className="muscle-edit">
                   {/* No dot here: the header tag already carries the coloured
-                      identity chip. This row is the control, not a second chip. */}
-                  <span className="muscle-edit-heading">Grupo muscular</span>
+                      identity chip. This row is the control, not a second chip.
+
+                      Un `label` de verdad y no un `span`: el rótulo de al lado
+                      no hacía nada al tocarlo, y en una fila donde el control
+                      es un `select` de 44 px eso es regalar la mitad del
+                      objetivo. La etiqueta hablada sigue llevando el nombre
+                      del ejercicio, porque en un superset hay varias tarjetas
+                      abiertas — y empieza por el rótulo visible entero, que es
+                      lo que necesita el control por voz. */}
+                  <label className="muscle-edit-heading" htmlFor={`exgroup-${name}`}>
+                    Grupo muscular
+                  </label>
                   <select
+                    id={`exgroup-${name}`}
                     className="muscle-edit-select"
                     aria-label={`Grupo muscular de ${name}`}
                     value={muscle ?? ''}

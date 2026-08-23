@@ -364,16 +364,16 @@ describe('Progress', () => {
 
     // Nada de esto está en la tarjeta hasta que abres el editor: ni el nombre,
     // ni el grupo. La tarjeta es la gráfica; corregir es otra cosa.
-    expect(screen.queryByLabelText(/grupo/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/grupo muscular/i)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/nombre de /i)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     // El editor abierto es el nombre y nada más: el panel entero cabe en los
     // 137 px que la tarjeta puede dar sin tapar la gráfica.
     expect(screen.getByLabelText(/nombre de /i)).toBeInTheDocument()
-    expect(screen.queryByLabelText(/grupo/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/grupo muscular/i)).not.toBeInTheDocument()
     // El grupo sigue estando, con su nombre escrito en la puerta.
-    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
-    expect(screen.getByLabelText(/grupo/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+    expect(screen.getByLabelText(/grupo muscular/i)).toBeInTheDocument()
   })
 
   // Lo mismo que en Entreno, desde el otro lado de la app: abrir el editor deja
@@ -439,14 +439,14 @@ describe('Progress', () => {
     render(<Progress />)
 
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
-    const select = screen.getByLabelText(/grupo/i)
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+    const select = screen.getByLabelText(/grupo muscular/i)
     expect(select).toHaveValue('Pecho')
 
     await userEvent.selectOptions(select, 'Hombro')
 
     await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
-    expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Hombro')
+    expect(await screen.findByLabelText(/grupo muscular/i)).toHaveValue('Hombro')
   })
 
   // Same guard as the exercise card in Entreno: the group rides on the
@@ -479,8 +479,8 @@ describe('Progress', () => {
       api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
       render(<Progress />)
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
-      return screen.getByLabelText(/grupo/i)
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+      return screen.getByLabelText(/grupo muscular/i)
     }
 
     it('asks first, naming how many logged sets would move', async () => {
@@ -519,7 +519,7 @@ describe('Progress', () => {
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenLastCalledWith(7, 'Pecho'))
       expect(retagDialog()).not.toBeInTheDocument()
-      expect(await screen.findByLabelText(/grupo/i)).toHaveValue('Pecho')
+      expect(await screen.findByLabelText(/grupo muscular/i)).toHaveValue('Pecho')
     })
 
     it('cancelling changes nothing', async () => {
@@ -1883,7 +1883,7 @@ describe('Progress', () => {
     // editor, no en el panel que abres para arreglar una errata.
     async function openMore() {
       await openFixes()
-      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
     }
 
     beforeEach(() => {
