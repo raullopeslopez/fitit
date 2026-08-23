@@ -365,10 +365,15 @@ describe('Progress', () => {
     // Nada de esto está en la tarjeta hasta que abres el editor: ni el nombre,
     // ni el grupo. La tarjeta es la gráfica; corregir es otra cosa.
     expect(screen.queryByLabelText(/grupo/i)).not.toBeInTheDocument()
-    expect(screen.queryByLabelText(/nombre del ejercicio/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/nombre de /i)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
+    // El editor abierto es el nombre y nada más: el panel entero cabe en los
+    // 137 px que la tarjeta puede dar sin tapar la gráfica.
+    expect(screen.getByLabelText(/nombre de /i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/grupo/i)).not.toBeInTheDocument()
+    // El grupo sigue estando, con su nombre escrito en la puerta.
+    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
     expect(screen.getByLabelText(/grupo/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/nombre del ejercicio/i)).toBeInTheDocument()
   })
 
   // Lo mismo que en Entreno, desde el otro lado de la app: abrir el editor deja
@@ -381,7 +386,7 @@ describe('Progress', () => {
     await charted('Press banca')
 
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
-    const input = screen.getByLabelText(/nombre del ejercicio/i)
+    const input = screen.getByLabelText(/nombre de /i)
     expect(document.activeElement).toBe(input)
     expect(input.selectionStart).toBe('Press banca'.length)
   })
@@ -434,6 +439,7 @@ describe('Progress', () => {
     render(<Progress />)
 
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
     const select = screen.getByLabelText(/grupo/i)
     expect(select).toHaveValue('Pecho')
 
@@ -473,6 +479,7 @@ describe('Progress', () => {
       api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
       render(<Progress />)
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
       return screen.getByLabelText(/grupo/i)
     }
 
@@ -602,7 +609,7 @@ describe('Progress', () => {
 
     await charted('Press banca')
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
-    const input = screen.getByLabelText(/nombre del ejercicio/i)
+    const input = screen.getByLabelText(/nombre de /i)
     await userEvent.clear(input)
     await userEvent.type(input, 'Press de banca')
     await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
@@ -1872,6 +1879,13 @@ describe('Progress', () => {
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     }
 
+    // Borrar es una acción rara y destructiva: vive en el segundo paso del
+    // editor, no en el panel que abres para arreglar una errata.
+    async function openMore() {
+      await openFixes()
+      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
+    }
+
     beforeEach(() => {
       api.listExercises.mockResolvedValue([
         { id: 32, name: 'Fondo', muscle_group: 'Pecho' },
@@ -1882,7 +1896,7 @@ describe('Progress', () => {
 
     it('deletes an exercise once you confirm, saying what goes with it', async () => {
       api.deleteExercise.mockResolvedValue(null)
-      await openFixes()
+      await openMore()
 
       await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
       // Irreversible and it takes history with it, so the confirmation has to
@@ -1898,7 +1912,7 @@ describe('Progress', () => {
     })
 
     it('backs out of the deletion when you cancel', async () => {
-      await openFixes()
+      await openMore()
 
       await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
       await userEvent.click(
@@ -1920,7 +1934,7 @@ describe('Progress', () => {
 
       await charted('Fondo')
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
-      const input = screen.getByLabelText(/nombre del ejercicio/i)
+      const input = screen.getByLabelText(/nombre de /i)
       await userEvent.clear(input)
       await userEvent.type(input, 'Fondos')
       await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
@@ -1929,7 +1943,7 @@ describe('Progress', () => {
       // a page you'd have to scroll to see.
       const alert = await screen.findByRole('alert')
       expect(alert).toHaveTextContent(/ya existe/i)
-      expect(screen.getByLabelText(/nombre del ejercicio/i).closest('form')).toContainElement(alert)
+      expect(screen.getByLabelText(/nombre de /i).closest('form')).toContainElement(alert)
 
       await userEvent.click(screen.getByRole('button', { name: /fusionar con Fondos/i }))
       await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(32, 20))

@@ -268,7 +268,7 @@ function ExerciseCard({
   async function saveName(event) {
     event.preventDefault()
     const next = nameDraft.trim()
-    if (!next || next === name) {
+    if (!onChangeName || !next || next === name) {
       setNameError('')
       return
     }
@@ -549,76 +549,62 @@ function ExerciseCard({
           >
             Editar ejercicio
           </button>
-          <ExerciseEditor name={name} open={editorOpen} onClose={() => setEditorOpen(false)}>
-            {/* Cuerpo provisional: los campos de siempre, tal cual, mientras las
-                piezas siguientes reconstruyen el interior de la hoja. Viven aquí
-                y no en un pliegue para que solo haya una puerta. */}
-            <div className="card-fixes">
-              {/* Primero, el nombre: es la identidad del ejercicio; el grupo y
-                  la nota son cosas que se dicen sobre él. */}
-              {onChangeName && (
-                <form className="name-edit" onSubmit={saveName}>
-                  <label className="muscle-edit-heading" htmlFor={`exname-${name}`}>
-                    Nombre
-                  </label>
-                  <input
-                    id={`exname-${name}`}
-                    aria-label={`Nombre de ${name}`}
-                    maxLength={120}
-                    value={nameDraft}
-                    onChange={(e) => setNameDraft(e.target.value)}
-                  />
-                  <button type="submit" className="secondary">
-                    Guardar nombre
-                  </button>
-                  {nameError && (
-                    <p role="alert" className="alert rename-alert">
-                      {nameError}
-                    </p>
-                  )}
-                </form>
-              )}
-              <div className="muscle-edit">
-                {/* No dot here: the header tag already carries the coloured
-                    identity chip. This row is the control, not a second chip. */}
-                <span className="muscle-edit-heading">Grupo muscular</span>
-                <select
-                  className="muscle-edit-select"
-                  aria-label={`Grupo muscular de ${name}`}
-                  value={muscle ?? ''}
-                  onChange={(e) => requestRetag(e.target.value || null)}
-                >
-                  <option value="">{UNGROUPED}</option>
-                  {MUSCLE_GROUPS.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {onChangeNote && (
-                <form className="note-edit" onSubmit={saveNote}>
-                  <label className="muscle-edit-heading" htmlFor={`exnote-${name}`}>
-                    Nota
-                  </label>
-                  <input
-                    id={`exnote-${name}`}
-                    aria-label={`Nota de ${name}`}
-                    maxLength={200}
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    placeholder="agarre, altura del banco, molestias…"
-                  />
-                  {/* Explicit, not save-on-blur: on a phone the keyboard closing
-                      is not the same gesture as deciding you meant it. */}
-                  <button type="submit" className="secondary">
-                    Guardar nota
-                  </button>
-                </form>
-              )}
-              {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
-            </div>
-          </ExerciseEditor>
+          <ExerciseEditor
+            name={name}
+            open={editorOpen}
+            onClose={() => setEditorOpen(false)}
+            nameDraft={nameDraft}
+            onNameDraftChange={setNameDraft}
+            onSubmitName={saveName}
+            nameError={nameError}
+            // El segundo paso: el grupo y la nota. Ninguno de los dos es lo
+            // que vienes a hacer cuando abres esto —lo que vienes a hacer es
+            // corregir el nombre—, y traerlos al primer panel es lo que hacía
+            // que tapase el formulario de registro entero.
+            more={
+              <>
+                <div className="muscle-edit">
+                  {/* No dot here: the header tag already carries the coloured
+                      identity chip. This row is the control, not a second chip. */}
+                  <span className="muscle-edit-heading">Grupo muscular</span>
+                  <select
+                    className="muscle-edit-select"
+                    aria-label={`Grupo muscular de ${name}`}
+                    value={muscle ?? ''}
+                    onChange={(e) => requestRetag(e.target.value || null)}
+                  >
+                    <option value="">{UNGROUPED}</option>
+                    {MUSCLE_GROUPS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {onChangeNote && (
+                  <form className="note-edit" onSubmit={saveNote}>
+                    <label className="muscle-edit-heading" htmlFor={`exnote-${name}`}>
+                      Nota
+                    </label>
+                    <input
+                      id={`exnote-${name}`}
+                      aria-label={`Nota de ${name}`}
+                      maxLength={200}
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="agarre, altura del banco, molestias…"
+                    />
+                    {/* Explicit, not save-on-blur: on a phone the keyboard closing
+                        is not the same gesture as deciding you meant it. */}
+                    <button type="submit" className="secondary">
+                      Guardar nota
+                    </button>
+                  </form>
+                )}
+                {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
+              </>
+            }
+          />
           {pendingRetag && (
             <RetagConfirm
               name={name}

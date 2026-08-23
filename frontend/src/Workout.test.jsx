@@ -37,10 +37,16 @@ const workoutWith = (...sets) => ({ id: 1, date: '2026-07-16', name: null, sets 
 // The header of each exercise card is its expand/collapse control. Two buttons
 // on an open card carry the exercise's name — the header and the row that opens
 // the editor — so both of these drop the one that is a door to a dialog.
+// La cabecera plegable de la tarjeta, que es el único botón que *es* el
+// ejercicio. Los otros dos que llevan su nombre dentro hablan *sobre* él y se
+// descartan: la puerta del editor (`aria-haspopup="dialog"`) y, dentro de él,
+// la del segundo paso (`Más ajustes de …`).
 const cardToggles = (name) =>
   screen
     .queryAllByRole('button', { name: new RegExp(name, 'i') })
-    .filter((b) => b.getAttribute('aria-haspopup') !== 'dialog')
+    .filter(
+      (b) => b.getAttribute('aria-haspopup') !== 'dialog' && !b.classList.contains('editor-more'),
+    )
 
 const cardToggle = (name) => {
   const [found] = cardToggles(name)
@@ -1104,6 +1110,10 @@ describe('Workout', () => {
       expect(screen.queryByRole('button', { name: /registradas en/i })).not.toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
+      // El editor abierto es el nombre y su confirmación: el grupo y la nota
+      // están un toque más allá, para que el panel quepa sin tapar el registro.
+      expect(screen.queryByLabelText(/grupo muscular de/i)).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
       expect(screen.getByLabelText(/grupo muscular de/i)).toBeInTheDocument()
     })
   })
@@ -1339,6 +1349,7 @@ describe('Workout', () => {
 
     // The newest card is open; the editor lives behind Corregir at its foot.
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
     const select = await screen.findByLabelText(/grupo muscular de Bench Press/i)
     expect(select).toHaveValue('Pecho')
 
@@ -1359,6 +1370,7 @@ describe('Workout', () => {
     renderWorkout()
 
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
     const select = screen.getByLabelText(/grupo muscular de Bench Press/i)
     await userEvent.selectOptions(select, 'Sin grupo')
 
@@ -1381,6 +1393,7 @@ describe('Workout', () => {
       api.listExercises.mockResolvedValue(exercises)
       renderWorkout()
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
       return screen.getByLabelText(/grupo muscular de Bench Press/i)
     }
 
@@ -1889,6 +1902,7 @@ describe('Workout', () => {
       renderWorkout()
 
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
       await userEvent.type(screen.getByLabelText(/nota de Bench Press/i), 'agarre ancho')
       await userEvent.click(screen.getByRole('button', { name: /guardar nota/i }))
 
@@ -1904,6 +1918,7 @@ describe('Workout', () => {
       renderWorkout()
 
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Más ajustes/ }))
       await userEvent.clear(screen.getByLabelText(/nota de Bench Press/i))
       await userEvent.click(screen.getByRole('button', { name: /guardar nota/i }))
 

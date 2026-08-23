@@ -1208,83 +1208,66 @@ export default function Progress() {
               name={current.name}
               open={editorOpen}
               onClose={() => setEditorOpen(false)}
-            >
-              {/* Cuerpo provisional: los campos de siempre, tal cual, mientras
-                  las piezas siguientes reconstruyen el interior de la hoja.
-                  Primero el nombre, que es la identidad del ejercicio; el grupo
-                  y el borrado son cosas que se dicen sobre él. */}
-              <div className="card-fixes">
-                <form
-                  className="name-edit"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    renameCurrent(current.id, nameDraft)
-                  }}
-                >
-                  <label className="muscle-edit-heading" htmlFor="exercise-name">
-                    Nombre
-                  </label>
-                  <input
-                    id="exercise-name"
-                    aria-label="Nombre del ejercicio"
-                    value={nameDraft}
-                    onChange={(e) => setNameDraft(e.target.value)}
-                    maxLength={120}
-                  />
-                  <button type="submit" className="secondary">
-                    Guardar nombre
-                  </button>
-                  {nameError && (
-                    <p role="alert" className="alert rename-alert">
-                      {nameError}
-                    </p>
-                  )}
-                  {/* El nombre está cogido porque ese ejercicio ya es tuyo, así
-                      que lo útil no es renombrar sino plegar este en aquel. Un
-                      toque, y sus series se van con él. */}
-                  {clash && (
-                    <button
-                      type="button"
-                      className="secondary set-action merge-action"
-                      onClick={mergeIntoClash}
-                    >
-                      Fusionar con {clash.name}
-                    </button>
-                  )}
-                </form>
-                <div className="muscle-edit">
-                  <label htmlFor="muscle-select" className="muscle-edit-heading">
-                    Grupo
-                  </label>
-                  <select
-                    id="muscle-select"
-                    className="muscle-edit-select"
-                    value={current.muscle_group ?? ''}
-                    onChange={(e) => requestRetag(e.target.value || null)}
+              nameDraft={nameDraft}
+              onNameDraftChange={setNameDraft}
+              onSubmitName={(e) => {
+                e.preventDefault()
+                renameCurrent(current.id, nameDraft)
+              }}
+              nameError={nameError}
+              // El nombre está cogido porque ese ejercicio ya es tuyo, así que
+              // lo útil no es renombrar sino plegar este en aquel. Un toque, y
+              // sus series se van con él. Va pegado al campo y no detrás de
+              // «Más ajustes» porque no es otra cosa que puedas querer hacer:
+              // es la respuesta a lo que acabas de intentar.
+              nameExtra={
+                clash && (
+                  <button
+                    type="button"
+                    className="secondary set-action merge-action"
+                    onClick={mergeIntoClash}
                   >
-                    <option value="">{UNGROUPED}</option>
-                    {MUSCLE_GROUPS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {lastRetag && (
-                  <RetagUndo group={current.muscle_group} onUndo={undoRetag} />
-                )}
-                {/* The last resort for a duplicate you don't want to keep at
-                    all. True red, per DESIGN.md — it is the one control here
-                    that destroys something. */}
-                <button
-                  type="button"
-                  className="secondary danger delete-exercise"
-                  onClick={() => setConfirmingDelete(true)}
-                >
-                  Eliminar ejercicio
-                </button>
-              </div>
-            </ExerciseEditor>
+                    Fusionar con {clash.name}
+                  </button>
+                )
+              }
+              // El segundo paso. Reetiquetar y borrar son exactamente lo que
+              // DESIGN.md llama acciones raras, y traerlas al primer panel es
+              // lo que lo hacía medir 294 px en una tarjeta que da 137.
+              more={
+                <>
+                  <div className="muscle-edit">
+                    <label htmlFor="muscle-select" className="muscle-edit-heading">
+                      Grupo
+                    </label>
+                    <select
+                      id="muscle-select"
+                      className="muscle-edit-select"
+                      value={current.muscle_group ?? ''}
+                      onChange={(e) => requestRetag(e.target.value || null)}
+                    >
+                      <option value="">{UNGROUPED}</option>
+                      {MUSCLE_GROUPS.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {lastRetag && <RetagUndo group={current.muscle_group} onUndo={undoRetag} />}
+                  {/* The last resort for a duplicate you don't want to keep at
+                      all. True red, per DESIGN.md — it is the one control here
+                      that destroys something. */}
+                  <button
+                    type="button"
+                    className="secondary danger delete-exercise"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    Eliminar ejercicio
+                  </button>
+                </>
+              }
+            />
           </>
         )}
       </div>

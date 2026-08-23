@@ -619,14 +619,6 @@ button.workout-title:active:not(:disabled) {
     transform: translateX(3px);
   }
 }
-.card-fixes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border);
-}
 /* Two-class selector so this outweighs `button.secondary` (which is later in
    the file): destructive actually wears the red DESIGN.md reserves for it. */
 .head-menu-item.head-menu-danger {
@@ -1179,72 +1171,97 @@ button.workout-title:active:not(:disabled) {
 }
 
 /* ── El editor del ejercicio ──────────────────────────────────────────────
-   La misma hoja de Días, con cabecera. Nace donde nace el pulgar y sube:
-   150 ms, ease-out, que es lo que DESIGN.md llama "short" y "enter". El velo
-   entra en 80 ms porque un fundido lento delante de la pantalla se lee como
-   lentitud de la app, no como una transición.
-
-   Lo que no hace, y es lo importante: no ocupa ni un píxel de la columna de
-   contenido. `.sheet-scrim` es `position: fixed`, así que el registro se queda
-   exactamente donde lo dejaste — el pliegue viejo empujaba la página 257 px
-   para caber. */
-.exercise-editor {
-  animation: editor-rise 150ms ease-out;
-  /* Con el teclado abierto el velo se encoge (`--kb-inset`), y entonces la
-     hoja tiene que caber en lo que queda o el botón que confirma se sale por
-     abajo otra vez. Alto máximo con desplazamiento propio; `overscroll-behavior`
-     para que llegar al final de la hoja no siga arrastrando el registro que
-     hay detrás. */
-  max-height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.sheet-scrim:has(.exercise-editor) {
-  animation: editor-veil 80ms ease-out;
-  /* Lo que el teclado tapa, medido con `visualViewport` desde el componente.
-     Vale 0 mientras no hay teclado, que es siempre en escritorio. Es el
-     cinturón del `interactive-widget=resizes-content` del `index.html`: en los
-     navegadores que ignoran esa directiva (iOS) éste es el único aviso de que
-     hay un teclado delante. */
-  bottom: var(--kb-inset, 0px);
-}
-@keyframes editor-rise {
-  from {
-    transform: translateY(16px);
-  }
-}
-@keyframes editor-veil {
-  from {
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .exercise-editor,
-  .sheet-scrim:has(.exercise-editor) {
-    animation: none;
-  }
-}
-/* El nombre titula la hoja y no se repite dentro: la hoja *es* este ejercicio,
-   igual que el panel de propiedades de Linear no imprime "Status" al lado del
-   estado. La regla de abajo separa la identidad de lo que se puede cambiar. */
+   El nombre titula el panel y no se repite dentro — el panel *es* este
+   ejercicio, igual que el de propiedades de Linear no imprime "Status" al lado
+   del estado. La vuelta de tuerca de esta versión es que el titular y el campo
+   son la misma cosa: había un `h2` con el nombre, y debajo un rótulo «Nombre»
+   y un `input` con el nombre otra vez. Tres impresiones del mismo dato, 70 px
+   de panel, y el panel sólo tiene 137 para todo. Así que el titular lleva la
+   cara de display y el cuerpo del nombre de un ejercicio en cualquier otra
+   pantalla, y lo que lo delata como editable es el marco, no una palabra
+   encima. */
 .editor-head {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   min-height: 44px;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
 }
-.editor-name {
+.editor-name-field {
   flex: 1;
   min-width: 0;
-  margin: 0;
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  /* Menos sangría horizontal que un campo normal: aquí es un titular, y un
+     titular que empieza 13 px dentro de su caja no se alinea con nada. */
+  padding: 0.5rem 0.6rem;
+}
+/* La fila que confirma. `Guardar nombre` se lleva el ancho porque es lo que
+   vienes a hacer; la puerta al segundo paso va detrás, con el mismo `›` que
+   toda puerta de la casa y sin gastar una fila propia — una tercera fila aquí
+   son 52 px que el presupuesto no tiene. */
+.editor-commit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+/* Dos clases y la etiqueta, para pasarle por encima a `button.secondary`, que
+   va más abajo en el fichero y deja el botón en 39 px reales.
+   DESIGN.md pide 44 en todo lo que se toca, y éste es el control que confirma
+   lo único que este panel viene a hacer; además va en la misma fila que
+   `Más ajustes`, que sí mide 44, y dos alturas distintas en una fila de dos
+   botones se ven. Cuesta 5 px del presupuesto de 137, y los hay. */
+button.secondary.editor-save {
+  flex: 1;
+  min-height: 44px;
+}
+.editor-more {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.5rem 0.3rem 0.5rem 0.6rem;
+  background: none;
   color: var(--text);
-  overflow-wrap: anywhere;
+}
+.editor-more::after {
+  content: '›';
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+/* Abierto, el chevrón mira hacia abajo: no lleva a otro sitio, despliega éste. */
+.editor-more[aria-expanded='true']::after {
+  transform: rotate(90deg);
+}
+.editor-more:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: none;
+}
+/* El segundo paso, separado por la regla que la cabecera ya no lleva: ahí
+   arriba separaba el nombre de sí mismo, y aquí separa el ejercicio de lo que
+   se dice sobre él. */
+.editor-more-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+/* La queja del renombrado y la oferta de fusión, debajo del campo que las
+   provocó y a lo ancho, para que se lean como la respuesta a lo de arriba y no
+   como un segundo botón de guardar. */
+.editor-name .rename-alert {
+  margin: 0.5rem 0 0;
+}
+.editor-name .merge-action {
+  width: 100%;
+  margin-top: 0.5rem;
 }
 /* 44 px reales, y el margen negativo se los come del padding de la hoja para
    que la aspa quede ópticamente alineada con el borde sin encoger el blanco. */
@@ -1270,24 +1287,12 @@ button.workout-title:active:not(:disabled) {
     color: var(--text);
   }
 }
-.editor-placeholder {
-  margin: 0.9rem 0 0.4rem;
-}
-/* El cuerpo provisional que las dos pantallas siguen pasando como `children`
-   hasta que las piezas siguientes lo reconstruyan: sin su regla superior, que
-   aquí duplicaría la de la cabecera. */
-.exercise-editor .card-fixes,
-.editor-inplace .card-fixes {
-  margin-top: 0.9rem;
-  padding-top: 0;
-  border-top: 0;
-}
 
-/* ── El editor en sitio (`?editor=inline`) ────────────────────────────────
-   La caja rival. Dos críticos independientes dijeron lo mismo sin hablarse:
-   una hoja modal que apaga el 62,8 % de la pantalla es demasiada ceremonia
-   para arreglar una errata, y lo que tapa es justo el registro que estás
-   corrigiendo. Esto es la otra respuesta: el panel nace del propio botón,
+/* ── La caja: el panel en sitio ───────────────────────────────────────────
+   Fue la caja rival y se quedó con el sitio. Dos críticos independientes
+   dijeron lo mismo sin hablarse: una hoja modal que apaga el 62,8 % de la
+   pantalla es demasiada ceremonia para arreglar una errata, y lo que tapa es
+   justo el registro que estás corrigiendo. El panel nace del propio botón,
    dentro de la tarjeta, y no apaga nada.
 
    El hueco existe para que el panel tenga desde dónde colgar sin ocupar
@@ -1341,9 +1346,6 @@ button.workout-title:active:not(:disabled) {
   .editor-inplace {
     animation: none;
   }
-}
-.editor-inplace .editor-placeholder {
-  margin-bottom: 0;
 }
 .link-row {
   width: 100%;
@@ -1545,6 +1547,7 @@ button {
   button.card-toggle:hover:not(:disabled),
   button.unit-fix:hover:not(:disabled),
   button.link-row:hover:not(:disabled),
+  button.editor-more:hover:not(:disabled),
   button.day-repeat:hover:not(:disabled),
   button.days-backfill:hover:not(:disabled) {
     background: none;
@@ -2154,27 +2157,19 @@ button.set-action {
 /* The note editor, same shape as the muscle row above it: label left, control
    filling the rest, save on its own line so the field keeps its width on a
    phone. Both live in the one fold you open to fix something about the lift. */
-.note-edit,
-.name-edit {
+.note-edit {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.note-edit input,
-.name-edit input {
+.note-edit input {
   flex: 1;
   min-width: 8rem;
   min-height: 44px;
 }
-.note-edit button,
-.name-edit button {
+.note-edit button {
   flex-basis: 100%;
-}
-/* The rename's own complaint, under the field it belongs to. */
-.name-edit .rename-alert {
-  flex-basis: 100%;
-  margin: 0;
 }
 .muscle-edit-select {
   margin-left: auto;
