@@ -10,7 +10,7 @@ from ..db import get_session
 from ..exercise_repo import find_exercise
 from ..models import Day, Exercise, SetEntry, Workout
 from ..muscles import MUSCLE_GROUPS, group_for
-from ..naming import normalize_exercise_name
+from ..naming import fold_exercise_name, normalize_exercise_name
 from ..schemas import (
     BestMark,
     ExerciseIn,
@@ -18,6 +18,9 @@ from ..schemas import (
     ExerciseOut,
     ExercisePatch,
     HistoryPoint,
+    NameClash,
+    NameTaken,
+    NameTakenError,
     PreviousMarks,
     RecentMuscle,
     RepMark,
@@ -53,6 +56,31 @@ async def _count_sets(session: AsyncSession, exercise_id: int) -> int:
         )
         or 0
     )
+
+
+async def _find_name_clash(
+    session: AsyncSession, user_id: int, new_name: str, exercise_id: int
+) -> Exercise | None:
+    """The other exercise of this user's already holding `new_name`, if any.
+
+    "Already holding" is judged by `fold_exercise_name`, the one rule the whole
+    backend uses for whether two spellings are the same exercise — the same one
+    `find_exercise` uses when a set is logged by name. If the rename check and
+    the lookup disagreed, a rename could be refused for clashing with a row that
+    the next logged set would then fail to find.
+
+    Scoped by `user_id` in both passes, and the caller builds the 409 out of
+    what comes back: a name only somebody else holds is not a collision, and
+    nothing of theirs can ride out in the refusal.
+
+    `exercise_id` is excluded, so fixing your own capitalisation or adding the
+    accent you left off is not a collision with yourself.
+    """
+    key = fold_exercise_name(new_name)
+    candidates = await session.scalars(
+        select(Exercise).where(Exercise.user_id == user_id, Exercise.id != exercise_id)
+    )
+    return next((e for e in candidates if fold_exercise_name(e.name) == key), None)
 
 
 @router.get("/muscle-groups", response_model=list[str])
@@ -115,7 +143,11 @@ async def create_exercise(
     return _to_exercise_out(exercise, 0)
 
 
-@router.patch("/exercises/{exercise_id}", response_model=ExerciseOut)
+@router.patch(
+    "/exercises/{exercise_id}",
+    response_model=ExerciseOut,
+    responses={409: {"model": NameTakenError, "description": "The name is already yours"}},
+)
 async def update_exercise(
     exercise_id: int,
     payload: ExercisePatch,
@@ -143,17 +175,27 @@ async def update_exercise(
     if "name" in fields:
         new_name = normalize_exercise_name(payload.name)
         # Renaming onto another exercise would fold two distinct lifts into one
-        # name; reject it rather than silently merge. A case-only change to this
-        # exercise's own name isn't a collision (id excluded).
-        clash = await session.scalar(
-            select(Exercise).where(
-                Exercise.user_id == user_id,
-                func.lower(Exercise.name) == new_name.lower(),
-                Exercise.id != exercise_id,
-            )
-        )
+        # name; reject it rather than silently merge.
+        clash = await _find_name_clash(session, user_id, new_name, exercise_id)
         if clash is not None:
-            raise HTTPException(status_code=409, detail="an exercise with that name already exists")
+            # The refusal carries the collision, because refusing is not the end
+            # of the story: the name is taken precisely because that exercise is
+            # already yours, and folding this one into it is usually what the
+            # user meant. The client cannot offer that without the target's id,
+            # cannot name it without the stored spelling, and cannot say what it
+            # would cost without the count of sets that would move.
+            raise HTTPException(
+                status_code=409,
+                detail=NameTaken(
+                    message="an exercise with that name already exists",
+                    exercise=NameClash(
+                        id=clash.id,
+                        name=clash.name,
+                        kind=clash.kind,
+                        set_count=await _count_sets(session, clash.id),
+                    ),
+                ).model_dump(),
+            )
         exercise.name = new_name
     if "muscle_group" in fields:
         exercise.muscle_group = payload.muscle_group

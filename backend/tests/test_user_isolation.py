@@ -144,3 +144,16 @@ def test_bob_cannot_merge_alices_exercise_into_his_own(alice_owns_a_workout):
         ).status_code
         == 404
     )
+
+
+def test_bob_can_rename_onto_a_name_alice_uses(alice_owns_a_workout):
+    """The rename collision is per-user too, and its 409 now carries the
+    colliding exercise — so a clash query that forgot the user_id filter would
+    not just refuse Bob, it would hand him Alice's exercise id and set count."""
+    client, alice, bob, *_ = alice_owns_a_workout
+    mine = client.post("/exercises", json={"name": "Sentadilla"}, headers=bob).json()
+
+    resp = client.patch(f"/exercises/{mine['id']}", json={"name": "Press banca"}, headers=bob)
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["name"] == "Press banca"

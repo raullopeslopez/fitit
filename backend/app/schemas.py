@@ -61,6 +61,44 @@ class ExerciseMerge(BaseModel):
     into_id: int
 
 
+class NameClash(BaseModel):
+    """The exercise already holding the name a rename asked for.
+
+    Everything the client needs to name the collision and price the way out of
+    it, without going back to the server or rescanning a list that may not even
+    contain the row. `set_count` counts the same thing `ExerciseOut.set_count`
+    counts, so "moverías 137 series" is a number the user has already seen.
+    `kind` is here because merging across kinds is itself refused — a client
+    that knows both kinds up front can offer renaming instead of a merge the
+    server is certain to reject.
+    """
+
+    id: int
+    name: str  # as stored, not as typed
+    kind: str
+    set_count: int
+
+
+class NameTaken(BaseModel):
+    """The body of the 409 a rename gets when the name is already yours.
+
+    `detail` used to be a bare string here. It is an object now, and `message`
+    is that string: a client with no branch for this case can still show
+    something, and one that has a branch reads `exercise` and offers the merge.
+    """
+
+    code: Literal["name_taken"] = "name_taken"
+    message: str
+    exercise: NameClash
+
+
+class NameTakenError(BaseModel):
+    """The envelope FastAPI wraps a raised detail in — declared so the 409 shows
+    up in the schema as the shape it actually is."""
+
+    detail: NameTaken
+
+
 class SetIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
