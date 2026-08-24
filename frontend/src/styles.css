@@ -1253,6 +1253,26 @@ button.workout-title:active:not(:disabled) {
   background: color-mix(in srgb, var(--text) 6%, transparent);
   box-shadow: 0 0 0 3px var(--ring);
 }
+/* ── La única marca que dice «aquí se escribe» ────────────────────────────
+   El campo del nombre y el botón de volver del segundo paso se pintaban casi
+   igual: los dos en Space Grotesk 600 a 18,4 px, los dos con un anillo de 3 px
+   de `--ring` al recibir el foco, y la única diferencia era el velo del 6 % de
+   `.editor-head:focus-within` — que a ese porcentaje no separa nada. Un lector
+   a ciegas confundió uno con el otro, y tenía razón: la app estaba pintando
+   «puedes escribir aquí» y «puedes volver por aquí» con el mismo dibujo.
+
+   El arreglo no es tocar el anillo: un anillo de foco que cambia de forma
+   según el control es peor problema que el que resuelve. Es darle al campo la
+   marca que un botón no puede llevar, y esa marca es un renglón — la textura
+   de cuaderno que DESIGN.md deja pasar («one subtle ruled-line logbook texture
+   allowed»), que es literalmente la línea sobre la que se escribe. No es la
+   caja que este panel quitó: es un solo filete bajo el texto, en reposo,
+   permanente, y sólo bajo el campo (el aspa se queda fuera).
+
+   A `--text` al 40 % mide 3,47 sobre `--surface-raised` en oscuro y 3,03 sobre
+   el papel en claro, o sea por encima del suelo de 3:1 de un componente no
+   textual — que aquí hace falta porque este filete carga solo con la
+   distinción. */
 .editor-name-field {
   flex: 1;
   min-width: 0;
@@ -1263,12 +1283,14 @@ button.workout-title:active:not(:disabled) {
   letter-spacing: -0.01em;
   padding: 0;
   border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 40%, transparent);
   border-radius: 0;
   background: none;
 }
+/* El foco no borra el renglón: lo que el foco añade es el velo y el anillo de
+   la fila entera, y el renglón sigue diciendo lo mismo que decía en reposo. */
 .editor-name-field:focus {
   outline: none;
-  border-color: transparent;
   box-shadow: none;
 }
 /* La fila que confirma. `Guardar nombre` se lleva el ancho porque es lo que
@@ -1357,6 +1379,37 @@ button.editor-row {
   text-align: left;
   color: var(--text);
 }
+/* ── La canaleta: cada fila dice de qué campo es ──────────────────────────
+   La versión anterior de esta rejilla no imprimía ningún rótulo, con el
+   argumento de que el valor ya se explica solo. No se explica: `Grupo` no
+   repite `Pecho`, nombra el campo del que `Pecho` es el valor, y el punto de
+   color tampoco lo nombraba —cambia con el valor, así que es el valor pintado
+   dos veces—. El caso que lo cerró es la nota: su rótulo vivía en el marcador
+   de posición, que **se borra en cuanto escribes**, de modo que a partir de la
+   primera nota la fila se quedaba anónima para siempre.
+
+   Un ancho fijo y no un `flex` que se ajuste al texto: lo que convierte dos
+   filas en una rejilla es que sus valores empiecen en la misma x. Ésa es la
+   forma de la hoja de especificaciones que DESIGN.md ya usa en el log
+   —etiqueta a la izquierda, valor a la derecha— y es también la del panel de
+   propiedades que sirve de listón. 3,4 rem entran `Grupo` y `Nota` con aire de
+   sobra y dejan ~215 px de campo a 430 px de pantalla.
+
+   Label 12,8 px apagado: el escalón más pequeño que DESIGN.md deja para algo
+   que se lee como palabras. Y `<label for>`, no un `<span>`, así que tocar el
+   rótulo enfoca su campo — 54 px más de blanco táctil por fila, gratis. El
+   nombre hablado sigue viniendo del `aria-label` del control, que lleva además
+   el nombre del ejercicio para los supersets. */
+.editor-row-label {
+  flex: none;
+  width: 3.4rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  cursor: pointer;
+}
 /* El campo dentro de la fila no tiene caja propia: la caja es la fila, y la
    fila no tiene. */
 .editor-row-control {
@@ -1441,22 +1494,55 @@ button.editor-back:focus-visible {
    sea el texto guardado, `--accent-ink` en cuanto lo hayas cambiado — que es
    exactamente cuando hay algo que guardar. (`--accent-ink` y no `--accent`:
    es el único hondo que pasa AA sobre papel.) */
+/* ── Y con marco, porque en reposo era el mismo gris que el campo ─────────
+   Apagarlo arregló el ámbar y dejó otro defecto en su sitio: en reposo el
+   botón iba en `--muted`, que es exactamente el token del marcador de posición
+   que tenía a 8 px a su izquierda, en la misma fila, con el mismo cuerpo y sin
+   nada alrededor de ninguno de los dos. Dos grises seguidos no dicen dónde
+   acaba el campo y empieza la acción.
+
+   La separación va por un eje que no gasta ámbar: el marco. El campo no puede
+   llevarlo —la tesis de esta rejilla es que la caja es la fila— y el botón sí,
+   porque es lo único de la fila que *hace* algo en vez de contener algo. Un
+   filete a `--muted` al 70 % mide 3,58 en oscuro y 3,23 en claro, por encima
+   del suelo de 3:1 de un componente no textual. El marco no cambia con el
+   estado: lo que cambia con el estado es la tinta, que es lo que el ámbar
+   significa. */
 button.editor-row-action {
   flex: none;
   min-height: 44px;
-  padding: 0 0.25rem;
-  border: 0;
+  padding: 0 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 70%, transparent);
+  border-radius: var(--radius-control);
   background: none;
   color: var(--muted);
   font-size: 0.9rem;
+  font-weight: 600;
 }
 button.editor-row-action.is-dirty {
   color: var(--accent-ink);
 }
 /* Lo único de aquí dentro que destruye algo. Rojo de verdad (DESIGN.md lo
    reserva para eso) pero como tinta y no como relleno: es una acción rara, y
-   una acción rara no lleva un control con peso de contenido. */
+   una acción rara no lleva un control con peso de contenido.
+
+   ── Y fuera de la pila de propiedades ────────────────────────────────────
+   Leído a ciegas, `Eliminar ejercicio` pasaba **por el valor de una
+   propiedad**: la misma sangría que el valor de la fila de encima, el mismo
+   cuerpo, nada en medio y el rojo cargando solo con todo el aviso — y el rojo
+   a solas no dice «esto es de otra clase», dice «esto es importante», que es
+   lo que dice cualquier valor destacado.
+
+   Se separa por dos vías y ninguna cuesta una fila. La sangría: las filas de
+   propiedad arrancan su valor a la derecha de la canaleta de rótulos y ésta no
+   tiene rótulo —no es una propiedad—, así que arranca en el canto. Y la regla:
+   a `--text` al 17 %, que es el peso que DESIGN.md eligió para el límite entre
+   dos escalas distintas (el que separa un día de otro, frente al `--border`
+   que separa dos series del mismo ejercicio). Aquí el salto de escala es el
+   mismo: de cambiar una etiqueta a tirar meses de registro. */
 button.editor-row-danger {
+  margin: 0.5rem -0.5rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--text) 17%, transparent);
   color: var(--danger);
   font-weight: 600;
 }

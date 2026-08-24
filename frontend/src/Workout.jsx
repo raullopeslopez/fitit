@@ -191,6 +191,9 @@ function ExerciseCard({
   // The standing note, being edited. Seeded from the exercise each time the fold
   // opens, so an abandoned edit doesn't survive as a draft nobody asked for.
   const [noteDraft, setNoteDraft] = useState(note ?? '')
+  // Qué hace el botón de esa fila, dicho en su propia palabra. Vaciar el campo
+  // teniendo una nota guardada no es guardar: es borrar, y el botón lo dice.
+  const noteVerb = !noteDraft.trim() && (note ?? '').trim() ? 'Borrar' : 'Guardar'
   // The name, being edited, and whatever went wrong last time it was sent.
   // Seeded from the exercise on every open, same as the note above.
   const [nameDraft, setNameDraft] = useState(name)
@@ -576,22 +579,41 @@ function ExerciseCard({
             moreLabel="Grupo y nota"
             more={
               <>
-                {/* Una fila, y la fila es el control. El rótulo `Grupo muscular`
-                    que iba a la izquierda se ha ido: el valor de este campo es
-                    siempre el nombre de un músculo, así que decir «Grupo
-                    muscular: Pecho» es decir Pecho dos veces, y en una fila de
-                    44 px el rótulo se llevaba media anchura para no aportar
-                    nada. Sigue entero en la etiqueta hablada, con el nombre del
-                    ejercicio detrás porque en un superset hay varias tarjetas
-                    abiertas a la vez.
+                {/* Una fila, y la fila es el control — pero la fila dice de qué
+                    campo es.
 
-                    El punto de color vuelve aquí y no duplica el de la
-                    cabecera: cuando este cajón está abierto el panel está
-                    tapando la cabecera, así que el punto no está compitiendo
-                    con nada — está siendo lo único que hay. Y colour rides a
-                    mark, never text (DESIGN.md): el nombre del músculo se queda
-                    en tinta. */}
+                    Aquí estuvo el hueco más grande de esta pieza. El rótulo se
+                    había quitado con el argumento de que «decir *Grupo
+                    muscular: Pecho* es decir Pecho dos veces», y eso es falso:
+                    `Grupo` no repite `Pecho`, nombra el campo del que `Pecho`
+                    es el valor. Lo que quedaba nombrando la fila era el punto
+                    de color, y un punto cuyo único contenido es el valor no es
+                    el nombre del campo: es el valor dibujado dos veces. El
+                    glifo de prioridad de la referencia sí nombra su campo,
+                    pero porque es **invariante** —las barras ascendentes dicen
+                    «prioridad» en Urgente y en Baja—; el nuestro cambia con el
+                    valor, así que no puede hacer ese trabajo. La prueba a
+                    ciegas es la de siempre: con `Pecho` dentro, el campo sólo
+                    se adivina leyendo el vocabulario del valor.
+
+                    Vuelve impreso, en una palabra y sin gastar una fila: una
+                    canaleta de rótulos a la izquierda, en Label apagado, con
+                    los valores alineados a su derecha. Es la forma de una hoja
+                    de especificaciones —etiqueta a la izquierda, valor a la
+                    derecha (DESIGN.md)— y es lo que hace que dos filas se lean
+                    como rejilla y no como lista. Sigue entero en la etiqueta
+                    hablada, con el nombre del ejercicio detrás porque en un
+                    superset hay varias tarjetas abiertas a la vez.
+
+                    El punto de color se queda y no duplica el de la cabecera:
+                    cuando este cajón está abierto el panel está tapando la
+                    cabecera, así que el punto no compite con nada. Y colour
+                    rides a mark, never text (DESIGN.md): el nombre del músculo
+                    se queda en tinta. */}
                 <div className="editor-row editor-row-picker">
+                  <label className="editor-row-label" htmlFor={`exgroup-${name}`}>
+                    Grupo
+                  </label>
                   <span
                     className={`dot${muscle ? '' : ' dot-new'}`}
                     aria-hidden="true"
@@ -616,11 +638,28 @@ function ExerciseCard({
                   // La nota, en su fila y con su confirmación dentro de ella:
                   // en cuanto `Guardar nota` bajaba a una línea propia el cajón
                   // costaba una fila de más, y una fila de más aquí es un
-                  // control del registro tapado. El marcador de posición hace
-                  // de rótulo mientras está vacía —es el único momento en que
-                  // la fila no se explica sola— y desaparece en cuanto hay algo
-                  // escrito, que es cuando ya no hace falta.
+                  // control del registro tapado.
+                  //
+                  // El rótulo lo llevaba el marcador de posición, y un
+                  // marcador de posición **se borra en cuanto escribes**: a
+                  // partir de la primera nota, `sin rebote` se quedaba solo en
+                  // una fila anónima para el resto de la vida de ese
+                  // ejercicio. O sea que el estado en el que la fila no tenía
+                  // nombre no era el raro: era el que queda después de usarla
+                  // una vez.
+                  //
+                  // Ahora `Nota` va impreso en la canaleta y no se va nunca, y
+                  // el marcador de posición deja de hacer de rótulo para hacer
+                  // lo suyo, que es dar un ejemplo de qué se escribe aquí. El
+                  // rótulo además se paga solo: con `Nota` a la izquierda, el
+                  // botón ya no tiene que repetir la palabra, así que
+                  // `Guardar nota` se queda en `Guardar` y devuelve casi toda
+                  // la anchura que cuesta la canaleta. La frase entera sigue en
+                  // la etiqueta hablada, que es donde hace falta.
                   <form className="editor-row editor-row-note" onSubmit={saveNote}>
+                    <label className="editor-row-label" htmlFor={`exnote-${name}`}>
+                      Nota
+                    </label>
                     <input
                       id={`exnote-${name}`}
                       className="editor-row-control"
@@ -628,7 +667,7 @@ function ExerciseCard({
                       maxLength={200}
                       value={noteDraft}
                       onChange={(e) => setNoteDraft(e.target.value)}
-                      placeholder="Nota: agarre, altura del banco…"
+                      placeholder="agarre, altura del banco…"
                     />
                     {/* Explicit, not save-on-blur: on a phone the keyboard closing
                         is not the same gesture as deciding you meant it.
@@ -640,13 +679,25 @@ function ExerciseCard({
                         lo que guarda `saveNote`: un espacio de más no es un
                         cambio, y encender por él sería prometer un guardado
                         que no cambia nada. */}
+                    {/* El verbo dice el acto. Vaciar una nota guardada y
+                        pulsar `Guardar` es pedir que se guarde nada: lo que
+                        hace ese toque es borrarla, y el botón que lo hace tiene
+                        que decirlo. Así que `Borrar` en el único caso en que el
+                        borrador está vacío y hay algo guardado detrás.
+
+                        En ámbar igual que el otro y no en rojo: el rojo de esta
+                        casa está reservado a lo irreversible, y una línea de
+                        texto que puedes volver a escribir no lo es. El ámbar no
+                        es del botón, es del estado —hay algo sin guardar—, y
+                        ese estado es el mismo con las dos palabras. */}
                     <button
                       type="submit"
                       className={`editor-row-action${
                         noteDraft.trim() === (note ?? '').trim() ? '' : ' is-dirty'
                       }`}
+                      aria-label={`${noteVerb} nota de ${name}`}
                     >
-                      Guardar nota
+                      {noteVerb}
                     </button>
                   </form>
                 )}

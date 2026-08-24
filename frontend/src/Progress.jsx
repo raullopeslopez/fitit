@@ -1262,13 +1262,19 @@ export default function Progress() {
               moreLabel="Grupo y eliminar"
               more={
                 <>
-                  {/* Una fila, y la fila es el control: el punto del músculo, su
-                      nombre en tinta y el `›` de las puertas. El rótulo
-                      `Grupo muscular` que iba al lado se ha ido —el valor de
-                      este campo es siempre un músculo, así que el rótulo decía
-                      dos veces lo mismo— y sigue entero en la etiqueta hablada,
-                      que es donde hace falta. */}
+                  {/* Una fila, y la fila es el control: el rótulo del campo en
+                      la canaleta, el punto del músculo, su nombre en tinta y el
+                      `›` de las puertas. El rótulo había desaparecido con el
+                      argumento de que repetía el valor, y no lo repite: `Grupo`
+                      no dice `Pecho`, dice de qué es `Pecho` el valor. El punto
+                      de color tampoco lo decía —cambia con el valor, así que es
+                      el valor pintado dos veces y no el nombre del campo—. Ver
+                      el razonamiento entero en `Workout.jsx`, que es donde esta
+                      rejilla tiene tres filas. */}
                   <div className="editor-row editor-row-picker">
+                    <label className="editor-row-label" htmlFor="muscle-select">
+                      Grupo
+                    </label>
                     <span
                       className={`dot${current.muscle_group ? '' : ' dot-new'}`}
                       aria-hidden="true"
@@ -1300,7 +1306,31 @@ export default function Progress() {
                       vienes a hacer aquí. El rojo se queda —lo pide la regla del
                       destructivo— pero como tinta, y los dos toques siguen
                       siendo dos: esta fila abre el diálogo que cuenta las
-                      series. */}
+                      series.
+
+                      ── Y fuera de la pila de propiedades ──────────────────
+                      Esto es lo que hundió a esta pantalla en la ronda
+                      anterior: un lector a ciegas leyó `Eliminar ejercicio`,
+                      por un instante, **como el valor de una propiedad**. Es
+                      una lectura razonable y el dibujo se la estaba pidiendo —
+                      misma sangría que el valor de la fila de arriba, mismo
+                      cuerpo, sin regla en medio y sin nada que lo contuviera,
+                      con el rojo cargando solo con todo el aviso. Y el rojo, a
+                      solas, no dice «esto es de otra clase»: dice «esto es
+                      importante», que es exactamente lo que dice un valor
+                      destacado.
+
+                      Dos cambios y ninguno cuesta una fila. (1) La canaleta de
+                      rótulos separa por construcción: los valores de las filas
+                      de propiedad arrancan a la derecha del rótulo, y esta fila
+                      no tiene rótulo porque no es una propiedad, así que
+                      arranca en el canto. Dos sangrías distintas, dos clases
+                      distintas. (2) Una regla encima, a `--text` al 17 % y no a
+                      `--border`: DESIGN.md ya eligió ese peso exacto para el
+                      límite entre dos escalas distintas —el que separa un día
+                      de otro frente al que separa dos series del mismo
+                      ejercicio— y aquí el salto de escala es el mismo, de
+                      «cambiar una etiqueta» a «tirar meses de registro». */}
                   <button
                     type="button"
                     className="editor-row editor-row-danger delete-exercise"

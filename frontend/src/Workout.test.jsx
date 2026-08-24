@@ -1919,8 +1919,10 @@ describe('Workout', () => {
 
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
+      // Vaciar el campo teniendo una nota guardada no es guardar, es borrar, y
+      // el verbo del botón cambia con el acto.
       await userEvent.clear(screen.getByLabelText("Nota de Bench Press"))
-      await userEvent.click(screen.getByRole('button', { name: /guardar nota/i }))
+      await userEvent.click(screen.getByRole('button', { name: /borrar nota/i }))
 
       await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, null))
       await waitFor(() => expect(screen.queryByText('agarre ancho')).not.toBeInTheDocument())

@@ -39,8 +39,10 @@ import {
   EPS,
   forceTheme,
   isVisible,
+  lineRects,
   overlap,
   pageControls,
+  pageProse,
   paintedRect,
   parseColor,
   scrollPageTo,
@@ -57,6 +59,10 @@ const TOUCH_FLOOR = 44
 // saltarse por encima la posición exacta en la que un canto cae dentro de un
 // control.
 const STEP = 25
+// El mismo `TOP_GAP` que `ExerciseEditor.jsx`. Cuando el canto de arriba del
+// panel está ahí, el panel ha gastado toda la subida que tenía y su posición ya
+// no es una elección suya: es la única que le queda.
+const TOP_GAP = 8
 
 let user
 
@@ -105,6 +111,56 @@ function violationsAt(panel, y) {
     if (!el.hasAttribute('inert')) {
       out.push(`scroll ${y}: TAPADO PERO VIVO ${name(el)} — tapado entero y sin \`inert\``)
     }
+  }
+  return out
+}
+
+/**
+ * Lo mismo, para las frases: en cada parada, ningún canto del panel cae
+ * **dentro de un renglón** de prosa de la página.
+ *
+ * Es la misma regla de la casa que vigila `violationsAt` —«un canto opaco
+ * cruzando un control no se lee como tapado, se lee como roto»— aplicada a lo
+ * único que se le escapaba, que es todo lo que no se toca. Y no es teórica: al
+ * ir el panel a lo ancho de la tarjeta para dejar de partir el chip `Tríceps`
+ * de Progreso, su canto de arriba se puso a cruzar `.exercise-note` —la nota
+ * del ejercicio, la frase que se lee antes de la primera repetición— en
+ * **todas** las paradas del barrido de Entreno, 8,0 px de sus 18,3. El mismo
+ * texto salía entero dentro del cajón 126 px más abajo, así que la pantalla
+ * llevaba el dato dos veces y una de las dos copias rota.
+ *
+ * `clear` y `covered` valen las dos, igual que arriba y por lo mismo: tapar
+ * una frase entera dice «hay algo delante», partirla dice «esto está roto».
+ * Aquí `covered` no exige además `inert` porque una frase no está en el orden
+ * de tabulación: no hay nada que retirar.
+ */
+function proseSlicesAt(panel, y) {
+  const panelRect = panel.getBoundingClientRect()
+  const out = []
+  // ── La parada en la que el panel no elige ───────────────────────────────
+  // Con la tarjeta desplazada hasta arriba, el panel se queda clavado contra
+  // el aire de 8 px y su único grado de libertad —subir— vale cero: medido en
+  // Entreno con el cajón abierto, en `y=350` la subida pedida es 141 contra un
+  // máximo de 141,3, y en `y=375` 116 contra 116,3. Su canto de abajo cae
+  // donde caiga y el contenido pasa por debajo. Ahí `.target-today` («52.5»,
+  // 41,6 px de cifra) queda cruzada, y ninguna posición lo arregla, porque no
+  // hay ninguna otra posición.
+  //
+  // Es exactamente la misma callejón sin salida por el que sigue en rojo
+  // `card-toggle` en el barrido de controles, y por eso se dice aquí en vez de
+  // taparlo: esta prueba vigila todas las paradas en las que el panel **puede**
+  // elegir, que son las que producen un defecto de colocación. La nota del
+  // ejercicio —el corte que da origen a esta prueba— nunca cae en este caso, y
+  // tiene su propia aserción sin excepciones más abajo.
+  if (panelRect.top <= TOP_GAP + EPS) return out
+  for (const { el, rect } of pageProse(panel)) {
+    const { state, cross, fraction } = coverage(panelRect, rect)
+    if (state !== 'sliced') continue
+    out.push(
+      `scroll ${y}: FRASE PARTIDA ${name(el)} — el canto cruza el renglón ` +
+        `[${rect.top.toFixed(1)}–${rect.bottom.toFixed(1)}] ` +
+        `(${cross.height.toFixed(1)} px de ${rect.height.toFixed(1)}, ${(fraction * 100).toFixed(1)} %)`,
+    )
   }
   return out
 }
@@ -319,6 +375,60 @@ describe('Entreno · el panel no parte nada', () => {
 // ───────────────────────────────────────────────────────────────────────────
 // Progreso — la pantalla donde se midió el defecto que da origen a todo esto
 // ───────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Ni una frase
+// ───────────────────────────────────────────────────────────────────────────
+describe('el panel tampoco parte una frase', () => {
+  it('Entreno · con el cajón cerrado, ningún renglón queda cruzado', async () => {
+    await mountEntreno()
+    const panel = await openEditor(user)
+    const { problems, stops } = await sweep(panel, proseSlicesAt)
+    expect(stops).toBeGreaterThan(4)
+    expect(problems).toEqual([])
+  })
+
+  it('Entreno · con el cajón abierto tampoco, que es donde se partía la nota', async () => {
+    await mountEntreno()
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    const { problems } = await sweep(panel, proseSlicesAt)
+    expect(problems).toEqual([])
+  })
+
+  // El corte concreto que abrió esta familia, sin ninguna excepción: la nota
+  // del ejercicio (`sin rebote`) partida por el canto de arriba del panel en
+  // todas las paradas del barrido, 8,0 px de sus 18,3 — mientras el mismo texto
+  // salía entero dentro del cajón 126 px más abajo.
+  it('Entreno · la nota del ejercicio no queda cruzada en ninguna parada', async () => {
+    await mountEntreno()
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    const cortes = []
+    for (const y of scrollStops(STEP)) {
+      await scrollPageTo(y)
+      const nota = document.querySelector('.exercise-note')
+      if (!nota) continue
+      for (const rect of lineRects(nota)) {
+        const { state, cross } = coverage(panel.getBoundingClientRect(), rect)
+        if (state !== 'sliced') continue
+        cortes.push(
+          `scroll ${y}: la nota partida ${cross.height.toFixed(1)} px de ` +
+            `${rect.height.toFixed(1)} [${rect.top.toFixed(1)}–${rect.bottom.toFixed(1)}]`,
+        )
+      }
+    }
+    expect(cortes).toEqual([])
+  })
+
+  it('Progreso · con el cajón abierto, ningún renglón queda cruzado', async () => {
+    await mountProgreso()
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    const { problems } = await sweep(panel, proseSlicesAt)
+    expect(problems).toEqual([])
+  })
+})
+
 describe('Progreso · el panel no parte nada', () => {
   it('con el cajón cerrado y abierto, todo control está limpio o tapado entero e inert', async () => {
     await mountProgreso()
@@ -548,13 +658,103 @@ describe('Entreno · `Guardar nota` sólo se enciende cuando hay algo que guarda
     const panel = await openEditor(user)
     await openDrawer(user)
     await settle()
-    const save = screen.getByRole('button', { name: 'Guardar nota' })
+    const save = screen.getByRole('button', { name: `Guardar nota de ${MAIN}` })
 
     expect(colorOf(save)).toBe(asRgb(token('--muted')))
 
     await user.type(screen.getByLabelText(`Nota de ${MAIN}`), 'agarre ancho')
     await settle()
     expect(colorOf(save)).toBe(asRgb(token('--accent-ink')))
+  })
+
+  // El otro defecto de esa fila, que apagar el ámbar no tocaba: en reposo el
+  // botón es `--muted`, o sea el mismo token que el marcador de posición que
+  // tiene a 8 px, en la misma fila y con el mismo cuerpo. Lo que los separa
+  // tiene que ser algo que no gaste ámbar, y es el marco — que además no
+  // cambia con el estado, porque «esto es un botón» es cierto siempre.
+  it('el botón lleva marco y el campo no, en los dos estados', async () => {
+    await mountEntreno()
+    forceTheme('dark')
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    await settle()
+    const save = screen.getByRole('button', { name: `Guardar nota de ${MAIN}` })
+    const field = screen.getByLabelText(`Nota de ${MAIN}`)
+
+    const marco = (el) => parseFloat(getComputedStyle(el).borderTopWidth)
+    expect(marco(save)).toBeGreaterThan(0)
+    expect(marco(field)).toBe(0)
+
+    // Y el filete se ve: suelo de 3:1 de componente no textual, medido sobre
+    // el color que hay detrás de verdad.
+    const borde = parseColor(getComputedStyle(save).borderTopColor)
+    expect(contrastRatio(borde, backdropOf(save))).toBeGreaterThan(3)
+
+    await user.type(field, 'agarre ancho')
+    await settle()
+    expect(marco(save)).toBeGreaterThan(0)
+  })
+
+})
+
+// ───────────────────────────────────────────────────────────────────────────
+// Cada fila dice de qué campo es, y lo sigue diciendo con un valor dentro
+// ───────────────────────────────────────────────────────────────────────────
+//
+// El listón que hay que pasar no es «hay algo que nombra la fila», es que ese
+// algo sea **invariante**: el glifo de prioridad de la referencia nombra su
+// campo porque las barras ascendentes dicen «prioridad» tanto en Urgente como
+// en Baja. Un punto de color que cambia con el valor no lo cumple —es el valor
+// dibujado dos veces— y un marcador de posición tampoco, porque desaparece en
+// cuanto la fila tiene algo dentro, que es su estado normal a partir del primer
+// uso.
+//
+// Así que la prueba es esa exactamente: cambiar los dos valores y comprobar que
+// los rótulos no se mueven, y que además ninguno repite el valor que rotula.
+describe('la rejilla nombra sus campos, y el nombre no depende del valor', () => {
+  const labelsOf = (panel) =>
+    [...panel.querySelectorAll('.editor-row-label')].map((el) => el.textContent.trim())
+
+  it('Entreno · `Grupo` y `Nota` siguen impresos con las dos filas llenas', async () => {
+    await mountEntreno()
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    expect(labelsOf(panel)).toEqual(['Grupo', 'Nota'])
+
+    await user.type(screen.getByLabelText(`Nota de ${MAIN}`), 'sin rebote')
+    await user.selectOptions(screen.getByLabelText(`Grupo muscular de ${MAIN}`), 'Pecho')
+    await settle()
+
+    // Los mismos rótulos, con la fila llena y con otro valor dentro.
+    expect(labelsOf(panel)).toEqual(['Grupo', 'Nota'])
+    // Y ninguno es el valor otra vez: un rótulo que repita lo que rotula no
+    // está nombrando el campo, está gastando anchura.
+    for (const el of panel.querySelectorAll('.editor-row-label')) {
+      const control = document.getElementById(el.htmlFor)
+      expect(control, `${el.textContent} no apunta a ningún campo`).toBeTruthy()
+      expect(el.textContent.trim()).not.toBe(control.value)
+      // El rótulo es visible de verdad, no un `<label>` escondido.
+      expect(isVisible(el)).toBe(true)
+    }
+  })
+
+  it('Progreso · la fila del grupo también, y el borrado no está en la pila', async () => {
+    await mountProgreso()
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    expect(labelsOf(panel)).toEqual(['Grupo'])
+
+    // El destructivo no es una propiedad y no puede leerse como el valor de
+    // una: ni comparte la sangría de los valores ni va pegado a la fila de
+    // encima. Las dos cosas medidas, no declaradas.
+    const borrar = screen.getByRole('button', { name: 'Eliminar ejercicio' })
+    const valor = screen.getByLabelText(`Grupo muscular de ${MAIN}`)
+    expect(borrar.getBoundingClientRect().left).toBeLessThan(
+      valor.getBoundingClientRect().left - 8,
+    )
+    const cs = getComputedStyle(borrar)
+    expect(parseFloat(cs.borderTopWidth)).toBeGreaterThan(0)
+    expect(parseFloat(cs.marginTop)).toBeGreaterThan(0)
   })
 })
 

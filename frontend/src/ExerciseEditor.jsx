@@ -334,6 +334,20 @@ export function ExerciseEditor({
     // porque la regla de abajo no distingue quién es quién: el disparador no
     // tiene ningún privilegio sobre la fila de peso y reps.
     const INTERACTIVE = 'a[href], button, input, select, textarea, [tabindex]'
+    // ¿Se pueden medir renglones aquí? En jsdom no: no hay motor de
+    // maquetación y su `Range` no implementa `getClientRects`. No se pierde
+    // nada — allí los rectángulos son ceros de todas formas y los cortes se
+    // miden en la suite de navegador, que existe exactamente por eso — pero sin
+    // esta pregunta el editor revienta al montarse en las 632 pruebas de la
+    // otra suite.
+    let canMeasureLines = false
+    try {
+      const probe = document.createRange()
+      canMeasureLines = typeof probe.getClientRects === 'function' && !!probe.getClientRects().length >= 0
+      canMeasureLines = canMeasureLines && Symbol.iterator in Object(probe.getClientRects())
+    } catch {
+      canMeasureLines = false
+    }
     const crossables = () => {
       const out = []
       for (const el of document.querySelectorAll(INTERACTIVE)) {
@@ -348,6 +362,44 @@ export function ExerciseEditor({
         const r = el.getBoundingClientRect()
         if (r.width === 0 || r.height === 0) continue
         out.push(r)
+      }
+      // ── Y cada renglón de prosa, que se parte igual de mal ──────────────
+      // La regla de la casa nunca fue sobre controles, era sobre cantos: «un
+      // canto opaco cruzando un control no se lee como tapado, se lee como
+      // roto». Una frase cortada por la mitad de sus letras se lee igual de
+      // rota y encima no hay nada que tocar que devuelva el trozo que falta.
+      //
+      // Se coló al ir el panel a lo ancho de la tarjeta —lo que acabó con el
+      // chip `Tríceps` partido de Progreso— sin aplicar el mismo razonamiento
+      // en vertical: el canto de arriba pasó a cruzar `.exercise-note`, la
+      // frase que se lee antes de la primera repetición, 8,0 px de sus 18,3 y
+      // en todas las paradas del barrido. Con el cajón abierto esa misma nota
+      // sale entera 126 px más abajo, así que la pantalla llevaba el dato dos
+      // veces con una de las dos copias rota.
+      //
+      // La unidad es **el renglón**, no el elemento: un párrafo cortado entre
+      // dos líneas no tiene ni una letra partida y dice lo que dice cualquier
+      // lista cortada, «hay más debajo». Por eso se miden los rectángulos que
+      // el navegador le da a un rango de texto.
+      //
+      // Se salta lo que vive dentro de un control, que ya está arriba con un
+      // listón más duro. Y se recorre por nodos de texto y no por elementos:
+      // son bastantes menos, y esto corre en el rAF de cada scroll.
+      const walker = canMeasureLines
+        ? document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+        : null
+      for (let node = walker?.nextNode(); node; node = walker.nextNode()) {
+        if (!node.data.trim()) continue
+        const el = node.parentElement
+        if (!el || panel.contains(el) || el.contains(slot)) continue
+        if (el.closest(INTERACTIVE)) continue
+        if (el.closest('.bottom-nav, .days-cta')) continue
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        for (const r of range.getClientRects()) {
+          if (r.width === 0 || r.height === 0) continue
+          out.push(r)
+        }
       }
       return out
     }

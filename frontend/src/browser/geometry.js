@@ -229,6 +229,18 @@ export function clearForcedTheme() {
 // literal, sin resolver `var()`, sin componer alfa y sin saber qué hay debajo.
 
 export function parseColor(str) {
+  // `color-mix()` no vuelve como `rgb()`. Chrome resuelve
+  // `color-mix(in srgb, var(--muted) 70%, transparent)` a
+  // `color(srgb 0.607 0.631 0.662 / 0.7)`, que el patrón de abajo no casa — y
+  // sin esto devolvía `[0,0,0,0]`, o sea «transparente», y cualquier contraste
+  // medido sobre un token mezclado salía exactamente 1:1 en vez de fallar. Un
+  // falso aprobado silencioso, justo en los tokens que la casa escribe
+  // mezclados: los filetes, los velos y los bordes.
+  const srgb = String(str).match(/color\(srgb\s+([^)]+)\)/)
+  if (srgb) {
+    const parts = srgb[1].split(/[/\s]+/).filter(Boolean).map(Number)
+    return [parts[0] * 255, parts[1] * 255, parts[2] * 255, parts.length > 3 ? parts[3] : 1]
+  }
   const m = String(str).match(/rgba?\(([^)]+)\)/)
   if (!m) return [0, 0, 0, 0]
   const parts = m[1].split(/[,/\s]+/).filter(Boolean).map(Number)
@@ -319,6 +331,63 @@ export function textContrastReport(root) {
       fg,
       bg,
     })
+  }
+  return out
+}
+
+// ── Y lo mismo para una frase ──────────────────────────────────────────────
+// Todo lo de arriba mide *controles*, y la regla de la casa —«un canto opaco
+// cruzando un control no se lee como tapado, se lee como roto»— no es una regla
+// sobre controles: es una regla sobre cantos. Una frase partida por la mitad
+// horizontal de sus letras se lee igual de rota, y encima no hay nada que
+// tocar que devuelva el trozo que falta.
+//
+// La unidad no es el elemento, es **la línea**. Un párrafo de tres renglones
+// cortado entre el primero y el segundo no tiene ninguna letra partida: dice
+// «hay más debajo», que es lo que dice cualquier lista cortada. Lo que se
+// prohíbe es que el canto caiga *dentro* de un renglón. Por eso se miden los
+// rectángulos que el navegador le da a un rango de texto y no la caja del
+// elemento.
+
+/** Los renglones que este elemento pinta de su propio texto, ya recortados. */
+export function lineRects(el) {
+  const clip = paintedRect(el)
+  if (!clip) return []
+  const out = []
+  for (const node of el.childNodes) {
+    if (node.nodeType !== Node.TEXT_NODE) continue
+    if (!node.textContent.trim()) continue
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    for (const r of range.getClientRects()) {
+      const left = Math.max(r.left, clip.left)
+      const right = Math.min(r.right, clip.right)
+      const top = Math.max(r.top, clip.top)
+      const bottom = Math.min(r.bottom, clip.bottom)
+      if (right - left <= 0 || bottom - top <= 0) continue
+      out.push({ left, right, top, bottom, width: right - left, height: bottom - top })
+    }
+  }
+  return out
+}
+
+/**
+ * Cada renglón de prosa de la página que el panel puede llegar a cruzar.
+ *
+ * **Se salta lo que vive dentro de un control**, y no por comodidad: eso ya lo
+ * barre `pageControls`, con un listón más duro —un control tapado entero
+ * además tiene que estar `inert`—, así que contarlo aquí sería la misma queja
+ * dicha dos veces y con el veredicto más flojo de los dos.
+ */
+export function pageProse(panel) {
+  const out = []
+  for (const el of document.querySelectorAll('*')) {
+    if (panel.contains(el) || el.contains(panel)) continue
+    if (el.closest('.bottom-nav, .days-cta')) continue
+    if (el.closest(INTERACTIVE)) continue
+    if (el.closest('[aria-hidden="true"]')) continue
+    if (!ownsText(el) || !isVisible(el)) continue
+    for (const r of lineRects(el)) out.push({ el, rect: r })
   }
   return out
 }
