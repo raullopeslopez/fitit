@@ -1210,22 +1210,43 @@ button.workout-title:active:not(:disabled) {
   letter-spacing: 0.01em;
   color: var(--muted);
 }
+/* La fila del nombre es una fila de la rejilla como las demás: el campo *es* el
+   titular, así que se pinta como un titular y no como un formulario. El marco
+   que llevaba antes hacía de aviso «esto se edita», y ese aviso ya lo da algo
+   mejor: el panel abre con el cursor dentro del campo, con su anillo puesto,
+   desde el primer fotograma. Un borde permanente para anunciar un estado que
+   ya está anunciado es cromo. */
 .editor-head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: calc(100% + 1rem);
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-control);
   min-height: 44px;
+}
+.editor-head:focus-within {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 .editor-name-field {
   flex: 1;
   min-width: 0;
+  min-height: 44px;
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  /* Menos sangría horizontal que un campo normal: aquí es un titular, y un
-     titular que empieza 13 px dentro de su caja no se alinea con nada. */
-  padding: 0.5rem 0.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.editor-name-field:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 /* La fila que confirma. `Guardar nombre` se lleva el ancho porque es lo que
    vienes a hacer; la puerta al segundo paso va detrás, con el mismo `›` que
@@ -1272,16 +1293,153 @@ button.secondary.editor-save {
   background: color-mix(in srgb, var(--text) 8%, transparent);
   transform: none;
 }
-/* El segundo paso, separado por la regla que la cabecera ya no lleva: ahí
-   arriba separaba el nombre de sí mismo, y aquí separa el ejercicio de lo que
-   se dice sobre él. */
+/* ── El segundo paso ──────────────────────────────────────────────────────
+   Ya no es un pliegue debajo del primero: es la otra cara del panel. La regla
+   que lo separaba del nombre sobra cuando el nombre no está, y el margen
+   también: el panel entero es este paso mientras dura.
+
+   Sin `gap`. La referencia pone sus filas de 24 px en un paso de 32, o sea 8
+   de aire; nuestras filas miden 44 porque DESIGN.md pone ahí el suelo de lo
+   que se toca, y con 8 más entre cada dos el cajón se comía la fila de peso y
+   reps de Entreno por 8,5 px. Filas de 44 pegadas: es lo que hace una lista de
+   propiedades, y sin cromo alrededor no hay nada que se toque con nada. */
 .editor-more-pane {
   display: flex;
   flex-direction: column;
+}
+
+/* ── La rejilla: una propiedad es una fila, y la fila es el control ───────
+   Cero cromo. Ni caja, ni borde, ni fondo de campo, ni un rótulo a la
+   izquierda repitiendo cómo se llama lo que ya estás leyendo a la derecha. Lo
+   que dice que esto se toca es que responde al dedo, que es exactamente el
+   trato que DESIGN.md ya aceptó para las filas sin marco: «se paga una vez, y
+   se cobra en cada edición — y el estado de pulsación es lo que le contesta al
+   dedo».
+
+   El margen negativo saca el fondo de la pulsación hasta el canto del relleno
+   del panel, para que la fila se pinte entera y el texto siga alineado con
+   todo lo demás. */
+.editor-row,
+button.editor-row {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
+  width: calc(100% + 1rem);
+  min-height: 44px;
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  border-radius: var(--radius-control);
+  text-align: left;
+  color: var(--text);
+}
+/* El campo dentro de la fila no tiene caja propia: la caja es la fila, y la
+   fila no tiene. */
+.editor-row-control {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text);
+}
+select.editor-row-control {
+  appearance: none;
+  -webkit-appearance: none;
+}
+/* El anillo lo lleva la fila, no el campo: si lo llevara el campo se dibujaría
+   un rectángulo pegado al texto y volveríamos a tener una caja, que es justo
+   lo que esta rejilla quita. Enfocado, la fila entera se enciende. */
+.editor-row-control:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+.editor-row-picker:focus-within,
+.editor-row-note:focus-within {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+button.editor-row:focus-visible,
+button.editor-back:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.editor-row:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+/* Una fila que abre una lista lleva el `›` de todas las puertas de la casa. El
+   `select` es nativo a propósito (ver el comentario del componente), así que el
+   glifo va en la fila y no dentro del control. */
+.editor-row-picker::after {
+  content: '›';
+  flex: none;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+/* La confirmación de la nota, dentro de su propia fila para no costar otra.
+   Ámbar como tinta —`--accent-ink`, el único hondo para pasar AA en papel—,
+   que es como la casa escribe una acción que no es la primaria. */
+button.editor-row-action {
+  flex: none;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-size: 0.9rem;
+}
+/* Lo único de aquí dentro que destruye algo. Rojo de verdad (DESIGN.md lo
+   reserva para eso) pero como tinta y no como relleno: es una acción rara, y
+   una acción rara no lleva un control con peso de contenido. */
+button.editor-row-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
+/* La vuelta: flecha apagada, nombre en tinta, y el nombre se recorta antes de
+   empujar al aspa. */
+.editor-row-back {
+  gap: 0;
+}
+button.editor-back {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.25rem 0 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+.editor-back-arrow {
+  flex: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.editor-back-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+button.editor-back:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: none;
 }
 /* La queja del renombrado y la oferta de fusión, debajo del campo que las
    provocó y a lo ancho, para que se lean como la respuesta a lo de arriba y no
@@ -1302,7 +1460,7 @@ button.secondary.editor-save {
   justify-content: center;
   width: 44px;
   height: 44px;
-  margin-right: -0.6rem;
+  margin-right: -0.5rem;
   padding: 0;
   border: 0;
   border-radius: var(--radius-control);
@@ -1578,6 +1736,12 @@ button {
   button.unit-fix:hover:not(:disabled),
   button.link-row:hover:not(:disabled),
   button.editor-more:hover:not(:disabled),
+  /* Las filas de la rejilla del editor son la cuarta vez que hay que ampliar
+     esta lista, y por la misma razón: son texto, no CTAs. Sin esto `Guardar
+     nota` se rellenaba de ámbar con el ámbar de su propia tinta encima —
+     medido, `--accent-hover` de fondo contra `--accent-ink` de letra— y
+     `Eliminar ejercicio` habría quedado en rojo sobre un bloque naranja. */
+  button.editor-row-action:hover:not(:disabled),
   button.day-repeat:hover:not(:disabled),
   button.days-backfill:hover:not(:disabled) {
     background: none;
@@ -1594,6 +1758,8 @@ button {
      a set row filled amber under the mouse — the same defect 1efc3df fixed
      for .link-row, reintroduced by three new surfaces. */
   button.set-row:hover:not(:disabled),
+  button.editor-row:hover:not(:disabled),
+  button.editor-back:hover:not(:disabled),
   button.workout-title:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
@@ -2157,68 +2323,12 @@ button.set-action {
   background: color-mix(in srgb, var(--chip, var(--accent)) 12%, transparent);
 }
 
-/* Inline muscle-group corrector — the classifier's guess is editable. */
-.muscle-edit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-  flex-wrap: wrap;
-}
-.muscle-edit-name {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
 /* La oferta que sigue a "Ya existe X": a lo ancho, para que se lea como la
    respuesta a la queja de encima y no como un segundo botón de guardar. */
 .merge-action {
   flex-basis: 100%;
 }
-/* The label on the in-card corrector: muted, not the display face — a label
-   that never changes doesn't earn the exercise-name treatment. */
-.muscle-edit-heading {
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--muted);
-}
-/* The note editor, same shape as the muscle row above it: label left, control
-   filling the rest, save on its own line so the field keeps its width on a
-   phone. Both live in the one fold you open to fix something about the lift. */
-.note-edit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.note-edit input {
-  flex: 1;
-  min-width: 8rem;
-  min-height: 44px;
-}
-.note-edit button {
-  flex-basis: 100%;
-  /* 44, no los 39 que hereda de `button.secondary`: está dentro del editor y
-     es el botón que confirma la nota. */
-  min-height: 44px;
-}
-.muscle-edit-select {
-  margin-left: auto;
-  min-height: 44px;
-}
-/* 44 px, como todo lo que se toca (DESIGN.md). Medía 36 porque este selector
-   —`.muscle-edit select`, más específico y más abajo en el fichero— le pasaba
-   por encima al `min-height: 44px` de la clase de al lado, así que el 44 que
-   estaba escrito no llegaba a pintarse nunca. El cuerpo se queda en 0.85rem:
-   lo que hay que arreglar es el objetivo del dedo, no el tamaño de la letra. */
-.muscle-edit select {
-  width: auto;
-  min-height: 44px;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-}
+
 /* The way back from a re-tag, inside the same fold that made it — not a toast.
    An overlay that times out is the shape DESIGN.md rejected for the PR banner,
    and an undo you can miss by looking away is not an undo. Muted sentence,

@@ -576,23 +576,30 @@ function ExerciseCard({
             moreLabel="Grupo y nota"
             more={
               <>
-                <div className="muscle-edit">
-                  {/* No dot here: the header tag already carries the coloured
-                      identity chip. This row is the control, not a second chip.
+                {/* Una fila, y la fila es el control. El rótulo `Grupo muscular`
+                    que iba a la izquierda se ha ido: el valor de este campo es
+                    siempre el nombre de un músculo, así que decir «Grupo
+                    muscular: Pecho» es decir Pecho dos veces, y en una fila de
+                    44 px el rótulo se llevaba media anchura para no aportar
+                    nada. Sigue entero en la etiqueta hablada, con el nombre del
+                    ejercicio detrás porque en un superset hay varias tarjetas
+                    abiertas a la vez.
 
-                      Un `label` de verdad y no un `span`: el rótulo de al lado
-                      no hacía nada al tocarlo, y en una fila donde el control
-                      es un `select` de 44 px eso es regalar la mitad del
-                      objetivo. La etiqueta hablada sigue llevando el nombre
-                      del ejercicio, porque en un superset hay varias tarjetas
-                      abiertas — y empieza por el rótulo visible entero, que es
-                      lo que necesita el control por voz. */}
-                  <label className="muscle-edit-heading" htmlFor={`exgroup-${name}`}>
-                    Grupo muscular
-                  </label>
+                    El punto de color vuelve aquí y no duplica el de la
+                    cabecera: cuando este cajón está abierto el panel está
+                    tapando la cabecera, así que el punto no está compitiendo
+                    con nada — está siendo lo único que hay. Y colour rides a
+                    mark, never text (DESIGN.md): el nombre del músculo se queda
+                    en tinta. */}
+                <div className="editor-row editor-row-picker">
+                  <span
+                    className={`dot${muscle ? '' : ' dot-new'}`}
+                    aria-hidden="true"
+                    style={{ '--chip': muscleColor(muscle) }}
+                  />
                   <select
                     id={`exgroup-${name}`}
-                    className="muscle-edit-select"
+                    className="editor-row-control"
                     aria-label={`Grupo muscular de ${name}`}
                     value={muscle ?? ''}
                     onChange={(e) => requestRetag(e.target.value || null)}
@@ -606,21 +613,26 @@ function ExerciseCard({
                   </select>
                 </div>
                 {onChangeNote && (
-                  <form className="note-edit" onSubmit={saveNote}>
-                    <label className="muscle-edit-heading" htmlFor={`exnote-${name}`}>
-                      Nota
-                    </label>
+                  // La nota, en su fila y con su confirmación dentro de ella:
+                  // en cuanto `Guardar nota` bajaba a una línea propia el cajón
+                  // costaba una fila de más, y una fila de más aquí es un
+                  // control del registro tapado. El marcador de posición hace
+                  // de rótulo mientras está vacía —es el único momento en que
+                  // la fila no se explica sola— y desaparece en cuanto hay algo
+                  // escrito, que es cuando ya no hace falta.
+                  <form className="editor-row editor-row-note" onSubmit={saveNote}>
                     <input
                       id={`exnote-${name}`}
+                      className="editor-row-control"
                       aria-label={`Nota de ${name}`}
                       maxLength={200}
                       value={noteDraft}
                       onChange={(e) => setNoteDraft(e.target.value)}
-                      placeholder="agarre, altura del banco, molestias…"
+                      placeholder="Nota: agarre, altura del banco…"
                     />
                     {/* Explicit, not save-on-blur: on a phone the keyboard closing
                         is not the same gesture as deciding you meant it. */}
-                    <button type="submit" className="secondary">
+                    <button type="submit" className="editor-row-action">
                       Guardar nota
                     </button>
                   </form>
@@ -671,7 +683,14 @@ function ExerciseCard({
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
       )}
 
-      <form onSubmit={handleLogSet}>
+      {/* El aparato de la serie, marcado como intocable para el editor. Es la
+          regla de DESIGN.md hecha atributo: «cuando una acción rara y una
+          acción por serie se pelean por el mismo sitio, gana la de la serie,
+          siempre». Sin esto el panel se posaba encima —sin partir nada, así
+          que ninguna regla saltaba— y dejaba los seis controles de peso y reps
+          más `Registrar serie` y `Repetir serie` tapados e `inert` mientras
+          cambiabas una etiqueta. */}
+      <form className="log-form" data-editor-protect onSubmit={handleLogSet}>
         <div className="row">
           <div className="field stepper-field">
             <label htmlFor={`weight-${name}`}>Peso · kg</label>
@@ -766,7 +785,7 @@ function ExerciseCard({
             are the rows under the button you just pressed. What separates them
             from the "Última vez" marks is that those sit above the form and
             these below it — position already did the job the label claimed. */}
-        <ol className="sets set-log">
+        <ol className="sets set-log" data-editor-protect>
           {sets.map((set, index) => (
             <li key={set.id}>
               {editingId === set.id ? (

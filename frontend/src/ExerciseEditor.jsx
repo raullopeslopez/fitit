@@ -52,6 +52,35 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  *    DESIGN.md llama acciones raras —reetiquetar y borrar— que por regla de la
  *    casa no llevan controles con peso de contenido.
  *
+ * ── El segundo paso sustituye al primero; no se despliega debajo ───────────
+ *
+ * El segundo paso nació como un pliegue, y el pliegue no ganó. Medido en
+ * Entreno: abrirlo llevaba el panel de **130 a 314 px (+141 %)** y tapaba
+ * enteros **nueve controles** —la fila de peso y reps completa, `Registrar
+ * serie`, `Repetir serie` y `Editar serie 1`—, todos marcados `inert`. En
+ * Progreso tapaba el **100 % de la gráfica** (16,8 % con el pliegue cerrado).
+ * Cero controles partidos, sí, pero conseguido creciendo hasta que lo que iba a
+ * partir cupiera entero dentro de la sombra, que no es lo mismo que caber.
+ *
+ * Ahora los dos pasos son dos caras del mismo panel: entrar en el segundo
+ * retira el primero. El panel pasa de **128 a 164 px** —una fila de 44 más, no
+ * cuatro—, y esos 164 caben en el hueco que dejan la gráfica por arriba y la
+ * barra por abajo en Progreso, y entre el disparador y la fila de peso y reps
+ * en Entreno. El coste es que el nombre no está a la vista dentro del segundo
+ * paso, y se paga en la fila de la vuelta, que hay que dibujar igualmente: la
+ * vuelta lleva el nombre escrito.
+ *
+ * ── El cuerpo del cajón es una rejilla, no un formulario ───────────────────
+ *
+ * Cada propiedad es **una fila y la fila es el control**: el valor a tamaño de
+ * lectura, sin caja, sin borde y sin un rótulo al lado repitiendo cómo se llama
+ * el campo. El grupo se lee `● Pecho ›` porque el nombre del músculo ya dice
+ * que eso es un grupo muscular; la nota se lee sola en cuanto tiene algo
+ * escrito, y cuando no, su marcador de posición nombra el campo. El paso de la
+ * casa no puede ser el de 32 px de la referencia: DESIGN.md pone el suelo en 44
+ * y aquí no se negocia, así que lo que se copia es la idea —cero cromo— y no el
+ * número.
+ *
  * Lo que **no** se movió: la fusión al chocar con un nombre existente y la
  * queja del renombrado se quedan pegadas al campo. No son un segundo paso, son
  * la respuesta a lo que acabas de intentar.
@@ -139,6 +168,31 @@ export function ExerciseEditor({
     const value = field.value ?? ''
     field.setSelectionRange(value.length, value.length)
   }, [open])
+
+  // Ir y volver entre los dos pasos es navegar, y navegar sin llevarse el foco
+  // deja a quien usa teclado o lector en una página que ha cambiado entera
+  // debajo de un cursor que sigue donde estaba —o, peor, en `body`, porque el
+  // control que tenía el foco acaba de desmontarse—. Al entrar, el foco cae en
+  // la vuelta, que es el primer control del paso y además dice dónde estás; al
+  // salir, en la puerta por la que entraste. La primera vuelta no cuenta: al
+  // abrir manda el campo del nombre, y de eso se ocupa el efecto de arriba.
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (!open) {
+      firstRender.current = true
+      return
+    }
+    if (firstRender.current) {
+      firstRender.current = false
+      return
+    }
+    const panel = panelRef.current
+    if (!panel) return
+    const target = moreOpen
+      ? panel.querySelector('.editor-back')
+      : panel.querySelector('.editor-more')
+    target?.focus()
+  }, [open, moreOpen])
 
   // Escape cierra. Registrado sólo mientras está abierto, para que nada de la
   // página tenga que saber que este componente existe cuando no lo está.
@@ -431,24 +485,89 @@ export function ExerciseEditor({
       // El pie de la tarjeta a la que pertenece el panel. Sin tarjeta —en una
       // prueba, o si un día esto cuelga de otra cosa— no acota nada.
       const card = slot.closest('.card')
-      const cardBottom = card ? card.getBoundingClientRect().bottom : Infinity
+      const cardRect = card ? card.getBoundingClientRect() : null
+      const cardBottom = cardRect ? cardRect.bottom : Infinity
 
-      // El disparador es el hermano de justo antes del hueco: el panel cuelga
-      // literalmente de él.
-      const trigger = slot.previousElementSibling
-      const triggerRect = trigger?.getBoundingClientRect()
+      // ── Lo que el panel no puede tapar, no sólo lo que no puede partir ────
+      // El pacto de la casa: «cuando una acción rara y una acción por serie se
+      // pelean por el mismo sitio, gana la de la serie, siempre» (DESIGN.md).
+      // Hasta ahora el panel sólo se prohibía *partir* controles, y partir no
+      // es lo que hacía daño: con el segundo paso abierto en Entreno el canto
+      // de abajo aterrizaba limpiamente en el hueco entre dos series y el panel
+      // se comía enteros —sin cortar ninguno— la fila de peso y reps,
+      // `Registrar serie`, `Repetir serie` y `Editar serie 1`. Nueve controles
+      // del aparato de la serie, tapados por el cajón donde se cambia una
+      // etiqueta. Y en Progreso lo mismo con la gráfica, que es lo que esa
+      // pantalla *es*: el 100 % tapado con el cajón abierto.
+      //
+      // Así que quien llama marca lo que no se toca con `data-editor-protect` y
+      // aquí se convierte en dos topes duros — uno por banda, porque lo que
+      // está debajo del hueco se esquiva bajando el pie del panel y lo que está
+      // encima se esquiva no subiendo tanto:
+      //
+      // - protegido **debajo** del hueco → el panel no llega a su techo;
+      // - protegido **encima** → el panel no sube por encima de su pie.
+      //
+      // Y una condición sobre las dos, que es lo que las hace honestas:
+      // **valen mientras el panel quepa entre ellas, y sólo mientras**. Si no
+      // cabe, se sueltan las dos y manda la cuenta de siempre. Medido en
+      // Progreso a 430×932 con la página en 735, entre el pie de la gráfica
+      // (769,9) y la barra de pestañas (875) hay **105 px** y el primer paso
+      // mide 130: con el techo duro el panel se quedaba en 105 y `Guardar
+      // nombre` —lo único que este panel viene a hacer— se iba debajo del
+      // corte, alcanzable sólo desplazando por dentro de una caja de 105 px que
+      // no parece desplazable. Un control que no se ve es peor defecto que unos
+      // píxeles de gráfica tapados, y el panel es lo que estás usando.
+      //
+      // Lo que se conserva al soltarlas es que la subida sigue siendo la
+      // mínima: el panel llega hasta donde necesita y ni un píxel más, así que
+      // sobre la gráfica se posan los 25 px que le sobran al primer paso
+      // (17,2 %) o los 61 del segundo (42 %) — nunca el 100 % que costaba el
+      // pliegue. En Entreno no se sueltan nunca, porque entre el aire de arriba
+      // y el techo del formulario de registro hay 456 px para un panel de 166.
+      // Es la diferencia entre la barra de referencia y nosotros: ella llega a
+      // cero controles partidos *atracando a un tamaño fijo sobre un carril
+      // secundario*, y nosotros llegábamos creciendo hasta que lo que íbamos a
+      // partir cupiera dentro de la sombra.
+      let protectFloor = Infinity
+      let protectCeil = TOP_GAP
+      for (const el of document.querySelectorAll('[data-editor-protect]')) {
+        if (panel.contains(el) || el.contains(slot)) continue
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.height === 0) continue
+        // Sólo lo que comparte columna con el panel: lo que le pasa por el lado
+        // no lo tapa nunca.
+        if (r.left >= box.right || r.right <= box.left) continue
+        if (r.top >= slotTop) protectFloor = Math.min(protectFloor, r.top)
+        else if (r.bottom <= slotTop) protectCeil = Math.max(protectCeil, r.bottom)
+      }
 
-      // La cuenta de la pantalla sólo tiene sentido mientras se vea la puerta.
-      // Si la tarjeta entera se ha ido del viewport —la página se ha movido
-      // debajo de un editor abierto— no hay nada que mantener a la vista, y
-      // medir contra el borde útil de todas formas arranca el panel de su
-      // tarjeta: se planta a media pantalla, sobre contenido que no es suyo, o
-      // se queda con 0 px de alto. Fuera de pantalla manda la tarjeta y nada
-      // más.
-      const doorOnScreen = triggerRect
-        ? triggerRect.top < usableBottom && triggerRect.bottom > 0
-        : true
-      const limit = doorOnScreen ? Math.min(usableBottom, cardBottom) : cardBottom
+      // La cuenta de la pantalla sólo tiene sentido mientras quede tarjeta a la
+      // vista. Si la tarjeta entera se ha ido por debajo del borde útil —la
+      // página se ha movido debajo de un editor abierto— el panel se va con
+      // ella en vez de quedarse flotando a media pantalla sobre contenido que
+      // no es suyo: no sube nada (`maxLift` a cero) y sólo lo acota su tarjeta.
+      //
+      // Lo que **no** puede volver a pasar es que el borde útil se caiga de la
+      // cuenta mientras el panel sí se ve. Ése era el defecto medido: la regla
+      // anterior soltaba el borde útil en cuanto el *disparador* se metía
+      // detrás de la barra de pestañas, y entonces el pie del panel se medía
+      // sólo contra la tarjeta, que baja más. En Progreso, abriendo con la
+      // página en 735 y subiendo a 675 —60 px, un gesto— el panel pasaba de
+      // acabar en 874,9 (rozando la barra) a acabar en 965,5, con 90 px suyos
+      // detrás de una barra que está a `z-index: 10` contra su 3, **no** es
+      // `inert`, y navega a Días: el `select` del grupo quedaba con 11,9 de sus
+      // 44 px debajo, y tocar ahí no era tocar en el vacío, era tirar el
+      // renombrado sin guardar. Eso no es un defecto visual, es pérdida de
+      // datos.
+      const cardOnScreen = cardRect ? cardRect.top < usableBottom : true
+      const baseLimit = Math.min(cardOnScreen ? usableBottom : Infinity, cardBottom)
+      // Las dos marcas de lo intocable, sueltas de golpe si el panel no cabe
+      // entre ellas: o se respetan enteras o no se respetan, porque respetar
+      // sólo una deja el panel recortado por el otro lado.
+      const fitsProtected = Math.min(baseLimit, protectFloor) - protectCeil >= height
+      const limit = fitsProtected ? Math.min(baseLimit, protectFloor) : baseLimit
+      const ceiling = fitsProtected ? protectCeil : TOP_GAP
 
       // Lo que hay que subir para que el panel entero esté a la vista: contra
       // los dos bordes a la vez, porque el que se pase por alto es el que
@@ -504,8 +623,10 @@ export function ExerciseEditor({
       // delante. Medido en Entreno con el viewport a 430×602 (un IME de ~330
       // px), el hueco cae en 549, la barra de pestañas sube a 545 y el panel se
       // quedaba con **8 px de alto** — `Guardar nombre` en y606, fuera de la
-      // pantalla entera. El único tope es el aire de arriba.
-      const maxLift = Math.floor(slotTop - TOP_GAP)
+      // pantalla entera. Los únicos topes son el aire de arriba y lo que esté
+      // marcado como intocable por encima del hueco (la gráfica de Progreso),
+      // y ninguno de los dos depende de si el teclado está delante.
+      const maxLift = cardOnScreen ? Math.floor(slotTop - ceiling) : 0
       let lift = Math.max(0, Math.min(needed, maxLift))
 
       const rects = crossables()
@@ -632,6 +753,25 @@ export function ExerciseEditor({
         role="dialog"
         aria-label={`Editar ${name}`}
       >
+        {/* ── Dos pasos, no un pliegue ──────────────────────────────────────
+            El segundo paso **sustituye** al primero en vez de añadirse debajo.
+            Medido en Entreno con `Grupo y nota` abierto, desplegándose en
+            sitio: el panel pasaba de 130 a 314 px —un 141 % más— y tapaba
+            enteros los nueve controles del aparato de la serie. En Progreso,
+            el 100 % de la gráfica. Y eso es exactamente el reparto que
+            DESIGN.md prohíbe: «cuando una acción rara y una acción por serie se
+            pelean por el mismo sitio, gana la de la serie, siempre», con el
+            grupo, la nota y el borrado clasificados ahí mismo como acciones
+            raras que van «detrás del `⋯`… o a Progreso».
+
+            Un cajón de acciones raras no tiene por qué crecer 184 px sobre los
+            controles de la serie que estás entre medias de registrar. Cambiando
+            de paso en vez de desplegar, el panel pasa de 128 a 164: dos filas
+            de 44 en lugar de una, y ni una sola fila del registro tapada. El
+            precio es que el nombre no se ve mientras estás en el segundo paso,
+            y se paga poniéndolo en la vuelta, que hay que dibujar de todas
+            formas. */}
+        {!moreOpen ? (
         <form className="editor-name" onSubmit={onSubmitName}>
           {/* Sólo cuando el panel se ha llevado por delante el único sitio de
               la pantalla que decía qué ejercicio es esto. El campo de abajo
@@ -676,8 +816,12 @@ export function ExerciseEditor({
               // La puerta al segundo paso, en el vocabulario que la casa ya usa
               // para las puertas: tinta en la etiqueta, `›` apagado, y el
               // nombre del ejercicio en la etiqueta hablada por lo mismo que el
-              // campo de arriba. `aria-expanded` porque no lleva a otra
-              // pantalla: despliega ésta.
+              // campo de arriba.
+              //
+              // Ya no lleva `aria-expanded`: no despliega nada debajo, cambia
+              // el panel de paso. Anunciar «desplegado» un control que en ese
+              // momento ni siquiera está en pantalla era la mentira que este
+              // panel se ha pasado tres vueltas quitando de otros sitios.
               //
               // El rótulo lo pone quien llena el cajón. Antes ponía
               // `Más ajustes`, que es el nombre más vago disponible: nombra un
@@ -690,9 +834,7 @@ export function ExerciseEditor({
                 type="button"
                 className="editor-more"
                 aria-label={`${moreLabel} de ${name}`}
-                aria-expanded={moreOpen}
-                aria-controls="editor-more-pane"
-                onClick={() => setMoreOpen((v) => !v)}
+                onClick={() => setMoreOpen(true)}
               >
                 {moreLabel}
               </button>
@@ -705,8 +847,35 @@ export function ExerciseEditor({
           )}
           {nameExtra}
         </form>
-        {more && moreOpen && (
-          <div className="editor-more-pane" id="editor-more-pane">
+        ) : (
+          <div className="editor-more-pane">
+            {/* La cabecera del segundo paso hace tres cosas con una fila de 44:
+                vuelve, dice en qué ejercicio estás —el campo del nombre no está
+                a la vista aquí, así que alguien tiene que decirlo— y deja el
+                aspa donde el pulgar ya la buscó en el primer paso. La flecha es
+                la de la casa (`← Días` en la cabecera de un entreno), no el `›`
+                de las puertas: aquí se sale, no se entra. */}
+            <div className="editor-row editor-row-back">
+              <button
+                type="button"
+                className="editor-back"
+                aria-label={`Volver al nombre de ${name}`}
+                onClick={() => setMoreOpen(false)}
+              >
+                <span className="editor-back-arrow" aria-hidden="true">
+                  ←
+                </span>
+                <span className="editor-back-name">{name}</span>
+              </button>
+              <button
+                type="button"
+                className="editor-close"
+                aria-label="Cerrar"
+                onClick={onClose}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
             {more}
           </div>
         )}

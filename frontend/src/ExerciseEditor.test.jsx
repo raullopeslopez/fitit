@@ -118,21 +118,58 @@ describe('ExerciseEditor: el segundo paso', () => {
     withMore()
     expect(screen.queryByLabelText('Grupo muscular')).toBeNull()
     expect(screen.queryByRole('button', { name: /eliminar ejercicio/i })).toBeNull()
-    expect(screen.getByRole('button', { name: /^Grupo y eliminar/ })).toHaveAttribute(
+    // Sin `aria-expanded`: la puerta ya no despliega nada debajo, cambia el
+    // panel de paso — y anunciarse «desplegada» mientras ni siquiera está en
+    // pantalla es la clase de mentira que este panel lleva tres vueltas
+    // quitando.
+    expect(screen.getByRole('button', { name: /^Grupo y eliminar/ })).not.toHaveAttribute(
       'aria-expanded',
-      'false',
     )
   })
 
-  it('un toque lo abre, otro lo cierra', async () => {
+  // El cambio de esta vuelta. El segundo paso era un pliegue que se abría
+  // *debajo* del primero: medido en Entreno, el panel pasaba de 130 a 314 px
+  // (+141 %) y tapaba enteros los nueve controles del aparato de la serie; en
+  // Progreso, el 100 % de la gráfica. Un cajón de acciones raras no crece 184
+  // px sobre los controles de la serie que estás entre medias de registrar
+  // (DESIGN.md: «gana la de la serie, siempre»). Ahora sustituye.
+  it('el segundo paso sustituye al primero en vez de crecer debajo', async () => {
     withMore()
-    const more = screen.getByRole('button', { name: /^Grupo y eliminar/ })
-    await userEvent.click(more)
-    expect(more).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Nombre de Press banca')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
     expect(screen.getByLabelText('Grupo muscular')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /eliminar ejercicio/i })).toBeInTheDocument()
-    await userEvent.click(more)
+    // Ni el campo del nombre, ni su confirmación, ni la propia puerta: el panel
+    // entero es el segundo paso mientras dura.
+    expect(screen.queryByLabelText('Nombre de Press banca')).toBeNull()
+    expect(screen.queryByRole('button', { name: /guardar nombre/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Grupo y eliminar/ })).toBeNull()
+  })
+
+  // La vuelta lleva el nombre escrito porque el campo que lo decía no está a la
+  // vista: alguien tiene que decir en qué ejercicio estás.
+  it('la vuelta devuelve al nombre y dice de quién es', async () => {
+    withMore()
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+    const back = screen.getByRole('button', { name: 'Volver al nombre de Press banca' })
+    expect(back).toHaveTextContent('Press banca')
+    // Navegar sin llevarse el foco deja el cursor en un control desmontado.
+    expect(document.activeElement).toBe(back)
+    await userEvent.click(back)
+    expect(screen.getByLabelText('Nombre de Press banca')).toBeInTheDocument()
     expect(screen.queryByLabelText('Grupo muscular')).toBeNull()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /^Grupo y eliminar/ }),
+    )
+  })
+
+  // El aspa está en los dos pasos: el pulgar la buscó una vez en el primero y
+  // no puede desaparecer al entrar en el segundo.
+  it('el aspa cierra también desde el segundo paso', async () => {
+    const onClose = vi.fn()
+    withMore({ onClose })
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+    await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
+    expect(onClose).toHaveBeenCalled()
   })
 
   // El nombre accesible empieza por la etiqueta visible entera —el control por
@@ -260,6 +297,11 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     sliverTop = null,
     sliverHeight = 10,
     titleTop = 0,
+    // Lo que el panel no puede tapar, marcado por quien llama: en Entreno el
+    // formulario de registro y la lista de series, en Progreso la gráfica.
+    protectTop = null,
+    protectHeight = 100,
+    farBelowTop = navTop - 20,
   }) {
     // `shift` finge el desplazamiento de la página: todo lo que vive en el
     // documento baja, y la barra fija se queda donde está. Es la única
@@ -283,7 +325,16 @@ describe('ExerciseEditor: dónde cae el panel', () => {
           ? rect(-999, -999)
           : rect(sliverTop + d, sliverTop + d + sliverHeight)
       }
-      if (cl?.contains('far-below')) return rect(navTop - 20, navTop)
+      if (cl?.contains('protect-zone')) {
+        return protectTop === null
+          ? rect(-999, -999)
+          : rect(protectTop + d, protectTop + d + protectHeight)
+      }
+      if (cl?.contains('far-below')) {
+        return farBelowTop <= -999
+          ? rect(-999, -999)
+          : rect(farBelowTop + d, farBelowTop + d + 20)
+      }
       if (cl?.contains('exercise-title')) return rect(titleTop + d, titleTop + d + 44)
       return origRect.call(this)
     }
@@ -350,6 +401,7 @@ describe('ExerciseEditor: dónde cae el panel', () => {
         <button type="button" className="sliver">
           Pecho
         </button>
+        <div className="protect-zone" data-editor-protect />
       </div>
     )
   }
@@ -517,13 +569,12 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     expect(panel.style.maxHeight).toBe('130px')
   })
 
-  // El otro extremo del mismo cálculo. Si la tarjeta entera está fuera de
-  // pantalla —la página se ha movido debajo de un editor ya abierto, o algo ha
-  // redimensionado— no hay nada que mantener a la vista, y medir contra el
-  // borde útil de todas formas arranca el panel de su tarjeta: sale flotando en
-  // mitad del viewport, encima de contenido que no es suyo, o con 0 px de alto.
-  // Fuera de pantalla manda la tarjeta y sólo la tarjeta.
-  it('con la tarjeta fuera de pantalla el panel no se despega de ella', () => {
+  // El otro extremo del mismo cálculo. Si la tarjeta entera se ha ido por
+  // debajo del borde útil —la página se ha movido debajo de un editor ya
+  // abierto— el panel se va con ella: no sube nada. Quedarse pegado arriba lo
+  // dejaría flotando a media pantalla sobre contenido que no es suyo, sin
+  // tarjeta debajo que explique de qué es.
+  it('con la tarjeta fuera de pantalla el panel se va con ella', () => {
     restore = fakeLayout({
       slotTop: 1622,
       panelHeight: 130,
@@ -533,10 +584,122 @@ describe('ExerciseEditor: dónde cae el panel', () => {
       cardBottom: 1641,
     })
     const { panel } = open()
-    // Mismos 111 de antes, más los 9 que hacen falta para no partir en dos el
-    // control que hay justo debajo del hueco.
-    expect(panel.style.top).toBe('-120px')
-    expect(panel.style.maxHeight).toBe('139px')
+    expect(panel.style.top).toBe('0px')
+  })
+
+  // ── El defecto medido de esta vuelta ────────────────────────────────────
+  // El borde útil se caía de la cuenta en cuanto el *disparador* se metía
+  // detrás de la barra de pestañas, y entonces el pie del panel se medía sólo
+  // contra la tarjeta, que baja más. Medido en Progreso a 430×932: abriendo con
+  // la página en 735 el panel acababa en 874,9 contra una barra en 875 —0,1 px
+  // de holgura, calculada a propósito— y **subiendo 60 px la página**, un
+  // gesto, acababa en 965,5: 90 px suyos detrás de una barra que está a
+  // `z-index: 10` contra su 3, que no es `inert` y que navega a Días. El
+  // `select` del grupo quedaba con 11,9 de sus 44 px debajo; tocar ahí no era
+  // tocar en el vacío, era tirar el renombrado sin guardar. Pérdida de datos,
+  // no defecto visual.
+  //
+  // Mientras quede tarjeta a la vista, el borde útil no se negocia.
+  it('el pie del panel no se mete debajo de la barra al desplazar la página', async () => {
+    restore = fakeLayout({
+      slotTop: 874.9,
+      panelHeight: 130,
+      panelRectHeight: 130,
+      navTop: 875,
+      triggerTop: 830.9,
+      cardTop: 500,
+      cardBottom: 890.9,
+      farBelowTop: -999,
+    })
+    const { panel } = open()
+    expect(panel.style.top).toBe('-130px')
+
+    // La página sube 60 px: todo lo del documento baja, la barra no.
+    await act(async () => {
+      restore.scrollTo(60)
+    })
+    // 934,9 − 875 = 59,9 de hueco por debajo del borde útil, más los 130 del
+    // panel: 190 de subida para volver a acabar clavado en la barra.
+    await waitFor(() => expect(panel.style.top).toBe('-190px'))
+    expect(panel.style.maxHeight).toBe('130px')
+  })
+
+  // ── Lo protegido no se tapa, no sólo no se parte ────────────────────────
+  // Hasta ahora el panel sólo se prohibía *partir* controles, y partir no era
+  // lo que hacía daño: con el segundo paso abierto en Entreno el canto de abajo
+  // aterrizaba limpiamente en el hueco entre dos series y el panel se comía
+  // enteros —sin cortar ninguno— los seis controles de peso y reps, `Registrar
+  // serie`, `Repetir serie` y `Editar serie 1`.
+  it('no se posa sobre lo que quien llama ha marcado como intocable', () => {
+    restore = fakeLayout({
+      slotTop: 400,
+      panelHeight: 164,
+      navTop: 875,
+      triggerTop: 344,
+      cardTop: 200,
+      cardBottom: 800,
+      underTop: -999,
+      farBelowTop: -999,
+      protectTop: 500,
+      protectHeight: 200,
+    })
+    const { panel } = open()
+    // El panel colgado del hueco acabaría en 564, o sea 64 px dentro del
+    // aparato de la serie sin partir nada porque nada empieza ahí. Sube los 64.
+    expect(panel.style.top).toBe('-64px')
+    expect(panel.style.maxHeight).toBe('164px')
+  })
+
+  // Y por el otro lado: la gráfica de Progreso está *encima* del disparador, así
+  // que ahí no se esquiva bajando el pie sino no subiendo tanto.
+  it('tampoco sube por encima de lo protegido, si cabe debajo', () => {
+    restore = fakeLayout({
+      slotTop: 874.9,
+      panelHeight: 200,
+      navTop: 875,
+      triggerTop: 830.9,
+      cardTop: 400,
+      cardBottom: 890.9,
+      underTop: -999,
+      farBelowTop: -999,
+      protectTop: 447,
+      protectHeight: 200,
+    })
+    const { panel } = open()
+    // Entre el pie de la gráfica (647) y la barra (875) hay 227,9 px y el panel
+    // pide 200: cabe, así que sube los 200 justos y se queda a 27,9 de la
+    // gráfica sin tocarla.
+    expect(panel.style.top).toBe('-200px')
+    expect(panel.style.maxHeight).toBe('200px')
+  })
+
+  // Lo intocable vale mientras el panel quepa entre las dos marcas, y sólo
+  // mientras. Medido en Progreso con la página en 735: entre el pie de la
+  // gráfica y la barra hay 105 px y el primer paso mide 130, así que con el
+  // techo duro el panel se quedaba en 105 y `Guardar nombre` —lo único que este
+  // panel viene a hacer— caía debajo del corte, dentro de una caja de 105 px
+  // que no parece desplazable. Un control que no se ve es peor que unos píxeles
+  // de gráfica tapados. Lo que se conserva es que la subida sigue siendo la
+  // mínima: se posan encima los que sobran, no uno más.
+  it('cuando no cabe debajo de lo protegido se posa encima, lo justo', () => {
+    restore = fakeLayout({
+      slotTop: 874.9,
+      panelHeight: 300,
+      navTop: 875,
+      triggerTop: 830.9,
+      cardTop: 400,
+      cardBottom: 890.9,
+      underTop: -999,
+      farBelowTop: -999,
+      protectTop: 447,
+      protectHeight: 200,
+    })
+    const { panel } = open()
+    // 300 no caben en 227,9. Sube los 300 que necesita para verse entero y ni
+    // uno más: el pie sigue clavado en la barra y sobre la gráfica quedan los
+    // 72,1 que sobraban, no las 200 de la gráfica entera.
+    expect(panel.style.top).toBe('-300px')
+    expect(panel.style.maxHeight).toBe('300px')
   })
 
   it('sube lo justo para no quedarse debajo de la barra de pestañas', () => {

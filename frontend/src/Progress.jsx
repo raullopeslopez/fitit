@@ -70,7 +70,19 @@ function Ladder({ rungs, color }) {
   )
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Récords reales">
+    // `data-editor-protect`: la gráfica es lo que esta pantalla *es* —«el
+    // contenido por encima del mecanismo que lo produce», DESIGN.md— y el
+    // editor no puede posarse encima de ella. Con el segundo paso desplegándose
+    // en sitio la tapaba entera; ahora el panel tiene prohibido subir del pie
+    // de este `svg`, y lo que no le quepa entre la gráfica y la barra de
+    // pestañas se desplaza por dentro.
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="chart"
+      data-editor-protect
+      role="img"
+      aria-label="Récords reales"
+    >
       <line
         x1="0"
         x2={W}
@@ -1250,13 +1262,22 @@ export default function Progress() {
               moreLabel="Grupo y eliminar"
               more={
                 <>
-                  <div className="muscle-edit">
-                    <label htmlFor="muscle-select" className="muscle-edit-heading">
-                      Grupo muscular
-                    </label>
+                  {/* Una fila, y la fila es el control: el punto del músculo, su
+                      nombre en tinta y el `›` de las puertas. El rótulo
+                      `Grupo muscular` que iba al lado se ha ido —el valor de
+                      este campo es siempre un músculo, así que el rótulo decía
+                      dos veces lo mismo— y sigue entero en la etiqueta hablada,
+                      que es donde hace falta. */}
+                  <div className="editor-row editor-row-picker">
+                    <span
+                      className={`dot${current.muscle_group ? '' : ' dot-new'}`}
+                      aria-hidden="true"
+                      style={{ '--chip': muscleColor(current.muscle_group) }}
+                    />
                     <select
                       id="muscle-select"
-                      className="muscle-edit-select"
+                      className="editor-row-control"
+                      aria-label={`Grupo muscular de ${current.name}`}
                       value={current.muscle_group ?? ''}
                       onChange={(e) => requestRetag(e.target.value || null)}
                     >
@@ -1271,10 +1292,18 @@ export default function Progress() {
                   {lastRetag && <RetagUndo group={current.muscle_group} onUndo={undoRetag} />}
                   {/* The last resort for a duplicate you don't want to keep at
                       all. True red, per DESIGN.md — it is the one control here
-                      that destroys something. */}
+                      that destroys something.
+                      Sin caja: es una acción rara y DESIGN.md dice que las
+                      acciones raras no llevan controles con peso de contenido.
+                      Un botón rojo relleno al pie del cajón pesaba más que el
+                      `Guardar nombre` del primer paso, que es lo que de verdad
+                      vienes a hacer aquí. El rojo se queda —lo pide la regla del
+                      destructivo— pero como tinta, y los dos toques siguen
+                      siendo dos: esta fila abre el diálogo que cuenta las
+                      series. */}
                   <button
                     type="button"
-                    className="secondary danger delete-exercise"
+                    className="editor-row editor-row-danger delete-exercise"
                     onClick={() => setConfirmingDelete(true)}
                   >
                     Eliminar ejercicio
