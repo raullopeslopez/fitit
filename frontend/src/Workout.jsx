@@ -631,8 +631,21 @@ function ExerciseCard({
                       placeholder="Nota: agarre, altura del banco…"
                     />
                     {/* Explicit, not save-on-blur: on a phone the keyboard closing
-                        is not the same gesture as deciding you meant it. */}
-                    <button type="submit" className="editor-row-action">
+                        is not the same gesture as deciding you meant it.
+
+                        El ámbar es el estado, no el botón: encendido sólo
+                        cuando el borrador se ha separado de lo guardado. Ver
+                        el porqué entero en `button.editor-row-action`. La
+                        comparación va con `trim()` porque es con `trim()` con
+                        lo que guarda `saveNote`: un espacio de más no es un
+                        cambio, y encender por él sería prometer un guardado
+                        que no cambia nada. */}
+                    <button
+                      type="submit"
+                      className={`editor-row-action${
+                        noteDraft.trim() === (note ?? '').trim() ? '' : ' is-dirty'
+                      }`}
+                    >
                       Guardar nota
                     </button>
                   </form>
@@ -655,6 +668,23 @@ function ExerciseCard({
 
       {/* The mark to beat, in the terms you'd think it in: what you last put on
           the bar, and how long ago. */}
+      {/* ── Lo que esta marca todavía no puede pedir ────────────────────────
+          `Última vez · 40 kg × 8` es el número al que apuntas, y con el cajón
+          abierto queda tapado al **70,9 % en todo el barrido** y al 100 % al
+          final de él, sin ninguna posición de scroll que lo enseñe. Y no es
+          una queja de acabado: el formulario de registro sigue vivo con el
+          editor delante —lo protege `data-editor-protect` a propósito—, así
+          que se puede registrar una serie sin ver el número al que apunta.
+
+          Marcarla `data-editor-protect` es lo primero que se prueba y no
+          vale: mide 54 px justo debajo del hueco, así que el panel pasa a
+          tener que caber entre el aire de arriba y su techo, y ahí entra en
+          bucle con el rótulo `Editando · …` — la posición que tapa el nombre
+          añade una fila, la fila de más no cabe, no caber suelta el tope, y
+          soltar el tope destapa el nombre. React lo corta con «Maximum update
+          depth exceeded» y la pantalla se queda en blanco, medido. La marca
+          se queda sin proteger hasta que la colocación deje de depender de su
+          propia altura. */}
       {lastTop ? (
         <div className="target">
           <div className="target-label">

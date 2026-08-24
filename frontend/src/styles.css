@@ -23,7 +23,19 @@
      going brighter, so the record goes deeper: hotter iron, not brighter
      flame. Worst case across every --pr use is 5.35. See DESIGN.md. */
   --pr: #a83208;
-  --danger: #dc2626;
+  /* Rojo destructivo. Se comprobó siempre contra blanco puro (4,829) y el
+     fondo de tema claro de DESIGN.md es papel cálido `#F4F2EE`: sobre papel
+     `#DC2626` daba **4,319**, y con el velo de `:hover` (6 % de `--text`)
+     **4,276** — suspendiendo por debajo del suelo de 4,5, y peor al pasar el
+     dedo que en reposo. `#CE1F1F` pasa en los tres sitios: 5,469 sobre
+     blanco, 4,891 sobre papel, 4,842 en hover. */
+  --danger: #ce1f1f;
+  /* La tinta que va *encima* del rojo, como `--on-accent` va encima del
+     ámbar. Los dos temas no pueden compartirla: sobre `#CE1F1F` el blanco da
+     5,469 y la tinta oscura 3,25; sobre el `#F87171` de oscuro es al revés,
+     2,77 el blanco y 7,08 la tinta. Un rojo claro pide tinta oscura, igual
+     que el ámbar. */
+  --on-danger: #ffffff;
   --border: #e6e2da;
   --ring: rgba(228, 87, 27, 0.25);
   --radius: 8px;
@@ -61,7 +73,12 @@
     /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
     --accent-ink: #ff6a2c;
     --pr: #ffa733;
-    --danger: #ef4444;
+    /* `#EF4444` daba 4,345 sobre `--surface-raised` y 3,676 con el velo de
+       `:hover`: suspendía en reposo y suspendía más al tocarlo. 16 px a 600
+       no es «texto grande» para WCAG, así que el suelo es 4,5 y no 3.
+       `#F87171`: 5,911 en reposo, 5,001 en hover. */
+    --danger: #f87171;
+    --on-danger: #0b0c0e;
     --border: #24272c;
     --ring: rgba(255, 106, 44, 0.3);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -696,9 +713,15 @@ button.workout-title:active:not(:disabled) {
 }
 /* The destructive confirm is the primary act of this dialog, so it is filled —
    in red, the one colour DESIGN.md reserves for exactly this. */
+/* La tinta va en `--on-danger` porque el relleno cambia de claridad con el
+   tema: blanco sobre el rojo hondo de claro (5,469), tinta oscura sobre el
+   rojo claro de oscuro (7,079). Estaba clavada en blanco, y sobre el `#EF4444`
+   de oscuro eso ya daba **3,769** — el único uso de `--danger` que suspendía
+   sin que nadie lo hubiera mirado, porque las pruebas de contraste miran el
+   texto del panel y este botón vive en una hoja modal. */
 .dialog-actions .danger {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--on-danger);
 }
 @media (hover: hover) {
   .dialog-actions .danger:hover:not(:disabled) {
@@ -1353,6 +1376,22 @@ select.editor-row-control {
   appearance: none;
   -webkit-appearance: none;
 }
+/* ── El rótulo de la fila vacía ───────────────────────────────────────────
+   La tesis de esta rejilla es que una fila sin rótulo impreso se explica
+   sola, y el único momento en que no puede es cuando está vacía: entonces el
+   marcador de posición *es* el rótulo. Sin regla propia lo pintaba el gris de
+   fábrica de Chrome, `#757575`, que no es ninguno de los tokens de la casa y
+   da **3,55:1 sobre `--surface-raised`** — por debajo del suelo de 4,5 de
+   DESIGN.md. Y no era un caso raro: la nota vacía es el estado por defecto de
+   todo ejercicio recién creado, así que la cadena con menos contraste del
+   panel era justo la que sostiene el argumento entero.
+
+   `--muted` es lo que la casa usa para un rótulo (6,28 sobre el panel), y es
+   el mismo gris con el que se escriben los demás. */
+.editor-row-control::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
 /* El anillo lo lleva la fila, no el campo: si lo llevara el campo se dibujaría
    un rectángulo pegado al texto y volveríamos a tener una caja, que es justo
    lo que esta rejilla quita. Enfocado, la fila entera se enciende. */
@@ -1385,16 +1424,34 @@ button.editor-back:focus-visible {
   line-height: 1;
 }
 /* La confirmación de la nota, dentro de su propia fila para no costar otra.
-   Ámbar como tinta —`--accent-ink`, el único hondo para pasar AA en papel—,
-   que es como la casa escribe una acción que no es la primaria. */
+   ── Y apagada hasta que haya algo que confirmar ──────────────────────────
+   Era ámbar siempre. Legal por la letra —es un `<button type="submit">`, no
+   un rótulo, y mide 5,72— y equivocada por el motivo: con el cajón abierto en
+   Entreno se sienta 153 px por encima de `Registrar serie`, que es un
+   *relleno* ámbar, y de las banderas `PR peso`, que llevan `--pr`. Tres
+   ámbares en una columna de ~300 px haciendo tres trabajos que no se parecen
+   —una acción secundaria en reposo, la acción primaria, el récord ganado—, y
+   DESIGN.md apoya el ámbar entero en que es escaso: «amber means something
+   happened». El único de los tres que está encendido *antes* de que pase
+   nada, y siempre, se gasta la escasez de la que viven los otros dos. Por el
+   camino grita más que el punto de color del grupo, que es el dato de la
+   fila.
+
+   Así que el ámbar es el estado y no el botón: `--muted` mientras el borrador
+   sea el texto guardado, `--accent-ink` en cuanto lo hayas cambiado — que es
+   exactamente cuando hay algo que guardar. (`--accent-ink` y no `--accent`:
+   es el único hondo que pasa AA sobre papel.) */
 button.editor-row-action {
   flex: none;
   min-height: 44px;
   padding: 0 0.25rem;
   border: 0;
   background: none;
-  color: var(--accent-ink);
+  color: var(--muted);
   font-size: 0.9rem;
+}
+button.editor-row-action.is-dirty {
+  color: var(--accent-ink);
 }
 /* Lo único de aquí dentro que destruye algo. Rojo de verdad (DESIGN.md lo
    reserva para eso) pero como tinta y no como relleno: es una acción rara, y
@@ -1494,11 +1551,27 @@ button.editor-back:active:not(:disabled) {
 .editor-inplace-slot {
   position: relative;
 }
+/* ── Por qué llega hasta el canto de la tarjeta y no hasta el del texto ────
+   El hueco vive en la caja de contenido, y ahí el panel medía 357,6 px contra
+   los 396,4 de la caja de relleno. Los 19,2 px de diferencia por lado no son
+   aire: `.muscle-chips` se sangra exactamente hasta ese canto a propósito
+   —«medio chip cortado dice que hay más»—, así que el canto *vertical* del
+   panel caía dentro del último chip. Medido en Progreso a 430×932: el chip
+   «Tríceps» partido 41 de sus 60,2 px de ancho, dejando una astilla viva de
+   19,2 px, **en 28 de las paradas del barrido**. Y un canto opaco cruzando un
+   control no se lee como tapado, se lee como roto — la regla de la casa, la
+   misma por la que el panel no parte filas por arriba ni por abajo. Subir o
+   bajar no lo arregla, porque esto no lo cruza un canto horizontal: entre el
+   pie del carrusel y el techo de la gráfica hay 64 px y el cajón mide 166.
+   Lo que lo arregla es que el panel llegue donde llega lo que tapa.
+
+   Y además dice mejor lo que es: «no es una capa de la pantalla, es una capa
+   de la tarjeta». Una capa de la tarjeta es del ancho de la tarjeta. */
 .editor-inplace {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: calc(-1 * var(--card-pad-x, 0px));
+  right: calc(-1 * var(--card-pad-x, 0px));
   /* Por encima de lo que tapa y por debajo de la hoja (40) y de las barras
      fijas: esto no es una capa de la pantalla, es una capa de la tarjeta. */
   z-index: 3;
@@ -1586,7 +1659,12 @@ button.editor-back:active:not(:disabled) {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 1.15rem 1.2rem;
+  /* El relleno lateral, con nombre, porque hay dos cosas que se sangran hasta
+     el canto de la tarjeta y necesitan saber cuánto es: el carrusel de chips
+     (`.muscle-chips`, para que medio chip cortado diga «hay más») y el panel
+     del editor, que tiene que tapar entero lo que ese carrusel deja asomar. */
+  --card-pad-x: 1.2rem;
+  padding: 1.15rem var(--card-pad-x);
   margin-bottom: 1rem;
 }
 

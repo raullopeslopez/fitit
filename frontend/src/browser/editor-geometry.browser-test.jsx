@@ -30,15 +30,19 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import {
+  backdropOf,
   clearForcedTheme,
+  contrastRatio,
   controlsIn,
   coverage,
   describe as name,
   EPS,
   forceTheme,
   isVisible,
+  overlap,
   pageControls,
   paintedRect,
+  parseColor,
   scrollPageTo,
   scrollStops,
   settle,
@@ -382,6 +386,46 @@ describe('Progreso · el panel no parte nada', () => {
 })
 
 // ───────────────────────────────────────────────────────────────────────────
+// Progreso — la gráfica dice de quién es este panel
+// ───────────────────────────────────────────────────────────────────────────
+//
+// En Progreso la tercera fila del cajón es `Eliminar ejercicio`, y la gráfica
+// es la única prueba en pantalla de **qué ejercicio** es éste: el campo del
+// nombre lo tapa el propio panel, y el rótulo del disparador se va con el
+// scroll. Un botón de borrado a 166 px de una identidad tapada no es un
+// defecto de acabado, es el usuario confirmando un borrado a ciegas.
+//
+// El listón no es «no la tapes»: el panel tiene que caber entre la gráfica y
+// la barra de pestañas y a veces no cabe, y entonces —DESIGN.md, «una acción
+// rara y una por serie»— manda que el panel se vea entero. El listón es que
+// **nunca desaparezca del todo**: a cualquier parada del barrido queda
+// gráfica en pantalla.
+const CHART_CEILING = 0.5
+
+describe('Progreso · la gráfica no desaparece debajo del panel', () => {
+  it('con el cajón abierto, queda gráfica a la vista en toda parada del barrido', async () => {
+    await mountProgreso()
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    const chart = document.querySelector('svg.chart[data-editor-protect]')
+    expect(chart, 'sin gráfica no hay nada que medir').toBeTruthy()
+    const covered = []
+    for (const y of scrollStops(STEP)) {
+      await scrollPageTo(y)
+      if (!panelOnScreen(panel)) continue
+      const box = paintedRect(chart)
+      if (!box) continue
+      const cross = overlap(panel.getBoundingClientRect(), box)
+      const fraction = cross ? (cross.width * cross.height) / (box.width * box.height) : 0
+      if (fraction > CHART_CEILING) {
+        covered.push(`scroll ${y}: la gráfica tapada al ${(fraction * 100).toFixed(1)} %`)
+      }
+    }
+    expect(covered).toEqual([])
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────
 // Contraste, calculado sobre el color realmente pintado
 // ───────────────────────────────────────────────────────────────────────────
 //
@@ -437,8 +481,82 @@ for (const theme of ['dark', 'light']) {
       }
       expect(fails).toEqual([])
     })
+
+    // ── El rótulo que no es texto ──────────────────────────────────────────
+    // `textContrastReport` recorre nodos de texto, y la fila de la nota vacía
+    // no tiene ninguno: lo que hace de rótulo ahí es el `placeholder`, un
+    // pseudo-elemento. Sin una regla propia Chrome lo pinta a su gris de
+    // fábrica, que no es ninguno de los tokens de la casa. Y esa fila vacía es
+    // el **estado por defecto de todo ejercicio recién creado**, así que la
+    // cadena con menos contraste del panel es la que sostiene la tesis entera
+    // de esta rejilla: una fila sin rótulo impreso que se explica sola.
+    it('el marcador de posición de la nota pasa su suelo de AA', async () => {
+      await mountEntreno()
+      forceTheme(theme)
+      const panel = await openEditor(user)
+      await openDrawer(user)
+      await settle()
+      const fails = []
+      for (const el of panel.querySelectorAll('[placeholder]')) {
+        const fg = parseColor(getComputedStyle(el, '::placeholder').color)
+        const ratio = contrastRatio(fg, backdropOf(el))
+        if (ratio + 0.005 < 4.5) {
+          fails.push(
+            `«${el.getAttribute('placeholder')}» ${ratio.toFixed(2)}:1 en ` +
+              `rgb(${fg.slice(0, 3).map(Math.round).join(' ')})`,
+          )
+        }
+      }
+      expect(fails.length + panel.querySelectorAll('[placeholder]').length).toBeGreaterThan(0)
+      expect(fails).toEqual([])
+    })
   })
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// El ámbar es escaso o no significa nada
+// ───────────────────────────────────────────────────────────────────────────
+//
+// DESIGN.md: «amber means something happened», y «the accent is never spent on
+// static labels». Con el cajón abierto en Entreno, `Guardar nota` en ámbar se
+// sienta 153 px por encima de `Registrar serie` —un relleno ámbar— y de las
+// banderas `PR peso` (`--pr`). Tres ámbares en una columna de ~300 px haciendo
+// tres trabajos distintos: una acción secundaria en reposo, la acción
+// primaria, y el récord ganado. El que está encendido **antes de que pase
+// nada**, siempre, se gasta la escasez de la que viven los otros dos — y por
+// el camino grita más que el punto de color del grupo, que es el dato de la
+// fila.
+//
+// Así que el ámbar aquí es el estado, no el botón: apagado mientras el
+// borrador es el texto guardado, encendido en cuanto lo has cambiado, que es
+// justo cuando hay algo que guardar.
+describe('Entreno · `Guardar nota` sólo se enciende cuando hay algo que guardar', () => {
+  const colorOf = (el) => getComputedStyle(el).color
+  const token = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
+  const asRgb = (hex) => {
+    const el = document.createElement('span')
+    el.style.color = hex
+    document.body.appendChild(el)
+    const out = getComputedStyle(el).color
+    el.remove()
+    return out
+  }
+
+  it('en reposo va apagado, y al tocar la nota se enciende', async () => {
+    await mountEntreno()
+    forceTheme('dark')
+    const panel = await openEditor(user)
+    await openDrawer(user)
+    await settle()
+    const save = screen.getByRole('button', { name: 'Guardar nota' })
+
+    expect(colorOf(save)).toBe(asRgb(token('--muted')))
+
+    await user.type(screen.getByLabelText(`Nota de ${MAIN}`), 'agarre ancho')
+    await settle()
+    expect(colorOf(save)).toBe(asRgb(token('--accent-ink')))
+  })
+})
 
 // ───────────────────────────────────────────────────────────────────────────
 // La red se sabe romper

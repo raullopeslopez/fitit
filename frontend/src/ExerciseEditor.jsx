@@ -531,6 +531,9 @@ export function ExerciseEditor({
       // partir cupiera dentro de la sombra.
       let protectFloor = Infinity
       let protectCeil = TOP_GAP
+      // El **techo** del bloque de arriba, no sólo su pie. Es la tercera
+      // posición que faltaba, y se explica donde se usa.
+      let protectTop = Infinity
       for (const el of document.querySelectorAll('[data-editor-protect]')) {
         if (panel.contains(el) || el.contains(slot)) continue
         const r = el.getBoundingClientRect()
@@ -539,7 +542,10 @@ export function ExerciseEditor({
         // no lo tapa nunca.
         if (r.left >= box.right || r.right <= box.left) continue
         if (r.top >= slotTop) protectFloor = Math.min(protectFloor, r.top)
-        else if (r.bottom <= slotTop) protectCeil = Math.max(protectCeil, r.bottom)
+        else if (r.bottom <= slotTop) {
+          protectCeil = Math.max(protectCeil, r.bottom)
+          protectTop = Math.min(protectTop, r.top)
+        }
       }
 
       // La cuenta de la pantalla sólo tiene sentido mientras quede tarjeta a la
@@ -566,7 +572,46 @@ export function ExerciseEditor({
       // entre ellas: o se respetan enteras o no se respetan, porque respetar
       // sólo una deja el panel recortado por el otro lado.
       const fitsProtected = Math.min(baseLimit, protectFloor) - protectCeil >= height
-      const limit = fitsProtected ? Math.min(baseLimit, protectFloor) : baseLimit
+      // ── Y si no cabe debajo, se mira si cabe encima ──────────────────────
+      // Faltaba una posición. Cuando lo protegido está arriba y entre su pie y
+      // la barra de pestañas no caben los 166 px del cajón, la regla anterior
+      // soltaba los dos topes y dejaba caer el panel justo encima: medido en
+      // Progreso a 430×932 con el cajón abierto, la gráfica quedaba **tapada
+      // al 100 % en un tramo de 25 px de scroll**, por encima del 90 % en 50,
+      // y por encima del 50 % en 145 — un 36 % del recorrido entero.
+      //
+      // Y en esa pantalla eso no es acabado. La tercera fila del cajón es
+      // `Eliminar ejercicio`, y con el campo del nombre tapado por el propio
+      // panel la gráfica es la única prueba en pantalla de **qué ejercicio**
+      // estás a punto de borrar. Tapar la identidad del registro cuyo botón de
+      // borrado vive en el mismo panel de 166 px no es un problema de píxeles.
+      //
+      // La justificación de la vuelta anterior —que arreglarlo metería un
+      // salto— era falsa y se puede medir: sin tocar nada, el panel ya **salta
+      // de 674 a 708, 34 px dentro de un paso de scroll de 5**, entre sY 125 y
+      // sY 130. El trato nunca fue «suave y tapada» contra «a saltos y
+      // limpia»; era «un salto de 34 px *y* tapada» contra «un salto y
+      // limpia».
+      //
+      // Cuando el panel ya ha abandonado su hueco —que es exactamente este
+      // caso: el disparador está debajo de la barra de pestañas y el panel
+      // flota— da igual por qué lado del bloque protegido flote. Así que
+      // primero se prueba el sitio de siempre (debajo), y si ahí no cabe se
+      // prueba **encima**: el pie del panel en el techo del bloque. No es una
+      // tercera regla, es la misma —«no te poses encima de lo que la pantalla
+      // *es*»— resuelta por el otro lado.
+      //
+      // Sigue sin haber tope duro que recorte el panel: `fitsAbove` sólo es
+      // cierto si entre el aire de arriba y el techo del bloque cabe el panel
+      // entero, así que esta rama nunca esconde `Guardar nombre` detrás de un
+      // corte. Si tampoco cabe encima —el bloque ya asoma por el canto de
+      // arriba— manda la cuenta de siempre y el panel se posa lo mínimo.
+      const fitsAbove = !fitsProtected && protectTop - TOP_GAP >= height
+      const limit = fitsProtected
+        ? Math.min(baseLimit, protectFloor)
+        : fitsAbove
+          ? Math.min(baseLimit, protectTop)
+          : baseLimit
       const ceiling = fitsProtected ? protectCeil : TOP_GAP
 
       // Lo que hay que subir para que el panel entero esté a la vista: contra

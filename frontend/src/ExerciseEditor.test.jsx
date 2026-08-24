@@ -673,15 +673,20 @@ describe('ExerciseEditor: dónde cae el panel', () => {
     expect(panel.style.maxHeight).toBe('200px')
   })
 
-  // Lo intocable vale mientras el panel quepa entre las dos marcas, y sólo
-  // mientras. Medido en Progreso con la página en 735: entre el pie de la
-  // gráfica y la barra hay 105 px y el primer paso mide 130, así que con el
-  // techo duro el panel se quedaba en 105 y `Guardar nombre` —lo único que este
-  // panel viene a hacer— caía debajo del corte, dentro de una caja de 105 px
-  // que no parece desplazable. Un control que no se ve es peor que unos píxeles
-  // de gráfica tapados. Lo que se conserva es que la subida sigue siendo la
-  // mínima: se posan encima los que sobran, no uno más.
-  it('cuando no cabe debajo de lo protegido se posa encima, lo justo', () => {
+  // Cuando entre el pie de lo protegido y la barra no cabe el panel, la salida
+  // no es posarse encima: es ponerse **por encima del bloque entero**. Es la
+  // tercera posición, y faltaba. Medido en Progreso a 430×932 con el cajón
+  // abierto, la regla anterior —soltar los dos topes y dejar caer el panel
+  // donde cupiera— tapaba la gráfica al 100 % en un tramo de 25 px de scroll,
+  // por encima del 90 % en 50 y por encima del 50 % en 145.
+  //
+  // Y ahí la gráfica no es decoración: la tercera fila de ese cajón es
+  // `Eliminar ejercicio` y, con el campo del nombre tapado por el propio
+  // panel, la gráfica es lo único en pantalla que dice **qué ejercicio** vas a
+  // borrar. Cuando el panel ya ha abandonado su hueco —el disparador está
+  // detrás de la barra de pestañas— da igual por qué lado del bloque flote, y
+  // por arriba no tapa nada.
+  it('cuando no cabe debajo de lo protegido, se va entero por encima', () => {
     restore = fakeLayout({
       slotTop: 874.9,
       panelHeight: 300,
@@ -695,9 +700,36 @@ describe('ExerciseEditor: dónde cae el panel', () => {
       protectHeight: 200,
     })
     const { panel } = open()
-    // 300 no caben en 227,9. Sube los 300 que necesita para verse entero y ni
-    // uno más: el pie sigue clavado en la barra y sobre la gráfica quedan los
-    // 72,1 que sobraban, no las 200 de la gráfica entera.
+    // 300 no caben en los 227,9 que hay entre el pie de la gráfica (647) y la
+    // barra (875). Encima sí: del aire de arriba (8) al techo de la gráfica
+    // (447) hay 439. El pie del panel se posa en 447 y la gráfica queda
+    // limpia: 874,9 − 447 + 300 = 727,9 de subida.
+    expect(panel.style.top).toBe('-728px')
+    expect(panel.style.maxHeight).toBe('300px')
+  })
+
+  // Y el límite de esa tercera posición, que es lo que la hace honesta: sólo
+  // se toma si el panel entero cabe encima. Si el bloque protegido ya asoma
+  // por el canto de arriba no hay sitio, y entonces manda la cuenta de siempre
+  // —subir lo mínimo para verse entero— y se posan encima los que sobren. Un
+  // control que no se ve sigue siendo peor defecto que unos píxeles de gráfica
+  // tapados.
+  it('si tampoco cabe encima, sube lo mínimo y se posa lo que sobre', () => {
+    restore = fakeLayout({
+      slotTop: 874.9,
+      panelHeight: 300,
+      navTop: 875,
+      triggerTop: 830.9,
+      cardTop: 400,
+      cardBottom: 890.9,
+      underTop: -999,
+      farBelowTop: -999,
+      // La gráfica empieza en 100: encima sólo quedan 92 px para un panel de
+      // 300.
+      protectTop: 100,
+      protectHeight: 200,
+    })
+    const { panel } = open()
     expect(panel.style.top).toBe('-300px')
     expect(panel.style.maxHeight).toBe('300px')
   })

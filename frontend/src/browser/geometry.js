@@ -228,7 +228,7 @@ export function clearForcedTheme() {
 // puede hacer de ninguna manera — allí `getComputedStyle` devuelve la cadena
 // literal, sin resolver `var()`, sin componer alfa y sin saber qué hay debajo.
 
-function parseColor(str) {
+export function parseColor(str) {
   const m = String(str).match(/rgba?\(([^)]+)\)/)
   if (!m) return [0, 0, 0, 0]
   const parts = m[1].split(/[,/\s]+/).filter(Boolean).map(Number)
