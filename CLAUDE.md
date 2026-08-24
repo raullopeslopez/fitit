@@ -14,7 +14,16 @@ In QA/review mode, flag any code that doesn't match `DESIGN.md`.
 TDD: write the failing test first, watch it fail for the right reason, implement to green.
 - **Backend:** `cd backend && uv run python -m pytest` (pytest-bdd on in-memory SQLite;
   this is the CI merge gate). Plain `uv run pytest` is broken in this checkout.
-- **Frontend:** `cd frontend && npm test` (vitest).
+- **Frontend:** `cd frontend && npm test` (vitest sobre jsdom, 24 archivos — la suite
+  de siempre y la que corre el hook).
+- **Frontend, geometría real:** `cd frontend && npm run test:browser`
+  (`vitest.browser.config.js`, Chromium vía Playwright a 430×932, ~16 s). Es una segunda
+  suite pequeña, no una migración: mide lo que jsdom no puede medir porque no tiene motor
+  de maquetación — solapamientos, `z-index`, scroll, `elementFromPoint` y contraste sobre
+  el color realmente pintado. Vive en `src/browser/`; los archivos se llaman
+  `*.browser-test.jsx` **a propósito**, porque `*.browser.test.jsx` lo recogería también
+  la suite de jsdom. La configuración va aparte para no reiniciar el dev server.
+  Primera vez en una máquina nueva: `npx playwright install chromium`.
 - A git pre-commit hook (`.githooks/pre-commit`, enabled via `core.hooksPath`) runs the
   suite for whichever layer you touched. Bypass a genuine WIP commit with
   `SKIP_TESTS=1 git commit ...` — use sparingly, main stays green.
