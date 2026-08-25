@@ -102,9 +102,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  *    no representaba un acto, representaba «manda el campo», y el acto se leía
  *    del contenido. Sin botón, el acto es el que siempre fue —dejar la nota
  *    vacía es no tener nota— y no hay ninguna palabra que se pueda equivocar.
- * 2. **Cuesta una fila, y una fila aquí es un control del registro tapado.**
- *    El presupuesto de esta caja son 137 px en Progreso; `Guardar nombre` se
- *    llevaba 44 de los 128 del primer paso.
+ * 2. **Cuesta el ancho de su fila, y el panel no lo tiene.** Medido a 430×932:
+ *    el primer paso sigue midiendo 130 px de alto sin él —compartía los 44 de
+ *    su fila con la puerta al cajón, así que no había altura que ganar— pero se
+ *    llevaba `flex: 1` de esa fila y dejaba `Grupo y nota` arrinconado a la
+ *    derecha. Ahora la puerta es la fila. En la de la nota es más gordo: el
+ *    botón se comía el ancho del propio campo donde escribes la nota.
  *
  * Lo que se pierde es la señal de «no lo he pulsado, así que no cuenta». Sin
  * botón esa lectura no existe: lo único que queda es lo que escribiste, así que

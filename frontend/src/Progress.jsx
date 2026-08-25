@@ -844,10 +844,13 @@ export default function Progress() {
   // campo, entrar en el cajón y cerrar el panel por cualquiera de sus puertas.
   // El porqué entero está en la cabecera de `ExerciseEditor.jsx`.
   //
-  // `sentName` es el seguro contra el doble envío: ahora hay más de una salida
-  // que guarda —Intro y después el aspa son dos— y un 409 deja el borrador
-  // distinto del nombre, así que la segunda salida volvería a mandar lo mismo
-  // para llevarse el mismo choque. Se limpia al abrir, con el borrador.
+  // `sentName` es el seguro contra el doble envío mientras uno está en vuelo:
+  // ahora hay más de una salida que guarda —Intro y después el aspa son dos— y
+  // en una conexión lenta la segunda llega antes de que conteste la primera.
+  // Se suelta en cuanto falla, porque un fallo de red no es una respuesta a lo
+  // que preguntaste y la siguiente salida tiene que poder volver a preguntar;
+  // medido en el navegador, sin esto un renombrado caído se quedaba sin poder
+  // reintentarse hasta cerrar y reabrir el panel.
   //
   // Y el cambio aterriza antes de que el servidor conteste, como el registro de
   // una serie (DESIGN.md, 2026-07-25); un fallo lo devuelve y lo dice al lado
@@ -880,6 +883,7 @@ export default function Progress() {
       // es lo mismo que hacen la fusión y el borrado, por lo mismo.
       await reloadLog()
     } catch (err) {
+      sentName.current = null
       applyRename(id, before)
       const taken = exercises.find((e) => e.id !== id && fold(e.name) === fold(trimmed))
       if (err?.status === 409 && taken) {

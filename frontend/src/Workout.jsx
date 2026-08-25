@@ -285,11 +285,20 @@ function ExerciseCard({
   // página está fuera de la pantalla del móvil para cuando has acabado de
   // escribir.
   //
-  // `sentName` es el seguro contra el doble envío. Sin botón hay varias salidas
-  // que guardan —Intro y después el aspa son dos— y un renombrado rechazado por
-  // un 409 deja el borrador distinto del nombre, así que la segunda salida lo
-  // volvería a mandar para llevarse el mismo 409. Se limpia al abrir, que es
-  // cuando se vuelve a sembrar el borrador.
+  // `sentName` es el seguro contra el doble envío mientras uno está en vuelo.
+  // Sin botón hay varias salidas que guardan —Intro y después el aspa son dos—
+  // y en una conexión lenta la segunda llega antes de que conteste la primera:
+  // dos renombrados idénticos por un solo acto. Cuando el primero contesta,
+  // guardar de nuevo ya no hace falta, porque el nombre del ejercicio *es* lo
+  // que escribiste y lo para el `next === name` de arriba.
+  //
+  // Y se suelta en cuanto falla, que es lo que estuvo mal la primera vez que se
+  // escribió esto: medido en el navegador, un renombrado caído por la red se
+  // quedaba sin poder reintentarse hasta cerrar y volver a abrir el panel. Un
+  // fallo de red no es una respuesta a lo que preguntaste, así que la siguiente
+  // salida vuelve a preguntar. Un 409 sí es una respuesta y se llevará el mismo
+  // 409 — un viaje de más y la misma frase en pantalla, que es mucho menos malo
+  // que un renombrado que no se puede repetir.
   const sentName = useRef(null)
   async function commitName() {
     const next = nameDraft.trim()
@@ -300,6 +309,7 @@ function ExerciseCard({
     if (next === sentName.current) return
     sentName.current = next
     const result = await onChangeName(name, next)
+    if (result !== true) sentName.current = null
     setNameError(result === true ? '' : result)
   }
 

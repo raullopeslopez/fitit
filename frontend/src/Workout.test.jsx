@@ -2155,21 +2155,42 @@ describe('Workout', () => {
       await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(2, 'Press banca'))
     })
 
-    // Intro y después el aspa son dos salidas para un solo acto. Y un choque de
-    // nombre deja el borrador distinto del guardado, así que sin el seguro la
-    // segunda salida volvería a mandar lo mismo para llevarse el mismo 409.
-    it('does not send the same rename twice', async () => {
+    // Intro y después el aspa son dos salidas para un solo acto: mientras el
+    // primer envío está en vuelo, el segundo no sale.
+    it('does not send the same rename twice while one is in flight', async () => {
       standing()
-      const conflict = new Error('conflict')
-      conflict.status = 409
-      api.renameExercise.mockRejectedValue(conflict)
+      let answer
+      api.renameExercise.mockImplementation(
+        () => new Promise((resolve) => { answer = resolve }),
+      )
       renderWorkout()
 
-      await rename('Dominadas')
-      await screen.findByText(/ya existe "Dominadas"/i)
+      await rename('Press banca')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+      expect(api.renameExercise).toHaveBeenCalledTimes(1)
+
+      await act(async () => {
+        answer({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      })
+    })
+
+    // Y un fallo de red no es una respuesta a lo que preguntaste, así que la
+    // siguiente salida vuelve a preguntar. Sin esto —medido en el navegador— un
+    // renombrado caído se quedaba sin poder reintentarse hasta cerrar y volver a
+    // abrir el panel, que además resiembra el borrador y te borra lo escrito.
+    it('lets a failed rename be tried again from the next exit', async () => {
+      standing()
+      api.renameExercise.mockRejectedValueOnce(new Error('Failed to fetch'))
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      await rename('Press banca')
+      expect(await screen.findByText(/no se pudo cambiar el nombre/i)).toBeInTheDocument()
+
       await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
 
-      expect(api.renameExercise).toHaveBeenCalledTimes(1)
+      await waitFor(() => expect(api.renameExercise).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(cardToggles('Press banca')).toHaveLength(1))
     })
 
     // Ya no queda ningún botón de guardar en el panel. La única palabra que
