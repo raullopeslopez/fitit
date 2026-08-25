@@ -58,22 +58,45 @@ describe('ExerciseEditor', () => {
     expect(field.selectionEnd).toBe('Press banca'.length)
   })
 
-  it('confirma el nombre con su botón y con Enter', async () => {
+  // Aquí no hay botón de guardar. Ni uno: el campo se manda con Intro, que es
+  // la tecla que el propio teclado del móvil está ofreciendo, y por las salidas
+  // del panel. Un botón cuya etiqueta tiene que cambiar para no mentir —el
+  // `Guardar`/`Borrar` de la nota— es la confesión de que el control no
+  // representaba un acto, sino «manda el campo».
+  it('no hay ningún botón de guardar, y el nombre se confirma con Enter', async () => {
     const onSubmitName = vi.fn((e) => e.preventDefault())
     editor({ onSubmitName })
-    await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
-    expect(onSubmitName).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: /guardar/i })).toBeNull()
     await userEvent.type(screen.getByLabelText('Nombre de Press banca'), '{Enter}')
-    expect(onSubmitName).toHaveBeenCalledTimes(2)
+    expect(onSubmitName).toHaveBeenCalledTimes(1)
   })
 
-  it('se cierra por el aspa y con Escape', async () => {
+  // Las cuatro puertas valen lo mismo: guardan y cierran. Si tocar fuera
+  // descartase y el aspa guardase, el resultado de un gesto dependería de dónde
+  // aterrizó el pulgar — y sin botón que pulsar no queda ninguna forma de decir
+  // «he escrito esto pero no cuenta».
+  it('se cierra por el aspa y con Escape, y las dos guardan antes', async () => {
     const onClose = vi.fn()
-    editor({ onClose })
+    const onCommit = vi.fn()
+    editor({ onClose, onCommit })
     await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
+    expect(onCommit).toHaveBeenCalledTimes(1)
     expect(onClose).toHaveBeenCalledTimes(1)
     await userEvent.keyboard('{Escape}')
+    expect(onCommit).toHaveBeenCalledTimes(2)
     expect(onClose).toHaveBeenCalledTimes(2)
+  })
+
+  // Cambiar de paso retira de la pantalla el campo que estabas mirando, así que
+  // cuenta como dejar de mirarlo. Sin esto, la única forma de perder un
+  // renombrado escrito sería la que más se parece a seguir dentro del editor.
+  it('guarda al entrar en el cajón y al volver', async () => {
+    const onCommit = vi.fn()
+    editor({ onCommit, more: <p>ajustes</p>, moreLabel: 'Grupo y nota' })
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByRole('button', { name: /volver al nombre/i }))
+    expect(onCommit).toHaveBeenCalledTimes(2)
   })
 
   // La queja del nombre repetido y la oferta de fusión no son un segundo paso:

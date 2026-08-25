@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   deleteExercise,
@@ -793,6 +793,9 @@ export default function Progress() {
   const [muscle, setMuscle] = useState(null) // selected muscle filter
   const [error, setError] = useState('')
   const [nameDraft, setNameDraft] = useState('')
+  // El último nombre que se mandó, para que dos salidas seguidas no valgan por
+  // dos renombrados. Ver `renameCurrent`.
+  const sentName = useRef(null)
   // The rename's own complaint, beside its field — the page-foot alert is too
   // far from the thumb that typed to be read at all on a phone.
   const [nameError, setNameError] = useState('')
@@ -835,6 +838,22 @@ export default function Progress() {
   // busy floor, renamed to the "Fondos" that already exists. That is not a
   // failure to explain at the foot of the page, it is an offer: fold this one
   // into that one. The complaint stays beside the field you typed in.
+  //
+  // ── Sin botón de guardar, y optimista ─────────────────────────────────────
+  // Esto ya no lo dispara un `Guardar nombre`: lo disparan Intro dentro del
+  // campo, entrar en el cajón y cerrar el panel por cualquiera de sus puertas.
+  // El porqué entero está en la cabecera de `ExerciseEditor.jsx`.
+  //
+  // `sentName` es el seguro contra el doble envío: ahora hay más de una salida
+  // que guarda —Intro y después el aspa son dos— y un 409 deja el borrador
+  // distinto del nombre, así que la segunda salida volvería a mandar lo mismo
+  // para llevarse el mismo choque. Se limpia al abrir, con el borrador.
+  //
+  // Y el cambio aterriza antes de que el servidor conteste, como el registro de
+  // una serie (DESIGN.md, 2026-07-25); un fallo lo devuelve y lo dice al lado
+  // del campo. Sin estado «pendiente» a la vista, que es lo que pide ese mismo
+  // apunte: lo pendiente es el caso normal y se pinta callado, y aquí el acuse
+  // de recibo es el nombre nuevo, ya escrito por toda la pantalla.
   async function renameCurrent(id, draft) {
     const trimmed = draft.trim()
     if (!trimmed || trimmed === name) {
@@ -843,15 +862,25 @@ export default function Progress() {
       setNameError('')
       return
     }
+    if (trimmed === sentName.current) return
+    sentName.current = trimmed
     setNameError('')
     setClash(null)
+    const before = name
+    applyRename(id, trimmed)
     try {
       const updated = await renameExercise(id, trimmed)
-      setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: updated.name } : e)))
-      setName(updated.name)
+      // El servidor tiene la última palabra sobre cómo se escribe.
+      if (updated.name !== trimmed) applyRename(id, updated.name)
       // La hoja sigue abierta y su cabecera ya dice el nombre nuevo: eso es el
       // acuse de recibo, y no hace falta ninguno más.
+      //
+      // El registro que alimentan la gráfica, la escalera de récords y el mapa
+      // de calor nombra su ejercicio con una cadena, así que se vuelve a pedir:
+      // es lo mismo que hacen la fusión y el borrado, por lo mismo.
+      await reloadLog()
     } catch (err) {
+      applyRename(id, before)
       const taken = exercises.find((e) => e.id !== id && fold(e.name) === fold(trimmed))
       if (err?.status === 409 && taken) {
         setClash(taken)
@@ -860,6 +889,14 @@ export default function Progress() {
         setNameError('No se pudo cambiar el nombre.')
       }
     }
+  }
+
+  // Mudar el ejercicio de nombre por lo que esta pantalla lee por nombre: la
+  // lista de ejercicios (el título, los chips) y cuál es el que se está
+  // mirando. Va en las dos direcciones, porque también es la que deshace.
+  function applyRename(id, to) {
+    setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: to } : e)))
+    setName(to)
   }
 
   // Fold this exercise into the one whose name it collided with: its sets move
@@ -1218,6 +1255,7 @@ export default function Progress() {
                 setNameDraft(current.name)
                 setNameError('')
                 setClash(null)
+                sentName.current = null
                 setEditorOpen(true)
               }}
             >
@@ -1227,6 +1265,9 @@ export default function Progress() {
               name={current.name}
               open={editorOpen}
               onClose={() => setEditorOpen(false)}
+              // El único campo de texto de este panel. El grupo ya se guardaba
+              // al elegirlo y el borrado tiene su propio diálogo.
+              onCommit={() => renameCurrent(current.id, nameDraft)}
               nameDraft={nameDraft}
               onNameDraftChange={setNameDraft}
               onSubmitName={(e) => {

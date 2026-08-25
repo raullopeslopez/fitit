@@ -84,11 +84,52 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * Lo que **no** se movió: la fusión al chocar con un nombre existente y la
  * queja del renombrado se quedan pegadas al campo. No son un segundo paso, son
  * la respuesta a lo que acabas de intentar.
+ *
+ * ── Aquí no hay botón de guardar ────────────────────────────────────────────
+ *
+ * Ni uno. El grupo se guarda al elegirlo —eso ya era así—, y el nombre y la
+ * nota se guardan cuando dejas de mirarlos: al pulsar Intro, al cambiar de
+ * paso y al cerrar el panel por cualquiera de sus cuatro puertas (el aspa,
+ * Escape, el gesto de atrás y tocar fuera). Eso es `onCommit`, y quien llama es
+ * el que sabe qué significa guardar cada campo.
+ *
+ * El panel tenía `Guardar nombre` de ancho completo y, en la fila de la nota,
+ * un `Guardar` que se llamaba `Borrar` cuando el borrador estaba vacío. Dos
+ * argumentos para quitarlos, y el segundo es el que decide:
+ *
+ * 1. **Un botón cuya etiqueta tiene que cambiar para no mentir es un botón que
+ *    está haciendo dos cosas.** `Guardar`/`Borrar` era la confesión: el control
+ *    no representaba un acto, representaba «manda el campo», y el acto se leía
+ *    del contenido. Sin botón, el acto es el que siempre fue —dejar la nota
+ *    vacía es no tener nota— y no hay ninguna palabra que se pueda equivocar.
+ * 2. **Cuesta una fila, y una fila aquí es un control del registro tapado.**
+ *    El presupuesto de esta caja son 137 px en Progreso; `Guardar nombre` se
+ *    llevaba 44 de los 128 del primer paso.
+ *
+ * Lo que se pierde es la señal de «no lo he pulsado, así que no cuenta». Sin
+ * botón esa lectura no existe: lo único que queda es lo que escribiste, así que
+ * salir es confirmar. La promesa que sí se conserva —que un borrador
+ * abandonado no se quede fingiendo estar guardado— se cumple ahora por el otro
+ * lado: no queda ningún borrador sin guardar, porque cada salida lo guarda. Y
+ * abrir sigue resembrando desde el ejercicio, que ahora es una tautología y por
+ * eso mismo es la comprobación de que esto está bien: lo que ves al abrir es lo
+ * que hay guardado, siempre.
+ *
+ * Guardar con un temporizador mientras tecleas —lo que hace la referencia— se
+ * consideró y se descartó: esto se usa a media sesión, con el móvil en una
+ * mano, y una interrupción a mitad de palabra dejaría `Press de` guardado como
+ * el nombre del ejercicio. El teclado que abandonas no es una decisión; el
+ * campo que dejas atrás sí.
  */
 export function ExerciseEditor({
   name,
   open,
   onClose,
+  // Manda al servidor lo que haya escrito en los campos de texto. Se llama
+  // antes de cada salida y antes de cada cambio de paso, o sea siempre que un
+  // campo va a dejar de estar delante. Tiene que ser idempotente: dos salidas
+  // seguidas —Intro y después el aspa— no pueden valer por dos renombrados.
+  onCommit,
   nameDraft,
   onNameDraftChange,
   onSubmitName,
@@ -112,9 +153,21 @@ export function ExerciseEditor({
   // trabajo de más; para el del historial sería una entrada nueva por render,
   // y «atrás» dejaría de funcionar. La identidad se congela aquí.
   const onCloseRef = useRef(onClose)
+  const onCommitRef = useRef(onCommit)
   useEffect(() => {
     onCloseRef.current = onClose
+    onCommitRef.current = onCommit
   })
+
+  // Salir por cualquier puerta guarda primero. Es una sola función y no cuatro
+  // porque las cuatro salidas tienen que valer lo mismo: si tocar fuera
+  // descartase y el aspa guardase, el resultado de un gesto dependería de dónde
+  // aterrizó el pulgar. Sólo lee refs, así que no hace falta congelarla: la que
+  // capturó el primer efecto se comporta como la de este render.
+  const leave = () => {
+    onCommitRef.current?.()
+    onCloseRef.current()
+  }
 
   // Abrir es empezar de cero. Si el segundo panel se quedase abierto de la vez
   // pasada, el editor volvería a nacer con los 294 px que este cambio quita.
@@ -199,7 +252,7 @@ export function ExerciseEditor({
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => {
-      if (e.key === 'Escape') onCloseRef.current()
+      if (e.key === 'Escape') leave()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -211,14 +264,14 @@ export function ExerciseEditor({
   // va cuando dejas de mirarlo no es ninguna de las dos cosas: se queda de
   // capa fantasma tapando el registro mientras tú ya estás en otra cosa.
   //
-  // Cierra y **tira el borrador**, que es lo que ya hacen el aspa, Escape y el
-  // gesto de atrás — y lo que exige la regla de la casa que resiembra el
-  // borrador al abrir, precisamente «para que una edición que abandonaste no
-  // se quede ahí fingiendo estar guardada». Guardar el borrador de una salida
-  // accidental sería inventar un tercer estado —ni guardado ni descartado— que
-  // ninguna otra salida del panel produce. DESIGN.md ya dice lo mismo del
-  // único modal que hay: tocar el velo es cancelar, «la salida tiene que ser
-  // tan fácil como la entrada». Aquí el velo es el resto de la pantalla.
+  // Cierra **guardando**, que es lo que hacen también el aspa, Escape y el
+  // gesto de atrás. Antes tiraba el borrador, y era coherente mientras hubo un
+  // botón de guardar: no haberlo pulsado era una respuesta. Sin botón no hay
+  // ninguna forma de decir «he escrito esto pero no cuenta», y de las dos
+  // lecturas que quedan —«lo que escribiste es lo que quieres» y «lo que
+  // escribiste se tira si sales por la puerta equivocada»— sólo la primera se
+  // puede adivinar sin que te lo cuenten. Lo que no puede pasar es que las
+  // cuatro salidas hagan cosas distintas: eso sí sería el tercer estado.
   //
   // `pointerdown` y no `click`: así el toque cierra el panel *y* llega a lo que
   // apuntabas, que sigue en su sitio porque el hueco no ocupa flujo. Un toque,
@@ -237,7 +290,7 @@ export function ExerciseEditor({
       // el borrado— se pintan fuera de él. Cerrar el editor al tocarlos dejaría
       // a alguien confirmando algo cuyo origen acaba de desaparecer.
       if (e.target.closest?.('[role="dialog"], .dialog-backdrop')) return
-      onCloseRef.current()
+      leave()
     }
     document.addEventListener('pointerdown', onDown, true)
     return () => document.removeEventListener('pointerdown', onDown, true)
@@ -258,7 +311,7 @@ export function ExerciseEditor({
     let poppedByUser = false
     const onPop = () => {
       poppedByUser = true
-      onCloseRef.current()
+      leave()
     }
     window.addEventListener('popstate', onPop)
     return () => {
@@ -895,48 +948,62 @@ export function ExerciseEditor({
             {/* Una salida explícita, al lado de la entrada, y 44 px como todo
                 aquí. Escape y el gesto de atrás también cierran, pero los dos
                 son gestos que hay que saberse ya; éste es el que encuentra un
-                pulgar. */}
+                pulgar.
+
+                Y desde que no hay botón de guardar, éste es además el que
+                confirma: cerrar es guardar. No cambia de nombre por eso —lo que
+                hace es cerrar, y lo guardado se guarda solo—, pero sí explica
+                por qué pasa por `leave` como las otras tres salidas. */}
             <button
               type="button"
               className="editor-close"
               aria-label="Cerrar"
-              onClick={onClose}
+              onClick={leave}
             >
               <span aria-hidden="true">×</span>
             </button>
           </div>
-          <div className="editor-commit">
-            <button type="submit" className="secondary editor-save">
-              Guardar nombre
-            </button>
-            {more && (
-              // La puerta al segundo paso, en el vocabulario que la casa ya usa
-              // para las puertas: tinta en la etiqueta, `›` apagado, y el
-              // nombre del ejercicio en la etiqueta hablada por lo mismo que el
-              // campo de arriba.
-              //
-              // Ya no lleva `aria-expanded`: no despliega nada debajo, cambia
-              // el panel de paso. Anunciar «desplegado» un control que en ese
-              // momento ni siquiera está en pantalla era la mentira que este
-              // panel se ha pasado tres vueltas quitando de otros sitios.
-              //
-              // El rótulo lo pone quien llena el cajón. Antes ponía
-              // `Más ajustes`, que es el nombre más vago disponible: nombra un
-              // contenedor, no lo que hay dentro. Y no se puede arreglar con
-              // una constante, porque el cajón no lleva lo mismo en las dos
-              // pantallas — en Entreno grupo y nota, en Progreso grupo y
-              // borrado —, así que una etiqueta fija mentiría en una de las
-              // dos. La escribe el llamante, que es el único que sabe.
+          {/* La fila que antes confirmaba. Ya no confirma nada —no queda nada
+              que confirmar— y se queda porque sigue siendo la fila donde vive
+              la puerta al segundo paso. Sin cajón no hay fila: un contenedor
+              vacío aquí son 8 px de margen sobre el presupuesto de 137. */}
+          {more && (
+            <div className="editor-commit">
+              {/* La puerta al segundo paso, en el vocabulario que la casa ya
+                  usa para las puertas: tinta en la etiqueta, `›` apagado, y el
+                  nombre del ejercicio en la etiqueta hablada por lo mismo que
+                  el campo de arriba.
+
+                  Ya no lleva `aria-expanded`: no despliega nada debajo, cambia
+                  el panel de paso. Anunciar «desplegado» un control que en ese
+                  momento ni siquiera está en pantalla era la mentira que este
+                  panel se ha pasado tres vueltas quitando de otros sitios.
+
+                  El rótulo lo pone quien llena el cajón. Antes ponía
+                  `Más ajustes`, que es el nombre más vago disponible: nombra un
+                  contenedor, no lo que hay dentro. Y no se puede arreglar con
+                  una constante, porque el cajón no lleva lo mismo en las dos
+                  pantallas — en Entreno grupo y nota, en Progreso grupo y
+                  borrado —, así que una etiqueta fija mentiría en una de las
+                  dos. La escribe el llamante, que es el único que sabe.
+
+                  Cambiar de paso retira el campo del nombre de la pantalla, así
+                  que cuenta como dejar de mirarlo: se guarda antes de irse. Sin
+                  esto, la única forma de perder un renombrado escrito sería
+                  exactamente la que más se parece a seguir dentro del editor. */}
               <button
                 type="button"
                 className="editor-more"
                 aria-label={`${moreLabel} de ${name}`}
-                onClick={() => setMoreOpen(true)}
+                onClick={() => {
+                  onCommitRef.current?.()
+                  setMoreOpen(true)
+                }}
               >
                 {moreLabel}
               </button>
-            )}
-          </div>
+            </div>
+          )}
           {nameError && (
             <p role="alert" className="alert rename-alert">
               {nameError}
@@ -957,7 +1024,12 @@ export function ExerciseEditor({
                 type="button"
                 className="editor-back"
                 aria-label={`Volver al nombre de ${name}`}
-                onClick={() => setMoreOpen(false)}
+                onClick={() => {
+                  // La vuelta se lleva la nota de la pantalla, igual que la ida
+                  // se llevaba el nombre. Mismo trato.
+                  onCommitRef.current?.()
+                  setMoreOpen(false)
+                }}
               >
                 <span className="editor-back-arrow" aria-hidden="true">
                   ←
@@ -968,7 +1040,7 @@ export function ExerciseEditor({
                 type="button"
                 className="editor-close"
                 aria-label="Cerrar"
-                onClick={onClose}
+                onClick={leave}
               >
                 <span aria-hidden="true">×</span>
               </button>

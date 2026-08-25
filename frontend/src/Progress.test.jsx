@@ -611,8 +611,10 @@ describe('Progress', () => {
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     const input = screen.getByLabelText(/nombre de /i)
     await userEvent.clear(input)
-    await userEvent.type(input, 'Press de banca')
-    await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+    // Sin botón de guardar: Intro dentro del campo, que es la tecla que el
+    // teclado del móvil ya está ofreciendo. Cerrar el panel y entrar en el
+    // cajón mandan lo mismo.
+    await userEvent.type(input, 'Press de banca{Enter}')
 
     await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(7, 'Press de banca'))
     // La tarjeta de detrás pasa a llamarse como acabas de llamarla, y la hoja
@@ -1936,8 +1938,7 @@ describe('Progress', () => {
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
       const input = screen.getByLabelText(/nombre de /i)
       await userEvent.clear(input)
-      await userEvent.type(input, 'Fondos')
-      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+      await userEvent.type(input, 'Fondos{Enter}')
 
       // The complaint belongs beside the field you typed in, not at the foot of
       // a page you'd have to scroll to see.

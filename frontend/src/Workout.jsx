@@ -189,11 +189,9 @@ function ExerciseCard({
   // una hoja que se pone encima de la tarjeta que abres veinte veces por sesión.
   const [editorOpen, setEditorOpen] = useState(false)
   // The standing note, being edited. Seeded from the exercise each time the fold
-  // opens, so an abandoned edit doesn't survive as a draft nobody asked for.
+  // opens — que ahora es una tautología, porque no queda borrador sin guardar:
+  // el editor manda los dos campos de texto en cuanto dejas de mirarlos.
   const [noteDraft, setNoteDraft] = useState(note ?? '')
-  // Qué hace el botón de esa fila, dicho en su propia palabra. Vaciar el campo
-  // teniendo una nota guardada no es guardar: es borrar, y el botón lo dice.
-  const noteVerb = !noteDraft.trim() && (note ?? '').trim() ? 'Borrar' : 'Guardar'
   // The name, being edited, and whatever went wrong last time it was sent.
   // Seeded from the exercise on every open, same as the note above.
   const [nameDraft, setNameDraft] = useState(name)
@@ -253,28 +251,54 @@ function ExerciseCard({
     if (!(await onChangeMuscle(name, from))) setLastRetag({ from })
   }
 
+  // ── Guardar sin botón de guardar ─────────────────────────────────────────
+  // Los dos campos de texto del editor se mandan cuando dejas de mirarlos: al
+  // pulsar Intro dentro del campo, al cambiar de paso y al cerrar el panel por
+  // cualquiera de sus puertas. El editor los llama por `onCommit`; el porqué
+  // entero está en la cabecera de `ExerciseEditor.jsx`.
+  //
+  // Las dos tienen que poder llamarse de más sin que pase nada: cerrar justo
+  // después de un Intro son dos avisos para un solo acto.
+
   // An emptied field is how you take the note back, so "" travels as null — the
   // API stores no note either way, and the card has nothing to render.
-  async function saveNote(event) {
-    event.preventDefault()
+  //
+  // Y ése es exactamente el acto que el botón de esta fila no sabía nombrar: se
+  // llamaba `Guardar` y tenía que cambiarse a `Borrar` cuando el borrador
+  // quedaba vacío, porque pedir que se guarde nada no es guardar. Sin botón la
+  // pregunta desaparece: lo que haya en el campo es lo que hay, y un campo
+  // vacío es no tener nota.
+  function commitNote() {
+    if (!onChangeNote) return
     const next = noteDraft.trim()
-    if (await onChangeNote(name, next || null)) setEditorOpen(false)
+    // Un espacio de más no es un cambio. La comparación va con `trim()` porque
+    // con `trim()` es como se guarda.
+    if (next === (note ?? '').trim()) return
+    onChangeNote(name, next || null)
   }
 
   // Rename the exercise itself. A blank field or the name it already has is a
   // field you tapped and walked away from, not a rename — and an exercise with
   // no name is a card you can never find again.
   //
-  // On success this card re-renders under the new name and the fold shuts with
-  // it. On failure the complaint stays beside the field that caused it: the
-  // page-foot alert is off the bottom of a phone by the time you've typed.
-  async function saveName(event) {
-    event.preventDefault()
+  // La queja se queda pegada al campo que la causó: el aviso al pie de la
+  // página está fuera de la pantalla del móvil para cuando has acabado de
+  // escribir.
+  //
+  // `sentName` es el seguro contra el doble envío. Sin botón hay varias salidas
+  // que guardan —Intro y después el aspa son dos— y un renombrado rechazado por
+  // un 409 deja el borrador distinto del nombre, así que la segunda salida lo
+  // volvería a mandar para llevarse el mismo 409. Se limpia al abrir, que es
+  // cuando se vuelve a sembrar el borrador.
+  const sentName = useRef(null)
+  async function commitName() {
     const next = nameDraft.trim()
     if (!onChangeName || !next || next === name) {
       setNameError('')
       return
     }
+    if (next === sentName.current) return
+    sentName.current = next
     const result = await onChangeName(name, next)
     setNameError(result === true ? '' : result)
   }
@@ -551,11 +575,14 @@ function ExerciseCard({
                 setEditorOpen(false)
                 return
               }
-              // Abrir resiembra los borradores desde el ejercicio, para que una
-              // edición que abandonaste no se quede ahí fingiendo estar guardada.
+              // Abrir resiembra los borradores desde el ejercicio. Ya no puede
+              // salir otra cosa —no queda nada sin guardar cuando el editor se
+              // cierra—, y por eso mismo se queda: es la comprobación de que lo
+              // que ves al abrir es lo que hay guardado.
               setNoteDraft(note ?? '')
               setNameDraft(name)
               setNameError('')
+              sentName.current = null
               setEditorOpen(true)
             }}
           >
@@ -565,9 +592,18 @@ function ExerciseCard({
             name={name}
             open={editorOpen}
             onClose={() => setEditorOpen(false)}
+            // Los dos campos de texto, mandados en cuanto dejan de estar
+            // delante. El grupo no está aquí porque ya se guardaba al elegirlo.
+            onCommit={() => {
+              commitName()
+              commitNote()
+            }}
             nameDraft={nameDraft}
             onNameDraftChange={setNameDraft}
-            onSubmitName={saveName}
+            onSubmitName={(e) => {
+              e.preventDefault()
+              commitName()
+            }}
             nameError={nameError}
             // El segundo paso: el grupo y la nota. Ninguno de los dos es lo
             // que vienes a hacer cuando abres esto —lo que vienes a hacer es
@@ -635,10 +671,11 @@ function ExerciseCard({
                   </select>
                 </div>
                 {onChangeNote && (
-                  // La nota, en su fila y con su confirmación dentro de ella:
-                  // en cuanto `Guardar nota` bajaba a una línea propia el cajón
-                  // costaba una fila de más, y una fila de más aquí es un
-                  // control del registro tapado.
+                  // La nota, en su fila y sin nada que pulsar: se guarda al
+                  // volver al nombre, al cerrar el panel y con Intro dentro del
+                  // propio campo. El botón que había aquí costaba el ancho de
+                  // media fila y tenía que cambiarse de nombre —`Guardar` a
+                  // `Borrar`— para no mentir cuando el campo quedaba vacío.
                   //
                   // El rótulo lo llevaba el marcador de posición, y un
                   // marcador de posición **se borra en cuanto escribes**: a
@@ -650,13 +687,20 @@ function ExerciseCard({
                   //
                   // Ahora `Nota` va impreso en la canaleta y no se va nunca, y
                   // el marcador de posición deja de hacer de rótulo para hacer
-                  // lo suyo, que es dar un ejemplo de qué se escribe aquí. El
-                  // rótulo además se paga solo: con `Nota` a la izquierda, el
-                  // botón ya no tiene que repetir la palabra, así que
-                  // `Guardar nota` se queda en `Guardar` y devuelve casi toda
-                  // la anchura que cuesta la canaleta. La frase entera sigue en
-                  // la etiqueta hablada, que es donde hace falta.
-                  <form className="editor-row editor-row-note" onSubmit={saveNote}>
+                  // lo suyo, que es dar un ejemplo de qué se escribe aquí. La
+                  // frase entera sigue en la etiqueta hablada, que es donde
+                  // hace falta.
+                  //
+                  // Sigue siendo un `<form>` sin botón: un campo solo dentro de
+                  // un formulario se manda con Intro igual, y en el móvil ésa es
+                  // la tecla que el propio teclado te está ofreciendo.
+                  <form
+                    className="editor-row editor-row-note"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      commitNote()
+                    }}
+                  >
                     <label className="editor-row-label" htmlFor={`exnote-${name}`}>
                       Nota
                     </label>
@@ -669,36 +713,6 @@ function ExerciseCard({
                       onChange={(e) => setNoteDraft(e.target.value)}
                       placeholder="agarre, altura del banco…"
                     />
-                    {/* Explicit, not save-on-blur: on a phone the keyboard closing
-                        is not the same gesture as deciding you meant it.
-
-                        El ámbar es el estado, no el botón: encendido sólo
-                        cuando el borrador se ha separado de lo guardado. Ver
-                        el porqué entero en `button.editor-row-action`. La
-                        comparación va con `trim()` porque es con `trim()` con
-                        lo que guarda `saveNote`: un espacio de más no es un
-                        cambio, y encender por él sería prometer un guardado
-                        que no cambia nada. */}
-                    {/* El verbo dice el acto. Vaciar una nota guardada y
-                        pulsar `Guardar` es pedir que se guarde nada: lo que
-                        hace ese toque es borrarla, y el botón que lo hace tiene
-                        que decirlo. Así que `Borrar` en el único caso en que el
-                        borrador está vacío y hay algo guardado detrás.
-
-                        En ámbar igual que el otro y no en rojo: el rojo de esta
-                        casa está reservado a lo irreversible, y una línea de
-                        texto que puedes volver a escribir no lo es. El ámbar no
-                        es del botón, es del estado —hay algo sin guardar—, y
-                        ese estado es el mismo con las dos palabras. */}
-                    <button
-                      type="submit"
-                      className={`editor-row-action${
-                        noteDraft.trim() === (note ?? '').trim() ? '' : ' is-dirty'
-                      }`}
-                      aria-label={`${noteVerb} nota de ${name}`}
-                    >
-                      {noteVerb}
-                    </button>
                   </form>
                 )}
                 {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
@@ -1243,6 +1257,42 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // name -> sets logged against it in the whole log. This card can only see the
   // session it is standing in, and a re-tag moves all of them.
   const [countByName, setCountByName] = useState({})
+  // ── La identidad de una tarjeta no es su nombre ──────────────────────────
+  // El nombre es un dato del ejercicio, no su identidad, y la lista de abajo lo
+  // usaba de llave (`key={ex.name}`). Renombrar le cambiaba la llave a React,
+  // que desmonta la tarjeta y monta otra en su sitio — y una tarjeta recién
+  // montada siembra sus steppers desde `previous`, o sea desde la sesión
+  // anterior. Medido: con `42,5 × 9` a medio escribir, corregir una errata en
+  // el nombre los dejaba en `37,5 × 10`. Arreglar una letra te borraba la serie
+  // que estabas contando, que es el peor cambio que puede hacer esta pantalla.
+  //
+  // El id del servidor sí es la identidad de verdad, pero **no sirve de llave**
+  // aquí: llega en una petición aparte (`/exercises`), así que la llave saltaría
+  // de `nombre` a `id` a media carga y produciría exactamente el desmontaje que
+  // venimos a quitar, con la tarjeta ya en pantalla. Y un ejercicio en cola
+  // desde una plantilla de «Repetir» puede no tener id todavía, ni tenerlo
+  // nunca si nunca llegas a registrarle una serie.
+  //
+  // Así que la llave se acuña aquí la primera vez que se ve un nombre, y el
+  // renombrado la mueve igual que mueve todos los demás mapas de esta pantalla
+  // —que ya se movían—: la llave es una entrada más de la mudanza. Va en un
+  // `ref` y no en estado porque no la lee nadie salvo React, y cambiarla no
+  // tiene que repintar nada.
+  const cardKeys = useRef({ next: 0, byName: new Map() })
+  const keyFor = (name) => {
+    const store = cardKeys.current
+    if (!store.byName.has(name)) {
+      store.next += 1
+      store.byName.set(name, `card-${store.next}`)
+    }
+    return store.byName.get(name)
+  }
+  const moveCardKey = (from, to) => {
+    const { byName } = cardKeys.current
+    if (!byName.has(from) || from === to) return
+    byName.set(to, byName.get(from))
+    byName.delete(from)
+  }
   // Muscle groups trained today or yesterday, most recent first — [] until the
   // answer lands, so nothing flashes on screen before it is known.
   const [recent, setRecent] = useState([])
@@ -1723,70 +1773,112 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     }
   }
 
+  // La nota, con el mismo trato optimista que una serie: aterriza en la tarjeta
+  // antes de que el servidor conteste, y un fallo la devuelve y lo dice. Sin
+  // esto el cambio no se veía hasta después del viaje, y desde que no hay botón
+  // que pulsar no queda nada en pantalla que muestre que se está mandando.
   async function changeNoteFor(name, note) {
     const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
     if (id == null) return false
     setError('')
+    const before = noteByName[name] ?? null
+    setNoteByName((n) => ({ ...n, [name]: note }))
     try {
       const updated = await setExerciseNote(id, note)
       setNoteByName((n) => ({ ...n, [name]: updated.note ?? null }))
       return true
     } catch {
+      setNoteByName((n) => ({ ...n, [name]: before }))
       setError('No se pudo guardar la nota.')
       return false
     }
   }
 
-  // Rename the exercise in place. The row keeps its id, so every set ever logged
-  // against it follows on the server — but this screen reads its own state by
-  // name, so the name has to move through every map keyed by it, the session's
-  // sets, and the outbox. That last one is not cosmetic: an unsent set names its
-  // exercise by string, and the server takes that name at face value, so a
-  // queued row would stand the old exercise straight back up on the next drain.
+  // Rename the exercise in place. La mudanza por la pantalla la hace
+  // `applyRename`, aquí debajo; esto es sólo la ida, la vuelta y lo que se dice
+  // cuando no se puede.
   //
   // Answers true, or the complaint the card prints beside the field. A 409 is
   // the name already being one of yours; folding the two together is Progreso's
   // job — it can rebuild the whole log behind a merge, and this screen is a
   // session in progress — so here we name the collision and say where to go.
+  //
+  // ── Optimista, como todo lo demás que se hace aquí dentro ────────────────
+  // DESIGN.md, 2026-07-25: una serie aterriza en pantalla antes de que el
+  // servidor conteste, y un fallo la devuelve y lo dice. El renombrado tenía el
+  // trato contrario —esperar la respuesta y sólo entonces mover nada—, y con el
+  // botón de guardar retirado eso se nota: no queda ningún control que se pueda
+  // quedar pulsado mientras esperas, así que el hueco entre la tecla y la
+  // respuesta no lo llena nada y el nombre viejo se queda mirándote. Ahora la
+  // mudanza se hace entera de ida, y el `catch` la hace de vuelta.
+  //
+  // No lleva estado «pendiente» a la vista, y es a propósito: el mismo apunte
+  // de DESIGN.md dice que lo pendiente es el caso normal y se pinta callado.
+  // Aquí el acuse de recibo es el nombre nuevo, que ya está escrito por toda la
+  // pantalla; añadirle un punto que parpadea sería anunciar lo normal.
   async function changeNameFor(name, next) {
     const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
     if (id == null) return 'No se pudo cambiar el nombre.'
     setError('')
+    applyRename(name, next)
     try {
       const { name: renamed } = await renameExercise(id, next)
-      renameQueued(name, renamed)
-      // Move the entry rather than adding one: a map left holding both names
-      // would keep the old card's group, note and fold state alive forever.
-      const rekey = (map) => {
-        if (!(name in map)) return map
-        const { [name]: value, ...rest } = map
-        return { ...rest, [renamed]: value }
-      }
-      setIdByName(rekey)
-      setMuscleByName(rekey)
-      setNoteByName(rekey)
-      setCountByName(rekey)
-      setToggled(rekey)
-      setKnown((list) => list.map((n) => (n === name ? renamed : n)))
-      setExercises((list) => list.map((e) => (e.name === name ? { ...e, name: renamed } : e)))
-      setWorkout((w) =>
-        w
-          ? {
-              ...w,
-              sets: w.sets.map((s) =>
-                s.exercise_name === name ? { ...s, exercise_name: renamed } : s,
-              ),
-            }
-          : w,
-      )
+      // El servidor tiene la última palabra sobre cómo se escribe: si lo que
+      // devuelve no es lo que mandamos, se hace una segunda mudanza corta.
+      applyRename(next, renamed)
       return true
     } catch (err) {
+      applyRename(next, name)
       const taken = known.find((n) => n !== name && fold(n) === fold(next))
       if (err?.status === 409 && taken) {
         return `Ya existe "${taken}". Puedes fusionarlos desde Progreso.`
       }
       return 'No se pudo cambiar el nombre.'
     }
+  }
+
+  // Mudar un ejercicio de nombre por toda la pantalla. Se llama tres veces por
+  // renombrado como mucho —de ida, para corregir la ortografía del servidor y
+  // para deshacer— así que tiene que ser simétrica: lo mismo hacia atrás que
+  // hacia delante, sin nada que sólo sepa ir en un sentido.
+  //
+  // La fila del servidor conserva su id, así que todas las series que le hayas
+  // registrado en la vida le siguen solas — pero esta pantalla lee su estado
+  // por nombre, y el nombre tiene que moverse por todos los mapas que lo usan
+  // de clave, por las series de la sesión, por la llave de la tarjeta y por la
+  // bandeja de salida. Esa última no es cosmética: una serie sin mandar nombra
+  // su ejercicio con una cadena y el servidor se la toma al pie de la letra, o
+  // sea que una fila en cola volvería a levantar el ejercicio viejo en el
+  // siguiente vaciado.
+  function applyRename(from, to) {
+    if (!to || from === to) return
+    renameQueued(from, to)
+    moveCardKey(from, to)
+    // Mover la entrada, no añadir otra: un mapa que se quedase con los dos
+    // nombres mantendría vivos para siempre el grupo, la nota y el plegado de
+    // la tarjeta vieja.
+    const rekey = (map) => {
+      if (!(from in map)) return map
+      const { [from]: value, ...rest } = map
+      return { ...rest, [to]: value }
+    }
+    setIdByName(rekey)
+    setMuscleByName(rekey)
+    setNoteByName(rekey)
+    setCountByName(rekey)
+    setToggled(rekey)
+    setKnown((list) => list.map((n) => (n === from ? to : n)))
+    setExercises((list) => list.map((e) => (e.name === from ? { ...e, name: to } : e)))
+    setWorkout((w) =>
+      w
+        ? {
+            ...w,
+            sets: w.sets.map((s) =>
+              s.exercise_name === from ? { ...s, exercise_name: to } : s,
+            ),
+          }
+        : w,
+    )
   }
 
   // Many cards may be open at once: folding one shut when you open another
@@ -2159,7 +2251,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       {exercises.map((ex, index) =>
         ex.kind === 'cardio' ? (
           <CardioCard
-            key={ex.name}
+            key={keyFor(ex.name)}
             name={ex.name}
             previous={ex.previous}
             sets={setsFor(ex.name)}
@@ -2170,7 +2262,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
           />
         ) : (
           <ExerciseCard
-            key={ex.name}
+            key={keyFor(ex.name)}
             name={ex.name}
             muscle={muscleByName[ex.name] ?? null}
             note={noteByName[ex.name] ?? null}

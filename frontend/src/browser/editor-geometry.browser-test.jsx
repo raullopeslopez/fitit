@@ -627,78 +627,24 @@ for (const theme of ['dark', 'light']) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// El ámbar es escaso o no significa nada
+// El ámbar es escaso o no significa nada — resuelto quitando el botón
 // ───────────────────────────────────────────────────────────────────────────
 //
-// DESIGN.md: «amber means something happened», y «the accent is never spent on
-// static labels». Con el cajón abierto en Entreno, `Guardar nota` en ámbar se
-// sienta 153 px por encima de `Registrar serie` —un relleno ámbar— y de las
-// banderas `PR peso` (`--pr`). Tres ámbares en una columna de ~300 px haciendo
-// tres trabajos distintos: una acción secundaria en reposo, la acción
-// primaria, y el récord ganado. El que está encendido **antes de que pase
-// nada**, siempre, se gasta la escasez de la que viven los otros dos — y por
-// el camino grita más que el punto de color del grupo, que es el dato de la
-// fila.
+// Aquí vivían dos pruebas sobre el `Guardar nota` del cajón: que su ámbar
+// estuviera apagado en reposo y que un marco lo separase del campo que tenía a
+// 8 px. Las dos policiaban un control que ya no existe.
 //
-// Así que el ámbar aquí es el estado, no el botón: apagado mientras el
-// borrador es el texto guardado, encendido en cuanto lo has cambiado, que es
-// justo cuando hay algo que guardar.
-describe('Entreno · `Guardar nota` sólo se enciende cuando hay algo que guardar', () => {
-  const colorOf = (el) => getComputedStyle(el).color
-  const token = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
-  const asRgb = (hex) => {
-    const el = document.createElement('span')
-    el.style.color = hex
-    document.body.appendChild(el)
-    const out = getComputedStyle(el).color
-    el.remove()
-    return out
-  }
-
-  it('en reposo va apagado, y al tocar la nota se enciende', async () => {
-    await mountEntreno()
-    forceTheme('dark')
-    const panel = await openEditor(user)
-    await openDrawer(user)
-    await settle()
-    const save = screen.getByRole('button', { name: `Guardar nota de ${MAIN}` })
-
-    expect(colorOf(save)).toBe(asRgb(token('--muted')))
-
-    await user.type(screen.getByLabelText(`Nota de ${MAIN}`), 'agarre ancho')
-    await settle()
-    expect(colorOf(save)).toBe(asRgb(token('--accent-ink')))
-  })
-
-  // El otro defecto de esa fila, que apagar el ámbar no tocaba: en reposo el
-  // botón es `--muted`, o sea el mismo token que el marcador de posición que
-  // tiene a 8 px, en la misma fila y con el mismo cuerpo. Lo que los separa
-  // tiene que ser algo que no gaste ámbar, y es el marco — que además no
-  // cambia con el estado, porque «esto es un botón» es cierto siempre.
-  it('el botón lleva marco y el campo no, en los dos estados', async () => {
-    await mountEntreno()
-    forceTheme('dark')
-    const panel = await openEditor(user)
-    await openDrawer(user)
-    await settle()
-    const save = screen.getByRole('button', { name: `Guardar nota de ${MAIN}` })
-    const field = screen.getByLabelText(`Nota de ${MAIN}`)
-
-    const marco = (el) => parseFloat(getComputedStyle(el).borderTopWidth)
-    expect(marco(save)).toBeGreaterThan(0)
-    expect(marco(field)).toBe(0)
-
-    // Y el filete se ve: suelo de 3:1 de componente no textual, medido sobre
-    // el color que hay detrás de verdad.
-    const borde = parseColor(getComputedStyle(save).borderTopColor)
-    expect(contrastRatio(borde, backdropOf(save))).toBeGreaterThan(3)
-
-    await user.type(field, 'agarre ancho')
-    await settle()
-    expect(marco(save)).toBeGreaterThan(0)
-  })
-
-})
+// La queja que las trajo era que ese botón encendía ámbar **antes de que
+// pasara nada**, 153 px por encima de `Registrar serie` y de las banderas de
+// récord, gastándose la escasez de la que viven los otros dos. Apagarlo en
+// reposo era la respuesta pequeña; la grande es que un botón cuya etiqueta
+// tenía que cambiar de `Guardar` a `Borrar` para no mentir no estaba
+// representando un acto, y la fila no lo necesitaba: la nota se guarda al
+// volver al nombre, al cerrar el panel y con Intro. Cero ámbares nuevos en esa
+// columna, y ninguna regla que recordar.
+//
+// Lo que sí sigue vigilado, y con un listón que no depende de qué botones
+// haya: `Ningún botón hereda un relleno que no pidió`, unas líneas más abajo.
 
 // ───────────────────────────────────────────────────────────────────────────
 // Cada fila dice de qué campo es, y lo sigue diciendo con un valor dentro
@@ -954,7 +900,12 @@ describe('Ningún botón hereda un relleno que no pidió', () => {
       undo()
       expect(suelto.seen).toBeGreaterThan(12)
       expect(suelto.amber).toBeGreaterThan(0)
-      expect(nombre.seen + cajon.seen).toBeGreaterThan(4)
+      // Cuatro: el aspa y `Grupo y nota` en el primer paso, la vuelta y el
+      // aspa en el cajón. Eran seis mientras hubo `Guardar nombre` y
+      // `Guardar nota`; el suelo baja con ellos porque lo que este número
+      // guarda es que el audit haya mirado el panel entero, no que el panel
+      // tenga un tamaño concreto.
+      expect(nombre.seen + cajon.seen).toBeGreaterThan(3)
       expect([...suelto.fails, ...nombre.fails, ...cajon.fails]).toEqual([])
     })
 

@@ -1896,6 +1896,9 @@ describe('Workout', () => {
       expect(await screen.findByText('agarre ancho, banco en 3')).toBeInTheDocument()
     })
 
+    // Sin botón de guardar: escribir la nota y cerrar el panel la guarda. El
+    // aspa es una de las cuatro puertas —las otras son Escape, el gesto de
+    // atrás y tocar fuera— y las cuatro valen lo mismo.
     it('writes a note from the same fold that corrects the muscle', async () => {
       standing()
       api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: 'agarre ancho' })
@@ -1904,14 +1907,35 @@ describe('Workout', () => {
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
       await userEvent.type(screen.getByLabelText("Nota de Bench Press"), 'agarre ancho')
-      await userEvent.click(screen.getByRole('button', { name: /guardar nota/i }))
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
 
       await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, 'agarre ancho'))
       expect(await screen.findByText('agarre ancho')).toBeInTheDocument()
     })
 
+    // Volver al nombre también retira la nota de la pantalla, así que también
+    // la guarda: si no, la única forma de perderla sería la que más se parece a
+    // seguir dentro del editor.
+    it('writes the note when you step back to the name', async () => {
+      standing()
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: 'agarre ancho' })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
+      await userEvent.type(screen.getByLabelText("Nota de Bench Press"), 'agarre ancho')
+      await userEvent.click(screen.getByRole('button', { name: /volver al nombre/i }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, 'agarre ancho'))
+    })
+
     // Emptying the field is how you take a note back, and an empty string is
     // not a note — it would leave a blank line under the exercise name forever.
+    //
+    // Esto era lo que obligaba al botón a llamarse `Borrar` cuando el campo
+    // quedaba vacío: pedirle a un botón que dice `Guardar` que guarde nada. Sin
+    // botón la pregunta no existe — un campo vacío es no tener nota — y el acto
+    // sigue siendo expresable con el mismo gesto que cualquier otro cambio.
     it('clears the note when the field is emptied', async () => {
       standing('agarre ancho')
       api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: null })
@@ -1919,13 +1943,25 @@ describe('Workout', () => {
 
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
-      // Vaciar el campo teniendo una nota guardada no es guardar, es borrar, y
-      // el verbo del botón cambia con el acto.
       await userEvent.clear(screen.getByLabelText("Nota de Bench Press"))
-      await userEvent.click(screen.getByRole('button', { name: /borrar nota/i }))
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
 
       await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, null))
       await waitFor(() => expect(screen.queryByText('agarre ancho')).not.toBeInTheDocument())
+    })
+
+    // No queda ningún botón que decir. Es la prueba de que la fila es de verdad
+    // una fila de la rejilla —el rótulo, el valor y nada más— y no un
+    // formulario disfrazado.
+    it('leaves the note row with nothing to press', async () => {
+      standing()
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
+
+      expect(screen.queryByRole('button', { name: /guardar/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /borrar nota/i })).not.toBeInTheDocument()
     })
   })
 
@@ -1941,13 +1977,47 @@ describe('Workout', () => {
       ])
     }
 
+    // Sin botón de guardar: el renombrado se manda con Intro, que es la tecla
+    // que el propio campo ofrece. Las otras dos salidas —cerrar el panel y
+    // cambiar de paso— tienen sus pruebas aparte, más abajo.
     const rename = async (typed) => {
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       const field = screen.getByLabelText(/nombre de Bench Press/i)
       await userEvent.clear(field)
-      await userEvent.type(field, typed)
-      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+      await userEvent.type(field, `${typed}{Enter}`)
     }
+
+    // ── La cifra que este trabajo vino a mover ────────────────────────────
+    // La tarjeta se llamaba `key={ex.name}` en la lista, así que renombrar le
+    // cambiaba la llave a React: desmontaba la tarjeta y montaba otra en su
+    // sitio. Y una tarjeta recién montada siembra sus steppers desde
+    // `previous`, o sea desde la sesión anterior. Medido en el banco: con
+    // `42,5 × 9` escritos a medias, corregir una errata en el nombre los
+    // dejaba en `37,5 × 10` — la serie que estabas contando, borrada por
+    // arreglar una letra.
+    it('mantiene un peso × reps a medio escribir al renombrar', async () => {
+      standing()
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: true,
+        sets: [{ reps: 10, weight: 37.5 }],
+      })
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      // Los steppers vienen sembrados con la sesión anterior (`37,5 × 10`);
+      // esto es escribir encima la serie de hoy, a medias, sin registrarla.
+      await userEvent.clear(await screen.findByLabelText('Peso · kg'))
+      await userEvent.type(screen.getByLabelText('Peso · kg'), '42.5')
+      await userEvent.clear(screen.getByLabelText('Reps'))
+      await userEvent.type(screen.getByLabelText('Reps'), '9')
+
+      await rename('Press banca')
+
+      await waitFor(() => expect(cardToggles('Press banca')).toHaveLength(1))
+      expect(screen.getByLabelText('Peso · kg')).toHaveValue('42.5')
+      expect(screen.getByLabelText('Reps')).toHaveValue('9')
+    })
 
     it('renames from the same fold that corrects the muscle', async () => {
       standing()
@@ -2033,16 +2103,84 @@ describe('Workout', () => {
 
     // Tapping the field and walking away is not a rename, and neither is
     // clearing it: an exercise with no name is a card you cannot find again.
+    // Con el guardado colgado de la salida esto pasa a ser la regla que hace
+    // inofensivo abrir el editor sin querer: abrir, no tocar nada y cerrar no
+    // manda nada.
     it('does not send a blank or unchanged name', async () => {
       standing()
       renderWorkout()
 
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
       await userEvent.clear(screen.getByLabelText(/nombre de Bench Press/i))
-      await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
 
       expect(api.renameExercise).not.toHaveBeenCalled()
+    })
+
+    // ── Lo que le pasa a un borrador que dejaste a medias ─────────────────
+    // Antes se tiraba, porque no haber pulsado `Guardar nombre` era una
+    // respuesta. Sin botón no queda ninguna forma de decir «he escrito esto
+    // pero no cuenta», así que salir es confirmar — y las cuatro puertas del
+    // panel valen lo mismo, que es lo que impide que el resultado de un gesto
+    // dependa de dónde aterrizó el pulgar.
+    it('sends what you typed when you close the panel', async () => {
+      standing()
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, 'Press banca')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(2, 'Press banca'))
+    })
+
+    // Entrar en el cajón retira el campo del nombre de la pantalla, así que
+    // cuenta como dejar de mirarlo.
+    it('sends what you typed when you step into the drawer', async () => {
+      standing()
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, 'Press banca')
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo y nota/ }))
+
+      await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(2, 'Press banca'))
+    })
+
+    // Intro y después el aspa son dos salidas para un solo acto. Y un choque de
+    // nombre deja el borrador distinto del guardado, así que sin el seguro la
+    // segunda salida volvería a mandar lo mismo para llevarse el mismo 409.
+    it('does not send the same rename twice', async () => {
+      standing()
+      const conflict = new Error('conflict')
+      conflict.status = 409
+      api.renameExercise.mockRejectedValue(conflict)
+      renderWorkout()
+
+      await rename('Dominadas')
+      await screen.findByText(/ya existe "Dominadas"/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      expect(api.renameExercise).toHaveBeenCalledTimes(1)
+    })
+
+    // Ya no queda ningún botón de guardar en el panel. La única palabra que
+    // sigue siendo suya es `Cerrar`, y esa cierra.
+    it('leaves the panel with nothing to press but the way out', async () => {
+      standing()
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+
+      expect(screen.queryByRole('button', { name: /guardar/i })).not.toBeInTheDocument()
     })
   })
 
