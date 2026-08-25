@@ -40,13 +40,14 @@ sus blancos táctiles miden 24px, y sus etiquetas de sección dan 3.22:1.
 | 02 | la entrada | **ganada** · `3b86bd9` · 3 rondas |
 | 03 | la retícula de campos | **ganada** · `7d1e2c2` · 2 rondas y un cierre |
 | 05 | el guardado | construida · `4672000` · sin juzgar |
-| 04 | el choque de nombre duplicado | sin empezar — el mock ya devuelve el 409 estructurado |
+| 04 | el choque de nombre duplicado | construida · sin juzgar |
 | 06+07 | el borrado y la salida | sin empezar, van juntas |
 
-Backend `156187b`: el 409 del renombrado ya devuelve
-`{code, message, exercise:{id, name, kind, set_count}}`. **El mock de :8000 todavía
-devuelve la cadena pelada vieja y `apiFetch` tira el cuerpo** — los dos hay que
-actualizarlos cuando empiece la pieza 4, no antes.
+Backend `156187b`: el 409 del renombrado devuelve
+`{code, message, exercise:{id, name, kind, set_count}}`. El mock de :8000 ya lo sirve, y
+`apiFetch` ya lo cuelga del error (`err.detail`) sin tocar `err.status`, que es por lo que
+la bandeja de salida distingue «sin señal» de «juzgada y rechazada». La pieza 4 lo usa
+para convertir el choque en una oferta de fusión en sitio, en las dos pantallas.
 
 ## Banco de pruebas
 

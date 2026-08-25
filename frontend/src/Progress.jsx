@@ -11,6 +11,7 @@ import {
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
 import { ExerciseEditor } from './ExerciseEditor.jsx'
+import { EditTrouble } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
@@ -796,12 +797,12 @@ export default function Progress() {
   // El último nombre que se mandó, para que dos salidas seguidas no valgan por
   // dos renombrados. Ver `renameCurrent`.
   const sentName = useRef(null)
-  // The rename's own complaint, beside its field — the page-foot alert is too
-  // far from the thumb that typed to be read at all on a phone.
-  const [nameError, setNameError] = useState('')
-  // The exercise whose name the rename collided with, and so the one this can
-  // be folded into.
-  const [clash, setClash] = useState(null)
+  // Lo que salió mal en el último renombrado, y lo que se puede hacer al
+  // respecto. Vive aquí y no dentro del panel porque el panel se desmonta justo
+  // cuando llega la respuesta: el renombrado se manda también al salir, así que
+  // en cuatro de sus seis disparos el aviso no llegaba a decir nada. Ver
+  // `NameClash.jsx`.
+  const [editTrouble, setEditTrouble] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   // A re-tag asked for but not yet confirmed, and the one that just went
   // through — see requestRetag/undoRetag below.
@@ -824,6 +825,10 @@ export default function Progress() {
             muscle_group: e.muscle_group,
             // Carried, not dropped: it is what the re-tag confirmation counts.
             set_count: e.set_count ?? 0,
+            // Se lleva por lo mismo que `set_count`: al chocar con un nombre
+            // existente hay que saber si esta pantalla puede ofrecer la fusión,
+            // y el servidor rechaza fusionar cardio con fuerza.
+            kind: e.kind ?? 'strength',
           })),
         ),
       )
@@ -836,8 +841,10 @@ export default function Progress() {
   //
   // A 409 means the name is already an exercise of yours — "Fondo" typed on a
   // busy floor, renamed to the "Fondos" that already exists. That is not a
-  // failure to explain at the foot of the page, it is an offer: fold this one
-  // into that one. The complaint stays beside the field you typed in.
+  // failure to explain, it is an offer: fold this one into that one. El
+  // ejercicio con el que chocaste viene **en la respuesta**, así que se nombra
+  // con su ortografía guardada y se dice lo que cuesta la fusión con la cifra
+  // del servidor, sin rebuscarlo en la lista que esta pantalla tenga cargada.
   //
   // ── Sin botón de guardar, y optimista ─────────────────────────────────────
   // Esto ya no lo dispara un `Guardar nombre`: lo disparan Intro dentro del
@@ -862,13 +869,12 @@ export default function Progress() {
     if (!trimmed || trimmed === name) {
       // Un campo que tocaste y dejaste como estaba no es un renombrado. La hoja
       // se queda abierta: cerrarla aquí sería castigar el haber dudado.
-      setNameError('')
+      setEditTrouble(null)
       return
     }
     if (trimmed === sentName.current) return
     sentName.current = trimmed
-    setNameError('')
-    setClash(null)
+    setEditTrouble(null)
     const before = name
     applyRename(id, trimmed)
     try {
@@ -885,13 +891,23 @@ export default function Progress() {
     } catch (err) {
       sentName.current = null
       applyRename(id, before)
-      const taken = exercises.find((e) => e.id !== id && fold(e.name) === fold(trimmed))
-      if (err?.status === 409 && taken) {
-        setClash(taken)
-        setNameError(`Ya existe "${taken.name}".`)
-      } else {
-        setNameError('No se pudo cambiar el nombre.')
-      }
+      // El choque lo nombra el servidor. La búsqueda local que había aquí no
+      // podía ver un ejercicio que esta pantalla nunca llegó a pedir, y cuando
+      // lo encontraba lo nombraba con la ortografía de la lista, no con la
+      // guardada.
+      const taken = err?.status === 409 ? err?.detail?.exercise : null
+      setEditTrouble(
+        taken
+          ? {
+              field: 'name',
+              kind: 'clash',
+              from: before,
+              draft: trimmed,
+              myKind: exercises.find((e) => e.id === id)?.kind ?? null,
+              exercise: taken,
+            }
+          : { field: 'name', kind: 'network', from: before, draft: trimmed },
+      )
     }
   }
 
@@ -905,20 +921,48 @@ export default function Progress() {
 
   // Fold this exercise into the one whose name it collided with: its sets move
   // over, it disappears, and the chart lands on the survivor.
+  //
+  // La dirección es ésta y no la contraria: el superviviente es el ejercicio
+  // que ya tenía el nombre, que es exactamente el nombre que acabas de pedir.
+  // Fusionar al revés dejaría las series juntas bajo el nombre viejo y haría
+  // falta un segundo renombrado que puede volver a fallar.
   async function mergeIntoClash() {
-    if (!current || !clash) return
+    if (!current || !editTrouble?.exercise) return
     try {
-      const target = await mergeExercise(current.id, clash.id)
+      const target = await mergeExercise(current.id, editTrouble.exercise.id)
       setExercises((list) => list.filter((e) => e.id !== current.id))
       setName(target.name)
       // Este ejercicio ya no existe: la hoja iba de él, así que se va con él.
       setEditorOpen(false)
-      setNameError('')
-      setClash(null)
+      setEditTrouble(null)
       await reloadLog()
     } catch {
-      setNameError('No se pudo fusionar.')
+      // Una fusión que no sale no es un choque nuevo: es la misma petición sin
+      // mandar, y se reintenta como cualquier otra.
+      setEditTrouble({ field: 'merge', kind: 'network', from: current.name, draft: editTrouble.draft, exercise: editTrouble.exercise })
     }
+  }
+
+  // Volver a mandar exactamente lo que no salió. Un fallo de red no es una
+  // respuesta a lo que preguntaste, así que la pregunta se repite tal cual, y
+  // desde el propio aviso: sin esto «no se pudo» es una frase sin control al
+  // lado, que es la misma forma de callejón que el choque tenía.
+  function retryEdit() {
+    if (!editTrouble || !current) return
+    if (editTrouble.field === 'group') return changeMuscle(current.id, editTrouble.draft)
+    if (editTrouble.field === 'merge') return mergeIntoClash()
+    return renameCurrent(current.id, editTrouble.draft)
+  }
+
+  // La otra salida del choque: el panel vuelve con lo que escribiste todavía
+  // dentro. Sin esto, «ponle otro nombre» sería una instrucción sin control —
+  // que es la forma exacta que tenía el callejón que este cambio quita.
+  function reopenOnDraft() {
+    if (!editTrouble) return
+    setNameDraft(editTrouble.draft)
+    setEditTrouble(null)
+    sentName.current = null
+    setEditorOpen(true)
   }
 
   // Delete the exercise and everything logged against it. Irreversible, and it
@@ -957,7 +1001,23 @@ export default function Progress() {
   // this re-buckets every set ever logged against it — including the summary
   // bars and heatmap cells further down this very screen. Answers whether it
   // landed, so only a real change gets offered a way back.
+  //
+  // ── Optimista, como el nombre y la nota ─────────────────────────────────
+  // Era el único campo del panel que esperaba al servidor antes de mover nada,
+  // y con `Guardar` retirado eso no se lee como «va en camino», se lee como
+  // «no». Medido en el banco a 2 s de latencia: 343 ms después de confirmar
+  // `Pecho`, el desplegable seguía diciendo `Hombro` y el punto seguía ámbar,
+  // mientras el nombre y la nota decían «hecho» al instante. El grupo aterriza
+  // ahora igual que los otros dos, y el `catch` lo devuelve.
   async function changeMuscle(id, group) {
+    const before = exercises.find((e) => e.id === id)?.muscle_group ?? null
+    const land = (value) => {
+      setExercises((list) =>
+        list.map((e) => (e.id === id ? { ...e, muscle_group: value } : e)),
+      )
+      setMuscle(value ?? UNGROUPED)
+    }
+    land(group || null)
     try {
       const updated = await setExerciseMuscle(id, group || null)
       setExercises((list) =>
@@ -968,7 +1028,17 @@ export default function Progress() {
       setMuscle(updated.muscle_group ?? UNGROUPED)
       return true
     } catch {
-      setError('No se pudo cambiar el grupo.')
+      land(before)
+      // Al mismo sitio que el nombre. El grupo se quejaba al pie de la página y
+      // el nombre dentro del panel: dos campos de la misma caja con dos sitios
+      // distintos para decir que algo ha fallado, y uno de los dos fuera de la
+      // pantalla de un móvil.
+      setEditTrouble({
+        field: 'group',
+        kind: 'network',
+        from: exercises.find((e) => e.id === id)?.name ?? '',
+        draft: group,
+      })
       return false
     }
   }
@@ -1037,8 +1107,7 @@ export default function Progress() {
     // Cambiar de ejercicio cierra la hoja: iba del anterior.
     setEditorOpen(false)
     setError('')
-    setNameError('')
-    setClash(null)
+    setEditTrouble(null)
   }
 
   // Picking a known lift charts it immediately, the way the chips already did.
@@ -1236,6 +1305,17 @@ export default function Progress() {
             mitad de ella, porque el nombre se cambiaba tocando el título. */}
         {current && (
           <>
+            {/* Fuera del panel a propósito: el renombrado se manda también al
+                salir, y por las cuatro puertas la respuesta llega cuando el
+                panel ya no está. Aquí, justo encima de la puerta que lo abre,
+                sobrevive al cierre y sigue estando donde el pulgar acaba de
+                tocar. Ver `NameClash.jsx`. */}
+            <EditTrouble
+              trouble={editTrouble}
+              onMerge={mergeIntoClash}
+              onRename={reopenOnDraft}
+              onRetry={retryEdit}
+            />
             <button
               type="button"
               className="unit-fix exercise-edit"
@@ -1257,8 +1337,7 @@ export default function Progress() {
                 // Abrir resiembra el borrador del nombre desde el ejercicio, y
                 // se lleva por delante la queja y la colisión de la vez pasada.
                 setNameDraft(current.name)
-                setNameError('')
-                setClash(null)
+                setEditTrouble(null)
                 sentName.current = null
                 setEditorOpen(true)
               }}
@@ -1278,23 +1357,6 @@ export default function Progress() {
                 e.preventDefault()
                 renameCurrent(current.id, nameDraft)
               }}
-              nameError={nameError}
-              // El nombre está cogido porque ese ejercicio ya es tuyo, así que
-              // lo útil no es renombrar sino plegar este en aquel. Un toque, y
-              // sus series se van con él. Va pegado al campo y no detrás de
-              // «Más ajustes» porque no es otra cosa que puedas querer hacer:
-              // es la respuesta a lo que acabas de intentar.
-              nameExtra={
-                clash && (
-                  <button
-                    type="button"
-                    className="secondary set-action merge-action"
-                    onClick={mergeIntoClash}
-                  >
-                    Fusionar con {clash.name}
-                  </button>
-                )
-              }
               // El segundo paso. Reetiquetar y borrar son exactamente lo que
               // DESIGN.md llama acciones raras, y traerlas al primer panel es
               // lo que lo hacía medir 294 px en una tarjeta que da 137.

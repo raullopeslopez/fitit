@@ -1927,28 +1927,142 @@ describe('Progress', () => {
       expect(screen.queryByRole('dialog', { name: /^Eliminar Fondo$/ })).not.toBeInTheDocument()
     })
 
-    it('offers to merge when the name you want is already taken', async () => {
-      api.renameExercise.mockRejectedValue(
-        Object.assign(new Error('request failed: 409'), { status: 409 }),
-      )
-      api.mergeExercise.mockResolvedValue({ id: 20, name: 'Fondos', muscle_group: 'Pecho' })
-      render(<Progress />)
+    // ── El choque de nombre duplicado ───────────────────────────────────────
+    // El 409 trae el ejercicio con el que chocaste, así que la colisión deja de
+    // ser un callejón: se nombra con la ortografía guardada, se dice lo que
+    // cuesta fusionar con la cifra del servidor, y las dos salidas están en el
+    // propio aviso.
+    const taken = (exercise) =>
+      Object.assign(new Error('request failed: 409'), {
+        status: 409,
+        detail: {
+          code: 'name_taken',
+          message: 'an exercise with that name already exists',
+          exercise,
+        },
+      })
 
-      await charted('Fondo')
-      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
+    const typeName = async (typed) => {
       const input = screen.getByLabelText(/nombre de /i)
       await userEvent.clear(input)
-      await userEvent.type(input, 'Fondos{Enter}')
+      await userEvent.type(input, typed)
+    }
 
-      // The complaint belongs beside the field you typed in, not at the foot of
-      // a page you'd have to scroll to see.
+    it('turns the collision into a priced offer', async () => {
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 20, name: 'Fondos', kind: 'strength', set_count: 48 }),
+      )
+      api.mergeExercise.mockResolvedValue({ id: 20, name: 'Fondos', muscle_group: 'Pecho' })
+      await openFixes()
+      await typeName('Fondos{Enter}')
+
       const alert = await screen.findByRole('alert')
-      expect(alert).toHaveTextContent(/ya existe/i)
-      expect(screen.getByLabelText(/nombre de /i).closest('form')).toContainElement(alert)
+      expect(alert).toHaveTextContent(
+        'Ya tienes «Fondos», con 48 series. Fusionar mueve ahí las series de «Fondo» y ' +
+          'deja un solo ejercicio.',
+      )
 
-      await userEvent.click(screen.getByRole('button', { name: /fusionar con Fondos/i }))
+      await userEvent.click(within(alert).getByRole('button', { name: 'Fusionar' }))
       await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(32, 20))
       await charted('Fondos')
+      // La fusión se llevó el ejercicio del que iba la hoja, así que la hoja se
+      // va con él — y el aviso, que ya no tiene nada que ofrecer.
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    })
+
+    // La ortografía es la guardada, no la que escribiste: puedes haber tecleado
+    // `fondos` y el ejercicio llamarse `Fondos`. Y el ejercicio con el que
+    // chocas puede no estar en la lista que esta pantalla cargó.
+    it('names the collision from the response, not from the loaded list', async () => {
+      api.listExercises.mockResolvedValue([{ id: 32, name: 'Fondo', muscle_group: 'Pecho' }])
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 77, name: 'Fondos en anillas', kind: 'strength', set_count: 1 }),
+      )
+      await openFixes()
+      await typeName('fondos en anillas{Enter}')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Ya tienes «Fondos en anillas», con 1 serie.',
+      )
+    })
+
+    it('does not print a count of zero', async () => {
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 20, name: 'Fondos', kind: 'strength', set_count: 0 }),
+      )
+      await openFixes()
+      await typeName('Fondos{Enter}')
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Ya tienes «Fondos», todavía sin series.')
+      expect(alert).not.toHaveTextContent(/0 series/)
+    })
+
+    // El servidor rechaza fusionar cardio con fuerza, así que el botón no se
+    // ofrece: sería prometer algo que va a fallar.
+    it('does not offer a merge the server would refuse', async () => {
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 9, name: 'Cinta', kind: 'cardio', set_count: 12 }),
+      )
+      await openFixes()
+      await typeName('Cinta{Enter}')
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'Ya tienes «Cinta», pero es de cardio y «Fondo» es de fuerza. ' +
+          'No se pueden fusionar: ponle otro nombre.',
+      )
+      expect(within(alert).queryByRole('button', { name: 'Fusionar' })).not.toBeInTheDocument()
+    })
+
+    // ── La superficie que no se desmonta ────────────────────────────────────
+    // El renombrado se manda también al cerrar, y por las cuatro puertas la
+    // petición sale mientras el panel desaparece. Un aviso dentro del panel no
+    // llega a decir nada. Medido: por el aspa, un 409 no decía nada de nada.
+    it('says the collision even when the panel closed on the way out', async () => {
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 20, name: 'Fondos', kind: 'strength', set_count: 48 }),
+      )
+      await openFixes()
+      await typeName('Fondos')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Ya tienes «Fondos»')
+      expect(screen.queryByLabelText(/nombre de /i)).not.toBeInTheDocument()
+    })
+
+    it('says a network failure even when the panel closed on the way out', async () => {
+      api.renameExercise.mockRejectedValue(new Error('Failed to fetch'))
+      await openFixes()
+      await typeName('Fondos')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('No se pudo cambiar el nombre.')
+
+      // Y un fallo de red no es una respuesta: la misma pregunta se vuelve a
+      // hacer desde el propio aviso, sin reabrir nada.
+      api.renameExercise.mockResolvedValue({ id: 32, name: 'Fondos', muscle_group: 'Pecho' })
+      await userEvent.click(within(alert).getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(api.renameExercise).toHaveBeenCalledTimes(2))
+      await charted('Fondos')
+    })
+
+    // La otra salida de la colisión: el panel vuelve con lo que escribiste
+    // todavía dentro, para corregirlo en vez de teclearlo otra vez.
+    it('reopens the editor on the draft you typed', async () => {
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 20, name: 'Fondos', kind: 'strength', set_count: 48 }),
+      )
+      await openFixes()
+      await typeName('Fondos')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      const alert = await screen.findByRole('alert')
+      await userEvent.click(within(alert).getByRole('button', { name: 'Cambiar el nombre' }))
+
+      expect(await screen.findByLabelText(/nombre de /i)).toHaveValue('Fondos')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
   })
 })

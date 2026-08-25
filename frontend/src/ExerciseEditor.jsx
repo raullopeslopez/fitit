@@ -81,9 +81,17 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * y aquí no se negocia, así que lo que se copia es la idea —cero cromo— y no el
  * número.
  *
- * Lo que **no** se movió: la fusión al chocar con un nombre existente y la
- * queja del renombrado se quedan pegadas al campo. No son un segundo paso, son
- * la respuesta a lo que acabas de intentar.
+ * Lo que **sí** se movió, y es una vuelta atrás deliberada: la queja del
+ * renombrado y la oferta de fusión ya no están pegadas al campo. Estaban aquí
+ * con el argumento —bueno— de que son la respuesta a lo que acabas de intentar.
+ * El argumento se cayó al quitar el botón de guardar: desde entonces el
+ * renombrado también sale al cerrar, y en las cuatro salidas la petición viaja
+ * mientras este componente se desmonta, así que la respuesta llega a algo que
+ * ya no existe. Medido: por el aspa, Escape, atrás y tocar fuera, ni un fallo
+ * de red ni un 409 decían absolutamente nada, aunque la petición salía y el
+ * servidor contestaba. Un aviso en la única superficie que desaparece es un
+ * aviso que no se da. Vive ahora en la tarjeta, encima de la puerta que abre
+ * este panel; ver `EditTrouble.jsx`.
  *
  * ── Aquí no hay botón de guardar ────────────────────────────────────────────
  *
@@ -136,8 +144,6 @@ export function ExerciseEditor({
   nameDraft,
   onNameDraftChange,
   onSubmitName,
-  nameError,
-  nameExtra,
   more,
   moreLabel,
 }) {
@@ -293,10 +299,47 @@ export function ExerciseEditor({
       // el borrado— se pintan fuera de él. Cerrar el editor al tocarlos dejaría
       // a alguien confirmando algo cuyo origen acaba de desaparecer.
       if (e.target.closest?.('[role="dialog"], .dialog-backdrop')) return
+      // Y el aviso del renombrado, que también se pinta fuera. Es la respuesta
+      // a lo que este panel acaba de mandar, así que tocarlo no es irse a otra
+      // cosa: es seguir en la misma. Sin esto, el `pointerdown` sobre
+      // `Fusionar` cerraba el panel y volvía a mandar el renombrado *antes* de
+      // que llegase el `click`, que entonces encontraba la oferta ya retirada —
+      // medido: `mergeExercise` no se llamaba ni una vez.
+      if (e.target.closest?.('[data-editor-answer]')) return
       leave()
     }
     document.addEventListener('pointerdown', onDown, true)
     return () => document.removeEventListener('pointerdown', onDown, true)
+  }, [open])
+
+  // La quinta salida, y en un móvil es la más común de todas: irse de la app.
+  // Bloquear la pantalla, cambiar de aplicación, recargar, que el sistema mate
+  // la pestaña. Las otras cuatro guardan; ésta era la única que no, así que la
+  // forma más normal de dejar el editor era también la única que se llevaba el
+  // borrador por delante — sin decirlo, y sin que la pestaña se cierre siquiera.
+  //
+  // `visibilitychange → hidden` y `pagehide`, los dos, y no `beforeunload`:
+  // `beforeunload` no se dispara en el descarte de una pestaña de móvil, que es
+  // exactamente el caso. `pagehide` cubre la recarga y la navegación fuera;
+  // `hidden` cubre el bloqueo de pantalla y el cambio de app, y es el único que
+  // llega a tiempo cuando el sistema decide congelar la página.
+  //
+  // No cierra el panel. Si vuelves, vuelves a lo que estabas mirando; lo único
+  // que ha pasado es que lo escrito ya está mandado. `onCommit` tiene que poder
+  // llamarse de más —lo dice su contrato— y aquí se usa esa promesa entera: una
+  // pantalla que se apaga y se enciende son dos avisos para un solo acto.
+  useEffect(() => {
+    if (!open) return undefined
+    const onAway = () => {
+      if (document.visibilityState === 'hidden') onCommitRef.current?.()
+    }
+    const onHide = () => onCommitRef.current?.()
+    document.addEventListener('visibilitychange', onAway)
+    window.addEventListener('pagehide', onHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onAway)
+      window.removeEventListener('pagehide', onHide)
+    }
   }, [open])
 
   // El gesto de atrás de Android. Sin esto, «atrás» con el editor abierto se
@@ -863,9 +906,9 @@ export function ExerciseEditor({
       })
     }
     window.addEventListener('scroll', onScroll, { passive: true, capture: true })
-    // El cuerpo, no sólo la caja. El panel crece solo cuando aparece el aviso
-    // de nombre repetido, la oferta de fusión, el deshacer del reetiquetado o
-    // el segundo paso — y en cuanto `fit` le ha puesto un tope de altura, su
+    // El cuerpo, no sólo la caja. El panel crece solo cuando aparece el
+    // deshacer del reetiquetado o el segundo paso — y en cuanto `fit` le ha
+    // puesto un tope de altura, su
     // caja ya no cambia de tamaño cuando el contenido crece: se limita a
     // desbordar por dentro. Un observador colgado sólo del panel no vuelve a
     // dispararse nunca. Medido en Progreso: al chocar el nombre con uno
@@ -1007,12 +1050,6 @@ export function ExerciseEditor({
               </button>
             </div>
           )}
-          {nameError && (
-            <p role="alert" className="alert rename-alert">
-              {nameError}
-            </p>
-          )}
-          {nameExtra}
         </form>
         ) : (
           <div className="editor-more-pane">

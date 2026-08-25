@@ -1554,16 +1554,6 @@ button.editor-back:active:not(:disabled) {
   background: color-mix(in srgb, var(--text) 8%, transparent);
   transform: none;
 }
-/* La queja del renombrado y la oferta de fusión, debajo del campo que las
-   provocó y a lo ancho, para que se lean como la respuesta a lo de arriba y no
-   como un segundo botón de guardar. */
-.editor-name .rename-alert {
-  margin: 0.5rem 0 0;
-}
-.editor-name .merge-action {
-  width: 100%;
-  margin-top: 0.5rem;
-}
 /* 44 px reales, y el margen negativo se los come del padding de la hoja para
    que la aspa quede ópticamente alineada con el borde sin encoger el blanco. */
 .editor-close {
@@ -2459,10 +2449,74 @@ button.set-action {
   background: color-mix(in srgb, var(--chip, var(--accent)) 12%, transparent);
 }
 
-/* La oferta que sigue a "Ya existe X": a lo ancho, para que se lea como la
-   respuesta a la queja de encima y no como un segundo botón de guardar. */
-.merge-action {
-  flex-basis: 100%;
+/* ── Lo que pasa cuando una edición de ejercicio no sale ───────────────────
+   Fuera del panel, encima de la puerta que lo abre. El panel se desmonta justo
+   cuando llega la respuesta —el renombrado se manda también al salir—, así que
+   un aviso dentro de él no llega a decir nada. Ver `EditTrouble.jsx`.
+
+   Dos aspectos porque son dos cosas. Un fallo de envío lleva `.alert`, el rojo
+   de la casa. Un choque de nombre **no** es un fallo: es una respuesta con dos
+   caminos delante, y meter `Fusionar` dentro de la caja que en esta app
+   significa "esto ha ido mal" lo pintaría de destructivo, que es justo lo que
+   DESIGN.md reserva el rojo de verdad para decir. Superficie elevada y tinta
+   normal. */
+.edit-trouble {
+  margin: 0 0 0.75rem;
+}
+.edit-clash {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+  color: var(--text);
+}
+.edit-trouble-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+/* La fila de salidas. `wrap` porque `Fusionar` + `Cambiar el nombre` no siempre
+   caben en 430 px menos el padding de la tarjeta, y una etiqueta partida por la
+   mitad es peor que dos filas. */
+.edit-trouble-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+.edit-trouble-actions:empty {
+  display: none;
+}
+/* `Fusionar` es un `.secondary`, que no trae suelo táctil propio: medido en el
+   banco daba **38,8 px** de alto, bajo los 44 que DESIGN.md no negocia. */
+.edit-trouble-actions .secondary {
+  min-height: 44px;
+}
+/* La salida secundaria, sin caja: mismo vocabulario que el `Deshacer` del
+   reetiquetado. 44 px de blanco táctil, que aquí tampoco se negocia. */
+.edit-trouble-action {
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Dentro de la caja roja el ámbar no tiene nada que hacer: el suelo de
+   contraste está medido contra el fondo de la app, no contra un lavado de
+   `--danger`. Hereda la tinta del aviso, que es la que ya pasa ahí. */
+.alert.edit-trouble .edit-trouble-action {
+  color: inherit;
+  text-decoration: underline;
+}
+@media (hover: hover) {
+  .edit-trouble-action:hover:not(:disabled) {
+    text-decoration: underline;
+  }
 }
 
 /* The way back from a re-tag, inside the same fold that made it — not a toast.

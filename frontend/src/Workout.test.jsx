@@ -1433,6 +1433,55 @@ describe('Workout', () => {
       expect(retagDialog()).not.toBeInTheDocument()
     })
 
+    // ── El grupo aterriza antes de que conteste el servidor ───────────────
+    // Era el único campo del panel que esperaba la respuesta antes de mover
+    // nada, y con `Guardar` retirado eso no se lee como "va en camino": se lee
+    // como "no". Medido en el banco a 2 s de latencia, 343 ms después de
+    // confirmar `Pecho` el desplegable seguía diciendo `Hombro`.
+    it('lands the group before the server answers, and takes it back if it fails', async () => {
+      let answer
+      api.setExerciseMuscle.mockImplementation(
+        () => new Promise((resolve, reject) => { answer = reject }),
+      )
+      const select = await openCorrector()
+
+      await userEvent.selectOptions(select, 'Hombro')
+      await userEvent.click(
+        within(await findRetagDialog()).getByRole('button', { name: /sí, mover/i }),
+      )
+
+      // Sin esperar a nadie.
+      expect(select).toHaveValue('Hombro')
+
+      await act(async () => {
+        answer(new Error('Failed to fetch'))
+      })
+
+      // Y vuelve al que tenía, diciéndolo — en la tarjeta, que es donde el
+      // nombre y la nota dicen también lo suyo.
+      await waitFor(() => expect(select).toHaveValue('Pecho'))
+      expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cambiar el grupo.')
+    })
+
+    // Una superficie para los tres campos del editor: el nombre se quejaba
+    // dentro del panel, la nota y el grupo al pie de la página. Dos sitios para
+    // tres campos de la misma caja, y ninguno donde estaba mirando el pulgar.
+    it('says a failed note on the same surface the name uses', async () => {
+      api.setExerciseNote.mockRejectedValue(new Error('Failed to fetch'))
+      await openCorrector()
+
+      const note = screen.getByLabelText(/nota de Bench Press/i)
+      await userEvent.type(note, 'sin rebote')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('No se pudo guardar la nota.')
+
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: 'sin rebote' })
+      await userEvent.click(within(alert).getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledTimes(2))
+    })
+
     it('leaves the group untouched when you cancel, select included', async () => {
       const select = await openCorrector()
 
@@ -2075,20 +2124,115 @@ describe('Workout', () => {
       )
     })
 
-    // 409: the name is already one of yours. Folding the two together is
-    // Progreso's job — it can rebuild the whole log behind the merge — so here
-    // the complaint names the collision and says where to go.
-    it('names the exercise the new name collided with', async () => {
+    // ── El choque de nombre duplicado ───────────────────────────────────
+    // 409: el nombre ya es de otro ejercicio tuyo. Antes esto decía «Puedes
+    // fusionarlos desde Progreso» —nombraba otra pantalla y te dejaba allí—, y
+    // ahora la respuesta trae el ejercicio con el que chocaste, así que la
+    // fusión se ofrece aquí mismo y con su precio delante.
+    const taken = (exercise) =>
+      Object.assign(new Error('request failed: 409'), {
+        status: 409,
+        detail: {
+          code: 'name_taken',
+          message: 'an exercise with that name already exists',
+          exercise,
+        },
+      })
+
+    it('turns the collision into a priced offer, in place', async () => {
       standing()
-      const conflict = new Error('conflict')
-      conflict.status = 409
-      api.renameExercise.mockRejectedValue(conflict)
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 3, name: 'Dominadas', kind: 'strength', set_count: 48 }),
+      )
       renderWorkout()
 
       await rename('Dominadas')
 
-      expect(await screen.findByText(/ya existe "Dominadas"/i)).toBeInTheDocument()
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'Ya tienes «Dominadas», con 48 series. Fusionar mueve ahí las series de ' +
+          '«Bench Press» y deja un solo ejercicio.',
+      )
+      // Ni una palabra sobre irse a otra pantalla.
+      expect(alert).not.toHaveTextContent(/Progreso/i)
       expect(cardToggles('Bench Press')).toHaveLength(1)
+    })
+
+    it('folds this exercise into the one it collided with', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 3, name: 'Dominadas', kind: 'strength', set_count: 48 }),
+      )
+      // La fusión mueve las filas en el servidor, así que la sesión que se
+      // vuelve a pedir después trae las series de hoy bajo el superviviente.
+      api.mergeExercise.mockImplementation(async () => {
+        api.getWorkout.mockResolvedValue(
+          workoutWith(benchSet({ exercise_id: 3, exercise_name: 'Dominadas' })),
+        )
+        return { id: 3, name: 'Dominadas', muscle_group: 'Espalda', note: null, set_count: 49 }
+      })
+      renderWorkout()
+
+      await rename('Dominadas')
+      await userEvent.click(
+        within(await screen.findByRole('alert')).getByRole('button', { name: 'Fusionar' }),
+      )
+
+      // El superviviente es el que ya tenía el nombre, que es el nombre que
+      // acabas de pedir: una sola llamada y aterrizas donde querías.
+      await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(2, 3))
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+      expect(cardToggles('Bench Press')).toHaveLength(0)
+      // Y las series de hoy siguen en la tarjeta: la fusión las mueve de
+      // ejercicio, no las tira.
+      expect(screen.getByRole('button', { name: /editar serie 1/i })).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+      // Y la tarjeta lleva la etiqueta del superviviente, no la del duplicado
+      // que acaba de desaparecer.
+      expect(cardToggles('Dominadas')[0].closest('h2')).toHaveTextContent('Espalda')
+    })
+
+    it('does not offer a merge the server would refuse', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 9, name: 'Cinta', kind: 'cardio', set_count: 12 }),
+      )
+      renderWorkout()
+
+      await rename('Cinta')
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'Ya tienes «Cinta», pero es de cardio y «Bench Press» es de fuerza. ' +
+          'No se pueden fusionar: ponle otro nombre.',
+      )
+      expect(within(alert).queryByRole('button', { name: 'Fusionar' })).not.toBeInTheDocument()
+    })
+
+    it('does not print a count of zero', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 3, name: 'Dominadas', kind: 'strength', set_count: 0 }),
+      )
+      renderWorkout()
+
+      await rename('Dominadas')
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Ya tienes «Dominadas», todavía sin series.')
+      expect(alert).not.toHaveTextContent(/0 series/)
+    })
+
+    it('says the collision in the singular', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 3, name: 'Dominadas', kind: 'strength', set_count: 1 }),
+      )
+      renderWorkout()
+
+      await rename('Dominadas')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('con 1 serie.')
     })
 
     it('says so when the rename could not be sent', async () => {
@@ -2099,6 +2243,73 @@ describe('Workout', () => {
       await rename('Press banca')
 
       expect(await screen.findByText(/no se pudo cambiar el nombre/i)).toBeInTheDocument()
+    })
+
+    // ── La superficie que no se desmonta ─────────────────────────────────
+    // El renombrado se manda también al salir, y por las cuatro puertas la
+    // petición sale mientras el panel desaparece: un aviso dentro del panel no
+    // llegaba a decir nada. Medido: por el aspa, ni el fallo de red ni el 409
+    // decían absolutamente nada, aunque la petición salía y el servidor
+    // contestaba 409 puntualmente.
+    it('says the collision even when the panel closed on the way out', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 3, name: 'Dominadas', kind: 'strength', set_count: 48 }),
+      )
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, 'Dominadas')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Ya tienes «Dominadas»')
+      expect(screen.queryByLabelText(/nombre de Bench Press/i)).not.toBeInTheDocument()
+    })
+
+    it('says a network failure even when the panel closed on the way out', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(new Error('Failed to fetch'))
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, 'Press banca')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('No se pudo cambiar el nombre.')
+
+      api.renameExercise.mockResolvedValue({ id: 2, name: 'Press banca', muscle_group: 'Pecho' })
+      await userEvent.click(within(alert).getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(cardToggles('Press banca')).toHaveLength(1))
+    })
+
+    // La otra salida del choque: el panel vuelve con lo que escribiste todavía
+    // dentro, para corregirlo en vez de teclearlo otra vez.
+    it('reopens the editor on the draft you typed', async () => {
+      standing()
+      api.renameExercise.mockRejectedValue(
+        taken({ id: 3, name: 'Dominadas', kind: 'strength', set_count: 48 }),
+      )
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, 'Dominadas')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      await userEvent.click(
+        within(await screen.findByRole('alert')).getByRole('button', {
+          name: 'Cambiar el nombre',
+        }),
+      )
+
+      expect(await screen.findByLabelText(/nombre de Bench Press/i)).toHaveValue('Dominadas')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
     // Tapping the field and walking away is not a rename, and neither is

@@ -6,18 +6,15 @@ import { ExerciseEditor } from './ExerciseEditor.jsx'
 
 // El cuerpo mínimo que las dos pantallas pasan ahora: nada más que el nombre.
 // El grupo, la nota y el borrado van por `more`, que es el segundo paso.
-const editor = (props = {}) =>
-  render(
-    <ExerciseEditor
-      name="Press banca"
-      open
-      onClose={() => {}}
-      nameDraft="Press banca"
-      onNameDraftChange={() => {}}
-      onSubmitName={(e) => e.preventDefault()}
-      {...props}
-    />,
-  )
+const base = {
+  name: 'Press banca',
+  open: true,
+  onClose: () => {},
+  nameDraft: 'Press banca',
+  onNameDraftChange: () => {},
+  onSubmitName: (e) => e.preventDefault(),
+}
+const editor = (props = {}) => render(<ExerciseEditor {...base} {...props} />)
 
 describe('ExerciseEditor', () => {
   it('no pinta nada mientras está cerrado', () => {
@@ -99,19 +96,72 @@ describe('ExerciseEditor', () => {
     expect(onCommit).toHaveBeenCalledTimes(2)
   })
 
-  // La queja del nombre repetido y la oferta de fusión no son un segundo paso:
-  // son la respuesta a lo que acabas de intentar, así que viven pegadas al
-  // campo, en el primer panel.
-  it('la queja del nombre y la fusión salen junto al campo, sin abrir nada', () => {
-    editor({
-      nameError: 'Ya existe Press de banca',
-      nameExtra: <button type="button">Fusionar con Press de banca</button>,
-      more: <p>ajustes</p>,
+  // La queja del nombre vivía aquí dentro, pegada al campo. Ya no: el
+  // renombrado se manda también al salir, así que en las cuatro salidas la
+  // respuesta llega cuando este componente ya no está montado y el aviso no
+  // llegaba a decir nada. Sube a la tarjeta, que sobrevive. Ver
+  // `EditTrouble.jsx`.
+  it('no se queda con ninguna superficie donde decir que algo falló', () => {
+    editor({ more: <p>ajustes</p> })
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  // ── La quinta salida ─────────────────────────────────────────────────────
+  // Bloquear la pantalla o cambiar de app es, en un móvil, la forma más normal
+  // de dejar el editor a medias — y era la única que no guardaba. Recargar
+  // tampoco. `beforeunload` no vale: no se dispara cuando el sistema descarta
+  // una pestaña, que es justo el caso.
+  it('manda lo escrito cuando el móvil se va a otra cosa', () => {
+    const onCommit = vi.fn()
+    editor({ onCommit })
+
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
     })
-    const form = screen.getByLabelText('Nombre de Press banca').closest('form')
-    expect(within(form).getByRole('alert')).toHaveTextContent('Ya existe Press de banca')
-    expect(within(form).getByRole('button', { name: /fusionar/i })).toBeInTheDocument()
-    expect(screen.queryByText('ajustes')).toBeNull()
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(onCommit).toHaveBeenCalledTimes(1)
+
+    // Y volver no manda nada: sólo irse cuenta como dejar de mirar el campo.
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
+
+  it('manda lo escrito cuando la página se descarga', () => {
+    const onCommit = vi.fn()
+    const onClose = vi.fn()
+    editor({ onCommit, onClose })
+
+    window.dispatchEvent(new Event('pagehide'))
+
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    // No cierra: si vuelves, vuelves a lo que estabas mirando.
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  // Pero el aviso se pinta *fuera* del panel, y el panel se cierra al tocar
+  // fuera. Un toque en `Fusionar` no es irse a otra cosa: es la respuesta a lo
+  // que este panel acaba de mandar.
+  it('no se cierra al tocar la respuesta a lo que acaba de mandar', async () => {
+    const onClose = vi.fn()
+    const onCommit = vi.fn()
+    render(
+      <>
+        <div data-editor-answer>
+          <button type="button">Fusionar</button>
+        </div>
+        <ExerciseEditor {...base} onClose={onClose} onCommit={onCommit} />
+      </>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fusionar' }))
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(onCommit).not.toHaveBeenCalled()
   })
 })
 
