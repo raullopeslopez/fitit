@@ -36,7 +36,7 @@ export function RetagConfirm({ name, group, setCount, onCancel, onConfirm }) {
           <button type="button" className="secondary" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="button" onClick={onConfirm}>
+          <button type="button" className="primary" onClick={onConfirm}>
             {group ? 'Sí, mover' : 'Sí, quitar'}
           </button>
         </div>

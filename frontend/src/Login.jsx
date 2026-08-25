@@ -56,7 +56,7 @@ export default function Login({ onAuthenticated, onSwitchToRegister }) {
               {error}
             </p>
           )}
-          <button type="submit" className="btn-full" disabled={busy}>
+          <button type="submit" className="primary btn-full" disabled={busy}>
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>

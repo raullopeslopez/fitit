@@ -839,7 +839,7 @@ function ExerciseCard({
             the bottom of the phone. Grey, never a second amber button: there is
             one primary act here and this isn't it. */}
         <div className="log-actions">
-          <button type="submit" className="btn-full btn-log">
+          <button type="submit" className="primary btn-full btn-log">
             {logLabel}
           </button>
           {sets.length > 0 && (
@@ -896,7 +896,7 @@ function ExerciseCard({
                     value={editNote}
                     onChange={(e) => setEditNote(e.target.value)}
                   />
-                  <button type="submit">Guardar</button>
+                  <button type="submit" className="primary">Guardar</button>
                   <button type="button" className="secondary" onClick={() => setEditingId(null)}>
                     Cancelar
                   </button>
@@ -1111,7 +1111,7 @@ function CardioCard({
             placeholder="opcional"
           />
         </div>
-        <button type="submit" className="btn-full btn-log">
+        <button type="submit" className="primary btn-full btn-log">
           {logLabel}
         </button>
       </form>
@@ -2145,7 +2145,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             </div>
           </div>
         )}
-        <button type="submit" className="btn-full" disabled={adding}>
+        <button type="submit" className="primary btn-full" disabled={adding}>
           {adding ? 'Comprobando…' : 'Añadir ejercicio'}
         </button>
       </form>

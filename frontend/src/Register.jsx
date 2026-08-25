@@ -64,7 +64,7 @@ export default function Register({ onAuthenticated, onSwitchToLogin }) {
               {error}
             </p>
           )}
-          <button type="submit" className="btn-full" disabled={busy}>
+          <button type="submit" className="primary btn-full" disabled={busy}>
             {busy ? 'Creando cuenta…' : 'Crear cuenta'}
           </button>
         </form>

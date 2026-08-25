@@ -40,7 +40,7 @@ export default function ColdStart({ phase, attempt, onRetry, onLocal }) {
           Tu historial y tus marcas están intactos: nada de lo que has registrado se pierde.
         </p>
         <div className="cold-actions">
-          <button type="button" className="btn-full" onClick={onRetry}>
+          <button type="button" className="primary btn-full" onClick={onRetry}>
             Volver a intentarlo
           </button>
           <button type="button" className="secondary btn-full" onClick={onLocal}>

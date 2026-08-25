@@ -1870,6 +1870,18 @@ select:focus {
   box-shadow: 0 0 0 3px var(--ring);
 }
 
+/* El relleno de CTA es opt-in, no herencia.
+   Esto pintaba de ámbar **todo** `<button>`, y como la mayoría de los controles
+   de esta app son texto —una fila, una pestaña, un `⋯`, una acción de una hoja—
+   cada uno tenía que excluirse a mano. La lista de excepciones llegó a catorce
+   selectores en cuatro bloques, y ninguna de sus cuatro ampliaciones fue
+   preventiva: `Borrar día` se envió en rojo sobre un bloque ámbar, `Guardar
+   nota` en ámbar sobre ámbar, y las filas de serie se rellenaban bajo el ratón.
+   La quinta, la ✕ del editor, llevaba viva desde que se escribió (3,33:1).
+   Invertido: un botón nace sin relleno y con la tinta de su sitio, que es lo
+   que es la mayoría, y el ámbar lo pide quien lo quiere con `.primary`. El
+   `background: none` y el `color: inherit` son explícitos porque la hoja del
+   navegador pone `buttonface`/`buttontext` si no. */
 button {
   font: inherit;
   font-weight: 600;
@@ -1878,57 +1890,47 @@ button {
   border: none;
   border-radius: var(--radius-control);
   padding: 0.7rem 1rem;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: none;
+  color: inherit;
   transition:
     background 0.15s ease,
     transform 0.05s ease;
+}
+/* La acción primaria de una pantalla. Pareja de `button.secondary`, que ya
+   existía: el vocabulario no cambia, sólo cuál de los dos es el silencio por
+   defecto. Tinta casi negra sobre el ámbar, nunca blanca — DESIGN.md: el
+   blanco sobre ámbar no pasa AA (3,70 en claro, 2,86 en oscuro). */
+button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 /* Gated on actually having a pointer. Touch browsers leave :hover stuck on the
    last thing you tapped, so on a phone this repainted whatever you just pressed
    and left it there — a folded card wearing the CTA fill until you tapped
    something else. Hover is a mouse idea; this app is used one-handed. */
 @media (hover: hover) {
-  button:hover:not(:disabled) {
+  button.primary:hover:not(:disabled) {
     background: var(--accent-hover);
   }
-  /* Ghost buttons are text, not CTAs. Same specificity as the rule above so
-     the later declaration wins; a plain .card-toggle:hover would lose.
-     .link-row (a Días workout row) is one too — without this it inherited the
-     CTA fill and became amber text on an amber block, near-illegible. */
-  button.card-toggle:hover:not(:disabled),
-  button.unit-fix:hover:not(:disabled),
-  button.link-row:hover:not(:disabled),
-  button.editor-more:hover:not(:disabled),
-  /* Las filas de la rejilla del editor son la cuarta vez que hay que ampliar
-     esta lista, y por la misma razón: son texto, no CTAs. Sin esto `Guardar
-     nota` se rellenaba de ámbar con el ámbar de su propia tinta encima —
-     medido, `--accent-hover` de fondo contra `--accent-ink` de letra— y
-     `Eliminar ejercicio` habría quedado en rojo sobre un bloque naranja. */
-  button.editor-row-action:hover:not(:disabled),
-  button.day-repeat:hover:not(:disabled),
-  button.days-backfill:hover:not(:disabled) {
-    background: none;
-  }
-  /* A sheet item is a surface already; the pointer lifts it rather than
-     replacing it with the CTA fill — which turned `Borrar día` into an amber
-     block with red text on it, the third time this list has had to be extended
-     for a new ghost button. */
+  /* Lo que queda aquí ya no excluye nada: son los tres hovers que *hacen* algo,
+     y cada uno sigue estando por una razón propia. La lista de exclusiones que
+     los acompañaba —siete selectores devolviendo `background: none` a controles
+     que nunca debieron tener relleno— se ha ido con el ámbar por defecto. */
+
+  /* Una fila de hoja ya es una superficie; el puntero la levanta en vez de
+     sustituirla. */
   button.sheet-item:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 8%, var(--surface-raised));
   }
-  /* The tap-to-edit surfaces answer a pointer the way they answer a thumb:
-     a veil, not the CTA fill. Without this they inherited `button:hover` and
-     a set row filled amber under the mouse — the same defect 1efc3df fixed
-     for .link-row, reintroduced by three new surfaces. */
+  /* Las superficies que se tocan para editar contestan al puntero como
+     contestan al dedo: un velo, no un relleno. */
   button.set-row:hover:not(:disabled),
   button.editor-row:hover:not(:disabled),
   button.editor-back:hover:not(:disabled),
   button.workout-title:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
-  /* A set chip already carries its muscle tint; the pointer deepens it instead
-     of replacing it with the CTA fill. */
+  /* Un chip de serie ya lleva el tinte de su músculo; el puntero lo ahonda. */
   button.set-chip:hover:not(:disabled) {
     background: color-mix(in srgb, var(--chip, var(--muted)) 28%, transparent);
   }
