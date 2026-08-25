@@ -1347,8 +1347,10 @@ export default function Progress() {
                       Sin caja: es una acción rara y DESIGN.md dice que las
                       acciones raras no llevan controles con peso de contenido.
                       Un botón rojo relleno al pie del cajón pesaba más que el
-                      `Guardar nombre` del primer paso, que es lo que de verdad
-                      vienes a hacer aquí. El rojo se queda —lo pide la regla del
+                      campo del nombre del primer paso, que es lo que de verdad
+                      vienes a hacer aquí — y desde que este panel no tiene
+                      ningún botón de guardar, sería además el único control con
+                      peso de la caja. El rojo se queda —lo pide la regla del
                       destructivo— pero como tinta, y los dos toques siguen
                       siendo dos: esta fila abre el diálogo que cuenta las
                       series.
