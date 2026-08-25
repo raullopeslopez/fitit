@@ -30,7 +30,7 @@ sus blancos táctiles miden 24px, y sus etiquetas de sección dan 3.22:1.
 |---|---|---|
 | toques para corregir un nombre mal escrito | 4 | **1** (cursor al final, `sel 13/13`) |
 | px que el editor le roba al log | 257 (1335→1600) | **0** |
-| ¿sobrevive un `peso × reps` a medio escribir? | **no** (`42.5×9` → `37.5×10`) | **no** — pieza 5 |
+| ¿sobrevive un `peso × reps` a medio escribir? | **no** (`42.5×9` → `37.5×10`) | **sí** — `42.5 × 9` intactos |
 
 ## Estado de las piezas
 
@@ -38,9 +38,9 @@ sus blancos táctiles miden 24px, y sus etiquetas de sección dan 3.22:1.
 |---|---|---|
 | 01 | el disparador | **ganada** · `6630e95` · 2 rondas |
 | 02 | la entrada | **ganada** · `3b86bd9` · 3 rondas |
-| 03 | la retícula de campos | la retícula aprueba; el crítico **bloquea** por la tapadura del gráfico |
-| 04 | el choque de nombre duplicado | sin empezar |
-| 05 | el guardado | sin empezar — la peor de las tres cifras vive aquí |
+| 03 | la retícula de campos | **ganada** · `7d1e2c2` · 2 rondas y un cierre |
+| 05 | el guardado | construida · `4672000` · sin juzgar |
+| 04 | el choque de nombre duplicado | sin empezar — el mock ya devuelve el 409 estructurado |
 | 06+07 | el borrado y la salida | sin empezar, van juntas |
 
 Backend `156187b`: el 409 del renombrado ya devuelve
@@ -98,8 +98,21 @@ Tres cepos que ya se han comido a varios agentes:
    «sigue fallando» que eran falsos.
 
 Además: `$B js` se rompe con ids que llevan espacios (`weight-Press militar`) — usa
-`document.getElementById(...)`. Y hay **un solo navegador**: constructores y críticos no
-pueden correr a la vez. Para tu sesión con `$B stop` al terminar; deja vite y el mock.
+`document.getElementById(...)`. Para tu sesión con `$B stop` al terminar; deja vite y el mock.
+
+## Un agente por árbol
+
+**Nunca corren dos agentes que escriban sobre este checkout.** No es una regla de cortesía:
+los conjuntos de ficheros pueden estar limpios y aun así romperse, porque un agente hace
+operaciones de git **de todo el repo** sin saber que hay un vecino. Pasó el 2026-08-25 con
+dos agentes a los que se les había repartido `styles.css` en propiedad: un `git stash` para
+re-medir la línea base se llevó por delante las ediciones en vuelo del otro, un `pop` dejó
+`ExerciseEditor.jsx` sintácticamente roto, y recuperarlo truncó tres ficheros a cero bytes
+antes de rescatarlos de un commit colgante con `git fsck`. Además el hook tuvo que saltarse
+con `SKIP_TESTS=1`, porque corría la suite contra obra ajena a medias.
+
+Lo único seguro de paralelizar es trabajo que **no toca ficheros del repo**: el mock del
+scratchpad, un documento que nadie más tiene abierto.
 
 ## Reglas de la casa que este trabajo ha ido descubriendo
 

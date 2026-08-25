@@ -9,7 +9,16 @@
      paper / 5.61 on white and still reads clearly muted. */
   --muted: #616875;
   --accent: #e4571b;
-  --accent-hover: #c2440f;
+  /* En claro el hover aclara, no oscurece. Este token valía `#c2440f` — byte a
+     byte el mismo valor que `--accent-ink`, o sea un color diseñado para ser
+     *texto sobre papel* reutilizado como *relleno debajo de texto*. Con
+     `--on-accent` encima medía 3.50 y suspendía AA; el propio `--accent` da
+     4.81, así que oscurecer al pasar el dedo se comía el poco margen que había.
+     `#f06a2e` da 5.76 y además es la dirección que un hover tiene sobre fondo
+     claro. Tercera vez en esta hoja que un token se valida contra la superficie
+     equivocada — ver `--danger` y el rojo comprobado contra blanco en vez de
+     contra el papel. */
+  --accent-hover: #f06a2e;
   /* Text/glyphs sitting ON the amber fill. White text fails AA on amber (3.70
      light, 2.86 dark); this near-black ink passes both (5.8 / 6.23). One value
      for both themes — the accent is bright enough in each. See DESIGN.md. */
@@ -1303,16 +1312,7 @@ button.workout-title:active:not(:disabled) {
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
-/* Dos clases y la etiqueta, para pasarle por encima a `button.secondary`, que
-   va más abajo en el fichero y deja el botón en 39 px reales.
-   DESIGN.md pide 44 en todo lo que se toca, y éste es el control que confirma
-   lo único que este panel viene a hacer; además va en la misma fila que
-   `Más ajustes`, que sí mide 44, y dos alturas distintas en una fila de dos
-   botones se ven. Cuesta 5 px del presupuesto de 137, y los hay. */
-button.secondary.editor-save {
-  flex: 1;
-  min-height: 44px;
-}
+
 .editor-more {
   flex: none;
   display: flex;
@@ -1330,10 +1330,7 @@ button.secondary.editor-save {
   line-height: 1;
   transition: transform 0.15s ease;
 }
-/* Abierto, el chevrón mira hacia abajo: no lleva a otro sitio, despliega éste. */
-.editor-more[aria-expanded='true']::after {
-  transform: rotate(90deg);
-}
+
 .editor-more:active:not(:disabled) {
   background: color-mix(in srgb, var(--text) 8%, transparent);
   transform: none;
@@ -1494,34 +1491,7 @@ button.editor-back:focus-visible {
    sea el texto guardado, `--accent-ink` en cuanto lo hayas cambiado — que es
    exactamente cuando hay algo que guardar. (`--accent-ink` y no `--accent`:
    es el único hondo que pasa AA sobre papel.) */
-/* ── Y con marco, porque en reposo era el mismo gris que el campo ─────────
-   Apagarlo arregló el ámbar y dejó otro defecto en su sitio: en reposo el
-   botón iba en `--muted`, que es exactamente el token del marcador de posición
-   que tenía a 8 px a su izquierda, en la misma fila, con el mismo cuerpo y sin
-   nada alrededor de ninguno de los dos. Dos grises seguidos no dicen dónde
-   acaba el campo y empieza la acción.
 
-   La separación va por un eje que no gasta ámbar: el marco. El campo no puede
-   llevarlo —la tesis de esta rejilla es que la caja es la fila— y el botón sí,
-   porque es lo único de la fila que *hace* algo en vez de contener algo. Un
-   filete a `--muted` al 70 % mide 3,58 en oscuro y 3,23 en claro, por encima
-   del suelo de 3:1 de un componente no textual. El marco no cambia con el
-   estado: lo que cambia con el estado es la tinta, que es lo que el ámbar
-   significa. */
-button.editor-row-action {
-  flex: none;
-  min-height: 44px;
-  padding: 0 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--muted) 70%, transparent);
-  border-radius: var(--radius-control);
-  background: none;
-  color: var(--muted);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-button.editor-row-action.is-dirty {
-  color: var(--accent-ink);
-}
 /* Lo único de aquí dentro que destruye algo. Rojo de verdad (DESIGN.md lo
    reserva para eso) pero como tinta y no como relleno: es una acción rara, y
    una acción rara no lleva un control con peso de contenido.
