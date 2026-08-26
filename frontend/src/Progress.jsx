@@ -11,11 +11,11 @@ import {
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
 import { ExerciseEditor } from './ExerciseEditor.jsx'
-import { EditTrouble } from './EditTrouble.jsx'
+import { EditTrouble, clashTrouble } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
-import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
+import { RetagUndo } from './MuscleRetag.jsx'
 import {
   deloadTargets,
   recordLadder,
@@ -28,6 +28,97 @@ import { bandFor, bandPosition, bandState } from './volume.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
+/**
+ * Lo que muere al borrar un ejercicio, dicho en unidades sobre las que se puede
+ * actuar.
+ *
+ * Antes decía «se borrarán también sus 9 series, y con ellas su historial y sus
+ * récords». La cifra estaba bien y el resto era una categoría: «historial» y
+ * «récords» son palabras que nombran cosas que no puedes ir a mirar antes de
+ * decidir. Tres cambios, y los tres son cosas que esta pantalla ya tiene
+ * cargadas y no estaba usando:
+ *
+ * - **En cuántos días.** Nueve series repartidas en seis entrenos son seis
+ *   sesiones tuyas; nueve del mismo día son una tarde. Es la diferencia entre
+ *   «una fila que creé sin querer» y «marzo entero», y es exactamente la
+ *   pregunta que se está contestando aquí.
+ * - **Desde cuándo.** El mes en que empieza el registro, que es lo que dice si
+ *   esto tiene antigüedad.
+ * - **Cuál es el récord.** No «sus récords» en abstracto: el número. Un `65 kg
+ *   × 8` en la frase es lo único que hace que la decisión se pueda tomar sin
+ *   cerrar el diálogo para ir a comprobarlo — y está impreso justo encima, en
+ *   la escalera de récords de esta misma tarjeta.
+ */
+function deleteWarning({ sets, days, from, record }) {
+  if (!sets) return 'No tiene ninguna serie registrada. No se puede deshacer.'
+  const spread =
+    days === 1
+      ? `sus ${plural(sets, 'serie', 'series')} de un solo día de ${formatMonth(from)}`
+      : `sus ${plural(sets, 'serie', 'series')} repartidas en ${days} días, desde ${formatMonth(from)}`
+  // Sin récord —un ejercicio que nunca ha llevado peso ni ha subido de
+  // repeticiones— no se inventa uno: se dice lo que queda, que es el registro.
+  const loss = record ? `su récord de ${record}` : 'todo su historial'
+  return `Se borrarán ${spread}, y con ellas ${loss}. No se puede deshacer.`
+}
+
+/**
+ * El diálogo que para el borrado.
+ *
+ * Dos cosas que no tenía y que son la diferencia entre «hay que confirmar» y
+ * «no se puede pulsar sin querer»:
+ *
+ * - **El foco arranca en `Cancelar`**, no en el vacío. Sin esto el foco se
+ *   quedaba en la fila roja que abrió el diálogo —detrás del velo, fuera de la
+ *   pantalla— y un Intro de más volvía a abrirlo. Arranca en la salida segura
+ *   por la misma razón por la que un extintor no lleva el seguro quitado.
+ * - **Escape cancela.** El editor entero se cierra con Escape, así que sin
+ *   esto el único sitio de esta pantalla donde esa tecla no hace nada era
+ *   justamente el que hay delante cuando estás a punto de tirar meses de
+ *   registro.
+ */
+function DeleteConfirm({ name, damage, onCancel, onConfirm }) {
+  const cancelRef = useRef(null)
+  useEffect(() => {
+    cancelRef.current?.focus()
+  }, [])
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        // El editor también escucha Escape y también cierra. Sin parar aquí la
+        // propagación, una sola tecla cancelaba el borrado *y* cerraba el
+        // panel de debajo: dos actos por un gesto.
+        e.stopPropagation()
+        onCancel()
+      }
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [onCancel])
+
+  return (
+    <div className="dialog-backdrop" onClick={onCancel}>
+      <div
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-exercise-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="delete-exercise-title">Eliminar {name}</h2>
+        <p className="dialog-body">{deleteWarning(damage)}</p>
+        <div className="dialog-actions">
+          <button type="button" className="secondary" ref={cancelRef} onClick={onCancel}>
+            Cancelar
+          </button>
+          <button type="button" className="danger" onClick={onConfirm}>
+            Sí, eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // The climb of one lift: only the sessions where it actually went up. A step,
 // not a slope — nothing here is interpolated, so every corner is a day you did
@@ -804,9 +895,13 @@ export default function Progress() {
   // `NameClash.jsx`.
   const [editTrouble, setEditTrouble] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
-  // A re-tag asked for but not yet confirmed, and the one that just went
-  // through — see requestRetag/undoRetag below.
-  const [pendingRetag, setPendingRetag] = useState(null)
+  // El ejercicio que se acaba de borrar, para poder decirlo donde estaba su
+  // tarjeta. `{ name, sets }`; se limpia en cuanto eliges otro.
+  const [deleted, setDeleted] = useState(null)
+  // El buscador, que es donde aterriza el foco cuando la tarjeta que lo tenía
+  // deja de existir.
+  const searchRef = useRef(null)
+  // El reetiquetado que acaba de pasar, para poder desandarlo.
   const [lastRetag, setLastRetag] = useState(null)
   // ¿Está abierta la hoja del editor? Renombrar y reetiquetar son correcciones,
   // de la misma forma que las de una tarjeta de ejercicio en Entreno: raras, y
@@ -896,16 +991,35 @@ export default function Progress() {
       // lo encontraba lo nombraba con la ortografía de la lista, no con la
       // guardada.
       const taken = err?.status === 409 ? err?.detail?.exercise : null
+      // ── Un choque se lleva el panel ─────────────────────────────────────
+      // El bloque de la oferta mide hasta 156 px y se pinta **encima** del
+      // disparador; el panel mide 130 y cuelga de él. Entre el pie de la
+      // gráfica y la barra de pestañas no caben los dos, y con el panel
+      // abierto —lo que pasa al confirmar con Intro— medido a 430×932: el
+      // panel se posaba sobre el bloque y dejaba `Sí, fusionar` y `Escribir
+      // otro nombre` tapados y `inert`. Los dos únicos controles que contestan
+      // a la pregunta que el bloque acaba de hacer, escondidos debajo de la
+      // caja que la provocó.
+      //
+      // No es un problema de colocación, es que son dos superficies para una
+      // decisión. La que manda es el bloque: es la respuesta, sobrevive al
+      // cierre y lleva las dos salidas dentro. Y no se pierde nada, porque una
+      // de esas dos salidas —`Escribir otro nombre`— devuelve el panel con lo
+      // que escribiste todavía dentro. Así, además, un choque se lee igual
+      // hayas salido por donde hayas salido.
+      if (taken) setEditorOpen(false)
+      // Y las dos cifras frescas, que es lo que convierte «ya tienes ése, con
+      // 48 series» en un precio de verdad: 48 es lo que te quedas, no lo que
+      // arriesgas. Ver `clashTrouble` en `EditTrouble.jsx`.
       setEditTrouble(
         taken
-          ? {
-              field: 'name',
-              kind: 'clash',
+          ? await clashTrouble({
+              id,
               from: before,
               draft: trimmed,
               myKind: exercises.find((e) => e.id === id)?.kind ?? null,
-              exercise: taken,
-            }
+              taken,
+            })
           : { field: 'name', kind: 'network', from: before, draft: trimmed },
       )
     }
@@ -967,8 +1081,21 @@ export default function Progress() {
 
   // Delete the exercise and everything logged against it. Irreversible, and it
   // takes history with it, so it is gated on a dialog that names the damage.
+  //
+  // ── Dónde aterrizas ───────────────────────────────────────────────────────
+  // La tarjeta que estabas mirando deja de existir, y con ella el botón que
+  // abrió el editor. El foco se quedaba en un nodo huérfano —el editor sabe no
+  // devolverlo ahí, así que caía en `body`— y la pantalla se quedaba sin decir
+  // nada de lo que acababa de pasar: el ejercicio simplemente ya no estaba.
+  //
+  // Ahora aterriza en el buscador, que es el único control de esta pantalla que
+  // sigue existiendo y además es lo siguiente que vas a hacer —elegir otro
+  // ejercicio—, con una línea encima que dice qué se fue y con cuántas series.
+  // No lleva deshacer y no puede llevarlo: esto es lo que «no se puede
+  // deshacer» significaba en el diálogo.
   async function deleteCurrent() {
     if (!current) return
+    const gone = { name: current.name, sets: setsLogged }
     try {
       await deleteExercise(current.id)
       const left = exercises.filter((e) => e.id !== current.id)
@@ -977,7 +1104,9 @@ export default function Progress() {
       setEditorOpen(false)
       setName('')
       setMuscle(null)
+      setDeleted(gone)
       await reloadLog()
+      searchRef.current?.focus()
     } catch {
       setConfirmingDelete(false)
       setError('No se pudo eliminar el ejercicio.')
@@ -1043,18 +1172,13 @@ export default function Progress() {
     }
   }
 
-  function requestRetag(group) {
-    if (!current) return
-    if (current.set_count > 0) {
-      setPendingRetag({ group })
-      return
-    }
-    applyRetag(group)
-  }
-
+  // Sin diálogo por medio: reetiquetar es el único acto reversible del editor
+  // y era el único que llevaba confirmación *y* deshacer, mientras fusionar
+  // —irreversible— iba de un toque. La cifra que decía el diálogo se dice
+  // ahora en la fila que ofrece la vuelta. Ver `MuscleRetag.jsx`.
   async function applyRetag(group) {
+    if (!current) return
     const from = current?.muscle_group ?? null
-    setPendingRetag(null)
     if (await changeMuscle(current.id, group)) setLastRetag({ id: current.id, from })
   }
 
@@ -1108,6 +1232,7 @@ export default function Progress() {
     setEditorOpen(false)
     setError('')
     setEditTrouble(null)
+    setDeleted(null)
   }
 
   // Picking a known lift charts it immediately, the way the chips already did.
@@ -1153,6 +1278,11 @@ export default function Progress() {
     : []
   // What deleting this exercise would cost, counted from the log we already
   // hold — the confirmation has to name it.
+  //
+  // Del registro y no de `listExercises()`: la lista se pidió al montar y su
+  // `set_count` no cuenta lo de hoy. `days` se vuelve a pedir después de cada
+  // renombrado, fusión y borrado, así que es lo más fresco que hay en esta
+  // pantalla.
   const setsLogged = current
     ? days.reduce(
         (total, day) =>
@@ -1164,6 +1294,26 @@ export default function Progress() {
         0,
       )
     : 0
+  // Y en cuántos días distintos, que es la unidad sobre la que se puede actuar:
+  // «cuatro entrenos» se puede ir a mirar, «cuatro series» no dice cuándo.
+  const daysLogged = current
+    ? days.filter((day) =>
+        day.workouts.some((w) =>
+          w.sets.some((s) => fold(s.exercise_name) === fold(current.name)),
+        ),
+      )
+    : []
+  // El récord, escrito con el mismo vocabulario que la escalera de arriba.
+  // `recordLadder` ya se ha calculado en `rungs`; el último peldaño es la marca.
+  const top = rungs.at(-1)
+  const deleteDamage = {
+    sets: setsLogged,
+    days: daysLogged.length,
+    // `days` viene del servidor con el más nuevo primero (DESIGN.md), así que
+    // el más viejo es el último.
+    from: daysLogged.at(-1)?.date ?? null,
+    record: top ? (top.weight > 0 ? `${showKg(top.weight)} kg × ${top.reps}` : `${top.reps} repeticiones`) : null,
+  }
 
   return (
     <section>
@@ -1188,6 +1338,21 @@ export default function Progress() {
             picking it shouldn't mean leaving the card that draws it. Above
             the chips: it's the more general way in, the chips a shortcut
             for the common case. */}
+        {/* Lo que se acaba de ir, dicho donde aterriza el foco. La tarjeta que
+            estabas mirando ha dejado de existir, así que sin esto la pantalla
+            contesta a un borrado con la ausencia del ejercicio y nada más. No
+            lleva `Deshacer`: es el único acto de esta pantalla que de verdad no
+            se puede desandar, y ofrecer una vuelta que no existe sería peor que
+            no ofrecer ninguna. `role="status"` y no `alert` — es la confirmación
+            de algo que pediste, no un problema. */}
+        {deleted && (
+          <p role="status" className="retag-undo">
+            <span>
+              Se eliminó «{deleted.name}»
+              {deleted.sets > 0 ? `, con sus ${plural(deleted.sets, 'serie', 'series')}.` : '.'}
+            </span>
+          </p>
+        )}
         <form
           className="exercise-search"
           onSubmit={(e) => {
@@ -1201,6 +1366,7 @@ export default function Progress() {
             <label htmlFor="progress-exercise">Ejercicio</label>
             <input
               id="progress-exercise"
+              ref={searchRef}
               value={query}
               onChange={(e) => handleNameInput(e.target.value)}
               placeholder="Buscar…"
@@ -1392,7 +1558,7 @@ export default function Progress() {
                       className="editor-row-control"
                       aria-label={`Grupo muscular de ${current.name}`}
                       value={current.muscle_group ?? ''}
-                      onChange={(e) => requestRetag(e.target.value || null)}
+                      onChange={(e) => applyRetag(e.target.value || null)}
                     >
                       <option value="">{UNGROUPED}</option>
                       {MUSCLE_GROUPS.map((m) => (
@@ -1402,7 +1568,13 @@ export default function Progress() {
                       ))}
                     </select>
                   </div>
-                  {lastRetag && <RetagUndo group={current.muscle_group} onUndo={undoRetag} />}
+                  {lastRetag && (
+                    <RetagUndo
+                      group={current.muscle_group}
+                      setCount={setsLogged}
+                      onUndo={undoRetag}
+                    />
+                  )}
                   {/* The last resort for a duplicate you don't want to keep at
                       all. True red, per DESIGN.md — it is the one control here
                       that destroys something.
@@ -1454,49 +1626,13 @@ export default function Progress() {
         )}
       </div>
 
-      {/* Two taps everywhere else in the app, a dialog here: this is the only
-          destructive action whose cost isn't on screen next to it — the series
-          it deletes are months of log spread across the calendar — so the
-          confirmation has to count them out loud. */}
-      {pendingRetag && current && (
-        <RetagConfirm
-          name={current.name}
-          group={pendingRetag.group}
-          setCount={current.set_count}
-          onCancel={() => setPendingRetag(null)}
-          onConfirm={() => applyRetag(pendingRetag.group)}
-        />
-      )}
-
       {confirmingDelete && current && (
-        <div className="dialog-backdrop" onClick={() => setConfirmingDelete(false)}>
-          <div
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-exercise-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="delete-exercise-title">Eliminar {current.name}</h2>
-            <p className="dialog-body">
-              {setsLogged > 0
-                ? `Se borrarán también sus ${plural(setsLogged, 'serie', 'series')}, y con ellas su historial y sus récords. No se puede deshacer.`
-                : 'No tiene ninguna serie registrada. No se puede deshacer.'}
-            </p>
-            <div className="dialog-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setConfirmingDelete(false)}
-              >
-                Cancelar
-              </button>
-              <button type="button" className="danger" onClick={deleteCurrent}>
-                Sí, eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteConfirm
+          name={current.name}
+          damage={deleteDamage}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={deleteCurrent}
+        />
       )}
 
       {error && (

@@ -2488,10 +2488,50 @@ button.set-action {
 .edit-trouble-actions:empty {
   display: none;
 }
-/* `Fusionar` es un `.secondary`, que no trae suelo táctil propio: medido en el
-   banco daba **38,8 px** de alto, bajo los 44 que DESIGN.md no negocia. */
+/* `.secondary` no trae suelo táctil propio: medido en el banco daba **38,8 px**
+   de alto, bajo los 44 que DESIGN.md no negocia. */
 .edit-trouble-actions .secondary {
   min-height: 44px;
+}
+/* ── El lado irreversible, vestido de irreversible ─────────────────────────
+   El peso estaba del revés. `Fusionar` iba de `.secondary` —fantasma bordeado,
+   el vocabulario de «esto no rompe nada»— a un toque de plegar meses de
+   registro, y `Cambiar el nombre`, que es la marcha atrás, llevaba el ámbar,
+   que en el resto de la app significa «esto es lo que has venido a hacer». El
+   acento estaba puesto en la salida de emergencia.
+
+   Se le da el mismo trato que al otro control irreversible del editor
+   (`.secondary.delete-exercise`): tinta `--danger` y borde del mismo rojo al
+   35 %. Relleno no: DESIGN.md reserva el relleno de acento para lo que la app
+   te está pidiendo que hagas, y aquí no pide nada — sólo dice cuál de los dos
+   actos no se puede deshacer.
+
+   El velo de `:hover` **no** es el 12 % de `--danger` que lleva esa otra fila:
+   medido, un lavado rojo de ese peso baja el contraste de `--danger` sobre
+   papel a **4,05** y sobre blanco a **4,50**, o sea al filo o por debajo del
+   4,5 que exige DESIGN.md para 16px/600 — y el suelo se mide sobre el color
+   realmente pintado, velo incluido, que es la regla que ya pilló a este mismo
+   rojo una vez. El velo es el neutro de la casa, `--text` al 6 %, el mismo con
+   el que DESIGN.md midió esta pareja de rojos. Medido sobre el color pintado
+   de esta caja —`--surface-raised`, que en claro es blanco y no papel—: en
+   reposo 5,911 / 5,469 y con el velo **5,023 / 4,847**, los dos por encima del
+   4,5. */
+.edit-trouble-merge {
+  min-height: 44px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--danger);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .edit-trouble-merge:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+  }
 }
 /* La salida secundaria, sin caja: mismo vocabulario que el `Deshacer` del
    reetiquetado. 44 px de blanco táctil, que aquí tampoco se negocia. */

@@ -41,7 +41,13 @@ sus blancos táctiles miden 24px, y sus etiquetas de sección dan 3.22:1.
 | 03 | la retícula de campos | **ganada** · `7d1e2c2` · 2 rondas y un cierre |
 | 05 | el guardado | construida · `4672000` · sin juzgar |
 | 04 | el choque de nombre duplicado | construida · sin juzgar |
-| 06+07 | el borrado y la salida | sin empezar, van juntas |
+| 06+07 | el borrado y la salida | construida · sin juzgar |
+
+La 06+07 reordenó la ceremonia por daño: lo reversible pasa y se deshace
+(reetiquetar pierde su diálogo, vaciar la nota gana una fila de deshacer), lo
+irreversible se para y se explica (la fusión y el borrado dicen qué muere y en
+qué unidad). Y un choque de nombre cierra el panel: el bloque de la oferta y el
+panel no caben los dos entre la gráfica y la barra, y el que manda es el bloque.
 
 Backend `156187b`: el 409 del renombrado devuelve
 `{code, message, exercise:{id, name, kind, set_count}}`. El mock de :8000 ya lo sirve, y

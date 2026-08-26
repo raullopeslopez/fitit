@@ -1397,25 +1397,19 @@ describe('Workout', () => {
       return screen.getByLabelText(/grupo muscular de Bench Press/i)
     }
 
-    // The editor is a sheet now, and a sheet is a dialog — so "the dialog" has
-    // to say which one. This one is the re-tag confirmation, which names the
-    // move in its heading; the sheet underneath is called "Editar Bench Press".
+    // El editor es un diálogo, así que «el diálogo» tiene que decir cuál. El
+    // del reetiquetado nombraba el movimiento en su título; ya no existe, y
+    // esta consulta se queda para poder demostrar que no está.
     const retagDialog = () => screen.queryByRole('dialog', { name: /(mover|quitar).*Bench Press|Bench Press.*a Hombro/i })
-    const findRetagDialog = () =>
-      screen.findByRole('dialog', { name: /(mover|quitar).*Bench Press|Bench Press.*a Hombro/i })
 
-    it('asks first, naming how many logged sets would move', async () => {
-      const select = await openCorrector()
-
-      await userEvent.selectOptions(select, 'Hombro')
-
-      const dialog = await findRetagDialog()
-      expect(dialog).toHaveTextContent(/4 series/i)
-      expect(dialog).toHaveTextContent(/Hombro/)
-      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
-    })
-
-    it('applies the change once you confirm', async () => {
+    // ── La ceremonia, ordenada por daño ───────────────────────────────────
+    // Reetiquetar es **reversible** y llevaba diálogo *y* deshacer, mientras
+    // fusionar y vaciar la nota —los dos irreversibles, uno de ellos sin
+    // vuelta— no llevaban nada. La ceremonia de la app iba en proporción
+    // inversa al destrozo. Un diálogo modal para cambiar una etiqueta que se
+    // deshace en un toque es ceremonia por sí misma: lo que hace falta es que
+    // se pueda volver, y de eso se ocupa la fila de abajo.
+    it('lands on the tap, with no dialog in the way', async () => {
       api.setExerciseMuscle.mockResolvedValue({
         id: 2,
         name: 'Bench Press',
@@ -1425,12 +1419,27 @@ describe('Workout', () => {
       const select = await openCorrector()
 
       await userEvent.selectOptions(select, 'Hombro')
-      await userEvent.click(
-        within(await findRetagDialog()).getByRole('button', { name: /sí, mover/i }),
-      )
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
       expect(retagDialog()).not.toBeInTheDocument()
+    })
+
+    // La cifra que decía el diálogo no se pierde: se dice después, en la fila
+    // que además ofrece devolverlo. Decirla antes obligaba a leer un modal;
+    // decirla después la deja al lado del control que la desanda.
+    it('says how many logged sets just moved, in the row that takes them back', async () => {
+      api.setExerciseMuscle.mockResolvedValue({
+        id: 2,
+        name: 'Bench Press',
+        muscle_group: 'Hombro',
+        set_count: 4,
+      })
+      const select = await openCorrector()
+
+      await userEvent.selectOptions(select, 'Hombro')
+
+      const undo = await screen.findByText(/4 series/i)
+      expect(undo).toHaveTextContent('Sus 4 series ya cuentan como Hombro.')
     })
 
     // ── El grupo aterriza antes de que conteste el servidor ───────────────
@@ -1446,9 +1455,6 @@ describe('Workout', () => {
       const select = await openCorrector()
 
       await userEvent.selectOptions(select, 'Hombro')
-      await userEvent.click(
-        within(await findRetagDialog()).getByRole('button', { name: /sí, mover/i }),
-      )
 
       // Sin esperar a nadie.
       expect(select).toHaveValue('Hombro')
@@ -1482,21 +1488,51 @@ describe('Workout', () => {
       await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledTimes(2))
     })
 
-    it('leaves the group untouched when you cancel, select included', async () => {
-      const select = await openCorrector()
+    // ── Vaciar la nota era el acto destructivo sin ninguna ceremonia ───────
+    // Se borraba el campo, se salía, y `{"note": null}` viajaba: una nota
+    // guardada desaparecía sin decir nada y sin vuelta atrás. No lleva
+    // confirmación a propósito —colgaría de la salida, y las cuatro salidas
+    // del panel tienen que valer lo mismo—, lleva la misma fila de deshacer
+    // que el reetiquetado. Y en la tarjeta, no en el cajón: para cuando el
+    // servidor contesta, el cajón se ha ido con el cierre que mandó la nota.
+    it('says which note it just deleted, and gives it back', async () => {
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: null })
+      await openCorrector(tagged({ note: 'sin rebote' }))
 
-      await userEvent.selectOptions(select, 'Hombro')
+      const note = screen.getByLabelText(/nota de Bench Press/i)
+      await userEvent.clear(note)
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, null))
+      const undo = await screen.findByText('Se borró la nota: «sin rebote».')
+
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: 'sin rebote' })
       await userEvent.click(
-        within(await findRetagDialog()).getByRole('button', { name: /cancelar/i }),
+        within(undo.closest('p')).getByRole('button', { name: 'Deshacer' }),
       )
-
-      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
-      // The select must snap back: left showing Hombro it would claim a change
-      // that never happened.
-      expect(select).toHaveValue('Pecho')
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenLastCalledWith(2, 'sin rebote'))
+      expect(screen.queryByText(/Se borró la nota/)).not.toBeInTheDocument()
     })
 
-    it('does not ask when nothing has been logged against it yet', async () => {
+    // Escribir encima de una nota no es borrarla: hay algo nuevo en pantalla
+    // que dice qué pasó. La fila es para la desaparición.
+    it('stays quiet when the note is replaced rather than emptied', async () => {
+      api.setExerciseNote.mockResolvedValue({ id: 2, name: 'Bench Press', note: 'más alto' })
+      await openCorrector(tagged({ note: 'sin rebote' }))
+
+      const note = screen.getByLabelText(/nota de Bench Press/i)
+      await userEvent.clear(note)
+      await userEvent.type(note, 'más alto')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(2, 'más alto'))
+      expect(screen.queryByText(/Se borró la nota/)).not.toBeInTheDocument()
+    })
+
+    // Un ejercicio recién creado no tiene nada que mover, así que la fila no
+    // cuenta nada: contar cero series es decir que el cambio no ha hecho nada,
+    // y sí lo ha hecho.
+    it('does not count sets that do not exist', async () => {
       api.setExerciseMuscle.mockResolvedValue({
         id: 2,
         name: 'Bench Press',
@@ -1508,7 +1544,8 @@ describe('Workout', () => {
       await userEvent.selectOptions(select, 'Hombro')
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(2, 'Hombro'))
-      expect(retagDialog()).not.toBeInTheDocument()
+      expect(await screen.findByText('Ahora cuenta como Hombro.')).toBeInTheDocument()
+      expect(screen.queryByText(/0 series/)).not.toBeInTheDocument()
     })
 
     it('offers to put it back afterwards', async () => {
@@ -2149,9 +2186,13 @@ describe('Workout', () => {
       await rename('Dominadas')
 
       const alert = await screen.findByRole('alert')
+      // Las dos cifras: 48 es lo que te quedas, 3 es lo que arriesgas. Y el
+      // reetiquetado que la fusión hacía de tapadillo — Bench Press es de
+      // Pecho y Dominadas de Espalda — dicho en voz alta.
       expect(alert).toHaveTextContent(
-        'Ya tienes «Dominadas», con 48 series. Fusionar mueve ahí las series de ' +
-          '«Bench Press» y deja un solo ejercicio.',
+        'Ya tienes «Dominadas», con 48 series. ' +
+          'Fusionar mueve ahí las 3 series de «Bench Press», con sus récords, y lo borra. ' +
+          'Quedará todo en Espalda, el grupo de «Dominadas». No se puede deshacer.',
       )
       // Ni una palabra sobre irse a otra pantalla.
       expect(alert).not.toHaveTextContent(/Progreso/i)
@@ -2175,7 +2216,7 @@ describe('Workout', () => {
 
       await rename('Dominadas')
       await userEvent.click(
-        within(await screen.findByRole('alert')).getByRole('button', { name: 'Fusionar' }),
+        within(await screen.findByRole('alert')).getByRole('button', { name: 'Sí, fusionar' }),
       )
 
       // El superviviente es el que ya tenía el nombre, que es el nombre que
@@ -2186,6 +2227,12 @@ describe('Workout', () => {
       // Y las series de hoy siguen en la tarjeta: la fusión las mueve de
       // ejercicio, no las tira.
       expect(screen.getByRole('button', { name: /editar serie 1/i })).toBeInTheDocument()
+      // El panel se va con el ejercicio del que iba. Aquí se quedaba abierto
+      // —la tarjeta no se desmonta, sólo cambia de nombre— y eso lo dejaba
+      // editando un ejercicio que el usuario nunca pidió abrir: el que
+      // sobrevivió. Progreso ya lo cerraba; ahora las dos pantallas contestan
+      // igual a un acto que es el mismo en las dos.
+      expect(screen.queryByRole('dialog', { name: /^Editar / })).not.toBeInTheDocument()
       await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
       // Y la tarjeta lleva la etiqueta del superviviente, no la del duplicado
       // que acaba de desaparecer.
@@ -2206,7 +2253,7 @@ describe('Workout', () => {
         'Ya tienes «Cinta», pero es de cardio y «Bench Press» es de fuerza. ' +
           'No se pueden fusionar: ponle otro nombre.',
       )
-      expect(within(alert).queryByRole('button', { name: 'Fusionar' })).not.toBeInTheDocument()
+      expect(within(alert).queryByRole('button', { name: 'Sí, fusionar' })).not.toBeInTheDocument()
     })
 
     it('does not print a count of zero', async () => {
@@ -2304,7 +2351,7 @@ describe('Workout', () => {
 
       await userEvent.click(
         within(await screen.findByRole('alert')).getByRole('button', {
-          name: 'Cambiar el nombre',
+          name: 'Escribir otro nombre',
         }),
       )
 

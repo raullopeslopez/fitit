@@ -1,64 +1,40 @@
-import { retagWarning, UNGROUPED } from './muscles.js'
+import { retagDone } from './muscles.js'
 
 /**
- * The two halves of a safe re-tag, shared by the exercise card in Entreno and
- * the chart card in Progreso — the two places the muscle group can be changed.
+ * La vuelta atrás de un reetiquetado, ofrecida donde se hizo. Compartida por la
+ * tarjeta de ejercicio de Entreno y la de la gráfica en Progreso, que son los
+ * dos sitios desde los que se puede cambiar el grupo — y compartida por la
+ * misma razón que la copia: una garantía sólo vale algo si dice lo mismo en los
+ * dos sitios.
  *
- * They are shared for the same reason the copy is: the guard is only worth
- * anything if it says the same thing in both places, and a warning that drifts
- * between two screens is a warning nobody trusts.
- */
-
-/**
- * Confirmation before a re-tag that would move sets already logged.
+ * ── Aquí había también un diálogo, y sobraba ───────────────────────────────
  *
- * Modelled on the delete dialog, with one deliberate difference: the confirm
- * button is not red. DESIGN.md reserves true red for destructive actions, and
- * this one is reversible — the undo row below is the other half of that
- * promise. Shown only when there is something to lose; a brand-new exercise
- * re-tags on the tap, with no dialog in the way.
- */
-export function RetagConfirm({ name, group, setCount, onCancel, onConfirm }) {
-  return (
-    <div className="dialog-backdrop" onClick={onCancel}>
-      <div
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="retag-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="retag-title">
-          {group ? `Mover ${name} a ${group}` : `Quitar el grupo de ${name}`}
-        </h2>
-        <p className="dialog-body">{retagWarning(setCount, group)}</p>
-        <div className="dialog-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            Cancelar
-          </button>
-          <button type="button" className="primary" onClick={onConfirm}>
-            {group ? 'Sí, mover' : 'Sí, quitar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * The way back, offered right where the change was made.
+ * `RetagConfirm` paraba el cambio con un modal que contaba las series antes de
+ * moverlas. Se ha retirado, y no por ahorrar código: la ceremonia de este
+ * editor estaba en proporción **inversa** al destrozo.
  *
- * Deliberately not a floating toast: DESIGN.md's case against the PR banner —
- * it covers the log for a moment and leaves nothing behind — applies to any
- * overlay that times out, and an undo that expires before you notice what you
- * did is not an undo. This is a quiet line inside the same `Corregir` fold the
- * select lives in, so it costs no content space, hides nothing, and stays until
- * the fold closes.
+ *   reetiquetar (reversible)  → confirmación + deshacer
+ *   fusionar (irreversible)   → un toque, sin nada
+ *   vaciar la nota (sin vuelta) → nada, ni un aviso
+ *   borrar (irreversible)     → confirmación
+ *
+ * El único acto que se deshace en un toque era el que más costaba hacer. Un
+ * modal para cambiar una etiqueta es ceremonia por sí misma: lo que hace falta
+ * de verdad es poder volver, y de eso se ocupa esta fila. La cifra no se pierde
+ * —era lo bueno del diálogo— sino que se dice aquí, que además es donde está el
+ * control que la desanda.
+ *
+ * Deliberadamente no es un aviso flotante: el argumento de DESIGN.md contra el
+ * banner de récord —tapa el registro un momento y no deja nada detrás— vale
+ * para cualquier capa que caduque, y un deshacer que se va antes de que te des
+ * cuenta de lo que hiciste no es un deshacer. Esto es una línea callada dentro
+ * del mismo cajón donde vive el desplegable: no cuesta espacio de contenido, no
+ * tapa nada, y se queda hasta que el cajón se cierra.
  */
-export function RetagUndo({ group, onUndo }) {
+export function RetagUndo({ group, setCount = 0, onUndo }) {
   return (
     <p className="retag-undo">
-      <span>{group ? `Ahora cuenta como ${group}.` : `Ahora está en ${UNGROUPED}.`}</span>
+      <span>{retagDone(setCount, group)}</span>
       <button type="button" className="retag-undo-action" onClick={onUndo}>
         Deshacer
       </button>

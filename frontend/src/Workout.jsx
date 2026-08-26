@@ -16,7 +16,7 @@ import {
   setExerciseNote,
 } from './api.js'
 import { getToken } from './auth.js'
-import { EditTrouble } from './EditTrouble.jsx'
+import { EditTrouble, NoteUndo, clashTrouble } from './EditTrouble.jsx'
 import { ExerciseEditor } from './ExerciseEditor.jsx'
 import {
   daysAgoLabel,
@@ -32,7 +32,7 @@ import {
   sessionLength,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
-import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
+import { RetagUndo } from './MuscleRetag.jsx'
 import {
   cacheMarks,
   cacheWorkout,
@@ -202,14 +202,14 @@ function ExerciseCard({
   // opens — que ahora es una tautología, porque no queda borrador sin guardar:
   // el editor manda los dos campos de texto en cuanto dejas de mirarlos.
   const [noteDraft, setNoteDraft] = useState(note ?? '')
+  // La nota que se acaba de quedar en nada, guardada aquí para poder
+  // devolverla. Vive en la tarjeta y no en el cajón porque `commitNote` se
+  // dispara también al salir: para cuando el servidor contesta, el cajón se ha
+  // ido con el mismo cierre que mandó la nota.
+  const [clearedNote, setClearedNote] = useState(null)
   // The name, being edited, and whatever went wrong last time it was sent.
   // Seeded from the exercise on every open, same as the note above.
   const [nameDraft, setNameDraft] = useState(name)
-  // A re-tag the user has asked for but not yet confirmed — `{ group }`, where
-  // a null group means "Sin grupo". Null while nothing is pending. The select
-  // stays controlled by `muscle` throughout, so backing out needs no undoing:
-  // the next render puts it back on the group the exercise still has.
-  const [pendingRetag, setPendingRetag] = useState(null)
   // The re-tag that just went through, kept so it can be walked back from the
   // same fold: `{ from }`, the group it held before.
   const [lastRetag, setLastRetag] = useState(null)
@@ -233,25 +233,34 @@ function ExerciseCard({
   const [editNote, setEditNote] = useState('')
   const [error, setError] = useState('')
 
-  // Re-tagging reaches every set ever logged against this exercise, so it is
-  // gated on saying how many — but only when there are any. A name added a
-  // minute ago has nothing to move, and a dialog there would be ceremony for
-  // its own sake.
-  function requestRetag(group) {
-    if (setCount > 0) {
-      setPendingRetag({ group })
-      return
-    }
-    applyRetag(group)
-  }
-
+  // Reetiquetar alcanza a todas las series registradas contra este ejercicio,
+  // así que hay que decir cuántas. Se dice **después**, en la fila que ofrece
+  // la vuelta: este es el único acto del editor que se deshace en un toque y
+  // era el único que llevaba confirmación *y* deshacer, mientras fusionar
+  // —irreversible— iba con un toque y sin nada. Ver `MuscleRetag.jsx`.
   async function applyRetag(group) {
     const from = muscle ?? null
-    setPendingRetag(null)
     // Only offer the way back if the change actually landed; the parent owns
     // the complaint when it didn't.
     if (await onChangeMuscle(name, group)) setLastRetag({ from })
   }
+
+  // ── Un choque se lleva el panel ───────────────────────────────────────────
+  // El bloque de la oferta mide hasta 156 px y se pinta encima del disparador;
+  // el panel mide 130 y cuelga de él. Con el panel abierto —lo que pasa al
+  // confirmar con Intro— el panel se posa sobre el bloque y deja `Sí,
+  // fusionar` y `Escribir otro nombre` tapados y `inert`: los dos únicos
+  // controles que contestan a la pregunta que el bloque acaba de hacer,
+  // escondidos debajo de la caja que la provocó.
+  //
+  // No es un problema de colocación: son dos superficies para una decisión. La
+  // que manda es el bloque, que es la respuesta, sobrevive al cierre y lleva
+  // las dos salidas dentro — y una de ellas devuelve el panel con lo que
+  // escribiste todavía dentro. Sólo el choque; un fallo de red es una línea y
+  // un `Reintentar`, y no compite por el sitio.
+  useEffect(() => {
+    if (trouble?.kind === 'clash') setEditorOpen(false)
+  }, [trouble])
 
   async function undoRetag() {
     const { from } = lastRetag
@@ -277,13 +286,34 @@ function ExerciseCard({
   // quedaba vacío, porque pedir que se guarde nada no es guardar. Sin botón la
   // pregunta desaparece: lo que haya en el campo es lo que hay, y un campo
   // vacío es no tener nota.
-  function commitNote() {
+  //
+  // ── Y vaciarla es el acto que se hacía sin ceremonia ninguna ─────────────
+  // Borrar el campo y salir mandaba `{"note": null}`: una nota guardada
+  // desaparecía sin decir nada y sin vuelta atrás — el único acto destructivo
+  // del editor con cero ceremonia, y el más fácil de hacer sin querer, porque
+  // un campo vacío no parece un acto.
+  //
+  // No lleva confirmación y es a propósito: colgaría de la salida, y las cuatro
+  // salidas del panel tienen que valer exactamente lo mismo. Un diálogo al
+  // tocar fuera sería el «control que se niega» que este editor lleva tres
+  // vueltas quitando. Lleva la forma del reetiquetado: se deja pasar y se
+  // ofrece devolverlo.
+  //
+  // Sólo al **vaciar**. Escribir encima no es lo mismo: lo que sustituye a la
+  // nota está en pantalla diciendo qué pasó, y una fila de deshacer por cada
+  // letra corregida es ruido.
+  async function commitNote() {
     if (!onChangeNote) return
     const next = noteDraft.trim()
+    const before = (note ?? '').trim()
     // Un espacio de más no es un cambio. La comparación va con `trim()` porque
     // con `trim()` es como se guarda.
-    if (next === (note ?? '').trim()) return
-    onChangeNote(name, next || null)
+    if (next === before) return
+    const landed = await onChangeNote(name, next || null)
+    // Sólo se ofrece la vuelta de lo que de verdad se fue. Si no salió, la
+    // nota sigue ahí y de eso se queja `EditTrouble` con su `Reintentar`.
+    if (landed === false) return
+    setClearedNote(next ? null : before || null)
   }
 
   // Rename the exercise itself. A blank field or the name it already has is a
@@ -574,7 +604,17 @@ function ExerciseCard({
               cuatro pantallas más arriba. Ver `EditTrouble.jsx`. */}
           <EditTrouble
             trouble={trouble}
-            onMerge={onMerge}
+            // El panel se va con el ejercicio del que iba. Esta tarjeta no se
+            // desmonta al fusionar —conserva su llave y se limita a cambiar de
+            // nombre—, así que sin esto el editor se quedaba abierto sobre el
+            // superviviente: una habitación que abriste para un ejercicio,
+            // ahora editando otro que nunca pediste abrir. Progreso ya lo
+            // cerraba, y un mismo acto no puede contestar distinto según la
+            // pantalla desde la que lo hagas.
+            onMerge={() => {
+              setEditorOpen(false)
+              return onMerge()
+            }}
             // La otra salida del choque: el panel vuelve con lo que
             // escribiste todavía dentro, para corregirlo en vez de teclearlo
             // otra vez. Sin esto «ponle otro nombre» sería una instrucción sin
@@ -586,6 +626,19 @@ function ExerciseCard({
               setEditorOpen(true)
             }}
             onRetry={onRetryEdit}
+          />
+          {/* La misma superficie, y por la misma razón: la nota se manda al
+              salir, así que la vuelta atrás tiene que sobrevivir al cierre del
+              panel. Devolverla es escribirla otra vez, y si eso falla la
+              oferta se queda de pie. */}
+          <NoteUndo
+            note={clearedNote}
+            onUndo={async () => {
+              const back = clearedNote
+              setClearedNote(null)
+              setNoteDraft(back)
+              if ((await onChangeNote(name, back)) === false) setClearedNote(back)
+            }}
           />
           <button
             type="button"
@@ -699,7 +752,7 @@ function ExerciseCard({
                     className="editor-row-control"
                     aria-label={`Grupo muscular de ${name}`}
                     value={muscle ?? ''}
-                    onChange={(e) => requestRetag(e.target.value || null)}
+                    onChange={(e) => applyRetag(e.target.value || null)}
                   >
                     <option value="">{UNGROUPED}</option>
                     {MUSCLE_GROUPS.map((m) => (
@@ -754,19 +807,12 @@ function ExerciseCard({
                     />
                   </form>
                 )}
-                {lastRetag && <RetagUndo group={muscle} onUndo={undoRetag} />}
+                {lastRetag && (
+                  <RetagUndo group={muscle} setCount={setCount} onUndo={undoRetag} />
+                )}
               </>
             }
           />
-          {pendingRetag && (
-            <RetagConfirm
-              name={name}
-              group={pendingRetag.group}
-              setCount={setCount}
-              onCancel={() => setPendingRetag(null)}
-              onConfirm={() => applyRetag(pendingRetag.group)}
-            />
-          )}
         </>
       )}
 
@@ -1901,16 +1947,19 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       // llegado a pedir, y nombraba el choque con la ortografía de esa lista en
       // vez de con la guardada.
       const taken = err?.status === 409 ? err?.detail?.exercise : null
+      // Y las dos cifras frescas. Aquí importa más que en Progreso: la lista
+      // de ejercicios se pidió al montar la pantalla y no cuenta las series de
+      // esta sesión, que son justo las que acabas de registrar. Ver
+      // `clashTrouble` en `EditTrouble.jsx`.
       setEditTrouble(
         taken
-          ? {
-              field: 'name',
-              kind: 'clash',
+          ? await clashTrouble({
+              id,
               from: name,
               draft: next,
               myKind: exercises.find((e) => e.name === name)?.kind ?? null,
-              exercise: taken,
-            }
+              taken,
+            })
           : { field: 'name', kind: 'network', from: name, draft: next },
       )
       return false

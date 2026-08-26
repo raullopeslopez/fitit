@@ -919,9 +919,28 @@ export function ExerciseEditor({
     //
     // `fit` no depende de lo que él mismo aplica —mide con el tope quitado—,
     // así que la segunda vuelta calcula lo mismo y ahí se para.
+    // ── Y lo que crece *por encima* del panel ─────────────────────────────
+    // El panel se coloca contra el hueco, y el hueco baja cuando algo aparece
+    // más arriba en la columna. Eso pasa exactamente una vez y en el peor
+    // momento: al chocar el nombre con uno existente, el bloque de la oferta
+    // —156 px en su caso más largo, el de la fusión que además reetiqueta— se
+    // pinta *encima* del disparador y empuja al panel hacia abajo con la
+    // subida de antes todavía aplicada.
+    //
+    // Medido en Progreso a 430×932 con la página en 857: el panel pasaba a
+    // ocupar 813–943 con `max-height` de 130 calculado para la maquetación
+    // anterior, o sea **68 px suyos detrás de la barra de pestañas**, que está
+    // a `z-index: 10` contra su 3 y no es `inert`. Ni el observador del panel
+    // ni el de sus hijos se enteran: ninguno de los dos ha cambiado de tamaño.
+    // El que sí cambia es el documento, así que se vigila el cuerpo.
+    //
+    // No hay bucle: `fit` sólo escribe `top` y `max-height` sobre una caja
+    // absoluta dentro de un hueco de altura cero, así que nada de lo que hace
+    // puede cambiar la altura del cuerpo.
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
     ro?.observe(panel)
     for (const child of panel.children) ro?.observe(child)
+    ro?.observe(document.body)
     return () => {
       vv?.removeEventListener('resize', fit)
       window.removeEventListener('resize', fit)

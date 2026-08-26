@@ -483,17 +483,11 @@ describe('Progress', () => {
       return screen.getByLabelText(/grupo muscular/i)
     }
 
-    it('asks first, naming how many logged sets would move', async () => {
-      const select = await openCorrector(6)
-
-      await userEvent.selectOptions(select, 'Hombro')
-
-      const dialog = await findRetagDialog()
-      expect(dialog).toHaveTextContent(/6 series/i)
-      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
-    })
-
-    it('applies it on confirm and then offers to put it back', async () => {
+    // Sin diálogo: reetiquetar es el único acto reversible del editor, y era
+    // el único que llevaba confirmación *y* deshacer, mientras fusionar
+    // —irreversible— iba de un toque y sin nada. La cifra que decía el diálogo
+    // se conserva entera; lo que cambia es cuándo se dice y al lado de qué.
+    it('lands on the tap, and the row that takes it back counts the sets', async () => {
       api.setExerciseMuscle.mockResolvedValue({
         id: 7,
         name: 'Press banca',
@@ -503,10 +497,14 @@ describe('Progress', () => {
       const select = await openCorrector(6)
 
       await userEvent.selectOptions(select, 'Hombro')
-      await userEvent.click(
-        within(await findRetagDialog()).getByRole('button', { name: /sí, mover/i }),
-      )
+
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
+      expect(retagDialog()).not.toBeInTheDocument()
+      // Contadas del registro que esta pantalla ya tiene cargado, no de la
+      // lista de ejercicios: PRESS_DAYS lleva las series de verdad.
+      expect(await screen.findByText(/ya cuentan como Hombro/)).toHaveTextContent(
+        /Sus \d+ series ya cuentan como Hombro\./,
+      )
 
       // Undoing is a correction of a correction: it must not ask again.
       api.setExerciseMuscle.mockResolvedValue({
@@ -520,18 +518,6 @@ describe('Progress', () => {
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenLastCalledWith(7, 'Pecho'))
       expect(retagDialog()).not.toBeInTheDocument()
       expect(await screen.findByLabelText(/grupo muscular/i)).toHaveValue('Pecho')
-    })
-
-    it('cancelling changes nothing', async () => {
-      const select = await openCorrector(6)
-
-      await userEvent.selectOptions(select, 'Hombro')
-      await userEvent.click(
-        within(await findRetagDialog()).getByRole('button', { name: /cancelar/i }),
-      )
-
-      expect(api.setExerciseMuscle).not.toHaveBeenCalled()
-      expect(select).toHaveValue('Pecho')
     })
   })
 
@@ -1890,8 +1876,8 @@ describe('Progress', () => {
 
     beforeEach(() => {
       api.listExercises.mockResolvedValue([
-        { id: 32, name: 'Fondo', muscle_group: 'Pecho' },
-        { id: 20, name: 'Fondos', muscle_group: 'Pecho' },
+        { id: 32, name: 'Fondo', muscle_group: 'Pecho', set_count: 4 },
+        { id: 20, name: 'Fondos', muscle_group: 'Pecho', set_count: 48 },
       ])
       api.listDays.mockResolvedValue(FONDO_DAYS)
     })
@@ -1901,16 +1887,70 @@ describe('Progress', () => {
       await openMore()
 
       await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
-      // Irreversible and it takes history with it, so the confirmation has to
-      // name the damage — not just ask "are you sure".
+      // Irreversible y se lleva historia, así que la confirmación tiene que
+      // nombrar el destrozo en unidades sobre las que se pueda actuar: en
+      // cuántos días, desde cuándo, y cuál es el récord que se va. «Su
+      // historial y sus récords» nombraba categorías que no se pueden ir a
+      // mirar antes de decidir.
       const dialog = await screen.findByRole('dialog', { name: /^Eliminar Fondo$/ })
-      expect(dialog).toHaveTextContent(/4 series/i)
+      expect(dialog).toHaveTextContent(
+        'Se borrarán sus 4 series de un solo día de julio, y con ellas su récord de 30 kg × 8. ' +
+          'No se puede deshacer.',
+      )
       expect(api.deleteExercise).not.toHaveBeenCalled()
 
       await userEvent.click(within(dialog).getByRole('button', { name: /sí, eliminar/i }))
       await waitFor(() => expect(api.deleteExercise).toHaveBeenCalledWith(32))
       // Se va el ejercicio y con él la hoja que hablaba de él: ni un diálogo.
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    // Confirmar no es lo mismo que no poder pulsarlo sin querer. El foco se
+    // quedaba en la fila roja que abrió el diálogo —detrás del velo— y un Intro
+    // de más lo reabría; ahora arranca en la salida segura.
+    it('starts the focus on the way out, not on the button that destroys', async () => {
+      await openMore()
+
+      await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
+
+      const dialog = await screen.findByRole('dialog', { name: /^Eliminar Fondo$/ })
+      expect(within(dialog).getByRole('button', { name: /cancelar/i })).toHaveFocus()
+    })
+
+    // Escape cierra el editor entero, así que el único sitio donde no hacía
+    // nada era justo el que hay delante cuando vas a tirar meses de registro.
+    it('backs out on Escape, without closing anything else', async () => {
+      await openMore()
+
+      await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
+      await screen.findByRole('dialog', { name: /^Eliminar Fondo$/ })
+      await userEvent.keyboard('{Escape}')
+
+      expect(api.deleteExercise).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog', { name: /^Eliminar Fondo$/ })).not.toBeInTheDocument()
+      // Y el editor sigue abierto: una tecla, un acto.
+      expect(screen.getByRole('dialog', { name: /^Editar Fondo$/ })).toBeInTheDocument()
+    })
+
+    // La tarjeta deja de existir, y con ella el botón que abrió el editor. Sin
+    // esto el foco caía en `body` y la pantalla contestaba al borrado con la
+    // ausencia del ejercicio y nada más.
+    it('says what it deleted, and lands the focus somewhere that exists', async () => {
+      api.deleteExercise.mockResolvedValue(null)
+      await openMore()
+
+      await userEvent.click(screen.getByRole('button', { name: /eliminar ejercicio/i }))
+      await userEvent.click(
+        within(await screen.findByRole('dialog', { name: /^Eliminar Fondo$/ })).getByRole(
+          'button',
+          { name: /sí, eliminar/i },
+        ),
+      )
+
+      expect(await screen.findByText('Se eliminó «Fondo», con sus 4 series.')).toBeInTheDocument()
+      await waitFor(() => expect(screen.getByLabelText('Ejercicio')).toHaveFocus())
+      // Y no se ofrece una vuelta que no existe.
+      expect(screen.queryByRole('button', { name: /deshacer/i })).not.toBeInTheDocument()
     })
 
     it('backs out of the deletion when you cancel', async () => {
@@ -1957,12 +1997,15 @@ describe('Progress', () => {
       await typeName('Fondos{Enter}')
 
       const alert = await screen.findByRole('alert')
+      // Las dos cifras: 48 es lo que te quedas —lo que *no* arriesgas— y 4 es
+      // lo que se va. Y lo que se va se nombra: series, récords y el ejercicio.
       expect(alert).toHaveTextContent(
-        'Ya tienes «Fondos», con 48 series. Fusionar mueve ahí las series de «Fondo» y ' +
-          'deja un solo ejercicio.',
+        'Ya tienes «Fondos», con 48 series. ' +
+          'Fusionar mueve ahí las 4 series de «Fondo», con sus récords, y lo borra. ' +
+          'No se puede deshacer.',
       )
 
-      await userEvent.click(within(alert).getByRole('button', { name: 'Fusionar' }))
+      await userEvent.click(within(alert).getByRole('button', { name: 'Sí, fusionar' }))
       await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(32, 20))
       await charted('Fondos')
       // La fusión se llevó el ejercicio del que iba la hoja, así que la hoja se
@@ -2012,7 +2055,7 @@ describe('Progress', () => {
         'Ya tienes «Cinta», pero es de cardio y «Fondo» es de fuerza. ' +
           'No se pueden fusionar: ponle otro nombre.',
       )
-      expect(within(alert).queryByRole('button', { name: 'Fusionar' })).not.toBeInTheDocument()
+      expect(within(alert).queryByRole('button', { name: 'Sí, fusionar' })).not.toBeInTheDocument()
     })
 
     // ── La superficie que no se desmonta ────────────────────────────────────
@@ -2059,7 +2102,7 @@ describe('Progress', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
 
       const alert = await screen.findByRole('alert')
-      await userEvent.click(within(alert).getByRole('button', { name: 'Cambiar el nombre' }))
+      await userEvent.click(within(alert).getByRole('button', { name: 'Escribir otro nombre' }))
 
       expect(await screen.findByLabelText(/nombre de /i)).toHaveValue('Fondos')
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()

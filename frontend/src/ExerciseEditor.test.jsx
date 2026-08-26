@@ -314,14 +314,41 @@ describe('ExerciseEditor: el foco al cerrar', () => {
     )
   }
 
-  it('vuelve al disparador que lo abrió', async () => {
-    render(<Harness />)
-    const trigger = screen.getByRole('button', { name: /editar ejercicio/i })
-    await userEvent.click(trigger)
-    expect(document.activeElement).toBe(screen.getByLabelText('Nombre de Press banca'))
-    await userEvent.click(screen.getByRole('button', { name: /cerrar/i }))
-    expect(document.activeElement).toBe(trigger)
-  })
+  // ── Las cuatro puertas devuelven el foco al mismo sitio ──────────────────
+  // Las cuatro salidas guardan igual, y por la misma razón tienen que aterrizar
+  // igual: si el aspa devolviera el foco al disparador y Escape lo dejara en
+  // `body`, el resultado de un gesto dependería de con qué lo hiciste. Estaba
+  // probado sólo por el aspa, que es la única de las cuatro que ya lo tenía
+  // encima.
+  const EXITS = {
+    aspa: async () => userEvent.click(screen.getByRole('button', { name: /cerrar/i })),
+    Escape: async () => userEvent.keyboard('{Escape}'),
+    atrás: async () => {
+      await act(async () => {
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      })
+    },
+    fuera: async () => {
+      await act(async () => {
+        // jsdom no trae `PointerEvent`; el listener sólo lee `target`.
+        document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+      })
+    },
+  }
+
+  for (const [route, leave] of Object.entries(EXITS)) {
+    it(`vuelve al disparador que lo abrió · por ${route}`, async () => {
+      render(<Harness />)
+      const trigger = screen.getByRole('button', { name: /editar ejercicio/i })
+      await userEvent.click(trigger)
+      expect(document.activeElement).toBe(screen.getByLabelText('Nombre de Press banca'))
+
+      await leave()
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect(document.activeElement).toBe(trigger)
+    })
+  }
 
   // El gesto de atrás de Android. Sin esto, «atrás» con el editor abierto se
   // lleva por delante la sesión entera: sales del entreno para cerrar un
