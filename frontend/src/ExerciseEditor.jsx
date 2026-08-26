@@ -132,6 +132,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * el nombre del ejercicio. El teclado que abandonas no es una decisión; el
  * campo que dejas atrás sí.
  */
+/**
+ * El rótulo de la puerta al segundo paso. Es una constante otra vez porque el
+ * cajón vuelve a llevar lo mismo en las dos pantallas: el grupo, la nota y el
+ * borrado. Mientras llevó cosas distintas, la puerta tenía dos nombres — y ésa
+ * era la señal visible de que «un editor compartido» eran dos.
+ */
+export const MORE_LABEL = 'Grupo, nota y eliminar'
+
 export function ExerciseEditor({
   name,
   open,
@@ -722,7 +730,40 @@ export function ExerciseEditor({
       // Las dos marcas de lo intocable, sueltas de golpe si el panel no cabe
       // entre ellas: o se respetan enteras o no se respetan, porque respetar
       // sólo una deja el panel recortado por el otro lado.
-      const fitsProtected = Math.min(baseLimit, protectFloor) - protectCeil >= height
+      const roomProtected = Math.min(baseLimit, protectFloor) - protectCeil
+      const fitsProtected = roomProtected >= height
+      // ── Y el cajón se recorta antes que posarse encima del registro ──────
+      // Soltar las marcas de lo intocable se escribió para el **primer paso**,
+      // y el argumento era el bueno: ahí vive el campo del nombre, que es lo
+      // único que este panel viene a hacer, y un control que no se ve es peor
+      // defecto que unos píxeles de gráfica tapados.
+      //
+      // El segundo paso no es eso. Dentro hay el grupo, la nota y el borrado —
+      // lo que DESIGN.md llama acciones raras—, y la misma línea de DESIGN.md
+      // dice que «cuando una acción rara y una acción por serie se pelean por
+      // el mismo sitio, gana la de la serie, siempre». Soltar las marcas ahí
+      // hace exactamente lo contrario.
+      //
+      // Y no era teórico, sólo era estrecho: con dos filas el cajón medía 166
+      // y el hueco limpio de Entreno en lo alto del barrido mide 173,8, así que
+      // cabía por 7,8 px. Al ganar el cajón su tercera fila —el borrado, que le
+      // faltaba a esta pantalla— pasó a 223 y las marcas se soltaban: medido a
+      // 430×932, en las paradas 400, 425 y 433 el canto de abajo caía dentro de
+      // la fila de peso y reps y dejaba **seis controles partidos** hasta el
+      // 85,5 %, más el `card-toggle`.
+      //
+      // Así que en el cajón el tope es duro y lo que sobra se desplaza dentro
+      // del panel, que ya es `overflow-y: auto`. El contraargumento de la
+      // vuelta anterior —«`Guardar nombre` se iba debajo del corte»— murió con
+      // el botón de guardar: aquí no hay nada que confirmar, sólo tres filas de
+      // ajustes, y la que se queda debajo del corte es la última.
+      //
+      // Con un suelo, que es lo que hace que esto no reviva el panel de 8 px
+      // que producía el tope duro con el teclado delante: si entre las marcas
+      // no caben ni tres filas, se sueltan como siempre.
+      const MIN_DRAWER = 3 * 44
+      const clampsProtected = !fitsProtected && moreOpen && roomProtected >= MIN_DRAWER
+
       // ── Y si no cabe debajo, se mira si cabe encima ──────────────────────
       // Faltaba una posición. Cuando lo protegido está arriba y entre su pie y
       // la barra de pestañas no caben los 166 px del cajón, la regla anterior
@@ -757,13 +798,14 @@ export function ExerciseEditor({
       // entero, así que esta rama nunca esconde `Guardar nombre` detrás de un
       // corte. Si tampoco cabe encima —el bloque ya asoma por el canto de
       // arriba— manda la cuenta de siempre y el panel se posa lo mínimo.
-      const fitsAbove = !fitsProtected && protectTop - TOP_GAP >= height
-      const limit = fitsProtected
-        ? Math.min(baseLimit, protectFloor)
-        : fitsAbove
-          ? Math.min(baseLimit, protectTop)
-          : baseLimit
-      const ceiling = fitsProtected ? protectCeil : TOP_GAP
+      const fitsAbove = !fitsProtected && !clampsProtected && protectTop - TOP_GAP >= height
+      const limit =
+        fitsProtected || clampsProtected
+          ? Math.min(baseLimit, protectFloor)
+          : fitsAbove
+            ? Math.min(baseLimit, protectTop)
+            : baseLimit
+      const ceiling = fitsProtected || clampsProtected ? protectCeil : TOP_GAP
 
       // Lo que hay que subir para que el panel entero esté a la vista: contra
       // los dos bordes a la vez, porque el que se pase por alto es el que
@@ -1044,13 +1086,16 @@ export function ExerciseEditor({
                   momento ni siquiera está en pantalla era la mentira que este
                   panel se ha pasado tres vueltas quitando de otros sitios.
 
-                  El rótulo lo pone quien llena el cajón. Antes ponía
-                  `Más ajustes`, que es el nombre más vago disponible: nombra un
-                  contenedor, no lo que hay dentro. Y no se puede arreglar con
-                  una constante, porque el cajón no lleva lo mismo en las dos
-                  pantallas — en Entreno grupo y nota, en Progreso grupo y
-                  borrado —, así que una etiqueta fija mentiría en una de las
-                  dos. La escribe el llamante, que es el único que sabe.
+                  El rótulo nombra lo que hay dentro, no el contenedor: antes
+                  ponía `Más ajustes`, que es el nombre más vago disponible. Y
+                  durante tres vueltas lo escribió el llamante porque el cajón
+                  no llevaba lo mismo en las dos pantallas — grupo y nota en
+                  Entreno, grupo y borrado en Progreso —, que es precisamente el
+                  defecto que se ha arreglado: el encargo pedía **un** editor
+                  con los cinco actos en las dos pantallas. Ahora el cajón lleva
+                  lo mismo en las dos y el rótulo vuelve a ser una constante
+                  (`MORE_LABEL`). Sigue entrando por prop para que una tercera
+                  pantalla con otro reparto no tenga que mentir.
 
                   Cambiar de paso retira el campo del nombre de la pantalla, así
                   que cuenta como dejar de mirarlo: se guarda antes de irse. Sin

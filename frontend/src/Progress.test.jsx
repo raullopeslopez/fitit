@@ -372,7 +372,7 @@ describe('Progress', () => {
     expect(screen.getByLabelText(/nombre de /i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/grupo muscular/i)).not.toBeInTheDocument()
     // El grupo sigue estando, con su nombre escrito en la puerta.
-    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
     expect(screen.getByLabelText(/grupo muscular/i)).toBeInTheDocument()
   })
 
@@ -439,7 +439,7 @@ describe('Progress', () => {
     render(<Progress />)
 
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
     const select = screen.getByLabelText(/grupo muscular/i)
     expect(select).toHaveValue('Pecho')
 
@@ -479,7 +479,7 @@ describe('Progress', () => {
       api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
       render(<Progress />)
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-      await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
       return screen.getByLabelText(/grupo muscular/i)
     }
 
@@ -1871,7 +1871,7 @@ describe('Progress', () => {
     // editor, no en el panel que abres para arreglar una errata.
     async function openMore() {
       await openFixes()
-      await userEvent.click(screen.getByRole('button', { name: /^Grupo y eliminar/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
     }
 
     beforeEach(() => {
@@ -1880,6 +1880,45 @@ describe('Progress', () => {
         { id: 20, name: 'Fondos', muscle_group: 'Pecho', set_count: 48 },
       ])
       api.listDays.mockResolvedValue(FONDO_DAYS)
+    })
+
+    // ── Y el acto que a esta pantalla le faltaba ────────────────────────
+    // El cajón de Entreno llevaba `Grupo` y `Nota`; éste llevaba `Grupo` y
+    // `Eliminar ejercicio`. Un mismo editor con dos juegos de actos son dos
+    // editores con el mismo cromo, y el encargo pedía los cinco en las dos
+    // pantallas.
+    it('escribe la nota permanente desde el mismo cajón que el grupo', async () => {
+      api.setExerciseNote.mockResolvedValue({ id: 32, name: 'Fondo', note: 'agarre ancho' })
+      await openMore()
+
+      await userEvent.type(screen.getByLabelText('Nota de Fondo'), 'agarre ancho')
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(32, 'agarre ancho'))
+    })
+
+    // Vaciar el campo *es* borrar la nota, y era el acto destructivo sin
+    // ceremonia. Se deja pasar y se ofrece devolverlo, en la misma fila y con
+    // el mismo texto que en Entreno.
+    it('ofrece devolver la nota que se acaba de vaciar', async () => {
+      api.listExercises.mockResolvedValue([
+        { id: 32, name: 'Fondo', muscle_group: 'Pecho', set_count: 4, note: 'agarre ancho' },
+        { id: 20, name: 'Fondos', muscle_group: 'Pecho', set_count: 48 },
+      ])
+      api.setExerciseNote.mockResolvedValue({ id: 32, name: 'Fondo', note: null })
+      await openMore()
+
+      await userEvent.clear(screen.getByLabelText('Nota de Fondo'))
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(32, null))
+      expect(await screen.findByText('Se borró la nota: «agarre ancho».')).toBeInTheDocument()
+
+      api.setExerciseNote.mockResolvedValue({ id: 32, name: 'Fondo', note: 'agarre ancho' })
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Deshacer el borrado de la nota' }),
+      )
+      await waitFor(() => expect(api.setExerciseNote).toHaveBeenCalledWith(32, 'agarre ancho'))
     })
 
     it('deletes an exercise once you confirm, saying what goes with it', async () => {
@@ -1930,6 +1969,10 @@ describe('Progress', () => {
       expect(screen.queryByRole('dialog', { name: /^Eliminar Fondo$/ })).not.toBeInTheDocument()
       // Y el editor sigue abierto: una tecla, un acto.
       expect(screen.getByRole('dialog', { name: /^Editar Fondo$/ })).toBeInTheDocument()
+      // Y el foco vuelve a la fila que abrió el diálogo, no a `<body>`. El
+      // panel lo hacía con su disparador desde la pieza 1; el diálogo que ese
+      // panel abre no, que es la misma asimetría una talla más pequeña.
+      expect(screen.getByRole('button', { name: 'Eliminar ejercicio' })).toHaveFocus()
     })
 
     // La tarjeta deja de existir, y con ella el botón que abrió el editor. Sin
@@ -2011,6 +2054,13 @@ describe('Progress', () => {
       // La fusión se llevó el ejercicio del que iba la hoja, así que la hoja se
       // va con él — y el aviso, que ya no tiene nada que ofrecer.
       await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+      // Y el foco, que se fue con el botón que lo tenía. Caía en `<body>`, y
+      // sólo en esta pantalla: en Entreno aterrizaba en el disparador del
+      // superviviente. Un mismo acto no puede contestar distinto según desde
+      // qué pantalla lo hagas.
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Editar ejercicio Fondos' })).toHaveFocus(),
+      )
     })
 
     // La ortografía es la guardada, no la que escribiste: puedes haber tecleado

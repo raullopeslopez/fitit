@@ -201,7 +201,7 @@ describe('la nota que se borró', () => {
     render(<NoteUndo note="sin rebote" onUndo={onUndo} />)
 
     expect(screen.getByText('Se borró la nota: «sin rebote».')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Deshacer el borrado de la nota' }))
     expect(onUndo).toHaveBeenCalled()
   })
 

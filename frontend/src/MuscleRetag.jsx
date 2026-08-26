@@ -35,7 +35,27 @@ export function RetagUndo({ group, setCount = 0, onUndo }) {
   return (
     <p className="retag-undo">
       <span>{retagDone(setCount, group)}</span>
-      <button type="button" className="retag-undo-action" onClick={onUndo}>
+      {/* ── Dos vueltas atrás no pueden llamarse igual ────────────────────
+          Esta fila y la de la nota (`NoteUndo`, en `EditTrouble.jsx`) pueden
+          estar vivas a la vez: vacías la nota, reetiquetas, y hay dos
+          `Deshacer` idénticos con distinto alcance y distinta vida — el de la
+          nota vive en la tarjeta y sobrevive al panel, éste vive en el cajón y
+          se va con él. Y encima no se ven a la vez: con el panel abierto, el
+          de la nota está justo debajo, tapado.
+
+          La salida no es quedarse con uno. Que la segunda cosa que deshaces
+          se lleve por delante la vuelta atrás de la primera es perder un
+          deshacer para arreglar una etiqueta, y perder un deshacer es
+          exactamente lo que estas dos filas vinieron a evitar. La salida es
+          que cada uno diga qué deshace: la frase de al lado ya lo dice para
+          quien mira, y ahora lo dice también el nombre hablado, que es donde
+          los dos se leían como el mismo botón. */}
+      <button
+        type="button"
+        className="retag-undo-action"
+        aria-label="Deshacer el cambio de grupo"
+        onClick={onUndo}
+      >
         Deshacer
       </button>
     </p>

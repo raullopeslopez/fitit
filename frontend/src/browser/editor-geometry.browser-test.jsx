@@ -665,6 +665,9 @@ describe('la rejilla nombra sus campos, y el nombre no depende del valor', () =>
     [...panel.querySelectorAll('.editor-row-label')].map((el) => el.textContent.trim())
 
   it('Entreno · `Grupo` y `Nota` siguen impresos con las dos filas llenas', async () => {
+    // El borrado no lleva rótulo a propósito y por eso no sale aquí: no es una
+    // propiedad, y la canaleta de rótulos es justamente lo que lo separa de
+    // las filas que sí lo son.
     await mountEntreno()
     const panel = await openEditor(user)
     await openDrawer(user)
@@ -687,11 +690,14 @@ describe('la rejilla nombra sus campos, y el nombre no depende del valor', () =>
     }
   })
 
-  it('Progreso · la fila del grupo también, y el borrado no está en la pila', async () => {
+  it('Progreso · las mismas dos filas, y el borrado no está en la pila', async () => {
     await mountProgreso()
     const panel = await openEditor(user)
     await openDrawer(user)
-    expect(labelsOf(panel)).toEqual(['Grupo'])
+    // Las mismas dos que en Entreno, y esto es lo que cambió: el cajón llevaba
+    // `Grupo` aquí y `Grupo` + `Nota` allí, o sea que «un editor compartido por
+    // las dos pantallas» eran dos editores con el mismo cromo.
+    expect(labelsOf(panel)).toEqual(['Grupo', 'Nota'])
 
     // El destructivo no es una propiedad y no puede leerse como el valor de
     // una: ni comparte la sangría de los valores ni va pegado a la fila de

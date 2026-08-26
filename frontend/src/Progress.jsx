@@ -7,11 +7,13 @@ import {
   mergeExercise,
   renameExercise,
   setExerciseMuscle,
+  setExerciseNote,
 } from './api.js'
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
-import { ExerciseEditor } from './ExerciseEditor.jsx'
-import { EditTrouble, clashTrouble } from './EditTrouble.jsx'
+import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
+import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
+import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
@@ -29,96 +31,6 @@ import { bandFor, bandPosition, bandState } from './volume.js'
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
-/**
- * Lo que muere al borrar un ejercicio, dicho en unidades sobre las que se puede
- * actuar.
- *
- * Antes decía «se borrarán también sus 9 series, y con ellas su historial y sus
- * récords». La cifra estaba bien y el resto era una categoría: «historial» y
- * «récords» son palabras que nombran cosas que no puedes ir a mirar antes de
- * decidir. Tres cambios, y los tres son cosas que esta pantalla ya tiene
- * cargadas y no estaba usando:
- *
- * - **En cuántos días.** Nueve series repartidas en seis entrenos son seis
- *   sesiones tuyas; nueve del mismo día son una tarde. Es la diferencia entre
- *   «una fila que creé sin querer» y «marzo entero», y es exactamente la
- *   pregunta que se está contestando aquí.
- * - **Desde cuándo.** El mes en que empieza el registro, que es lo que dice si
- *   esto tiene antigüedad.
- * - **Cuál es el récord.** No «sus récords» en abstracto: el número. Un `65 kg
- *   × 8` en la frase es lo único que hace que la decisión se pueda tomar sin
- *   cerrar el diálogo para ir a comprobarlo — y está impreso justo encima, en
- *   la escalera de récords de esta misma tarjeta.
- */
-function deleteWarning({ sets, days, from, record }) {
-  if (!sets) return 'No tiene ninguna serie registrada. No se puede deshacer.'
-  const spread =
-    days === 1
-      ? `sus ${plural(sets, 'serie', 'series')} de un solo día de ${formatMonth(from)}`
-      : `sus ${plural(sets, 'serie', 'series')} repartidas en ${days} días, desde ${formatMonth(from)}`
-  // Sin récord —un ejercicio que nunca ha llevado peso ni ha subido de
-  // repeticiones— no se inventa uno: se dice lo que queda, que es el registro.
-  const loss = record ? `su récord de ${record}` : 'todo su historial'
-  return `Se borrarán ${spread}, y con ellas ${loss}. No se puede deshacer.`
-}
-
-/**
- * El diálogo que para el borrado.
- *
- * Dos cosas que no tenía y que son la diferencia entre «hay que confirmar» y
- * «no se puede pulsar sin querer»:
- *
- * - **El foco arranca en `Cancelar`**, no en el vacío. Sin esto el foco se
- *   quedaba en la fila roja que abrió el diálogo —detrás del velo, fuera de la
- *   pantalla— y un Intro de más volvía a abrirlo. Arranca en la salida segura
- *   por la misma razón por la que un extintor no lleva el seguro quitado.
- * - **Escape cancela.** El editor entero se cierra con Escape, así que sin
- *   esto el único sitio de esta pantalla donde esa tecla no hace nada era
- *   justamente el que hay delante cuando estás a punto de tirar meses de
- *   registro.
- */
-function DeleteConfirm({ name, damage, onCancel, onConfirm }) {
-  const cancelRef = useRef(null)
-  useEffect(() => {
-    cancelRef.current?.focus()
-  }, [])
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        // El editor también escucha Escape y también cierra. Sin parar aquí la
-        // propagación, una sola tecla cancelaba el borrado *y* cerraba el
-        // panel de debajo: dos actos por un gesto.
-        e.stopPropagation()
-        onCancel()
-      }
-    }
-    document.addEventListener('keydown', onKey, true)
-    return () => document.removeEventListener('keydown', onKey, true)
-  }, [onCancel])
-
-  return (
-    <div className="dialog-backdrop" onClick={onCancel}>
-      <div
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-exercise-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="delete-exercise-title">Eliminar {name}</h2>
-        <p className="dialog-body">{deleteWarning(damage)}</p>
-        <div className="dialog-actions">
-          <button type="button" className="secondary" ref={cancelRef} onClick={onCancel}>
-            Cancelar
-          </button>
-          <button type="button" className="danger" onClick={onConfirm}>
-            Sí, eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // The climb of one lift: only the sessions where it actually went up. A step,
 // not a slope — nothing here is interpolated, so every corner is a day you did
@@ -903,6 +815,14 @@ export default function Progress() {
   const searchRef = useRef(null)
   // El reetiquetado que acaba de pasar, para poder desandarlo.
   const [lastRetag, setLastRetag] = useState(null)
+  // La nota permanente, editándose. Se resiembra del ejercicio cada vez que se
+  // abre el panel, igual que el nombre.
+  const [noteDraft, setNoteDraft] = useState('')
+  // La nota que se acaba de quedar en nada, guardada para poder devolverla.
+  // Vive fuera del panel porque `commitNote` se dispara también al salir: para
+  // cuando el servidor contesta, el panel se ha ido con el mismo cierre que
+  // mandó la nota. Ver `EditTrouble.jsx`.
+  const [clearedNote, setClearedNote] = useState(null)
   // ¿Está abierta la hoja del editor? Renombrar y reetiquetar son correcciones,
   // de la misma forma que las de una tarjeta de ejercicio en Entreno: raras, y
   // estaban metidas dentro del contenido.
@@ -924,6 +844,11 @@ export default function Progress() {
             // existente hay que saber si esta pantalla puede ofrecer la fusión,
             // y el servidor rechaza fusionar cardio con fuerza.
             kind: e.kind ?? 'strength',
+            // La nota permanente del ejercicio. Antes esta pantalla ni la
+            // pedía: su cajón llevaba grupo y borrado y el de Entreno grupo y
+            // nota, o sea dos editores distintos con el mismo cromo. Ahora las
+            // dos pantallas llevan los cinco actos.
+            note: e.note ?? null,
           })),
         ),
       )
@@ -992,7 +917,7 @@ export default function Progress() {
       // guardada.
       const taken = err?.status === 409 ? err?.detail?.exercise : null
       // ── Un choque se lleva el panel ─────────────────────────────────────
-      // El bloque de la oferta mide hasta 156 px y se pinta **encima** del
+      // El bloque de la oferta mide 135–177 px —la frase envuelve— y se pinta **encima** del
       // disparador; el panel mide 130 y cuelga de él. Entre el pie de la
       // gráfica y la barra de pestañas no caben los dos, y con el panel
       // abierto —lo que pasa al confirmar con Intro— medido a 430×932: el
@@ -1050,6 +975,10 @@ export default function Progress() {
       setEditorOpen(false)
       setEditTrouble(null)
       await reloadLog()
+      // El botón que tenía el foco acaba de desmontarse con el bloque de la
+      // oferta. Sin esto el foco caía en `<body>` — medido, y sólo en esta
+      // pantalla, que es la asimetría que no puede quedarse.
+      focusEditorTrigger(target.name)
     } catch {
       // Una fusión que no sale no es un choque nuevo: es la misma petición sin
       // mandar, y se reintenta como cualquier otra.
@@ -1064,6 +993,7 @@ export default function Progress() {
   function retryEdit() {
     if (!editTrouble || !current) return
     if (editTrouble.field === 'group') return changeMuscle(current.id, editTrouble.draft)
+    if (editTrouble.field === 'note') return changeNote(current.id, editTrouble.draft)
     if (editTrouble.field === 'merge') return mergeIntoClash()
     return renameCurrent(current.id, editTrouble.draft)
   }
@@ -1170,6 +1100,48 @@ export default function Progress() {
       })
       return false
     }
+  }
+
+  // La nota permanente, mandada igual que el grupo y por las mismas puertas que
+  // el nombre: Intro dentro del campo, entrar en el cajón y cerrar el panel.
+  // Optimista, y el `catch` la devuelve.
+  //
+  // Es literalmente el mismo acto que `changeNoteFor` en `Workout.jsx`. Estaba
+  // sólo allí, que es la mitad de por qué «un editor compartido por las dos
+  // pantallas» eran dos.
+  async function changeNote(id, note) {
+    const before = exercises.find((e) => e.id === id)?.note ?? null
+    const land = (value) =>
+      setExercises((list) => list.map((e) => (e.id === id ? { ...e, note: value } : e)))
+    land(note)
+    try {
+      const updated = await setExerciseNote(id, note)
+      land(updated.note ?? null)
+      return true
+    } catch {
+      land(before)
+      setEditTrouble({
+        field: 'note',
+        kind: 'network',
+        from: exercises.find((e) => e.id === id)?.name ?? '',
+        draft: note,
+      })
+      return false
+    }
+  }
+
+  // Vaciar el campo *es* borrar la nota, y era el único acto destructivo del
+  // editor sin ninguna ceremonia. No lleva confirmación —colgaría de la salida,
+  // y las cuatro salidas del panel valen lo mismo— sino la forma del
+  // reetiquetado: se deja pasar y se ofrece devolverlo. Sólo al vaciar:
+  // escribir encima deja en pantalla lo que sustituyó a la nota.
+  async function commitNote() {
+    if (!current) return
+    const next = noteDraft.trim()
+    const before = (current.note ?? '').trim()
+    if (next === before) return
+    if ((await changeNote(current.id, next || null)) === false) return
+    setClearedNote(next ? null : before || null)
   }
 
   // Sin diálogo por medio: reetiquetar es el único acto reversible del editor
@@ -1282,38 +1254,10 @@ export default function Progress() {
   // Del registro y no de `listExercises()`: la lista se pidió al montar y su
   // `set_count` no cuenta lo de hoy. `days` se vuelve a pedir después de cada
   // renombrado, fusión y borrado, así que es lo más fresco que hay en esta
-  // pantalla.
-  const setsLogged = current
-    ? days.reduce(
-        (total, day) =>
-          total +
-          day.workouts.reduce(
-            (n, w) => n + w.sets.filter((s) => fold(s.exercise_name) === fold(current.name)).length,
-            0,
-          ),
-        0,
-      )
-    : 0
-  // Y en cuántos días distintos, que es la unidad sobre la que se puede actuar:
-  // «cuatro entrenos» se puede ir a mirar, «cuatro series» no dice cuándo.
-  const daysLogged = current
-    ? days.filter((day) =>
-        day.workouts.some((w) =>
-          w.sets.some((s) => fold(s.exercise_name) === fold(current.name)),
-        ),
-      )
-    : []
-  // El récord, escrito con el mismo vocabulario que la escalera de arriba.
-  // `recordLadder` ya se ha calculado en `rungs`; el último peldaño es la marca.
-  const top = rungs.at(-1)
-  const deleteDamage = {
-    sets: setsLogged,
-    days: daysLogged.length,
-    // `days` viene del servidor con el más nuevo primero (DESIGN.md), así que
-    // el más viejo es el último.
-    from: daysLogged.at(-1)?.date ?? null,
-    record: top ? (top.weight > 0 ? `${showKg(top.weight)} kg × ${top.reps}` : `${top.reps} repeticiones`) : null,
-  }
+  // pantalla. Y lo cuenta la misma función que lo cuenta en Entreno
+  // (`DeleteExercise.jsx`): un solo acto, una sola definición del daño.
+  const deleteDamage = current ? damageFromDays(days, current.name) : null
+  const setsLogged = deleteDamage?.sets ?? 0
 
   return (
     <section>
@@ -1482,6 +1426,18 @@ export default function Progress() {
               onRename={reopenOnDraft}
               onRetry={retryEdit}
             />
+            {/* La misma superficie y por la misma razón: la nota se manda al
+                salir, así que la vuelta atrás tiene que sobrevivir al cierre
+                del panel. Idéntica a la de Entreno. */}
+            <NoteUndo
+              note={clearedNote}
+              onUndo={async () => {
+                const back = clearedNote
+                setClearedNote(null)
+                setNoteDraft(back)
+                if ((await changeNote(current.id, back)) === false) setClearedNote(back)
+              }}
+            />
             <button
               type="button"
               className="unit-fix exercise-edit"
@@ -1503,6 +1459,7 @@ export default function Progress() {
                 // Abrir resiembra el borrador del nombre desde el ejercicio, y
                 // se lleva por delante la queja y la colisión de la vez pasada.
                 setNameDraft(current.name)
+                setNoteDraft(current.note ?? '')
                 setEditTrouble(null)
                 sentName.current = null
                 setEditorOpen(true)
@@ -1514,9 +1471,13 @@ export default function Progress() {
               name={current.name}
               open={editorOpen}
               onClose={() => setEditorOpen(false)}
-              // El único campo de texto de este panel. El grupo ya se guardaba
-              // al elegirlo y el borrado tiene su propio diálogo.
-              onCommit={() => renameCurrent(current.id, nameDraft)}
+              // Los dos campos de texto, mandados en cuanto dejan de estar
+              // delante. El grupo ya se guardaba al elegirlo y el borrado tiene
+              // su propio diálogo.
+              onCommit={() => {
+                renameCurrent(current.id, nameDraft)
+                commitNote()
+              }}
               nameDraft={nameDraft}
               onNameDraftChange={setNameDraft}
               onSubmitName={(e) => {
@@ -1527,12 +1488,11 @@ export default function Progress() {
               // DESIGN.md llama acciones raras, y traerlas al primer panel es
               // lo que lo hacía medir 294 px en una tarjeta que da 137.
               //
-              // El rótulo dice lo que hay dentro, y aquí dentro hay el grupo y
-              // el borrado — no lo mismo que en Entreno, que es por lo que el
-              // rótulo lo pone el llamante. `Eliminar` con las mismas letras
-              // que el botón que abre: la puerta nombra lo que hay detrás con
-              // la palabra con la que lo vas a encontrar.
-              moreLabel="Grupo y eliminar"
+              // El rótulo dice lo que hay dentro, y ahora dentro hay lo mismo
+              // en las dos pantallas: el grupo, la nota y el borrado. Que
+              // pusiera `Grupo y eliminar` aquí y `Grupo y nota` allí era la
+              // señal de que no era un editor sino dos.
+              moreLabel={MORE_LABEL}
               more={
                 <>
                   {/* Una fila, y la fila es el control: el rótulo del campo en
@@ -1568,6 +1528,32 @@ export default function Progress() {
                       ))}
                     </select>
                   </div>
+                  {/* La nota permanente, en su fila y sin nada que pulsar: se
+                      guarda al volver al nombre, al cerrar el panel y con Intro
+                      dentro del propio campo. Misma fila, mismo rótulo y mismo
+                      marcador de posición que en Entreno — es el mismo campo
+                      del mismo ejercicio, y hasta ahora sólo existía en una de
+                      las dos pantallas. */}
+                  <form
+                    className="editor-row editor-row-note"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      commitNote()
+                    }}
+                  >
+                    <label className="editor-row-label" htmlFor="exercise-note">
+                      Nota
+                    </label>
+                    <input
+                      id="exercise-note"
+                      className="editor-row-control"
+                      aria-label={`Nota de ${current.name}`}
+                      maxLength={200}
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="agarre, altura del banco…"
+                    />
+                  </form>
                   {lastRetag && (
                     <RetagUndo
                       group={current.muscle_group}

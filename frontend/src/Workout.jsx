@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
 import {
+  deleteExercise,
   deleteSet,
   deleteWorkout,
   editSet,
   getPreviousMarks,
   getWorkout,
+  listDays,
   listExercises,
   logSet,
   mergeExercise,
@@ -16,8 +18,9 @@ import {
   setExerciseNote,
 } from './api.js'
 import { getToken } from './auth.js'
-import { EditTrouble, NoteUndo, clashTrouble } from './EditTrouble.jsx'
-import { ExerciseEditor } from './ExerciseEditor.jsx'
+import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
+import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
+import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
 import {
   daysAgoLabel,
   estimatedOneRm,
@@ -39,6 +42,7 @@ import {
   cachedMarks,
   cachedWorkout,
   dropQueued,
+  dropQueuedFor,
   enqueueSet,
   queuedFor,
   readQueue,
@@ -174,6 +178,12 @@ function ExerciseCard({
   // cuando no es cosa del padre, que es quien tiene la superficie que sobrevive
   // al cierre del panel. Ver `EditTrouble.jsx`.
   onChangeName,
+  // Borra el ejercicio entero, con todo lo que lleva registrado. Lo tenía sólo
+  // Progreso, y el encargo de este editor nombra cinco actos en las dos
+  // pantallas. Devuelve el daño ya contado (o `null` si no se pudo contar) para
+  // que el diálogo salga con la cifra dentro, no con un hueco que se rellena.
+  onCountDamage,
+  onDeleteExercise,
   // Lo que salió mal en la última edición de *este* ejercicio, y lo que se
   // ofrece al respecto. Se pinta encima de la puerta del editor, fuera del
   // panel, porque el panel se desmonta justo cuando llega la respuesta.
@@ -213,6 +223,12 @@ function ExerciseCard({
   // The re-tag that just went through, kept so it can be walked back from the
   // same fold: `{ from }`, the group it held before.
   const [lastRetag, setLastRetag] = useState(null)
+  // El daño ya contado del borrado, que es también la señal de que el diálogo
+  // está abierto: se cuenta antes de abrirlo (`clashTrouble` hace lo mismo con
+  // el choque), porque una cifra que aparece bajo un botón irreversible medio
+  // segundo después de que lo mires es peor que medio segundo de espera.
+  const [deleteDamage, setDeleteDamage] = useState(null)
+  const [counting, setCounting] = useState(false)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen.
   // Absent `previous` means the marks haven't arrived, not that there are none.
@@ -246,7 +262,8 @@ function ExerciseCard({
   }
 
   // ── Un choque se lleva el panel ───────────────────────────────────────────
-  // El bloque de la oferta mide hasta 156 px y se pinta encima del disparador;
+  // El bloque de la oferta mide 135–177 px —la frase envuelve, así que no hay
+  // un «hasta» limpio— y se pinta encima del disparador;
   // el panel mide 130 y cuelga de él. Con el panel abierto —lo que pasa al
   // confirmar con Intro— el panel se posa sobre el bloque y deja `Sí,
   // fusionar` y `Escribir otro nombre` tapados y `inert`: los dos únicos
@@ -704,7 +721,7 @@ function ExerciseCard({
             // Lo que hay detrás, dicho en el rótulo. En esta pantalla el cajón
             // lleva el grupo y la nota; en Progreso lleva otra cosa, así que
             // esto no puede ser una constante del componente.
-            moreLabel="Grupo y nota"
+            moreLabel={MORE_LABEL}
             more={
               <>
                 {/* Una fila, y la fila es el control — pero la fila dice de qué
@@ -810,9 +827,51 @@ function ExerciseCard({
                 {lastRetag && (
                   <RetagUndo group={muscle} setCount={setCount} onUndo={undoRetag} />
                 )}
+                {/* La última salida para un duplicado que no quieres conservar.
+                    Estaba sólo en Progreso, y el encargo de este editor dice
+                    «renombre, fusione duplicados, retaguee, anote y borre» en
+                    las dos pantallas. Aquí hace más falta, no menos: el
+                    duplicado se crea escribiendo mal un nombre **en la
+                    sesión**, que es esta pantalla, y mandarte a Progreso a
+                    tirarlo es exactamente el «sin sacarme de la sesión» que el
+                    encargo prohíbe.
+
+                    Rojo como tinta y sin caja, misma clase y mismo texto que
+                    en Progreso: es una acción rara (DESIGN.md) y un botón rojo
+                    relleno al pie del cajón pesaría más que el campo del
+                    nombre, que es lo que de verdad vienes a hacer. La regla de
+                    encima separa las dos escalas — de «cambiar una etiqueta» a
+                    «tirar meses de registro». */}
+                {onDeleteExercise && (
+                  <button
+                    type="button"
+                    className="editor-row editor-row-danger delete-exercise"
+                    disabled={counting}
+                    onClick={async () => {
+                      setCounting(true)
+                      const damage = await onCountDamage(name)
+                      setCounting(false)
+                      if (damage) setDeleteDamage(damage)
+                    }}
+                  >
+                    Eliminar ejercicio
+                  </button>
+                )}
               </>
             }
           />
+          {deleteDamage && (
+            <DeleteConfirm
+              name={name}
+              damage={deleteDamage}
+              onCancel={() => setDeleteDamage(null)}
+              onConfirm={async () => {
+                setDeleteDamage(null)
+                setEditorOpen(false)
+                await onDeleteExercise(name)
+              }}
+            />
+          )}
         </>
       )}
 
@@ -1933,15 +1992,38 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     }
     setError('')
     setEditTrouble(null)
-    applyRename(name, next)
+    // ── Lo optimista tiene un límite, y es aquí ──────────────────────────────
+    // `applyRename` mueve **todo lo que se llame así**: las series de la
+    // sesión, la llave de la tarjeta y las cinco tablas por nombre. Eso la hace
+    // invertible mientras el nombre de destino esté libre, y sólo mientras.
+    // Contra un nombre que ya está en esta sesión, la ida funde las dos
+    // tarjetas en una y la vuelta no sabe volver a separarlas: medido en el
+    // banco, un rechazo dejaba dos tarjetas idénticas con la unión de las
+    // series de los dos ejercicios y sin la del ejercicio con el que chocaste.
+    //
+    // Y no se pierde nada por no pintarlo: ese renombrado es exactamente el que
+    // el servidor va a contestar con un 409. Dibujar la fusión antes de
+    // preguntar es prometer un acto que la pantalla ni siquiera ha ofrecido
+    // todavía.
+    const collides = known
+      .concat(exercises.map((e) => e.name))
+      .some((other) => other !== name && fold(other) === fold(next))
+    if (!collides) applyRename(name, next)
     try {
       const { name: renamed } = await renameExercise(id, next)
       // El servidor tiene la última palabra sobre cómo se escribe: si lo que
       // devuelve no es lo que mandamos, se hace una segunda mudanza corta.
-      applyRename(next, renamed)
+      applyRename(collides ? name : next, renamed)
       return true
     } catch (err) {
-      applyRename(next, name)
+      if (!collides) applyRename(next, name)
+      // Y el cinturón, por si la vuelta no bastó: el 409 puede venir de un
+      // nombre que esta pantalla no tenía cargado (`known` se pidió al montar)
+      // o de una ortografía que sólo el servidor pliega igual. Se pregunta,
+      // que es lo mismo que hace la fusión cuando le sale bien. Mejor
+      // esfuerzo: sin señal esto no contesta y la vuelta local ya ha dejado la
+      // sesión donde estaba.
+      resyncWorkout().catch(() => {})
       // El choque lo nombra el servidor. La búsqueda local que había aquí
       // —`known.find(...)`— sólo veía los ejercicios que esta pantalla había
       // llegado a pedir, y nombraba el choque con la ortografía de esa lista en
@@ -1964,6 +2046,117 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       )
       return false
     }
+  }
+
+  // ── Borrar el ejercicio entero, desde la sesión ──────────────────────────
+  // El acto que faltaba en esta pantalla. Se crea un duplicado escribiendo mal
+  // un nombre *aquí*, así que mandar a Progreso a tirarlo es exactamente el
+  // «sin sacarme de la sesión» que el encargo prohíbe.
+  //
+  // El daño se cuenta del registro y con la misma función que lo cuenta
+  // Progreso (`damageFromDays`), no con el `set_count` que esta pantalla ya
+  // tiene a mano: la misma frase contada de dos maneras distintas es cómo dos
+  // pantallas acaban tasando el mismo acto con dos precios. Es una petición en
+  // el acto más raro que hay, y sólo al pulsar la fila.
+  //
+  // Sin registro no hay diálogo: el borrado sin cifra sería un «¿seguro?» que
+  // no dice qué se lleva, que es lo que este diálogo vino a quitar.
+  async function damageFor(name) {
+    const log = await listDays().catch(() => null)
+    if (!log) {
+      setError('No se pudo contar lo que se borraría. Inténtalo de nuevo.')
+      return null
+    }
+    return damageFromDays(log, name)
+  }
+
+  async function deleteExerciseFor(name) {
+    const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
+    if (id == null) return
+    setError('')
+    try {
+      await deleteExercise(id)
+      // La tarjeta se va con él, y con ella todo lo que esta pantalla lleva
+      // indexado por su nombre. Lo que quede en la bandeja de salida a su
+      // nombre también: mandarlo levantaría otra vez el ejercicio que acabas
+      // de borrar.
+      dropQueuedFor(name)
+      setExercises((list) => list.filter((e) => e.name !== name))
+      setWorkout((w) =>
+        w ? { ...w, sets: w.sets.filter((set) => set.exercise_name !== name) } : w,
+      )
+      setKnown((list) => list.filter((n) => n !== name))
+      const drop = (map) => {
+        if (!(name in map)) return map
+        const { [name]: _gone, ...rest } = map
+        return rest
+      }
+      setIdByName(drop)
+      setMuscleByName(drop)
+      setNoteByName(drop)
+      setCountByName(drop)
+      setToggled(drop)
+    } catch {
+      setError('No se pudo eliminar el ejercicio.')
+    }
+  }
+
+  // ── Volver a preguntarle al servidor cómo está la sesión ─────────────────
+  // Todo lo que esta pantalla sabe de un ejercicio lo lleva **por nombre**:
+  // qué series son suyas, su id, su grupo, su nota y su cuenta. Eso hace que
+  // `applyRename` sea invertible mientras el nombre de destino no exista ya —
+  // y un 409 es exactamente el caso en el que sí existe. Medido en el banco:
+  // renombrando `Remo con barra` a `Press banca`, la ida fundía las dos
+  // tarjetas en una y la vuelta se llevaba las dos de vuelta, así que el
+  // rechazo dejaba en pantalla **dos** `Remo con barra` idénticas con la unión
+  // de las series de ambos, sin `Press banca`, con el `PR peso` en series
+  // distintas en cada copia y la oferta de fusión dibujada dos veces. La
+  // pantalla decía que la fusión ya estaba hecha, justo debajo del botón que
+  // se ofrecía a hacerla.
+  //
+  // No se arregla haciendo la aritmética más lista: la vuelta no tiene la
+  // información que haría falta (qué serie era de quién antes de mezclarlas).
+  // Se arregla preguntando. Es la misma petición que la fusión ya hacía cuando
+  // le sale bien, en el camino que se recorre una vez cada muchos meses.
+  //
+  // Y se pregunta por las dos: `/workouts/{id}` devuelve las series con su
+  // ejercicio, y `/exercises` los mapas por nombre — sin el segundo, la
+  // tarjeta que reaparece vuelve sin grupo, sin nota y con 0 series, porque el
+  // ida y vuelta del renombrado le pisó su entrada en todos los mapas.
+  async function resyncWorkout() {
+    const [w, list] = await Promise.all([
+      getWorkout(workoutId).catch(() => null),
+      listExercises().catch(() => null),
+    ])
+    if (list) {
+      setKnown(list.map((e) => e.name))
+      setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
+      setNoteByName(Object.fromEntries(list.map((e) => [e.name, e.note ?? null])))
+      setIdByName(Object.fromEntries(list.map((e) => [e.name, e.id])))
+      setCountByName(Object.fromEntries(list.map((e) => [e.name, e.set_count ?? 0])))
+    }
+    if (!w) return
+    cacheWorkout(w)
+    const full = withQueued(w)
+    setWorkout(full)
+    // Las tarjetas también las manda el servidor. Se conserva el orden que hay
+    // en pantalla —las que ya estaban se quedan donde están— y se corrige lo
+    // único que la aritmética local puede haber roto: una tarjeta repetida y
+    // una tarjeta que falta. Lo que no tiene ninguna serie no lo conoce el
+    // servidor (una plantilla repetida, un ejercicio recién añadido) y por eso
+    // no se toca.
+    const logged = exercisesFromWorkout(full)
+    setExercises((list_) => {
+      const seen = new Set()
+      const kept = []
+      for (const ex of list_) {
+        if (seen.has(ex.name)) continue
+        seen.add(ex.name)
+        kept.push(ex)
+      }
+      const missing = logged.filter((ex) => !seen.has(ex.name))
+      return missing.length === 0 ? kept : [...missing, ...kept]
+    })
   }
 
   // Plegar este ejercicio dentro de aquel con el que chocó: sus series se mudan,
@@ -2003,12 +2196,10 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       )
       // El servidor acaba de mover filas: se vuelve a pedir, para que la sesión
       // en pantalla sea la que hay y no la que dedujimos.
-      await getWorkout(workoutId)
-        .then((w) => {
-          cacheWorkout(w)
-          setWorkout(withQueued(w))
-        })
-        .catch(() => {})
+      await resyncWorkout()
+      // Y el foco, que se fue con el botón que lo tenía. Mismo aterrizaje que
+      // en Progreso: un acto no puede contestar distinto según la pantalla.
+      focusEditorTrigger(target.name)
     } catch {
       // Una fusión que no sale no es un choque nuevo: es la misma petición sin
       // mandar, y se reintenta como cualquier otra.
@@ -2466,6 +2657,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
             onChangeMuscle={changeMuscleFor}
             onChangeNote={changeNoteFor}
             onChangeName={changeNameFor}
+            onCountDamage={damageFor}
+            onDeleteExercise={deleteExerciseFor}
             // El aviso va en la tarjeta del ejercicio del que habla, y en
             // ninguna otra: en un superset hay varias abiertas y «no se pudo
             // cambiar el nombre» sin sujeto no dice de cuál.

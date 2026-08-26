@@ -21,6 +21,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import App from '../App.jsx'
+import { MORE_LABEL } from '../ExerciseEditor.jsx'
 import { setOpenWorkout } from '../prefs.js'
 import { settle } from './geometry.js'
 
@@ -125,8 +126,19 @@ function historyDays() {
 
 export const DAYS = historyDays()
 
+// El nombre con el que se provoca el choque: `Remo con barra` existe en la
+// lista y en el registro, así que renombrar `Press militar` a eso es
+// exactamente el 409 que el editor convierte en oferta de fusión.
+export const TAKEN = 'Remo con barra'
+export const TAKEN_ID = 11
+
 // Instalado antes de montar nada: `Days` pide `/days` en su primer render y un
 // stub puesto dentro de un componente ya habría perdido esa carrera.
+//
+// Escribe, además de leer. La suite existía con seis extremos de sólo lectura,
+// y por eso el choque de nombres —el bloque que hace la única pregunta
+// irreversible del editor— no lo medía nadie: sus dos botones aterrizaban
+// enteros debajo de la barra de pestañas con la suite en verde.
 function stubNetwork() {
   const routes = [
     [/\/health$/, { ok: true }],
@@ -147,15 +159,60 @@ function stubNetwork() {
     ],
     [/\/exercises$/, EXERCISES],
   ]
-  const original = window.fetch
-  window.fetch = async (input) => {
-    const url = String(typeof input === 'string' ? input : input.url)
-    const path = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0]
-    const hit = routes.find(([re]) => re.test(path))
-    return new Response(JSON.stringify(hit ? hit[1] : []), {
-      status: 200,
+  const json = (body, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
       headers: { 'Content-Type': 'application/json' },
     })
+  const original = window.fetch
+  window.fetch = async (input, init = {}) => {
+    const url = String(typeof input === 'string' ? input : input.url)
+    const path = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0]
+    const method = (init.method ?? 'GET').toUpperCase()
+    let body = {}
+    try {
+      body = init.body ? JSON.parse(init.body) : {}
+    } catch {
+      body = {}
+    }
+    const patch = path.match(/^\/api\/exercises\/(\d+)$/)
+    if (patch && method === 'PATCH') {
+      const id = Number(patch[1])
+      const row = EXERCISES.find((e) => e.id === id) ?? EXERCISES[0]
+      if (body.name !== undefined) {
+        const taken = EXERCISES.find(
+          (e) => e.id !== id && e.name.toLowerCase() === String(body.name).toLowerCase(),
+        )
+        // El mismo cuerpo que manda el backend (`156187b`): el ejercicio con el
+        // que chocaste, con su ortografía guardada y su cuenta de series.
+        if (taken) {
+          return json(
+            {
+              detail: {
+                code: 'name_taken',
+                message: `Ya existe «${taken.name}».`,
+                exercise: {
+                  id: taken.id,
+                  name: taken.name,
+                  kind: taken.kind,
+                  set_count: taken.set_count,
+                },
+              },
+            },
+            409,
+          )
+        }
+        return json({ ...row, name: body.name })
+      }
+      return json({ ...row, ...body })
+    }
+    if (path.endsWith('/merge') && method === 'POST') {
+      const into = EXERCISES.find((e) => e.id === body.into_id) ?? EXERCISES[0]
+      return json(into)
+    }
+    if (patch && method === 'DELETE') return new Response(null, { status: 204 })
+    const hit = routes.find(([re]) => re.test(path))
+    return json(hit ? hit[1] : [])
   }
   return () => {
     window.fetch = original
@@ -212,9 +269,28 @@ export async function openEditor(user) {
   return panel
 }
 
-/** Entra en el segundo paso del panel (`Grupo y nota` / `Grupo y eliminar`). */
+/** Entra en el segundo paso del panel, que ahora se llama igual en las dos. */
 export async function openDrawer(user) {
-  await user.click(screen.getByRole('button', { name: new RegExp(`^Grupo y .+ de ${MAIN}$`) }))
+  await user.click(screen.getByRole('button', { name: `${MORE_LABEL} de ${MAIN}` }))
   await settle()
   return screen.getByRole('dialog')
+}
+
+/**
+ * Provoca el choque de nombres por la puerta de verdad: se abre el editor, se
+ * escribe encima un nombre que ya es de otro ejercicio y se confirma con Intro.
+ * Devuelve el bloque de la oferta, que es lo que se mide.
+ *
+ * Se espera a que el bloque exista antes de medir nada: el 409 dispara una
+ * segunda petición (`listExercises`, las dos cifras frescas) y el bloque no se
+ * pinta hasta que contesta.
+ */
+export async function openClash(user) {
+  await openEditor(user)
+  const field = screen.getByLabelText(`Nombre de ${MAIN}`)
+  await user.clear(field)
+  await user.type(field, `${TAKEN}{Enter}`)
+  const block = await screen.findByRole('alert', {}, { timeout: 5000 })
+  await settle()
+  return block
 }

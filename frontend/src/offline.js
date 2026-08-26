@@ -58,6 +58,16 @@ export function renameQueued(from, to) {
   )
 }
 
+// An exercise deleted while sets are still unsent. Same reasoning as the rename
+// above, and the same failure: the outbox names its exercise by string, so a
+// queued set drained after the delete would stand the exercise straight back up
+// — with one set, under the name you just threw away.
+export function dropQueuedFor(name) {
+  const entries = readQueue()
+  const left = entries.filter((e) => e.payload?.exercise_name !== name)
+  if (left.length !== entries.length) writeQueue(left)
+}
+
 // The backlog belonging to one workout. Another session's unsent sets are still
 // owed to the server, but they have no business on this card.
 export function queuedFor(workoutId) {

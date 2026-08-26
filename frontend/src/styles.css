@@ -2516,13 +2516,24 @@ button.set-action {
    de esta caja —`--surface-raised`, que en claro es blanco y no papel—: en
    reposo 5,911 / 5,469 y con el velo **5,023 / 4,847**, los dos por encima del
    4,5. */
+/* ── El confirmar irreversible de esta app tiene una sola pinta ────────────
+   Esto iba de fantasma bordeado —`--danger` en tinta, borde al 35 %, fondo
+   transparente— mientras el otro confirmar irreversible de la app, `Sí,
+   eliminar` en `.dialog-actions .danger`, va **relleno**. Misma app, misma
+   promesa de «no hay vuelta», dos disfraces: el que pliega meses de registro
+   parecía el más callado de los dos.
+
+   Ahora lleva el mismo relleno y la misma tinta (`--on-danger`, que es lo que
+   pasa AA sobre el rojo en los dos temas — ver la nota de `.dialog-actions
+   .danger`). No es «más peso porque sí»: es que la app ya eligió una pinta
+   para esto, y tener dos era la elección que nadie tomó. */
 .edit-trouble-merge {
   min-height: 44px;
   padding: 0.4rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: transparent;
-  color: var(--danger);
+  background: var(--danger);
+  color: var(--on-danger);
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 600;
@@ -2530,7 +2541,7 @@ button.set-action {
 }
 @media (hover: hover) {
   .edit-trouble-merge:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--text) 6%, transparent);
+    background: color-mix(in srgb, var(--danger) 85%, #000);
   }
 }
 /* La salida secundaria, sin caja: mismo vocabulario que el `Deshacer` del

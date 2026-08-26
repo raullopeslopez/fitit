@@ -148,6 +148,37 @@ export async function clashTrouble({ id, from, draft, myKind, taken }) {
   }
 }
 
+/**
+ * Dónde aterriza el foco cuando el bloque que lo tenía deja de existir.
+ *
+ * Los dos botones de la oferta viven en este bloque, y el bloque se va con la
+ * respuesta: pulsar `Sí, fusionar` desmonta el control que tenía el foco. Sin
+ * decir dónde va, el navegador lo deja en `<body>` — quien navega con teclado o
+ * con lector vuelve al principio de la página justo después del único acto
+ * irreversible del editor.
+ *
+ * En Entreno no se notaba porque la tarjeta superviviente conserva su llave;
+ * en Progreso el foco caía en `<body>`, medido. Un mismo acto no puede
+ * contestar distinto según la pantalla desde la que lo hagas, así que las dos
+ * aterrizan aquí, en el disparador del editor del superviviente: es el control
+ * que sigue existiendo, dice el nombre que ha ganado y es desde donde
+ * seguirías corrigiendo.
+ *
+ * Se busca por la etiqueta hablada y no con un selector de atributo porque el
+ * nombre de un ejercicio lo escribe el usuario y puede llevar comillas.
+ */
+export function focusEditorTrigger(name) {
+  const land = () => {
+    const trigger = [...document.querySelectorAll('button.exercise-edit')].find(
+      (b) => b.getAttribute('aria-label') === `Editar ejercicio ${name}`,
+    )
+    trigger?.focus()
+  }
+  // Un fotograma, para que React haya pintado la tarjeta que sobrevive.
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(land)
+  else land()
+}
+
 export function editTroubleText(trouble) {
   if (!trouble) return ''
   if (trouble.kind !== 'clash') return FAILED[trouble.field] ?? FAILED.name
@@ -218,14 +249,67 @@ export function editTroubleText(trouble) {
  * Los dos son `role="alert"`, que es lo que hace que un lector lo cante sin
  * mover el foco de donde estaba — y los dos se traen a la vista, porque la
  * tarjeta que estabas editando puede haber quedado fuera de pantalla mientras
- * la petición viajaba. `block: 'nearest'`, o sea el desplazamiento mínimo: si
- * ya se ve, no se mueve nada.
+ * la petición viajaba.
+ *
+ * ── Y «a la vista» no es lo que cree `scrollIntoView` ──────────────────────
+ *
+ * Esto era `scrollIntoView({ block: 'nearest' })`, o sea el desplazamiento
+ * mínimo para que el bloque quepa **en el viewport**. El viewport no es lo que
+ * se ve: la barra de pestañas es `fixed`, mide 57 px, va a `z-index: 10` y
+ * tapa la franja de abajo. Medido en Entreno a 430×932 desde scroll 0, con el
+ * bloque de la colisión: el navegador lo dejaba en `776..932` —encajado en el
+ * viewport, misión cumplida— con la barra empezando en 875, de modo que `Sí,
+ * fusionar` y `Escribir otro nombre` quedaban en `875..919`, los dos enteros
+ * detrás de la barra. `elementFromPoint` en el centro de cada uno devolvía la
+ * barra: tocar la respuesta a la pregunta te sacaba de la pantalla.
+ *
+ * Es el mismo defecto que `fit()` arregló para el panel, mudado de casa y peor:
+ * allí eran 68 px de 210 de un panel, aquí es el 100 % de los dos únicos
+ * controles que contestan.
+ *
+ * Así que el desplazamiento se calcula igual que lo calcula `fit()`: contra el
+ * borde útil —el viewport menos cualquier barra fija de abajo— y no contra el
+ * viewport. Sigue siendo el mínimo: si el bloque ya se ve entero por encima de
+ * la barra, no se mueve nada.
  */
+
+// El aire de arriba, el mismo que `ExerciseEditor.jsx`.
+const TOP_GAP = 8
+
+/**
+ * El borde de abajo que de verdad se ve: el viewport recortado por cualquier
+ * barra fija. Por clase no, por comportamiento: hoy es `.bottom-nav` y mañana
+ * puede ser otra cosa, y lo que importa es que esté delante y tape.
+ */
+function usableBottom() {
+  const vv = window.visualViewport
+  let bottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+  for (const bar of document.querySelectorAll('.bottom-nav, .days-cta')) {
+    const top = bar.getBoundingClientRect().top
+    if (top > 0 && top < bottom) bottom = top
+  }
+  return bottom
+}
+
 export function EditTrouble({ trouble, onMerge, onRename, onRetry }) {
   const ref = useRef(null)
   const seen = trouble ? `${trouble.field}:${trouble.kind}:${trouble.draft}` : null
   useEffect(() => {
-    if (seen) ref.current?.scrollIntoView?.({ block: 'nearest' })
+    if (!seen) return
+    const el = ref.current
+    if (!el?.getBoundingClientRect || typeof window.scrollBy !== 'function') return
+    const r = el.getBoundingClientRect()
+    if (r.height === 0) return
+    const limit = usableBottom()
+    // Abajo manda: los dos botones viven al pie del bloque, así que si algo se
+    // tiene que quedar fuera es el techo del texto y no la respuesta.
+    let delta = 0
+    if (r.bottom > limit) delta = r.bottom - limit
+    else if (r.top < TOP_GAP) delta = r.top - TOP_GAP
+    // Y no se sube tanto que el bloque se salga por arriba — salvo que no quepa
+    // entero, que es cuando abajo vuelve a mandar.
+    if (r.height <= limit - TOP_GAP && r.top - delta < TOP_GAP) delta = r.top - TOP_GAP
+    if (Math.abs(delta) > 0.5) window.scrollBy(0, delta)
   }, [seen])
 
   if (!trouble) return null
@@ -313,7 +397,17 @@ export function NoteUndo({ note, onUndo }) {
   return (
     <p className="retag-undo" data-editor-answer>
       <span>Se borró la nota: «{note}».</span>
-      <button type="button" className="retag-undo-action" onClick={onUndo}>
+      {/* El nombre hablado dice qué deshace, y no «Deshacer» a secas: esta fila
+          y la del reetiquetado pueden estar vivas a la vez —vacías la nota,
+          cambias el grupo— y entonces había dos controles con el mismo nombre,
+          distinto alcance y distinta vida (ésta vive en la tarjeta y sobrevive
+          al panel; la otra vive en el cajón y se va con él). Ver `MuscleRetag.jsx`. */}
+      <button
+        type="button"
+        className="retag-undo-action"
+        aria-label="Deshacer el borrado de la nota"
+        onClick={onUndo}
+      >
         Deshacer
       </button>
     </p>
