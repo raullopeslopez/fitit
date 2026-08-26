@@ -120,6 +120,48 @@ describe('el bloque de la oferta se puede contestar', () => {
       expect(problems).toEqual([])
     })
   }
+
+  // ── Y con la barra ocupando de verdad el sitio del bloque ────────────────
+  // «Una prueba de geometría que nunca se ha visto fallar no vale nada», dice
+  // la suite de al lado, y las tres paradas de arriba nunca ven el caso: en
+  // esta siembra el bloque cae con 19 px de sobra por encima de la barra, así
+  // que pasan aunque el desplazamiento no funcione. El defecto del banco vivía
+  // justo ahí — y su segunda mitad también, porque el `focus()` con el que el
+  // panel devuelve el foco a su disparador **deshacía** el desplazamiento que
+  // este bloque acababa de pedir.
+  //
+  // Se fuerza el caso en lugar de esperarlo: se sube el canto de la barra fija
+  // hasta donde estorba, que es el mismo sabotaje controlado con el que la otra
+  // suite comprueba sus detectores.
+  it('Entreno · con la barra fija subida, la respuesta sigue estando delante', async () => {
+    await mountEntreno()
+    const style = document.createElement('style')
+    style.textContent = '.bottom-nav .tab { min-height: 560px; }'
+    document.head.appendChild(style)
+    try {
+      await settle()
+      const navTop = navBar().getBoundingClientRect().top
+      // Sin esto la prueba no mide nada: la barra tiene que estar de verdad
+      // metida en la mitad de abajo de la pantalla.
+      expect(navTop).toBeLessThan(400)
+
+      const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+      const problems = []
+      for (const start of [0, Math.round(max / 2), max]) {
+        await scrollPageTo(start)
+        const block = await openClash(user)
+        problems.push(...buriedAt(block, start))
+        await user.click(screen.getByRole('button', { name: 'Escribir otro nombre' }))
+        await settle()
+        await user.keyboard('{Escape}')
+        await settle()
+      }
+      expect(problems).toEqual([])
+    } finally {
+      style.remove()
+      await settle()
+    }
+  })
 })
 
 describe('un choque rechazado no dibuja la fusión', () => {

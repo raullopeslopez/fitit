@@ -295,21 +295,45 @@ export function EditTrouble({ trouble, onMerge, onRename, onRetry }) {
   const ref = useRef(null)
   const seen = trouble ? `${trouble.field}:${trouble.kind}:${trouble.draft}` : null
   useEffect(() => {
-    if (!seen) return
-    const el = ref.current
-    if (!el?.getBoundingClientRect || typeof window.scrollBy !== 'function') return
-    const r = el.getBoundingClientRect()
-    if (r.height === 0) return
-    const limit = usableBottom()
-    // Abajo manda: los dos botones viven al pie del bloque, así que si algo se
-    // tiene que quedar fuera es el techo del texto y no la respuesta.
-    let delta = 0
-    if (r.bottom > limit) delta = r.bottom - limit
-    else if (r.top < TOP_GAP) delta = r.top - TOP_GAP
-    // Y no se sube tanto que el bloque se salga por arriba — salvo que no quepa
-    // entero, que es cuando abajo vuelve a mandar.
-    if (r.height <= limit - TOP_GAP && r.top - delta < TOP_GAP) delta = r.top - TOP_GAP
-    if (Math.abs(delta) > 0.5) window.scrollBy(0, delta)
+    if (!seen) return undefined
+    // ── Y después de que la pantalla acabe de moverse sola ─────────────────
+    // Un choque cierra el panel, y el panel al cerrarse devuelve el foco a su
+    // disparador — y `focus()` arrastra la página para enseñar lo que enfoca.
+    // Medido en el banco a 430×932 con la página en 300: este efecto pedía sus
+    // 33,75 px correctamente y el `focus()` del cierre los deshacía, de modo
+    // que los dos botones se quedaban en 852,6..896,6 con la barra en 875 —
+    // exactamente el defecto que esto viene a arreglar, tapado por su propio
+    // arreglo.
+    //
+    // Los efectos del hijo corren antes que los del padre, así que aquí no hay
+    // orden que valga: hay que esperar a que el navegador haya pintado. Dos
+    // fotogramas, que es el mismo reposo que la suite de navegador exige antes
+    // de leer cualquier geometría, y por la misma razón.
+    let frame = 0
+    const land = () => {
+      const el = ref.current
+      if (!el?.getBoundingClientRect || typeof window.scrollBy !== 'function') return
+      const r = el.getBoundingClientRect()
+      if (r.height === 0) return
+      const limit = usableBottom()
+      // Abajo manda: los dos botones viven al pie del bloque, así que si algo
+      // se tiene que quedar fuera es el techo del texto y no la respuesta.
+      let delta = 0
+      if (r.bottom > limit) delta = r.bottom - limit
+      else if (r.top < TOP_GAP) delta = r.top - TOP_GAP
+      // Y no se sube tanto que el bloque se salga por arriba — salvo que no
+      // quepa entero, que es cuando abajo vuelve a mandar.
+      if (r.height <= limit - TOP_GAP && r.top - delta < TOP_GAP) delta = r.top - TOP_GAP
+      if (Math.abs(delta) > 0.5) window.scrollBy(0, delta)
+    }
+    if (typeof requestAnimationFrame !== 'function') {
+      land()
+      return undefined
+    }
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(land)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [seen])
 
   if (!trouble) return null
