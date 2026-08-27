@@ -3605,3 +3605,56 @@ button.set-chip:active:not(:disabled) {
   height: 1px;
   background: var(--border);
 }
+
+/* --- Placeholders de carga ---------------------------------------------------
+
+   Una sola pieza en dos pesos, y ninguna más. El bloque es `--text` al 8 %: por
+   debajo no se distingue del fondo en oscuro y por encima compite con el texto
+   que ya está en pantalla. El peso fuerte (14 %) es para las cifras, que son lo
+   que se busca primero en una pantalla que existe para dar números.
+
+   `inline-block` y no `block`: estos bloques caen dentro de botones centrados
+   por `text-align`, de líneas alineadas por baseline y de rejillas — un bloque
+   se salía de los tres de una forma distinta cada vez.
+
+   El pulso es opacidad, sin barrido y sin degradado, que es lo que este sistema
+   admite (DESIGN.md, "Anti-slop"). Con `prefers-reduced-motion` se queda quieto
+   y sigue diciendo lo mismo, porque lo dice el gris y no el movimiento. */
+.sk {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.sk-hi {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sk {
+    animation: sk-pulse 1400ms ease-in-out infinite;
+  }
+}
+@keyframes sk-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* La primera pantalla de una cuenta nueva. Cuelga de la regla de la semana igual
+   que cuelga un día, con la misma sangría que el bloque que la va a sustituir en
+   cuanto haya algo — así el hueco donde va a aparecer el primer entreno ya está
+   dibujado antes de que exista. */
+.days-first {
+  padding: 15px 0 11px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 17%, transparent);
+}
+.days-first .sum-empty {
+  margin: 0;
+}
+.days-first .sum-handover {
+  margin: 0.3rem 0 0;
+}

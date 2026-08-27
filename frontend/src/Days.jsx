@@ -12,6 +12,7 @@ import {
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { cacheBootSummary } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
+import { CtaLabelSkeleton, DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -237,6 +238,11 @@ export default function Days({ onOpenWorkout }) {
   // No session name on the button. The row already says which session is open —
   // that is what `EN CURSO` is for — and carrying it here meant a label that had
   // to ellipsise the moment a session was called something descriptive.
+  // El esqueleto de la lista, con su umbral: por debajo de un cuarto de
+  // segundo no se dibuja nada, porque un bloque gris que parpadea se lee como
+  // un fallo de pintado y no como una espera.
+  const waiting = useWaitFlag(days === null)
+
   const ctaLabel = creating ? 'Empezando…' : todaySession ? 'Continuar entreno' : 'Empezar entreno'
 
   const currentWeek = isoWeekStart(todayISO())
@@ -366,9 +372,32 @@ export default function Days({ onOpenWorkout }) {
       )}
 
       {days === null ? (
-        <p className="hint">Cargando…</p>
+        // `Cargando…` decía que la app seguía viva y nada más: ni reservaba la
+        // altura de la lista que venía ni decía en qué pantalla estabas, así
+        // que la lista entera aparecía de golpe encima de una frase.
+        waiting ? (
+          <DaysSkeleton />
+        ) : null
       ) : days.length === 0 ? (
-        <p className="hint">Aún no hay días. Empieza un entreno abajo.</p>
+        // Una cuenta nueva ve esta pantalla antes que ninguna otra, y la regla
+        // de la semana es verdad tanto si hay algo debajo como si no: sin ella
+        // la primera pantalla es una frase suelta sobre un fondo vacío. La
+        // frase, en el mismo par que usa Progreso —qué pasa, en tinta, y en qué
+        // se convierte esto, debajo y en muted— en lugar de una sola línea que
+        // decía "abajo" sin decir para qué.
+        <div className="week">
+          <div className="week-head">
+            <span className="week-label">ESTA SEMANA</span>
+            <span className="week-totals"></span>
+          </div>
+          <div className="days-first">
+            <p className="sum-empty">Aún no hay días registrados.</p>
+            <p className="hint sum-handover">
+              El botón de abajo abre la primera sesión. Al cerrarla, aparece aquí con su fecha,
+              sus músculos y sus series.
+            </p>
+          </div>
+        </div>
       ) : (
         weeks.map((week) => (
           <div className="week" key={week.key}>
@@ -437,9 +466,14 @@ export default function Days({ onOpenWorkout }) {
           type="button"
           className="primary btn-full btn-log"
           onClick={todaySession ? () => onOpenWorkout(todaySession.id, todaySession) : startToday}
-          disabled={creating}
+          disabled={creating || days === null}
         >
-          {ctaLabel}
+          {/* El texto depende del log: `Empezar` y `Continuar` no son la misma
+              frase, y adivinar mal abre una segunda sesión en un día que ya
+              tenía una — justo lo que este botón existe para evitar. Conserva
+              su ámbar, su altura y su sitio, y no contesta al dedo hasta que
+              sepa cuál de las dos cosas es. */}
+          {days === null ? waiting && <CtaLabelSkeleton /> : ctaLabel}
         </button>
         {/* A framed button beside the primary action read as half as important
             as starting a session, for something done once a month. Quiet link,

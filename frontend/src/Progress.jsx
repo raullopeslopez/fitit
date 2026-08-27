@@ -16,6 +16,7 @@ import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
+import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
@@ -1259,6 +1260,10 @@ export default function Progress() {
   const deleteDamage = current ? damageFromDays(days, current.name) : null
   const setsLogged = deleteDamage?.sets ?? 0
 
+  // Las dos tarjetas de arriba no existían mientras el log volvía: la pantalla
+  // entraba con Evolución sola y las otras dos caían encima al llegar el dato.
+  const waiting = useWaitFlag(!daysLoaded)
+
   return (
     <section>
       {/* First card on the screen, because it is the one number this screen
@@ -1266,9 +1271,13 @@ export default function Progress() {
           the foot, under the calendar and the whole Evolución apparatus — three
           scrolls down on a phone, which is where you put something you don't
           expect to be read. */}
-      {daysLoaded && <PeriodSummary days={days} />}
+      {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
 
-      {days.length > 0 && <Rhythm days={days} />}
+      {days.length > 0 ? (
+        <Rhythm days={days} />
+      ) : !daysLoaded && waiting ? (
+        <RhythmSkeleton />
+      ) : null}
 
       {/* Not gated on exercises having loaded: the search box below is typeable
           the instant the screen mounts, so it must be on screen the instant the
