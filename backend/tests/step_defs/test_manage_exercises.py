@@ -45,6 +45,27 @@ def when_merge_exercise(client, source, target):
     assert resp.status_code == 200, resp.text
 
 
+@when(parsers.parse('I try to rename "{name}" to "{new_name}"'), target_fixture="refusal")
+def when_try_rename(client, name, new_name):
+    """Kept as a fixture rather than asserted here: the point of these scenarios
+    is what the refusal carries, not that it happened."""
+    return client.patch(f"/exercises/{_exercise(client, name)['id']}", json={"name": new_name})
+
+
+@then(parsers.parse('the rename is refused, pointing at "{name}"'))
+def then_refusal_points_at(client, refusal, name):
+    assert refusal.status_code == 409, refusal.text
+    clash = refusal.json()["detail"]["exercise"]
+    assert clash["name"] == name
+    # The id is the whole point: it is what a merge would be aimed at.
+    assert clash["id"] == _exercise(client, name)["id"]
+
+
+@then(parsers.parse("merging there would move {count:d} sets"))
+def then_refusal_counts_sets(refusal, count):
+    assert refusal.json()["detail"]["exercise"]["set_count"] == count
+
+
 @then(parsers.parse('"{name}" is not in my exercises'))
 def then_exercise_gone(client, name):
     assert _exercise(client, name) is None
@@ -56,6 +77,7 @@ def then_workout_empty(client, workout):
 
 
 @then(parsers.parse('"{name}" has {count:d} sets'))
+@then(parsers.parse('"{name}" has {count:d} set'))
 def then_set_count(client, workout, name, count):
     sets = client.get(f"/workouts/{workout['id']}").json()["sets"]
     assert len([s for s in sets if s["exercise_name"] == name]) == count

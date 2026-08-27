@@ -112,3 +112,41 @@ def test_rename_rejects_a_blank_name(client):
 def test_rename_missing_exercise_is_404(client):
     r = client.patch("/exercises/9999", json={"name": "Whatever"})
     assert r.status_code == 404, r.text
+
+
+def test_the_refusal_carries_the_exercise_that_took_the_name(client):
+    """A bare "already exists" leaves the client guessing which lift it clashed
+    with — and guessing means rescanning whatever list the screen happens to
+    hold, which misses anything not on it. The 409 names the collision instead."""
+    workout = client.post("/workouts", json={}).json()
+    _log(client, workout["id"], "Press banca")
+    _log(client, workout["id"], "Sentadilla")
+    _log(client, workout["id"], "Sentadilla")
+    banca = _exercise(client, "Press banca")
+    sentadilla = _exercise(client, "Sentadilla")
+
+    r = client.patch(f"/exercises/{banca['id']}", json={"name": "sentadilla"})
+
+    assert r.status_code == 409, r.text
+    detail = r.json()["detail"]
+    assert detail["code"] == "name_taken"
+    assert detail["message"]  # something a client with no branch for this can show
+    assert detail["exercise"] == {
+        "id": sentadilla["id"],
+        "name": "Sentadilla",  # as stored, not as typed
+        "kind": "strength",
+        "set_count": 2,
+    }
+
+
+def test_the_refusal_reports_the_kind_so_a_doomed_merge_is_not_offered(client):
+    """Merging across kinds is itself a 409 (their sets carry different metrics),
+    so a client that learns the kind here can offer renaming instead of a merge
+    the server would refuse."""
+    client.post("/exercises", json={"name": "Remo", "kind": "cardio"})
+    strength = client.post("/exercises", json={"name": "Jalón"}).json()
+
+    r = client.patch(f"/exercises/{strength['id']}", json={"name": "Remo"})
+
+    assert r.status_code == 409, r.text
+    assert r.json()["detail"]["exercise"]["kind"] == "cardio"

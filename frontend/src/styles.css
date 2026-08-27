@@ -9,7 +9,16 @@
      paper / 5.61 on white and still reads clearly muted. */
   --muted: #616875;
   --accent: #e4571b;
-  --accent-hover: #c2440f;
+  /* En claro el hover aclara, no oscurece. Este token valía `#c2440f` — byte a
+     byte el mismo valor que `--accent-ink`, o sea un color diseñado para ser
+     *texto sobre papel* reutilizado como *relleno debajo de texto*. Con
+     `--on-accent` encima medía 3.50 y suspendía AA; el propio `--accent` da
+     4.81, así que oscurecer al pasar el dedo se comía el poco margen que había.
+     `#f06a2e` da 5.76 y además es la dirección que un hover tiene sobre fondo
+     claro. Tercera vez en esta hoja que un token se valida contra la superficie
+     equivocada — ver `--danger` y el rojo comprobado contra blanco en vez de
+     contra el papel. */
+  --accent-hover: #f06a2e;
   /* Text/glyphs sitting ON the amber fill. White text fails AA on amber (3.70
      light, 2.86 dark); this near-black ink passes both (5.8 / 6.23). One value
      for both themes — the accent is bright enough in each. See DESIGN.md. */
@@ -23,7 +32,19 @@
      going brighter, so the record goes deeper: hotter iron, not brighter
      flame. Worst case across every --pr use is 5.35. See DESIGN.md. */
   --pr: #a83208;
-  --danger: #dc2626;
+  /* Rojo destructivo. Se comprobó siempre contra blanco puro (4,829) y el
+     fondo de tema claro de DESIGN.md es papel cálido `#F4F2EE`: sobre papel
+     `#DC2626` daba **4,319**, y con el velo de `:hover` (6 % de `--text`)
+     **4,276** — suspendiendo por debajo del suelo de 4,5, y peor al pasar el
+     dedo que en reposo. `#CE1F1F` pasa en los tres sitios: 5,469 sobre
+     blanco, 4,891 sobre papel, 4,842 en hover. */
+  --danger: #ce1f1f;
+  /* La tinta que va *encima* del rojo, como `--on-accent` va encima del
+     ámbar. Los dos temas no pueden compartirla: sobre `#CE1F1F` el blanco da
+     5,469 y la tinta oscura 3,25; sobre el `#F87171` de oscuro es al revés,
+     2,77 el blanco y 7,08 la tinta. Un rojo claro pide tinta oscura, igual
+     que el ámbar. */
+  --on-danger: #ffffff;
   --border: #e6e2da;
   --ring: rgba(228, 87, 27, 0.25);
   --radius: 8px;
@@ -61,7 +82,12 @@
     /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
     --accent-ink: #ff6a2c;
     --pr: #ffa733;
-    --danger: #ef4444;
+    /* `#EF4444` daba 4,345 sobre `--surface-raised` y 3,676 con el velo de
+       `:hover`: suspendía en reposo y suspendía más al tocarlo. 16 px a 600
+       no es «texto grande» para WCAG, así que el suelo es 4,5 y no 3.
+       `#F87171`: 5,911 en reposo, 5,001 en hover. */
+    --danger: #f87171;
+    --on-danger: #0b0c0e;
     --border: #24272c;
     --ring: rgba(255, 106, 44, 0.3);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -462,12 +488,15 @@ h2 {
   font-style: italic;
   line-height: 1.35;
 }
-/* Tap-to-edit surfaces: the row, the workout title, the chart title. They read
-   as content, so the only affordance is the press — no frame, no fill, nothing
-   competing with the numbers. Full width and 44px so a thumb finds them. */
+/* Tap-to-edit surfaces: the row and the workout title. They read as content,
+   so the only affordance is the press — no frame, no fill, nothing competing
+   with the numbers. Full width and 44px so a thumb finds them.
+
+   El título de la gráfica se cayó de esta lista: tocarlo ya no renombra. Era
+   una puerta invisible a lo mismo que abre `Editar ejercicio` al pie, y dos
+   puertas a un sitio es una de más. */
 .set-row,
-button.workout-title,
-button.chart-title {
+button.workout-title {
   background: none;
   border: none;
   border-radius: var(--radius-control);
@@ -490,22 +519,21 @@ button.chart-title {
   letter-spacing: -0.01em;
 }
 .set-row:active:not(:disabled),
-button.workout-title:active:not(:disabled),
-button.chart-title:active:not(:disabled) {
+button.workout-title:active:not(:disabled) {
   background: color-mix(in srgb, var(--text) 8%, transparent);
   transform: none;
 }
-button.chart-title {
+/* Un título, y nada más que un título: el punto del músculo y el nombre. Los
+   44 px se quedan aunque ya no haya nada que tocar — son el aire que separa la
+   identidad de la tarjeta de la gráfica que la explica. */
+.chart-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   min-height: 44px;
 }
-button.chart-title h2 {
+.chart-title h2 {
   margin: 0;
-}
-.chart-title.exercise-rename {
-  min-height: 44px;
 }
 /* Destructive, inside the editor — red, per DESIGN.md's reservation. */
 .set-delete.set-delete {
@@ -545,17 +573,90 @@ button.chart-title h2 {
   color: var(--muted);
 }
 
-/* Corrections, folded away right under the header. */
-.fixes-toggle {
-  margin-top: 0.4rem;
-}
-.card-fixes {
+/* La puerta al editor del ejercicio, idéntica en Entreno y en Progreso.
+   Eran tres: `Editar ejercicio` en la tarjeta abierta, `Corregir` al pie de la
+   gráfica y —en la misma pantalla— tocar el título para renombrar. Tres puertas
+   con tres palabras distintas para una sola cosa, y la del título ni siquiera
+   se veía. Ahora hay una, y se llama igual en los dos sitios.
+
+   Toma de `.unit-fix` el esqueleto —44 px, ancho completo, 0.85 rem, sin caja—
+   pero **no su tinta**. Heredarla entera era el problema: en Progreso salía con
+   el mismo color, el mismo tamaño y la misma sangría que el `.hint` de al lado,
+   y en Entreno caía pegada al `.target-label` —0 px de separación— entre dos
+   leyendas. Lo único que la distinguía era el peso 600. Cuatro cosas la separan
+   ahora, y ninguna gasta ámbar:
+
+   1. La tinta. `--muted` mide 6.19:1 sobre la tarjeta, el 39 % de la luminancia
+      de tinta plena, que es exactamente el registro de una leyenda; a `--text`
+      mide 14.52:1. `.link-row` ya tenía escrito el contrato correcto —`color:
+      inherit` en la fila y `--muted` sólo en el `::after`— y aquí se había
+      copiado el chevrón sin la tinta. Esto no contradice a DESIGN.md: lo que
+      ese documento prohíbe gastar en una etiqueta quieta es el **ámbar**, no el
+      contraste. Una corrección no es contenido, pero tampoco es un pie de foto.
+   2. El chevrón. `.link-row` en Días ya usa `›` para decir "esto lleva a otro
+      sitio"; es el vocabulario de la casa y ninguna leyenda lo lleva. Un glifo
+      dice "control" sin gastar ni color ni tamaño. Se queda en `--muted`: el
+      que tiene que leerse es el verbo, no la flecha.
+   3. Aire igual arriba y abajo (0.75 rem a cada lado). Antes eran 0.9 y 0.6, y
+      la asimetría la pegaba ópticamente al `ÚLTIMA VEZ` de abajo — o sea que la
+      agrupaba con la leyenda de la que la altura extra se compró para
+      separarla. Reparte los mismos 1.5 rem: no pertenece a ninguno de sus dos
+      vecinos.
+   4. El estado de pulsación. DESIGN.md lo dice con todas las letras: una fila
+      sin marco es una promesa invisible, "y el estado de pulsación es lo que le
+      responde al dedo". `.set-row`, `button.workout-title` y `.link-row` cobran
+      ese velo del 8 %; esta puerta no lo tenía y se quedaba con el empujón
+      global de 1 px, que ocurre justo debajo del pulgar que lo tapa.
+
+   Con la tinta puesta, `Exportar CSV` deja de ser su gemelo: comparten caja,
+   alto y velo de pulsación, pero una va en tinta y con flecha y la otra apagada
+   y sin ella. Dos rangos, dos trajes, sin que ninguna de las dos crezca.
+
+   Selector de dos clases porque `.unit-fix` está 1200 líneas más abajo y, a
+   igualdad de especificidad, ganaba ella (el `margin-top: 0.4rem` de antes era
+   letra muerta). */
+.unit-fix.exercise-edit {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius-control);
+  color: var(--text);
+}
+.unit-fix.exercise-edit::after {
+  content: '›';
+  color: var(--muted);
+  margin-left: auto;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+/* Abierto, el chevrón mira hacia abajo, igual que el del segundo paso: no
+   lleva a otro sitio, despliega éste. Era la última mentira que le quedaba a
+   esta puerta —el crítico midió las otras dos, que el segundo toque no hacía
+   nada y que seguía enfocable debajo del panel—: se anunciaba desplegada en
+   `aria-expanded` y a la vez dibujaba la flecha de irse a otra pantalla. Lo
+   que se oye y lo que se ve, ahora dicen lo mismo. */
+.unit-fix.exercise-edit[aria-expanded='true']::after {
+  transform: rotate(90deg);
+}
+/* El velo gris mientras el dedo está abajo, igual que `.set-row` y `.link-row`,
+   y sin el `translateY(1px)` global: un empujón de un píxel debajo del pulgar
+   no lo ve nadie. Exportar comparte el trato porque ahora comparte el registro. */
+.unit-fix.exercise-edit:active:not(:disabled),
+.unit-fix.export-csv:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: none;
+}
+@media (hover: hover) {
+  /* Menos el rato en que está desplegada: ahí el chevrón ya está girado y el
+     empujoncito de «esto va a otro sitio» sería justo lo contrario de lo que
+     pasa. Mismo peso que la regla de arriba y va después, así que sin el
+     `:not` la ganaría con el ratón encima. */
+  .unit-fix.exercise-edit:hover:not([aria-expanded='true'])::after {
+    transform: translateX(3px);
+  }
 }
 /* Two-class selector so this outweighs `button.secondary` (which is later in
    the file): destructive actually wears the red DESIGN.md reserves for it. */
@@ -571,6 +672,11 @@ button.chart-title h2 {
   align-self: flex-start;
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  /* 44, y aquí menos que en ningún sitio se discute: es el control de mayor
+     consecuencia del editor —se lleva meses de registro— y medía 39. Un
+     objetivo pequeño en un control irreversible es el peor sitio para
+     ahorrarse cinco píxeles. */
+  min-height: 44px;
 }
 @media (hover: hover) {
   .secondary.delete-exercise:hover:not(:disabled) {
@@ -616,9 +722,15 @@ button.chart-title h2 {
 }
 /* The destructive confirm is the primary act of this dialog, so it is filled —
    in red, the one colour DESIGN.md reserves for exactly this. */
+/* La tinta va en `--on-danger` porque el relleno cambia de claridad con el
+   tema: blanco sobre el rojo hondo de claro (5,469), tinta oscura sobre el
+   rojo claro de oscuro (7,079). Estaba clavada en blanco, y sobre el `#EF4444`
+   de oscuro eso ya daba **3,769** — el único uso de `--danger` que suspendía
+   sin que nadie lo hubiera mirado, porque las pruebas de contraste miran el
+   texto del panel y este botón vive en una hoja modal. */
 .dialog-actions .danger {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--on-danger);
 }
 @media (hover: hover) {
   .dialog-actions .danger:hover:not(:disabled) {
@@ -633,10 +745,18 @@ button.chart-title h2 {
   flex: 1;
   flex-wrap: wrap;
 }
-/* Exporting lives in Progreso now, with the numbers it exports. */
+/* Exporting lives in Progreso now, with the numbers it exports.
+
+   Y se viste como lo que es. Iba de `button.secondary`: caja, borde, tinta
+   plena, 1 rem, centrado — el control más fuerte del pie de Progreso para la
+   cosa que DESIGN.md llama "lo más raro de esta pantalla", 79 px por encima de
+   la única puerta que hay para renombrar un ejercicio, que iba en gris y a
+   0.85 rem. El rango estaba del revés. DESIGN.md no deja arreglarlo subiendo la
+   puerta ("las acciones raras no se llevan controles con peso de contenido", y
+   nombra renombrar y exportar en la misma frase), así que baja el que sobraba:
+   ahora es una línea callada de 44 px al fondo de la pantalla. Sin chevrón —
+   exportar no abre nada, descarga. */
 .export-row {
-  display: flex;
-  justify-content: flex-end;
   margin-bottom: 1rem;
 }
 
@@ -1099,6 +1219,441 @@ button.chart-title h2 {
 .sheet-danger {
   color: var(--danger);
 }
+
+/* ── El editor del ejercicio ──────────────────────────────────────────────
+   El nombre titula el panel y no se repite dentro — el panel *es* este
+   ejercicio, igual que el de propiedades de Linear no imprime "Status" al lado
+   del estado. La vuelta de tuerca de esta versión es que el titular y el campo
+   son la misma cosa: había un `h2` con el nombre, y debajo un rótulo «Nombre»
+   y un `input` con el nombre otra vez. Tres impresiones del mismo dato, 70 px
+   de panel, y el panel sólo tiene 137 para todo. Así que el titular lleva la
+   cara de display y el cuerpo del nombre de un ejercicio en cualquier otra
+   pantalla, y lo que lo delata como editable es el marco, no una palabra
+   encima. */
+/* El nombre guardado, y sólo cuando el panel se ha llevado por delante el
+   único sitio de la pantalla que lo decía. Rótulo apagado a 12,8 px, que es el
+   escalón más pequeño que DESIGN.md deja para algo que se lee como palabras —
+   Micro es sólo para marcas en versales, y un nombre de ejercicio no lo es. */
+.editor-context {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+/* La fila del nombre es una fila de la rejilla como las demás: el campo *es* el
+   titular, así que se pinta como un titular y no como un formulario. El marco
+   que llevaba antes hacía de aviso «esto se edita», y ese aviso ya lo da algo
+   mejor: el panel abre con el cursor dentro del campo, con su anillo puesto,
+   desde el primer fotograma. Un borde permanente para anunciar un estado que
+   ya está anunciado es cromo. */
+.editor-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: calc(100% + 1rem);
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-control);
+  min-height: 44px;
+}
+.editor-head:focus-within {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+/* ── La única marca que dice «aquí se escribe» ────────────────────────────
+   El campo del nombre y el botón de volver del segundo paso se pintaban casi
+   igual: los dos en Space Grotesk 600 a 18,4 px, los dos con un anillo de 3 px
+   de `--ring` al recibir el foco, y la única diferencia era el velo del 6 % de
+   `.editor-head:focus-within` — que a ese porcentaje no separa nada. Un lector
+   a ciegas confundió uno con el otro, y tenía razón: la app estaba pintando
+   «puedes escribir aquí» y «puedes volver por aquí» con el mismo dibujo.
+
+   El arreglo no es tocar el anillo: un anillo de foco que cambia de forma
+   según el control es peor problema que el que resuelve. Es darle al campo la
+   marca que un botón no puede llevar, y esa marca es un renglón — la textura
+   de cuaderno que DESIGN.md deja pasar («one subtle ruled-line logbook texture
+   allowed»), que es literalmente la línea sobre la que se escribe. No es la
+   caja que este panel quitó: es un solo filete bajo el texto, en reposo,
+   permanente, y sólo bajo el campo (el aspa se queda fuera).
+
+   A `--text` al 40 % mide 3,47 sobre `--surface-raised` en oscuro y 3,03 sobre
+   el papel en claro, o sea por encima del suelo de 3:1 de un componente no
+   textual — que aquí hace falta porque este filete carga solo con la
+   distinción. */
+.editor-name-field {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 40%, transparent);
+  border-radius: 0;
+  background: none;
+}
+/* El foco no borra el renglón: lo que el foco añade es el velo y el anillo de
+   la fila entera, y el renglón sigue diciendo lo mismo que decía en reposo. */
+.editor-name-field:focus {
+  outline: none;
+  box-shadow: none;
+}
+/* La fila que confirma. `Guardar nombre` se lleva el ancho porque es lo que
+   vienes a hacer; la puerta al segundo paso va detrás, con el mismo `›` que
+   toda puerta de la casa y sin gastar una fila propia — una tercera fila aquí
+   son 52 px que el presupuesto no tiene. */
+.editor-commit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.editor-more {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.5rem 0.3rem 0.5rem 0.6rem;
+  background: none;
+  color: var(--text);
+}
+.editor-more::after {
+  content: '›';
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.editor-more:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: none;
+}
+/* ── El segundo paso ──────────────────────────────────────────────────────
+   Ya no es un pliegue debajo del primero: es la otra cara del panel. La regla
+   que lo separaba del nombre sobra cuando el nombre no está, y el margen
+   también: el panel entero es este paso mientras dura.
+
+   Sin `gap`. La referencia pone sus filas de 24 px en un paso de 32, o sea 8
+   de aire; nuestras filas miden 44 porque DESIGN.md pone ahí el suelo de lo
+   que se toca, y con 8 más entre cada dos el cajón se comía la fila de peso y
+   reps de Entreno por 8,5 px. Filas de 44 pegadas: es lo que hace una lista de
+   propiedades, y sin cromo alrededor no hay nada que se toque con nada. */
+.editor-more-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── La rejilla: una propiedad es una fila, y la fila es el control ───────
+   Cero cromo. Ni caja, ni borde, ni fondo de campo, ni un rótulo a la
+   izquierda repitiendo cómo se llama lo que ya estás leyendo a la derecha. Lo
+   que dice que esto se toca es que responde al dedo, que es exactamente el
+   trato que DESIGN.md ya aceptó para las filas sin marco: «se paga una vez, y
+   se cobra en cada edición — y el estado de pulsación es lo que le contesta al
+   dedo».
+
+   El margen negativo saca el fondo de la pulsación hasta el canto del relleno
+   del panel, para que la fila se pinte entera y el texto siga alineado con
+   todo lo demás. */
+.editor-row,
+button.editor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: calc(100% + 1rem);
+  min-height: 44px;
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  border-radius: var(--radius-control);
+  text-align: left;
+  color: var(--text);
+}
+/* ── La canaleta: cada fila dice de qué campo es ──────────────────────────
+   La versión anterior de esta rejilla no imprimía ningún rótulo, con el
+   argumento de que el valor ya se explica solo. No se explica: `Grupo` no
+   repite `Pecho`, nombra el campo del que `Pecho` es el valor, y el punto de
+   color tampoco lo nombraba —cambia con el valor, así que es el valor pintado
+   dos veces—. El caso que lo cerró es la nota: su rótulo vivía en el marcador
+   de posición, que **se borra en cuanto escribes**, de modo que a partir de la
+   primera nota la fila se quedaba anónima para siempre.
+
+   Un ancho fijo y no un `flex` que se ajuste al texto: lo que convierte dos
+   filas en una rejilla es que sus valores empiecen en la misma x. Ésa es la
+   forma de la hoja de especificaciones que DESIGN.md ya usa en el log
+   —etiqueta a la izquierda, valor a la derecha— y es también la del panel de
+   propiedades que sirve de listón. 3,4 rem entran `Grupo` y `Nota` con aire de
+   sobra y dejan ~215 px de campo a 430 px de pantalla.
+
+   Label 12,8 px apagado: el escalón más pequeño que DESIGN.md deja para algo
+   que se lee como palabras. Y `<label for>`, no un `<span>`, así que tocar el
+   rótulo enfoca su campo — 54 px más de blanco táctil por fila, gratis. El
+   nombre hablado sigue viniendo del `aria-label` del control, que lleva además
+   el nombre del ejercicio para los supersets. */
+.editor-row-label {
+  flex: none;
+  width: 3.4rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  cursor: pointer;
+}
+/* El campo dentro de la fila no tiene caja propia: la caja es la fila, y la
+   fila no tiene. */
+.editor-row-control {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text);
+}
+select.editor-row-control {
+  appearance: none;
+  -webkit-appearance: none;
+}
+/* ── El rótulo de la fila vacía ───────────────────────────────────────────
+   La tesis de esta rejilla es que una fila sin rótulo impreso se explica
+   sola, y el único momento en que no puede es cuando está vacía: entonces el
+   marcador de posición *es* el rótulo. Sin regla propia lo pintaba el gris de
+   fábrica de Chrome, `#757575`, que no es ninguno de los tokens de la casa y
+   da **3,55:1 sobre `--surface-raised`** — por debajo del suelo de 4,5 de
+   DESIGN.md. Y no era un caso raro: la nota vacía es el estado por defecto de
+   todo ejercicio recién creado, así que la cadena con menos contraste del
+   panel era justo la que sostiene el argumento entero.
+
+   `--muted` es lo que la casa usa para un rótulo (6,28 sobre el panel), y es
+   el mismo gris con el que se escriben los demás. */
+.editor-row-control::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+/* El anillo lo lleva la fila, no el campo: si lo llevara el campo se dibujaría
+   un rectángulo pegado al texto y volveríamos a tener una caja, que es justo
+   lo que esta rejilla quita. Enfocado, la fila entera se enciende. */
+.editor-row-control:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+.editor-row-picker:focus-within,
+.editor-row-note:focus-within {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+button.editor-row:focus-visible,
+button.editor-back:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.editor-row:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+/* Una fila que abre una lista lleva el `›` de todas las puertas de la casa. El
+   `select` es nativo a propósito (ver el comentario del componente), así que el
+   glifo va en la fila y no dentro del control. */
+.editor-row-picker::after {
+  content: '›';
+  flex: none;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+/* La confirmación de la nota, dentro de su propia fila para no costar otra.
+   ── Y apagada hasta que haya algo que confirmar ──────────────────────────
+   Era ámbar siempre. Legal por la letra —es un `<button type="submit">`, no
+   un rótulo, y mide 5,72— y equivocada por el motivo: con el cajón abierto en
+   Entreno se sienta 153 px por encima de `Registrar serie`, que es un
+   *relleno* ámbar, y de las banderas `PR peso`, que llevan `--pr`. Tres
+   ámbares en una columna de ~300 px haciendo tres trabajos que no se parecen
+   —una acción secundaria en reposo, la acción primaria, el récord ganado—, y
+   DESIGN.md apoya el ámbar entero en que es escaso: «amber means something
+   happened». El único de los tres que está encendido *antes* de que pase
+   nada, y siempre, se gasta la escasez de la que viven los otros dos. Por el
+   camino grita más que el punto de color del grupo, que es el dato de la
+   fila.
+
+   Así que el ámbar es el estado y no el botón: `--muted` mientras el borrador
+   sea el texto guardado, `--accent-ink` en cuanto lo hayas cambiado — que es
+   exactamente cuando hay algo que guardar. (`--accent-ink` y no `--accent`:
+   es el único hondo que pasa AA sobre papel.) */
+
+/* Lo único de aquí dentro que destruye algo. Rojo de verdad (DESIGN.md lo
+   reserva para eso) pero como tinta y no como relleno: es una acción rara, y
+   una acción rara no lleva un control con peso de contenido.
+
+   ── Y fuera de la pila de propiedades ────────────────────────────────────
+   Leído a ciegas, `Eliminar ejercicio` pasaba **por el valor de una
+   propiedad**: la misma sangría que el valor de la fila de encima, el mismo
+   cuerpo, nada en medio y el rojo cargando solo con todo el aviso — y el rojo
+   a solas no dice «esto es de otra clase», dice «esto es importante», que es
+   lo que dice cualquier valor destacado.
+
+   Se separa por dos vías y ninguna cuesta una fila. La sangría: las filas de
+   propiedad arrancan su valor a la derecha de la canaleta de rótulos y ésta no
+   tiene rótulo —no es una propiedad—, así que arranca en el canto. Y la regla:
+   a `--text` al 17 %, que es el peso que DESIGN.md eligió para el límite entre
+   dos escalas distintas (el que separa un día de otro, frente al `--border`
+   que separa dos series del mismo ejercicio). Aquí el salto de escala es el
+   mismo: de cambiar una etiqueta a tirar meses de registro. */
+button.editor-row-danger {
+  margin: 0.5rem -0.5rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--text) 17%, transparent);
+  color: var(--danger);
+  font-weight: 600;
+}
+/* La vuelta: flecha apagada, nombre en tinta, y el nombre se recorta antes de
+   empujar al aspa. */
+.editor-row-back {
+  gap: 0;
+}
+button.editor-back {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.25rem 0 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+.editor-back-arrow {
+  flex: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.editor-back-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+button.editor-back:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  transform: none;
+}
+/* 44 px reales, y el margen negativo se los come del padding de la hoja para
+   que la aspa quede ópticamente alineada con el borde sin encoger el blanco. */
+.editor-close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .editor-close:hover {
+    color: var(--text);
+  }
+}
+
+/* ── La caja: el panel en sitio ───────────────────────────────────────────
+   Fue la caja rival y se quedó con el sitio. Dos críticos independientes
+   dijeron lo mismo sin hablarse: una hoja modal que apaga el 62,8 % de la
+   pantalla es demasiada ceremonia para arreglar una errata, y lo que tapa es
+   justo el registro que estás corrigiendo. El panel nace del propio botón,
+   dentro de la tarjeta, y no apaga nada.
+
+   El hueco existe para que el panel tenga desde dónde colgar sin ocupar
+   flujo: `position: relative` y altura cero, así que `absolute` se mide desde
+   la puerta y la columna de contenido no se mueve ni un píxel — la misma
+   promesa que daba la hoja, por otro camino. La única altura que el hueco
+   llega a tener se la pone el componente, y sólo para lo que el panel
+   sobresale por debajo de su propia tarjeta (Progreso, donde el botón es el
+   último hijo y debajo no hay documento al que desplazarse). Crecer por
+   debajo de la tarjeta no mueve nada de lo que estabas mirando. */
+.editor-inplace-slot {
+  position: relative;
+}
+/* ── Por qué llega hasta el canto de la tarjeta y no hasta el del texto ────
+   El hueco vive en la caja de contenido, y ahí el panel medía 357,6 px contra
+   los 396,4 de la caja de relleno. Los 19,2 px de diferencia por lado no son
+   aire: `.muscle-chips` se sangra exactamente hasta ese canto a propósito
+   —«medio chip cortado dice que hay más»—, así que el canto *vertical* del
+   panel caía dentro del último chip. Medido en Progreso a 430×932: el chip
+   «Tríceps» partido 41 de sus 60,2 px de ancho, dejando una astilla viva de
+   19,2 px, **en 28 de las paradas del barrido**. Y un canto opaco cruzando un
+   control no se lee como tapado, se lee como roto — la regla de la casa, la
+   misma por la que el panel no parte filas por arriba ni por abajo. Subir o
+   bajar no lo arregla, porque esto no lo cruza un canto horizontal: entre el
+   pie del carrusel y el techo de la gráfica hay 64 px y el cajón mide 166.
+   Lo que lo arregla es que el panel llegue donde llega lo que tapa.
+
+   Y además dice mejor lo que es: «no es una capa de la pantalla, es una capa
+   de la tarjeta». Una capa de la tarjeta es del ancho de la tarjeta. */
+.editor-inplace {
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--card-pad-x, 0px));
+  right: calc(-1 * var(--card-pad-x, 0px));
+  /* Por encima de lo que tapa y por debajo de la hoja (40) y de las barras
+     fijas: esto no es una capa de la pantalla, es una capa de la tarjeta. */
+  z-index: 3;
+  padding: 1rem;
+  /* Opaco a propósito: debajo hay una lista de series y un formulario, y una
+     transparencia aquí serían dos textos en el mismo sitio. `--surface-raised`
+     limpio, sin el baño ámbar del 7 % que lleva la tarjeta hero, así que el
+     panel se lee como un plano distinto sin necesidad de sombra. */
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* La regla de la casa para el relieve en oscuro: no hay luz que proyecte
+     sombra, así que el canto de arriba la recoge. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  animation: editor-unfold 150ms ease-out;
+  /* El componente sube el panel cuando no cabe entre el botón y el borde útil
+     —la barra de pestañas, o el teclado— y le pone aquí el alto que queda. Si
+     ni subiendo cabe, lo que sobra se desplaza dentro del panel en vez de
+     salirse por arriba; `overscroll-behavior` para que llegar al final no siga
+     arrastrando la tarjeta que hay debajo. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* Baja desde la puerta, no sube desde el pulgar: aquí el origen del gesto es
+   el botón que acabas de tocar, que está justo encima. */
+@keyframes editor-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-inplace {
+    animation: none;
+  }
+}
 .link-row {
   width: 100%;
   display: flex;
@@ -1150,7 +1705,12 @@ button.chart-title h2 {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 1.15rem 1.2rem;
+  /* El relleno lateral, con nombre, porque hay dos cosas que se sangran hasta
+     el canto de la tarjeta y necesitan saber cuánto es: el carrusel de chips
+     (`.muscle-chips`, para que medio chip cortado diga «hay más») y el panel
+     del editor, que tiene que tapar entero lo que ese carrusel deja asomar. */
+  --card-pad-x: 1.2rem;
+  padding: 1.15rem var(--card-pad-x);
   margin-bottom: 1rem;
 }
 
@@ -1270,6 +1830,18 @@ select:focus {
   box-shadow: 0 0 0 3px var(--ring);
 }
 
+/* El relleno de CTA es opt-in, no herencia.
+   Esto pintaba de ámbar **todo** `<button>`, y como la mayoría de los controles
+   de esta app son texto —una fila, una pestaña, un `⋯`, una acción de una hoja—
+   cada uno tenía que excluirse a mano. La lista de excepciones llegó a catorce
+   selectores en cuatro bloques, y ninguna de sus cuatro ampliaciones fue
+   preventiva: `Borrar día` se envió en rojo sobre un bloque ámbar, `Guardar
+   nota` en ámbar sobre ámbar, y las filas de serie se rellenaban bajo el ratón.
+   La quinta, la ✕ del editor, llevaba viva desde que se escribió (3,33:1).
+   Invertido: un botón nace sin relleno y con la tinta de su sitio, que es lo
+   que es la mayoría, y el ámbar lo pide quien lo quiere con `.primary`. El
+   `background: none` y el `color: inherit` son explícitos porque la hoja del
+   navegador pone `buttonface`/`buttontext` si no. */
 button {
   font: inherit;
   font-weight: 600;
@@ -1278,49 +1850,47 @@ button {
   border: none;
   border-radius: var(--radius-control);
   padding: 0.7rem 1rem;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: none;
+  color: inherit;
   transition:
     background 0.15s ease,
     transform 0.05s ease;
+}
+/* La acción primaria de una pantalla. Pareja de `button.secondary`, que ya
+   existía: el vocabulario no cambia, sólo cuál de los dos es el silencio por
+   defecto. Tinta casi negra sobre el ámbar, nunca blanca — DESIGN.md: el
+   blanco sobre ámbar no pasa AA (3,70 en claro, 2,86 en oscuro). */
+button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 /* Gated on actually having a pointer. Touch browsers leave :hover stuck on the
    last thing you tapped, so on a phone this repainted whatever you just pressed
    and left it there — a folded card wearing the CTA fill until you tapped
    something else. Hover is a mouse idea; this app is used one-handed. */
 @media (hover: hover) {
-  button:hover:not(:disabled) {
+  button.primary:hover:not(:disabled) {
     background: var(--accent-hover);
   }
-  /* Ghost buttons are text, not CTAs. Same specificity as the rule above so
-     the later declaration wins; a plain .card-toggle:hover would lose.
-     .link-row (a Días workout row) is one too — without this it inherited the
-     CTA fill and became amber text on an amber block, near-illegible. */
-  button.card-toggle:hover:not(:disabled),
-  button.unit-fix:hover:not(:disabled),
-  button.link-row:hover:not(:disabled),
-  button.day-repeat:hover:not(:disabled),
-  button.days-backfill:hover:not(:disabled) {
-    background: none;
-  }
-  /* A sheet item is a surface already; the pointer lifts it rather than
-     replacing it with the CTA fill — which turned `Borrar día` into an amber
-     block with red text on it, the third time this list has had to be extended
-     for a new ghost button. */
+  /* Lo que queda aquí ya no excluye nada: son los tres hovers que *hacen* algo,
+     y cada uno sigue estando por una razón propia. La lista de exclusiones que
+     los acompañaba —siete selectores devolviendo `background: none` a controles
+     que nunca debieron tener relleno— se ha ido con el ámbar por defecto. */
+
+  /* Una fila de hoja ya es una superficie; el puntero la levanta en vez de
+     sustituirla. */
   button.sheet-item:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 8%, var(--surface-raised));
   }
-  /* The tap-to-edit surfaces answer a pointer the way they answer a thumb:
-     a veil, not the CTA fill. Without this they inherited `button:hover` and
-     a set row filled amber under the mouse — the same defect 1efc3df fixed
-     for .link-row, reintroduced by three new surfaces. */
+  /* Las superficies que se tocan para editar contestan al puntero como
+     contestan al dedo: un velo, no un relleno. */
   button.set-row:hover:not(:disabled),
-  button.workout-title:hover:not(:disabled),
-  button.chart-title:hover:not(:disabled) {
+  button.editor-row:hover:not(:disabled),
+  button.editor-back:hover:not(:disabled),
+  button.workout-title:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
-  /* A set chip already carries its muscle tint; the pointer deepens it instead
-     of replacing it with the CTA fill. */
+  /* Un chip de serie ya lleva el tinte de su músculo; el puntero lo ahonda. */
   button.set-chip:hover:not(:disabled) {
     background: color-mix(in srgb, var(--chip, var(--muted)) 28%, transparent);
   }
@@ -1879,88 +2449,127 @@ button.set-action {
   background: color-mix(in srgb, var(--chip, var(--accent)) 12%, transparent);
 }
 
-/* Inline muscle-group corrector — the classifier's guess is editable. */
-.muscle-edit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-  flex-wrap: wrap;
+/* ── Lo que pasa cuando una edición de ejercicio no sale ───────────────────
+   Fuera del panel, encima de la puerta que lo abre. El panel se desmonta justo
+   cuando llega la respuesta —el renombrado se manda también al salir—, así que
+   un aviso dentro de él no llega a decir nada. Ver `EditTrouble.jsx`.
+
+   Dos aspectos porque son dos cosas. Un fallo de envío lleva `.alert`, el rojo
+   de la casa. Un choque de nombre **no** es un fallo: es una respuesta con dos
+   caminos delante, y meter `Fusionar` dentro de la caja que en esta app
+   significa "esto ha ido mal" lo pintaría de destructivo, que es justo lo que
+   DESIGN.md reserva el rojo de verdad para decir. Superficie elevada y tinta
+   normal. */
+.edit-trouble {
+  margin: 0 0 0.75rem;
 }
-.muscle-edit-name {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.edit-clash {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+  color: var(--text);
 }
-.exercise-rename {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  flex-wrap: wrap;
-}
-.exercise-rename input {
-  flex: 1;
-  min-width: 8rem;
-}
-/* The rename's own complaint, on its own row under the field it belongs to.
-   Full-width so the offer that follows it ("Fusionar con …") reads as the
-   answer to it, and with no bottom margin — the form's gap already spaces it. */
-.exercise-rename .rename-alert {
-  flex-basis: 100%;
+.edit-trouble-text {
   margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
-.merge-action {
-  flex-basis: 100%;
+/* La fila de salidas. `wrap` porque `Fusionar` + `Cambiar el nombre` no siempre
+   caben en 430 px menos el padding de la tarjeta, y una etiqueta partida por la
+   mitad es peor que dos filas. */
+.edit-trouble-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
 }
-.muscle-edit-label {
-  margin: 0 0 0 auto;
-  font-size: 0.75rem;
+.edit-trouble-actions:empty {
+  display: none;
 }
-/* The label on the in-card corrector: muted, not the display face — a label
-   that never changes doesn't earn the exercise-name treatment. */
-.muscle-edit-heading {
+/* `.secondary` no trae suelo táctil propio: medido en el banco daba **38,8 px**
+   de alto, bajo los 44 que DESIGN.md no negocia. */
+.edit-trouble-actions .secondary {
+  min-height: 44px;
+}
+/* ── El lado irreversible, vestido de irreversible ─────────────────────────
+   El peso estaba del revés. `Fusionar` iba de `.secondary` —fantasma bordeado,
+   el vocabulario de «esto no rompe nada»— a un toque de plegar meses de
+   registro, y `Cambiar el nombre`, que es la marcha atrás, llevaba el ámbar,
+   que en el resto de la app significa «esto es lo que has venido a hacer». El
+   acento estaba puesto en la salida de emergencia.
+
+   Se le da el mismo trato que al otro control irreversible del editor
+   (`.secondary.delete-exercise`): tinta `--danger` y borde del mismo rojo al
+   35 %. Relleno no: DESIGN.md reserva el relleno de acento para lo que la app
+   te está pidiendo que hagas, y aquí no pide nada — sólo dice cuál de los dos
+   actos no se puede deshacer.
+
+   El velo de `:hover` **no** es el 12 % de `--danger` que lleva esa otra fila:
+   medido, un lavado rojo de ese peso baja el contraste de `--danger` sobre
+   papel a **4,05** y sobre blanco a **4,50**, o sea al filo o por debajo del
+   4,5 que exige DESIGN.md para 16px/600 — y el suelo se mide sobre el color
+   realmente pintado, velo incluido, que es la regla que ya pilló a este mismo
+   rojo una vez. El velo es el neutro de la casa, `--text` al 6 %, el mismo con
+   el que DESIGN.md midió esta pareja de rojos. Medido sobre el color pintado
+   de esta caja —`--surface-raised`, que en claro es blanco y no papel—: en
+   reposo 5,911 / 5,469 y con el velo **5,023 / 4,847**, los dos por encima del
+   4,5. */
+/* ── El confirmar irreversible de esta app tiene una sola pinta ────────────
+   Esto iba de fantasma bordeado —`--danger` en tinta, borde al 35 %, fondo
+   transparente— mientras el otro confirmar irreversible de la app, `Sí,
+   eliminar` en `.dialog-actions .danger`, va **relleno**. Misma app, misma
+   promesa de «no hay vuelta», dos disfraces: el que pliega meses de registro
+   parecía el más callado de los dos.
+
+   Ahora lleva el mismo relleno y la misma tinta (`--on-danger`, que es lo que
+   pasa AA sobre el rojo en los dos temas — ver la nota de `.dialog-actions
+   .danger`). No es «más peso porque sí»: es que la app ya eligió una pinta
+   para esto, y tener dos era la elección que nadie tomó. */
+.edit-trouble-merge {
+  min-height: 44px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--danger);
+  color: var(--on-danger);
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--muted);
+  cursor: pointer;
 }
-/* The note editor, same shape as the muscle row above it: label left, control
-   filling the rest, save on its own line so the field keeps its width on a
-   phone. Both live in the one fold you open to fix something about the lift. */
-.note-edit,
-.name-edit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+@media (hover: hover) {
+  .edit-trouble-merge:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 85%, #000);
+  }
 }
-.note-edit input,
-.name-edit input {
-  flex: 1;
-  min-width: 8rem;
+/* La salida secundaria, sin caja: mismo vocabulario que el `Deshacer` del
+   reetiquetado. 44 px de blanco táctil, que aquí tampoco se negocia. */
+.edit-trouble-action {
   min-height: 44px;
-}
-.note-edit button,
-.name-edit button {
-  flex-basis: 100%;
-}
-/* The rename's own complaint, under the field it belongs to. */
-.name-edit .rename-alert {
-  flex-basis: 100%;
-  margin: 0;
-}
-.muscle-edit-select {
-  margin-left: auto;
-  min-height: 44px;
-}
-.muscle-edit select {
-  width: auto;
-  min-height: 36px;
-  padding: 0.3rem 0.5rem;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
   font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
 }
+/* Dentro de la caja roja el ámbar no tiene nada que hacer: el suelo de
+   contraste está medido contra el fondo de la app, no contra un lavado de
+   `--danger`. Hereda la tinta del aviso, que es la que ya pasa ahí. */
+.alert.edit-trouble .edit-trouble-action {
+  color: inherit;
+  text-decoration: underline;
+}
+@media (hover: hover) {
+  .edit-trouble-action:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+}
+
 /* The way back from a re-tag, inside the same fold that made it — not a toast.
    An overlay that times out is the shape DESIGN.md rejected for the PR banner,
    and an undo you can miss by looking away is not an undo. Muted sentence,

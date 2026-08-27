@@ -64,7 +64,28 @@ export async function apiFetch(path, options = {}) {
     throw Object.assign(new Error('unauthorized'), { status: 401 })
   }
   if (!res.ok) {
-    throw Object.assign(new Error(`request failed: ${res.status}`), { status: res.status })
+    // Y el cuerpo también, cuando lo hay. El 409 de un renombrado no es sólo un
+    // número: trae el ejercicio con el que chocaste —id, el nombre **como está
+    // guardado**, su kind y cuántas series lleva—, que es lo único que permite
+    // ofrecer la fusión sin volver a preguntarle al servidor ni rebuscar en una
+    // lista que puede no contener esa fila. Tirarlo obligaba a adivinar el
+    // choque con una búsqueda local, y una búsqueda local no ve un ejercicio
+    // que esa pantalla nunca llegó a pedir.
+    //
+    // `status` sigue puesto pase lo que pase, y el `try` es justamente por eso:
+    // un 500 con un HTML de proxy dentro no puede llevarse por delante el
+    // número que la bandeja de salida lee para distinguir «no hay señal» de
+    // «juzgada y rechazada».
+    let detail
+    try {
+      detail = (await res.json())?.detail
+    } catch {
+      // Cuerpo vacío, no-JSON, o una respuesta que ni siquiera tiene `json`.
+    }
+    throw Object.assign(new Error(`request failed: ${res.status}`), {
+      status: res.status,
+      detail,
+    })
   }
   if (res.status === 204) {
     return null

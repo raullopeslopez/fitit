@@ -435,7 +435,7 @@ export default function Days({ onOpenWorkout }) {
       <div className="days-cta">
         <button
           type="button"
-          className="btn-full btn-log"
+          className="primary btn-full btn-log"
           onClick={todaySession ? () => onOpenWorkout(todaySession.id, todaySession) : startToday}
           disabled={creating}
         >
@@ -484,7 +484,7 @@ export default function Days({ onOpenWorkout }) {
                   />
                 </div>
               </div>
-              <button type="submit" className="btn-full" disabled={creating}>
+              <button type="submit" className="primary btn-full" disabled={creating}>
                 {creating ? 'Empezando…' : 'Crear entreno'}
               </button>
             </form>

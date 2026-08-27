@@ -40,17 +40,35 @@ export const UNGROUPED = 'Sin grupo'
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
-// What re-tagging is about to do, counted in sets.
+// Lo que el reetiquetado acaba de hacer, contado en series.
 //
-// The group is stored on the exercise, not on the set, so changing it re-buckets
-// every set ever logged against it at once — months of per-muscle totals, the
-// heatmap's colours, the period summary's bars. None of that is on the screen
-// the select sits on, so the number has to be said out loud before it moves.
-// Same reasoning as the delete dialog, minus the irreversibility: this one is
-// undoable, which is why the sentence doesn't threaten.
-export function retagWarning(setCount, group) {
-  const sets = plural(setCount, 'serie ya registrada', 'series ya registradas')
+// El grupo va en el ejercicio y no en la serie, así que cambiarlo recoloca de
+// golpe todo lo que se ha registrado contra él — meses de totales por músculo,
+// los colores del mapa de calor, las barras del resumen del periodo. Nada de
+// eso está en la pantalla donde vive el desplegable, así que la cifra hay que
+// decirla en voz alta.
+//
+// ── Y se dice después, no antes ───────────────────────────────────────────
+// Esta frase era el cuerpo de un diálogo modal que había que atravesar para
+// cambiar una etiqueta. El reetiquetado es el único acto **reversible** del
+// editor, y era el único que llevaba confirmación *y* deshacer, mientras
+// fusionar y vaciar la nota —irreversible el primero, sin vuelta el segundo—
+// no llevaban ninguna de las dos cosas. La ceremonia de la app iba en
+// proporción inversa al daño.
+//
+// Ordenado: lo reversible pasa y se puede desandar, lo irreversible se para y
+// se explica. Así que la cifra se conserva entera y se muda a la fila que
+// ofrece la vuelta, que además es donde está el control que la desanda.
+//
+// Cero no se imprime: «0 series ya cuentan como Hombro» se lee como que el
+// cambio no ha hecho nada, y sí lo ha hecho — lo que pasa es que este
+// ejercicio todavía no tiene historia que mover.
+export function retagDone(setCount, group) {
+  if (!setCount) {
+    return group ? `Ahora cuenta como ${group}.` : `Ahora está en ${UNGROUPED}.`
+  }
+  const sets = plural(setCount, 'serie', 'series')
   return group
-    ? `Sus ${sets} pasarán a contar como ${group}, en el historial y en los resúmenes por músculo.`
-    : `Sus ${sets} dejarán de contar en ningún grupo, y desaparecerán de los resúmenes por músculo.`
+    ? `Sus ${sets} ya cuentan como ${group}.`
+    : `Sus ${sets} ya no cuentan en ningún grupo.`
 }

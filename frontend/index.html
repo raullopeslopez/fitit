@@ -2,7 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `interactive-widget=resizes-content` porque el reparto por defecto de
+         Android Chrome (`resizes-visual`) dibuja el teclado *encima* sin
+         encoger el viewport de maquetación: nada `fixed` se entera de que hay
+         un teclado, así que una hoja anclada abajo se queda debajo de él.
+         Medido con el editor abierto a 430×932: `Guardar nombre` en y 723–762
+         y el selector de grupo en 770–806, ambos dentro de la banda que tapa
+         un IME de ~330 px. El botón que confirma la edición estaba
+         literalmente detrás del teclado, y esto es lo que lo saca. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
+    />
     <title>Fitit</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- El service worker mira esta marca antes de creerse que una respuesta HTML

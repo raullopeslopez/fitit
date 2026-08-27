@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   deleteExercise,
@@ -7,13 +7,17 @@ import {
   mergeExercise,
   renameExercise,
   setExerciseMuscle,
+  setExerciseNote,
 } from './api.js'
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
+import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
+import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
+import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
-import { RetagConfirm, RetagUndo } from './MuscleRetag.jsx'
+import { RetagUndo } from './MuscleRetag.jsx'
 import {
   deloadTargets,
   recordLadder,
@@ -26,6 +30,7 @@ import { bandFor, bandPosition, bandState } from './volume.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
 
 // The climb of one lift: only the sessions where it actually went up. A step,
 // not a slope — nothing here is interpolated, so every corner is a day you did
@@ -69,7 +74,19 @@ function Ladder({ rungs, color }) {
   )
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Récords reales">
+    // `data-editor-protect`: la gráfica es lo que esta pantalla *es* —«el
+    // contenido por encima del mecanismo que lo produce», DESIGN.md— y el
+    // editor no puede posarse encima de ella. Con el segundo paso desplegándose
+    // en sitio la tapaba entera; ahora el panel tiene prohibido subir del pie
+    // de este `svg`, y lo que no le quepa entre la gráfica y la barra de
+    // pestañas se desplaza por dentro.
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="chart"
+      data-editor-protect
+      role="img"
+      aria-label="Récords reales"
+    >
       <line
         x1="0"
         x2={W}
@@ -779,22 +796,37 @@ export default function Progress() {
   const [query, setQuery] = useState('') // what you are typing to find one
   const [muscle, setMuscle] = useState(null) // selected muscle filter
   const [error, setError] = useState('')
-  const [editingName, setEditingName] = useState(false) // inline rename open?
   const [nameDraft, setNameDraft] = useState('')
-  // The rename's own complaint, beside its field — the page-foot alert is too
-  // far from the thumb that typed to be read at all on a phone.
-  const [nameError, setNameError] = useState('')
-  // The exercise whose name the rename collided with, and so the one this can
-  // be folded into.
-  const [clash, setClash] = useState(null)
+  // El último nombre que se mandó, para que dos salidas seguidas no valgan por
+  // dos renombrados. Ver `renameCurrent`.
+  const sentName = useRef(null)
+  // Lo que salió mal en el último renombrado, y lo que se puede hacer al
+  // respecto. Vive aquí y no dentro del panel porque el panel se desmonta justo
+  // cuando llega la respuesta: el renombrado se manda también al salir, así que
+  // en cuatro de sus seis disparos el aviso no llegaba a decir nada. Ver
+  // `NameClash.jsx`.
+  const [editTrouble, setEditTrouble] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
-  // A re-tag asked for but not yet confirmed, and the one that just went
-  // through — see requestRetag/undoRetag below.
-  const [pendingRetag, setPendingRetag] = useState(null)
+  // El ejercicio que se acaba de borrar, para poder decirlo donde estaba su
+  // tarjeta. `{ name, sets }`; se limpia en cuanto eliges otro.
+  const [deleted, setDeleted] = useState(null)
+  // El buscador, que es donde aterriza el foco cuando la tarjeta que lo tenía
+  // deja de existir.
+  const searchRef = useRef(null)
+  // El reetiquetado que acaba de pasar, para poder desandarlo.
   const [lastRetag, setLastRetag] = useState(null)
-  // Rename and re-tag are corrections, the same shape as the ones on an
-  // exercise card: rare, and they were sitting inside the content.
-  const [showFixes, setShowFixes] = useState(false)
+  // La nota permanente, editándose. Se resiembra del ejercicio cada vez que se
+  // abre el panel, igual que el nombre.
+  const [noteDraft, setNoteDraft] = useState('')
+  // La nota que se acaba de quedar en nada, guardada para poder devolverla.
+  // Vive fuera del panel porque `commitNote` se dispara también al salir: para
+  // cuando el servidor contesta, el panel se ha ido con el mismo cierre que
+  // mandó la nota. Ver `EditTrouble.jsx`.
+  const [clearedNote, setClearedNote] = useState(null)
+  // ¿Está abierta la hoja del editor? Renombrar y reetiquetar son correcciones,
+  // de la misma forma que las de una tarjeta de ejercicio en Entreno: raras, y
+  // estaban metidas dentro del contenido.
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const muscleOf = (lift) => exercises.find((e) => e.name === lift)?.muscle_group ?? null
 
@@ -808,6 +840,15 @@ export default function Progress() {
             muscle_group: e.muscle_group,
             // Carried, not dropped: it is what the re-tag confirmation counts.
             set_count: e.set_count ?? 0,
+            // Se lleva por lo mismo que `set_count`: al chocar con un nombre
+            // existente hay que saber si esta pantalla puede ofrecer la fusión,
+            // y el servidor rechaza fusionar cardio con fuerza.
+            kind: e.kind ?? 'strength',
+            // La nota permanente del ejercicio. Antes esta pantalla ni la
+            // pedía: su cajón llevaba grupo y borrado y el de Entreno grupo y
+            // nota, o sea dos editores distintos con el mismo cromo. Ahora las
+            // dos pantallas llevan los cinco actos.
+            note: e.note ?? null,
           })),
         ),
       )
@@ -820,62 +861,182 @@ export default function Progress() {
   //
   // A 409 means the name is already an exercise of yours — "Fondo" typed on a
   // busy floor, renamed to the "Fondos" that already exists. That is not a
-  // failure to explain at the foot of the page, it is an offer: fold this one
-  // into that one. The complaint stays beside the field you typed in.
+  // failure to explain, it is an offer: fold this one into that one. El
+  // ejercicio con el que chocaste viene **en la respuesta**, así que se nombra
+  // con su ortografía guardada y se dice lo que cuesta la fusión con la cifra
+  // del servidor, sin rebuscarlo en la lista que esta pantalla tenga cargada.
+  //
+  // ── Sin botón de guardar, y optimista ─────────────────────────────────────
+  // Esto ya no lo dispara un `Guardar nombre`: lo disparan Intro dentro del
+  // campo, entrar en el cajón y cerrar el panel por cualquiera de sus puertas.
+  // El porqué entero está en la cabecera de `ExerciseEditor.jsx`.
+  //
+  // `sentName` es el seguro contra el doble envío mientras uno está en vuelo:
+  // ahora hay más de una salida que guarda —Intro y después el aspa son dos— y
+  // en una conexión lenta la segunda llega antes de que conteste la primera.
+  // Se suelta en cuanto falla, porque un fallo de red no es una respuesta a lo
+  // que preguntaste y la siguiente salida tiene que poder volver a preguntar;
+  // medido en el navegador, sin esto un renombrado caído se quedaba sin poder
+  // reintentarse hasta cerrar y reabrir el panel.
+  //
+  // Y el cambio aterriza antes de que el servidor conteste, como el registro de
+  // una serie (DESIGN.md, 2026-07-25); un fallo lo devuelve y lo dice al lado
+  // del campo. Sin estado «pendiente» a la vista, que es lo que pide ese mismo
+  // apunte: lo pendiente es el caso normal y se pinta callado, y aquí el acuse
+  // de recibo es el nombre nuevo, ya escrito por toda la pantalla.
   async function renameCurrent(id, draft) {
     const trimmed = draft.trim()
     if (!trimmed || trimmed === name) {
-      setEditingName(false)
+      // Un campo que tocaste y dejaste como estaba no es un renombrado. La hoja
+      // se queda abierta: cerrarla aquí sería castigar el haber dudado.
+      setEditTrouble(null)
       return
     }
-    setNameError('')
-    setClash(null)
+    if (trimmed === sentName.current) return
+    sentName.current = trimmed
+    setEditTrouble(null)
+    const before = name
+    applyRename(id, trimmed)
     try {
       const updated = await renameExercise(id, trimmed)
-      setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: updated.name } : e)))
-      setName(updated.name)
-      setEditingName(false)
+      // El servidor tiene la última palabra sobre cómo se escribe.
+      if (updated.name !== trimmed) applyRename(id, updated.name)
+      // La hoja sigue abierta y su cabecera ya dice el nombre nuevo: eso es el
+      // acuse de recibo, y no hace falta ninguno más.
+      //
+      // El registro que alimentan la gráfica, la escalera de récords y el mapa
+      // de calor nombra su ejercicio con una cadena, así que se vuelve a pedir:
+      // es lo mismo que hacen la fusión y el borrado, por lo mismo.
+      await reloadLog()
     } catch (err) {
-      const taken = exercises.find((e) => e.id !== id && fold(e.name) === fold(trimmed))
-      if (err?.status === 409 && taken) {
-        setClash(taken)
-        setNameError(`Ya existe "${taken.name}".`)
-      } else {
-        setNameError('No se pudo cambiar el nombre.')
-      }
+      sentName.current = null
+      applyRename(id, before)
+      // El choque lo nombra el servidor. La búsqueda local que había aquí no
+      // podía ver un ejercicio que esta pantalla nunca llegó a pedir, y cuando
+      // lo encontraba lo nombraba con la ortografía de la lista, no con la
+      // guardada.
+      const taken = err?.status === 409 ? err?.detail?.exercise : null
+      // ── Un choque se lleva el panel ─────────────────────────────────────
+      // El bloque de la oferta mide 135–177 px —la frase envuelve— y se pinta **encima** del
+      // disparador; el panel mide 130 y cuelga de él. Entre el pie de la
+      // gráfica y la barra de pestañas no caben los dos, y con el panel
+      // abierto —lo que pasa al confirmar con Intro— medido a 430×932: el
+      // panel se posaba sobre el bloque y dejaba `Sí, fusionar` y `Escribir
+      // otro nombre` tapados y `inert`. Los dos únicos controles que contestan
+      // a la pregunta que el bloque acaba de hacer, escondidos debajo de la
+      // caja que la provocó.
+      //
+      // No es un problema de colocación, es que son dos superficies para una
+      // decisión. La que manda es el bloque: es la respuesta, sobrevive al
+      // cierre y lleva las dos salidas dentro. Y no se pierde nada, porque una
+      // de esas dos salidas —`Escribir otro nombre`— devuelve el panel con lo
+      // que escribiste todavía dentro. Así, además, un choque se lee igual
+      // hayas salido por donde hayas salido.
+      if (taken) setEditorOpen(false)
+      // Y las dos cifras frescas, que es lo que convierte «ya tienes ése, con
+      // 48 series» en un precio de verdad: 48 es lo que te quedas, no lo que
+      // arriesgas. Ver `clashTrouble` en `EditTrouble.jsx`.
+      setEditTrouble(
+        taken
+          ? await clashTrouble({
+              id,
+              from: before,
+              draft: trimmed,
+              myKind: exercises.find((e) => e.id === id)?.kind ?? null,
+              taken,
+            })
+          : { field: 'name', kind: 'network', from: before, draft: trimmed },
+      )
     }
+  }
+
+  // Mudar el ejercicio de nombre por lo que esta pantalla lee por nombre: la
+  // lista de ejercicios (el título, los chips) y cuál es el que se está
+  // mirando. Va en las dos direcciones, porque también es la que deshace.
+  function applyRename(id, to) {
+    setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: to } : e)))
+    setName(to)
   }
 
   // Fold this exercise into the one whose name it collided with: its sets move
   // over, it disappears, and the chart lands on the survivor.
+  //
+  // La dirección es ésta y no la contraria: el superviviente es el ejercicio
+  // que ya tenía el nombre, que es exactamente el nombre que acabas de pedir.
+  // Fusionar al revés dejaría las series juntas bajo el nombre viejo y haría
+  // falta un segundo renombrado que puede volver a fallar.
   async function mergeIntoClash() {
-    if (!current || !clash) return
+    if (!current || !editTrouble?.exercise) return
     try {
-      const target = await mergeExercise(current.id, clash.id)
+      const target = await mergeExercise(current.id, editTrouble.exercise.id)
       setExercises((list) => list.filter((e) => e.id !== current.id))
       setName(target.name)
-      setEditingName(false)
-      setNameError('')
-      setClash(null)
+      // Este ejercicio ya no existe: la hoja iba de él, así que se va con él.
+      setEditorOpen(false)
+      setEditTrouble(null)
       await reloadLog()
+      // El botón que tenía el foco acaba de desmontarse con el bloque de la
+      // oferta. Sin esto el foco caía en `<body>` — medido, y sólo en esta
+      // pantalla, que es la asimetría que no puede quedarse.
+      focusEditorTrigger(target.name)
     } catch {
-      setNameError('No se pudo fusionar.')
+      // Una fusión que no sale no es un choque nuevo: es la misma petición sin
+      // mandar, y se reintenta como cualquier otra.
+      setEditTrouble({ field: 'merge', kind: 'network', from: current.name, draft: editTrouble.draft, exercise: editTrouble.exercise })
     }
+  }
+
+  // Volver a mandar exactamente lo que no salió. Un fallo de red no es una
+  // respuesta a lo que preguntaste, así que la pregunta se repite tal cual, y
+  // desde el propio aviso: sin esto «no se pudo» es una frase sin control al
+  // lado, que es la misma forma de callejón que el choque tenía.
+  function retryEdit() {
+    if (!editTrouble || !current) return
+    if (editTrouble.field === 'group') return changeMuscle(current.id, editTrouble.draft)
+    if (editTrouble.field === 'note') return changeNote(current.id, editTrouble.draft)
+    if (editTrouble.field === 'merge') return mergeIntoClash()
+    return renameCurrent(current.id, editTrouble.draft)
+  }
+
+  // La otra salida del choque: el panel vuelve con lo que escribiste todavía
+  // dentro. Sin esto, «ponle otro nombre» sería una instrucción sin control —
+  // que es la forma exacta que tenía el callejón que este cambio quita.
+  function reopenOnDraft() {
+    if (!editTrouble) return
+    setNameDraft(editTrouble.draft)
+    setEditTrouble(null)
+    sentName.current = null
+    setEditorOpen(true)
   }
 
   // Delete the exercise and everything logged against it. Irreversible, and it
   // takes history with it, so it is gated on a dialog that names the damage.
+  //
+  // ── Dónde aterrizas ───────────────────────────────────────────────────────
+  // La tarjeta que estabas mirando deja de existir, y con ella el botón que
+  // abrió el editor. El foco se quedaba en un nodo huérfano —el editor sabe no
+  // devolverlo ahí, así que caía en `body`— y la pantalla se quedaba sin decir
+  // nada de lo que acababa de pasar: el ejercicio simplemente ya no estaba.
+  //
+  // Ahora aterriza en el buscador, que es el único control de esta pantalla que
+  // sigue existiendo y además es lo siguiente que vas a hacer —elegir otro
+  // ejercicio—, con una línea encima que dice qué se fue y con cuántas series.
+  // No lleva deshacer y no puede llevarlo: esto es lo que «no se puede
+  // deshacer» significaba en el diálogo.
   async function deleteCurrent() {
     if (!current) return
+    const gone = { name: current.name, sets: setsLogged }
     try {
       await deleteExercise(current.id)
       const left = exercises.filter((e) => e.id !== current.id)
       setExercises(left)
       setConfirmingDelete(false)
-      setEditingName(false)
+      setEditorOpen(false)
       setName('')
       setMuscle(null)
+      setDeleted(gone)
       await reloadLog()
+      searchRef.current?.focus()
     } catch {
       setConfirmingDelete(false)
       setError('No se pudo eliminar el ejercicio.')
@@ -899,7 +1060,23 @@ export default function Progress() {
   // this re-buckets every set ever logged against it — including the summary
   // bars and heatmap cells further down this very screen. Answers whether it
   // landed, so only a real change gets offered a way back.
+  //
+  // ── Optimista, como el nombre y la nota ─────────────────────────────────
+  // Era el único campo del panel que esperaba al servidor antes de mover nada,
+  // y con `Guardar` retirado eso no se lee como «va en camino», se lee como
+  // «no». Medido en el banco a 2 s de latencia: 343 ms después de confirmar
+  // `Pecho`, el desplegable seguía diciendo `Hombro` y el punto seguía ámbar,
+  // mientras el nombre y la nota decían «hecho» al instante. El grupo aterriza
+  // ahora igual que los otros dos, y el `catch` lo devuelve.
   async function changeMuscle(id, group) {
+    const before = exercises.find((e) => e.id === id)?.muscle_group ?? null
+    const land = (value) => {
+      setExercises((list) =>
+        list.map((e) => (e.id === id ? { ...e, muscle_group: value } : e)),
+      )
+      setMuscle(value ?? UNGROUPED)
+    }
+    land(group || null)
     try {
       const updated = await setExerciseMuscle(id, group || null)
       setExercises((list) =>
@@ -910,23 +1087,70 @@ export default function Progress() {
       setMuscle(updated.muscle_group ?? UNGROUPED)
       return true
     } catch {
-      setError('No se pudo cambiar el grupo.')
+      land(before)
+      // Al mismo sitio que el nombre. El grupo se quejaba al pie de la página y
+      // el nombre dentro del panel: dos campos de la misma caja con dos sitios
+      // distintos para decir que algo ha fallado, y uno de los dos fuera de la
+      // pantalla de un móvil.
+      setEditTrouble({
+        field: 'group',
+        kind: 'network',
+        from: exercises.find((e) => e.id === id)?.name ?? '',
+        draft: group,
+      })
       return false
     }
   }
 
-  function requestRetag(group) {
-    if (!current) return
-    if (current.set_count > 0) {
-      setPendingRetag({ group })
-      return
+  // La nota permanente, mandada igual que el grupo y por las mismas puertas que
+  // el nombre: Intro dentro del campo, entrar en el cajón y cerrar el panel.
+  // Optimista, y el `catch` la devuelve.
+  //
+  // Es literalmente el mismo acto que `changeNoteFor` en `Workout.jsx`. Estaba
+  // sólo allí, que es la mitad de por qué «un editor compartido por las dos
+  // pantallas» eran dos.
+  async function changeNote(id, note) {
+    const before = exercises.find((e) => e.id === id)?.note ?? null
+    const land = (value) =>
+      setExercises((list) => list.map((e) => (e.id === id ? { ...e, note: value } : e)))
+    land(note)
+    try {
+      const updated = await setExerciseNote(id, note)
+      land(updated.note ?? null)
+      return true
+    } catch {
+      land(before)
+      setEditTrouble({
+        field: 'note',
+        kind: 'network',
+        from: exercises.find((e) => e.id === id)?.name ?? '',
+        draft: note,
+      })
+      return false
     }
-    applyRetag(group)
   }
 
+  // Vaciar el campo *es* borrar la nota, y era el único acto destructivo del
+  // editor sin ninguna ceremonia. No lleva confirmación —colgaría de la salida,
+  // y las cuatro salidas del panel valen lo mismo— sino la forma del
+  // reetiquetado: se deja pasar y se ofrece devolverlo. Sólo al vaciar:
+  // escribir encima deja en pantalla lo que sustituyó a la nota.
+  async function commitNote() {
+    if (!current) return
+    const next = noteDraft.trim()
+    const before = (current.note ?? '').trim()
+    if (next === before) return
+    if ((await changeNote(current.id, next || null)) === false) return
+    setClearedNote(next ? null : before || null)
+  }
+
+  // Sin diálogo por medio: reetiquetar es el único acto reversible del editor
+  // y era el único que llevaba confirmación *y* deshacer, mientras fusionar
+  // —irreversible— iba de un toque. La cifra que decía el diálogo se dice
+  // ahora en la fila que ofrece la vuelta. Ver `MuscleRetag.jsx`.
   async function applyRetag(group) {
+    if (!current) return
     const from = current?.muscle_group ?? null
-    setPendingRetag(null)
     if (await changeMuscle(current.id, group)) setLastRetag({ id: current.id, from })
   }
 
@@ -976,10 +1200,11 @@ export default function Progress() {
     // it isn't in any group because it isn't anything.
     const picked = exercises.find((e) => e.name === trimmed)
     setMuscle(picked ? (picked.muscle_group ?? UNGROUPED) : null)
-    setEditingName(false)
+    // Cambiar de ejercicio cierra la hoja: iba del anterior.
+    setEditorOpen(false)
     setError('')
-    setNameError('')
-    setClash(null)
+    setEditTrouble(null)
+    setDeleted(null)
   }
 
   // Picking a known lift charts it immediately, the way the chips already did.
@@ -1025,17 +1250,14 @@ export default function Progress() {
     : []
   // What deleting this exercise would cost, counted from the log we already
   // hold — the confirmation has to name it.
-  const setsLogged = current
-    ? days.reduce(
-        (total, day) =>
-          total +
-          day.workouts.reduce(
-            (n, w) => n + w.sets.filter((s) => fold(s.exercise_name) === fold(current.name)).length,
-            0,
-          ),
-        0,
-      )
-    : 0
+  //
+  // Del registro y no de `listExercises()`: la lista se pidió al montar y su
+  // `set_count` no cuenta lo de hoy. `days` se vuelve a pedir después de cada
+  // renombrado, fusión y borrado, así que es lo más fresco que hay en esta
+  // pantalla. Y lo cuenta la misma función que lo cuenta en Entreno
+  // (`DeleteExercise.jsx`): un solo acto, una sola definición del daño.
+  const deleteDamage = current ? damageFromDays(days, current.name) : null
+  const setsLogged = deleteDamage?.sets ?? 0
 
   return (
     <section>
@@ -1060,6 +1282,21 @@ export default function Progress() {
             picking it shouldn't mean leaving the card that draws it. Above
             the chips: it's the more general way in, the chips a shortcut
             for the common case. */}
+        {/* Lo que se acaba de ir, dicho donde aterriza el foco. La tarjeta que
+            estabas mirando ha dejado de existir, así que sin esto la pantalla
+            contesta a un borrado con la ausencia del ejercicio y nada más. No
+            lleva `Deshacer`: es el único acto de esta pantalla que de verdad no
+            se puede desandar, y ofrecer una vuelta que no existe sería peor que
+            no ofrecer ninguna. `role="status"` y no `alert` — es la confirmación
+            de algo que pediste, no un problema. */}
+        {deleted && (
+          <p role="status" className="retag-undo">
+            <span>
+              Se eliminó «{deleted.name}»
+              {deleted.sets > 0 ? `, con sus ${plural(deleted.sets, 'serie', 'series')}.` : '.'}
+            </span>
+          </p>
+        )}
         <form
           className="exercise-search"
           onSubmit={(e) => {
@@ -1073,6 +1310,7 @@ export default function Progress() {
             <label htmlFor="progress-exercise">Ejercicio</label>
             <input
               id="progress-exercise"
+              ref={searchRef}
               value={query}
               onChange={(e) => handleNameInput(e.target.value)}
               placeholder="Buscar…"
@@ -1126,66 +1364,17 @@ export default function Progress() {
             )}
           </div>
         )}
-        {/* Name + group editing lives here regardless of whether there's a
-            chart: you must be able to rename a cardio or brand-new lift too,
-            not just one with records. Folded, because both are rare
-            corrections and this card is content. */}
+        {/* El nombre titula la tarjeta — una gráfica sin nombre es una gráfica
+            cuyo sujeto hay que ir a buscar — y ya no es un botón. Tocar el
+            título abría un renombrado en línea que nadie encontraba nunca, y
+            era la tercera puerta a lo mismo: una pantalla no puede tener dos
+            formas distintas de arreglar un ejercicio. Ahora hay una, al pie, y
+            el título vuelve a ser lo que parece: un título. */}
         {current && (
-          <>
-            {/* The name titles the card — a chart of nothing named is a chart
-                you have to go looking for the subject of — and tapping it is
-                how you rename it. */}
-            {editingName ? (
-              <form
-                className="exercise-rename chart-title"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  renameCurrent(current.id, nameDraft)
-                }}
-              >
-                <input
-                  aria-label="Nombre del ejercicio"
-                  value={nameDraft}
-                  onChange={(e) => setNameDraft(e.target.value)}
-                  maxLength={120}
-                  autoFocus
-                />
-                <button type="submit" className="secondary set-action">
-                  Guardar nombre
-                </button>
-                {nameError && (
-                  <p role="alert" className="alert rename-alert">
-                    {nameError}
-                  </p>
-                )}
-                {/* The name is taken because you already have that exercise —
-                    so the useful move isn't renaming, it's folding this one
-                    into it. One tap, and its sets go too. */}
-                {clash && (
-                  <button
-                    type="button"
-                    className="secondary set-action merge-action"
-                    onClick={mergeIntoClash}
-                  >
-                    Fusionar con {clash.name}
-                  </button>
-                )}
-              </form>
-            ) : (
-              <button
-                type="button"
-                className="chart-title"
-                aria-label={`Renombrar ${current.name}`}
-                onClick={() => {
-                  setNameDraft(current.name)
-                  setEditingName(true)
-                }}
-              >
-                <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
-                <h2>{current.name}</h2>
-              </button>
-            )}
-          </>
+          <div className="chart-title">
+            <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
+            <h2>{current.name}</h2>
+          </div>
         )}
         {rungs.length === 0 ? (
           /* Three different silences. Nothing picked yet; a known lift with no
@@ -1216,100 +1405,220 @@ export default function Progress() {
             </p>
           </>
         )}
-        {/* At the foot of the card, per DESIGN.md — between the title and the
-            chart it read as a second heading on the thing you came to look
-            at. Renaming and re-tagging are corrections, not content. */}
+        {/* Al pie de la tarjeta, según DESIGN.md — entre el título y la gráfica
+            se leía como un segundo encabezado sobre la cosa que has venido a
+            mirar. Renombrar y reetiquetar son correcciones, no contenido.
+
+            Es la misma puerta que hay en Entreno: mismo texto, mismo trato,
+            misma hoja. Antes aquí ponía `Corregir` y allí `Editar ejercicio`,
+            dos palabras para una sola cosa — y encima esta solo llevaba a la
+            mitad de ella, porque el nombre se cambiaba tocando el título. */}
         {current && (
           <>
+            {/* Fuera del panel a propósito: el renombrado se manda también al
+                salir, y por las cuatro puertas la respuesta llega cuando el
+                panel ya no está. Aquí, justo encima de la puerta que lo abre,
+                sobrevive al cierre y sigue estando donde el pulgar acaba de
+                tocar. Ver `NameClash.jsx`. */}
+            <EditTrouble
+              trouble={editTrouble}
+              onMerge={mergeIntoClash}
+              onRename={reopenOnDraft}
+              onRetry={retryEdit}
+            />
+            {/* La misma superficie y por la misma razón: la nota se manda al
+                salir, así que la vuelta atrás tiene que sobrevivir al cierre
+                del panel. Idéntica a la de Entreno. */}
+            <NoteUndo
+              note={clearedNote}
+              onUndo={async () => {
+                const back = clearedNote
+                setClearedNote(null)
+                setNoteDraft(back)
+                if ((await changeNote(current.id, back)) === false) setClearedNote(back)
+              }}
+            />
             <button
               type="button"
-              className="unit-fix fixes-toggle"
-              aria-expanded={showFixes}
-              onClick={() => setShowFixes((v) => !v)}
+              className="unit-fix exercise-edit"
+              // Mismo motivo y misma forma que en Entreno: el `›` vive en un
+              // `::after` y se colaba en el nombre accesible ("Editar
+              // ejercicio, mayor que"). La etiqueta visible va entera y
+              // primero, para no romperle el control por voz a nadie.
+              aria-label={`Editar ejercicio ${current.name}`}
+              aria-haspopup="dialog"
+              aria-expanded={editorOpen}
+              onClick={() => {
+                // El segundo toque cierra. Antes no hacía nada, y un control
+                // que se anuncia desplegado (`aria-expanded="true"`) y se niega
+                // a plegarse es una mentira que el pulgar encuentra sola.
+                if (editorOpen) {
+                  setEditorOpen(false)
+                  return
+                }
+                // Abrir resiembra el borrador del nombre desde el ejercicio, y
+                // se lleva por delante la queja y la colisión de la vez pasada.
+                setNameDraft(current.name)
+                setNoteDraft(current.note ?? '')
+                setEditTrouble(null)
+                sentName.current = null
+                setEditorOpen(true)
+              }}
             >
-              Corregir
+              Editar ejercicio
             </button>
-            {showFixes && (
-              <div className="card-fixes">
-                <div className="muscle-edit">
-                  <label htmlFor="muscle-select" className="muscle-edit-label">
-                    Grupo
-                  </label>
-                  <select
-                    id="muscle-select"
-                    value={current.muscle_group ?? ''}
-                    onChange={(e) => requestRetag(e.target.value || null)}
+            <ExerciseEditor
+              name={current.name}
+              open={editorOpen}
+              onClose={() => setEditorOpen(false)}
+              // Los dos campos de texto, mandados en cuanto dejan de estar
+              // delante. El grupo ya se guardaba al elegirlo y el borrado tiene
+              // su propio diálogo.
+              onCommit={() => {
+                renameCurrent(current.id, nameDraft)
+                commitNote()
+              }}
+              nameDraft={nameDraft}
+              onNameDraftChange={setNameDraft}
+              onSubmitName={(e) => {
+                e.preventDefault()
+                renameCurrent(current.id, nameDraft)
+              }}
+              // El segundo paso. Reetiquetar y borrar son exactamente lo que
+              // DESIGN.md llama acciones raras, y traerlas al primer panel es
+              // lo que lo hacía medir 294 px en una tarjeta que da 137.
+              //
+              // El rótulo dice lo que hay dentro, y ahora dentro hay lo mismo
+              // en las dos pantallas: el grupo, la nota y el borrado. Que
+              // pusiera `Grupo y eliminar` aquí y `Grupo y nota` allí era la
+              // señal de que no era un editor sino dos.
+              moreLabel={MORE_LABEL}
+              more={
+                <>
+                  {/* Una fila, y la fila es el control: el rótulo del campo en
+                      la canaleta, el punto del músculo, su nombre en tinta y el
+                      `›` de las puertas. El rótulo había desaparecido con el
+                      argumento de que repetía el valor, y no lo repite: `Grupo`
+                      no dice `Pecho`, dice de qué es `Pecho` el valor. El punto
+                      de color tampoco lo decía —cambia con el valor, así que es
+                      el valor pintado dos veces y no el nombre del campo—. Ver
+                      el razonamiento entero en `Workout.jsx`, que es donde esta
+                      rejilla tiene tres filas. */}
+                  <div className="editor-row editor-row-picker">
+                    <label className="editor-row-label" htmlFor="muscle-select">
+                      Grupo
+                    </label>
+                    <span
+                      className={`dot${current.muscle_group ? '' : ' dot-new'}`}
+                      aria-hidden="true"
+                      style={{ '--chip': muscleColor(current.muscle_group) }}
+                    />
+                    <select
+                      id="muscle-select"
+                      className="editor-row-control"
+                      aria-label={`Grupo muscular de ${current.name}`}
+                      value={current.muscle_group ?? ''}
+                      onChange={(e) => applyRetag(e.target.value || null)}
+                    >
+                      <option value="">{UNGROUPED}</option>
+                      {MUSCLE_GROUPS.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* La nota permanente, en su fila y sin nada que pulsar: se
+                      guarda al volver al nombre, al cerrar el panel y con Intro
+                      dentro del propio campo. Misma fila, mismo rótulo y mismo
+                      marcador de posición que en Entreno — es el mismo campo
+                      del mismo ejercicio, y hasta ahora sólo existía en una de
+                      las dos pantallas. */}
+                  <form
+                    className="editor-row editor-row-note"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      commitNote()
+                    }}
                   >
-                    <option value="">{UNGROUPED}</option>
-                    {MUSCLE_GROUPS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {lastRetag && (
-                  <RetagUndo group={current.muscle_group} onUndo={undoRetag} />
-                )}
-                {/* The last resort for a duplicate you don't want to keep at
-                    all. True red, per DESIGN.md — it is the one control here
-                    that destroys something. */}
-                <button
-                  type="button"
-                  className="secondary danger delete-exercise"
-                  onClick={() => setConfirmingDelete(true)}
-                >
-                  Eliminar ejercicio
-                </button>
-              </div>
-            )}
+                    <label className="editor-row-label" htmlFor="exercise-note">
+                      Nota
+                    </label>
+                    <input
+                      id="exercise-note"
+                      className="editor-row-control"
+                      aria-label={`Nota de ${current.name}`}
+                      maxLength={200}
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="agarre, altura del banco…"
+                    />
+                  </form>
+                  {lastRetag && (
+                    <RetagUndo
+                      group={current.muscle_group}
+                      setCount={setsLogged}
+                      onUndo={undoRetag}
+                    />
+                  )}
+                  {/* The last resort for a duplicate you don't want to keep at
+                      all. True red, per DESIGN.md — it is the one control here
+                      that destroys something.
+                      Sin caja: es una acción rara y DESIGN.md dice que las
+                      acciones raras no llevan controles con peso de contenido.
+                      Un botón rojo relleno al pie del cajón pesaba más que el
+                      campo del nombre del primer paso, que es lo que de verdad
+                      vienes a hacer aquí — y desde que este panel no tiene
+                      ningún botón de guardar, sería además el único control con
+                      peso de la caja. El rojo se queda —lo pide la regla del
+                      destructivo— pero como tinta, y los dos toques siguen
+                      siendo dos: esta fila abre el diálogo que cuenta las
+                      series.
+
+                      ── Y fuera de la pila de propiedades ──────────────────
+                      Esto es lo que hundió a esta pantalla en la ronda
+                      anterior: un lector a ciegas leyó `Eliminar ejercicio`,
+                      por un instante, **como el valor de una propiedad**. Es
+                      una lectura razonable y el dibujo se la estaba pidiendo —
+                      misma sangría que el valor de la fila de arriba, mismo
+                      cuerpo, sin regla en medio y sin nada que lo contuviera,
+                      con el rojo cargando solo con todo el aviso. Y el rojo, a
+                      solas, no dice «esto es de otra clase»: dice «esto es
+                      importante», que es exactamente lo que dice un valor
+                      destacado.
+
+                      Dos cambios y ninguno cuesta una fila. (1) La canaleta de
+                      rótulos separa por construcción: los valores de las filas
+                      de propiedad arrancan a la derecha del rótulo, y esta fila
+                      no tiene rótulo porque no es una propiedad, así que
+                      arranca en el canto. Dos sangrías distintas, dos clases
+                      distintas. (2) Una regla encima, a `--text` al 17 % y no a
+                      `--border`: DESIGN.md ya eligió ese peso exacto para el
+                      límite entre dos escalas distintas —el que separa un día
+                      de otro frente al que separa dos series del mismo
+                      ejercicio— y aquí el salto de escala es el mismo, de
+                      «cambiar una etiqueta» a «tirar meses de registro». */}
+                  <button
+                    type="button"
+                    className="editor-row editor-row-danger delete-exercise"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    Eliminar ejercicio
+                  </button>
+                </>
+              }
+            />
           </>
         )}
       </div>
 
-      {/* Two taps everywhere else in the app, a dialog here: this is the only
-          destructive action whose cost isn't on screen next to it — the series
-          it deletes are months of log spread across the calendar — so the
-          confirmation has to count them out loud. */}
-      {pendingRetag && current && (
-        <RetagConfirm
-          name={current.name}
-          group={pendingRetag.group}
-          setCount={current.set_count}
-          onCancel={() => setPendingRetag(null)}
-          onConfirm={() => applyRetag(pendingRetag.group)}
-        />
-      )}
-
       {confirmingDelete && current && (
-        <div className="dialog-backdrop" onClick={() => setConfirmingDelete(false)}>
-          <div
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-exercise-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="delete-exercise-title">Eliminar {current.name}</h2>
-            <p className="dialog-body">
-              {setsLogged > 0
-                ? `Se borrarán también sus ${plural(setsLogged, 'serie', 'series')}, y con ellas su historial y sus récords. No se puede deshacer.`
-                : 'No tiene ninguna serie registrada. No se puede deshacer.'}
-            </p>
-            <div className="dialog-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setConfirmingDelete(false)}
-              >
-                Cancelar
-              </button>
-              <button type="button" className="danger" onClick={deleteCurrent}>
-                Sí, eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteConfirm
+          name={current.name}
+          damage={deleteDamage}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={deleteCurrent}
+        />
       )}
 
       {error && (
@@ -1322,7 +1631,11 @@ export default function Progress() {
           thing on this screen — so it sits at the bottom of it. */}
       {days.length > 0 && (
         <div className="export-row">
-          <button type="button" className="secondary" onClick={() => downloadCsv(days)}>
+          {/* Callado, como el editor: DESIGN.md dice que las acciones raras no
+              se llevan controles con peso de contenido, y ésta es la más rara
+              de todas. Iba de botón con caja y salía más fuerte que la única
+              puerta para renombrar un ejercicio. */}
+          <button type="button" className="unit-fix export-csv" onClick={() => downloadCsv(days)}>
             Exportar CSV
           </button>
         </div>
