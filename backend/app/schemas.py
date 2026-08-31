@@ -282,3 +282,159 @@ class GoogleCredentialIn(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+# ---------------------------------------------------------------------------
+# Comida
+#
+# Every nutrient field below is `float | None` and none of them defaults to 0.
+# Null means "nobody measured this", and the difference survives all the way to
+# the screen: the day card prints a dash where a total is unknown, never a zero.
+# ---------------------------------------------------------------------------
+
+# When you ate it. Free-form would make "¿qué desayuno suelo hacer?" unanswerable.
+MealSlot = Literal["desayuno", "comida", "cena", "snack"]
+# How the entry got into the diary. 'manual' is all phase 1 writes; the rest are
+# reserved for the barcode scanner, templates and the voice parser, and exist
+# from the start so their adoption is measurable rather than remembered.
+EntrySource = Literal["manual", "barcode", "template", "repeat", "voice"]
+
+
+class PortionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    label: str = Field(min_length=1, max_length=60)
+    grams: float = Field(gt=0, le=5000)
+    is_default: bool = False
+
+
+class PortionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    label: str
+    grams: float
+    is_default: bool = False
+
+
+class FoodIn(BaseModel):
+    """Creating a food by hand — the bakery's bread, your mother's piquillos.
+
+    Nothing here is required beyond the name. A food you only know the calories
+    of is still worth having; forcing a number for every macro would mean typing
+    zeros that read as measurements.
+    """
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=160)
+    brand: str | None = Field(default=None, max_length=120)
+    kcal_100g: float | None = Field(default=None, ge=0, le=1000)
+    protein_100g: float | None = Field(default=None, ge=0, le=100)
+    fat_100g: float | None = Field(default=None, ge=0, le=100)
+    carbs_100g: float | None = Field(default=None, ge=0, le=100)
+    fiber_100g: float | None = Field(default=None, ge=0, le=100)
+    portions: list[PortionIn] = Field(default_factory=list, max_length=8)
+
+    @field_validator("brand")
+    @classmethod
+    def _blank_brand_is_none(cls, value: str | None) -> str | None:
+        # An untouched input sends "", which is not a brand.
+        return value or None
+
+
+class FoodPatch(BaseModel):
+    """Correcting a food you created. Never touches anything already logged."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    brand: str | None = Field(default=None, max_length=120)
+    kcal_100g: float | None = Field(default=None, ge=0, le=1000)
+    protein_100g: float | None = Field(default=None, ge=0, le=100)
+    fat_100g: float | None = Field(default=None, ge=0, le=100)
+    carbs_100g: float | None = Field(default=None, ge=0, le=100)
+    fiber_100g: float | None = Field(default=None, ge=0, le=100)
+
+
+class FoodOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    brand: str | None = None
+    source: str = "manual"
+    carb_convention: str = "available"
+    kcal_100g: float | None = None
+    protein_100g: float | None = None
+    fat_100g: float | None = None
+    carbs_100g: float | None = None
+    fiber_100g: float | None = None
+    portions: list[PortionOut] = Field(default_factory=list)
+    # True when this row is yours to correct. The shared CIQUAL catalogue is
+    # reference data: the screen offers "Corregir" only where it would work.
+    is_mine: bool = False
+
+
+class LogEntryIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    food_id: int
+    # Either weigh it or name a portion of it. Exactly one — a request carrying
+    # both is two different amounts, and guessing which one was meant is how a
+    # diary gets quietly wrong.
+    grams: float | None = Field(default=None, gt=0, le=5000)
+    portion_id: int | None = None
+    quantity: float = Field(default=1, gt=0, le=100)  # "dos rebanadas"
+    meal_slot: MealSlot | None = None
+    # The instant, with the offset the phone is on. Absent means now.
+    logged_at: datetime | None = None
+    entry_source: EntrySource = "manual"
+
+    @field_validator("portion_id")
+    @classmethod
+    def _one_amount_only(cls, value: int | None, info) -> int | None:
+        if value is not None and info.data.get("grams") is not None:
+            raise ValueError("send grams or portion_id, not both")
+        return value
+
+
+class LogEntryPatch(BaseModel):
+    """Re-weigh or re-slot an entry. The nutrients ride along, rescaled from
+    what was frozen — never re-read from the food, which may have been corrected
+    since."""
+
+    grams: float | None = Field(default=None, gt=0, le=5000)
+    meal_slot: MealSlot | None = None
+
+
+class LogEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    logged_at: datetime
+    log_date: Date
+    meal_slot: str | None = None
+    food_id: int | None = None
+    food_name: str
+    grams: float
+    kcal: float | None = None
+    protein: float | None = None
+    fat: float | None = None
+    carbs: float | None = None
+    fiber: float | None = None
+    entry_source: str = "manual"
+
+
+class FoodDayOut(BaseModel):
+    """One food day: what was eaten, what it adds up to, and what it can't.
+
+    `totals[n]` is null whenever any entry is missing that nutrient, and
+    `unknown[n]` says how many were — so the screen can print "1.840 kcal" and
+    "— · 3 sin fibra" instead of a total that quietly counts unknowns as zero.
+    """
+
+    date: Date
+    entries: list[LogEntryOut]
+    totals: dict[str, float | None]
+    unknown: dict[str, int]
