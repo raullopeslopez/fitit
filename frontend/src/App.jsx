@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import ColdStart from './ColdStart.jsx'
+import Comida from './Comida.jsx'
 import Days from './Days.jsx'
 import Login from './Login.jsx'
 import Progress from './Progress.jsx'
@@ -99,6 +100,7 @@ export default function App() {
   // from it; Progreso only on its own screen.
   const daysActive = view === 'days'
   const progressActive = view === 'progress' && !openWorkoutId
+  const foodActive = view === 'food' && !openWorkoutId
 
   return (
     <div className="container">
@@ -120,6 +122,8 @@ export default function App() {
           />
         ) : view === 'progress' ? (
           <Progress />
+        ) : view === 'food' ? (
+          <Comida />
         ) : (
           <Days onOpenWorkout={openWorkout} />
         )}
@@ -143,6 +147,15 @@ export default function App() {
         >
           <span className="tab-icon" aria-hidden="true">↗</span>
           Progreso
+        </button>
+        <button
+          type="button"
+          className={`tab${foodActive ? ' is-active' : ''}`}
+          aria-current={foodActive ? 'page' : undefined}
+          onClick={() => go('food')}
+        >
+          <span className="tab-icon" aria-hidden="true">◒</span>
+          Comida
         </button>
       </nav>
     </div>
