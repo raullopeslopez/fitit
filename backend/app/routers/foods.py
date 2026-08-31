@@ -9,7 +9,7 @@ Search reads both; writes only ever touch yours.
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import defer, selectinload
 
 from ..auth import get_current_user
 from ..db import get_session
@@ -55,6 +55,36 @@ def _rank(food: Food, needle: str, alias_hits: set[int]) -> tuple:
     return (bucket, 0 if food.user_id is not None else 1, len(food.name), food.name_folded)
 
 
+def search_stmt(user_id: int, needle: str):
+    """La consulta de la caja de búsqueda.
+
+    Extraída del endpoint para que se pueda compilar y mirar en un test: lo que
+    hay que comprobar de ella es qué columnas **no** pide, y eso no se ve desde
+    la respuesta HTTP —`FoodOut` no lleva micronutrientes, así que el JSON sale
+    igual de bien con la optimización que sin ella—.
+    """
+    # `nutrients_json` se queda fuera a propósito. Cada byte que viajara aquí se
+    # tiraría, y son muchos: una fila de CIQUAL guarda 1,7 KB de vitaminas y
+    # ácidos grasos, de modo que una búsqueda de una sola letra (2.822
+    # coincidencias sobre el catálogo entero) arrastraba 4,7 MB desde Postgres
+    # para pintar treinta nombres. Medido, 2026-08-31.
+    stmt = (
+        select(Food)
+        .options(selectinload(Food.portions), defer(Food.nutrients_json))
+        .where(_visible(user_id))
+    )
+    if not needle:
+        # Nada escrito todavía: tu propia estantería, la más reciente primero.
+        # Listar el catálogo entero aquí serían tres mil filas que no contestan
+        # a ninguna pregunta. Ordenado por id y no por `created_at`: dos
+        # alimentos dados de alta en el mismo segundo comparten marca de tiempo,
+        # y el id es lo que el orden de inserción es de verdad (mismo
+        # razonamiento que `Day.workouts`).
+        return stmt.where(Food.user_id == user_id).order_by(Food.id.desc())
+    alias_matches = select(FoodAlias.food_id).where(FoodAlias.alias_folded.contains(needle))
+    return stmt.where(or_(Food.name_folded.contains(needle), Food.id.in_(alias_matches)))
+
+
 @router.get("", response_model=list[FoodOut])
 async def search_foods(
     q: str = Query(default="", max_length=80),
@@ -64,18 +94,7 @@ async def search_foods(
     """Foods matching `q`, best match first. Empty `q` lists your own foods —
     which on a fresh account is the only thing there is to show."""
     needle = fold(q)
-    stmt = select(Food).options(selectinload(Food.portions)).where(_visible(user_id))
-    if needle:
-        alias_matches = select(FoodAlias.food_id).where(FoodAlias.alias_folded.contains(needle))
-        stmt = stmt.where(or_(Food.name_folded.contains(needle), Food.id.in_(alias_matches)))
-    else:
-        # Nothing typed yet: your own shelf, newest first. Listing the whole
-        # catalogue here would be three thousand rows answering no question.
-        # Ordered by id, not created_at: two foods added in the same second
-        # share a timestamp, and the id is what insertion order actually is
-        # (same reasoning as Day.workouts).
-        stmt = stmt.where(Food.user_id == user_id).order_by(Food.id.desc())
-    rows = list((await session.execute(stmt)).unique().scalars().all())
+    rows = list((await session.execute(search_stmt(user_id, needle))).unique().scalars().all())
     if not needle:
         return [to_food_out(f, user_id) for f in rows[:SEARCH_LIMIT]]
 
@@ -184,6 +203,10 @@ async def _load(session: AsyncSession, food_id: int, user_id: int) -> Food:
     food = (
         await session.execute(
             select(Food)
+            # Sin `defer` aquí, a diferencia de la búsqueda: es una sola fila,
+            # 1,7 KB no son nada, y una columna diferida en una sesión async
+            # revienta en cuanto alguien la lea — una trampa esperando a que
+            # `FoodOut` crezca.
             .options(selectinload(Food.portions))
             .where(Food.id == food_id, _visible(user_id))
         )

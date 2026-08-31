@@ -37,6 +37,24 @@ Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo 
 - Migraciones Alembic versionadas, encadenadas al head, y `tests/unit/test_food_migration.py`
   comprueba que la migración y los modelos dicen lo mismo (sobre todo la nulabilidad).
 
+### Cargar el catálogo CIQUAL
+Reglas de normalización razonadas en `backend/scripts/ciqual_rules.md`. El `.xls` no se
+versiona (3,6 MB, `--download` lo baja de ANSES); `data/ciqual_es.json` **sí**, porque es
+el artefacto caro y tenerlo en el repo evita volver a pagar la traducción.
+
+```bash
+cd backend
+uv run python -m scripts.import_ciqual --download          # 3.185 alimentos, ~1 s
+uv run python -m scripts.import_ciqual --download --dry-run  # parsea y cuenta, no escribe
+
+# Traducir FR → ES. Dos pasos a propósito: el caro deja un JSON reutilizable.
+GEMINI_API_KEY=... uv run python -m scripts.translate_foods   # 80 lotes, reanudable
+uv run python -m scripts.translate_foods --apply data/ciqual_es.json   # sin red ni clave
+```
+
+El import es idempotente y **no pisa nada tuyo**: sólo escribe filas de catálogo
+(`user_id IS NULL`), nunca borra, y no devuelve al francés un nombre ya traducido.
+
 ## Testing / Workflow
 TDD: write the failing test first, watch it fail for the right reason, implement to green.
 - **Backend:** `cd backend && uv run python -m pytest` (pytest-bdd on in-memory SQLite;
