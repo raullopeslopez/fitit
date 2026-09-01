@@ -50,6 +50,9 @@ uv run python -m scripts.import_ciqual --download --dry-run  # parsea y cuenta, 
 # Pasar el catálogo a español. `data/ciqual_es.json` ya está en el repo con las
 # 3.185 traducciones y sus alias, así que esto no gasta red ni clave.
 uv run python -m scripts.translate_foods --apply data/ciqual_es.json
+
+# ¿Ha quedado cargado y en español? Sólo lee, y sirve para producción:
+uv run python -m scripts.check_catalogue        # o --database-url postgresql://...
 ```
 
 `ciqual_es.json` es un **artefacto de datos**: se lee, se corrige a mano y se vuelve a
