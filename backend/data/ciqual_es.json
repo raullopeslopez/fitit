@@ -1,4 +1,403 @@
 {
+ "10000": {
+  "alias": [
+   "bigaro",
+   "caracolillo de mar"
+  ],
+  "es": "Bígaro, cocido"
+ },
+ "10001": {
+  "alias": [
+   "calamar",
+   "chipiron",
+   "pota"
+  ],
+  "es": "Calamar, crudo"
+ },
+ "10002": {
+  "alias": [
+   "calamares a la romana",
+   "rabas",
+   "calamar rebozado"
+  ],
+  "es": "Calamar a la romana (rebozado)"
+ },
+ "10003": {
+  "alias": [
+   "vieira",
+   "concha de peregrino"
+  ],
+  "es": "Vieira, carne y coral, cruda"
+ },
+ "10004": {
+  "alias": [
+   "vieira cocida",
+   "vieira"
+  ],
+  "es": "Vieira, carne y coral, cocida"
+ },
+ "10005": {
+  "alias": [
+   "cangrejo de lata",
+   "carne de cangrejo"
+  ],
+  "es": "Cangrejo, desmigado o patas peladas, en conserva, escurrido"
+ },
+ "10006": {
+  "alias": [
+   "quisquilla",
+   "camaron",
+   "gamba gris"
+  ],
+  "es": "Quisquilla, cocida"
+ },
+ "10007": {
+  "alias": [
+   "gamba",
+   "gambas cocidas",
+   "langostino"
+  ],
+  "es": "Gamba, cocida"
+ },
+ "10008": {
+  "alias": [
+   "caracol",
+   "caracoles"
+  ],
+  "es": "Caracol, crudo"
+ },
+ "10009": {
+  "alias": [
+   "bogavante",
+   "bogavante cocido"
+  ],
+  "es": "Bogavante, hervido/cocido en agua"
+ },
+ "10010": {
+  "alias": [
+   "bogavante"
+  ],
+  "es": "Bogavante, crudo"
+ },
+ "10011": {
+  "alias": [
+   "ostra",
+   "ostras"
+  ],
+  "es": "Ostra, sin precisar, cruda"
+ },
+ "10012": {
+  "alias": [
+   "cigala rebozada",
+   "cigala"
+  ],
+  "es": "Cigala, rebozada, frita"
+ },
+ "10013": {
+  "alias": [
+   "mejillon",
+   "mejillones al vapor"
+  ],
+  "es": "Mejillón, hervido/cocido en agua"
+ },
+ "10014": {
+  "alias": [
+   "mejillon",
+   "mejillones"
+  ],
+  "es": "Mejillón común, crudo"
+ },
+ "10015": {
+  "alias": [
+   "langosta"
+  ],
+  "es": "Langosta, cruda"
+ },
+ "10016": {
+  "alias": [
+   "sepia",
+   "jibia",
+   "choco"
+  ],
+  "es": "Sepia, cruda"
+ },
+ "10017": {
+  "alias": [
+   "almeja",
+   "chirla",
+   "almejas"
+  ],
+  "es": "Almeja (chirla o berberecho fino), cruda"
+ },
+ "10018": {
+  "alias": [
+   "pulpo"
+  ],
+  "es": "Pulpo, crudo"
+ },
+ "10019": {
+  "alias": [
+   "buccino",
+   "caracola de mar",
+   "bulot"
+  ],
+  "es": "Buccino (caracola de mar), crudo"
+ },
+ "10020": {
+  "alias": [
+   "buccino",
+   "caracola de mar",
+   "bulot"
+  ],
+  "es": "Buccino (caracola de mar), cocido"
+ },
+ "10021": {
+  "alias": [
+   "gamba",
+   "gambas",
+   "langostino"
+  ],
+  "es": "Gamba, cruda"
+ },
+ "10022": {
+  "alias": [
+   "langosta cocida",
+   "langosta"
+  ],
+  "es": "Langosta, hervida/cocida en agua"
+ },
+ "10023": {
+  "alias": [
+   "gamba rebozada",
+   "buñuelo de gamba"
+  ],
+  "es": "Buñuelo de gamba"
+ },
+ "10024": {
+  "alias": [
+   "cigala",
+   "cigalas"
+  ],
+  "es": "Cigala, cruda"
+ },
+ "10025": {
+  "alias": [
+   "buey de mar",
+   "cangrejo",
+   "centollo"
+  ],
+  "es": "Buey de mar, hervido/cocido en agua"
+ },
+ "10026": {
+  "alias": [
+   "mejillon",
+   "mejillones"
+  ],
+  "es": "Mejillón mediterráneo, crudo"
+ },
+ "10027": {
+  "alias": [
+   "almeja cocida",
+   "chirla"
+  ],
+  "es": "Almeja (chirla o berberecho fino), hervida/cocida en agua"
+ },
+ "10028": {
+  "alias": [
+   "mejillones de lata",
+   "mejillon en conserva"
+  ],
+  "es": "Mejillón, en conserva, escurrido"
+ },
+ "10030": {
+  "alias": [
+   "cangrejo de rio"
+  ],
+  "es": "Cangrejo de río, crudo"
+ },
+ "10031": {
+  "alias": [
+   "cangrejo de rio cocido"
+  ],
+  "es": "Cangrejo de río, cocido"
+ },
+ "10033": {
+  "alias": [
+   "camaron rosado",
+   "gamba rosada"
+  ],
+  "es": "Camarón rosado, cocido"
+ },
+ "10035": {
+  "alias": [
+   "ostra rizada",
+   "ostra"
+  ],
+  "es": "Ostra rizada, cruda"
+ },
+ "10036": {
+  "alias": [
+   "ostra plana",
+   "ostra"
+  ],
+  "es": "Ostra plana, cruda"
+ },
+ "10037": {
+  "alias": [
+   "calamar cocido",
+   "calamar"
+  ],
+  "es": "Calamar, hervido/cocido en agua"
+ },
+ "10038": {
+  "alias": [
+   "gambas congeladas",
+   "langostino congelado"
+  ],
+  "es": "Gamba, congelada, cruda"
+ },
+ "10039": {
+  "alias": [
+   "cangrejo",
+   "buey de mar"
+  ],
+  "es": "Cangrejo, crudo"
+ },
+ "10041": {
+  "alias": [
+   "oreja de mar",
+   "abulon"
+  ],
+  "es": "Oreja de mar (abulón), cruda"
+ },
+ "10042": {
+  "alias": [
+   "caracoles a la borgoñona",
+   "caracoles"
+  ],
+  "es": "Caracoles en salsa de mantequilla y perejil, envasados, cocidos"
+ },
+ "10043": {
+  "alias": [
+   "marisco",
+   "mariscos"
+  ],
+  "es": "Marisco (alimento medio)"
+ },
+ "10044": {
+  "alias": [
+   "cigala cocida",
+   "cigala"
+  ],
+  "es": "Cigala, hervida/cocida en agua"
+ },
+ "10045": {
+  "alias": [
+   "vieira",
+   "carne de vieira"
+  ],
+  "es": "Vieira, carne, cruda"
+ },
+ "10048": {
+  "alias": [
+   "vieira americana",
+   "vieira"
+  ],
+  "es": "Vieira americana, carne, cruda"
+ },
+ "10049": {
+  "alias": [
+   "zamburiña",
+   "volandeira",
+   "petoncle"
+  ],
+  "es": "Zamburiña (volandeira), carne, cruda"
+ },
+ "10057": {
+  "alias": [
+   "centollo",
+   "centolla"
+  ],
+  "es": "Centollo, cocido"
+ },
+ "10059": {
+  "alias": [
+   "gamba rosada",
+   "gamba"
+  ],
+  "es": "Gamba rosada, cruda"
+ },
+ "10061": {
+  "alias": [
+   "langostino patiblanco",
+   "langostino"
+  ],
+  "es": "Langostino patiblanco, cocido"
+ },
+ "10062": {
+  "alias": [
+   "langostino tigre",
+   "langostino"
+  ],
+  "es": "Langostino tigre, cocido"
+ },
+ "10064": {
+  "alias": [
+   "langostino rosado",
+   "langostino"
+  ],
+  "es": "Langostino rosado, cocido"
+ },
+ "10079": {
+  "alias": [
+   "pulpo cocido",
+   "pulpo a la gallega"
+  ],
+  "es": "Pulpo, cocido"
+ },
+ "10080": {
+  "alias": [
+   "marisco congelado",
+   "preparado de marisco"
+  ],
+  "es": "Marisco, cocido, congelado"
+ },
+ "10081": {
+  "alias": [
+   "mejillones en escabeche",
+   "mejillones de lata"
+  ],
+  "es": "Mejillones en salsa catalana o escabeche (tomate), en conserva, escurridos"
+ },
+ "10084": {
+  "alias": [
+   "calamar frito",
+   "calamares"
+  ],
+  "es": "Calamar, frito o salteado con grasa"
+ },
+ "10099": {
+  "alias": [
+   "caracoles cocidos",
+   "caracol"
+  ],
+  "es": "Caracol, sin grasa añadida, cocido"
+ },
+ "1030": {
+  "alias": [
+   "jamon vegetal",
+   "fiambre vegetal",
+   "jamon vegano"
+  ],
+  "es": "Especialidad vegetal tipo jamón cocido, envasada"
+ },
+ "1031": {
+  "alias": [
+   "pate vegetal",
+   "pate vegano"
+  ],
+  "es": "Especialidad vegetal tipo paté, envasada"
+ },
  "13000": {
   "alias": [
    "albaricoque",
@@ -1188,6 +1587,63 @@
    "fruta"
   ],
   "es": "Fruta cruda (alimento medio)"
+ },
+ "14000": {
+  "alias": [
+   "corzo",
+   "carne de caza"
+  ],
+  "es": "Corzo, asado al horno"
+ },
+ "14002": {
+  "alias": [
+   "jabali",
+   "carne de caza"
+  ],
+  "es": "Jabalí, crudo"
+ },
+ "14003": {
+  "alias": [
+   "jabali",
+   "carne de caza"
+  ],
+  "es": "Jabalí, asado al horno"
+ },
+ "14004": {
+  "alias": [
+   "liebre",
+   "carne de caza"
+  ],
+  "es": "Liebre, carne cruda"
+ },
+ "14005": {
+  "alias": [
+   "corzo",
+   "carne de caza"
+  ],
+  "es": "Corzo, crudo"
+ },
+ "14006": {
+  "alias": [
+   "ciervo",
+   "venado",
+   "carne de caza"
+  ],
+  "es": "Ciervo, crudo"
+ },
+ "14007": {
+  "alias": [
+   "ciervo",
+   "venado"
+  ],
+  "es": "Ciervo, asado al horno"
+ },
+ "14008": {
+  "alias": [
+   "caza de pelo",
+   "carne de caza"
+  ],
+  "es": "Caza de pelo, cocida (alimento medio)"
  },
  "15000": {
   "alias": [
@@ -3218,6 +3674,19 @@
   ],
   "es": "Espinaca, hervida/cocida en agua"
  },
+ "20337": {
+  "alias": [
+   "salchicha vegana",
+   "salchicha de tofu"
+  ],
+  "es": "Salchicha vegetal de tofu (apta para veganos), envasada"
+ },
+ "20338": {
+  "alias": [
+   "quenelle de tofu"
+  ],
+  "es": "Quenelle de tofu (no apta para veganos), envasada"
+ },
  "20496": {
   "alias": [
    "verduras para cuscus"
@@ -3492,6 +3961,13 @@
   ],
   "es": "Crosne (alcachofa japonesa), cocido"
  },
+ "20591": {
+  "alias": [
+   "soja texturizada",
+   "proteina de soja"
+  ],
+  "es": "Proteína de soja texturizada, rehidratada"
+ },
  "20700": {
   "alias": [
    "legumbre cocida",
@@ -3734,6 +4210,3267 @@
    "frijol de palo"
   ],
   "es": "Guandú (gandul), entero, al vapor (Martinica)"
+ },
+ "20834": {
+  "alias": [
+   "platano verde",
+   "ti nain"
+  ],
+  "es": "Plátano ti nain (plátano verde), pulpa, al vapor (Martinica)"
+ },
+ "20835": {
+  "alias": [
+   "tomate"
+  ],
+  "es": "Tomate, entero, crudo (Martinica)"
+ },
+ "20901": {
+  "alias": [
+   "soja",
+   "haba de soja",
+   "grano de soja"
+  ],
+  "es": "Soja, grano entero"
+ },
+ "20904": {
+  "alias": [
+   "tofu",
+   "queso de soja"
+  ],
+  "es": "Tofu natural, envasado"
+ },
+ "20912": {
+  "alias": [
+   "tofu ahumado",
+   "tofu"
+  ],
+  "es": "Tofu ahumado, envasado"
+ },
+ "21001": {
+  "alias": [
+   "carnero",
+   "oveja",
+   "cordero"
+  ],
+  "es": "Carnero (oveja), carne, cruda"
+ },
+ "21003": {
+  "alias": [
+   "paletilla de carnero",
+   "oveja"
+  ],
+  "es": "Carnero (oveja), paletilla, cruda"
+ },
+ "21004": {
+  "alias": [
+   "manita de cordero",
+   "pie de cordero"
+  ],
+  "es": "Carnero (oveja), pie, crudo"
+ },
+ "21005": {
+  "alias": [
+   "cabeza de cordero"
+  ],
+  "es": "Carnero (oveja), cabeza, cruda"
+ },
+ "21006": {
+  "alias": [
+   "pierna de carnero",
+   "oveja"
+  ],
+  "es": "Carnero (oveja), pierna, cruda"
+ },
+ "21500": {
+  "alias": [
+   "chuleta de cordero",
+   "cordero"
+  ],
+  "es": "Cordero, chuleta, cruda"
+ },
+ "21501": {
+  "alias": [
+   "chuleta de cordero",
+   "chuletillas"
+  ],
+  "es": "Cordero, chuleta, a la parrilla"
+ },
+ "21502": {
+  "alias": [
+   "pierna de cordero",
+   "cordero"
+  ],
+  "es": "Cordero, pierna, cruda"
+ },
+ "21503": {
+  "alias": [
+   "pierna de cordero asada",
+   "cordero asado"
+  ],
+  "es": "Cordero, pierna, asada al horno"
+ },
+ "21504": {
+  "alias": [
+   "paletilla de cordero",
+   "cordero"
+  ],
+  "es": "Cordero, paletilla, cruda"
+ },
+ "21505": {
+  "alias": [
+   "paletilla de cordero magra"
+  ],
+  "es": "Cordero, paletilla, magra, cruda"
+ },
+ "21506": {
+  "alias": [
+   "paletilla de cordero asada",
+   "cordero asado"
+  ],
+  "es": "Cordero, paletilla, asada al horno"
+ },
+ "21507": {
+  "alias": [
+   "paletilla de cordero magra asada"
+  ],
+  "es": "Cordero, paletilla, magra, asada al horno"
+ },
+ "21508": {
+  "alias": [
+   "pescuezo de cordero",
+   "cuello de cordero"
+  ],
+  "es": "Cordero, pescuezo, estofado o cocido"
+ },
+ "21509": {
+  "alias": [
+   "chuleta de riñonada",
+   "chuleta de cordero"
+  ],
+  "es": "Cordero, chuleta de riñonada, a la plancha o parrilla"
+ },
+ "21512": {
+  "alias": [
+   "chuleta de palo",
+   "chuletillas de cordero"
+  ],
+  "es": "Cordero, chuleta de palo (primera), a la plancha o parrilla"
+ },
+ "21513": {
+  "alias": [
+   "silla de cordero",
+   "cordero asado"
+  ],
+  "es": "Cordero, silla, parte magra, asada al horno"
+ },
+ "21514": {
+  "alias": [
+   "pescuezo de cordero",
+   "cuello de cordero"
+  ],
+  "es": "Cordero, pescuezo, crudo"
+ },
+ "21515": {
+  "alias": [
+   "silla de cordero"
+  ],
+  "es": "Cordero, silla, cruda"
+ },
+ "21516": {
+  "alias": [
+   "chuleta de riñonada"
+  ],
+  "es": "Cordero, chuleta de riñonada, cruda"
+ },
+ "21517": {
+  "alias": [
+   "chuleta de palo",
+   "chuletillas de cordero"
+  ],
+  "es": "Cordero, chuleta de palo (primera), cruda"
+ },
+ "21518": {
+  "alias": [
+   "pierna de cordero"
+  ],
+  "es": "Cordero, pierna, a la plancha o parrilla"
+ },
+ "21519": {
+  "alias": [
+   "pierna de cordero estofada",
+   "cordero guisado"
+  ],
+  "es": "Cordero, pierna, estofada"
+ },
+ "21520": {
+  "alias": [
+   "silla de cordero"
+  ],
+  "es": "Cordero, silla, parte magra, a la plancha o parrilla"
+ },
+ "21521": {
+  "alias": [
+   "chuleta de cordero"
+  ],
+  "es": "Cordero, chuleta, cruda (alimento medio)"
+ },
+ "21522": {
+  "alias": [
+   "chuleta de cordero"
+  ],
+  "es": "Cordero, chuleta, cocida (alimento medio)"
+ },
+ "21523": {
+  "alias": [
+   "cordero cocido",
+   "cordero"
+  ],
+  "es": "Cordero, carne, cocida (alimento medio)"
+ },
+ "21524": {
+  "alias": [
+   "chuleta de cordero"
+  ],
+  "es": "Cordero, chuleta, a la plancha o parrilla (alimento medio)"
+ },
+ "21525": {
+  "alias": [
+   "chuleta de aguja",
+   "cordero"
+  ],
+  "es": "Cordero, chuleta de aguja, cruda"
+ },
+ "21800": {
+  "alias": [
+   "cabrito",
+   "chivo"
+  ],
+  "es": "Cabrito, crudo"
+ },
+ "21801": {
+  "alias": [
+   "cabrito asado",
+   "chivo"
+  ],
+  "es": "Cabrito, cocido"
+ },
+ "22000": {
+  "alias": [
+   "huevo",
+   "huevos"
+  ],
+  "es": "Huevo, crudo"
+ },
+ "22001": {
+  "alias": [
+   "clara de huevo",
+   "claras"
+  ],
+  "es": "Huevo, clara, cruda"
+ },
+ "22002": {
+  "alias": [
+   "yema de huevo",
+   "yemas"
+  ],
+  "es": "Huevo, yema, cruda"
+ },
+ "22003": {
+  "alias": [
+   "yema en polvo"
+  ],
+  "es": "Huevo, yema, en polvo"
+ },
+ "22004": {
+  "alias": [
+   "clara en polvo",
+   "proteina de clara"
+  ],
+  "es": "Huevo, clara, en polvo"
+ },
+ "22008": {
+  "alias": [
+   "clara cocida",
+   "clara de huevo"
+  ],
+  "es": "Huevo, clara, cocida"
+ },
+ "22009": {
+  "alias": [
+   "yema cocida",
+   "yema de huevo"
+  ],
+  "es": "Huevo, yema, cocida"
+ },
+ "22010": {
+  "alias": [
+   "huevo duro",
+   "huevo cocido"
+  ],
+  "es": "Huevo, duro"
+ },
+ "22011": {
+  "alias": [
+   "huevo escalfado",
+   "huevo poche"
+  ],
+  "es": "Huevo, escalfado"
+ },
+ "22013": {
+  "alias": [
+   "huevo en polvo"
+  ],
+  "es": "Huevo, en polvo"
+ },
+ "22014": {
+  "alias": [
+   "huevo pasado por agua",
+   "huevo mollet"
+  ],
+  "es": "Huevo, pasado por agua"
+ },
+ "22050": {
+  "alias": [
+   "huevo de codorniz"
+  ],
+  "es": "Huevo de codorniz, crudo"
+ },
+ "22060": {
+  "alias": [
+   "huevo de pata",
+   "huevo de pato"
+  ],
+  "es": "Huevo de pata, crudo"
+ },
+ "22070": {
+  "alias": [
+   "huevo de oca",
+   "huevo de ganso"
+  ],
+  "es": "Huevo de oca, crudo"
+ },
+ "22080": {
+  "alias": [
+   "huevo de pava",
+   "huevo de pavo"
+  ],
+  "es": "Huevo de pava, crudo"
+ },
+ "22501": {
+  "alias": [
+   "huevo frito",
+   "huevos fritos"
+  ],
+  "es": "Huevo, frito, salado"
+ },
+ "22502": {
+  "alias": [
+   "huevo revuelto",
+   "revuelto"
+  ],
+  "es": "Huevo, revuelto, con grasa"
+ },
+ "22505": {
+  "alias": [
+   "huevo a la plancha",
+   "huevo sin aceite"
+  ],
+  "es": "Huevo, a la plancha, sin grasa"
+ },
+ "22506": {
+  "alias": [
+   "tortilla de queso",
+   "tortilla francesa"
+  ],
+  "es": "Tortilla francesa de queso"
+ },
+ "22507": {
+  "alias": [
+   "tortilla de bacon",
+   "tortilla francesa"
+  ],
+  "es": "Tortilla francesa con bacon"
+ },
+ "22508": {
+  "alias": [
+   "tortilla de setas",
+   "tortilla de champiñones"
+  ],
+  "es": "Tortilla francesa de setas"
+ },
+ "22509": {
+  "alias": [
+   "tortilla de hierbas",
+   "tortilla francesa"
+  ],
+  "es": "Tortilla francesa a las finas hierbas"
+ },
+ "22510": {
+  "alias": [
+   "tortilla de patatas",
+   "tortilla española",
+   "tortilla con cebolla"
+  ],
+  "es": "Tortilla de patatas con cebolla, envasada"
+ },
+ "22511": {
+  "alias": [
+   "tortilla francesa",
+   "tortilla"
+  ],
+  "es": "Tortilla francesa, rellenos variados: verduras, quesos, carnes… (alimento medio)"
+ },
+ "25089": {
+  "alias": [
+   "cordon bleu",
+   "san jacobo de pollo"
+  ],
+  "es": "Cordon bleu de ave, envasado"
+ },
+ "25163": {
+  "alias": [
+   "albondigas de ternera",
+   "albondigas"
+  ],
+  "es": "Vacuno, albóndigas cocidas"
+ },
+ "25173": {
+  "alias": [
+   "escalope empanado",
+   "milanesa de ternera"
+  ],
+  "es": "Ternera lechal, escalope empanado, cocido"
+ },
+ "25186": {
+  "alias": [
+   "albondigas suecas",
+   "albondigas"
+  ],
+  "es": "Albóndigas de cerdo y vacuno (a la sueca), envasadas, crudas"
+ },
+ "25194": {
+  "alias": [
+   "kefta",
+   "albondigas de cordero"
+  ],
+  "es": "Albóndigas de vacuno y cordero (tipo kefta), envasadas, crudas"
+ },
+ "25223": {
+  "alias": [
+   "tacos de soja",
+   "tiras vegetales",
+   "heura"
+  ],
+  "es": "Tacos o tiras vegetales de soja y trigo (aptos para veganos), envasados"
+ },
+ "25224": {
+  "alias": [
+   "tacos de soja",
+   "tiras vegetales"
+  ],
+  "es": "Tacos o tiras de soja y trigo (no aptos para veganos), envasados"
+ },
+ "25232": {
+  "alias": [
+   "salchicha vegetal",
+   "salchicha de seitan"
+  ],
+  "es": "Salchicha vegetal de trigo o seitán, envasada"
+ },
+ "25433": {
+  "alias": [
+   "buñuelo de pescado",
+   "acras",
+   "acras de bacalao"
+  ],
+  "es": "Buñuelo de pescado (acras)"
+ },
+ "25504": {
+  "alias": [
+   "brocheta de pollo",
+   "pincho de pollo"
+  ],
+  "es": "Brocheta de ave"
+ },
+ "25505": {
+  "alias": [
+   "brocheta de ternera",
+   "pincho de ternera"
+  ],
+  "es": "Brocheta de vacuno"
+ },
+ "25506": {
+  "alias": [
+   "brocheta mixta",
+   "pincho moruno"
+  ],
+  "es": "Brocheta mixta de carne"
+ },
+ "25512": {
+  "alias": [
+   "nuggets de pollo",
+   "nuggets"
+  ],
+  "es": "Ave, croqueta empanada o nuggets"
+ },
+ "25537": {
+  "alias": [
+   "carpaccio de salmon",
+   "salmon marinado"
+  ],
+  "es": "Carpaccio de salmón con marinada"
+ },
+ "25541": {
+  "alias": [
+   "brocheta de cordero",
+   "pincho de cordero"
+  ],
+  "es": "Brocheta de cordero"
+ },
+ "25566": {
+  "alias": [
+   "brocheta de cerdo",
+   "pincho moruno"
+  ],
+  "es": "Brocheta de cerdo, cruda"
+ },
+ "25598": {
+  "alias": [
+   "seitan",
+   "gluten de trigo"
+  ],
+  "es": "Seitán, envasado"
+ },
+ "25604": {
+  "alias": [
+   "ensalada verde",
+   "ensalada",
+   "lechuga"
+  ],
+  "es": "Ensalada verde, cruda, sin aliñar"
+ },
+ "25610": {
+  "alias": [
+   "morro en vinagreta",
+   "morro de ternera"
+  ],
+  "es": "Morro de vacuno en vinagreta"
+ },
+ "25995": {
+  "alias": [
+   "caballa en conserva",
+   "caballa",
+   "verdel"
+  ],
+  "es": "Caballa, filete a la parrilla, en conserva, al natural, escurrida"
+ },
+ "25996": {
+  "alias": [
+   "salmon cocinado",
+   "salmon"
+  ],
+  "es": "Salmón, cocinado, sin precisar (alimento medio)"
+ },
+ "25997": {
+  "alias": [
+   "bacalao cocinado",
+   "bacalao"
+  ],
+  "es": "Bacalao fresco, cocinado, sin precisar (alimento medio)"
+ },
+ "25998": {
+  "alias": [
+   "arenque ahumado",
+   "arenque"
+  ],
+  "es": "Arenque ahumado, filete, suave"
+ },
+ "25999": {
+  "alias": [
+   "anchoas",
+   "anchoas con alcaparras"
+  ],
+  "es": "Anchoa, filetes enrollados con alcaparras, semiconserva, escurridos"
+ },
+ "26000": {
+  "alias": [
+   "anchoas en aceite",
+   "anchoas"
+  ],
+  "es": "Anchoa, filetes en aceite, semiconserva, escurridos"
+ },
+ "26001": {
+  "alias": [
+   "lubina rayada",
+   "robalo rayado"
+  ],
+  "es": "Lubina rayada (bar de América), cruda"
+ },
+ "26002": {
+  "alias": [
+   "solla",
+   "platija",
+   "solla empanada"
+  ],
+  "es": "Solla (platija), empanada, frita"
+ },
+ "26003": {
+  "alias": [
+   "solla",
+   "platija"
+  ],
+  "es": "Solla (platija), al vapor"
+ },
+ "26004": {
+  "alias": [
+   "huevas de lumpo",
+   "sucedaneo de caviar"
+  ],
+  "es": "Huevas de lumpo, semiconserva"
+ },
+ "26005": {
+  "alias": [
+   "caviar",
+   "huevas de esturion"
+  ],
+  "es": "Caviar, semiconserva"
+ },
+ "26006": {
+  "alias": [
+   "abadejo de alaska",
+   "colin de alaska"
+  ],
+  "es": "Abadejo de Alaska, crudo"
+ },
+ "26008": {
+  "alias": [
+   "eglefino"
+  ],
+  "es": "Eglefino, al vapor"
+ },
+ "26009": {
+  "alias": [
+   "fletan",
+   "halibut"
+  ],
+  "es": "Fletán del Atlántico (halibut), crudo"
+ },
+ "26010": {
+  "alias": [
+   "rollmops",
+   "arenque marinado"
+  ],
+  "es": "Arenque marinado (rollmops)"
+ },
+ "26011": {
+  "alias": [
+   "arenque"
+  ],
+  "es": "Arenque, crudo"
+ },
+ "26012": {
+  "alias": [
+   "arenque frito",
+   "arenque"
+  ],
+  "es": "Arenque, frito"
+ },
+ "26013": {
+  "alias": [
+   "arenque ahumado"
+  ],
+  "es": "Arenque ahumado, al natural"
+ },
+ "26014": {
+  "alias": [
+   "arenque a la plancha"
+  ],
+  "es": "Arenque, a la plancha o parrilla"
+ },
+ "26015": {
+  "alias": [
+   "carbonero",
+   "fogonero",
+   "abadejo"
+  ],
+  "es": "Carbonero (fogonero), cocido"
+ },
+ "26016": {
+  "alias": [
+   "mendo limon",
+   "mendo"
+  ],
+  "es": "Mendo limón, empanado, frito"
+ },
+ "26017": {
+  "alias": [
+   "mendo limon",
+   "mendo"
+  ],
+  "es": "Mendo limón, al vapor"
+ },
+ "26018": {
+  "alias": [
+   "rape",
+   "pixin"
+  ],
+  "es": "Rape, crudo"
+ },
+ "26019": {
+  "alias": [
+   "caballa al horno",
+   "verdel"
+  ],
+  "es": "Caballa, asada al horno"
+ },
+ "26020": {
+  "alias": [
+   "caballa frita",
+   "verdel"
+  ],
+  "es": "Caballa, frita"
+ },
+ "26021": {
+  "alias": [
+   "plegonero",
+   "pescadilla frita"
+  ],
+  "es": "Plegonero (pescadilla), frito"
+ },
+ "26022": {
+  "alias": [
+   "plegonero",
+   "pescadilla"
+  ],
+  "es": "Plegonero (pescadilla), al vapor"
+ },
+ "26023": {
+  "alias": [
+   "bacalao al horno",
+   "bacalao"
+  ],
+  "es": "Bacalao fresco, asado al horno"
+ },
+ "26024": {
+  "alias": [
+   "bacalao salado",
+   "bacalao desalado"
+  ],
+  "es": "Bacalao salado, hervido/cocido en agua"
+ },
+ "26025": {
+  "alias": [
+   "bacalao al vapor",
+   "bacalao"
+  ],
+  "es": "Bacalao fresco, al vapor"
+ },
+ "26026": {
+  "alias": [
+   "mujol",
+   "lisa"
+  ],
+  "es": "Mújol (lisa), asado al horno"
+ },
+ "26027": {
+  "alias": [
+   "sardinas en tomate",
+   "pilchard"
+  ],
+  "es": "Sardina pilchard, salsa de tomate, en conserva, escurrida"
+ },
+ "26028": {
+  "alias": [
+   "nuggets de pescado",
+   "croqueta de pescado"
+  ],
+  "es": "Pescado, croqueta, buñuelo o nuggets, frito"
+ },
+ "26029": {
+  "alias": [
+   "varitas de pescado",
+   "pescado empanado"
+  ],
+  "es": "Pescado empanado, congelado, crudo"
+ },
+ "26030": {
+  "alias": [
+   "varitas de pescado",
+   "pescado empanado"
+  ],
+  "es": "Pescado empanado, frito"
+ },
+ "26031": {
+  "alias": [
+   "raya al horno",
+   "raya"
+  ],
+  "es": "Raya, asada al horno"
+ },
+ "26033": {
+  "alias": [
+   "pintarroja",
+   "cazon"
+  ],
+  "es": "Pintarroja, cocida"
+ },
+ "26034": {
+  "alias": [
+   "sardinas en aceite",
+   "sardinillas"
+  ],
+  "es": "Sardina, en aceite, en conserva, escurrida"
+ },
+ "26035": {
+  "alias": [
+   "sardinas en tomate"
+  ],
+  "es": "Sardina, salsa de tomate, en conserva, escurrida"
+ },
+ "26036": {
+  "alias": [
+   "salmon",
+   "salmon fresco"
+  ],
+  "es": "Salmón, crudo, de acuicultura"
+ },
+ "26037": {
+  "alias": [
+   "salmon ahumado"
+  ],
+  "es": "Salmón ahumado"
+ },
+ "26038": {
+  "alias": [
+   "salmon al vapor",
+   "salmon"
+  ],
+  "es": "Salmón, al vapor"
+ },
+ "26039": {
+  "alias": [
+   "atun al natural",
+   "atun de lata"
+  ],
+  "es": "Atún, al natural, en conserva, escurrido"
+ },
+ "26040": {
+  "alias": [
+   "sardinas en aceite de oliva",
+   "sardinillas"
+  ],
+  "es": "Sardina, en aceite de oliva, en conserva, escurrida"
+ },
+ "26041": {
+  "alias": [
+   "atun al horno",
+   "atun"
+  ],
+  "es": "Atún, asado al horno"
+ },
+ "26042": {
+  "alias": [
+   "rodaballo",
+   "rodaballo salvaje"
+  ],
+  "es": "Rodaballo salvaje, crudo"
+ },
+ "26043": {
+  "alias": [
+   "bacalao fresco",
+   "bacalao"
+  ],
+  "es": "Bacalao fresco, crudo"
+ },
+ "26044": {
+  "alias": [
+   "merluza",
+   "pescadilla"
+  ],
+  "es": "Merluza, cruda"
+ },
+ "26046": {
+  "alias": [
+   "surimi",
+   "palitos de cangrejo",
+   "kanikama"
+  ],
+  "es": "Surimi, palitos, lonchas o rallado sabor cangrejo"
+ },
+ "26047": {
+  "alias": [
+   "carbonero congelado",
+   "abadejo"
+  ],
+  "es": "Carbonero (fogonero), congelado, crudo"
+ },
+ "26048": {
+  "alias": [
+   "merluza congelada",
+   "filete de merluza"
+  ],
+  "es": "Merluza, filete, congelado, crudo"
+ },
+ "26051": {
+  "alias": [
+   "caballa",
+   "verdel",
+   "xarda"
+  ],
+  "es": "Caballa, cruda"
+ },
+ "26052": {
+  "alias": [
+   "raya"
+  ],
+  "es": "Raya, cruda"
+ },
+ "26053": {
+  "alias": [
+   "atun",
+   "atun fresco"
+  ],
+  "es": "Atún, crudo"
+ },
+ "26055": {
+  "alias": [
+   "solla",
+   "platija"
+  ],
+  "es": "Solla (platija), cruda"
+ },
+ "26056": {
+  "alias": [
+   "huevas de bacalao",
+   "tarama"
+  ],
+  "es": "Huevas de bacalao, ahumadas, semiconserva"
+ },
+ "26057": {
+  "alias": [
+   "limanda",
+   "platija"
+  ],
+  "es": "Limanda, cruda"
+ },
+ "26058": {
+  "alias": [
+   "lenguado"
+  ],
+  "es": "Lenguado, crudo"
+ },
+ "26059": {
+  "alias": [
+   "lenguado al vapor"
+  ],
+  "es": "Lenguado, al vapor"
+ },
+ "26060": {
+  "alias": [
+   "lenguado al horno"
+  ],
+  "es": "Lenguado, asado al horno"
+ },
+ "26061": {
+  "alias": [
+   "lenguado cocido"
+  ],
+  "es": "Lenguado, hervido/cocido en agua"
+ },
+ "26062": {
+  "alias": [
+   "lenguado frito"
+  ],
+  "es": "Lenguado, frito"
+ },
+ "26063": {
+  "alias": [
+   "cabracho",
+   "escorpora",
+   "cabrarroca"
+  ],
+  "es": "Cabracho, crudo"
+ },
+ "26064": {
+  "alias": [
+   "rabil",
+   "atun claro",
+   "atun de aleta amarilla"
+  ],
+  "es": "Atún de aleta amarilla (rabil), crudo"
+ },
+ "26065": {
+  "alias": [
+   "sardina",
+   "sardinas"
+  ],
+  "es": "Sardina, cruda"
+ },
+ "26068": {
+  "alias": [
+   "listado",
+   "bonito de vientre rayado"
+  ],
+  "es": "Listado (bonito de vientre rayado), crudo"
+ },
+ "26069": {
+  "alias": [
+   "atun rojo",
+   "cimarron"
+  ],
+  "es": "Atún rojo, crudo"
+ },
+ "26072": {
+  "alias": [
+   "lubina",
+   "robalo"
+  ],
+  "es": "Lubina, cruda, sin precisar"
+ },
+ "26073": {
+  "alias": [
+   "raya cocida",
+   "raya"
+  ],
+  "es": "Raya, cocida en caldo corto"
+ },
+ "26074": {
+  "alias": [
+   "pintarroja",
+   "cazon"
+  ],
+  "es": "Pintarroja, cruda"
+ },
+ "26075": {
+  "alias": [
+   "lubina",
+   "robalo",
+   "llobarro"
+  ],
+  "es": "Lubina del Atlántico, cruda"
+ },
+ "26076": {
+  "alias": [
+   "bonito del norte",
+   "atun blanco",
+   "albacora"
+  ],
+  "es": "Bonito del norte (atún blanco), crudo"
+ },
+ "26077": {
+  "alias": [
+   "bonito del norte",
+   "atun blanco"
+  ],
+  "es": "Bonito del norte (atún blanco), cocido al vapor a presión"
+ },
+ "26079": {
+  "alias": [
+   "boqueron",
+   "anchoa",
+   "bocarte"
+  ],
+  "es": "Boquerón (anchoa), crudo"
+ },
+ "26080": {
+  "alias": [
+   "dorada",
+   "dorada salvaje",
+   "orada"
+  ],
+  "es": "Dorada, cruda, salvaje"
+ },
+ "26081": {
+  "alias": [
+   "rape a la plancha",
+   "pixin"
+  ],
+  "es": "Rape, a la plancha o parrilla"
+ },
+ "26082": {
+  "alias": [
+   "pez espada",
+   "emperador"
+  ],
+  "es": "Pez espada, crudo"
+ },
+ "26083": {
+  "alias": [
+   "eperlano"
+  ],
+  "es": "Eperlano, crudo"
+ },
+ "26084": {
+  "alias": [
+   "gallo",
+   "gallo del norte"
+  ],
+  "es": "Gallo, crudo"
+ },
+ "26085": {
+  "alias": [
+   "salmonete",
+   "salmonete de roca"
+  ],
+  "es": "Salmonete de roca, crudo"
+ },
+ "26086": {
+  "alias": [
+   "caballa en tomate",
+   "verdel"
+  ],
+  "es": "Caballa, filete en salsa de tomate, en conserva, escurrida"
+ },
+ "26087": {
+  "alias": [
+   "caballa ahumada",
+   "verdel ahumado"
+  ],
+  "es": "Caballa, ahumada"
+ },
+ "26088": {
+  "alias": [
+   "dorada",
+   "dorada real",
+   "orada"
+  ],
+  "es": "Dorada, cruda, de acuicultura"
+ },
+ "26090": {
+  "alias": [
+   "haddock",
+   "eglefino ahumado"
+  ],
+  "es": "Eglefino ahumado (haddock)"
+ },
+ "26091": {
+  "alias": [
+   "mujol",
+   "lisa",
+   "muble"
+  ],
+  "es": "Mújol (lisa), crudo"
+ },
+ "26092": {
+  "alias": [
+   "trucha marina",
+   "reo"
+  ],
+  "es": "Trucha marina (reo), cruda"
+ },
+ "26093": {
+  "alias": [
+   "pez espada al horno",
+   "emperador"
+  ],
+  "es": "Pez espada, asado al horno"
+ },
+ "26094": {
+  "alias": [
+   "rodaballo al horno"
+  ],
+  "es": "Rodaballo, asado al horno"
+ },
+ "26095": {
+  "alias": [
+   "plegonero",
+   "pescadilla"
+  ],
+  "es": "Plegonero (pescadilla), crudo"
+ },
+ "26096": {
+  "alias": [
+   "caballa a la mostaza",
+   "verdel"
+  ],
+  "es": "Caballa, filete en salsa de mostaza, en conserva, escurrida"
+ },
+ "26097": {
+  "alias": [
+   "caballa al vino blanco",
+   "verdel"
+  ],
+  "es": "Caballa, filete al vino blanco, en conserva, escurrida"
+ },
+ "26098": {
+  "alias": [
+   "bacalao salado",
+   "bacalao seco"
+  ],
+  "es": "Bacalao salado, seco"
+ },
+ "26099": {
+  "alias": [
+   "chopa",
+   "dorada gris"
+  ],
+  "es": "Chopa (dorada gris), cruda"
+ },
+ "26100": {
+  "alias": [
+   "boga"
+  ],
+  "es": "Boga, cruda"
+ },
+ "26101": {
+  "alias": [
+   "bonito",
+   "bonito del sur"
+  ],
+  "es": "Bonito, crudo"
+ },
+ "26102": {
+  "alias": [
+   "estornino",
+   "caballa blanca"
+  ],
+  "es": "Estornino (caballa blanca), crudo"
+ },
+ "26103": {
+  "alias": [
+   "denton"
+  ],
+  "es": "Dentón, crudo"
+ },
+ "26104": {
+  "alias": [
+   "pez de san pedro",
+   "gallo san pedro"
+  ],
+  "es": "Pez de San Pedro, crudo"
+ },
+ "26106": {
+  "alias": [
+   "rubio",
+   "bejel",
+   "borracho"
+  ],
+  "es": "Rubio (bejel), crudo"
+ },
+ "26107": {
+  "alias": [
+   "corvallo",
+   "corvina negra"
+  ],
+  "es": "Corvallo, crudo"
+ },
+ "26108": {
+  "alias": [
+   "capelan"
+  ],
+  "es": "Capelán, crudo"
+ },
+ "26109": {
+  "alias": [
+   "besugo",
+   "voraz",
+   "goraz"
+  ],
+  "es": "Besugo (dorada rosa), crudo"
+ },
+ "26110": {
+  "alias": [
+   "salmonete al vapor",
+   "salmonete"
+  ],
+  "es": "Salmonete de roca, al vapor"
+ },
+ "26111": {
+  "alias": [
+   "salema",
+   "salpa"
+  ],
+  "es": "Salema, cruda"
+ },
+ "26113": {
+  "alias": [
+   "jurel",
+   "chicharro"
+  ],
+  "es": "Jurel (chicharro), crudo"
+ },
+ "26119": {
+  "alias": [
+   "salmon de lata",
+   "salmon en conserva"
+  ],
+  "es": "Salmón, en conserva, escurrido"
+ },
+ "26120": {
+  "alias": [
+   "merluza cocida",
+   "merluza"
+  ],
+  "es": "Merluza, cocida a fuego lento"
+ },
+ "26122": {
+  "alias": [
+   "eglefino"
+  ],
+  "es": "Eglefino, crudo"
+ },
+ "26123": {
+  "alias": [
+   "caballa al natural",
+   "verdel"
+  ],
+  "es": "Caballa, al natural, en conserva, escurrida"
+ },
+ "26124": {
+  "alias": [
+   "pescadilla empanada",
+   "plegonero"
+  ],
+  "es": "Plegonero (pescadilla), empanado"
+ },
+ "26126": {
+  "alias": [
+   "eglefino a la plancha"
+  ],
+  "es": "Eglefino, a la plancha o parrilla"
+ },
+ "26127": {
+  "alias": [
+   "congrio"
+  ],
+  "es": "Congrio, crudo"
+ },
+ "26128": {
+  "alias": [
+   "granadero"
+  ],
+  "es": "Granadero de roca, crudo"
+ },
+ "26129": {
+  "alias": [
+   "abadejo",
+   "lieu jaune"
+  ],
+  "es": "Abadejo, crudo"
+ },
+ "26130": {
+  "alias": [
+   "maruca",
+   "juliana"
+  ],
+  "es": "Maruca, cruda"
+ },
+ "26133": {
+  "alias": [
+   "faneca"
+  ],
+  "es": "Faneca, cruda"
+ },
+ "26134": {
+  "alias": [
+   "carbonero",
+   "fogonero"
+  ],
+  "es": "Carbonero (fogonero), crudo"
+ },
+ "26135": {
+  "alias": [
+   "mendo limon",
+   "mendo"
+  ],
+  "es": "Mendo limón, crudo"
+ },
+ "26136": {
+  "alias": [
+   "sardinas a la brasa",
+   "sardina asada"
+  ],
+  "es": "Sardina, a la parrilla"
+ },
+ "26141": {
+  "alias": [
+   "higado de bacalao"
+  ],
+  "es": "Hígado de bacalao, crudo"
+ },
+ "26142": {
+  "alias": [
+   "higado de bacalao en conserva"
+  ],
+  "es": "Hígado de bacalao, en conserva, escurrido"
+ },
+ "26146": {
+  "alias": [
+   "pargo",
+   "vivaneau"
+  ],
+  "es": "Pargo, crudo"
+ },
+ "26147": {
+  "alias": [
+   "pargo cocido",
+   "pargo"
+  ],
+  "es": "Pargo, cocido"
+ },
+ "26148": {
+  "alias": [
+   "cabracho al vapor",
+   "escorpora"
+  ],
+  "es": "Cabracho, al vapor"
+ },
+ "26151": {
+  "alias": [
+   "huevas de trucha"
+  ],
+  "es": "Huevas de trucha, semiconserva"
+ },
+ "26152": {
+  "alias": [
+   "abadejo de alaska ahumado"
+  ],
+  "es": "Abadejo de Alaska, ahumado"
+ },
+ "26153": {
+  "alias": [
+   "pez sable",
+   "pez cinto"
+  ],
+  "es": "Pez sable, crudo"
+ },
+ "26154": {
+  "alias": [
+   "fletan negro",
+   "halibut negro"
+  ],
+  "es": "Fletán negro (de Groenlandia), crudo"
+ },
+ "26157": {
+  "alias": [
+   "jurel dorado",
+   "carangido"
+  ],
+  "es": "Jurel dorado (carángido), crudo"
+ },
+ "26159": {
+  "alias": [
+   "coulirou",
+   "jurel"
+  ],
+  "es": "Jurel coulirou, crudo"
+ },
+ "26161": {
+  "alias": [
+   "salmon salvaje",
+   "salmon"
+  ],
+  "es": "Salmón, crudo, salvaje"
+ },
+ "26162": {
+  "alias": [
+   "tiburon",
+   "cazon",
+   "marrajo"
+  ],
+  "es": "Tiburón, crudo"
+ },
+ "26166": {
+  "alias": [
+   "aguja",
+   "agujon",
+   "paparda"
+  ],
+  "es": "Aguja (agujón), cruda"
+ },
+ "26168": {
+  "alias": [
+   "lumpo"
+  ],
+  "es": "Lumpo, crudo"
+ },
+ "26170": {
+  "alias": [
+   "brema"
+  ],
+  "es": "Brema, cruda"
+ },
+ "26171": {
+  "alias": [
+   "salvelino",
+   "trucha alpina"
+  ],
+  "es": "Salvelino (trucha alpina), crudo"
+ },
+ "26172": {
+  "alias": [
+   "perro del norte",
+   "lobo moteado"
+  ],
+  "es": "Perro del norte (lobo moteado), crudo"
+ },
+ "26173": {
+  "alias": [
+   "espadin"
+  ],
+  "es": "Espadín, crudo"
+ },
+ "26174": {
+  "alias": [
+   "rodaballo"
+  ],
+  "es": "Rodaballo, crudo"
+ },
+ "26175": {
+  "alias": [
+   "lavareto",
+   "coregono"
+  ],
+  "es": "Lavareto (corégono), crudo"
+ },
+ "26177": {
+  "alias": [
+   "anchoa en sal",
+   "anchoas"
+  ],
+  "es": "Anchoa en sal (semiconserva)"
+ },
+ "26178": {
+  "alias": [
+   "mero"
+  ],
+  "es": "Mero, crudo"
+ },
+ "26179": {
+  "alias": [
+   "bonito en aceite de oliva",
+   "atun blanco"
+  ],
+  "es": "Bonito del norte (atún blanco), en aceite de oliva, en conserva, escurrido"
+ },
+ "26180": {
+  "alias": [
+   "atun en aceite",
+   "atun de lata"
+  ],
+  "es": "Atún en aceite de girasol, entero, en conserva, escurrido"
+ },
+ "26181": {
+  "alias": [
+   "atun claro al natural",
+   "atun de lata"
+  ],
+  "es": "Atún de aleta amarilla (rabil), al natural, en conserva, escurrido"
+ },
+ "26186": {
+  "alias": [
+   "caballa marinada",
+   "verdel"
+  ],
+  "es": "Caballa, marinada"
+ },
+ "26187": {
+  "alias": [
+   "boquerones en vinagre",
+   "boqueron marinado"
+  ],
+  "es": "Boquerón, marinado, envasado"
+ },
+ "26192": {
+  "alias": [
+   "abadejo cocido"
+  ],
+  "es": "Abadejo, cocido"
+ },
+ "26194": {
+  "alias": [
+   "maruca azul",
+   "juliana"
+  ],
+  "es": "Maruca azul, cruda"
+ },
+ "26200": {
+  "alias": [
+   "lenguadina",
+   "lenguado tropical"
+  ],
+  "es": "Lenguadina tropical, cruda"
+ },
+ "26201": {
+  "alias": [
+   "rodaballo de piscifactoria",
+   "rodaballo"
+  ],
+  "es": "Rodaballo de acuicultura, crudo"
+ },
+ "26205": {
+  "alias": [
+   "lubina salvaje",
+   "lubina"
+  ],
+  "es": "Lubina (Mediterráneo), cruda, salvaje"
+ },
+ "26206": {
+  "alias": [
+   "lubina de acuicultura",
+   "lubina"
+  ],
+  "es": "Lubina (Mediterráneo), cruda, de acuicultura"
+ },
+ "26208": {
+  "alias": [
+   "rape rojo",
+   "rape"
+  ],
+  "es": "Rape rojo, crudo"
+ },
+ "26210": {
+  "alias": [
+   "gallineta",
+   "gallineta nordica",
+   "sebaste"
+  ],
+  "es": "Gallineta nórdica, cruda"
+ },
+ "26211": {
+  "alias": [
+   "salmon al microondas",
+   "salmon"
+  ],
+  "es": "Salmón, cocinado al microondas, de acuicultura"
+ },
+ "26213": {
+  "alias": [
+   "hoki"
+  ],
+  "es": "Hoki, de cualquier caladero, crudo"
+ },
+ "26214": {
+  "alias": [
+   "granadero azul",
+   "hoki"
+  ],
+  "es": "Granadero azul (hoki de Nueva Zelanda), crudo"
+ },
+ "26217": {
+  "alias": [
+   "salmon cocido",
+   "salmon"
+  ],
+  "es": "Salmón, hervido/cocido en agua, de acuicultura"
+ },
+ "26219": {
+  "alias": [
+   "rubio perlon",
+   "borracho",
+   "bejel"
+  ],
+  "es": "Rubio perlón, crudo"
+ },
+ "26222": {
+  "alias": [
+   "chopa al horno",
+   "dorada gris"
+  ],
+  "es": "Chopa (dorada gris), asada al horno"
+ },
+ "26229": {
+  "alias": [
+   "salmon a la plancha",
+   "salmon"
+  ],
+  "es": "Salmón, a la plancha o parrilla"
+ },
+ "26230": {
+  "alias": [
+   "salmon al horno",
+   "salmon"
+  ],
+  "es": "Salmón de acuicultura, asado al horno"
+ },
+ "26231": {
+  "alias": [
+   "filetes de sardina",
+   "sardinillas"
+  ],
+  "es": "Sardina, filetes sin espinas en aceite de oliva, en conserva, escurridos"
+ },
+ "26232": {
+  "alias": [
+   "arenque ahumado en aceite"
+  ],
+  "es": "Arenque ahumado, en aceite"
+ },
+ "26233": {
+  "alias": [
+   "merluza del cabo",
+   "merluza congelada"
+  ],
+  "es": "Merluza del Cabo, congelada, cruda"
+ },
+ "26234": {
+  "alias": [
+   "maruca cocida",
+   "juliana"
+  ],
+  "es": "Maruca, cocida"
+ },
+ "26235": {
+  "alias": [
+   "jurel",
+   "chicharro"
+  ],
+  "es": "Jurel magro, crudo"
+ },
+ "26236": {
+  "alias": [
+   "jurel",
+   "chicharro"
+  ],
+  "es": "Jurel graso, crudo"
+ },
+ "26237": {
+  "alias": [
+   "arenque",
+   "arenque fresco"
+  ],
+  "es": "Arenque magro, crudo"
+ },
+ "26238": {
+  "alias": [
+   "arenque",
+   "arenque fresco"
+  ],
+  "es": "Arenque graso, crudo"
+ },
+ "26239": {
+  "alias": [
+   "surimi con queso",
+   "palitos de cangrejo"
+  ],
+  "es": "Surimi, relleno de queso"
+ },
+ "26240": {
+  "alias": [
+   "pescaditos",
+   "pejerrey",
+   "chanquete"
+  ],
+  "es": "Pejerreyes (pescaditos enteros) para freír, crudos"
+ },
+ "26241": {
+  "alias": [
+   "reloj anaranjado",
+   "emperador"
+  ],
+  "es": "Reloj anaranjado, filete, sin piel, crudo"
+ },
+ "26242": {
+  "alias": [
+   "atun con tomate",
+   "atun de lata"
+  ],
+  "es": "Atún con tomate, migas, en conserva, escurridas"
+ },
+ "26243": {
+  "alias": [
+   "atun en escabeche",
+   "atun a la catalana"
+  ],
+  "es": "Atún a la catalana o en escabeche (salsa de tomate), en conserva"
+ },
+ "26244": {
+  "alias": [
+   "salmonete congelado",
+   "salmonete"
+  ],
+  "es": "Salmonete, filete con piel, congelado, crudo (Tailandia, Senegal…)"
+ },
+ "26245": {
+  "alias": [
+   "atun en aceite",
+   "migas de atun"
+  ],
+  "es": "Atún en aceite de girasol, migas, en conserva, escurridas"
+ },
+ "26247": {
+  "alias": [
+   "fletan negro",
+   "halibut negro"
+  ],
+  "es": "Fletán negro (de Groenlandia), al vapor"
+ },
+ "26248": {
+  "alias": [
+   "lenguado a la plancha",
+   "lenguado"
+  ],
+  "es": "Lenguado, a la sartén"
+ },
+ "26275": {
+  "alias": [
+   "huevas de salmon",
+   "ikura"
+  ],
+  "es": "Huevas de salmón, semiconserva"
+ },
+ "26999": {
+  "alias": [
+   "anguila"
+  ],
+  "es": "Anguila, cocida (alimento medio)"
+ },
+ "27000": {
+  "alias": [
+   "anguila al horno"
+  ],
+  "es": "Anguila, asada al horno"
+ },
+ "27001": {
+  "alias": [
+   "anguila cocida"
+  ],
+  "es": "Anguila, hervida/cocida en agua"
+ },
+ "27002": {
+  "alias": [
+   "lucio"
+  ],
+  "es": "Lucio, asado al horno"
+ },
+ "27003": {
+  "alias": [
+   "carpa"
+  ],
+  "es": "Carpa, cruda, de acuicultura"
+ },
+ "27004": {
+  "alias": [
+   "carpa al horno"
+  ],
+  "es": "Carpa, asada al horno"
+ },
+ "27005": {
+  "alias": [
+   "perca al horno"
+  ],
+  "es": "Perca, asada al horno"
+ },
+ "27006": {
+  "alias": [
+   "trucha al horno",
+   "trucha"
+  ],
+  "es": "Trucha, asada al horno"
+ },
+ "27007": {
+  "alias": [
+   "trucha al vapor",
+   "trucha"
+  ],
+  "es": "Trucha, al vapor"
+ },
+ "27008": {
+  "alias": [
+   "trucha",
+   "trucha de piscifactoria"
+  ],
+  "es": "Trucha de acuicultura, cruda"
+ },
+ "27009": {
+  "alias": [
+   "trucha arcoiris",
+   "trucha"
+  ],
+  "es": "Trucha arcoíris, cruda, de acuicultura"
+ },
+ "27010": {
+  "alias": [
+   "perca"
+  ],
+  "es": "Perca, cruda"
+ },
+ "27011": {
+  "alias": [
+   "lucio"
+  ],
+  "es": "Lucio, crudo"
+ },
+ "27012": {
+  "alias": [
+   "esturion"
+  ],
+  "es": "Esturión, crudo"
+ },
+ "27014": {
+  "alias": [
+   "trucha arcoiris al horno",
+   "trucha"
+  ],
+  "es": "Trucha arcoíris de acuicultura, asada al horno"
+ },
+ "27015": {
+  "alias": [
+   "trucha arcoiris al vapor",
+   "trucha"
+  ],
+  "es": "Trucha arcoíris de acuicultura, al vapor"
+ },
+ "27016": {
+  "alias": [
+   "anguila"
+  ],
+  "es": "Anguila, cruda"
+ },
+ "27017": {
+  "alias": [
+   "panga",
+   "pangasius",
+   "pez gato"
+  ],
+  "es": "Panga (pez gato), crudo"
+ },
+ "27018": {
+  "alias": [
+   "panga",
+   "pangasius"
+  ],
+  "es": "Panga (pez gato del Mekong), filete, cocido"
+ },
+ "27019": {
+  "alias": [
+   "tilapia"
+  ],
+  "es": "Tilapia, cruda"
+ },
+ "27021": {
+  "alias": [
+   "trucha asalmonada",
+   "trucha"
+  ],
+  "es": "Trucha asalmonada, cruda"
+ },
+ "27023": {
+  "alias": [
+   "lota"
+  ],
+  "es": "Lota de río, cruda"
+ },
+ "27024": {
+  "alias": [
+   "lucioperca",
+   "sandre"
+  ],
+  "es": "Lucioperca, cruda"
+ },
+ "27025": {
+  "alias": [
+   "perca del nilo"
+  ],
+  "es": "Perca del Nilo, cruda"
+ },
+ "27029": {
+  "alias": [
+   "trucha ahumada"
+  ],
+  "es": "Trucha de acuicultura, ahumada"
+ },
+ "27030": {
+  "alias": [
+   "lubina al horno",
+   "lubina"
+  ],
+  "es": "Lubina, asada al horno"
+ },
+ "27031": {
+  "alias": [
+   "dorada al horno",
+   "dorada"
+  ],
+  "es": "Dorada, asada al horno"
+ },
+ "28001": {
+  "alias": [
+   "paletilla de cerdo",
+   "espaldilla de cerdo"
+  ],
+  "es": "Cerdo, paletilla, cruda"
+ },
+ "28002": {
+  "alias": [
+   "panceta",
+   "tocino entreverado"
+  ],
+  "es": "Cerdo, panceta, cruda"
+ },
+ "28003": {
+  "alias": [
+   "lomo de cerdo",
+   "cinta de lomo"
+  ],
+  "es": "Cerdo, lomo, crudo"
+ },
+ "28004": {
+  "alias": [
+   "codillo",
+   "codillo de cerdo"
+  ],
+  "es": "Cerdo, codillo, crudo"
+ },
+ "28007": {
+  "alias": [
+   "lomo de cerdo",
+   "cinta de lomo"
+  ],
+  "es": "Cerdo, lomo, cocido"
+ },
+ "28009": {
+  "alias": [
+   "paleta de cerdo",
+   "paletilla"
+  ],
+  "es": "Cerdo, paleta, cruda"
+ },
+ "28010": {
+  "alias": [
+   "paletilla de cerdo"
+  ],
+  "es": "Cerdo, paletilla, cocida"
+ },
+ "28100": {
+  "alias": [
+   "chuleta de cerdo",
+   "chuleta de lomo"
+  ],
+  "es": "Cerdo, chuleta, cruda"
+ },
+ "28101": {
+  "alias": [
+   "chuleta de cerdo",
+   "chuleta a la plancha"
+  ],
+  "es": "Cerdo, chuleta, a la parrilla"
+ },
+ "28102": {
+  "alias": [
+   "rodaja de jamon",
+   "pierna de cerdo"
+  ],
+  "es": "Cerdo, rodaja de pierna, cruda"
+ },
+ "28103": {
+  "alias": [
+   "rodaja de jamon",
+   "pierna de cerdo"
+  ],
+  "es": "Cerdo, rodaja de pierna, cocida"
+ },
+ "28104": {
+  "alias": [
+   "costillar de cerdo",
+   "chuletero"
+  ],
+  "es": "Cerdo, costillar, crudo"
+ },
+ "28105": {
+  "alias": [
+   "costillar de cerdo"
+  ],
+  "es": "Cerdo, costillar, cocido"
+ },
+ "28201": {
+  "alias": [
+   "lomo de cerdo",
+   "lomo magro"
+  ],
+  "es": "Cerdo, lomo magro, crudo"
+ },
+ "28202": {
+  "alias": [
+   "lomo asado",
+   "lomo de cerdo"
+  ],
+  "es": "Cerdo, lomo magro, en asado, cocido"
+ },
+ "28203": {
+  "alias": [
+   "solomillo de cerdo"
+  ],
+  "es": "Cerdo, solomillo, cocido"
+ },
+ "28204": {
+  "alias": [
+   "solomillo de cerdo"
+  ],
+  "es": "Cerdo, solomillo, crudo"
+ },
+ "28205": {
+  "alias": [
+   "cerdo cocido",
+   "carne de cerdo"
+  ],
+  "es": "Cerdo, carne, cocida (alimento medio)"
+ },
+ "28300": {
+  "alias": [
+   "cerdo para asar",
+   "carne de cerdo"
+  ],
+  "es": "Cerdo, carne para asar, cruda"
+ },
+ "28301": {
+  "alias": [
+   "cerdo asado",
+   "carne de cerdo"
+  ],
+  "es": "Cerdo, carne para asar, cocida"
+ },
+ "28302": {
+  "alias": [
+   "aguja de cerdo",
+   "cabecera de lomo"
+  ],
+  "es": "Cerdo, aguja (cabecera de lomo), cruda"
+ },
+ "28400": {
+  "alias": [
+   "costillas de cerdo",
+   "ribs"
+  ],
+  "es": "Cerdo, costillas (travers), crudas"
+ },
+ "28401": {
+  "alias": [
+   "costillas de cerdo",
+   "ribs"
+  ],
+  "es": "Cerdo, costillas (travers), estofadas"
+ },
+ "28451": {
+  "alias": [
+   "aguja de cerdo asada",
+   "cabecera de lomo"
+  ],
+  "es": "Cerdo, aguja (cabecera de lomo), asada al horno"
+ },
+ "28460": {
+  "alias": [
+   "filete de cerdo",
+   "escalope de cerdo"
+  ],
+  "es": "Cerdo, filete de pierna, crudo"
+ },
+ "28461": {
+  "alias": [
+   "filete de cerdo",
+   "escalope de cerdo"
+  ],
+  "es": "Cerdo, filete de pierna, cocido"
+ },
+ "28470": {
+  "alias": [
+   "tocino",
+   "tocino dorsal"
+  ],
+  "es": "Cerdo, tocino dorsal sin corteza, crudo"
+ },
+ "28471": {
+  "alias": [
+   "papada de cerdo",
+   "papada"
+  ],
+  "es": "Cerdo, papada sin corteza, cruda"
+ },
+ "28472": {
+  "alias": [
+   "carne picada de cerdo"
+  ],
+  "es": "Cerdo, picada sin codillo, sin corteza, desgrasada y deshuesada, cruda"
+ },
+ "28473": {
+  "alias": [
+   "pierna de cerdo",
+   "jamon fresco"
+  ],
+  "es": "Cerdo, pierna sin codillo, sin corteza, desgrasada y deshuesada, cruda"
+ },
+ "28474": {
+  "alias": [
+   "codillo",
+   "lacon"
+  ],
+  "es": "Cerdo, codillo trasero, sin corteza, desgrasado y deshuesado, crudo"
+ },
+ "28475": {
+  "alias": [
+   "magro de cerdo",
+   "carne picada de cerdo"
+  ],
+  "es": "Cerdo, magro 90/10, crudo"
+ },
+ "28476": {
+  "alias": [
+   "magro de cerdo",
+   "carne picada de cerdo"
+  ],
+  "es": "Cerdo, magro 80/20, crudo"
+ },
+ "28477": {
+  "alias": [
+   "paleta de cerdo",
+   "paletilla"
+  ],
+  "es": "Cerdo, paleta, sin corteza, desgrasada y deshuesada, cruda"
+ },
+ "28479": {
+  "alias": [
+   "panceta",
+   "panceta para picar"
+  ],
+  "es": "Cerdo, panceta para picar, cruda"
+ },
+ "28480": {
+  "alias": [
+   "lomo para asar",
+   "lomo de cerdo"
+  ],
+  "es": "Cerdo, lomo para asar con cadena, crudo"
+ },
+ "28501": {
+  "alias": [
+   "taquitos de panceta",
+   "torreznos",
+   "bacon en taquitos"
+  ],
+  "es": "Taquitos de panceta (torreznos), naturales, crudos"
+ },
+ "28502": {
+  "alias": [
+   "panceta ahumada",
+   "bacon"
+  ],
+  "es": "Panceta de cerdo, ahumada, cruda"
+ },
+ "28503": {
+  "alias": [
+   "bresaola",
+   "cecina"
+  ],
+  "es": "Bresaola (cecina de vacuno italiana)"
+ },
+ "28504": {
+  "alias": [
+   "taquitos de panceta",
+   "torreznos"
+  ],
+  "es": "Taquitos de panceta (torreznos), naturales, cocidos"
+ },
+ "28505": {
+  "alias": [
+   "corned beef",
+   "carne de vacuno en conserva"
+  ],
+  "es": "Corned beef, en conserva"
+ },
+ "28530": {
+  "alias": [
+   "oreja de cerdo",
+   "oreja"
+  ],
+  "es": "Oreja de cerdo en salazón suave"
+ },
+ "28540": {
+  "alias": [
+   "manita de cerdo",
+   "pie de cerdo"
+  ],
+  "es": "Pie de cerdo en salazón suave"
+ },
+ "28550": {
+  "alias": [
+   "panceta salada",
+   "tocino salado"
+  ],
+  "es": "Panceta de cerdo en salazón suave"
+ },
+ "28700": {
+  "alias": [
+   "jamon para asar",
+   "jamon fresco"
+  ],
+  "es": "Jamón de cerdo para cocinar o asar al horno"
+ },
+ "28720": {
+  "alias": [
+   "bacon en taquitos",
+   "taquitos de bacon"
+  ],
+  "es": "Taquitos de panceta ahumada, crudos"
+ },
+ "28725": {
+  "alias": [
+   "bacon en taquitos",
+   "taquitos de bacon"
+  ],
+  "es": "Taquitos de panceta ahumada, cocidos"
+ },
+ "28727": {
+  "alias": [
+   "bacon",
+   "beicon"
+  ],
+  "es": "Filete de bacon"
+ },
+ "28800": {
+  "alias": [
+   "jamon curado",
+   "jamon serrano"
+  ],
+  "es": "Jamón curado"
+ },
+ "28801": {
+  "alias": [
+   "jamon ahumado",
+   "jamon curado"
+  ],
+  "es": "Jamón curado, ahumado"
+ },
+ "28802": {
+  "alias": [
+   "jamon serrano",
+   "jamon curado"
+  ],
+  "es": "Jamón curado, sin corteza, desgrasado"
+ },
+ "28803": {
+  "alias": [
+   "jamon cocido ahumado",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, ahumado"
+ },
+ "28804": {
+  "alias": [
+   "jamon ahumado light"
+  ],
+  "es": "Jamón curado, ahumado, bajo en grasa"
+ },
+ "28811": {
+  "alias": [
+   "jamon de bayona",
+   "jamon curado"
+  ],
+  "es": "Jamón de Bayona"
+ },
+ "28812": {
+  "alias": [
+   "jamon serrano",
+   "jamon curado"
+  ],
+  "es": "Jamón curado (seco)"
+ },
+ "28844": {
+  "alias": [
+   "jamon de parma",
+   "prosciutto"
+  ],
+  "es": "Jamón de Parma"
+ },
+ "28845": {
+  "alias": [
+   "jamon serrano",
+   "jamon curado"
+  ],
+  "es": "Jamón serrano"
+ },
+ "28850": {
+  "alias": [
+   "coppa",
+   "cabecero de lomo"
+  ],
+  "es": "Coppa (cabecera de lomo curada)"
+ },
+ "28858": {
+  "alias": [
+   "pancetta",
+   "panceta curada"
+  ],
+  "es": "Panceta curada (pancetta) o panceta enrollada"
+ },
+ "28860": {
+  "alias": [
+   "carne de los grisones",
+   "cecina"
+  ],
+  "es": "Carne de los Grisones (cecina suiza)"
+ },
+ "28900": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, extra"
+ },
+ "28901": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, extra, con corteza"
+ },
+ "28902": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, extra, sin corteza"
+ },
+ "28905": {
+  "alias": [
+   "jamon al horno",
+   "jamon estofado"
+  ],
+  "es": "Jamón con hueso estofado"
+ },
+ "28906": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, extra, sin corteza y desgrasado"
+ },
+ "28907": {
+  "alias": [
+   "jamon cocido bajo en sal",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, extra, bajo en sal"
+ },
+ "28910": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, primera"
+ },
+ "28911": {
+  "alias": [
+   "paleta cocida",
+   "fiambre de paleta"
+  ],
+  "es": "Paletilla de cerdo, cocida, primera, sin corteza y desgrasada"
+ },
+ "28912": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, primera, con corteza"
+ },
+ "28913": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido, primera, sin corteza y desgrasado"
+ },
+ "28917": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido en rodaja"
+ },
+ "28922": {
+  "alias": [
+   "jamon en tacos",
+   "jamon en tiras"
+  ],
+  "es": "Jamón cocido en tacos, tiras, rallado o picado"
+ },
+ "28924": {
+  "alias": [
+   "paleta cocida",
+   "fiambre de paleta"
+  ],
+  "es": "Paletilla de cerdo, cocida, estándar, sin corteza y desgrasada"
+ },
+ "28925": {
+  "alias": [
+   "jamon cocido",
+   "jamon york"
+  ],
+  "es": "Jamón cocido de París, sin corteza y desgrasado"
+ },
+ "28927": {
+  "alias": [
+   "picada de pollo",
+   "carne picada de pavo"
+  ],
+  "es": "Carne picada de ave"
+ },
+ "28929": {
+  "alias": [
+   "pavo en tacos",
+   "fiambre de pavo"
+  ],
+  "es": "Fiambre de ave en tacos, tiras, rallado o picado"
+ },
+ "28960": {
+  "alias": [
+   "codillo cocido",
+   "lacon"
+  ],
+  "es": "Codillo (lacón), cocido"
+ },
+ "28963": {
+  "alias": [
+   "pechuga de pollo en lonchas",
+   "fiambre de pollo"
+  ],
+  "es": "Fiambre de pollo o pechuga de pollo en lonchas"
+ },
+ "28964": {
+  "alias": [
+   "pechuga de pavo en lonchas",
+   "fiambre de pavo"
+  ],
+  "es": "Fiambre de pavo o pechuga de pavo en lonchas"
+ },
+ "28976": {
+  "alias": [
+   "fiambre de ave",
+   "asado de pavo"
+  ],
+  "es": "Asado de ave en salazón, cocido"
+ },
+ "30005": {
+  "alias": [
+   "chipolata",
+   "salchicha fresca"
+  ],
+  "es": "Chipolata (salchicha fina), cocida"
+ },
+ "30011": {
+  "alias": [
+   "salchicha de toulouse",
+   "salchicha fresca"
+  ],
+  "es": "Salchicha de Toulouse, cocida"
+ },
+ "30050": {
+  "alias": [
+   "carne de salchicha",
+   "picada condimentada"
+  ],
+  "es": "Carne de salchicha (picada condimentada), cruda"
+ },
+ "30051": {
+  "alias": [
+   "carne de salchicha",
+   "picada de cerdo"
+  ],
+  "es": "Carne de salchicha, puro cerdo, cruda"
+ },
+ "30052": {
+  "alias": [
+   "relleno de carne",
+   "carne picada mixta"
+  ],
+  "es": "Relleno de cerdo y vacuno, crudo"
+ },
+ "30102": {
+  "alias": [
+   "salchicha ahumada"
+  ],
+  "es": "Salchicha ahumada, para cocinar"
+ },
+ "30104": {
+  "alias": [
+   "salchicha de morteau",
+   "salchicha ahumada"
+  ],
+  "es": "Salchicha de Morteau"
+ },
+ "30105": {
+  "alias": [
+   "salchicha de montbeliard",
+   "salchicha ahumada"
+  ],
+  "es": "Salchicha de Montbéliard"
+ },
+ "30108": {
+  "alias": [
+   "salchicha de morteau"
+  ],
+  "es": "Salchicha de Morteau, hervida/cocida en agua"
+ },
+ "30110": {
+  "alias": [
+   "salchicha de toulouse",
+   "salchicha fresca"
+  ],
+  "es": "Salchicha de Toulouse, cruda"
+ },
+ "30115": {
+  "alias": [
+   "chipolata",
+   "salchicha fresca"
+  ],
+  "es": "Chipolata (salchicha fina), cruda"
+ },
+ "30125": {
+  "alias": [
+   "salchicha alsaciana",
+   "gendarme"
+  ],
+  "es": "Salchicha alsaciana ahumada (Gendarme)"
+ },
+ "30130": {
+  "alias": [
+   "salchicha de pollo",
+   "salchicha de ave"
+  ],
+  "es": "Salchicha de ave, estilo charcutería"
+ },
+ "30131": {
+  "alias": [
+   "salchicha de pavo",
+   "salchicha tipo frankfurt"
+  ],
+  "es": "Salchicha de ave, tipo Knack"
+ },
+ "30134": {
+  "alias": [
+   "salchicha de frankfurt",
+   "frankfurt"
+  ],
+  "es": "Salchicha de Frankfurt"
+ },
+ "30150": {
+  "alias": [
+   "merguez",
+   "salchicha picante"
+  ],
+  "es": "Merguez, cruda"
+ },
+ "30152": {
+  "alias": [
+   "merguez",
+   "salchicha picante"
+  ],
+  "es": "Merguez, puro vacuno, cruda"
+ },
+ "30153": {
+  "alias": [
+   "merguez"
+  ],
+  "es": "Merguez, cerdo y vacuno, cruda"
+ },
+ "30154": {
+  "alias": [
+   "merguez"
+  ],
+  "es": "Merguez, vacuno, cordero y cerdo, cruda"
+ },
+ "30155": {
+  "alias": [
+   "merguez"
+  ],
+  "es": "Merguez, vacuno y cordero, cocida"
+ },
+ "30156": {
+  "alias": [
+   "merguez"
+  ],
+  "es": "Merguez, vacuno y cordero, cruda"
+ },
+ "30176": {
+  "alias": [
+   "salchicha de higado",
+   "leberwurst"
+  ],
+  "es": "Salchicha de hígado"
+ },
+ "30177": {
+  "alias": [
+   "diot",
+   "salchicha saboyana"
+  ],
+  "es": "Diot (salchicha saboyana), crudo"
+ },
+ "30300": {
+  "alias": [
+   "salchichon",
+   "fuet",
+   "embutido curado"
+  ],
+  "es": "Salchichón curado"
+ },
+ "30301": {
+  "alias": [
+   "salchichon",
+   "fuet"
+  ],
+  "es": "Salchichón curado, puro cerdo"
+ },
+ "30302": {
+  "alias": [
+   "salchichon extra",
+   "salchichon"
+  ],
+  "es": "Salchichón curado, puro cerdo, calidad extra"
+ },
+ "30304": {
+  "alias": [
+   "rosette",
+   "salchichon"
+  ],
+  "es": "Rosette o Fuseau (salchichón francés)"
+ },
+ "30309": {
+  "alias": [
+   "fuet",
+   "salchicha curada",
+   "longaniza"
+  ],
+  "es": "Salchicha curada"
+ },
+ "30311": {
+  "alias": [
+   "salchichon con nueces",
+   "salchichon"
+  ],
+  "es": "Salchichón curado con nueces o avellanas"
+ },
+ "30315": {
+  "alias": [
+   "chorizo"
+  ],
+  "es": "Chorizo"
+ },
+ "30316": {
+  "alias": [
+   "chorizo",
+   "chorizo sarta"
+  ],
+  "es": "Chorizo extra, dulce o picante, tipo sarta"
+ },
+ "30317": {
+  "alias": [
+   "chorizo en lonchas",
+   "chorizo"
+  ],
+  "es": "Chorizo extra, dulce o picante, en lonchas"
+ },
+ "30350": {
+  "alias": [
+   "salami"
+  ],
+  "es": "Salami"
+ },
+ "30351": {
+  "alias": [
+   "salami"
+  ],
+  "es": "Salami puro cerdo"
+ },
+ "30352": {
+  "alias": [
+   "salami"
+  ],
+  "es": "Salami de cerdo y vacuno"
+ },
+ "30366": {
+  "alias": [
+   "salami danes",
+   "salami"
+  ],
+  "es": "Salami tipo danés"
+ },
+ "30700": {
+  "alias": [
+   "salchichon al ajo",
+   "salchichon cocido"
+  ],
+  "es": "Salchichón al ajo"
+ },
+ "30701": {
+  "alias": [
+   "salchichon cocido"
+  ],
+  "es": "Salchichón cocido puro cerdo"
+ },
+ "30705": {
+  "alias": [
+   "salchichon de paris",
+   "salchichon cocido"
+  ],
+  "es": "Salchichón de París"
+ },
+ "30706": {
+  "alias": [
+   "salchichon de paris ahumado"
+  ],
+  "es": "Salchichón de París, ahumado"
+ },
+ "30707": {
+  "alias": [
+   "salchichon en brioche"
+  ],
+  "es": "Salchichón en brioche, cocido"
+ },
+ "30730": {
+  "alias": [
+   "cervelas",
+   "salchicha cocida"
+  ],
+  "es": "Cervelas (salchicha cocida)"
+ },
+ "30731": {
+  "alias": [
+   "cervelas"
+  ],
+  "es": "Cervelas de Obernai"
+ },
+ "30732": {
+  "alias": [
+   "cervelas al ajo",
+   "cervelas"
+  ],
+  "es": "Cervelas al ajo, puro cerdo"
+ },
+ "30742": {
+  "alias": [
+   "salchicha de estrasburgo",
+   "knack"
+  ],
+  "es": "Salchicha de Estrasburgo (Knack)"
+ },
+ "30746": {
+  "alias": [
+   "salchicha coctel",
+   "salchichitas"
+  ],
+  "es": "Salchicha cóctel"
+ },
+ "30750": {
+  "alias": [
+   "salchicha vienesa",
+   "vienesa"
+  ],
+  "es": "Salchicha vienesa, cruda"
+ },
+ "30764": {
+  "alias": [
+   "salchicha de jamon"
+  ],
+  "es": "Salchicha de jamón puro cerdo"
+ },
+ "30766": {
+  "alias": [
+   "salchicha de cerveza",
+   "bierwurst"
+  ],
+  "es": "Salchicha de cerveza (Bierwurst)"
+ },
+ "30778": {
+  "alias": [
+   "salchicha de lengua"
+  ],
+  "es": "Salchicha de lengua con pistachos"
+ },
+ "30780": {
+  "alias": [
+   "salchicha",
+   "salchichas"
+  ],
+  "es": "Salchicha (alimento medio)"
+ },
+ "30789": {
+  "alias": [
+   "mortadela"
+  ],
+  "es": "Mortadela"
+ },
+ "30790": {
+  "alias": [
+   "mortadela"
+  ],
+  "es": "Mortadela, puro cerdo"
+ },
+ "30791": {
+  "alias": [
+   "mortadela"
+  ],
+  "es": "Mortadela, cerdo y vacuno"
+ },
+ "30797": {
+  "alias": [
+   "mortadela con pistachos",
+   "mortadela"
+  ],
+  "es": "Mortadela con pistachos, puro cerdo"
+ },
+ "30801": {
+  "alias": [
+   "salchichon de caballo"
+  ],
+  "es": "Salchichón de caballo tipo cervelas"
+ },
+ "30900": {
+  "alias": [
+   "embutido",
+   "charcuteria",
+   "fiambre"
+  ],
+  "es": "Embutido y charcutería (alimento medio)"
+ },
+ "34000": {
+  "alias": [
+   "conejo estofado",
+   "conejo guisado"
+  ],
+  "es": "Conejo, carne estofada"
+ },
+ "34001": {
+  "alias": [
+   "conejo"
+  ],
+  "es": "Conejo, carne cruda"
+ },
+ "34002": {
+  "alias": [
+   "conejo cocido",
+   "conejo"
+  ],
+  "es": "Conejo, carne cocida"
+ },
+ "34003": {
+  "alias": [
+   "conejo de monte",
+   "conejo silvestre"
+  ],
+  "es": "Conejo de monte, carne, cruda"
+ },
+ "34004": {
+  "alias": [
+   "conejo de monte",
+   "conejo silvestre"
+  ],
+  "es": "Conejo de monte, carne, cocida"
+ },
+ "34500": {
+  "alias": [
+   "ancas de rana",
+   "rana"
+  ],
+  "es": "Rana, ancas, crudas"
+ },
+ "34501": {
+  "alias": [
+   "ancas de rana",
+   "rana"
+  ],
+  "es": "Rana, ancas, a la plancha o parrilla"
+ },
+ "36000": {
+  "alias": [
+   "gallina",
+   "gallina con piel"
+  ],
+  "es": "Gallina, carne y piel, cruda"
+ },
+ "36001": {
+  "alias": [
+   "gallina"
+  ],
+  "es": "Gallina, carne, cruda"
+ },
+ "36002": {
+  "alias": [
+   "muslo de pollo",
+   "pollo"
+  ],
+  "es": "Pollo, muslo, carne y piel, crudo"
+ },
+ "36003": {
+  "alias": [
+   "pollo",
+   "carne de pollo"
+  ],
+  "es": "Pollo, carne, cruda"
+ },
+ "36004": {
+  "alias": [
+   "muslo de pollo asado",
+   "pollo asado"
+  ],
+  "es": "Pollo, muslo, carne y piel, asado al horno"
+ },
+ "36005": {
+  "alias": [
+   "pollo asado",
+   "pollo al horno"
+  ],
+  "es": "Pollo, carne y piel, asado al horno"
+ },
+ "36006": {
+  "alias": [
+   "muslo de pollo asado",
+   "pollo asado"
+  ],
+  "es": "Pollo, muslo, carne, asado al horno"
+ },
+ "36007": {
+  "alias": [
+   "pollo blanco",
+   "pollo"
+  ],
+  "es": "Pollo (variedad blanca), carne y piel, crudo"
+ },
+ "36008": {
+  "alias": [
+   "pollo de corral",
+   "pollo campero"
+  ],
+  "es": "Pollo de corral, carne y piel, crudo"
+ },
+ "36014": {
+  "alias": [
+   "muslo de gallina",
+   "gallina"
+  ],
+  "es": "Gallina, muslo, crudo"
+ },
+ "36016": {
+  "alias": [
+   "pollo con piel",
+   "pollo"
+  ],
+  "es": "Pollo, carne y piel, crudo"
+ },
+ "36017": {
+  "alias": [
+   "pechuga de pollo",
+   "filete de pollo"
+  ],
+  "es": "Pollo, pechuga, sin piel, cruda"
+ },
+ "36018": {
+  "alias": [
+   "pechuga de pollo a la plancha",
+   "filete de pollo"
+  ],
+  "es": "Pollo, pechuga, sin piel, a la plancha o salteada"
+ },
+ "36019": {
+  "alias": [
+   "contramuslo de pollo",
+   "pollo"
+  ],
+  "es": "Pollo, contramuslo, carne, crudo"
+ },
+ "36020": {
+  "alias": [
+   "pollo entero",
+   "pollo"
+  ],
+  "es": "Pollo eviscerado sin menudillos, crudo"
+ },
+ "36022": {
+  "alias": [
+   "jamoncito de pollo",
+   "muslo de pollo"
+  ],
+  "es": "Pollo, jamoncito, crudo"
+ },
+ "36023": {
+  "alias": [
+   "alitas de pollo",
+   "alita"
+  ],
+  "es": "Pollo, alita, carne y piel, cruda"
+ },
+ "36024": {
+  "alias": [
+   "muslo de pollo",
+   "pollo"
+  ],
+  "es": "Pollo, muslo, carne, crudo"
+ },
+ "36027": {
+  "alias": [
+   "nuggets de pollo",
+   "nuggets"
+  ],
+  "es": "Pollo, croqueta empanada o nuggets"
+ },
+ "36029": {
+  "alias": [
+   "pechuga de pollo con piel",
+   "pechuga"
+  ],
+  "es": "Pollo, pechuga, carne y piel, cruda"
+ },
+ "36030": {
+  "alias": [
+   "muslo de pollo cocido",
+   "pollo cocido"
+  ],
+  "es": "Pollo, muslo, carne, hervido/cocido en agua"
+ },
+ "36031": {
+  "alias": [
+   "muslo de pollo cocido",
+   "pollo cocido"
+  ],
+  "es": "Pollo, muslo, carne y piel, hervido/cocido en agua"
+ },
+ "36032": {
+  "alias": [
+   "pechuga de pollo al horno",
+   "pollo asado"
+  ],
+  "es": "Pollo, pechuga, carne y piel, asada al horno"
+ },
+ "36033": {
+  "alias": [
+   "alitas de pollo asadas",
+   "alitas"
+  ],
+  "es": "Pollo, alita, carne y piel, asada al horno"
+ },
+ "36035": {
+  "alias": [
+   "alitas marinadas",
+   "alitas de pollo"
+  ],
+  "es": "Pollo, alitas marinadas, asadas al horno"
+ },
+ "36036": {
+  "alias": [
+   "filete de pollo empanado",
+   "pollo empanado"
+  ],
+  "es": "Pollo, filete empanado"
+ },
+ "36037": {
+  "alias": [
+   "muslo de pollo ecologico",
+   "pollo bio"
+  ],
+  "es": "Pollo, muslo, carne y piel, crudo, ecológico"
+ },
+ "36038": {
+  "alias": [
+   "muslo de pollo",
+   "pollo label rouge"
+  ],
+  "es": "Pollo, muslo, carne y piel, crudo, label rouge"
+ },
+ "36039": {
+  "alias": [
+   "pechuga de pollo ecologica",
+   "pollo bio"
+  ],
+  "es": "Pollo, pechuga, sin piel, cruda, ecológica"
+ },
+ "36040": {
+  "alias": [
+   "pechuga de pollo",
+   "pollo label rouge"
+  ],
+  "es": "Pollo, pechuga, sin piel, cruda, label rouge"
+ },
+ "36041": {
+  "alias": [
+   "pechuga de pollo ecologica"
+  ],
+  "es": "Pollo, pechuga, sin piel, a la plancha o salteada, ecológica"
+ },
+ "36050": {
+  "alias": [
+   "capon"
+  ],
+  "es": "Capón, carne y piel, crudo"
+ },
+ "36051": {
+  "alias": [
+   "capon asado",
+   "capon"
+  ],
+  "es": "Capón, carne y piel, asado al horno"
+ },
+ "36100": {
+  "alias": [
+   "codorniz"
+  ],
+  "es": "Codorniz, carne y piel, cruda"
+ },
+ "36101": {
+  "alias": [
+   "codorniz"
+  ],
+  "es": "Codorniz, carne, cruda"
+ },
+ "36102": {
+  "alias": [
+   "codorniz cocida",
+   "codorniz"
+  ],
+  "es": "Codorniz, carne y piel, cocida"
+ },
+ "36200": {
+  "alias": [
+   "pato asado",
+   "pato"
+  ],
+  "es": "Pato, carne y piel, asado al horno"
+ },
+ "36201": {
+  "alias": [
+   "pato",
+   "carne de pato"
+  ],
+  "es": "Pato, carne, cruda"
+ },
+ "36202": {
+  "alias": [
+   "pato asado",
+   "pato"
+  ],
+  "es": "Pato, carne, asada al horno"
+ },
+ "36203": {
+  "alias": [
+   "muslo de pato",
+   "pato"
+  ],
+  "es": "Pato, muslo con piel, sin hueso, crudo"
+ },
+ "36204": {
+  "alias": [
+   "pato con piel",
+   "pato"
+  ],
+  "es": "Pato, carne y piel, crudo"
+ },
+ "36205": {
+  "alias": [
+   "magret de pato",
+   "magret"
+  ],
+  "es": "Pato, magret, a la plancha o parrilla"
+ },
+ "36206": {
+  "alias": [
+   "magret de pato",
+   "magret"
+  ],
+  "es": "Pato, magret, crudo"
+ },
+ "36300": {
+  "alias": [
+   "pavo",
+   "carne de pavo"
+  ],
+  "es": "Pavo, carne y piel, cruda"
  },
  "4000": {
   "alias": [
@@ -4027,6 +7764,1242 @@
    "pure de batata"
   ],
   "es": "Boniato, puré cocinado con nata"
+ },
+ "53100": {
+  "alias": [
+   "platano macho",
+   "platano de freir",
+   "banana macho"
+  ],
+  "es": "Plátano macho, crudo"
+ },
+ "53101": {
+  "alias": [
+   "platano macho cocido",
+   "platano de freir"
+  ],
+  "es": "Plátano macho, cocido"
+ },
+ "53200": {
+  "alias": [
+   "taro",
+   "malanga",
+   "ñame taro"
+  ],
+  "es": "Taro, tubérculo, crudo"
+ },
+ "53201": {
+  "alias": [
+   "taro cocido",
+   "malanga"
+  ],
+  "es": "Taro, tubérculo, cocido"
+ },
+ "53502": {
+  "alias": [
+   "ñame"
+  ],
+  "es": "Ñame, pelado, crudo"
+ },
+ "53503": {
+  "alias": [
+   "ñame cocido"
+  ],
+  "es": "Ñame, pelado, hervido/cocido en agua"
+ },
+ "54031": {
+  "alias": [
+   "yuca",
+   "mandioca",
+   "casava"
+  ],
+  "es": "Yuca (mandioca), raíz cruda"
+ },
+ "54034": {
+  "alias": [
+   "yuca cocida",
+   "mandioca"
+  ],
+  "es": "Yuca (mandioca), raíz cocida"
+ },
+ "54500": {
+  "alias": [
+   "fruto del pan",
+   "panapen",
+   "arbol del pan"
+  ],
+  "es": "Fruto del pan, crudo"
+ },
+ "58103": {
+  "alias": [
+   "okra",
+   "quimbombo",
+   "gombo"
+  ],
+  "es": "Okra (gombo), fruto, cocida"
+ },
+ "6001": {
+  "alias": [
+   "ternera",
+   "chuleta de ternera",
+   "chuleton"
+  ],
+  "es": "Vacuno, chuleta, cruda"
+ },
+ "6002": {
+  "alias": [
+   "ternera",
+   "espaldilla",
+   "paletilla"
+  ],
+  "es": "Vacuno, espaldilla, cruda"
+ },
+ "6003": {
+  "alias": [
+   "ternera",
+   "aguja de ternera"
+  ],
+  "es": "Vacuno, aguja, cruda"
+ },
+ "6100": {
+  "alias": [
+   "entrecot",
+   "ternera",
+   "entrecot a la plancha"
+  ],
+  "es": "Vacuno, entrecot, parte magra, a la plancha o parrilla"
+ },
+ "6101": {
+  "alias": [
+   "ternera estofada",
+   "carne estofada",
+   "guiso de ternera"
+  ],
+  "es": "Vacuno, estofado"
+ },
+ "6102": {
+  "alias": [
+   "tapilla",
+   "ternera",
+   "redondo"
+  ],
+  "es": "Vacuno, tapilla, cruda"
+ },
+ "6103": {
+  "alias": [
+   "entrecot",
+   "ternera"
+  ],
+  "es": "Vacuno, entrecot, crudo"
+ },
+ "6104": {
+  "alias": [
+   "tapilla",
+   "ternera"
+  ],
+  "es": "Vacuno, tapilla, cocida"
+ },
+ "6105": {
+  "alias": [
+   "lomo bajo",
+   "ternera asada",
+   "roast beef"
+  ],
+  "es": "Vacuno, lomo bajo, asado al horno"
+ },
+ "6106": {
+  "alias": [
+   "redondo",
+   "ternera",
+   "redondo de ternera"
+  ],
+  "es": "Vacuno, redondo, crudo"
+ },
+ "6110": {
+  "alias": [
+   "lomo bajo",
+   "ternera a la plancha"
+  ],
+  "es": "Vacuno, lomo bajo, a la plancha o parrilla"
+ },
+ "6111": {
+  "alias": [
+   "lomo bajo",
+   "ternera"
+  ],
+  "es": "Vacuno, lomo bajo, crudo"
+ },
+ "6116": {
+  "alias": [
+   "solomillo",
+   "solomillo de ternera"
+  ],
+  "es": "Vacuno, solomillo, crudo"
+ },
+ "6122": {
+  "alias": [
+   "costillar",
+   "costillas de ternera",
+   "falda"
+  ],
+  "es": "Vacuno, costillar, crudo"
+ },
+ "6123": {
+  "alias": [
+   "costillar estofado",
+   "costillas de ternera"
+  ],
+  "es": "Vacuno, costillar, estofado"
+ },
+ "6130": {
+  "alias": [
+   "entraña",
+   "ternera"
+  ],
+  "es": "Vacuno, entraña, cruda"
+ },
+ "6131": {
+  "alias": [
+   "entraña a la plancha",
+   "entraña"
+  ],
+  "es": "Vacuno, entraña, a la plancha o parrilla"
+ },
+ "6140": {
+  "alias": [
+   "carrillera",
+   "carrillada",
+   "morrillo"
+  ],
+  "es": "Vacuno, carrillera, cruda"
+ },
+ "6141": {
+  "alias": [
+   "carrillera estofada",
+   "carrillada"
+  ],
+  "es": "Vacuno, carrillera, estofada o cocida"
+ },
+ "6150": {
+  "alias": [
+   "morcillo",
+   "jarrete",
+   "osobuco"
+  ],
+  "es": "Vacuno, morcillo, crudo"
+ },
+ "6151": {
+  "alias": [
+   "morcillo cocido",
+   "jarrete"
+  ],
+  "es": "Vacuno, morcillo, hervido/cocido en agua"
+ },
+ "6160": {
+  "alias": [
+   "tapa",
+   "tapa de ternera",
+   "ternera"
+  ],
+  "es": "Vacuno, tapa, cruda"
+ },
+ "6161": {
+  "alias": [
+   "tapa a la plancha",
+   "filete de ternera"
+  ],
+  "es": "Vacuno, tapa, a la plancha o parrilla"
+ },
+ "6162": {
+  "alias": [
+   "tapa asada",
+   "ternera asada",
+   "redondo"
+  ],
+  "es": "Vacuno, tapa, asada al horno"
+ },
+ "6200": {
+  "alias": [
+   "filete de ternera",
+   "bistec",
+   "filete"
+  ],
+  "es": "Vacuno, filete o bistec, a la parrilla"
+ },
+ "6201": {
+  "alias": [
+   "filete de ternera",
+   "bistec"
+  ],
+  "es": "Vacuno, filete o bistec, crudo"
+ },
+ "6202": {
+  "alias": [
+   "llana",
+   "aguja",
+   "ternera"
+  ],
+  "es": "Vacuno, llana, cruda"
+ },
+ "6204": {
+  "alias": [
+   "onglet",
+   "entraña gruesa",
+   "solomillo de carnicero"
+  ],
+  "es": "Vacuno, solomillo del carnicero (onglet), crudo"
+ },
+ "6205": {
+  "alias": [
+   "onglet",
+   "entraña gruesa"
+  ],
+  "es": "Vacuno, solomillo del carnicero (onglet), a la parrilla"
+ },
+ "6206": {
+  "alias": [
+   "cadera",
+   "ternera",
+   "rabillo de cadera"
+  ],
+  "es": "Vacuno, cadera, cruda"
+ },
+ "6207": {
+  "alias": [
+   "cadera a la parrilla",
+   "cadera"
+  ],
+  "es": "Vacuno, cadera, a la parrilla"
+ },
+ "6208": {
+  "alias": [
+   "llana",
+   "aguja"
+  ],
+  "es": "Vacuno, llana, a la plancha o parrilla"
+ },
+ "6210": {
+  "alias": [
+   "rosbif",
+   "roast beef",
+   "ternera asada"
+  ],
+  "es": "Vacuno, rosbif, asado al horno"
+ },
+ "6211": {
+  "alias": [
+   "falda",
+   "bavette",
+   "vacio"
+  ],
+  "es": "Vacuno, falda (bavette), a la plancha o parrilla"
+ },
+ "6212": {
+  "alias": [
+   "falda",
+   "bavette",
+   "vacio"
+  ],
+  "es": "Vacuno, falda (bavette), cruda"
+ },
+ "6214": {
+  "alias": [
+   "llana asada",
+   "aguja"
+  ],
+  "es": "Vacuno, llana, asada al horno"
+ },
+ "6230": {
+  "alias": [
+   "carne de guisar",
+   "carne para cocido",
+   "ternera guisada"
+  ],
+  "es": "Vacuno, carne para guisar o cocido, cocida"
+ },
+ "6231": {
+  "alias": [
+   "carne de guisar",
+   "carne para cocido"
+  ],
+  "es": "Vacuno, carne para guisar o cocido, cruda"
+ },
+ "6240": {
+  "alias": [
+   "pescuezo",
+   "aguja",
+   "ternera"
+  ],
+  "es": "Vacuno, pescuezo, crudo"
+ },
+ "6241": {
+  "alias": [
+   "pescuezo estofado",
+   "aguja"
+  ],
+  "es": "Vacuno, pescuezo, estofado"
+ },
+ "6250": {
+  "alias": [
+   "carne picada",
+   "picada de ternera",
+   "carne picada magra"
+  ],
+  "es": "Vacuno, carne picada 5 % MG, cruda"
+ },
+ "6251": {
+  "alias": [
+   "carne picada",
+   "hamburguesa de ternera"
+  ],
+  "es": "Vacuno, carne picada 5 % MG, cocida"
+ },
+ "6252": {
+  "alias": [
+   "carne picada",
+   "picada de ternera"
+  ],
+  "es": "Vacuno, carne picada 10 % MG, cruda"
+ },
+ "6253": {
+  "alias": [
+   "carne picada",
+   "hamburguesa de ternera"
+  ],
+  "es": "Vacuno, carne picada 10 % MG, cocida"
+ },
+ "6254": {
+  "alias": [
+   "carne picada",
+   "picada de ternera"
+  ],
+  "es": "Vacuno, carne picada 15 % MG, cruda"
+ },
+ "6255": {
+  "alias": [
+   "carne picada",
+   "hamburguesa de ternera"
+  ],
+  "es": "Vacuno, carne picada 15 % MG, cocida"
+ },
+ "6256": {
+  "alias": [
+   "carne picada",
+   "picada de ternera"
+  ],
+  "es": "Vacuno, carne picada 20 % MG, cruda"
+ },
+ "6257": {
+  "alias": [
+   "carne picada",
+   "hamburguesa de ternera"
+  ],
+  "es": "Vacuno, carne picada 20 % MG, cocida"
+ },
+ "6259": {
+  "alias": [
+   "carne picada",
+   "hamburguesa de ternera"
+  ],
+  "es": "Vacuno, carne picada, cocida (alimento medio)"
+ },
+ "6260": {
+  "alias": [
+   "carne picada envasada",
+   "burger meat"
+  ],
+  "es": "Preparado de carne picada de vacuno, 15 % MG, crudo, envasado"
+ },
+ "6270": {
+  "alias": [
+   "espaldilla",
+   "paletilla",
+   "ternera"
+  ],
+  "es": "Vacuno, espaldilla, cruda"
+ },
+ "6271": {
+  "alias": [
+   "espaldilla estofada",
+   "paletilla"
+  ],
+  "es": "Vacuno, espaldilla, estofada o cocida"
+ },
+ "6310": {
+  "alias": [
+   "rabo de toro",
+   "rabo de ternera"
+  ],
+  "es": "Vacuno, rabo, hervido/cocido en agua"
+ },
+ "6311": {
+  "alias": [
+   "rabo de toro",
+   "rabo de ternera"
+  ],
+  "es": "Vacuno, rabo, crudo"
+ },
+ "6510": {
+  "alias": [
+   "chuleta de ternera",
+   "ternera lechal"
+  ],
+  "es": "Ternera lechal, chuleta, cruda"
+ },
+ "6511": {
+  "alias": [
+   "chuleta de ternera",
+   "ternera lechal"
+  ],
+  "es": "Ternera lechal, chuleta, a la plancha o parrilla"
+ },
+ "6512": {
+  "alias": [
+   "costillar de ternera",
+   "ternera lechal"
+  ],
+  "es": "Ternera lechal, costillar, salteado"
+ },
+ "6513": {
+  "alias": [
+   "costillar de ternera",
+   "ternera lechal"
+  ],
+  "es": "Ternera lechal, costillar, crudo"
+ },
+ "6520": {
+  "alias": [
+   "escalope de ternera",
+   "filete de ternera"
+  ],
+  "es": "Ternera lechal, escalope, cocido"
+ },
+ "6521": {
+  "alias": [
+   "escalope de ternera",
+   "filete de ternera"
+  ],
+  "es": "Ternera lechal, escalope, crudo"
+ },
+ "6522": {
+  "alias": [
+   "babilla",
+   "ternera lechal"
+  ],
+  "es": "Ternera lechal, babilla, cruda"
+ },
+ "6523": {
+  "alias": [
+   "babilla",
+   "ternera lechal"
+  ],
+  "es": "Ternera lechal, babilla, a la plancha o parrilla"
+ },
+ "6524": {
+  "alias": [
+   "babilla asada",
+   "ternera asada"
+  ],
+  "es": "Ternera lechal, babilla, asada"
+ },
+ "6530": {
+  "alias": [
+   "solomillo de ternera",
+   "solomillo"
+  ],
+  "es": "Ternera lechal, solomillo, crudo"
+ },
+ "6531": {
+  "alias": [
+   "solomillo de ternera asado",
+   "solomillo"
+  ],
+  "es": "Ternera lechal, solomillo, asado al horno"
+ },
+ "6535": {
+  "alias": [
+   "carne picada de ternera"
+  ],
+  "es": "Ternera lechal, carne picada 20 % MG, cruda"
+ },
+ "6536": {
+  "alias": [
+   "carne picada de ternera"
+  ],
+  "es": "Ternera lechal, carne picada 15 % MG, cruda"
+ },
+ "6540": {
+  "alias": [
+   "pecho de ternera",
+   "falda de ternera"
+  ],
+  "es": "Ternera lechal, pecho, crudo"
+ },
+ "6550": {
+  "alias": [
+   "redondo de ternera",
+   "ternera para asar"
+  ],
+  "es": "Ternera lechal, carne para asar, cruda"
+ },
+ "6551": {
+  "alias": [
+   "redondo de ternera",
+   "ternera asada"
+  ],
+  "es": "Ternera lechal, carne para asar, cocida"
+ },
+ "6560": {
+  "alias": [
+   "espaldilla de ternera",
+   "paletilla"
+  ],
+  "es": "Ternera lechal, espaldilla, cruda"
+ },
+ "6562": {
+  "alias": [
+   "espaldilla de ternera",
+   "paletilla"
+  ],
+  "es": "Ternera lechal, espaldilla, a la plancha o parrilla"
+ },
+ "6563": {
+  "alias": [
+   "espaldilla estofada",
+   "paletilla"
+  ],
+  "es": "Ternera lechal, espaldilla, estofada o cocida"
+ },
+ "6564": {
+  "alias": [
+   "ternera cocida",
+   "ternera"
+  ],
+  "es": "Ternera lechal, carne, cocida (alimento medio)"
+ },
+ "6580": {
+  "alias": [
+   "pie de ternera",
+   "manita de ternera"
+  ],
+  "es": "Ternera lechal, pie, crudo"
+ },
+ "6581": {
+  "alias": [
+   "osobuco",
+   "morcillo de ternera",
+   "jarrete"
+  ],
+  "es": "Ternera lechal, morcillo, estofado o cocido"
+ },
+ "6582": {
+  "alias": [
+   "cabeza de ternera"
+  ],
+  "es": "Ternera lechal, cabeza, hervida/cocida en agua"
+ },
+ "6583": {
+  "alias": [
+   "osobuco",
+   "morcillo de ternera",
+   "jarrete"
+  ],
+  "es": "Ternera lechal, morcillo, crudo"
+ },
+ "6584": {
+  "alias": [
+   "carne blanca"
+  ],
+  "es": "Carne blanca, cocida (alimento medio)"
+ },
+ "6585": {
+  "alias": [
+   "carne roja"
+  ],
+  "es": "Carne roja, cocida (alimento medio)"
+ },
+ "6590": {
+  "alias": [
+   "pescuezo de ternera",
+   "aguja"
+  ],
+  "es": "Ternera lechal, pescuezo, crudo"
+ },
+ "6591": {
+  "alias": [
+   "pescuezo estofado"
+  ],
+  "es": "Ternera lechal, pescuezo, estofado o cocido"
+ },
+ "6900": {
+  "alias": [
+   "carne de caballo",
+   "caballo"
+  ],
+  "es": "Caballo, carne, cruda"
+ },
+ "6901": {
+  "alias": [
+   "filete de caballo",
+   "caballo"
+  ],
+  "es": "Caballo, filete, crudo"
+ },
+ "6902": {
+  "alias": [
+   "carne de caballo asada"
+  ],
+  "es": "Caballo, carne, asada al horno"
+ },
+ "6903": {
+  "alias": [
+   "tapa de caballo",
+   "caballo"
+  ],
+  "es": "Caballo, tapa, cruda"
+ },
+ "6904": {
+  "alias": [
+   "lomo bajo de caballo",
+   "caballo"
+  ],
+  "es": "Caballo, lomo bajo, crudo"
+ },
+ "6905": {
+  "alias": [
+   "entrecot de caballo",
+   "caballo"
+  ],
+  "es": "Caballo, entrecot, crudo"
+ },
+ "6906": {
+  "alias": [
+   "tapa de caballo"
+  ],
+  "es": "Caballo, tapa, a la plancha o parrilla"
+ },
+ "6907": {
+  "alias": [
+   "lomo bajo de caballo"
+  ],
+  "es": "Caballo, lomo bajo, a la plancha o parrilla"
+ },
+ "6908": {
+  "alias": [
+   "entrecot de caballo"
+  ],
+  "es": "Caballo, entrecot, a la plancha o parrilla"
+ },
+ "6909": {
+  "alias": [
+   "lomo bajo de caballo asado"
+  ],
+  "es": "Caballo, lomo bajo, asado al horno"
+ },
+ "6910": {
+  "alias": [
+   "tapa de caballo asada"
+  ],
+  "es": "Caballo, tapa, asada al horno"
+ },
+ "6999": {
+  "alias": [
+   "carne cocida",
+   "carne"
+  ],
+  "es": "Carne cocida (alimento medio)"
+ },
+ "8000": {
+  "alias": [
+   "rillettes",
+   "pate de cerdo desmenuzado"
+  ],
+  "es": "Rillettes tradicionales de cerdo"
+ },
+ "8001": {
+  "alias": [
+   "rillettes",
+   "pate de cerdo desmenuzado"
+  ],
+  "es": "Rillettes puro cerdo"
+ },
+ "8010": {
+  "alias": [
+   "rillettes"
+  ],
+  "es": "Rillettes de Tours"
+ },
+ "8015": {
+  "alias": [
+   "rillettes"
+  ],
+  "es": "Rillettes de Le Mans"
+ },
+ "8025": {
+  "alias": [
+   "rillettes de oca"
+  ],
+  "es": "Rillettes puro oca"
+ },
+ "8026": {
+  "alias": [
+   "rillettes de pato"
+  ],
+  "es": "Rillettes de pato"
+ },
+ "8030": {
+  "alias": [
+   "rillettes de oca"
+  ],
+  "es": "Rillettes de oca"
+ },
+ "8040": {
+  "alias": [
+   "rillettes de pollo"
+  ],
+  "es": "Rillettes de pollo"
+ },
+ "8059": {
+  "alias": [
+   "rillettes de cangrejo",
+   "pate de cangrejo"
+  ],
+  "es": "Rillettes de cangrejo, envasadas"
+ },
+ "8080": {
+  "alias": [
+   "rillettes de pescado",
+   "pate de pescado"
+  ],
+  "es": "Rillettes de pescado, envasadas"
+ },
+ "8081": {
+  "alias": [
+   "rillettes de salmon",
+   "pate de salmon"
+  ],
+  "es": "Rillettes de salmón, envasadas"
+ },
+ "8082": {
+  "alias": [
+   "rillettes de atun",
+   "pate de atun"
+  ],
+  "es": "Rillettes de atún, envasadas"
+ },
+ "8083": {
+  "alias": [
+   "rillettes de caballa",
+   "pate de caballa"
+  ],
+  "es": "Rillettes de caballa, envasadas"
+ },
+ "8109": {
+  "alias": [
+   "confit de pato",
+   "muslo de pato confitado"
+  ],
+  "es": "Confit de pato, carne (muslo), sin piel, recalentado"
+ },
+ "8110": {
+  "alias": [
+   "confit de pato",
+   "pato confitado"
+  ],
+  "es": "Confit de pato"
+ },
+ "8111": {
+  "alias": [
+   "magret de pato ahumado",
+   "magret ahumado"
+  ],
+  "es": "Pato, magret ahumado"
+ },
+ "8120": {
+  "alias": [
+   "confit de higado de cerdo"
+  ],
+  "es": "Confit de hígado de cerdo"
+ },
+ "8125": {
+  "alias": [
+   "confit de higado de ave",
+   "higadillos confitados"
+  ],
+  "es": "Confit de hígado de ave"
+ },
+ "8201": {
+  "alias": [
+   "pate a la pimienta",
+   "pate"
+  ],
+  "es": "Paté a la pimienta verde"
+ },
+ "8206": {
+  "alias": [
+   "pate de jamon",
+   "pate"
+  ],
+  "es": "Paté con jamón"
+ },
+ "8211": {
+  "alias": [
+   "pate de campaña",
+   "terrina de campaña"
+  ],
+  "es": "Paté o terrina de campaña"
+ },
+ "8214": {
+  "alias": [
+   "pate breton",
+   "pate"
+  ],
+  "es": "Paté bretón"
+ },
+ "8232": {
+  "alias": [
+   "terrina de pato",
+   "pate de pato"
+  ],
+  "es": "Terrina de pato"
+ },
+ "8240": {
+  "alias": [
+   "pate de conejo"
+  ],
+  "es": "Paté de conejo"
+ },
+ "8242": {
+  "alias": [
+   "terrina de conejo",
+   "pate de conejo"
+  ],
+  "es": "Terrina de conejo"
+ },
+ "8245": {
+  "alias": [
+   "pate de caza"
+  ],
+  "es": "Paté de caza"
+ },
+ "8250": {
+  "alias": [
+   "pate de setas",
+   "terrina de setas"
+  ],
+  "es": "Paté o terrina con setas (forestier)"
+ },
+ "8291": {
+  "alias": [
+   "terrina de pescado",
+   "pastel de pescado"
+  ],
+  "es": "Terrina de pescado, envasada"
+ },
+ "8292": {
+  "alias": [
+   "terrina de marisco",
+   "pastel de marisco"
+  ],
+  "es": "Terrina de marisco, con o sin pescado, envasada"
+ },
+ "8293": {
+  "alias": [
+   "tarama",
+   "huevas de bacalao"
+  ],
+  "es": "Tarama, envasado"
+ },
+ "8300": {
+  "alias": [
+   "pate de higado",
+   "pate de cerdo"
+  ],
+  "es": "Paté de hígado de cerdo, superior"
+ },
+ "8305": {
+  "alias": [
+   "pate de higado",
+   "pate de cerdo"
+  ],
+  "es": "Paté de hígado de cerdo"
+ },
+ "8312": {
+  "alias": [
+   "mousse de higado",
+   "crema de higado"
+  ],
+  "es": "Mousse de hígado de cerdo superior o crema de hígado"
+ },
+ "8313": {
+  "alias": [
+   "mousse de higado"
+  ],
+  "es": "Mousse de hígado de cerdo"
+ },
+ "8315": {
+  "alias": [
+   "mousse de pato",
+   "pate de pato"
+  ],
+  "es": "Mousse de pato"
+ },
+ "8316": {
+  "alias": [
+   "pate de higado de ave",
+   "higadillos"
+  ],
+  "es": "Paté de hígado de ave"
+ },
+ "8321": {
+  "alias": [
+   "foie gras",
+   "foie de pato"
+  ],
+  "es": "Foie gras de pato, entero, cocido"
+ },
+ "8323": {
+  "alias": [
+   "foie gras",
+   "bloc de foie gras"
+  ],
+  "es": "Foie gras de pato, bloque, sin trozos"
+ },
+ "8324": {
+  "alias": [
+   "foie gras",
+   "bloc de foie gras"
+  ],
+  "es": "Foie gras de pato, bloque, 30 % de trozos"
+ },
+ "8325": {
+  "alias": [
+   "foie gras",
+   "bloc de foie gras"
+  ],
+  "es": "Foie gras de pato, bloque, 50 % de trozos"
+ },
+ "8326": {
+  "alias": [
+   "pate de higado de oca",
+   "foie de oca"
+  ],
+  "es": "Paté de hígado de oca"
+ },
+ "8328": {
+  "alias": [
+   "foie gras crudo",
+   "foie de pato"
+  ],
+  "es": "Foie gras de pato, crudo"
+ },
+ "8331": {
+  "alias": [
+   "foie gras",
+   "bloc de foie gras"
+  ],
+  "es": "Foie gras de pato, bloque (alimento medio)"
+ },
+ "8332": {
+  "alias": [
+   "pate"
+  ],
+  "es": "Paté (alimento medio)"
+ },
+ "8350": {
+  "alias": [
+   "galantina"
+  ],
+  "es": "Galantina (alimento medio)"
+ },
+ "8373": {
+  "alias": [
+   "rollo de cerdo",
+   "fiambre de cerdo"
+  ],
+  "es": "Rollo de cerdo con pistachos"
+ },
+ "8380": {
+  "alias": [
+   "huevo en gelatina"
+  ],
+  "es": "Huevo con jamón en gelatina"
+ },
+ "8391": {
+  "alias": [
+   "pate en hojaldre",
+   "empanada de pate"
+  ],
+  "es": "Paté en hojaldre"
+ },
+ "8395": {
+  "alias": [
+   "jamon en hojaldre"
+  ],
+  "es": "Jamón en hojaldre"
+ },
+ "8400": {
+  "alias": [
+   "cabeza de jabali",
+   "queso de cabeza"
+  ],
+  "es": "Cabeza de jabalí (queso de cabeza de cerdo)"
+ },
+ "8406": {
+  "alias": [
+   "morro de cerdo",
+   "morro en vinagreta"
+  ],
+  "es": "Morro de cerdo en vinagreta"
+ },
+ "8429": {
+  "alias": [
+   "jamon al perejil",
+   "jambon persille"
+  ],
+  "es": "Jamón al perejil en gelatina"
+ },
+ "8450": {
+  "alias": [
+   "morro de ternera",
+   "morro de vaca"
+  ],
+  "es": "Morro de vacuno"
+ },
+ "8500": {
+  "alias": [
+   "andouille",
+   "embutido de tripa"
+  ],
+  "es": "Andouille (embutido de tripa de cerdo)"
+ },
+ "8501": {
+  "alias": [
+   "andouille"
+  ],
+  "es": "Andouille de Guéméné"
+ },
+ "8504": {
+  "alias": [
+   "andouille"
+  ],
+  "es": "Andouille, recalentada a la sartén"
+ },
+ "8512": {
+  "alias": [
+   "andouille"
+  ],
+  "es": "Andouille de Vire"
+ },
+ "8550": {
+  "alias": [
+   "andouillette"
+  ],
+  "es": "Andouillette, para cocinar"
+ },
+ "8551": {
+  "alias": [
+   "andouillette"
+  ],
+  "es": "Andouillette, salteada a la sartén"
+ },
+ "8552": {
+  "alias": [
+   "andouillette"
+  ],
+  "es": "Andouillette de Troyes, para cocinar"
+ },
+ "8703": {
+  "alias": [
+   "morcilla",
+   "morcilla cruda"
+  ],
+  "es": "Morcilla, para cocinar"
+ },
+ "8704": {
+  "alias": [
+   "morcilla frita",
+   "morcilla"
+  ],
+  "es": "Morcilla, salteada a la sartén"
+ },
+ "8705": {
+  "alias": [
+   "morcilla"
+  ],
+  "es": "Morcilla, salteada a la sartén (alimento medio)"
+ },
+ "8742": {
+  "alias": [
+   "morcilla antillana",
+   "morcilla"
+  ],
+  "es": "Morcilla antillana, para cocinar"
+ },
+ "8800": {
+  "alias": [
+   "morcilla blanca",
+   "butifarra blanca"
+  ],
+  "es": "Morcilla blanca, salteada a la sartén"
+ },
+ "8801": {
+  "alias": [
+   "morcilla blanca",
+   "butifarra blanca"
+  ],
+  "es": "Morcilla blanca, para cocinar"
+ },
+ "8803": {
+  "alias": [
+   "morcilla blanca trufada"
+  ],
+  "es": "Morcilla blanca trufada, para cocinar"
+ },
+ "8903": {
+  "alias": [
+   "quenelle",
+   "albondiguilla de ternera"
+  ],
+  "es": "Quenelle de ternera, en salsa"
+ },
+ "8910": {
+  "alias": [
+   "quenelle",
+   "albondiguilla de ave"
+  ],
+  "es": "Quenelle de ave, cruda"
+ },
+ "8912": {
+  "alias": [
+   "quenelle",
+   "albondiguilla de ave"
+  ],
+  "es": "Quenelle de ave, en salsa"
+ },
+ "8932": {
+  "alias": [
+   "quenelle de pescado"
+  ],
+  "es": "Quenelle de pescado, en salsa"
+ },
+ "8933": {
+  "alias": [
+   "quenelle de pescado"
+  ],
+  "es": "Quenelle de pescado, cruda"
+ },
+ "8934": {
+  "alias": [
+   "quenelle de pescado"
+  ],
+  "es": "Quenelle de pescado, cocida"
+ },
+ "8937": {
+  "alias": [
+   "quenelle"
+  ],
+  "es": "Quenelle natural, cruda"
  },
  "9570": {
   "alias": [
