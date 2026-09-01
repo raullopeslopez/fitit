@@ -383,6 +383,27 @@
   ],
   "es": "Caracol, sin grasa añadida, cocido"
  },
+ "1027": {
+  "alias": [
+   "queso vegano para untar",
+   "queso de soja"
+  ],
+  "es": "Especialidad vegetal tipo queso para untar, de soja, envasada"
+ },
+ "1028": {
+  "alias": [
+   "queso vegano",
+   "queso de anacardo"
+  ],
+  "es": "Especialidad vegetal tipo queso, de anacardo, envasada"
+ },
+ "1029": {
+  "alias": [
+   "queso vegano rallado",
+   "queso vegano en lonchas"
+  ],
+  "es": "Especialidad vegetal tipo queso en lonchas o rallado, sin soja, envasada"
+ },
  "1030": {
   "alias": [
    "jamon vegetal",
@@ -397,6 +418,858 @@
    "pate vegano"
   ],
   "es": "Especialidad vegetal tipo paté, envasada"
+ },
+ "12001": {
+  "alias": [
+   "camembert",
+   "queso camembert"
+  ],
+  "es": "Camembert, sin precisar"
+ },
+ "12003": {
+  "alias": [
+   "queso de corteza blanca",
+   "camembert"
+  ],
+  "es": "Queso de pasta blanda y corteza enmohecida (tipo camembert)"
+ },
+ "12006": {
+  "alias": [
+   "camembert de leche cruda",
+   "camembert"
+  ],
+  "es": "Camembert de leche cruda"
+ },
+ "12008": {
+  "alias": [
+   "queso doble crema",
+   "camembert"
+  ],
+  "es": "Queso de pasta blanda y corteza enmohecida, doble crema, ~30 % MG"
+ },
+ "12009": {
+  "alias": [
+   "camembert light",
+   "queso light"
+  ],
+  "es": "Queso redondo de pasta blanda y corteza enmohecida, 5-11 % MG, tipo camembert light"
+ },
+ "12010": {
+  "alias": [
+   "coulommiers",
+   "queso coulommiers"
+  ],
+  "es": "Coulommiers"
+ },
+ "12012": {
+  "alias": [
+   "coulommiers light",
+   "queso light"
+  ],
+  "es": "Queso redondo de pasta blanda y corteza enmohecida, ~11 % MG, tipo coulommiers light"
+ },
+ "12013": {
+  "alias": [
+   "camembert light",
+   "queso light"
+  ],
+  "es": "Queso redondo de pasta blanda y corteza enmohecida, ~5 % MG, tipo camembert light"
+ },
+ "12020": {
+  "alias": [
+   "brie",
+   "queso brie"
+  ],
+  "es": "Brie, sin precisar"
+ },
+ "12021": {
+  "alias": [
+   "brie de meaux",
+   "brie"
+  ],
+  "es": "Brie de Meaux"
+ },
+ "12022": {
+  "alias": [
+   "brie de melun",
+   "brie"
+  ],
+  "es": "Brie de Melun"
+ },
+ "12025": {
+  "alias": [
+   "carre de lest",
+   "queso frances"
+  ],
+  "es": "Carré de l'Est (queso)"
+ },
+ "12028": {
+  "alias": [
+   "chaource"
+  ],
+  "es": "Chaource (queso)"
+ },
+ "12029": {
+  "alias": [
+   "maroilles"
+  ],
+  "es": "Maroilles de lechería"
+ },
+ "12030": {
+  "alias": [
+   "maroilles"
+  ],
+  "es": "Maroilles artesano"
+ },
+ "12031": {
+  "alias": [
+   "neufchatel"
+  ],
+  "es": "Neufchâtel (queso)"
+ },
+ "12033": {
+  "alias": [
+   "queso triple crema",
+   "queso cremoso"
+  ],
+  "es": "Queso de pasta blanda, triple crema, ~40 % MG"
+ },
+ "12034": {
+  "alias": [
+   "queso de corteza lavada"
+  ],
+  "es": "Queso de pasta blanda y corteza lavada (alimento medio)"
+ },
+ "12035": {
+  "alias": [
+   "queso light",
+   "queso de corteza lavada"
+  ],
+  "es": "Queso de pasta blanda y corteza lavada, light, ~13 % MG"
+ },
+ "12036": {
+  "alias": [
+   "maroilles"
+  ],
+  "es": "Maroilles, sin precisar"
+ },
+ "12037": {
+  "alias": [
+   "livarot"
+  ],
+  "es": "Livarot (queso)"
+ },
+ "12038": {
+  "alias": [
+   "epoisses"
+  ],
+  "es": "Époisses (queso)"
+ },
+ "12039": {
+  "alias": [
+   "munster"
+  ],
+  "es": "Munster (queso)"
+ },
+ "12040": {
+  "alias": [
+   "langres"
+  ],
+  "es": "Langres (queso)"
+ },
+ "12042": {
+  "alias": [
+   "pont leveque"
+  ],
+  "es": "Pont-l'Évêque (queso)"
+ },
+ "12045": {
+  "alias": [
+   "reblochon"
+  ],
+  "es": "Reblochon"
+ },
+ "12047": {
+  "alias": [
+   "vieux pane",
+   "queso de corteza lavada"
+  ],
+  "es": "Queso de pasta blanda y corteza lavada, de leche pasteurizada (tipo Vieux Pané)"
+ },
+ "12049": {
+  "alias": [
+   "saint marcellin"
+  ],
+  "es": "Saint-Marcellin (queso)"
+ },
+ "12050": {
+  "alias": [
+   "queso de corteza mixta"
+  ],
+  "es": "Queso de pasta blanda y corteza mixta (lavada y enmohecida) coloreada"
+ },
+ "12051": {
+  "alias": [
+   "mont dor",
+   "vacherin"
+  ],
+  "es": "Mont d'Or o Vacherin du Haut-Doubs (Francia) o Vacherin Mont d'Or (Suiza)"
+ },
+ "12052": {
+  "alias": [
+   "saint felicien"
+  ],
+  "es": "Saint-Félicien (queso)"
+ },
+ "12060": {
+  "alias": [
+   "feta",
+   "queso tipo feta"
+  ],
+  "es": "Queso tipo feta, de leche de vaca"
+ },
+ "12061": {
+  "alias": [
+   "feta",
+   "queso de oveja"
+  ],
+  "es": "Queso 100 % oveja (feta DOP o tipo feta)"
+ },
+ "12063": {
+  "alias": [
+   "feta en aceite",
+   "feta"
+  ],
+  "es": "Queso tipo feta, de leche de vaca, en aceite y especias"
+ },
+ "12064": {
+  "alias": [
+   "boulette davesnes"
+  ],
+  "es": "Boulette d'Avesnes (queso)"
+ },
+ "12066": {
+  "alias": [
+   "feta",
+   "queso feta"
+  ],
+  "es": "Feta DOP"
+ },
+ "12100": {
+  "alias": [
+   "queso curado",
+   "queso de pasta dura"
+  ],
+  "es": "Queso de pasta prensada cocida (alimento medio)"
+ },
+ "12105": {
+  "alias": [
+   "beaufort"
+  ],
+  "es": "Beaufort (queso)"
+ },
+ "12110": {
+  "alias": [
+   "comte"
+  ],
+  "es": "Comté (queso)"
+ },
+ "12112": {
+  "alias": [
+   "abondance"
+  ],
+  "es": "Abondance (queso)"
+ },
+ "12113": {
+  "alias": [
+   "gruyere",
+   "gruyer"
+  ],
+  "es": "Gruyère IGP de Francia"
+ },
+ "12114": {
+  "alias": [
+   "gruyere",
+   "gruyer"
+  ],
+  "es": "Gruyère"
+ },
+ "12115": {
+  "alias": [
+   "emmental",
+   "emental",
+   "queso de agujeros"
+  ],
+  "es": "Emmental"
+ },
+ "12116": {
+  "alias": [
+   "emmental light",
+   "queso light"
+  ],
+  "es": "Queso de pasta prensada cocida tipo emmental, bajo en grasa"
+ },
+ "12118": {
+  "alias": [
+   "emmental rallado",
+   "queso rallado"
+  ],
+  "es": "Emmental rallado"
+ },
+ "12119": {
+  "alias": [
+   "ossau iraty",
+   "queso de oveja"
+  ],
+  "es": "Ossau-Iraty (queso de oveja)"
+ },
+ "12120": {
+  "alias": [
+   "parmesano",
+   "parmigiano",
+   "parmesan"
+  ],
+  "es": "Parmesano"
+ },
+ "12121": {
+  "alias": [
+   "fontina"
+  ],
+  "es": "Fontina"
+ },
+ "12122": {
+  "alias": [
+   "pecorino",
+   "queso de oveja"
+  ],
+  "es": "Pecorino"
+ },
+ "12123": {
+  "alias": [
+   "grana padano",
+   "parmesano"
+  ],
+  "es": "Grana Padano"
+ },
+ "12300": {
+  "alias": [
+   "queso fundido",
+   "queso en lonchas",
+   "tranchetes"
+  ],
+  "es": "Queso fundido en lonchas"
+ },
+ "12305": {
+  "alias": [
+   "queso en porciones",
+   "quesitos"
+  ],
+  "es": "Queso fundido en porciones o cubos, ~8 % MG"
+ },
+ "12310": {
+  "alias": [
+   "queso en porciones",
+   "quesitos"
+  ],
+  "es": "Queso fundido en porciones o cubos, ~20 % MG"
+ },
+ "12315": {
+  "alias": [
+   "queso para untar",
+   "queso crema"
+  ],
+  "es": "Especialidad quesera sin madurar, ~25 % MG, tipo queso para untar en tarrina"
+ },
+ "12320": {
+  "alias": [
+   "queso fundido",
+   "queso doble crema"
+  ],
+  "es": "Queso fundido doble crema, ~31 % MG"
+ },
+ "12325": {
+  "alias": [
+   "cancoillotte"
+  ],
+  "es": "Cancoillotte (especialidad quesera fundida)"
+ },
+ "12340": {
+  "alias": [
+   "queso para untar",
+   "queso crema light"
+  ],
+  "es": "Especialidad quesera sin madurar, ~20 % MG, tipo queso para untar en tarrina"
+ },
+ "12355": {
+  "alias": [
+   "queso para untar con nueces"
+  ],
+  "es": "Especialidad quesera fundente con queso batido y nueces"
+ },
+ "12356": {
+  "alias": [
+   "snack de queso",
+   "queso con colines"
+  ],
+  "es": "Snack infantil de queso fundido con colines"
+ },
+ "12500": {
+  "alias": [
+   "roquefort",
+   "queso azul"
+  ],
+  "es": "Roquefort"
+ },
+ "12519": {
+  "alias": [
+   "fourme de montbrison",
+   "queso azul"
+  ],
+  "es": "Fourme de Montbrison (queso azul)"
+ },
+ "12520": {
+  "alias": [
+   "queso azul",
+   "queso de vetas azules"
+  ],
+  "es": "Queso azul de leche de vaca"
+ },
+ "12521": {
+  "alias": [
+   "bleu dauvergne",
+   "queso azul"
+  ],
+  "es": "Bleu d'Auvergne (queso azul)"
+ },
+ "12522": {
+  "alias": [
+   "fourme dambert",
+   "queso azul"
+  ],
+  "es": "Fourme d'Ambert (queso azul)"
+ },
+ "12523": {
+  "alias": [
+   "bleu des causses",
+   "queso azul"
+  ],
+  "es": "Bleu des Causses (queso azul)"
+ },
+ "12524": {
+  "alias": [
+   "gorgonzola",
+   "queso azul"
+  ],
+  "es": "Gorgonzola"
+ },
+ "12526": {
+  "alias": [
+   "bleu de gex",
+   "queso azul"
+  ],
+  "es": "Bleu de Gex o Bleu du Haut-Jura o Bleu de Septmoncel (AOC)"
+ },
+ "12527": {
+  "alias": [
+   "bleu de bresse",
+   "queso azul"
+  ],
+  "es": "Bleu de Bresse (queso azul)"
+ },
+ "12528": {
+  "alias": [
+   "queso azul light",
+   "bleu de bresse"
+  ],
+  "es": "Bleu de Bresse light, ~15 % MG"
+ },
+ "12705": {
+  "alias": [
+   "maasdam light",
+   "queso light"
+  ],
+  "es": "Queso de pasta firme, ~14 % MG, tipo Maasdam bajo en grasa"
+ },
+ "12716": {
+  "alias": [
+   "provolone"
+  ],
+  "es": "Provolone"
+ },
+ "12720": {
+  "alias": [
+   "queso con cera",
+   "queso de bola"
+  ],
+  "es": "Queso de pasta firme, recubierto de cera"
+ },
+ "12722": {
+  "alias": [
+   "cantal"
+  ],
+  "es": "Cantal semicurado"
+ },
+ "12723": {
+  "alias": [
+   "cantal",
+   "salers",
+   "laguiole"
+  ],
+  "es": "Cantal, Salers o Laguiole"
+ },
+ "12725": {
+  "alias": [
+   "salers"
+  ],
+  "es": "Salers (queso)"
+ },
+ "12726": {
+  "alias": [
+   "cheddar"
+  ],
+  "es": "Cheddar"
+ },
+ "12729": {
+  "alias": [
+   "edam",
+   "queso de bola"
+  ],
+  "es": "Edam"
+ },
+ "12735": {
+  "alias": [
+   "mimolette"
+  ],
+  "es": "Mimolette joven"
+ },
+ "12736": {
+  "alias": [
+   "gouda"
+  ],
+  "es": "Gouda"
+ },
+ "12737": {
+  "alias": [
+   "mimolette"
+  ],
+  "es": "Mimolette semicurada"
+ },
+ "12738": {
+  "alias": [
+   "mimolette"
+  ],
+  "es": "Mimolette curada"
+ },
+ "12740": {
+  "alias": [
+   "mimolette"
+  ],
+  "es": "Mimolette, sin precisar"
+ },
+ "12741": {
+  "alias": [
+   "maasdam",
+   "queso semicurado"
+  ],
+  "es": "Queso de pasta firme, ~27 % MG, tipo Maasdam"
+ },
+ "12742": {
+  "alias": [
+   "mimolette"
+  ],
+  "es": "Mimolette extra curada"
+ },
+ "12743": {
+  "alias": [
+   "morbier"
+  ],
+  "es": "Morbier (queso)"
+ },
+ "12747": {
+  "alias": [
+   "queso de oveja",
+   "queso de los pirineos"
+  ],
+  "es": "Queso de oveja de los Pirineos"
+ },
+ "12748": {
+  "alias": [
+   "saint nectaire"
+  ],
+  "es": "Saint-Nectaire de lechería"
+ },
+ "12749": {
+  "alias": [
+   "raclette",
+   "queso raclette"
+  ],
+  "es": "Raclette (queso)"
+ },
+ "12751": {
+  "alias": [
+   "saint nectaire"
+  ],
+  "es": "Saint-Nectaire artesano"
+ },
+ "12752": {
+  "alias": [
+   "saint nectaire"
+  ],
+  "es": "Saint-Nectaire, sin precisar"
+ },
+ "12755": {
+  "alias": [
+   "saint paulin"
+  ],
+  "es": "Saint-Paulin (queso de pasta prensada no cocida semifirme)"
+ },
+ "12758": {
+  "alias": [
+   "tomme",
+   "toma de vaca"
+  ],
+  "es": "Tomme (toma) de vaca"
+ },
+ "12759": {
+  "alias": [
+   "tomme de saboya",
+   "tomme"
+  ],
+  "es": "Tomme (toma) de montaña o de Saboya"
+ },
+ "12760": {
+  "alias": [
+   "tomme light",
+   "queso light"
+  ],
+  "es": "Tomme (toma), baja en grasa, ~13 % MG"
+ },
+ "12761": {
+  "alias": [
+   "asiago"
+  ],
+  "es": "Asiago"
+ },
+ "12762": {
+  "alias": [
+   "queso corso",
+   "queso de oveja"
+  ],
+  "es": "Queso corso de oveja, de pasta blanda"
+ },
+ "12763": {
+  "alias": [
+   "tome des bauges",
+   "tomme"
+  ],
+  "es": "Tome des Bauges (queso)"
+ },
+ "12800": {
+  "alias": [
+   "queso de cabra fresco",
+   "rulo de cabra"
+  ],
+  "es": "Queso de cabra fresco, de leche pasteurizada (tipo rulito fresco)"
+ },
+ "12801": {
+  "alias": [
+   "queso de cabra curado",
+   "crottin"
+  ],
+  "es": "Queso de cabra de cuajada láctica madurado, de leche cruda (tipo Crottin de Chavignol, Picodon, Rocamadour, Sainte-Maure)"
+ },
+ "12802": {
+  "alias": [
+   "queso de cabra curado",
+   "rulo de cabra"
+  ],
+  "es": "Queso de cabra de cuajada láctica madurado, de leche pasteurizada (tipo rulito o crottin)"
+ },
+ "12803": {
+  "alias": [
+   "queso de cabra",
+   "rulo de cabra"
+  ],
+  "es": "Queso de cabra de cuajada láctica madurado (tipo rulito, crottin, Sainte-Maure)"
+ },
+ "12804": {
+  "alias": [
+   "queso de cabra fresco",
+   "crottin fresco"
+  ],
+  "es": "Queso de cabra fresco, de leche cruda (tipo disco o crottin fresco)"
+ },
+ "12805": {
+  "alias": [
+   "queso de cabra fresco",
+   "rulo de cabra"
+  ],
+  "es": "Queso de cabra fresco, de leche pasteurizada o cruda (tipo crottin o rulito fresco)"
+ },
+ "12807": {
+  "alias": [
+   "sainte maure",
+   "queso de cabra"
+  ],
+  "es": "Sainte-Maure de Touraine (queso de cabra)"
+ },
+ "12810": {
+  "alias": [
+   "queso de cabra semicurado",
+   "queso de cabra"
+  ],
+  "es": "Queso de cabra semiseco"
+ },
+ "12812": {
+  "alias": [
+   "rulo de cabra",
+   "queso de cabra"
+  ],
+  "es": "Queso de cabra en rulo"
+ },
+ "12813": {
+  "alias": [
+   "rulo de cabra light",
+   "queso de cabra"
+  ],
+  "es": "Queso de cabra en rulo, bajo en grasa"
+ },
+ "12814": {
+  "alias": [
+   "queso de cabra"
+  ],
+  "es": "Queso de cabra de pasta blanda, corteza natural, de leche pasteurizada"
+ },
+ "12815": {
+  "alias": [
+   "queso de cabra curado",
+   "queso de cabra"
+  ],
+  "es": "Queso de cabra seco (curado)"
+ },
+ "12819": {
+  "alias": [
+   "queso de cabra para untar",
+   "queso de cabra"
+  ],
+  "es": "Queso de cabra para untar, natural"
+ },
+ "12820": {
+  "alias": [
+   "queso de cabra",
+   "camembert de cabra"
+  ],
+  "es": "Queso de cabra de pasta blanda y corteza enmohecida, tipo camembert"
+ },
+ "12824": {
+  "alias": [
+   "queso de oveja"
+  ],
+  "es": "Queso de oveja de pasta blanda y corteza enmohecida"
+ },
+ "12827": {
+  "alias": [
+   "queso de oveja",
+   "queso manchego"
+  ],
+  "es": "Queso de oveja de pasta prensada"
+ },
+ "12828": {
+  "alias": [
+   "requeson de oveja",
+   "requeson"
+  ],
+  "es": "Requesón de suero de oveja"
+ },
+ "12830": {
+  "alias": [
+   "chabichou",
+   "queso de cabra"
+  ],
+  "es": "Chabichou (queso de cabra)"
+ },
+ "12831": {
+  "alias": [
+   "pelardon",
+   "queso de cabra"
+  ],
+  "es": "Pélardon (queso de cabra)"
+ },
+ "12832": {
+  "alias": [
+   "crottin",
+   "queso de cabra"
+  ],
+  "es": "Crottin de cabra, de leche cruda"
+ },
+ "12833": {
+  "alias": [
+   "crottin",
+   "queso de cabra"
+  ],
+  "es": "Crottin de cabra, sin precisar"
+ },
+ "12834": {
+  "alias": [
+   "crottin de chavignol",
+   "queso de cabra"
+  ],
+  "es": "Crottin de Chavignol (queso de cabra)"
+ },
+ "12836": {
+  "alias": [
+   "picodon",
+   "queso de cabra"
+  ],
+  "es": "Picodon (queso de cabra)"
+ },
+ "12839": {
+  "alias": [
+   "pouligny saint pierre",
+   "queso de cabra"
+  ],
+  "es": "Pouligny Saint-Pierre (queso de cabra)"
+ },
+ "12842": {
+  "alias": [
+   "sainte maure",
+   "queso de cabra"
+  ],
+  "es": "Sainte-Maure (queso de cabra)"
+ },
+ "12845": {
+  "alias": [
+   "selles sur cher",
+   "queso de cabra"
+  ],
+  "es": "Selles-sur-Cher (queso de cabra)"
+ },
+ "12846": {
+  "alias": [
+   "chevrot",
+   "queso de cabra"
+  ],
+  "es": "Chevrot (queso de cabra)"
+ },
+ "12847": {
+  "alias": [
+   "rocamadour",
+   "queso de cabra"
+  ],
+  "es": "Rocamadour (queso de cabra)"
+ },
+ "12848": {
+  "alias": [
+   "valencay",
+   "queso de cabra"
+  ],
+  "es": "Valençay (queso de cabra)"
+ },
+ "12999": {
+  "alias": [
+   "queso"
+  ],
+  "es": "Queso (alimento medio)"
  },
  "13000": {
   "alias": [
@@ -1981,6 +2854,854 @@
    "pasta de sesamo"
   ],
   "es": "Tahini (puré de sésamo)"
+ },
+ "19021": {
+  "alias": [
+   "leche en polvo",
+   "leche entera en polvo"
+  ],
+  "es": "Leche en polvo, entera"
+ },
+ "19023": {
+  "alias": [
+   "leche entera",
+   "leche"
+  ],
+  "es": "Leche entera, UHT"
+ },
+ "19024": {
+  "alias": [
+   "leche entera fresca",
+   "leche"
+  ],
+  "es": "Leche entera, pasteurizada"
+ },
+ "19026": {
+  "alias": [
+   "leche evaporada",
+   "leche concentrada"
+  ],
+  "es": "Leche evaporada sin azúcar, entera"
+ },
+ "19027": {
+  "alias": [
+   "leche condensada"
+  ],
+  "es": "Leche condensada azucarada, entera"
+ },
+ "19037": {
+  "alias": [
+   "leche semidesnatada",
+   "leche"
+  ],
+  "es": "Leche semidesnatada, UHT, enriquecida solo en vitamina D"
+ },
+ "19038": {
+  "alias": [
+   "leche semidesnatada",
+   "leche enriquecida"
+  ],
+  "es": "Leche con 1,2 % de materia grasa, UHT, enriquecida en varias vitaminas"
+ },
+ "19039": {
+  "alias": [
+   "leche"
+  ],
+  "es": "Leche, contenido en grasa desconocido, UHT (alimento medio)"
+ },
+ "19041": {
+  "alias": [
+   "leche semidesnatada",
+   "leche"
+  ],
+  "es": "Leche semidesnatada, UHT"
+ },
+ "19042": {
+  "alias": [
+   "leche semidesnatada fresca",
+   "leche"
+  ],
+  "es": "Leche semidesnatada, pasteurizada"
+ },
+ "19044": {
+  "alias": [
+   "leche en polvo semidesnatada"
+  ],
+  "es": "Leche en polvo, semidesnatada"
+ },
+ "19050": {
+  "alias": [
+   "leche desnatada",
+   "leche"
+  ],
+  "es": "Leche desnatada, UHT"
+ },
+ "19051": {
+  "alias": [
+   "leche desnatada fresca",
+   "leche"
+  ],
+  "es": "Leche desnatada, pasteurizada"
+ },
+ "19054": {
+  "alias": [
+   "leche en polvo desnatada"
+  ],
+  "es": "Leche en polvo, desnatada"
+ },
+ "19060": {
+  "alias": [
+   "leche sin lactosa",
+   "leche baja en lactosa"
+  ],
+  "es": "Leche semidesnatada (o con algo menos de grasa), baja en lactosa"
+ },
+ "19200": {
+  "alias": [
+   "leche de cabra"
+  ],
+  "es": "Leche de cabra, entera, UHT"
+ },
+ "19201": {
+  "alias": [
+   "leche de cabra semidesnatada"
+  ],
+  "es": "Leche de cabra, semidesnatada, UHT"
+ },
+ "19202": {
+  "alias": [
+   "leche de cabra cruda",
+   "leche de cabra"
+  ],
+  "es": "Leche de cabra, entera, cruda"
+ },
+ "19225": {
+  "alias": [
+   "leche de yegua"
+  ],
+  "es": "Leche de yegua, entera"
+ },
+ "19250": {
+  "alias": [
+   "leche de oveja"
+  ],
+  "es": "Leche de oveja, entera"
+ },
+ "19402": {
+  "alias": [
+   "nata",
+   "crema de leche"
+  ],
+  "es": "Nata o especialidad a base de nata ligera, contenido en grasa desconocido (alimento medio)"
+ },
+ "19410": {
+  "alias": [
+   "nata espesa",
+   "nata para cocinar"
+  ],
+  "es": "Nata, 30 % MG, espesa, refrigerada"
+ },
+ "19411": {
+  "alias": [
+   "nata de isigny",
+   "nata"
+  ],
+  "es": "Nata de Isigny DOP, ≥ 35 % MG"
+ },
+ "19415": {
+  "alias": [
+   "nata para cocinar",
+   "nata"
+  ],
+  "es": "Nata, 30 % MG, semiespesa, UHT"
+ },
+ "19420": {
+  "alias": [
+   "nata montada",
+   "nata en spray",
+   "chantilly"
+  ],
+  "es": "Nata montada en spray, UHT"
+ },
+ "19430": {
+  "alias": [
+   "nata ligera",
+   "nata light"
+  ],
+  "es": "Nata, 15-20 % MG, ligera, semiespesa, UHT"
+ },
+ "19431": {
+  "alias": [
+   "nata ligera",
+   "nata light"
+  ],
+  "es": "Nata, 15-20 % MG, ligera, espesa, refrigerada"
+ },
+ "19433": {
+  "alias": [
+   "nata light",
+   "crema ligera"
+  ],
+  "es": "Especialidad a base de nata ligera 8 % MG, líquida o espesa"
+ },
+ "19436": {
+  "alias": [
+   "nata liquida ligera",
+   "nata light"
+  ],
+  "es": "Nata, 15-20 % MG, ligera, líquida, refrigerada"
+ },
+ "19500": {
+  "alias": [
+   "yogur para beber",
+   "actimel"
+  ],
+  "es": "Bebida láctea o yogur para beber, aromatizado, con edulcorantes, bajo en azúcares, 0 % MG, con L. casei"
+ },
+ "19501": {
+  "alias": [
+   "queso batido",
+   "quark",
+   "queso fresco batido"
+  ],
+  "es": "Queso batido natural o con fruta (alimento medio)"
+ },
+ "19508": {
+  "alias": [
+   "yogur para beber",
+   "yogur liquido"
+  ],
+  "es": "Bebida láctea o yogur para beber, aromatizado, azucarado"
+ },
+ "19516": {
+  "alias": [
+   "yogur para beber",
+   "actimel"
+  ],
+  "es": "Bebida láctea o yogur para beber, aromatizado, azucarado, con L. casei"
+ },
+ "19530": {
+  "alias": [
+   "queso para untar con ajo",
+   "queso crema",
+   "boursin"
+  ],
+  "es": "Especialidad quesera sin madurar para untar, 30-40 % MG, aromatizada (p. ej. ajo y finas hierbas)"
+ },
+ "19534": {
+  "alias": [
+   "yogur para beber",
+   "yogur liquido"
+  ],
+  "es": "Bebida láctea o yogur para beber, aromatizado, azucarado, enriquecido en vitamina D"
+ },
+ "19535": {
+  "alias": [
+   "yogur para beber de frutas",
+   "yogur liquido"
+  ],
+  "es": "Bebida láctea o yogur para beber, con fruta, azucarado"
+ },
+ "19536": {
+  "alias": [
+   "yogur para beber de frutas"
+  ],
+  "es": "Bebida láctea o yogur para beber, con fruta, azucarado, enriquecido en vitamina D"
+ },
+ "19538": {
+  "alias": [
+   "yogur para beber",
+   "actimel"
+  ],
+  "es": "Bebida láctea o yogur para beber, natural, azucarado, con L. casei"
+ },
+ "19539": {
+  "alias": [
+   "yogur con bifidus",
+   "activia"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, aromatizada, azucarada, con bífidus"
+ },
+ "19541": {
+  "alias": [
+   "yogur desnatado con bifidus",
+   "activia"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, con fruta, con edulcorantes, 0 % MG, con bífidus"
+ },
+ "19542": {
+  "alias": [
+   "yogur con bifidus",
+   "activia"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, con fruta, azucarada, con bífidus"
+ },
+ "19543": {
+  "alias": [
+   "yogur con esteroles",
+   "danacol"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, con fruta, 0 % MG, con edulcorantes y ésteres de esterol"
+ },
+ "19544": {
+  "alias": [
+   "yogur desnatado con bifidus",
+   "activia"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, natural, 0 % MG, con bífidus"
+ },
+ "19546": {
+  "alias": [
+   "yogur con bifidus",
+   "activia"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, natural, con bífidus"
+ },
+ "19548": {
+  "alias": [
+   "yogur con bifidus",
+   "yogur con fruta"
+  ],
+  "es": "Leche fermentada o especialidad láctea tipo yogur, sobre lecho de fruta, azucarada, con bífidus"
+ },
+ "19550": {
+  "alias": [
+   "yogur griego",
+   "yogur de oveja"
+  ],
+  "es": "Yogur griego, de leche de oveja"
+ },
+ "19552": {
+  "alias": [
+   "yogur griego con fruta",
+   "yogur griego"
+  ],
+  "es": "Yogur griego, sobre lecho de fruta"
+ },
+ "19553": {
+  "alias": [
+   "yogur de oveja"
+  ],
+  "es": "Yogur de leche de oveja, aromatizado, azucarado"
+ },
+ "19554": {
+  "alias": [
+   "yogur de oveja natural",
+   "yogur de oveja"
+  ],
+  "es": "Yogur de leche de oveja, natural, ~3 % MG"
+ },
+ "19556": {
+  "alias": [
+   "yogur de cabra"
+  ],
+  "es": "Yogur de leche de cabra, natural, ~5 % MG"
+ },
+ "19557": {
+  "alias": [
+   "yogur con fruta",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea sobre lecho de fruta, azucarado"
+ },
+ "19558": {
+  "alias": [
+   "yogur con cereales",
+   "yogur desnatado"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con cereales, 0 % MG"
+ },
+ "19559": {
+  "alias": [
+   "yogur desnatado edulcorado",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado, con edulcorantes, 0 % MG"
+ },
+ "19572": {
+  "alias": [
+   "petit suisse",
+   "petit suisse de chocolate"
+  ],
+  "es": "Queso fresco tipo petit suisse, aromatizado de chocolate, azucarado"
+ },
+ "19575": {
+  "alias": [
+   "yogur de sabores",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado, azucarado"
+ },
+ "19577": {
+  "alias": [
+   "yogur cremoso",
+   "yogur de sabores"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado, azucarado, con nata"
+ },
+ "19578": {
+  "alias": [
+   "yogur de sabores",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado, azucarado, enriquecido en vitamina D"
+ },
+ "19579": {
+  "alias": [
+   "yogur con cereales",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con cereales"
+ },
+ "19580": {
+  "alias": [
+   "yogur con chocolate",
+   "yogur cremoso"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con virutas de chocolate, con nata, azucarado"
+ },
+ "19581": {
+  "alias": [
+   "yogur desnatado de frutas",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con fruta, con edulcorantes, 0 % MG"
+ },
+ "19582": {
+  "alias": [
+   "yogur desnatado de frutas",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con fruta, con edulcorantes, 0 % MG, enriquecido en vitamina D"
+ },
+ "19584": {
+  "alias": [
+   "mascarpone",
+   "queso mascarpone"
+  ],
+  "es": "Mascarpone"
+ },
+ "19585": {
+  "alias": [
+   "ricotta",
+   "requeson"
+  ],
+  "es": "Ricotta"
+ },
+ "19587": {
+  "alias": [
+   "yogur de frutas",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con fruta, azucarado"
+ },
+ "19589": {
+  "alias": [
+   "yogur cremoso de frutas",
+   "yogur de frutas"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con fruta, azucarado, con nata"
+ },
+ "19590": {
+  "alias": [
+   "mozzarella"
+  ],
+  "es": "Mozzarella de leche de vaca"
+ },
+ "19591": {
+  "alias": [
+   "mozzarella de bufala",
+   "mozzarella"
+  ],
+  "es": "Mozzarella de leche de búfala (di bufala)"
+ },
+ "19592": {
+  "alias": [
+   "yogur de frutas",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, con fruta, azucarado, enriquecido en vitamina D"
+ },
+ "19593": {
+  "alias": [
+   "yogur natural",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, natural"
+ },
+ "19594": {
+  "alias": [
+   "yogur desnatado",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, natural, 0 % MG"
+ },
+ "19596": {
+  "alias": [
+   "yogur desnatado",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, natural, 0 % MG, enriquecido en vitamina D"
+ },
+ "19597": {
+  "alias": [
+   "yogur desnatado azucarado",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, natural, 0 % MG, azucarado, enriquecido en vitamina D"
+ },
+ "19598": {
+  "alias": [
+   "yogur cremoso",
+   "yogur natural"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, natural, con nata"
+ },
+ "19599": {
+  "alias": [
+   "yogur natural azucarado",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, natural, azucarado"
+ },
+ "19600": {
+  "alias": [
+   "yogur natural",
+   "yogur"
+  ],
+  "es": "Yogur o especialidad láctea natural (alimento medio)"
+ },
+ "19624": {
+  "alias": [
+   "yogur"
+  ],
+  "es": "Yogur o especialidad láctea natural o con fruta (alimento medio)"
+ },
+ "19628": {
+  "alias": [
+   "yogur de frutas",
+   "yogur"
+  ],
+  "es": "Yogur o especialidad láctea con fruta (alimento medio)"
+ },
+ "19638": {
+  "alias": [
+   "faisselle",
+   "queso fresco con fruta"
+  ],
+  "es": "Faisselle (queso fresco escurrido) con coulis de frutas"
+ },
+ "19639": {
+  "alias": [
+   "faisselle",
+   "queso fresco desnatado"
+  ],
+  "es": "Faisselle (queso fresco escurrido), 0 % MG"
+ },
+ "19641": {
+  "alias": [
+   "faisselle",
+   "queso fresco"
+  ],
+  "es": "Faisselle (queso fresco escurrido), ~6 % MG"
+ },
+ "19643": {
+  "alias": [
+   "queso batido con fruta",
+   "mousse de queso"
+  ],
+  "es": "Queso batido y nata montada sobre lecho de fruta, azucarado"
+ },
+ "19644": {
+  "alias": [
+   "queso batido desnatado",
+   "quark 0%"
+  ],
+  "es": "Queso batido natural, 0 % MG"
+ },
+ "19645": {
+  "alias": [
+   "queso batido desnatado",
+   "quark 0%"
+  ],
+  "es": "Queso batido natural, 0 % MG, enriquecido en vitamina D"
+ },
+ "19646": {
+  "alias": [
+   "queso batido",
+   "quark"
+  ],
+  "es": "Queso batido natural, ~3 % MG"
+ },
+ "19647": {
+  "alias": [
+   "queso batido",
+   "quark"
+  ],
+  "es": "Queso batido natural, ~3 % MG, con bífidus"
+ },
+ "19648": {
+  "alias": [
+   "queso batido",
+   "quark"
+  ],
+  "es": "Queso batido natural, ~3 % MG, enriquecido en vitamina D"
+ },
+ "19649": {
+  "alias": [
+   "queso batido cremoso",
+   "quark"
+  ],
+  "es": "Queso batido natural, cremoso, ~8 % MG"
+ },
+ "19650": {
+  "alias": [
+   "queso batido con nata",
+   "mousse de queso"
+  ],
+  "es": "Queso batido o especialidad láctea natural con nata montada, ~10 % MG"
+ },
+ "19651": {
+  "alias": [
+   "queso batido de sabores",
+   "queso batido"
+  ],
+  "es": "Queso batido o especialidad láctea, aromatizado, azucarado, 0 % MG"
+ },
+ "19652": {
+  "alias": [
+   "queso batido de sabores",
+   "queso batido"
+  ],
+  "es": "Queso batido o especialidad láctea, aromatizado, azucarado, ~3 % MG"
+ },
+ "19653": {
+  "alias": [
+   "queso batido de sabores",
+   "queso batido"
+  ],
+  "es": "Queso batido o especialidad láctea, aromatizado, azucarado, ~3 % MG, con bífidus"
+ },
+ "19654": {
+  "alias": [
+   "queso batido con chocolate"
+  ],
+  "es": "Queso batido o especialidad láctea, con virutas de chocolate, azucarado, ~7 % MG"
+ },
+ "19655": {
+  "alias": [
+   "queso batido de frutas",
+   "queso batido 0%"
+  ],
+  "es": "Queso batido o especialidad láctea, con fruta, con edulcorantes, bajo en azúcares, 0 % MG"
+ },
+ "19656": {
+  "alias": [
+   "queso batido de frutas",
+   "queso batido 0%"
+  ],
+  "es": "Queso batido o especialidad láctea, con fruta, azucarado, 0 % MG"
+ },
+ "19657": {
+  "alias": [
+   "queso batido de frutas",
+   "queso batido"
+  ],
+  "es": "Queso batido o especialidad láctea, con fruta, azucarado, ~3 % MG"
+ },
+ "19658": {
+  "alias": [
+   "queso batido de frutas",
+   "queso batido"
+  ],
+  "es": "Queso batido o especialidad láctea, con fruta, azucarado, ~3 % MG, con bífidus"
+ },
+ "19659": {
+  "alias": [
+   "queso batido cremoso",
+   "queso batido de frutas"
+  ],
+  "es": "Queso batido o especialidad láctea, con fruta, azucarado, cremoso, ~7 % MG"
+ },
+ "19661": {
+  "alias": [
+   "petit suisse",
+   "petit suisse de frutas"
+  ],
+  "es": "Queso fresco tipo petit suisse, con fruta, 2-3 % MG"
+ },
+ "19662": {
+  "alias": [
+   "petit suisse",
+   "petit suisse de frutas"
+  ],
+  "es": "Queso fresco tipo petit suisse, con fruta, 2-3 % MG, enriquecido en calcio y vitamina D"
+ },
+ "19663": {
+  "alias": [
+   "petit suisse desnatado",
+   "petit suisse"
+  ],
+  "es": "Queso fresco tipo petit suisse, natural, 0 % MG"
+ },
+ "19664": {
+  "alias": [
+   "petit suisse natural",
+   "petit suisse"
+  ],
+  "es": "Queso fresco tipo petit suisse, natural, ~4 % MG"
+ },
+ "19665": {
+  "alias": [
+   "mousse de queso",
+   "queso batido con fruta"
+  ],
+  "es": "Mousse de queso batido sobre lecho de fruta, 0 % MG, con edulcorantes, enriquecida en calcio y vitamina D"
+ },
+ "19666": {
+  "alias": [
+   "petit suisse natural",
+   "petit suisse"
+  ],
+  "es": "Queso fresco tipo petit suisse, natural, ~10 % MG"
+ },
+ "19667": {
+  "alias": [
+   "petit suisse",
+   "petit suisse de frutas"
+  ],
+  "es": "Queso fresco tipo petit suisse, aromatizado o con fruta, 2-3 % MG, enriquecido en calcio y vitamina D"
+ },
+ "19668": {
+  "alias": [
+   "queso batido de frutas",
+   "queso batido"
+  ],
+  "es": "Queso batido o especialidad láctea, con fruta, con edulcorantes, bajo en azúcares, ~3 % MG"
+ },
+ "19669": {
+  "alias": [
+   "yogur proteico",
+   "skyr con fruta"
+  ],
+  "es": "Especialidad láctea tipo tentempié, rica en proteínas, sobre lecho de fruta, azucarada"
+ },
+ "19671": {
+  "alias": [
+   "yogur desnatado",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado o con fruta, 0 % MG (alimento medio)"
+ },
+ "19672": {
+  "alias": [
+   "yogur de sabores",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado o con fruta, sin reducir en grasa (alimento medio)"
+ },
+ "19673": {
+  "alias": [
+   "natillas light",
+   "natillas"
+  ],
+  "es": "Natillas, bajas en grasa, refrigeradas"
+ },
+ "19674": {
+  "alias": [
+   "flan de huevo",
+   "flan"
+  ],
+  "es": "Flan de huevo, refrigerado"
+ },
+ "19675": {
+  "alias": [
+   "yogur edulcorado",
+   "yogur 0%"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado o con fruta, con edulcorantes (alimento medio)"
+ },
+ "19676": {
+  "alias": [
+   "yogur de sabores",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado o con fruta, azucarado (alimento medio)"
+ },
+ "19677": {
+  "alias": [
+   "yogur de sabores",
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado o con fruta, azucarado, sin reducir en grasa (alimento medio)"
+ },
+ "19678": {
+  "alias": [
+   "cuajada",
+   "leche cuajada"
+  ],
+  "es": "Cuajada aromatizada, refrigerada"
+ },
+ "19679": {
+  "alias": [
+   "flan de caramelo",
+   "leche gelificada"
+  ],
+  "es": "Leche gelificada aromatizada, con cobertura de caramelo, refrigerada"
+ },
+ "19680": {
+  "alias": [
+   "leche gelificada",
+   "flan"
+  ],
+  "es": "Leche gelificada aromatizada, refrigerada"
+ },
+ "19681": {
+  "alias": [
+   "liegeois",
+   "postre con nata"
+  ],
+  "es": "Liégeois o vienés (chocolate, café, caramelo o vainilla), refrigerado"
+ },
+ "19682": {
+  "alias": [
+   "yogur"
+  ],
+  "es": "Yogur, leche fermentada o especialidad láctea, aromatizado o con fruta (alimento medio)"
+ },
+ "19683": {
+  "alias": [
+   "flan light",
+   "leche gelificada"
+  ],
+  "es": "Leche gelificada aromatizada, baja en grasa y azúcar, refrigerada"
+ },
+ "19685": {
+  "alias": [
+   "panna cotta"
+  ],
+  "es": "Panna cotta, con preparado de frutas o caramelo, refrigerada"
+ },
+ "19689": {
+  "alias": [
+   "tarta de queso",
+   "cheesecake"
+  ],
+  "es": "Tarta de queso (cheesecake), envasada"
+ },
+ "19692": {
+  "alias": [
+   "yogur de soja",
+   "postre de soja"
+  ],
+  "es": "Postre de soja, con fruta, azucarado, enriquecido en calcio, fermentado, envasado"
+ },
+ "19693": {
+  "alias": [
+   "yogur de soja natural",
+   "postre de soja"
+  ],
+  "es": "Postre de soja, natural, sin azúcar, sin enriquecer, fermentado, envasado"
  },
  "20000": {
   "alias": [
@@ -4620,6 +6341,13 @@
   ],
   "es": "Tortilla francesa, rellenos variados: verduras, quesos, carnes… (alimento medio)"
  },
+ "23805": {
+  "alias": [
+   "blini",
+   "blinis"
+  ],
+  "es": "Blini"
+ },
  "25089": {
   "alias": [
    "cordon bleu",
@@ -4685,6 +6413,14 @@
   ],
   "es": "Buñuelo de pescado (acras)"
  },
+ "25479": {
+  "alias": [
+   "ñoquis de semola",
+   "ñoquis",
+   "gnocchi"
+  ],
+  "es": "Ñoquis de sémola, cocidos"
+ },
  "25504": {
   "alias": [
    "brocheta de pollo",
@@ -4705,6 +6441,14 @@
    "pincho moruno"
   ],
   "es": "Brocheta mixta de carne"
+ },
+ "25510": {
+  "alias": [
+   "ñoquis de patata",
+   "ñoquis",
+   "gnocchi"
+  ],
+  "es": "Ñoquis de patata, cocidos"
  },
  "25512": {
   "alias": [
@@ -4733,6 +6477,13 @@
    "pincho moruno"
   ],
   "es": "Brocheta de cerdo, cruda"
+ },
+ "25579": {
+  "alias": [
+   "ñoquis",
+   "gnocchi"
+  ],
+  "es": "Ñoquis, cocidos (alimento medio)"
  },
  "25598": {
   "alias": [
@@ -6001,6 +7752,20 @@
    "lenguado"
   ],
   "es": "Lenguado, a la sartén"
+ },
+ "26264": {
+  "alias": [
+   "ñoquis de patata",
+   "gnocchi"
+  ],
+  "es": "Ñoquis de patata, crudos"
+ },
+ "26265": {
+  "alias": [
+   "ñoquis de semola",
+   "gnocchi"
+  ],
+  "es": "Ñoquis de sémola, crudos"
  },
  "26275": {
   "alias": [
@@ -7472,6 +9237,294 @@
   ],
   "es": "Pavo, carne y piel, cruda"
  },
+ "36301": {
+  "alias": [
+   "pavo",
+   "carne de pavo"
+  ],
+  "es": "Pavo, carne, cruda"
+ },
+ "36302": {
+  "alias": [
+   "pavo asado",
+   "pavo"
+  ],
+  "es": "Pavo, carne, asada al horno"
+ },
+ "36304": {
+  "alias": [
+   "filete de pavo",
+   "pechuga de pavo"
+  ],
+  "es": "Pavo, filete, crudo"
+ },
+ "36305": {
+  "alias": [
+   "muslo de pavo",
+   "contramuslo de pavo"
+  ],
+  "es": "Pavo, muslo, carne y piel, crudo"
+ },
+ "36306": {
+  "alias": [
+   "filete de pavo a la plancha",
+   "pechuga de pavo"
+  ],
+  "es": "Pavo, filete, a la plancha o salteado"
+ },
+ "36307": {
+  "alias": [
+   "muslo de pavo",
+   "pavo"
+  ],
+  "es": "Pavo, muslo, carne sin piel, crudo"
+ },
+ "36308": {
+  "alias": [
+   "filete de pavo al horno",
+   "pavo asado"
+  ],
+  "es": "Pavo, filete, asado al horno"
+ },
+ "36310": {
+  "alias": [
+   "alita de pavo",
+   "pavo"
+  ],
+  "es": "Pavo, alita, cruda"
+ },
+ "36318": {
+  "alias": [
+   "filete de pavo empanado",
+   "escalope de pavo"
+  ],
+  "es": "Pavo, filete empanado (a la vienesa o milanesa)"
+ },
+ "36401": {
+  "alias": [
+   "faisan",
+   "carne de caza"
+  ],
+  "es": "Faisán, carne, crudo"
+ },
+ "36402": {
+  "alias": [
+   "faisan asado",
+   "faisan"
+  ],
+  "es": "Faisán, carne, asada al horno"
+ },
+ "36403": {
+  "alias": [
+   "faisan"
+  ],
+  "es": "Faisán, carne y piel, crudo"
+ },
+ "36500": {
+  "alias": [
+   "oca",
+   "ganso"
+  ],
+  "es": "Oca, carne cruda"
+ },
+ "36501": {
+  "alias": [
+   "oca",
+   "ganso"
+  ],
+  "es": "Oca, carne y piel, cruda"
+ },
+ "36502": {
+  "alias": [
+   "oca asada",
+   "ganso asado"
+  ],
+  "es": "Oca, carne, asada al horno"
+ },
+ "36503": {
+  "alias": [
+   "oca asada",
+   "ganso asado"
+  ],
+  "es": "Oca, carne y piel, asada al horno"
+ },
+ "36600": {
+  "alias": [
+   "pichon",
+   "paloma"
+  ],
+  "es": "Pichón, crudo"
+ },
+ "36602": {
+  "alias": [
+   "pichon asado",
+   "paloma"
+  ],
+  "es": "Pichón, carne, asada al horno"
+ },
+ "36603": {
+  "alias": [
+   "caza de pluma",
+   "carne de caza"
+  ],
+  "es": "Caza de pluma, carne, cocida (alimento medio)"
+ },
+ "36700": {
+  "alias": [
+   "pintada",
+   "gallina de guinea"
+  ],
+  "es": "Pintada, cruda"
+ },
+ "36702": {
+  "alias": [
+   "pechuga de pintada",
+   "pintada"
+  ],
+  "es": "Pintada, pechuga, cruda"
+ },
+ "36703": {
+  "alias": [
+   "muslo de pintada",
+   "pintada"
+  ],
+  "es": "Pintada, muslo, crudo"
+ },
+ "36800": {
+  "alias": [
+   "avestruz"
+  ],
+  "es": "Avestruz, carne cruda"
+ },
+ "36801": {
+  "alias": [
+   "avestruz"
+  ],
+  "es": "Avestruz, carne cocida"
+ },
+ "36900": {
+  "alias": [
+   "ave cocida",
+   "pollo cocido"
+  ],
+  "es": "Ave, cocida (alimento medio)"
+ },
+ "38104": {
+  "alias": [
+   "chips de gamba",
+   "snack de gamba"
+  ],
+  "es": "Chips de gamba"
+ },
+ "38105": {
+  "alias": [
+   "nachos",
+   "doritos",
+   "chips de maiz"
+  ],
+  "es": "Chips de maíz o nachos (tortilla chips)"
+ },
+ "38106": {
+  "alias": [
+   "aperitivo inflado",
+   "gusanitos",
+   "snack de patata"
+  ],
+  "es": "Aperitivo inflado, a base de patata"
+ },
+ "38107": {
+  "alias": [
+   "mini pretzels",
+   "palitos salados"
+  ],
+  "es": "Aperitivo, mini pretzels o palitos"
+ },
+ "38108": {
+  "alias": [
+   "aperitivo inflado",
+   "snack de patata"
+  ],
+  "es": "Aperitivo inflado, a base de patata y soja"
+ },
+ "38399": {
+  "alias": [
+   "aperitivo",
+   "snack salado"
+  ],
+  "es": "Aperitivo salado (alimento medio)"
+ },
+ "38400": {
+  "alias": [
+   "gusanitos",
+   "aperitivo de maiz"
+  ],
+  "es": "Aperitivo inflado, a base de maíz, sin cacahuete"
+ },
+ "38401": {
+  "alias": [
+   "crackers de queso",
+   "galletas saladas"
+  ],
+  "es": "Aperitivo, crackers, con relleno o guarnición de queso"
+ },
+ "38402": {
+  "alias": [
+   "crackers",
+   "galletas saladas"
+  ],
+  "es": "Aperitivo, crackers, naturales"
+ },
+ "38403": {
+  "alias": [
+   "crackers light",
+   "galletas saladas"
+  ],
+  "es": "Aperitivo, crackers, naturales, bajos en grasa"
+ },
+ "38404": {
+  "alias": [
+   "gusanitos de cacahuete",
+   "aperitivo de maiz"
+  ],
+  "es": "Aperitivo inflado, a base de maíz, con cacahuete"
+ },
+ "38405": {
+  "alias": [
+   "pringles",
+   "teja salada",
+   "patatas apiladas"
+  ],
+  "es": "Aperitivo a base de patata, tipo teja salada"
+ },
+ "38406": {
+  "alias": [
+   "cacahuetes recubiertos",
+   "kikos de cacahuete"
+  ],
+  "es": "Cacahuetes recubiertos de galleta, para aperitivo"
+ },
+ "38407": {
+  "alias": [
+   "aperitivo de hojaldre",
+   "palmeritas saladas"
+  ],
+  "es": "Aperitivo hojaldrado"
+ },
+ "38408": {
+  "alias": [
+   "crepe crujiente",
+   "aperitivo de queso"
+  ],
+  "es": "Crêpe crujiente (para aperitivo) de queso, envasada"
+ },
+ "38500": {
+  "alias": [
+   "picatostes al ajo",
+   "costrones",
+   "croutons"
+  ],
+  "es": "Picatostes al ajo con finas hierbas o cebolla, envasados"
+ },
  "4000": {
   "alias": [
    "tapioca",
@@ -7479,6 +9532,48 @@
    "yuca"
   ],
   "es": "Tapioca o perlas del Japón, cruda"
+ },
+ "40002": {
+  "alias": [
+   "sesos de cordero",
+   "sesos"
+  ],
+  "es": "Sesos de cordero, crudos"
+ },
+ "40003": {
+  "alias": [
+   "sesos de cordero",
+   "sesos"
+  ],
+  "es": "Sesos de cordero, cocidos"
+ },
+ "40004": {
+  "alias": [
+   "sesos de cerdo",
+   "sesos"
+  ],
+  "es": "Sesos de cerdo, estofados"
+ },
+ "40005": {
+  "alias": [
+   "sesos de cerdo",
+   "sesos"
+  ],
+  "es": "Sesos de cerdo, crudos"
+ },
+ "40006": {
+  "alias": [
+   "sesos de ternera",
+   "sesos"
+  ],
+  "es": "Sesos de ternera, crudos"
+ },
+ "40007": {
+  "alias": [
+   "sesos de ternera",
+   "sesos"
+  ],
+  "es": "Sesos de ternera, cocidos"
  },
  "4002": {
   "alias": [
@@ -7504,6 +9599,70 @@
   ],
   "es": "Patatas fritas de bolsa, naturales o aromatizadas, estándar"
  },
+ "40052": {
+  "alias": [
+   "corazon de ternera",
+   "corazon"
+  ],
+  "es": "Corazón de vacuno, crudo"
+ },
+ "40053": {
+  "alias": [
+   "corazon de ternera",
+   "corazon"
+  ],
+  "es": "Corazón de vacuno, cocido"
+ },
+ "40054": {
+  "alias": [
+   "corazon de pollo",
+   "corazones de pollo"
+  ],
+  "es": "Corazón de pollo, crudo"
+ },
+ "40055": {
+  "alias": [
+   "corazon de pavo"
+  ],
+  "es": "Corazón de pavo, crudo"
+ },
+ "40056": {
+  "alias": [
+   "corazon de pollo",
+   "corazones de pollo"
+  ],
+  "es": "Corazón de pollo, cocido"
+ },
+ "40057": {
+  "alias": [
+   "corazon de pavo"
+  ],
+  "es": "Corazón de pavo, cocido"
+ },
+ "40058": {
+  "alias": [
+   "corazon de cordero"
+  ],
+  "es": "Corazón de cordero, crudo"
+ },
+ "40059": {
+  "alias": [
+   "corazon de cordero"
+  ],
+  "es": "Corazón de cordero, cocido"
+ },
+ "40060": {
+  "alias": [
+   "corazon de cerdo"
+  ],
+  "es": "Corazón de cerdo, crudo"
+ },
+ "40062": {
+  "alias": [
+   "corazon de ternera"
+  ],
+  "es": "Corazón de ternera, crudo"
+ },
  "4007": {
   "alias": [
    "patata nueva cocida",
@@ -7519,12 +9678,127 @@
   ],
   "es": "Patata, sin piel, cruda"
  },
+ "40102": {
+  "alias": [
+   "higado de cordero",
+   "higado"
+  ],
+  "es": "Hígado de cordero, crudo"
+ },
+ "40103": {
+  "alias": [
+   "higado de cordero",
+   "higado"
+  ],
+  "es": "Hígado de cordero, cocido"
+ },
+ "40104": {
+  "alias": [
+   "higado de ternera",
+   "higado de novilla"
+  ],
+  "es": "Hígado de novilla, crudo"
+ },
+ "40105": {
+  "alias": [
+   "higado de ternera",
+   "higado de novilla"
+  ],
+  "es": "Hígado de novilla, cocido"
+ },
+ "40106": {
+  "alias": [
+   "higado de ternera",
+   "higado"
+  ],
+  "es": "Hígado de ternera, crudo"
+ },
+ "40107": {
+  "alias": [
+   "higado de ternera",
+   "higado encebollado"
+  ],
+  "es": "Hígado de ternera, cocido"
+ },
+ "40108": {
+  "alias": [
+   "higadillos",
+   "higado de pollo"
+  ],
+  "es": "Hígado de ave, crudo"
+ },
+ "40109": {
+  "alias": [
+   "higadillos",
+   "higado de pollo"
+  ],
+  "es": "Hígado de ave, cocido"
+ },
  "4011": {
   "alias": [
    "patata de bote",
    "patata en lata"
   ],
   "es": "Patata, en conserva, escurrida"
+ },
+ "40110": {
+  "alias": [
+   "higado de conejo"
+  ],
+  "es": "Hígado de conejo, crudo"
+ },
+ "40111": {
+  "alias": [
+   "higado de pollo",
+   "higadillos"
+  ],
+  "es": "Hígado de pollo, crudo"
+ },
+ "40113": {
+  "alias": [
+   "higado de cerdo",
+   "higado"
+  ],
+  "es": "Hígado de cerdo, cocido"
+ },
+ "40115": {
+  "alias": [
+   "higado de pavo"
+  ],
+  "es": "Hígado de pavo, crudo"
+ },
+ "40116": {
+  "alias": [
+   "higado de pollo",
+   "higadillos"
+  ],
+  "es": "Hígado de pollo, cocido"
+ },
+ "40118": {
+  "alias": [
+   "higado de pavo"
+  ],
+  "es": "Hígado de pavo, cocido"
+ },
+ "40119": {
+  "alias": [
+   "higado de cerdo",
+   "higado"
+  ],
+  "es": "Hígado de cerdo, crudo"
+ },
+ "40120": {
+  "alias": [
+   "higado de oca",
+   "higado de ganso"
+  ],
+  "es": "Hígado de oca, crudo"
+ },
+ "40121": {
+  "alias": [
+   "higado de pato"
+  ],
+  "es": "Hígado de pato, crudo"
  },
  "4013": {
   "alias": [
@@ -7581,6 +9855,48 @@
    "buñuelo de patata"
   ],
   "es": "Patata dauphine (buñuelo de patata), congelada, cruda"
+ },
+ "40201": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de ternera, cocida"
+ },
+ "40202": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de vacuno, cruda"
+ },
+ "40203": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de vacuno, cocida"
+ },
+ "40204": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de ternera, cruda"
+ },
+ "40205": {
+  "alias": [
+   "lengua de cerdo",
+   "lengua"
+  ],
+  "es": "Lengua de cerdo, cruda"
+ },
+ "40207": {
+  "alias": [
+   "lengua de cordero",
+   "lengua"
+  ],
+  "es": "Lengua de cordero, cruda"
  },
  "4021": {
   "alias": [
@@ -7646,6 +9962,34 @@
   ],
   "es": "Patatas fritas, congeladas, asadas al horno"
  },
+ "40302": {
+  "alias": [
+   "mollejas de cordero",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de cordero, crudas"
+ },
+ "40303": {
+  "alias": [
+   "mollejas de cordero",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de cordero, cocidas"
+ },
+ "40304": {
+  "alias": [
+   "mollejas de ternera",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de ternera, crudas"
+ },
+ "40305": {
+  "alias": [
+   "mollejas de ternera",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de ternera, estofadas o salteadas"
+ },
  "4032": {
   "alias": [
    "patatas fritas",
@@ -7695,6 +10039,69 @@
   ],
   "es": "Rösti o torta de patata"
  },
+ "40401": {
+  "alias": [
+   "riñon",
+   "riñones"
+  ],
+  "es": "Riñón, cocido (alimento medio)"
+ },
+ "40402": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de vacuno, crudo"
+ },
+ "40403": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de vacuno, cocido"
+ },
+ "40404": {
+  "alias": [
+   "riñon de cerdo",
+   "riñones"
+  ],
+  "es": "Riñón de cerdo, crudo"
+ },
+ "40405": {
+  "alias": [
+   "riñon de cerdo",
+   "riñones"
+  ],
+  "es": "Riñón de cerdo, cocido"
+ },
+ "40406": {
+  "alias": [
+   "riñon de cordero",
+   "riñones al jerez"
+  ],
+  "es": "Riñón de cordero, estofado"
+ },
+ "40407": {
+  "alias": [
+   "riñon de cordero",
+   "riñones"
+  ],
+  "es": "Riñón de cordero, crudo"
+ },
+ "40408": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de ternera, estofado o salteado"
+ },
+ "40409": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de ternera, crudo"
+ },
  "4042": {
   "alias": [
    "patata duquesa"
@@ -7741,6 +10148,41 @@
   ],
   "es": "Patata, cocida (alimento medio)"
  },
+ "40502": {
+  "alias": [
+   "callos",
+   "tripas"
+  ],
+  "es": "Callos de vacuno, crudos"
+ },
+ "40600": {
+  "alias": [
+   "sangre",
+   "sangrecilla"
+  ],
+  "es": "Sangre de vacuno, cruda"
+ },
+ "40601": {
+  "alias": [
+   "casqueria",
+   "asaduras"
+  ],
+  "es": "Casquería, cocida (alimento medio)"
+ },
+ "40700": {
+  "alias": [
+   "molleja de pollo",
+   "mollejas de ave"
+  ],
+  "es": "Molleja de pollo, cruda"
+ },
+ "40701": {
+  "alias": [
+   "mollejas de pato",
+   "molleja confitada"
+  ],
+  "es": "Molleja de pato confitada, en conserva"
+ },
  "4101": {
   "alias": [
    "boniato",
@@ -7764,6 +10206,21 @@
    "pure de batata"
   ],
   "es": "Boniato, puré cocinado con nata"
+ },
+ "51510": {
+  "alias": [
+   "frik",
+   "freekeh",
+   "trigo verde"
+  ],
+  "es": "Frik (trigo duro verde partido), crudo"
+ },
+ "51511": {
+  "alias": [
+   "frik cocido",
+   "freekeh"
+  ],
+  "es": "Frik (trigo duro verde partido), cocido, sin sal"
  },
  "53100": {
   "alias": [
@@ -8509,6 +10966,385 @@
   ],
   "es": "Carne cocida (alimento medio)"
  },
+ "7000": {
+  "alias": [
+   "pan"
+  ],
+  "es": "Pan (alimento medio)"
+ },
+ "7001": {
+  "alias": [
+   "barra de pan",
+   "baguette",
+   "pan blanco"
+  ],
+  "es": "Pan, baguette, corriente"
+ },
+ "7002": {
+  "alias": [
+   "pan de masa madre",
+   "masa madre"
+  ],
+  "es": "Pan, baguette u hogaza, de masa madre"
+ },
+ "7004": {
+  "alias": [
+   "pan tostado",
+   "tostada"
+  ],
+  "es": "Pan tostado, hecho en casa"
+ },
+ "7007": {
+  "alias": [
+   "baguette",
+   "barra de pan"
+  ],
+  "es": "Pan, baguette, de tradición francesa"
+ },
+ "7010": {
+  "alias": [
+   "pan semiintegral",
+   "pan bis"
+  ],
+  "es": "Pan, baguette u hogaza, semiintegral (harina T80 o T110)"
+ },
+ "7012": {
+  "alias": [
+   "pan de hogaza",
+   "hogaza",
+   "pan"
+  ],
+  "es": "Pan corriente, 400 g u hogaza"
+ },
+ "7025": {
+  "alias": [
+   "pan ecologico",
+   "pan bio"
+  ],
+  "es": "Pan, baguette u hogaza, ecológico (harina T55 a T110)"
+ },
+ "7100": {
+  "alias": [
+   "pan de pueblo",
+   "pan rustico"
+  ],
+  "es": "Pan, baguette u hogaza, de pueblo"
+ },
+ "7110": {
+  "alias": [
+   "pan integral"
+  ],
+  "es": "Pan integral (harina T150)"
+ },
+ "7111": {
+  "alias": [
+   "pan de molde integral",
+   "pan bimbo integral"
+  ],
+  "es": "Pan de molde, integral"
+ },
+ "7112": {
+  "alias": [
+   "pan de molde con salvado",
+   "pan de salvado"
+  ],
+  "es": "Pan de molde, con salvado"
+ },
+ "7113": {
+  "alias": [
+   "pan de molde multicereales"
+  ],
+  "es": "Pan de molde, multicereales"
+ },
+ "7115": {
+  "alias": [
+   "pan de salvado"
+  ],
+  "es": "Pan con salvado"
+ },
+ "7125": {
+  "alias": [
+   "pan de centeno"
+  ],
+  "es": "Pan de centeno y trigo"
+ },
+ "7130": {
+  "alias": [
+   "pan sin gluten"
+  ],
+  "es": "Pan, sin gluten"
+ },
+ "7160": {
+  "alias": [
+   "pan sin sal",
+   "barra sin sal"
+  ],
+  "es": "Pan, baguette, sin sal"
+ },
+ "7170": {
+  "alias": [
+   "panini",
+   "pan de panini"
+  ],
+  "es": "Pan de panini"
+ },
+ "7180": {
+  "alias": [
+   "pan de pita",
+   "pita"
+  ],
+  "es": "Pan de pita"
+ },
+ "7200": {
+  "alias": [
+   "pan de molde",
+   "pan bimbo"
+  ],
+  "es": "Pan de molde, corriente"
+ },
+ "7201": {
+  "alias": [
+   "pan de molde sin corteza",
+   "pan de molde"
+  ],
+  "es": "Pan de molde, sin corteza, envasado"
+ },
+ "7210": {
+  "alias": [
+   "pan brioche",
+   "pan de molde"
+  ],
+  "es": "Pan de molde tipo brioche, envasado"
+ },
+ "7255": {
+  "alias": [
+   "pan de semillas",
+   "pan de cereales"
+  ],
+  "es": "Pan, baguette u hogaza, con cereales y semillas, artesano"
+ },
+ "7256": {
+  "alias": [
+   "muffin ingles integral",
+   "muffin ingles"
+  ],
+  "es": "Muffin inglés, integral, panecillo especial, envasado"
+ },
+ "7257": {
+  "alias": [
+   "muffin ingles",
+   "panecillo"
+  ],
+  "es": "Muffin inglés, panecillo especial, envasado"
+ },
+ "7258": {
+  "alias": [
+   "bagel",
+   "pan bagel"
+  ],
+  "es": "Bagel"
+ },
+ "7259": {
+  "alias": [
+   "pan de hamburguesa",
+   "pan de perrito",
+   "bollo de hamburguesa"
+  ],
+  "es": "Pan de hamburguesa o de perrito (bun), envasado"
+ },
+ "7260": {
+  "alias": [
+   "pan casero",
+   "pan de panificadora"
+  ],
+  "es": "Pan blanco casero (con harina para panificadora)"
+ },
+ "7261": {
+  "alias": [
+   "pan casero",
+   "pan rustico casero"
+  ],
+  "es": "Pan de pueblo casero (con harina para panificadora)"
+ },
+ "7262": {
+  "alias": [
+   "pan de hamburguesa integral",
+   "bollo integral"
+  ],
+  "es": "Pan de hamburguesa o de perrito (bun), integral, envasado"
+ },
+ "7263": {
+  "alias": [
+   "pretzel",
+   "bretzel"
+  ],
+  "es": "Pretzel, pan fresco"
+ },
+ "7300": {
+  "alias": [
+   "biscote",
+   "pan tostado"
+  ],
+  "es": "Biscote clásico"
+ },
+ "7301": {
+  "alias": [
+   "biscote brioche",
+   "biscote"
+  ],
+  "es": "Biscote tipo brioche"
+ },
+ "7310": {
+  "alias": [
+   "biscote sin sal",
+   "pan tostado sin sal"
+  ],
+  "es": "Biscote sin sal añadida"
+ },
+ "7330": {
+  "alias": [
+   "biscote multicereales",
+   "pan tostado"
+  ],
+  "es": "Biscote multicereales"
+ },
+ "7340": {
+  "alias": [
+   "biscote integral",
+   "pan tostado integral"
+  ],
+  "es": "Biscote integral o rico en fibra"
+ },
+ "7351": {
+  "alias": [
+   "crackers",
+   "galletas saladas"
+  ],
+  "es": "Crackers de mesa de trigo"
+ },
+ "7352": {
+  "alias": [
+   "tortita de arroz",
+   "tortitas de arroz"
+  ],
+  "es": "Tortita de arroz inflado integral"
+ },
+ "7353": {
+  "alias": [
+   "tortita de cereales",
+   "tortitas"
+  ],
+  "es": "Tortita multicereales inflada"
+ },
+ "7354": {
+  "alias": [
+   "tortita de maiz",
+   "tortitas de maiz"
+  ],
+  "es": "Tortita de maíz inflado"
+ },
+ "7400": {
+  "alias": [
+   "pan tostado",
+   "tostadas"
+  ],
+  "es": "Pan tostado, en rebanadas, de trigo"
+ },
+ "7403": {
+  "alias": [
+   "pan tostado brioche",
+   "tostadas"
+  ],
+  "es": "Pan tostado tipo brioche, en rebanadas, envasado"
+ },
+ "7407": {
+  "alias": [
+   "pan crujiente sueco",
+   "knackebrod",
+   "wasa"
+  ],
+  "es": "Pan crujiente sueco de trigo (knäckebröd)"
+ },
+ "7409": {
+  "alias": [
+   "pan crujiente sueco",
+   "knackebrod"
+  ],
+  "es": "Pan crujiente sueco con semillas de lino"
+ },
+ "7410": {
+  "alias": [
+   "tostada crujiente",
+   "pan crujiente"
+  ],
+  "es": "Tostada crujiente, extrusionada y tostada"
+ },
+ "7420": {
+  "alias": [
+   "pan crujiente sueco integral",
+   "knackebrod"
+  ],
+  "es": "Pan crujiente sueco de trigo integral"
+ },
+ "7421": {
+  "alias": [
+   "pan crujiente sueco",
+   "knackebrod"
+  ],
+  "es": "Pan crujiente sueco con frutas"
+ },
+ "7425": {
+  "alias": [
+   "pan tostado multicereales",
+   "tostadas"
+  ],
+  "es": "Pan tostado, en rebanadas, multicereales"
+ },
+ "7431": {
+  "alias": [
+   "picatoste",
+   "costrones"
+  ],
+  "es": "Picatoste para untar"
+ },
+ "7432": {
+  "alias": [
+   "picatostes",
+   "costrones",
+   "croutons"
+  ],
+  "es": "Picatostes naturales, envasados"
+ },
+ "7500": {
+  "alias": [
+   "pan rallado",
+   "empanado"
+  ],
+  "es": "Pan rallado"
+ },
+ "7525": {
+  "alias": [
+   "colines",
+   "grissini",
+   "palitos de pan"
+  ],
+  "es": "Colines (grissini)"
+ },
+ "7813": {
+  "alias": [
+   "tortilla de maiz",
+   "tortilla mexicana"
+  ],
+  "es": "Tortilla mexicana blanda (para rellenar), de maíz"
+ },
+ "7815": {
+  "alias": [
+   "tortilla de trigo",
+   "wrap",
+   "tortilla mexicana"
+  ],
+  "es": "Tortilla mexicana blanda (para rellenar), de trigo"
+ },
  "8000": {
   "alias": [
    "rillettes",
@@ -9001,11 +11837,476 @@
   ],
   "es": "Quenelle natural, cruda"
  },
+ "9001": {
+  "alias": [
+   "espelta"
+  ],
+  "es": "Espelta, cruda"
+ },
+ "9003": {
+  "alias": [
+   "kamut",
+   "trigo khorasan"
+  ],
+  "es": "Trigo Khorasan (kamut), crudo"
+ },
+ "9010": {
+  "alias": [
+   "trigo",
+   "trigo blando"
+  ],
+  "es": "Trigo blando entero, crudo"
+ },
+ "9011": {
+  "alias": [
+   "trigo germinado",
+   "germinado de trigo",
+   "brotes de trigo"
+  ],
+  "es": "Trigo germinado, crudo"
+ },
+ "9060": {
+  "alias": [
+   "trigo duro",
+   "trigo"
+  ],
+  "es": "Trigo duro entero, crudo"
+ },
+ "9080": {
+  "alias": [
+   "trigo precocido",
+   "trigo"
+  ],
+  "es": "Trigo duro precocido, entero, crudo"
+ },
+ "9081": {
+  "alias": [
+   "trigo cocido",
+   "trigo precocido"
+  ],
+  "es": "Trigo duro precocido, grano entero, cocido, sin sal"
+ },
+ "9085": {
+  "alias": [
+   "fideos asiaticos",
+   "noodles",
+   "ramen"
+  ],
+  "es": "Fideos asiáticos cocidos, aromatizados"
+ },
+ "9086": {
+  "alias": [
+   "fideos asiaticos",
+   "noodles",
+   "udon"
+  ],
+  "es": "Pasta o fideos asiáticos de trigo, cocidos, naturales, sin sal"
+ },
+ "9100": {
+  "alias": [
+   "arroz",
+   "arroz blanco"
+  ],
+  "es": "Arroz blanco, crudo"
+ },
+ "9101": {
+  "alias": [
+   "arroz vaporizado",
+   "arroz"
+  ],
+  "es": "Arroz blanco vaporizado, crudo"
+ },
+ "9102": {
+  "alias": [
+   "arroz integral"
+  ],
+  "es": "Arroz integral, crudo"
+ },
+ "9103": {
+  "alias": [
+   "arroz integral cocido",
+   "arroz integral"
+  ],
+  "es": "Arroz integral, cocido, sin sal"
+ },
+ "9104": {
+  "alias": [
+   "arroz cocido",
+   "arroz blanco cocido",
+   "arroz hervido"
+  ],
+  "es": "Arroz blanco, cocido, sin sal"
+ },
+ "9105": {
+  "alias": [
+   "arroz vaporizado cocido",
+   "arroz cocido"
+  ],
+  "es": "Arroz blanco vaporizado, cocido, sin sal"
+ },
+ "9108": {
+  "alias": [
+   "arroz salvaje",
+   "arroz negro"
+  ],
+  "es": "Arroz salvaje, crudo"
+ },
+ "9109": {
+  "alias": [
+   "arroz rojo"
+  ],
+  "es": "Arroz rojo, crudo"
+ },
+ "9110": {
+  "alias": [
+   "arroz rojo cocido"
+  ],
+  "es": "Arroz rojo, cocido, sin sal"
+ },
+ "9111": {
+  "alias": [
+   "arroz salvaje cocido"
+  ],
+  "es": "Arroz salvaje, cocido, sin sal"
+ },
+ "9119": {
+  "alias": [
+   "arroz basmati",
+   "arroz thai",
+   "arroz jazmin"
+  ],
+  "es": "Arroz tailandés o basmati, crudo"
+ },
+ "9120": {
+  "alias": [
+   "arroz basmati cocido",
+   "arroz thai"
+  ],
+  "es": "Arroz tailandés o basmati, cocido, sin sal"
+ },
+ "9121": {
+  "alias": [
+   "mezcla de arroces",
+   "arroz"
+  ],
+  "es": "Arroz, mezcla de variedades (blanco, integral, rojo, salvaje…), crudo"
+ },
+ "9124": {
+  "alias": [
+   "arroz thai cocido",
+   "arroz jazmin"
+  ],
+  "es": "Arroz tailandés, cocido, sin sal"
+ },
+ "9125": {
+  "alias": [
+   "arroz basmati cocido",
+   "basmati"
+  ],
+  "es": "Arroz basmati, cocido, sin sal"
+ },
+ "9200": {
+  "alias": [
+   "maiz",
+   "maiz en grano"
+  ],
+  "es": "Maíz entero, crudo"
+ },
+ "9230": {
+  "alias": [
+   "palomitas",
+   "palomitas de maiz"
+  ],
+  "es": "Palomitas de maíz, con aceite, saladas"
+ },
+ "9231": {
+  "alias": [
+   "palomitas sin sal",
+   "palomitas"
+  ],
+  "es": "Palomitas de maíz, con aire, sin sal"
+ },
+ "9232": {
+  "alias": [
+   "palomitas de caramelo",
+   "palomitas"
+  ],
+  "es": "Palomitas de maíz, al caramelo"
+ },
+ "9310": {
+  "alias": [
+   "avena",
+   "grano de avena"
+  ],
+  "es": "Avena, cruda"
+ },
+ "9313": {
+  "alias": [
+   "copos de avena",
+   "porridge",
+   "gachas de avena"
+  ],
+  "es": "Copos de avena, hervidos/cocidos en agua"
+ },
+ "9320": {
+  "alias": [
+   "cebada"
+  ],
+  "es": "Cebada entera, cruda"
+ },
+ "9321": {
+  "alias": [
+   "cebada perlada"
+  ],
+  "es": "Cebada perlada, cruda"
+ },
+ "9322": {
+  "alias": [
+   "cebada perlada cocida"
+  ],
+  "es": "Cebada perlada, hervida/cocida en agua, sin sal"
+ },
+ "9330": {
+  "alias": [
+   "mijo"
+  ],
+  "es": "Mijo entero, crudo"
+ },
+ "9331": {
+  "alias": [
+   "mijo cocido"
+  ],
+  "es": "Mijo, cocido, sin sal"
+ },
+ "9340": {
+  "alias": [
+   "quinoa",
+   "quinua"
+  ],
+  "es": "Quinoa, cruda"
+ },
+ "9341": {
+  "alias": [
+   "quinoa cocida",
+   "quinua"
+  ],
+  "es": "Quinoa, hervida/cocida en agua, sin sal"
+ },
+ "9345": {
+  "alias": [
+   "amaranto"
+  ],
+  "es": "Amaranto, crudo"
+ },
+ "9360": {
+  "alias": [
+   "sorgo"
+  ],
+  "es": "Sorgo entero, crudo"
+ },
+ "9380": {
+  "alias": [
+   "trigo sarraceno",
+   "alforfon",
+   "sarraceno"
+  ],
+  "es": "Trigo sarraceno entero, crudo"
+ },
+ "9390": {
+  "alias": [
+   "centeno"
+  ],
+  "es": "Centeno entero, crudo"
+ },
  "9570": {
   "alias": [
    "harina de castaña",
    "castaña molida"
   ],
   "es": "Harina de castaña"
+ },
+ "9610": {
+  "alias": [
+   "semola",
+   "semola de trigo"
+  ],
+  "es": "Sémola de trigo duro, cruda"
+ },
+ "9611": {
+  "alias": [
+   "semola cocida",
+   "semola"
+  ],
+  "es": "Sémola de trigo duro, cocida, sin sal"
+ },
+ "9612": {
+  "alias": [
+   "mezcla de cereales y legumbres"
+  ],
+  "es": "Mezcla de cereales y legumbres, cruda"
+ },
+ "9614": {
+  "alias": [
+   "polenta",
+   "semola de maiz"
+  ],
+  "es": "Polenta o sémola de maíz, precocida, seca"
+ },
+ "9615": {
+  "alias": [
+   "polenta cocida",
+   "polenta"
+  ],
+  "es": "Polenta o sémola de maíz, cocida, sin sal"
+ },
+ "9681": {
+  "alias": [
+   "cuscus",
+   "couscous",
+   "semola"
+  ],
+  "es": "Cuscús en grano (sémola de trigo duro precocida), crudo"
+ },
+ "9683": {
+  "alias": [
+   "cuscus cocido",
+   "couscous"
+  ],
+  "es": "Cuscús en grano (sémola de trigo duro precocida), cocido, sin sal"
+ },
+ "9690": {
+  "alias": [
+   "bulgur",
+   "trigo bulgur"
+  ],
+  "es": "Bulgur de trigo, crudo"
+ },
+ "9691": {
+  "alias": [
+   "bulgur cocido",
+   "bulgur"
+  ],
+  "es": "Bulgur de trigo, cocido, sin sal"
+ },
+ "9810": {
+  "alias": [
+   "pasta",
+   "macarrones",
+   "espaguetis",
+   "fideos"
+  ],
+  "es": "Pasta seca estándar, cruda"
+ },
+ "9811": {
+  "alias": [
+   "pasta cocida",
+   "macarrones cocidos",
+   "espaguetis"
+  ],
+  "es": "Pasta seca estándar, cocida, sin sal"
+ },
+ "9815": {
+  "alias": [
+   "pasta fresca",
+   "tallarines frescos"
+  ],
+  "es": "Pasta fresca, al huevo, cruda"
+ },
+ "9816": {
+  "alias": [
+   "pasta fresca cocida",
+   "tallarines"
+  ],
+  "es": "Pasta fresca, al huevo, cocida, sin sal"
+ },
+ "9821": {
+  "alias": [
+   "pasta al huevo",
+   "tallarines al huevo"
+  ],
+  "es": "Pasta seca, al huevo, cruda"
+ },
+ "9822": {
+  "alias": [
+   "pasta al huevo cocida",
+   "tallarines"
+  ],
+  "es": "Pasta seca, al huevo, cocida, sin sal"
+ },
+ "9824": {
+  "alias": [
+   "pasta sin gluten cocida",
+   "pasta sin gluten"
+  ],
+  "es": "Pasta seca, sin gluten, cocida, sin sal"
+ },
+ "9863": {
+  "alias": [
+   "fideos asiaticos",
+   "noodles al huevo"
+  ],
+  "es": "Pasta o fideos asiáticos de trigo y huevo, crudos, naturales"
+ },
+ "9870": {
+  "alias": [
+   "pasta integral",
+   "macarrones integrales"
+  ],
+  "es": "Pasta seca, de trigo integral, cruda"
+ },
+ "9871": {
+  "alias": [
+   "pasta integral cocida",
+   "macarrones integrales"
+  ],
+  "es": "Pasta seca, de trigo integral, cocida, sin sal"
+ },
+ "9874": {
+  "alias": [
+   "pasta sin gluten"
+  ],
+  "es": "Pasta seca, sin gluten, cruda"
+ },
+ "9875": {
+  "alias": [
+   "pasta de arroz",
+   "pasta sin gluten"
+  ],
+  "es": "Pasta sin gluten de arroz y maíz, cocida en agua, sin sal"
+ },
+ "9876": {
+  "alias": [
+   "pasta de lentejas",
+   "pasta sin gluten"
+  ],
+  "es": "Pasta sin gluten de lenteja roja, cocida en agua, sin sal"
+ },
+ "9900": {
+  "alias": [
+   "fideos de arroz",
+   "noodles de arroz"
+  ],
+  "es": "Fideos de arroz, secos"
+ },
+ "9901": {
+  "alias": [
+   "fideos de arroz cocidos",
+   "noodles de arroz"
+  ],
+  "es": "Fideos de arroz, cocidos, sin sal"
+ },
+ "9902": {
+  "alias": [
+   "fideos de soja",
+   "fideos de cristal"
+  ],
+  "es": "Fideos de soja, secos"
+ },
+ "9903": {
+  "alias": [
+   "fideos de soja cocidos",
+   "fideos de cristal"
+  ],
+  "es": "Fideos de soja, cocidos, sin sal"
  }
 }

@@ -1,0 +1,826 @@
+{
+ "36301": {
+  "alias": [
+   "pavo",
+   "carne de pavo"
+  ],
+  "es": "Pavo, carne, cruda"
+ },
+ "36302": {
+  "alias": [
+   "pavo asado",
+   "pavo"
+  ],
+  "es": "Pavo, carne, asada al horno"
+ },
+ "36304": {
+  "alias": [
+   "filete de pavo",
+   "pechuga de pavo"
+  ],
+  "es": "Pavo, filete, crudo"
+ },
+ "36305": {
+  "alias": [
+   "muslo de pavo",
+   "contramuslo de pavo"
+  ],
+  "es": "Pavo, muslo, carne y piel, crudo"
+ },
+ "36306": {
+  "alias": [
+   "filete de pavo a la plancha",
+   "pechuga de pavo"
+  ],
+  "es": "Pavo, filete, a la plancha o salteado"
+ },
+ "36307": {
+  "alias": [
+   "muslo de pavo",
+   "pavo"
+  ],
+  "es": "Pavo, muslo, carne sin piel, crudo"
+ },
+ "36308": {
+  "alias": [
+   "filete de pavo al horno",
+   "pavo asado"
+  ],
+  "es": "Pavo, filete, asado al horno"
+ },
+ "36310": {
+  "alias": [
+   "alita de pavo",
+   "pavo"
+  ],
+  "es": "Pavo, alita, cruda"
+ },
+ "36318": {
+  "alias": [
+   "filete de pavo empanado",
+   "escalope de pavo"
+  ],
+  "es": "Pavo, filete empanado (a la vienesa o milanesa)"
+ },
+ "36401": {
+  "alias": [
+   "faisan",
+   "carne de caza"
+  ],
+  "es": "Faisán, carne, crudo"
+ },
+ "36402": {
+  "alias": [
+   "faisan asado",
+   "faisan"
+  ],
+  "es": "Faisán, carne, asada al horno"
+ },
+ "36403": {
+  "alias": [
+   "faisan"
+  ],
+  "es": "Faisán, carne y piel, crudo"
+ },
+ "36500": {
+  "alias": [
+   "oca",
+   "ganso"
+  ],
+  "es": "Oca, carne cruda"
+ },
+ "36501": {
+  "alias": [
+   "oca",
+   "ganso"
+  ],
+  "es": "Oca, carne y piel, cruda"
+ },
+ "36502": {
+  "alias": [
+   "oca asada",
+   "ganso asado"
+  ],
+  "es": "Oca, carne, asada al horno"
+ },
+ "36503": {
+  "alias": [
+   "oca asada",
+   "ganso asado"
+  ],
+  "es": "Oca, carne y piel, asada al horno"
+ },
+ "36600": {
+  "alias": [
+   "pichon",
+   "paloma"
+  ],
+  "es": "Pichón, crudo"
+ },
+ "36602": {
+  "alias": [
+   "pichon asado",
+   "paloma"
+  ],
+  "es": "Pichón, carne, asada al horno"
+ },
+ "36603": {
+  "alias": [
+   "caza de pluma",
+   "carne de caza"
+  ],
+  "es": "Caza de pluma, carne, cocida (alimento medio)"
+ },
+ "36700": {
+  "alias": [
+   "pintada",
+   "gallina de guinea"
+  ],
+  "es": "Pintada, cruda"
+ },
+ "36702": {
+  "alias": [
+   "pechuga de pintada",
+   "pintada"
+  ],
+  "es": "Pintada, pechuga, cruda"
+ },
+ "36703": {
+  "alias": [
+   "muslo de pintada",
+   "pintada"
+  ],
+  "es": "Pintada, muslo, crudo"
+ },
+ "36800": {
+  "alias": [
+   "avestruz"
+  ],
+  "es": "Avestruz, carne cruda"
+ },
+ "36801": {
+  "alias": [
+   "avestruz"
+  ],
+  "es": "Avestruz, carne cocida"
+ },
+ "36900": {
+  "alias": [
+   "ave cocida",
+   "pollo cocido"
+  ],
+  "es": "Ave, cocida (alimento medio)"
+ },
+ "40002": {
+  "alias": [
+   "sesos de cordero",
+   "sesos"
+  ],
+  "es": "Sesos de cordero, crudos"
+ },
+ "40003": {
+  "alias": [
+   "sesos de cordero",
+   "sesos"
+  ],
+  "es": "Sesos de cordero, cocidos"
+ },
+ "40004": {
+  "alias": [
+   "sesos de cerdo",
+   "sesos"
+  ],
+  "es": "Sesos de cerdo, estofados"
+ },
+ "40005": {
+  "alias": [
+   "sesos de cerdo",
+   "sesos"
+  ],
+  "es": "Sesos de cerdo, crudos"
+ },
+ "40006": {
+  "alias": [
+   "sesos de ternera",
+   "sesos"
+  ],
+  "es": "Sesos de ternera, crudos"
+ },
+ "40007": {
+  "alias": [
+   "sesos de ternera",
+   "sesos"
+  ],
+  "es": "Sesos de ternera, cocidos"
+ },
+ "40052": {
+  "alias": [
+   "corazon de ternera",
+   "corazon"
+  ],
+  "es": "Corazón de vacuno, crudo"
+ },
+ "40053": {
+  "alias": [
+   "corazon de ternera",
+   "corazon"
+  ],
+  "es": "Corazón de vacuno, cocido"
+ },
+ "40054": {
+  "alias": [
+   "corazon de pollo",
+   "corazones de pollo"
+  ],
+  "es": "Corazón de pollo, crudo"
+ },
+ "40055": {
+  "alias": [
+   "corazon de pavo"
+  ],
+  "es": "Corazón de pavo, crudo"
+ },
+ "40056": {
+  "alias": [
+   "corazon de pollo",
+   "corazones de pollo"
+  ],
+  "es": "Corazón de pollo, cocido"
+ },
+ "40057": {
+  "alias": [
+   "corazon de pavo"
+  ],
+  "es": "Corazón de pavo, cocido"
+ },
+ "40058": {
+  "alias": [
+   "corazon de cordero"
+  ],
+  "es": "Corazón de cordero, crudo"
+ },
+ "40059": {
+  "alias": [
+   "corazon de cordero"
+  ],
+  "es": "Corazón de cordero, cocido"
+ },
+ "40060": {
+  "alias": [
+   "corazon de cerdo"
+  ],
+  "es": "Corazón de cerdo, crudo"
+ },
+ "40062": {
+  "alias": [
+   "corazon de ternera"
+  ],
+  "es": "Corazón de ternera, crudo"
+ },
+ "40102": {
+  "alias": [
+   "higado de cordero",
+   "higado"
+  ],
+  "es": "Hígado de cordero, crudo"
+ },
+ "40103": {
+  "alias": [
+   "higado de cordero",
+   "higado"
+  ],
+  "es": "Hígado de cordero, cocido"
+ },
+ "40104": {
+  "alias": [
+   "higado de ternera",
+   "higado de novilla"
+  ],
+  "es": "Hígado de novilla, crudo"
+ },
+ "40105": {
+  "alias": [
+   "higado de ternera",
+   "higado de novilla"
+  ],
+  "es": "Hígado de novilla, cocido"
+ },
+ "40106": {
+  "alias": [
+   "higado de ternera",
+   "higado"
+  ],
+  "es": "Hígado de ternera, crudo"
+ },
+ "40107": {
+  "alias": [
+   "higado de ternera",
+   "higado encebollado"
+  ],
+  "es": "Hígado de ternera, cocido"
+ },
+ "40108": {
+  "alias": [
+   "higadillos",
+   "higado de pollo"
+  ],
+  "es": "Hígado de ave, crudo"
+ },
+ "40109": {
+  "alias": [
+   "higadillos",
+   "higado de pollo"
+  ],
+  "es": "Hígado de ave, cocido"
+ },
+ "40110": {
+  "alias": [
+   "higado de conejo"
+  ],
+  "es": "Hígado de conejo, crudo"
+ },
+ "40111": {
+  "alias": [
+   "higado de pollo",
+   "higadillos"
+  ],
+  "es": "Hígado de pollo, crudo"
+ },
+ "40113": {
+  "alias": [
+   "higado de cerdo",
+   "higado"
+  ],
+  "es": "Hígado de cerdo, cocido"
+ },
+ "40115": {
+  "alias": [
+   "higado de pavo"
+  ],
+  "es": "Hígado de pavo, crudo"
+ },
+ "40116": {
+  "alias": [
+   "higado de pollo",
+   "higadillos"
+  ],
+  "es": "Hígado de pollo, cocido"
+ },
+ "40118": {
+  "alias": [
+   "higado de pavo"
+  ],
+  "es": "Hígado de pavo, cocido"
+ },
+ "40119": {
+  "alias": [
+   "higado de cerdo",
+   "higado"
+  ],
+  "es": "Hígado de cerdo, crudo"
+ },
+ "40120": {
+  "alias": [
+   "higado de oca",
+   "higado de ganso"
+  ],
+  "es": "Hígado de oca, crudo"
+ },
+ "40121": {
+  "alias": [
+   "higado de pato"
+  ],
+  "es": "Hígado de pato, crudo"
+ },
+ "40201": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de ternera, cocida"
+ },
+ "40202": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de vacuno, cruda"
+ },
+ "40203": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de vacuno, cocida"
+ },
+ "40204": {
+  "alias": [
+   "lengua de ternera",
+   "lengua"
+  ],
+  "es": "Lengua de ternera, cruda"
+ },
+ "40205": {
+  "alias": [
+   "lengua de cerdo",
+   "lengua"
+  ],
+  "es": "Lengua de cerdo, cruda"
+ },
+ "40207": {
+  "alias": [
+   "lengua de cordero",
+   "lengua"
+  ],
+  "es": "Lengua de cordero, cruda"
+ },
+ "40302": {
+  "alias": [
+   "mollejas de cordero",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de cordero, crudas"
+ },
+ "40303": {
+  "alias": [
+   "mollejas de cordero",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de cordero, cocidas"
+ },
+ "40304": {
+  "alias": [
+   "mollejas de ternera",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de ternera, crudas"
+ },
+ "40305": {
+  "alias": [
+   "mollejas de ternera",
+   "lechecillas"
+  ],
+  "es": "Mollejas (lechecillas) de ternera, estofadas o salteadas"
+ },
+ "40401": {
+  "alias": [
+   "riñon",
+   "riñones"
+  ],
+  "es": "Riñón, cocido (alimento medio)"
+ },
+ "40402": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de vacuno, crudo"
+ },
+ "40403": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de vacuno, cocido"
+ },
+ "40404": {
+  "alias": [
+   "riñon de cerdo",
+   "riñones"
+  ],
+  "es": "Riñón de cerdo, crudo"
+ },
+ "40405": {
+  "alias": [
+   "riñon de cerdo",
+   "riñones"
+  ],
+  "es": "Riñón de cerdo, cocido"
+ },
+ "40406": {
+  "alias": [
+   "riñon de cordero",
+   "riñones al jerez"
+  ],
+  "es": "Riñón de cordero, estofado"
+ },
+ "40407": {
+  "alias": [
+   "riñon de cordero",
+   "riñones"
+  ],
+  "es": "Riñón de cordero, crudo"
+ },
+ "40408": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de ternera, estofado o salteado"
+ },
+ "40409": {
+  "alias": [
+   "riñon de ternera",
+   "riñones"
+  ],
+  "es": "Riñón de ternera, crudo"
+ },
+ "40502": {
+  "alias": [
+   "callos",
+   "tripas"
+  ],
+  "es": "Callos de vacuno, crudos"
+ },
+ "40600": {
+  "alias": [
+   "sangre",
+   "sangrecilla"
+  ],
+  "es": "Sangre de vacuno, cruda"
+ },
+ "40601": {
+  "alias": [
+   "casqueria",
+   "asaduras"
+  ],
+  "es": "Casquería, cocida (alimento medio)"
+ },
+ "40700": {
+  "alias": [
+   "molleja de pollo",
+   "mollejas de ave"
+  ],
+  "es": "Molleja de pollo, cruda"
+ },
+ "40701": {
+  "alias": [
+   "mollejas de pato",
+   "molleja confitada"
+  ],
+  "es": "Molleja de pato confitada, en conserva"
+ },
+ "7000": {
+  "alias": [
+   "pan"
+  ],
+  "es": "Pan (alimento medio)"
+ },
+ "7001": {
+  "alias": [
+   "barra de pan",
+   "baguette",
+   "pan blanco"
+  ],
+  "es": "Pan, baguette, corriente"
+ },
+ "7002": {
+  "alias": [
+   "pan de masa madre",
+   "masa madre"
+  ],
+  "es": "Pan, baguette u hogaza, de masa madre"
+ },
+ "7004": {
+  "alias": [
+   "pan tostado",
+   "tostada"
+  ],
+  "es": "Pan tostado, hecho en casa"
+ },
+ "7007": {
+  "alias": [
+   "baguette",
+   "barra de pan"
+  ],
+  "es": "Pan, baguette, de tradición francesa"
+ },
+ "7010": {
+  "alias": [
+   "pan semiintegral",
+   "pan bis"
+  ],
+  "es": "Pan, baguette u hogaza, semiintegral (harina T80 o T110)"
+ },
+ "7012": {
+  "alias": [
+   "pan de hogaza",
+   "hogaza",
+   "pan"
+  ],
+  "es": "Pan corriente, 400 g u hogaza"
+ },
+ "7025": {
+  "alias": [
+   "pan ecologico",
+   "pan bio"
+  ],
+  "es": "Pan, baguette u hogaza, ecológico (harina T55 a T110)"
+ },
+ "7100": {
+  "alias": [
+   "pan de pueblo",
+   "pan rustico"
+  ],
+  "es": "Pan, baguette u hogaza, de pueblo"
+ },
+ "7110": {
+  "alias": [
+   "pan integral"
+  ],
+  "es": "Pan integral (harina T150)"
+ },
+ "7111": {
+  "alias": [
+   "pan de molde integral",
+   "pan bimbo integral"
+  ],
+  "es": "Pan de molde, integral"
+ },
+ "7112": {
+  "alias": [
+   "pan de molde con salvado",
+   "pan de salvado"
+  ],
+  "es": "Pan de molde, con salvado"
+ },
+ "7113": {
+  "alias": [
+   "pan de molde multicereales"
+  ],
+  "es": "Pan de molde, multicereales"
+ },
+ "7115": {
+  "alias": [
+   "pan de salvado"
+  ],
+  "es": "Pan con salvado"
+ },
+ "7125": {
+  "alias": [
+   "pan de centeno"
+  ],
+  "es": "Pan de centeno y trigo"
+ },
+ "7130": {
+  "alias": [
+   "pan sin gluten"
+  ],
+  "es": "Pan, sin gluten"
+ },
+ "7160": {
+  "alias": [
+   "pan sin sal",
+   "barra sin sal"
+  ],
+  "es": "Pan, baguette, sin sal"
+ },
+ "7170": {
+  "alias": [
+   "panini",
+   "pan de panini"
+  ],
+  "es": "Pan de panini"
+ },
+ "7180": {
+  "alias": [
+   "pan de pita",
+   "pita"
+  ],
+  "es": "Pan de pita"
+ },
+ "7200": {
+  "alias": [
+   "pan de molde",
+   "pan bimbo"
+  ],
+  "es": "Pan de molde, corriente"
+ },
+ "7201": {
+  "alias": [
+   "pan de molde sin corteza",
+   "pan de molde"
+  ],
+  "es": "Pan de molde, sin corteza, envasado"
+ },
+ "7210": {
+  "alias": [
+   "pan brioche",
+   "pan de molde"
+  ],
+  "es": "Pan de molde tipo brioche, envasado"
+ },
+ "7255": {
+  "alias": [
+   "pan de semillas",
+   "pan de cereales"
+  ],
+  "es": "Pan, baguette u hogaza, con cereales y semillas, artesano"
+ },
+ "7256": {
+  "alias": [
+   "muffin ingles integral",
+   "muffin ingles"
+  ],
+  "es": "Muffin inglés, integral, panecillo especial, envasado"
+ },
+ "7257": {
+  "alias": [
+   "muffin ingles",
+   "panecillo"
+  ],
+  "es": "Muffin inglés, panecillo especial, envasado"
+ },
+ "7258": {
+  "alias": [
+   "bagel",
+   "pan bagel"
+  ],
+  "es": "Bagel"
+ },
+ "7259": {
+  "alias": [
+   "pan de hamburguesa",
+   "pan de perrito",
+   "bollo de hamburguesa"
+  ],
+  "es": "Pan de hamburguesa o de perrito (bun), envasado"
+ },
+ "7260": {
+  "alias": [
+   "pan casero",
+   "pan de panificadora"
+  ],
+  "es": "Pan blanco casero (con harina para panificadora)"
+ },
+ "7261": {
+  "alias": [
+   "pan casero",
+   "pan rustico casero"
+  ],
+  "es": "Pan de pueblo casero (con harina para panificadora)"
+ },
+ "7262": {
+  "alias": [
+   "pan de hamburguesa integral",
+   "bollo integral"
+  ],
+  "es": "Pan de hamburguesa o de perrito (bun), integral, envasado"
+ },
+ "7263": {
+  "alias": [
+   "pretzel",
+   "bretzel"
+  ],
+  "es": "Pretzel, pan fresco"
+ },
+ "7300": {
+  "alias": [
+   "biscote",
+   "pan tostado"
+  ],
+  "es": "Biscote clásico"
+ },
+ "7301": {
+  "alias": [
+   "biscote brioche",
+   "biscote"
+  ],
+  "es": "Biscote tipo brioche"
+ },
+ "7310": {
+  "alias": [
+   "biscote sin sal",
+   "pan tostado sin sal"
+  ],
+  "es": "Biscote sin sal añadida"
+ },
+ "7330": {
+  "alias": [
+   "biscote multicereales",
+   "pan tostado"
+  ],
+  "es": "Biscote multicereales"
+ },
+ "7340": {
+  "alias": [
+   "biscote integral",
+   "pan tostado integral"
+  ],
+  "es": "Biscote integral o rico en fibra"
+ },
+ "7351": {
+  "alias": [
+   "crackers",
+   "galletas saladas"
+  ],
+  "es": "Crackers de mesa de trigo"
+ },
+ "7352": {
+  "alias": [
+   "tortita de arroz",
+   "tortitas de arroz"
+  ],
+  "es": "Tortita de arroz inflado integral"
+ }
+}
