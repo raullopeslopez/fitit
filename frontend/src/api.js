@@ -217,3 +217,58 @@ export function editSet(setId, set) {
 export function deleteSet(setId) {
   return apiFetch(`/workouts/sets/${setId}`, { method: 'DELETE' })
 }
+
+// --- Comida -----------------------------------------------------------------
+
+// Busca en el catálogo: lo tuyo y lo compartido, mejor coincidencia primero.
+// Sin `q` devuelve tus alimentos, que en una cuenta nueva es lo único que hay.
+export function searchFoods(q = '') {
+  const query = q ? `?q=${encodeURIComponent(q)}` : ''
+  return apiFetch(`/foods${query}`)
+}
+
+// Da de alta un alimento a mano — el pan de la panadería, los piquillos de tu
+// madre. Es la única puerta por la que se escribe en el catálogo: ni el
+// escáner, ni un import, ni un parser pueden crear un alimento sin que alguien
+// lo confirme en un formulario.
+export function createFood(food) {
+  return apiFetch('/foods', { method: 'POST', body: JSON.stringify(food) })
+}
+
+// Corrige un alimento tuyo. No toca nada de lo ya registrado: el diario congeló
+// sus números al escribirlos.
+export function correctFood(foodId, fields) {
+  return apiFetch(`/foods/${foodId}`, { method: 'PATCH', body: JSON.stringify(fields) })
+}
+
+// Registra una cantidad. `logged_at` se manda con el offset del móvil porque es
+// lo que decide en qué día alimentario cae — el servidor no tiene otro reloj
+// con el que fechar una cena de la 01:30.
+export function logFood({ foodId, grams = null, portionId = null, quantity = 1, mealSlot = null }) {
+  return apiFetch('/food-log', {
+    method: 'POST',
+    body: JSON.stringify({
+      food_id: foodId,
+      grams,
+      portion_id: portionId,
+      quantity,
+      meal_slot: mealSlot,
+      logged_at: new Date().toISOString(),
+    }),
+  })
+}
+
+// Un día del diario: sus entradas, sus totales y qué no ha podido sumarse.
+export function getFoodDay(dayIso) {
+  return apiFetch(`/food-log?date=${dayIso}`)
+}
+
+// Repesar o recolocar una entrada. Los nutrientes se reescalan desde lo
+// congelado, nunca se releen del alimento.
+export function correctFoodEntry(entryId, fields) {
+  return apiFetch(`/food-log/${entryId}`, { method: 'PATCH', body: JSON.stringify(fields) })
+}
+
+export function deleteFoodEntry(entryId) {
+  return apiFetch(`/food-log/${entryId}`, { method: 'DELETE' })
+}

@@ -132,6 +132,60 @@ export const DAYS = historyDays()
 export const TAKEN = 'Remo con barra'
 export const TAKEN_ID = 11
 
+// Un día de comida con lo que esta pantalla tiene que aguantar: cuatro cifras
+// en la fila de macros, una de ellas **desconocida** (la raya, que es lo único
+// de Comida que no se puede medir en jsdom porque hay que leer el color con el
+// que se pinta), nombres largos de verdad y las cuatro comidas ocupadas, para
+// que la página tenga recorrido y la CTA fija tenga algo debajo que tapar.
+export const FOODS = [
+  {
+    id: 501,
+    name: 'Pan de centeno de la panadería de abajo',
+    brand: null,
+    source: 'manual',
+    kcal_100g: 250,
+    protein_100g: 8,
+    fat_100g: 3,
+    carbs_100g: 48,
+    fiber_100g: 6.2,
+    portions: [{ id: 9001, label: 'rebanada', grams: 32, is_default: true }],
+    is_mine: true,
+  },
+]
+
+function foodEntry(id, slot, name, grams, kcal, fiber) {
+  return {
+    id,
+    logged_at: `${iso(daysAgo(0))}T${pad(6 + id)}:15:00Z`,
+    log_date: iso(daysAgo(0)),
+    meal_slot: slot,
+    food_id: 501,
+    food_name: name,
+    grams,
+    kcal,
+    protein: Math.round(kcal * 0.05 * 10) / 10,
+    fat: Math.round(kcal * 0.02 * 10) / 10,
+    carbs: Math.round(kcal * 0.12 * 10) / 10,
+    fiber,
+    entry_source: 'manual',
+  }
+}
+
+export const FOOD_DAY = {
+  date: iso(daysAgo(0)),
+  entries: [
+    foodEntry(1, 'desayuno', 'Pan de centeno de la panadería de abajo', 64, 160, 4),
+    foodEntry(2, 'desayuno', 'Aceite de oliva virgen extra', 10, 90, 0),
+    foodEntry(3, 'comida', 'Pechuga de pollo a la plancha', 180, 297, 0),
+    foodEntry(4, 'comida', 'Arroz blanco cocido', 220, 286, 0.9),
+    // Sin fibra registrada: es la entrada que convierte el total en una raya.
+    foodEntry(5, 'cena', 'Piquillos de mi madre', 150, 90, null),
+    foodEntry(6, null, 'Café con leche', 200, 62, 0),
+  ],
+  totals: { kcal: 985, protein: 49.3, fat: 19.7, carbs: 118.2, fiber: null },
+  unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 1 },
+}
+
 // Instalado antes de montar nada: `Days` pide `/days` en su primer render y un
 // stub puesto dentro de un componente ya habría perdido esa carrera.
 //
@@ -158,6 +212,8 @@ function stubNetwork() {
       },
     ],
     [/\/exercises$/, EXERCISES],
+    [/\/food-log$/, FOOD_DAY],
+    [/\/foods$/, FOODS],
   ]
   const json = (body, status = 200) =>
     new Response(JSON.stringify(body), {
@@ -253,6 +309,16 @@ export async function mountProgreso() {
   // (DESIGN.md), sin botón de confirmación. Nada que pulsar después.
   await user.type(field, MAIN)
   await screen.findByRole('button', { name: `Editar ejercicio ${MAIN}` }, { timeout: 5000 })
+  await settle()
+  return view
+}
+
+/** Comida, con el día de arriba ya cargado. */
+export async function mountComida() {
+  const view = await mountApp()
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
+  await screen.findByRole('button', { name: 'Añadir alimento' }, { timeout: 5000 })
   await settle()
   return view
 }

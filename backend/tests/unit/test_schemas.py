@@ -67,3 +67,31 @@ def test_exercise_in_requires_name():
 def test_workout_name_optional():
     assert WorkoutIn().name is None
     assert WorkoutIn(name="Push day").name == "Push day"
+
+
+def test_la_busqueda_de_alimentos_no_pide_los_micronutrientes():
+    """Una fila de CIQUAL guarda 1,7 KB de vitaminas y ácidos grasos, y la lista
+    de resultados no enseña ninguno: `FoodOut` no los lleva. Sin diferirlos, una
+    búsqueda de una sola letra (2.822 coincidencias sobre el catálogo entero)
+    arrastra 4,7 MB desde Postgres para pintar treinta nombres.
+
+    Comprobado sobre el SQL compilado y no sobre la respuesta HTTP: el JSON sale
+    idéntico con la optimización y sin ella, así que un test de endpoint aquí no
+    podría fallar nunca.
+    """
+    from app.routers.foods import search_stmt
+
+    sql = str(search_stmt(user_id=1, needle="arroz").compile())
+    assert "foods.name_folded" in sql, "el SELECT tiene que seguir trayendo lo que sí se enseña"
+    assert "nutrients_json" not in sql
+
+
+def test_la_busqueda_acota_cuantas_filas_trae_para_ordenar():
+    """El orden fino se calcula en Python, así que la consulta trae candidatos.
+    Sin tope, buscar `a` sobre el catálogo CIQUAL casa con 3.090 de 3.185
+    alimentos: 113 ms de ordenación para pintar treinta nombres."""
+    from app.routers.foods import CANDIDATE_LIMIT, search_stmt
+
+    sql = str(search_stmt(user_id=1, needle="a").compile())
+    assert "LIMIT" in sql.upper()
+    assert search_stmt(user_id=1, needle="a")._limit == CANDIDATE_LIMIT

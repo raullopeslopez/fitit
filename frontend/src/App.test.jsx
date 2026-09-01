@@ -58,6 +58,26 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
   })
 
+  it('reaches Comida from the bottom nav and comes back', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
+    api.getFoodDay.mockResolvedValue({
+      date: '2026-07-15',
+      entries: [],
+      totals: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+      unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 },
+    })
+    render(<App />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Comida' }))
+    expect(await screen.findByRole('button', { name: 'Añadir alimento' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Días' }))
+    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+  })
+
   // Reopening the app between sets used to land on Días — a tap and a fetch
   // away from the set you were about to log. The open workout is the state you
   // were in, so it survives the relaunch.

@@ -3658,3 +3658,190 @@ button.set-chip:active:not(:disabled) {
 .days-first .sum-handover {
   margin: 0.3rem 0 0;
 }
+
+/* --- Comida ---------------------------------------------------------------
+   La pantalla reserva más pie del que `.container` da (4,5rem, medido para la
+   barra de pestañas y nada más). Los paneles de esta pantalla —buscar, poner
+   cantidad, dar de alta— se abren *al final* de la lista del día, así que su
+   pie cae contra el fondo del documento: sin más recorrido que ese, alinearlos
+   arriba se queda a 24 px de traer «Crear …» y «Cancelar» por encima de la
+   barra, y los dos botones que hacen falta para terminar quedan tapados justo
+   cuando se necesitan. Medido en `comida.browser-test.jsx`, que es donde
+   aparecerá otra vez si un panel crece. */
+.comida {
+  padding-bottom: 7rem;
+}
+
+   La pantalla es un instrumento como las otras dos: números en mono, rótulos
+   en Micro (mayúscula, letterspaced, no-prosa) y un solo acento. Lo único
+   propio de esta pantalla es la raya: un total desconocido se imprime como `—`
+   y no como 0, y la raya tiene que leerse a la misma altura que un número o se
+   confunde con un hueco de maquetación. */
+
+/* La fecha en su propia línea, con los dos pasos a los lados. Es un sello de
+   datos, no prosa: mono y en mayúscula, como el de la lista de días. */
+.food-daynav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.2rem 0 0.9rem;
+}
+.food-daystamp {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.food-daystep {
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.food-daystep:disabled {
+  opacity: 0.35;
+}
+
+/* El total del día es el único número grande de la pantalla. Va sobre la
+   superficie hero porque es lo que la pantalla mide, igual que la tarjeta del
+   ejercicio en curso es lo que Entreno mide. */
+.food-sum {
+  text-align: center;
+}
+.food-kcal {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.food-kcal-unit {
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.food-macros {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+}
+.food-macro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.food-macro-value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  /* La raya tiene que ocupar la altura de una cifra, o una columna sin dato se
+     hunde y la fila deja de leerse como una fila. */
+  line-height: 1.2;
+}
+.food-macro-label {
+  /* Micro: rótulo de columna, mayúscula y letterspaced, sin una sola minúscula
+     — que es la condición que DESIGN.md pone para bajar de Label. */
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.food-unknown {
+  margin-top: 0.7rem;
+  text-align: left;
+}
+
+.food-empty {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.food-group {
+  margin-bottom: 1.2rem;
+}
+.food-group-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3rem;
+}
+
+/* Tocar la fila la edita, sin un `⋯` de por medio: es la regla de manipulación
+   directa que ya gobierna las series y el título del entreno. */
+.food-entry-amount,
+.food-entry-kcal {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.food-entry-kcal {
+  color: var(--text);
+}
+
+.food-editor-name,
+.food-amount-name {
+  margin: 0 0 0.8rem;
+  font-weight: 600;
+}
+.food-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+/* Borrar se queda dentro del editor que abre la fila, en rojo y como enlace:
+   destructivo pero raro, así que no compite con Guardar. */
+.food-danger {
+  margin-left: auto;
+  color: var(--danger);
+}
+
+.food-results {
+  list-style: none;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0;
+}
+.food-result-brand {
+  font-weight: 400;
+  color: var(--muted);
+}
+.food-result-kcal {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.food-portions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+.food-cancel {
+  margin-left: 0.9rem;
+}
+
+/* Al pie de la lista y no fija, a diferencia de la de Días. Allí la CTA es
+   `Continuar entreno`: la quieres a mano estés donde estés del scroll, porque
+   estás a mitad de sesión. Aquí registras al terminar de comer, con el día
+   entero delante, y una barra fija sobre una lista corta gasta 60 px
+   permanentes para ahorrar un gesto que no se hace a mitad de nada. Candidata
+   a revisarse en la fase 2, que es la que mide la fricción de verdad. */
+.food-cta {
+  margin-bottom: 1rem;
+}

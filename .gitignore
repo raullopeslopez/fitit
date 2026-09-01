@@ -43,3 +43,10 @@ design_handoff_*/
 .vscode/
 .idea/
 .gstack/
+
+# El .xls de CIQUAL (3,6 MB) se baja, no se versiona: `--download` lo trae de
+# ANSES. La traducción sí se versiona — es el artefacto caro de la fase 0, y
+# tenerla en el repo es lo que hace que rehacer la base de datos no cueste
+# ochenta llamadas a un LLM.
+backend/data/*
+!backend/data/ciqual_es.json

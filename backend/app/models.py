@@ -1,13 +1,17 @@
 from datetime import UTC, date, datetime
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -131,3 +135,144 @@ class SetEntry(Base):
 
     workout: Mapped["Workout"] = relationship(back_populates="sets")
     exercise: Mapped["Exercise"] = relationship(back_populates="sets")
+
+
+class Food(Base):
+    """An item you can put in the diary — a CIQUAL row, or one you typed.
+
+    `user_id` is null for the shared catalogue (CIQUAL, and later Open Food
+    Facts): those rows are reference data, not somebody's belongings, and
+    duplicating three thousand of them per account would be storing the same
+    measurement over and over. A food you created yourself carries your id, is
+    only ever yours, and is the only kind you are allowed to correct.
+    """
+
+    __tablename__ = "foods"
+    # La clave de procedencia, y lo que hace idempotente el import de CIQUAL:
+    # un `alim_code` es un alimento, ejecutar el import dos veces actualiza en
+    # vez de duplicar. Los alimentos manuales llevan `source_ref` a NULL y no
+    # chocan entre sí — Postgres y SQLite tratan cada NULL como distinto.
+    __table_args__ = (
+        UniqueConstraint("source", "source_ref", name="uq_foods_source_source_ref"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(160))
+    # Accent-stripped, lowercased, whitespace-collapsed — the key the search
+    # box matches on. Stored rather than computed per query because there is no
+    # portable SQL for it: Postgres would need `unaccent` and SQLite has
+    # nothing. Same reasoning, and the same folding function, as exercise names
+    # (see app/naming.py).
+    name_folded: Mapped[str] = mapped_column(String(160), index=True)
+    brand: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # 'ciqual' | 'off' | 'manual' | 'fdc'
+    source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
+    source_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 'available' (the European convention CIQUAL uses, fibre counted apart) or
+    # 'by_difference' (the US one, fibre inside the carbohydrate figure). Two
+    # numbers that mean different things must not be added together silently.
+    carb_convention: Mapped[str] = mapped_column(
+        String(16), default="available", server_default="available"
+    )
+    # Every one of these is nullable on purpose. Null is "nobody measured it",
+    # which a zero would misreport as "measured, and there is none".
+    kcal_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    protein_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fat_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    carbs_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fiber_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Everything CIQUAL carries beyond the five macros, as a JSON object.
+    nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_recipe: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # Hidden from search without breaking the entries that point at it.
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    aliases: Mapped[list["FoodAlias"]] = relationship(
+        back_populates="food", cascade="all, delete-orphan"
+    )
+    portions: Mapped[list["Portion"]] = relationship(
+        back_populates="food", cascade="all, delete-orphan", order_by="Portion.id"
+    )
+
+
+class FoodAlias(Base):
+    """Another name the same food answers to — "judías", "alubias", "habichuelas"."""
+
+    __tablename__ = "food_aliases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id", ondelete="CASCADE"), index=True)
+    alias: Mapped[str] = mapped_column(String(160))
+    alias_folded: Mapped[str] = mapped_column(String(160), index=True)
+
+    food: Mapped["Food"] = relationship(back_populates="aliases")
+
+
+class Portion(Base):
+    """A household measure — "rebanada", "unidad mediana", "cazo".
+
+    The point of the whole table is that logging one slice of bread should not
+    make you weigh it.
+    """
+
+    __tablename__ = "portions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id", ondelete="CASCADE"), index=True)
+    label: Mapped[str] = mapped_column(String(60))
+    grams: Mapped[float] = mapped_column(Float)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+
+    food: Mapped["Food"] = relationship(back_populates="portions")
+
+
+class LogEntry(Base):
+    """One thing eaten, with its nutrients frozen at the moment it was recorded.
+
+    The macro columns are a copy, not a reference, and that is the design: a
+    food corrected next March must not rewrite what last September's total said.
+    Nothing recomputes them from `foods` — see app/nutrition.py.
+    """
+
+    __tablename__ = "log_entries"
+    # Every read of the diary is "this user, this day", so that is the index.
+    __table_args__ = (Index("idx_log_entries_user_date", "user_id", "log_date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    # The instant, stored UTC (SQLite hands it back naive; every moment here is
+    # UTC, same convention as sets).
+    logged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # The food day it belongs to: 04:00 → 04:00 on the clock the client sent.
+    # Derived once, on write, because the offset that decided it is not
+    # recoverable from a UTC timestamp afterwards.
+    log_date: Mapped[date] = mapped_column(Date)
+    meal_slot: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Nullable, and deliberately not cascading: deleting a food you no longer
+    # buy must not delete the fortnight you ate it. The snapshot below is what
+    # keeps the row readable once the pointer is gone.
+    food_id: Mapped[int | None] = mapped_column(
+        ForeignKey("foods.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    food_name_snapshot: Mapped[str] = mapped_column(String(160))
+    grams: Mapped[float] = mapped_column(Float)
+    # FROZEN. Never recalculated from `foods`.
+    kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
+    protein: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    carbs: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fiber: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 'manual' | 'barcode' | 'template' | 'repeat' | 'voice' — kept from day one
+    # so that, a month in, "how much do I actually use the voice parser?" is a
+    # query rather than a guess.
+    entry_source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )

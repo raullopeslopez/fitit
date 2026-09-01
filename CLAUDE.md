@@ -10,6 +10,55 @@ All font choices, colors, spacing, and aesthetic direction are defined there.
 Do not deviate without explicit user approval.
 In QA/review mode, flag any code that doesn't match `DESIGN.md`.
 
+## Comida (registro de alimentos)
+Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo la 1.
+
+- **`NULL` no es `0`.** Un nutriente sin medir es desconocido. Ninguna suma puede
+  convertirlo en cero sin que sea una decisión explícita y comentada. En pantalla se
+  imprime `—`, con la misma tinta que una cifra, nunca en `--muted`.
+- **`log_entries` congela.** Las macros son copias, no un join contra `foods`. Nada las
+  recalcula desde el alimento — ni siquiera repesar una entrada, que reescala lo
+  congelado (`escalar_nutrientes`).
+- **Toda la aritmética nutricional vive en `backend/app/nutrition.py`.** No la dupliques
+  y no la muevas al router.
+- **Nada crea alimentos solo.** Ni un import, ni el escáner, ni un parser: `POST /foods`
+  desde un formulario que el usuario rellenó es la única puerta.
+- **Los alimentos van en la misma BD que los entrenos.** No propongas separarlos; poder
+  cruzarlos es el motivo del proyecto.
+- **El catálogo compartido es `foods.user_id IS NULL`** (CIQUAL, y luego Open Food Facts):
+  se lee, no se edita. Lo que das de alta a mano lleva tu `user_id` y es lo único
+  corregible.
+- **El día alimentario corta a las 04:00 locales**, derivado al escribir en `log_date`
+  desde el offset que mandó el cliente. `food_log_date()` (backend) y `foodDayIso()`
+  (frontend) tienen que dar lo mismo: si se separan, la pantalla pide un día y le
+  contestan otro, sin error en ninguna parte.
+- **Nada de FTS5.** No existe ni en Postgres ni en el SQLite de los tests. La búsqueda
+  pliega con `fold_exercise_name()` sobre `name_folded`, igual que los ejercicios.
+- Migraciones Alembic versionadas, encadenadas al head, y `tests/unit/test_food_migration.py`
+  comprueba que la migración y los modelos dicen lo mismo (sobre todo la nulabilidad).
+
+### Cargar el catálogo CIQUAL
+Reglas de normalización razonadas en `backend/scripts/ciqual_rules.md`. El `.xls` no se
+versiona (3,6 MB, `--download` lo baja de ANSES); `data/ciqual_es.json` **sí**, porque es
+el artefacto caro y tenerlo en el repo evita volver a pagar la traducción.
+
+```bash
+cd backend
+uv run python -m scripts.import_ciqual --download          # 3.185 alimentos, ~1 s
+uv run python -m scripts.import_ciqual --download --dry-run  # parsea y cuenta, no escribe
+
+# Pasar el catálogo a español. `data/ciqual_es.json` ya está en el repo con las
+# 3.185 traducciones y sus alias, así que esto no gasta red ni clave.
+uv run python -m scripts.translate_foods --apply data/ciqual_es.json
+```
+
+`ciqual_es.json` es un **artefacto de datos**: se lee, se corrige a mano y se vuelve a
+aplicar. Rehacer la base de datos no cuesta traducir otra vez. `scripts/translate_foods.py`
+sigue sirviendo para regenerarlo con un LLM externo (`GEMINI_API_KEY`), pero no hace falta.
+
+El import es idempotente y **no pisa nada tuyo**: sólo escribe filas de catálogo
+(`user_id IS NULL`), nunca borra, y no devuelve al francés un nombre ya traducido.
+
 ## Testing / Workflow
 TDD: write the failing test first, watch it fail for the right reason, implement to green.
 - **Backend:** `cd backend && uv run python -m pytest` (pytest-bdd on in-memory SQLite;
