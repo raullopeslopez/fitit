@@ -1,4 +1,11 @@
 {
+ "1000": {
+  "alias": [
+   "pastis",
+   "anis frances"
+  ],
+  "es": "Pastis"
+ },
  "10000": {
   "alias": [
    "bigaro",
@@ -73,6 +80,13 @@
   ],
   "es": "Bogavante, hervido/cocido en agua"
  },
+ "1001": {
+  "alias": [
+   "aguardiente",
+   "orujo"
+  ],
+  "es": "Aguardiente"
+ },
  "10010": {
   "alias": [
    "bogavante"
@@ -143,6 +157,13 @@
   ],
   "es": "Buccino (caracola de mar), crudo"
  },
+ "1002": {
+  "alias": [
+   "ginebra",
+   "gin"
+  ],
+  "es": "Ginebra"
+ },
  "10020": {
   "alias": [
    "buccino",
@@ -209,6 +230,12 @@
   ],
   "es": "Mejillón, en conserva, escurrido"
  },
+ "1003": {
+  "alias": [
+   "licor"
+  ],
+  "es": "Licor"
+ },
  "10030": {
   "alias": [
    "cangrejo de rio"
@@ -263,6 +290,12 @@
   ],
   "es": "Cangrejo, crudo"
  },
+ "1004": {
+  "alias": [
+   "ron"
+  ],
+  "es": "Ron"
+ },
  "10041": {
   "alias": [
    "oreja de mar",
@@ -313,6 +346,13 @@
   ],
   "es": "Zamburiña (volandeira), carne, cruda"
  },
+ "1005": {
+  "alias": [
+   "whisky",
+   "guisqui"
+  ],
+  "es": "Whisky"
+ },
  "10057": {
   "alias": [
    "centollo",
@@ -326,6 +366,13 @@
    "gamba"
   ],
   "es": "Gamba rosada, cruda"
+ },
+ "1006": {
+  "alias": [
+   "vino dulce",
+   "vino de postre"
+  ],
+  "es": "Vino dulce"
  },
  "10061": {
   "alias": [
@@ -348,12 +395,25 @@
   ],
   "es": "Langostino rosado, cocido"
  },
+ "1007": {
+  "alias": [
+   "vermut",
+   "aperitivo de vino"
+  ],
+  "es": "Aperitivo a base de vino o vermut"
+ },
  "10079": {
   "alias": [
    "pulpo cocido",
    "pulpo a la gallega"
   ],
   "es": "Pulpo, cocido"
+ },
+ "1008": {
+  "alias": [
+   "vodka"
+  ],
+  "es": "Vodka"
  },
  "10080": {
   "alias": [
@@ -369,6 +429,20 @@
   ],
   "es": "Mejillones en salsa catalana o escabeche (tomate), en conserva, escurridos"
  },
+ "10082": {
+  "alias": [
+   "mejillones a la marinera",
+   "mejillones"
+  ],
+  "es": "Mejillones a la marinera (cebolla y vino blanco)"
+ },
+ "10083": {
+  "alias": [
+   "mejillones rellenos",
+   "tigres"
+  ],
+  "es": "Mejillones rellenos (grasa, perejil y ajo…), envasados, crudos"
+ },
  "10084": {
   "alias": [
    "calamar frito",
@@ -382,6 +456,79 @@
    "caracol"
   ],
   "es": "Caracol, sin grasa añadida, cocido"
+ },
+ "1010": {
+  "alias": [
+   "pastis"
+  ],
+  "es": "Pastis, listo para beber (1+5)"
+ },
+ "1011": {
+  "alias": [
+   "anis sin alcohol",
+   "aperitivo sin alcohol"
+  ],
+  "es": "Aperitivo anisado sin alcohol"
+ },
+ "1012": {
+  "alias": [
+   "coctel de ron",
+   "mojito"
+  ],
+  "es": "Cóctel a base de ron"
+ },
+ "1013": {
+  "alias": [
+   "coctel de whisky"
+  ],
+  "es": "Cóctel a base de whisky"
+ },
+ "1014": {
+  "alias": [
+   "alcohol puro",
+   "etanol"
+  ],
+  "es": "Alcohol puro"
+ },
+ "1015": {
+  "alias": [
+   "marsala",
+   "vino marsala"
+  ],
+  "es": "Marsala"
+ },
+ "1016": {
+  "alias": [
+   "marsala al huevo",
+   "marsala"
+  ],
+  "es": "Marsala al huevo"
+ },
+ "1017": {
+  "alias": [
+   "sangria"
+  ],
+  "es": "Sangría"
+ },
+ "1018": {
+  "alias": [
+   "kir"
+  ],
+  "es": "Kir (con vino blanco)"
+ },
+ "1019": {
+  "alias": [
+   "kir royal",
+   "kir"
+  ],
+  "es": "Kir royal (con champán)"
+ },
+ "1021": {
+  "alias": [
+   "crema de casis",
+   "licor de grosella negra"
+  ],
+  "es": "Crema de casis"
  },
  "1027": {
   "alias": [
@@ -2855,6 +3002,508 @@
   ],
   "es": "Tahini (puré de sésamo)"
  },
+ "16030": {
+  "alias": [
+   "manteca de cacao"
+  ],
+  "es": "Manteca de cacao"
+ },
+ "16040": {
+  "alias": [
+   "aceite de coco",
+   "grasa de coco"
+  ],
+  "es": "Aceite o grasa de coco (copra), sin precisar"
+ },
+ "16060": {
+  "alias": [
+   "aceite de coco refinado",
+   "aceite de coco"
+  ],
+  "es": "Aceite o grasa de coco (copra), refinada"
+ },
+ "16080": {
+  "alias": [
+   "grasa para freir",
+   "manteca vegetal"
+  ],
+  "es": "Grasa vegetal sólida (tipo margarina) para freír"
+ },
+ "16110": {
+  "alias": [
+   "manteca de karite",
+   "karite"
+  ],
+  "es": "Manteca de karité"
+ },
+ "16128": {
+  "alias": [
+   "aceite de freir",
+   "aceite"
+  ],
+  "es": "Aceite para freír, sin precisar"
+ },
+ "16129": {
+  "alias": [
+   "aceite de palma"
+  ],
+  "es": "Aceite de palma, sin precisar"
+ },
+ "16150": {
+  "alias": [
+   "aceite de palma"
+  ],
+  "es": "Aceite de palma refinado"
+ },
+ "16200": {
+  "alias": [
+   "aceite de palmiste",
+   "grasa de palmiste"
+  ],
+  "es": "Aceite o grasa de palmiste, sin precisar"
+ },
+ "16400": {
+  "alias": [
+   "mantequilla",
+   "mantequilla sin sal"
+  ],
+  "es": "Mantequilla 82 % MG, sin sal"
+ },
+ "16401": {
+  "alias": [
+   "mantequilla concentrada",
+   "ghee"
+  ],
+  "es": "Mantequilla concentrada (ghee)"
+ },
+ "16402": {
+  "alias": [
+   "mantequilla semisalada",
+   "mantequilla"
+  ],
+  "es": "Mantequilla 80 % MG, semisalada"
+ },
+ "16403": {
+  "alias": [
+   "mantequilla salada",
+   "mantequilla"
+  ],
+  "es": "Mantequilla 80 % MG, salada"
+ },
+ "16404": {
+  "alias": [
+   "mantequilla untable",
+   "mantequilla"
+  ],
+  "es": "Mantequilla 82 % MG, sin sal, untable"
+ },
+ "16410": {
+  "alias": [
+   "mantequilla light",
+   "mantequilla"
+  ],
+  "es": "Mantequilla 60-62 % MG, con menos grasa, sin sal"
+ },
+ "16411": {
+  "alias": [
+   "mantequilla light",
+   "mantequilla semisalada"
+  ],
+  "es": "Mantequilla 60-62 % MG, con menos grasa, semisalada"
+ },
+ "16412": {
+  "alias": [
+   "mantequilla light"
+  ],
+  "es": "Mantequilla o similar light (ligera o con menos grasa), sin sal (alimento medio)"
+ },
+ "16413": {
+  "alias": [
+   "mantequilla semisalada",
+   "mantequilla"
+  ],
+  "es": "Mantequilla con contenido en grasa desconocido (light o no), semisalada (alimento medio)"
+ },
+ "16414": {
+  "alias": [
+   "mantequilla"
+  ],
+  "es": "Mantequilla o similar con contenido en grasa desconocido, sin sal (alimento medio)"
+ },
+ "16415": {
+  "alias": [
+   "mantequilla ligera",
+   "mantequilla light"
+  ],
+  "es": "Mantequilla 39-41 % MG, ligera, sin sal"
+ },
+ "16520": {
+  "alias": [
+   "manteca de cerdo",
+   "manteca"
+  ],
+  "es": "Manteca de cerdo"
+ },
+ "16530": {
+  "alias": [
+   "tocino",
+   "lardo"
+  ],
+  "es": "Tocino, crudo"
+ },
+ "16540": {
+  "alias": [
+   "grasa de pollo"
+  ],
+  "es": "Grasa de pollo"
+ },
+ "16550": {
+  "alias": [
+   "grasa de pato"
+  ],
+  "es": "Grasa de pato"
+ },
+ "16560": {
+  "alias": [
+   "grasa de oca",
+   "grasa de ganso"
+  ],
+  "es": "Grasa de oca"
+ },
+ "16570": {
+  "alias": [
+   "grasa de pavo"
+  ],
+  "es": "Grasa de pavo"
+ },
+ "16614": {
+  "alias": [
+   "margarina salada",
+   "margarina"
+  ],
+  "es": "Margarina 80 % MG, salada"
+ },
+ "16615": {
+  "alias": [
+   "margarina",
+   "margarina sin sal"
+  ],
+  "es": "Margarina 80 % MG, sin sal"
+ },
+ "16616": {
+  "alias": [
+   "margarina"
+  ],
+  "es": "Margarina 70 % MG, sin sal"
+ },
+ "16654": {
+  "alias": [
+   "margarina de girasol",
+   "margarina light"
+  ],
+  "es": "Margarina 60 % MG, light, de girasol, sin sal"
+ },
+ "16712": {
+  "alias": [
+   "mantequilla ligera para untar",
+   "mantequilla light"
+  ],
+  "es": "Grasa láctea 25 % MG, ligera, para untar, sin sal"
+ },
+ "16713": {
+  "alias": [
+   "mantequilla ligera para untar",
+   "mantequilla light"
+  ],
+  "es": "Grasa láctea 20 % MG, ligera, para untar, sin sal"
+ },
+ "16719": {
+  "alias": [
+   "margarina"
+  ],
+  "es": "Margarina, contenido en grasa desconocido, sin sal (alimento medio)"
+ },
+ "16725": {
+  "alias": [
+   "margarina light",
+   "margarina"
+  ],
+  "es": "Margarina con menos grasa, cantidad desconocida, sin sal (alimento medio)"
+ },
+ "16733": {
+  "alias": [
+   "margarina light",
+   "margarina para untar"
+  ],
+  "es": "Margarina para untar, 30-40 % MG, ligera, sin sal"
+ },
+ "16734": {
+  "alias": [
+   "margarina light",
+   "margarina para untar"
+  ],
+  "es": "Margarina para untar, 30-40 % MG, ligera, semisalada"
+ },
+ "16736": {
+  "alias": [
+   "margarina omega 3",
+   "margarina light"
+  ],
+  "es": "Margarina para untar, 30-40 % MG, ligera, sin sal, rica en omega 3"
+ },
+ "16737": {
+  "alias": [
+   "margarina omega 3",
+   "margarina light"
+  ],
+  "es": "Margarina 50-63 % MG, light, sin sal, rica en omega 3"
+ },
+ "16738": {
+  "alias": [
+   "margarina light",
+   "margarina"
+  ],
+  "es": "Margarina 50-63 % MG, light, semisalada"
+ },
+ "16739": {
+  "alias": [
+   "margarina con esteroles",
+   "flora pro activ"
+  ],
+  "es": "Margarina 50-63 % MG, light, sin sal, con ésteres de esterol vegetal"
+ },
+ "16740": {
+  "alias": [
+   "margarina omega 3",
+   "margarina light"
+  ],
+  "es": "Margarina 50-63 % MG, light, semisalada, rica en omega 3"
+ },
+ "16741": {
+  "alias": [
+   "margarina light",
+   "margarina"
+  ],
+  "es": "Margarina 50-63 % MG, light, sin sal"
+ },
+ "16742": {
+  "alias": [
+   "margarina con esteroles",
+   "margarina light"
+  ],
+  "es": "Margarina 30-40 % MG, ligera, semisalada, con ésteres de esterol vegetal"
+ },
+ "16743": {
+  "alias": [
+   "grasa mixta",
+   "margarina mixta"
+  ],
+  "es": "Grasa mixta (vegetal y láctea) 50-63 % MG"
+ },
+ "16744": {
+  "alias": [
+   "grasa mixta",
+   "margarina mixta"
+  ],
+  "es": "Grasa mixta (vegetal y láctea) 50-63 % MG, semisalada"
+ },
+ "16745": {
+  "alias": [
+   "grasa mixta para untar",
+   "margarina mixta"
+  ],
+  "es": "Grasa mixta (vegetal y láctea), para untar, 30-40 % MG"
+ },
+ "16746": {
+  "alias": [
+   "grasa mixta para untar",
+   "margarina mixta"
+  ],
+  "es": "Grasa mixta (vegetal y láctea), para untar, 30-40 % MG, semisalada"
+ },
+ "17001": {
+  "alias": [
+   "aceite",
+   "aceite vegetal"
+  ],
+  "es": "Aceite vegetal (alimento medio)"
+ },
+ "17020": {
+  "alias": [
+   "aceite de hueso de albaricoque"
+  ],
+  "es": "Aceite de hueso de albaricoque"
+ },
+ "17030": {
+  "alias": [
+   "aceite de almendra"
+  ],
+  "es": "Aceite de almendra"
+ },
+ "17040": {
+  "alias": [
+   "aceite de cacahuete",
+   "aceite de mani"
+  ],
+  "es": "Aceite de cacahuete"
+ },
+ "17100": {
+  "alias": [
+   "aceite de aguacate"
+  ],
+  "es": "Aceite de aguacate"
+ },
+ "17110": {
+  "alias": [
+   "aceite de germen de trigo"
+  ],
+  "es": "Aceite de germen de trigo"
+ },
+ "17126": {
+  "alias": [
+   "aceite de cartamo"
+  ],
+  "es": "Aceite de cártamo"
+ },
+ "17130": {
+  "alias": [
+   "aceite de colza",
+   "aceite de canola"
+  ],
+  "es": "Aceite de colza"
+ },
+ "17170": {
+  "alias": [
+   "aceite de algodon"
+  ],
+  "es": "Aceite de algodón"
+ },
+ "17180": {
+  "alias": [
+   "aceite de lino",
+   "aceite de linaza"
+  ],
+  "es": "Aceite de lino"
+ },
+ "17190": {
+  "alias": [
+   "aceite de maiz"
+  ],
+  "es": "Aceite de maíz"
+ },
+ "17210": {
+  "alias": [
+   "aceite de avellana"
+  ],
+  "es": "Aceite de avellana"
+ },
+ "17220": {
+  "alias": [
+   "aceite de nuez"
+  ],
+  "es": "Aceite de nuez"
+ },
+ "17270": {
+  "alias": [
+   "aceite de oliva",
+   "AOVE",
+   "aceite de oliva virgen extra"
+  ],
+  "es": "Aceite de oliva virgen extra"
+ },
+ "17325": {
+  "alias": [
+   "aceite de adormidera",
+   "aceite de amapola"
+  ],
+  "es": "Aceite de adormidera"
+ },
+ "17350": {
+  "alias": [
+   "aceite de pepita de uva",
+   "aceite de semilla de uva"
+  ],
+  "es": "Aceite de pepita de uva"
+ },
+ "17390": {
+  "alias": [
+   "aceite de salvado de arroz"
+  ],
+  "es": "Aceite de salvado de arroz"
+ },
+ "17400": {
+  "alias": [
+   "aceite de sesamo",
+   "aceite de ajonjoli"
+  ],
+  "es": "Aceite de sésamo"
+ },
+ "17420": {
+  "alias": [
+   "aceite de soja"
+  ],
+  "es": "Aceite de soja"
+ },
+ "17440": {
+  "alias": [
+   "aceite de girasol"
+  ],
+  "es": "Aceite de girasol"
+ },
+ "17630": {
+  "alias": [
+   "aceite de higado de bacalao"
+  ],
+  "es": "Aceite de hígado de bacalao"
+ },
+ "17640": {
+  "alias": [
+   "aceite de sardina",
+   "aceite de pescado"
+  ],
+  "es": "Aceite de sardina"
+ },
+ "17645": {
+  "alias": [
+   "aceite de salmon",
+   "aceite de pescado"
+  ],
+  "es": "Aceite de salmón"
+ },
+ "17650": {
+  "alias": [
+   "aceite de arenque",
+   "aceite de pescado"
+  ],
+  "es": "Aceite de arenque"
+ },
+ "17700": {
+  "alias": [
+   "aceite combinado",
+   "mezcla de aceites"
+  ],
+  "es": "Aceite combinado (mezcla de aceites)"
+ },
+ "17701": {
+  "alias": [
+   "aceite combinado",
+   "mezcla de aceites"
+  ],
+  "es": "Aceite combinado, mezcla de oliva y semillas"
+ },
+ "17900": {
+  "alias": [
+   "aceite de argan"
+  ],
+  "es": "Aceite de argán"
+ },
+ "17999": {
+  "alias": [
+   "aceite de parafina",
+   "parafina"
+  ],
+  "es": "Aceite de parafina"
+ },
  "19021": {
   "alias": [
    "leche en polvo",
@@ -3050,6 +3699,13 @@
    "nata light"
   ],
   "es": "Nata, 15-20 % MG, ligera, líquida, refrigerada"
+ },
+ "19437": {
+  "alias": [
+   "queso de cabra empanado",
+   "queso frito"
+  ],
+  "es": "Queso de cabra empanado para dorar, envasado"
  },
  "19500": {
   "alias": [
@@ -3702,6 +4358,78 @@
    "postre de soja"
   ],
   "es": "Postre de soja, natural, sin azúcar, sin enriquecer, fermentado, envasado"
+ },
+ "19694": {
+  "alias": [
+   "yogur de soja",
+   "postre de soja"
+  ],
+  "es": "Postre de soja, natural, sin azúcar, enriquecido en calcio, fermentado, envasado"
+ },
+ "19695": {
+  "alias": [
+   "yogur de soja de frutas",
+   "postre de soja"
+  ],
+  "es": "Postre de soja, con fruta, azucarado, sin enriquecer, fermentado, envasado"
+ },
+ "19696": {
+  "alias": [
+   "postre de soja con almendra"
+  ],
+  "es": "Postre de soja, con almendras, fermentado, envasado"
+ },
+ "19698": {
+  "alias": [
+   "tiramisu"
+  ],
+  "es": "Tiramisú, envasado"
+ },
+ "19801": {
+  "alias": [
+   "leche fermentada",
+   "yogur liquido"
+  ],
+  "es": "Leche fermentada para beber, natural, desnatada"
+ },
+ "19805": {
+  "alias": [
+   "leche fermentada",
+   "yogur liquido"
+  ],
+  "es": "Leche fermentada para beber, natural, de leche entera"
+ },
+ "19852": {
+  "alias": [
+   "mousse de castañas"
+  ],
+  "es": "Mousse de crema de castañas, envasada"
+ },
+ "19860": {
+  "alias": [
+   "yogur griego"
+  ],
+  "es": "Yogur griego, natural"
+ },
+ "19862": {
+  "alias": [
+   "yogur griego de sabores",
+   "yogur griego"
+  ],
+  "es": "Yogur griego, aromatizado, azucarado"
+ },
+ "19865": {
+  "alias": [
+   "kefir",
+   "kefir de leche"
+  ],
+  "es": "Kéfir de leche"
+ },
+ "19882": {
+  "alias": [
+   "yogur de oveja"
+  ],
+  "es": "Yogur de leche de oveja, natural, ~6 % MG"
  },
  "20000": {
   "alias": [
@@ -4670,6 +5398,14 @@
   ],
   "es": "Tomate acostillado o corazón de buey, crudo"
  },
+ "20194": {
+  "alias": [
+   "alubias con tomate",
+   "judias con tomate",
+   "baked beans"
+  ],
+  "es": "Alubias blancas en salsa de tomate, en conserva"
+ },
  "20195": {
   "alias": [
    "judia amarilla",
@@ -4902,6 +5638,13 @@
   ],
   "es": "Cebolla amarilla, cruda"
  },
+ "20240": {
+  "alias": [
+   "piperrada",
+   "pisto vasco"
+  ],
+  "es": "Piperrada vasca, envasada"
+ },
  "20241": {
   "alias": [
    "cardo cocido"
@@ -4962,6 +5705,13 @@
    "pure de zanahoria"
   ],
   "es": "Zanahoria, en puré"
+ },
+ "20262": {
+  "alias": [
+   "salteado de verduras",
+   "verduras para saltear"
+  ],
+  "es": "Salteado de verduras aliñadas sin setas, congelado, crudo"
  },
  "20263": {
   "alias": [
@@ -5031,6 +5781,20 @@
    "ensalada de brotes"
   ],
   "es": "Mezclum o ensalada de brotes tiernos"
+ },
+ "20273": {
+  "alias": [
+   "wok de verduras",
+   "verduras salteadas"
+  ],
+  "es": "Salteado de verduras aliñadas a la asiática o wok de verduras, congelado, crudo"
+ },
+ "20274": {
+  "alias": [
+   "verduras a la parrilla",
+   "verduras mediterraneas"
+  ],
+  "es": "Salteado de verduras aliñadas a la parrilla, meridional o mediterráneo, congelado, crudo"
  },
  "20275": {
   "alias": [
@@ -5419,6 +6183,13 @@
    "verduras para cuscus"
   ],
   "es": "Verduras para cuscús, cocidas"
+ },
+ "20498": {
+  "alias": [
+   "salteado de verduras con setas",
+   "verduras con setas"
+  ],
+  "es": "Salteado de verduras aliñadas con setas (campestre), congelado"
  },
  "20499": {
   "alias": [
@@ -5960,12 +6731,54 @@
   ],
   "es": "Tofu natural, envasado"
  },
+ "20911": {
+  "alias": [
+   "postre de soja",
+   "natillas de soja"
+  ],
+  "es": "Postre de soja, aromatizado, azucarado, enriquecido en calcio, envasado"
+ },
  "20912": {
   "alias": [
    "tofu ahumado",
    "tofu"
   ],
   "es": "Tofu ahumado, envasado"
+ },
+ "20914": {
+  "alias": [
+   "hamburguesa vegetal",
+   "filete de soja",
+   "burger vegana"
+  ],
+  "es": "Filete vegetal o hamburguesa a base de soja"
+ },
+ "20917": {
+  "alias": [
+   "tempeh"
+  ],
+  "es": "Tempeh"
+ },
+ "20921": {
+  "alias": [
+   "postre de soja",
+   "natillas de soja"
+  ],
+  "es": "Postre de soja, aromatizado, azucarado, sin enriquecer, envasado"
+ },
+ "20922": {
+  "alias": [
+   "postre vegetal",
+   "yogur vegetal"
+  ],
+  "es": "Postre vegetal sin soja (almendra, avena, cáñamo, coco, arroz), aromatizado, azucarado, sin enriquecer, envasado"
+ },
+ "20923": {
+  "alias": [
+   "yogur vegetal de frutas",
+   "postre vegetal"
+  ],
+  "es": "Postre vegetal sin soja (coco, arroz), con fruta, azucarado, enriquecido en calcio, fermentado, envasado"
  },
  "21001": {
   "alias": [
@@ -6341,12 +7154,247 @@
   ],
   "es": "Tortilla francesa, rellenos variados: verduras, quesos, carnes… (alimento medio)"
  },
+ "23474": {
+  "alias": [
+   "profiteroles"
+  ],
+  "es": "Profiteroles (crema pastelera y salsa de chocolate), envasados"
+ },
+ "23534": {
+  "alias": [
+   "pastel de semola",
+   "semola con leche"
+  ],
+  "es": "Pastel de sémola con pasas y caramelo, refrigerado"
+ },
+ "23535": {
+  "alias": [
+   "pastel de semola"
+  ],
+  "es": "Pastel de sémola, en conserva"
+ },
+ "23536": {
+  "alias": [
+   "pastel de arroz",
+   "arroz con leche"
+  ],
+  "es": "Pastel de arroz con caramelo, refrigerado"
+ },
  "23805": {
   "alias": [
    "blini",
    "blinis"
   ],
   "es": "Blini"
+ },
+ "25001": {
+  "alias": [
+   "blanqueta de ternera",
+   "ternera en salsa blanca"
+  ],
+  "es": "Blanqueta de ternera"
+ },
+ "25002": {
+  "alias": [
+   "cassoulet",
+   "fabada francesa"
+  ],
+  "es": "Cassoulet, en conserva"
+ },
+ "25003": {
+  "alias": [
+   "chucrut guarnecido",
+   "chucrut con carne"
+  ],
+  "es": "Chucrut guarnecido, envasado"
+ },
+ "25009": {
+  "alias": [
+   "hachis parmentier",
+   "pastel de carne y patata"
+  ],
+  "es": "Pastel de carne y patata (hachis parmentier), envasado"
+ },
+ "25010": {
+  "alias": [
+   "lentejas con chorizo",
+   "lentejas guisadas"
+  ],
+  "es": "Lentejas con cerdo salado o salchicha, envasadas"
+ },
+ "25013": {
+  "alias": [
+   "pot au feu",
+   "cocido"
+  ],
+  "es": "Cocido francés (pot-au-feu), envasado"
+ },
+ "25018": {
+  "alias": [
+   "pisto",
+   "ratatouille"
+  ],
+  "es": "Pisto (ratatouille) cocinado, envasado"
+ },
+ "25019": {
+  "alias": [
+   "raviolis de carne",
+   "raviolis"
+  ],
+  "es": "Raviolis de carne en salsa de tomate, en conserva"
+ },
+ "25020": {
+  "alias": [
+   "sufle de queso",
+   "souffle"
+  ],
+  "es": "Suflé de queso"
+ },
+ "25026": {
+  "alias": [
+   "espinacas a la crema",
+   "espinacas con nata"
+  ],
+  "es": "Espinacas a la crema, envasadas"
+ },
+ "25029": {
+  "alias": [
+   "cuscus de cordero",
+   "cuscus"
+  ],
+  "es": "Cuscús de cordero"
+ },
+ "25031": {
+  "alias": [
+   "paella"
+  ],
+  "es": "Paella"
+ },
+ "25033": {
+  "alias": [
+   "boeuf bourguignon",
+   "ternera en salsa de vino"
+  ],
+  "es": "Ternera a la borgoñona (boeuf bourguignon)"
+ },
+ "25035": {
+  "alias": [
+   "cordero al curry"
+  ],
+  "es": "Salteado de cordero al curry, envasado"
+ },
+ "25037": {
+  "alias": [
+   "gratinado de pescado",
+   "cazuela de pescado"
+  ],
+  "es": "Gratinado o cazuelita de pescado o marisco, envasado, crudo"
+ },
+ "25038": {
+  "alias": [
+   "gratinado de pescado",
+   "cazuela de pescado"
+  ],
+  "es": "Gratinado o cazuelita de pescado o marisco, envasado, cocido"
+ },
+ "25043": {
+  "alias": [
+   "cuscus con pollo",
+   "cuscus"
+  ],
+  "es": "Cuscús con carne o pollo, envasado, light"
+ },
+ "25052": {
+  "alias": [
+   "berenjena gratinada",
+   "graten de berenjena"
+  ],
+  "es": "Gratinado de berenjena, envasado"
+ },
+ "25056": {
+  "alias": [
+   "patatas gratinadas",
+   "graten dauphinois"
+  ],
+  "es": "Gratén dauphinois (patatas gratinadas a la nata)"
+ },
+ "25057": {
+  "alias": [
+   "salteado de patatas",
+   "patatas con bacon"
+  ],
+  "es": "Salteado de patatas prefritas con bacon o pollo, sin verduras, envasado"
+ },
+ "25058": {
+  "alias": [
+   "pato en salsa",
+   "pato"
+  ],
+  "es": "Pato en salsa (pimienta verde, cazadora…), envasado"
+ },
+ "25063": {
+  "alias": [
+   "conejo a la mostaza",
+   "conejo"
+  ],
+  "es": "Conejo a la mostaza, envasado"
+ },
+ "25065": {
+  "alias": [
+   "ternera con zanahorias",
+   "ternera guisada"
+  ],
+  "es": "Ternera con zanahorias"
+ },
+ "25071": {
+  "alias": [
+   "potee auvergnate",
+   "cocido de col y cerdo"
+  ],
+  "es": "Cocido de Auvernia (col y cerdo)"
+ },
+ "25073": {
+  "alias": [
+   "endibias con jamon",
+   "endibias gratinadas"
+  ],
+  "es": "Endibias con jamón gratinadas"
+ },
+ "25077": {
+  "alias": [
+   "salmon a la acedera",
+   "salmon en salsa"
+  ],
+  "es": "Salmón a la acedera, envasado"
+ },
+ "25081": {
+  "alias": [
+   "lasaña",
+   "canelones",
+   "lasaña boloñesa"
+  ],
+  "es": "Lasaña o canelones de carne (boloñesa)"
+ },
+ "25085": {
+  "alias": [
+   "espaguetis a la boloñesa",
+   "pasta boloñesa"
+  ],
+  "es": "Pasta a la boloñesa (espaguetis, tallarines…)"
+ },
+ "25086": {
+  "alias": [
+   "pescado a la bordelesa",
+   "pescado en salsa"
+  ],
+  "es": "Pescado blanco a la bordelesa, envasado"
+ },
+ "25088": {
+  "alias": [
+   "arroz tres delicias",
+   "arroz cantones"
+  ],
+  "es": "Arroz cantonés (tres delicias)"
  },
  "25089": {
   "alias": [
@@ -6355,12 +7403,301 @@
   ],
   "es": "Cordon bleu de ave, envasado"
  },
+ "25098": {
+  "alias": [
+   "cassoulet",
+   "alubias con cerdo"
+  ],
+  "es": "Cassoulet de cerdo, en conserva"
+ },
+ "25099": {
+  "alias": [
+   "cassoulet de pato",
+   "alubias con pato"
+  ],
+  "es": "Cassoulet de pato u oca, en conserva"
+ },
+ "25101": {
+  "alias": [
+   "coliflor gratinada",
+   "graten de coliflor"
+  ],
+  "es": "Coliflor gratinada, envasada"
+ },
+ "25103": {
+  "alias": [
+   "tomate relleno",
+   "tomates rellenos"
+  ],
+  "es": "Tomate relleno"
+ },
+ "25106": {
+  "alias": [
+   "col rellena",
+   "repollo relleno"
+  ],
+  "es": "Col rellena, envasada"
+ },
+ "25107": {
+  "alias": [
+   "cuscus de pescado",
+   "cuscus"
+  ],
+  "es": "Cuscús de pescado"
+ },
+ "25108": {
+  "alias": [
+   "samosa",
+   "samoussa"
+  ],
+  "es": "Samosa, envasada, cocida"
+ },
+ "25110": {
+  "alias": [
+   "dim sum",
+   "dumpling de gamba",
+   "ravioli chino"
+  ],
+  "es": "Dim sum de gamba al vapor, cocido"
+ },
+ "25111": {
+  "alias": [
+   "chili con carne",
+   "chili"
+  ],
+  "es": "Chili con carne, envasado"
+ },
+ "25121": {
+  "alias": [
+   "coq au vin",
+   "gallo al vino",
+   "pollo al vino"
+  ],
+  "es": "Gallo al vino (coq au vin)"
+ },
+ "25122": {
+  "alias": [
+   "pasta gratinada",
+   "macarrones gratinados"
+  ],
+  "es": "Pasta gratinada"
+ },
+ "25123": {
+  "alias": [
+   "musaka",
+   "moussaka"
+  ],
+  "es": "Musaka"
+ },
+ "25124": {
+  "alias": [
+   "navarin de cordero",
+   "cordero estofado"
+  ],
+  "es": "Navarin de cordero con verduras (estofado)"
+ },
+ "25125": {
+  "alias": [
+   "paupiette de ternera",
+   "rollito de ternera"
+  ],
+  "es": "Paupiette de ternera (rollito relleno)"
+ },
+ "25126": {
+  "alias": [
+   "paupiette de pollo",
+   "rollito de pollo"
+  ],
+  "es": "Paupiette de ave (rollito relleno)"
+ },
+ "25127": {
+  "alias": [
+   "cuscus real",
+   "cuscus"
+  ],
+  "es": "Cuscús real (con varias carnes), envasado"
+ },
+ "25128": {
+  "alias": [
+   "pescado a la provenzal",
+   "pescado con tomate"
+  ],
+  "es": "Pescado blanco a la provenzal o nizarda (salsa de tomate), envasado"
+ },
+ "25131": {
+  "alias": [
+   "lasaña de verduras",
+   "canelones de verduras"
+  ],
+  "es": "Lasaña o canelones de verduras, envasados, cocidos"
+ },
+ "25135": {
+  "alias": [
+   "espaguetis carbonara",
+   "pasta carbonara"
+  ],
+  "es": "Pasta a la carbonara (espaguetis, tallarines…)"
+ },
+ "25137": {
+  "alias": [
+   "tartiflette",
+   "patatas con reblochon"
+  ],
+  "es": "Tartiflette, envasada"
+ },
+ "25138": {
+  "alias": [
+   "cuscus de pollo",
+   "cuscus"
+  ],
+  "es": "Cuscús de pollo"
+ },
+ "25139": {
+  "alias": [
+   "lasaña de pescado",
+   "canelones de pescado"
+  ],
+  "es": "Lasaña o canelones de pescado, envasados"
+ },
+ "25140": {
+  "alias": [
+   "pescado a la florentina",
+   "pescado con espinacas"
+  ],
+  "es": "Pescado blanco a la florentina (salsa de espinacas), envasado"
+ },
+ "25141": {
+  "alias": [
+   "pescado a la marinera",
+   "pescado en salsa"
+  ],
+  "es": "Pescado blanco a la marinera (cebolla, vino blanco, mejillones), envasado"
+ },
+ "25142": {
+  "alias": [
+   "pescado a la mostaza",
+   "pescado en salsa"
+  ],
+  "es": "Pescado blanco en salsa de mostaza, envasado"
+ },
+ "25143": {
+  "alias": [
+   "pescado con setas",
+   "pescado en salsa"
+  ],
+  "es": "Pescado blanco a la parisina (salsa de setas), envasado"
+ },
+ "25145": {
+  "alias": [
+   "pescado al estragon",
+   "pescado en salsa"
+  ],
+  "es": "Pescado blanco al estragón, envasado"
+ },
+ "25146": {
+  "alias": [
+   "pescado a la acedera",
+   "pescado en salsa"
+  ],
+  "es": "Pescado blanco en salsa de acedera, envasado"
+ },
+ "25149": {
+  "alias": [
+   "raviolis de queso",
+   "tortellini de queso"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini…), de queso, cocida"
+ },
+ "25150": {
+  "alias": [
+   "cuscus de verduras",
+   "cuscus"
+  ],
+  "es": "Cuscús de verduras, envasado"
+ },
+ "25151": {
+  "alias": [
+   "hojaldre de pescado",
+   "empanada de pescado"
+  ],
+  "es": "Hojaldre de pescado o marisco"
+ },
+ "25152": {
+  "alias": [
+   "cuscus con carne",
+   "cuscus"
+  ],
+  "es": "Cuscús con carne, envasado"
+ },
+ "25154": {
+  "alias": [
+   "brandada",
+   "pastel de pescado"
+  ],
+  "es": "Gratinado de pescado con puré, brandada o pastel de pescado y patata, envasado"
+ },
+ "25155": {
+  "alias": [
+   "raviolis de queso y verduras",
+   "tortellini"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), de queso y verduras, envasada, cocida"
+ },
+ "25157": {
+  "alias": [
+   "raviolis de carne",
+   "tortellini de carne"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), de carne (boloñesa), envasada, cruda"
+ },
+ "25158": {
+  "alias": [
+   "raviolis de carne",
+   "tortellini de carne"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), de carne (boloñesa), envasada, cocida"
+ },
+ "25159": {
+  "alias": [
+   "tajin de cordero",
+   "tayin"
+  ],
+  "es": "Tayín de cordero"
+ },
+ "25162": {
+  "alias": [
+   "verduras gratinadas",
+   "graten de verduras"
+  ],
+  "es": "Verduras gratinadas"
+ },
  "25163": {
   "alias": [
    "albondigas de ternera",
    "albondigas"
   ],
   "es": "Vacuno, albóndigas cocidas"
+ },
+ "25164": {
+  "alias": [
+   "osobuco",
+   "osso buco"
+  ],
+  "es": "Osobuco"
+ },
+ "25169": {
+  "alias": [
+   "dim sum",
+   "dumpling"
+  ],
+  "es": "Especialidad china tipo bocado al vapor (dim sum), envasada, cocida"
+ },
+ "25172": {
+  "alias": [
+   "carne en salsa",
+   "carne guisada"
+  ],
+  "es": "Carne en salsa (alimento medio)"
  },
  "25173": {
   "alias": [
@@ -6369,6 +7706,54 @@
   ],
   "es": "Ternera lechal, escalope empanado, cocido"
  },
+ "25174": {
+  "alias": [
+   "pollo al curry",
+   "curry de pollo"
+  ],
+  "es": "Pollo al curry con leche de coco"
+ },
+ "25175": {
+  "alias": [
+   "meloukhia",
+   "molokhia"
+  ],
+  "es": "Meloukhia, plato de vacuno y corete, casero"
+ },
+ "25181": {
+  "alias": [
+   "raviolis de queso",
+   "tortellini de queso"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini…), de queso, envasada, cruda"
+ },
+ "25182": {
+  "alias": [
+   "raviolis de queso y verduras",
+   "tortellini"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), de queso y verduras, envasada, cruda"
+ },
+ "25183": {
+  "alias": [
+   "fideos con gambas",
+   "noodles salteados"
+  ],
+  "es": "Fideos salteados con gambas"
+ },
+ "25184": {
+  "alias": [
+   "arroz con pollo"
+  ],
+  "es": "Arroz blanco con pollo, envasado, cocido"
+ },
+ "25185": {
+  "alias": [
+   "arroz con verduras y carne",
+   "arroz tres delicias"
+  ],
+  "es": "Arroz blanco con verduras y carne, envasado, cocido"
+ },
  "25186": {
   "alias": [
    "albondigas suecas",
@@ -6376,12 +7761,185 @@
   ],
   "es": "Albóndigas de cerdo y vacuno (a la sueca), envasadas, crudas"
  },
+ "25187": {
+  "alias": [
+   "risotto de verduras",
+   "risotto"
+  ],
+  "es": "Risotto de verduras, envasado"
+ },
+ "25188": {
+  "alias": [
+   "risotto de marisco",
+   "risotto"
+  ],
+  "es": "Risotto de marisco, envasado"
+ },
+ "25189": {
+  "alias": [
+   "risotto de queso",
+   "risotto"
+  ],
+  "es": "Risotto de quesos, envasado"
+ },
+ "25190": {
+  "alias": [
+   "pollo a la vasca",
+   "pollo en salsa"
+  ],
+  "es": "Pollo a la vasca, envasado"
+ },
+ "25192": {
+  "alias": [
+   "raviolis de verduras",
+   "raviolis"
+  ],
+  "es": "Raviolis de verduras en salsa de tomate, en conserva"
+ },
+ "25193": {
+  "alias": [
+   "raviolis de verduras",
+   "tortellini"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), de verduras, envasada, cocida"
+ },
  "25194": {
   "alias": [
    "kefta",
    "albondigas de cordero"
   ],
   "es": "Albóndigas de vacuno y cordero (tipo kefta), envasadas, crudas"
+ },
+ "25195": {
+  "alias": [
+   "parmentier de pato",
+   "pastel de pato"
+  ],
+  "es": "Pastel de pato y patata (parmentier), envasado"
+ },
+ "25196": {
+  "alias": [
+   "riste de berenjenas",
+   "pisto de berenjena"
+  ],
+  "es": "Riste de berenjenas (berenjena, tomate y cebolla), envasada"
+ },
+ "25198": {
+  "alias": [
+   "pasta a los cuatro quesos",
+   "pasta en salsa"
+  ],
+  "es": "Pasta en salsa de quesos (espaguetis, tallarines…), envasada"
+ },
+ "25199": {
+  "alias": [
+   "hamburguesa vegetal",
+   "burger de verduras"
+  ],
+  "es": "Hamburguesa o tortita de verduras, prefrita, congelada"
+ },
+ "25200": {
+  "alias": [
+   "paleta a la diabla",
+   "paleta de cerdo"
+  ],
+  "es": "Paleta de cerdo a la diabla, envasada"
+ },
+ "25201": {
+  "alias": [
+   "lengua en salsa",
+   "lengua de ternera"
+  ],
+  "es": "Lengua de vacuno en salsa de Madeira, envasada"
+ },
+ "25203": {
+  "alias": [
+   "raviolis de verduras",
+   "tortellini"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), de verduras, envasada, cruda"
+ },
+ "25204": {
+  "alias": [
+   "tajin de pollo",
+   "tayin"
+  ],
+  "es": "Tayín de pollo, envasado"
+ },
+ "25205": {
+  "alias": [
+   "chop suey"
+  ],
+  "es": "Chop suey (cerdo o pollo), envasado"
+ },
+ "25207": {
+  "alias": [
+   "cerdo al caramelo",
+   "cerdo agridulce"
+  ],
+  "es": "Cerdo al caramelo, envasado"
+ },
+ "25208": {
+  "alias": [
+   "hamburguesa vegetal",
+   "burger de verduras"
+  ],
+  "es": "Hamburguesa o tortita de verduras, prefrita, congelada, cocida"
+ },
+ "25210": {
+  "alias": [
+   "salmon relleno"
+  ],
+  "es": "Salmón relleno, envasado"
+ },
+ "25211": {
+  "alias": [
+   "albondigas en salsa",
+   "albondigas"
+  ],
+  "es": "Albóndigas de vacuno en salsa de tomate, envasadas"
+ },
+ "25213": {
+  "alias": [
+   "paupiette de ternera",
+   "rollito de ternera"
+  ],
+  "es": "Paupiette de ternera, envasada, cocida al horno"
+ },
+ "25216": {
+  "alias": [
+   "raviolis",
+   "tortellini"
+  ],
+  "es": "Pasta fresca rellena (raviolis, tortellini), cocida (alimento medio)"
+ },
+ "25217": {
+  "alias": [
+   "dolmas",
+   "hojas de parra rellenas"
+  ],
+  "es": "Hoja de parra rellena de arroz (dolmas), escurrida, envasada"
+ },
+ "25218": {
+  "alias": [
+   "lasaña de verduras",
+   "canelones de verduras"
+  ],
+  "es": "Lasaña o canelones de verduras, envasados, cocidos"
+ },
+ "25219": {
+  "alias": [
+   "lasaña de verduras y queso de cabra"
+  ],
+  "es": "Lasaña o canelones de verduras y queso de cabra, envasados, cocidos"
+ },
+ "25220": {
+  "alias": [
+   "chucrut",
+   "col fermentada",
+   "sauerkraut"
+  ],
+  "es": "Chucrut, sin guarnición, escurrido, cocido"
  },
  "25223": {
   "alias": [
@@ -6398,12 +7956,228 @@
   ],
   "es": "Tacos o tiras de soja y trigo (no aptos para veganos), envasados"
  },
+ "25225": {
+  "alias": [
+   "nuggets vegetales",
+   "nuggets de trigo"
+  ],
+  "es": "Nuggets de trigo (sin soja), envasados"
+ },
+ "25226": {
+  "alias": [
+   "nuggets vegetales"
+  ],
+  "es": "Nuggets de soja y trigo (no aptos para veganos), envasados"
+ },
+ "25227": {
+  "alias": [
+   "nuggets veganos",
+   "nuggets vegetales"
+  ],
+  "es": "Nuggets de soja y trigo (aptos para veganos), envasados"
+ },
+ "25228": {
+  "alias": [
+   "empanado vegetal",
+   "filete vegetal empanado"
+  ],
+  "es": "Empanado de soja y trigo (no apto para veganos)"
+ },
+ "25229": {
+  "alias": [
+   "barrita vegetal empanada",
+   "varitas veganas"
+  ],
+  "es": "Barrita empanada de soja y trigo (apta para veganos), envasada"
+ },
+ "25230": {
+  "alias": [
+   "cordon bleu vegetal",
+   "san jacobo vegetal"
+  ],
+  "es": "Escalope empanado de soja, trigo y queso, tipo cordon bleu, envasado"
+ },
+ "25231": {
+  "alias": [
+   "raviolis de tofu",
+   "raviolis veganos"
+  ],
+  "es": "Raviolis de tofu en salsa de tomate, envasados"
+ },
  "25232": {
   "alias": [
    "salchicha vegetal",
    "salchicha de seitan"
   ],
   "es": "Salchicha vegetal de trigo o seitán, envasada"
+ },
+ "25233": {
+  "alias": [
+   "tortita de cereales",
+   "hamburguesa de cereales"
+  ],
+  "es": "Tortita de cereales con queso (sin soja), envasada"
+ },
+ "25234": {
+  "alias": [
+   "tortita de cereales",
+   "hamburguesa de cereales"
+  ],
+  "es": "Tortita de cereales con verduras (sin soja), envasada"
+ },
+ "25399": {
+  "alias": [
+   "hojaldre de caracoles"
+  ],
+  "es": "Hojaldre de caracoles, envasado"
+ },
+ "25400": {
+  "alias": [
+   "croque monsieur",
+   "sandwich mixto"
+  ],
+  "es": "Croque monsieur (sándwich mixto gratinado), casero"
+ },
+ "25401": {
+  "alias": [
+   "hojaldre de queso",
+   "empanadilla de queso"
+  ],
+  "es": "Hojaldre o empanadilla de queso"
+ },
+ "25402": {
+  "alias": [
+   "hojaldre de carne",
+   "empanadilla de carne"
+  ],
+  "es": "Hojaldre o empanadilla de carne, envasada"
+ },
+ "25403": {
+  "alias": [
+   "perrito caliente",
+   "hot dog"
+  ],
+  "es": "Perrito caliente, envasado"
+ },
+ "25404": {
+  "alias": [
+   "pizza margarita",
+   "pizza de queso"
+  ],
+  "es": "Pizza de queso o pizza margarita, envasada"
+ },
+ "25405": {
+  "alias": [
+   "quiche lorraine",
+   "quiche"
+  ],
+  "es": "Quiche lorraine, envasada"
+ },
+ "25409": {
+  "alias": [
+   "crep de jamon",
+   "crepe rellena"
+  ],
+  "es": "Crep rellena de bechamel y jamón, envasada"
+ },
+ "25410": {
+  "alias": [
+   "crep de jamon y queso",
+   "crepe rellena"
+  ],
+  "es": "Crep rellena de bechamel, jamón y queso, envasada"
+ },
+ "25411": {
+  "alias": [
+   "crep de setas",
+   "crepe rellena"
+  ],
+  "es": "Crep rellena de bechamel y setas, envasada"
+ },
+ "25412": {
+  "alias": [
+   "volovan",
+   "bocado a la reina"
+  ],
+  "es": "Volován relleno de carne, ave o quenelle"
+ },
+ "25413": {
+  "alias": [
+   "hamburguesa",
+   "burger"
+  ],
+  "es": "Hamburguesa, de restaurante de comida rápida"
+ },
+ "25414": {
+  "alias": [
+   "cheeseburger",
+   "hamburguesa con queso"
+  ],
+  "es": "Hamburguesa con queso, de restaurante de comida rápida"
+ },
+ "25415": {
+  "alias": [
+   "doble cheeseburger",
+   "hamburguesa doble"
+  ],
+  "es": "Hamburguesa doble con queso, de restaurante de comida rápida"
+ },
+ "25416": {
+  "alias": [
+   "hamburguesa de pescado",
+   "filet o fish"
+  ],
+  "es": "Hamburguesa de pescado, de restaurante de comida rápida"
+ },
+ "25417": {
+  "alias": [
+   "tarta de verduras",
+   "quiche de verduras"
+  ],
+  "es": "Tarta de verduras, envasada"
+ },
+ "25418": {
+  "alias": [
+   "croissant de jamon",
+   "cruasan de jamon"
+  ],
+  "es": "Cruasán de jamón"
+ },
+ "25419": {
+  "alias": [
+   "rollito de primavera",
+   "rollito vietnamita"
+  ],
+  "es": "Rollito de primavera fresco"
+ },
+ "25420": {
+  "alias": [
+   "nem",
+   "rollito de primavera frito"
+  ],
+  "es": "Rollito de primavera frito (nem)"
+ },
+ "25428": {
+  "alias": [
+   "kebab",
+   "durum",
+   "kebab de pita"
+  ],
+  "es": "Kebab en pan de pita, con verduras"
+ },
+ "25429": {
+  "alias": [
+   "kebab",
+   "bocadillo de kebab"
+  ],
+  "es": "Kebab en baguette, con verduras"
+ },
+ "25431": {
+  "alias": [
+   "bocadillo de atun",
+   "sandwich de atun"
+  ],
+  "es": "Bocadillo de baguette con atún, verduras (tomate, lechuga) y mayonesa"
  },
  "25433": {
   "alias": [
@@ -6413,6 +8187,140 @@
   ],
   "es": "Buñuelo de pescado (acras)"
  },
+ "25434": {
+  "alias": [
+   "panini",
+   "panini de jamon"
+  ],
+  "es": "Panini de jamón curado, mozzarella y tomate"
+ },
+ "25435": {
+  "alias": [
+   "pizza de jamon y queso",
+   "pizza"
+  ],
+  "es": "Pizza de jamón y queso, envasada"
+ },
+ "25437": {
+  "alias": [
+   "gougere",
+   "buñuelo de queso"
+  ],
+  "es": "Gougère (buñuelo de queso)"
+ },
+ "25438": {
+  "alias": [
+   "brick",
+   "empanadilla de pasta filo"
+  ],
+  "es": "Brick relleno (gambas, verduras, ave, carne, pescado…), casero, cocido"
+ },
+ "25444": {
+  "alias": [
+   "tarta de queso salada",
+   "quiche de queso"
+  ],
+  "es": "Tarta de queso salada, envasada"
+ },
+ "25454": {
+  "alias": [
+   "tarta provenzal",
+   "quiche de verduras"
+  ],
+  "es": "Tarta a la provenzal, envasada"
+ },
+ "25456": {
+  "alias": [
+   "sushi",
+   "maki",
+   "nigiri"
+  ],
+  "es": "Sushi o maki de productos del mar"
+ },
+ "25457": {
+  "alias": [
+   "pizza de carne",
+   "pizza boloñesa"
+  ],
+  "es": "Pizza de carne, tipo boloñesa, envasada"
+ },
+ "25459": {
+  "alias": [
+   "burrito",
+   "burritos"
+  ],
+  "es": "Burritos"
+ },
+ "25460": {
+  "alias": [
+   "fajitas",
+   "fajita"
+  ],
+  "es": "Fajitas"
+ },
+ "25462": {
+  "alias": [
+   "pizza de chorizo",
+   "pizza de salami"
+  ],
+  "es": "Pizza de chorizo o salami, envasada"
+ },
+ "25463": {
+  "alias": [
+   "pizza de marisco",
+   "pizza"
+  ],
+  "es": "Pizza de marisco, envasada"
+ },
+ "25464": {
+  "alias": [
+   "pizza de salmon",
+   "pizza"
+  ],
+  "es": "Pizza de salmón, envasada"
+ },
+ "25468": {
+  "alias": [
+   "pizza de cabra y bacon",
+   "pizza"
+  ],
+  "es": "Pizza de queso de cabra y bacon, envasada"
+ },
+ "25472": {
+  "alias": [
+   "pizza de verduras",
+   "pizza cuatro estaciones"
+  ],
+  "es": "Pizza de verduras o pizza cuatro estaciones, envasada"
+ },
+ "25475": {
+  "alias": [
+   "bocadillo de jamon y huevo",
+   "sandwich de jamon"
+  ],
+  "es": "Bocadillo de baguette con jamón cocido, huevo duro, verduras (tomate, lechuga) y mantequilla"
+ },
+ "25476": {
+  "alias": [
+   "bocadillo de pollo",
+   "sandwich de pollo"
+  ],
+  "es": "Bocadillo de baguette con pollo, verduras (tomate, lechuga) y mayonesa"
+ },
+ "25477": {
+  "alias": [
+   "pizza de setas",
+   "pizza de champiñones"
+  ],
+  "es": "Pizza de setas y queso, envasada"
+ },
+ "25478": {
+  "alias": [
+   "pizza cuatro quesos",
+   "pizza"
+  ],
+  "es": "Pizza cuatro quesos, envasada"
+ },
  "25479": {
   "alias": [
    "ñoquis de semola",
@@ -6420,6 +8328,41 @@
    "gnocchi"
   ],
   "es": "Ñoquis de sémola, cocidos"
+ },
+ "25485": {
+  "alias": [
+   "bocadillo de jamon y queso",
+   "sandwich mixto"
+  ],
+  "es": "Bocadillo de baguette con jamón y emmental, envasado"
+ },
+ "25488": {
+  "alias": [
+   "bocadillo de salmon",
+   "sandwich de salmon"
+  ],
+  "es": "Bocadillo de baguette con salmón ahumado y mantequilla"
+ },
+ "25490": {
+  "alias": [
+   "bocadillo de atun",
+   "sandwich de atun"
+  ],
+  "es": "Bocadillo de baguette con atún, maíz y verduras, envasado"
+ },
+ "25502": {
+  "alias": [
+   "hamburguesa de pollo",
+   "burger de pollo"
+  ],
+  "es": "Hamburguesa de pollo"
+ },
+ "25503": {
+  "alias": [
+   "volovan de pescado",
+   "volovan"
+  ],
+  "es": "Volován relleno de pescado y marisco"
  },
  "25504": {
   "alias": [
@@ -6442,6 +8385,20 @@
   ],
   "es": "Brocheta mixta de carne"
  },
+ "25508": {
+  "alias": [
+   "hojaldre de jamon y queso",
+   "empanadilla"
+  ],
+  "es": "Hojaldre o empanadilla de jamón y queso"
+ },
+ "25509": {
+  "alias": [
+   "fondue de queso",
+   "queso para fondue"
+  ],
+  "es": "Preparado de quesos para fondue saboyana, envasado"
+ },
  "25510": {
   "alias": [
    "ñoquis de patata",
@@ -6450,12 +8407,144 @@
   ],
   "es": "Ñoquis de patata, cocidos"
  },
+ "25511": {
+  "alias": [
+   "verduras rellenas",
+   "pimientos rellenos"
+  ],
+  "es": "Verduras rellenas (salvo tomate)"
+ },
  "25512": {
   "alias": [
    "nuggets de pollo",
    "nuggets"
   ],
   "es": "Ave, croqueta empanada o nuggets"
+ },
+ "25513": {
+  "alias": [
+   "pan bagnat",
+   "bocadillo niçoise"
+  ],
+  "es": "Pan bagnat"
+ },
+ "25516": {
+  "alias": [
+   "pizza"
+  ],
+  "es": "Pizza (alimento medio)"
+ },
+ "25517": {
+  "alias": [
+   "bocadillo de jamon",
+   "sandwich de jamon"
+  ],
+  "es": "Bocadillo de baguette con jamón cocido y mantequilla"
+ },
+ "25518": {
+  "alias": [
+   "bocadillo de queso",
+   "sandwich de queso"
+  ],
+  "es": "Bocadillo de baguette con camembert y mantequilla"
+ },
+ "25519": {
+  "alias": [
+   "bocadillo de pate",
+   "sandwich de pate"
+  ],
+  "es": "Bocadillo de baguette con paté y pepinillos"
+ },
+ "25520": {
+  "alias": [
+   "bocadillo de salchichon",
+   "sandwich de salchichon"
+  ],
+  "es": "Bocadillo de baguette con salchichón y mantequilla"
+ },
+ "25521": {
+  "alias": [
+   "bocadillo mixto",
+   "sandwich mixto"
+  ],
+  "es": "Bocadillo de baguette con jamón, emmental y mantequilla"
+ },
+ "25522": {
+  "alias": [
+   "bocadillo",
+   "sandwich"
+  ],
+  "es": "Bocadillo (alimento medio)"
+ },
+ "25523": {
+  "alias": [
+   "canapes",
+   "tostas saladas"
+  ],
+  "es": "Tostas o canapés salados, guarniciones variadas, envasados"
+ },
+ "25524": {
+  "alias": [
+   "tomate a la provenzal",
+   "tomate al horno"
+  ],
+  "es": "Tomate a la provenzal, casero"
+ },
+ "25528": {
+  "alias": [
+   "pissaladiere",
+   "coca de cebolla"
+  ],
+  "es": "Pissaladière, envasada"
+ },
+ "25529": {
+  "alias": [
+   "tarta de cebolla",
+   "quiche de cebolla"
+  ],
+  "es": "Tarta de cebolla, envasada"
+ },
+ "25530": {
+  "alias": [
+   "bocadillo vegetal",
+   "sandwich vegetal"
+  ],
+  "es": "Bocadillo de baguette con verduras variadas y mayonesa"
+ },
+ "25531": {
+  "alias": [
+   "bocadillo de pavo",
+   "sandwich de pavo"
+  ],
+  "es": "Bocadillo de baguette con pavo, verduras (tomate, lechuga) y mayonesa"
+ },
+ "25532": {
+  "alias": [
+   "bocadillo de huevo",
+   "sandwich de huevo"
+  ],
+  "es": "Bocadillo de baguette con huevo, verduras (tomate, lechuga) y mayonesa"
+ },
+ "25533": {
+  "alias": [
+   "bocadillo de lomo",
+   "sandwich de cerdo"
+  ],
+  "es": "Bocadillo de baguette con cerdo, verduras (tomate, lechuga) y mayonesa"
+ },
+ "25535": {
+  "alias": [
+   "bocadillo de merguez",
+   "bocadillo de salchicha"
+  ],
+  "es": "Bocadillo de baguette con merguez, kétchup y mostaza"
+ },
+ "25536": {
+  "alias": [
+   "bocadillo de salami",
+   "sandwich de salami"
+  ],
+  "es": "Bocadillo de baguette con salami y mantequilla"
  },
  "25537": {
   "alias": [
@@ -6464,12 +8553,180 @@
   ],
   "es": "Carpaccio de salmón con marinada"
  },
+ "25538": {
+  "alias": [
+   "carpaccio de ternera",
+   "carpaccio"
+  ],
+  "es": "Carpaccio de vacuno, con marinada"
+ },
+ "25539": {
+  "alias": [
+   "brocheta de pescado",
+   "pincho de pescado"
+  ],
+  "es": "Brocheta de pescado"
+ },
+ "25540": {
+  "alias": [
+   "brocheta de gambas",
+   "pincho de gambas"
+  ],
+  "es": "Brocheta de gambas"
+ },
  "25541": {
   "alias": [
    "brocheta de cordero",
    "pincho de cordero"
   ],
   "es": "Brocheta de cordero"
+ },
+ "25542": {
+  "alias": [
+   "croque madame",
+   "sandwich mixto con huevo"
+  ],
+  "es": "Croque madame (sándwich mixto gratinado con huevo)"
+ },
+ "25543": {
+  "alias": [
+   "bocadillo",
+   "sandwich"
+  ],
+  "es": "Bocadillo de baguette (alimento medio)"
+ },
+ "25544": {
+  "alias": [
+   "sandwich",
+   "sandwich de molde"
+  ],
+  "es": "Sándwich de pan de molde, rellenos variados, envasado"
+ },
+ "25546": {
+  "alias": [
+   "san jacobo",
+   "queso empanado"
+  ],
+  "es": "Queso empanado con jamón"
+ },
+ "25547": {
+  "alias": [
+   "croque monsieur",
+   "sandwich mixto"
+  ],
+  "es": "Croque monsieur, envasado"
+ },
+ "25548": {
+  "alias": [
+   "pizza reina",
+   "pizza de jamon y champiñones"
+  ],
+  "es": "Pizza de jamón, queso y setas (pizza reina o regina), envasada"
+ },
+ "25549": {
+  "alias": [
+   "crep de queso",
+   "crepe rellena"
+  ],
+  "es": "Crep rellena de bechamel y queso, envasada"
+ },
+ "25550": {
+  "alias": [
+   "flammekueche",
+   "tarta flambeada"
+  ],
+  "es": "Flammekueche o tarta flambeada alsaciana con bacon, envasada"
+ },
+ "25551": {
+  "alias": [
+   "buñuelo de carne",
+   "buñuelo"
+  ],
+  "es": "Buñuelo de carne, ave o pescado, casero, crudo"
+ },
+ "25552": {
+  "alias": [
+   "crep rellena",
+   "crepe de jamon y queso"
+  ],
+  "es": "Crep rellena de bechamel, jamón, queso y setas, envasada"
+ },
+ "25553": {
+  "alias": [
+   "tarta de puerros",
+   "quiche de puerros"
+  ],
+  "es": "Tarta o empanada de puerros, envasada"
+ },
+ "25555": {
+  "alias": [
+   "tarta de salmon",
+   "quiche de salmon"
+  ],
+  "es": "Tarta de salmón, envasada"
+ },
+ "25556": {
+  "alias": [
+   "buñuelo de verduras",
+   "tempura de verduras"
+  ],
+  "es": "Buñuelo de verduras"
+ },
+ "25557": {
+  "alias": [
+   "brick de huevo",
+   "empanadilla de huevo"
+  ],
+  "es": "Brick de huevo, casero, cocido"
+ },
+ "25558": {
+  "alias": [
+   "brick de carne",
+   "empanadilla de carne"
+  ],
+  "es": "Brick de vacuno"
+ },
+ "25559": {
+  "alias": [
+   "brick de patata",
+   "empanadilla de patata"
+  ],
+  "es": "Brick de patata, casero, cocido"
+ },
+ "25560": {
+  "alias": [
+   "empanada al riesling",
+   "tourte"
+  ],
+  "es": "Empanada al riesling, envasada"
+ },
+ "25561": {
+  "alias": [
+   "tarta de tomate",
+   "coca de tomate"
+  ],
+  "es": "Tarta de tomate, envasada"
+ },
+ "25562": {
+  "alias": [
+   "galette completa",
+   "crep completa"
+  ],
+  "es": "Crep o galette completa (huevo, jamón, queso), envasada"
+ },
+ "25564": {
+  "alias": [
+   "tarta de vieiras",
+   "quiche de vieiras"
+  ],
+  "es": "Tarta de vieiras, envasada"
+ },
+ "25565": {
+  "alias": [
+   "yakitori",
+   "brocheta japonesa"
+  ],
+  "es": "Yakitori (brochetas japonesas a la parrilla en salsa)"
  },
  "25566": {
   "alias": [
@@ -6478,6 +8735,75 @@
   ],
   "es": "Brocheta de cerdo, cruda"
  },
+ "25568": {
+  "alias": [
+   "pastela",
+   "pastilla de pollo"
+  ],
+  "es": "Pastela de pollo, envasada"
+ },
+ "25570": {
+  "alias": [
+   "pizza de bacon",
+   "pizza"
+  ],
+  "es": "Pizza de bacon, cebolla y queso, envasada"
+ },
+ "25571": {
+  "alias": [
+   "falafel"
+  ],
+  "es": "Falafel (bolita de garbanzo o haba), frito"
+ },
+ "25572": {
+  "alias": [
+   "crep de vieiras",
+   "crepe rellena"
+  ],
+  "es": "Crep o galette de vieiras, envasada"
+ },
+ "25573": {
+  "alias": [
+   "quiche",
+   "tarta salada"
+  ],
+  "es": "Tarta o quiche salada (alimento medio)"
+ },
+ "25574": {
+  "alias": [
+   "sandwich de jamon",
+   "sandwich integral"
+  ],
+  "es": "Sándwich de pan de molde integral con jamón, verduras y queso opcional, envasado"
+ },
+ "25575": {
+  "alias": [
+   "sandwich de atun",
+   "sandwich integral"
+  ],
+  "es": "Sándwich de pan de molde integral con atún, verduras y mayonesa, envasado"
+ },
+ "25576": {
+  "alias": [
+   "sandwich mixto",
+   "sandwich integral"
+  ],
+  "es": "Sándwich de pan de molde integral con jamón y queso, envasado"
+ },
+ "25577": {
+  "alias": [
+   "sandwich de pollo",
+   "sandwich integral"
+  ],
+  "es": "Sándwich de pan de molde integral con pollo, verduras y mayonesa, envasado"
+ },
+ "25578": {
+  "alias": [
+   "hojaldre salado",
+   "empanadilla"
+  ],
+  "es": "Hojaldre salado (alimento medio)"
+ },
  "25579": {
   "alias": [
    "ñoquis",
@@ -6485,12 +8811,150 @@
   ],
   "es": "Ñoquis, cocidos (alimento medio)"
  },
+ "25580": {
+  "alias": [
+   "volovan"
+  ],
+  "es": "Volován relleno (alimento medio)"
+ },
+ "25581": {
+  "alias": [
+   "crep de setas",
+   "crepe rellena"
+  ],
+  "es": "Crep rellena de bechamel y setas, cocida, envasada"
+ },
+ "25582": {
+  "alias": [
+   "nem de pollo",
+   "rollito de primavera"
+  ],
+  "es": "Rollito de primavera (nem) de pollo, envasado, cocido"
+ },
+ "25583": {
+  "alias": [
+   "nem de cerdo",
+   "rollito de primavera"
+  ],
+  "es": "Rollito de primavera (nem) de cerdo, envasado, cocido"
+ },
+ "25584": {
+  "alias": [
+   "nem de gambas",
+   "rollito de primavera"
+  ],
+  "es": "Rollito de primavera (nem) de gamba o cangrejo, envasado, cocido"
+ },
+ "25585": {
+  "alias": [
+   "brocheta de ternera",
+   "pincho"
+  ],
+  "es": "Brocheta de vacuno, cocida"
+ },
+ "25586": {
+  "alias": [
+   "brocheta de pollo",
+   "pincho de pollo"
+  ],
+  "es": "Brocheta de ave, cocida"
+ },
+ "25587": {
+  "alias": [
+   "parmentier de pato",
+   "pastel de pato"
+  ],
+  "es": "Pastel de pato y patata (parmentier), envasado, cocido"
+ },
+ "25588": {
+  "alias": [
+   "verduras gratinadas",
+   "verduras con bechamel"
+  ],
+  "es": "Verduras gratinadas en salsa blanca tipo bechamel, cocidas"
+ },
+ "25589": {
+  "alias": [
+   "albondigas vegetales",
+   "albondigas veganas"
+  ],
+  "es": "Albóndiga vegetal de soja o trigo, envasada"
+ },
+ "25590": {
+  "alias": [
+   "falafel"
+  ],
+  "es": "Falafel (bolita de garbanzo o haba), envasado"
+ },
+ "25591": {
+  "alias": [
+   "hamburguesa de lentejas",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de lentejas, soja y verduras, envasada"
+ },
+ "25592": {
+  "alias": [
+   "hamburguesa de seitan",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de trigo (seitán) y verduras, envasada"
+ },
+ "25593": {
+  "alias": [
+   "hamburguesa vegana",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de trigo y soja (apta para veganos), envasada"
+ },
+ "25594": {
+  "alias": [
+   "hamburguesa vegetal",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de trigo y soja (no apta para veganos), envasada"
+ },
+ "25595": {
+  "alias": [
+   "hamburguesa de soja",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de soja y queso, envasada"
+ },
+ "25596": {
+  "alias": [
+   "hamburguesa de soja",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de soja y verduras, envasada"
+ },
+ "25597": {
+  "alias": [
+   "hamburguesa de soja",
+   "burger vegetal"
+  ],
+  "es": "Hamburguesa de soja, queso y verduras, envasada"
+ },
  "25598": {
   "alias": [
    "seitan",
    "gluten de trigo"
   ],
   "es": "Seitán, envasado"
+ },
+ "25601": {
+  "alias": [
+   "ensalada de atun",
+   "ensalada de bote"
+  ],
+  "es": "Ensalada de atún y verduras, en conserva"
+ },
+ "25602": {
+  "alias": [
+   "ensalada mixta",
+   "ensalada de bote"
+  ],
+  "es": "Ensalada mixta con carne o pescado, en conserva"
  },
  "25604": {
   "alias": [
@@ -6500,12 +8964,424 @@
   ],
   "es": "Ensalada verde, cruda, sin aliñar"
  },
+ "25605": {
+  "alias": [
+   "champiñones a la griega",
+   "champiñones en conserva"
+  ],
+  "es": "Champiñones a la griega, en conserva"
+ },
+ "25606": {
+  "alias": [
+   "ensaladilla de patata",
+   "ensalada de patata"
+  ],
+  "es": "Ensaladilla de patata, casera"
+ },
+ "25608": {
+  "alias": [
+   "tabule",
+   "ensalada de cuscus"
+  ],
+  "es": "Tabulé o ensalada de cuscús, envasado"
+ },
+ "25609": {
+  "alias": [
+   "ensaladilla",
+   "ensalada de patata"
+  ],
+  "es": "Ensaladilla de patata a la piamontesa, envasada"
+ },
  "25610": {
   "alias": [
    "morro en vinagreta",
    "morro de ternera"
   ],
   "es": "Morro de vacuno en vinagreta"
+ },
+ "25614": {
+  "alias": [
+   "ensalada de arroz"
+  ],
+  "es": "Ensalada de arroz, en conserva"
+ },
+ "25615": {
+  "alias": [
+   "ensalada de pasta"
+  ],
+  "es": "Ensalada de pasta, vegetariana"
+ },
+ "25616": {
+  "alias": [
+   "crudites",
+   "verduras crudas"
+  ],
+  "es": "Crudités, sin aliñar (alimento medio)"
+ },
+ "25619": {
+  "alias": [
+   "ensalada de pasta"
+  ],
+  "es": "Ensalada de pasta con verduras, con pescado o carne, envasada"
+ },
+ "25623": {
+  "alias": [
+   "tarta de maroilles",
+   "flamiche"
+  ],
+  "es": "Tarta o flamiche de maroilles, envasada"
+ },
+ "25625": {
+  "alias": [
+   "crep de pescado",
+   "crepe rellena"
+  ],
+  "es": "Crep o galette rellena de pescado o marisco, envasada"
+ },
+ "25626": {
+  "alias": [
+   "ensaladilla de verduras",
+   "menestra en ensalada"
+  ],
+  "es": "Menestra de verduras en ensalada, con salsa, envasada"
+ },
+ "25628": {
+  "alias": [
+   "ensalada cesar",
+   "cesar de pollo"
+  ],
+  "es": "Ensalada César con pollo (lechuga, queso, picatostes, salsa), envasada"
+ },
+ "25629": {
+  "alias": [
+   "ensalada de quinoa",
+   "ensalada de bulgur"
+  ],
+  "es": "Ensalada vegetal de bulgur o quinoa y verduras, envasada"
+ },
+ "25635": {
+  "alias": [
+   "lasaña de espinacas",
+   "canelones de espinacas"
+  ],
+  "es": "Lasaña o canelones de queso y espinacas, envasados"
+ },
+ "25900": {
+  "alias": [
+   "sopa de lentejas",
+   "crema de lentejas"
+  ],
+  "es": "Sopa de lentejas, envasada para calentar"
+ },
+ "25901": {
+  "alias": [
+   "sopa de pollo",
+   "sopa de ave"
+  ],
+  "es": "Sopa de ave y verduras, envasada para calentar"
+ },
+ "25903": {
+  "alias": [
+   "sopa de verduras",
+   "crema de verduras"
+  ],
+  "es": "Sopa de verduras variadas, envasada para calentar"
+ },
+ "25904": {
+  "alias": [
+   "sopa de pescado",
+   "sopa de marisco"
+  ],
+  "es": "Sopa de pescado o mariscos, envasada para calentar"
+ },
+ "25905": {
+  "alias": [
+   "sopa de sobre",
+   "sopa de verduras"
+  ],
+  "es": "Sopa de verduras variadas, deshidratada reconstituida"
+ },
+ "25907": {
+  "alias": [
+   "crema de puerros",
+   "vichyssoise"
+  ],
+  "es": "Sopa de puerros y patata, envasada para calentar"
+ },
+ "25908": {
+  "alias": [
+   "sopa de pollo con fideos",
+   "sopa de fideos"
+  ],
+  "es": "Sopa de ave con fideos, envasada para calentar"
+ },
+ "25909": {
+  "alias": [
+   "caldo de cocido",
+   "caldo de carne"
+  ],
+  "es": "Caldo de carne y verduras tipo cocido, listo para consumir"
+ },
+ "25910": {
+  "alias": [
+   "sopa de cebolla"
+  ],
+  "es": "Sopa de cebolla, envasada para calentar"
+ },
+ "25912": {
+  "alias": [
+   "crema de setas",
+   "sopa de champiñones"
+  ],
+  "es": "Sopa de setas, envasada para calentar"
+ },
+ "25913": {
+  "alias": [
+   "crema de zanahoria"
+  ],
+  "es": "Sopa de zanahoria, envasada para calentar"
+ },
+ "25914": {
+  "alias": [
+   "sopa de tomate",
+   "crema de tomate"
+  ],
+  "es": "Sopa de tomate, envasada para calentar"
+ },
+ "25915": {
+  "alias": [
+   "chorba frik",
+   "chorba"
+  ],
+  "es": "Sopa chorba frik, de carne y frik"
+ },
+ "25916": {
+  "alias": [
+   "minestrone",
+   "sopa minestrone"
+  ],
+  "es": "Sopa minestrone, envasada para calentar"
+ },
+ "25917": {
+  "alias": [
+   "sopa al pistou",
+   "sopa de sobre"
+  ],
+  "es": "Sopa al pistou, deshidratada reconstituida"
+ },
+ "25919": {
+  "alias": [
+   "sopa de pescado",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de pescado o mariscos, deshidratada reconstituida"
+ },
+ "25923": {
+  "alias": [
+   "sopa asiatica",
+   "ramen instantaneo",
+   "noodles de sobre"
+  ],
+  "es": "Sopa asiática, con fideos, deshidratada reconstituida"
+ },
+ "25924": {
+  "alias": [
+   "harira",
+   "sopa marroqui"
+  ],
+  "es": "Sopa marroquí (harira), deshidratada reconstituida"
+ },
+ "25925": {
+  "alias": [
+   "crema de puerros",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de puerros y patata, deshidratada reconstituida"
+ },
+ "25928": {
+  "alias": [
+   "sopa de pollo",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de ave y verduras, deshidratada reconstituida"
+ },
+ "25930": {
+  "alias": [
+   "caldo de carne",
+   "pastilla de caldo"
+  ],
+  "es": "Caldo de vacuno, deshidratado reconstituido"
+ },
+ "25932": {
+  "alias": [
+   "crema de esparragos",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de espárragos, deshidratada reconstituida"
+ },
+ "25933": {
+  "alias": [
+   "sopa de tomate con fideos"
+  ],
+  "es": "Sopa de tomate y fideos, envasada para calentar"
+ },
+ "25934": {
+  "alias": [
+   "sopa de cereales",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de cereales y verduras, deshidratada reconstituida"
+ },
+ "25935": {
+  "alias": [
+   "sopa de tomate",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de tomate, deshidratada reconstituida"
+ },
+ "25936": {
+  "alias": [
+   "crema de setas",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de setas, deshidratada reconstituida"
+ },
+ "25942": {
+  "alias": [
+   "sopa de cebolla",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de cebolla, deshidratada reconstituida"
+ },
+ "25945": {
+  "alias": [
+   "crema de calabaza",
+   "sopa de calabaza"
+  ],
+  "es": "Sopa de calabaza, envasada para calentar"
+ },
+ "25947": {
+  "alias": [
+   "caldo de pollo",
+   "pastilla de caldo"
+  ],
+  "es": "Caldo de ave, deshidratado reconstituido"
+ },
+ "25948": {
+  "alias": [
+   "caldo de verduras",
+   "pastilla de caldo"
+  ],
+  "es": "Caldo de verduras, deshidratado reconstituido"
+ },
+ "25949": {
+  "alias": [
+   "sopa de tomate con fideos",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de tomate y fideos, deshidratada reconstituida"
+ },
+ "25950": {
+  "alias": [
+   "sopa de pollo con fideos",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de ave con fideos, deshidratada reconstituida"
+ },
+ "25953": {
+  "alias": [
+   "sopa al pistou"
+  ],
+  "es": "Sopa al pistou, envasada para calentar"
+ },
+ "25954": {
+  "alias": [
+   "crema de calabaza",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de calabaza, deshidratada reconstituida"
+ },
+ "25955": {
+  "alias": [
+   "sopa asiatica",
+   "ramen"
+  ],
+  "es": "Sopa asiática, con fideos, envasada para calentar"
+ },
+ "25956": {
+  "alias": [
+   "minestrone",
+   "sopa de sobre"
+  ],
+  "es": "Sopa minestrone, deshidratada reconstituida"
+ },
+ "25957": {
+  "alias": [
+   "crema de berros",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de berros, deshidratada reconstituida"
+ },
+ "25958": {
+  "alias": [
+   "crema de berros",
+   "sopa de berros"
+  ],
+  "es": "Sopa de berros, envasada para calentar"
+ },
+ "25962": {
+  "alias": [
+   "crema de verduras con queso"
+  ],
+  "es": "Sopa de verduras con queso, envasada para calentar"
+ },
+ "25963": {
+  "alias": [
+   "crema de verduras",
+   "sopa verde"
+  ],
+  "es": "Sopa de verduras verdes, envasada para calentar"
+ },
+ "25964": {
+  "alias": [
+   "crema de verduras",
+   "sopa de sobre"
+  ],
+  "es": "Sopa de verduras verdes, deshidratada reconstituida"
+ },
+ "25965": {
+  "alias": [
+   "crema de guisantes",
+   "sopa de guisantes"
+  ],
+  "es": "Sopa de guisantes secos partidos, envasada para calentar"
+ },
+ "25967": {
+  "alias": [
+   "gazpacho",
+   "sopa fria"
+  ],
+  "es": "Sopa fría tipo gazpacho, envasada"
+ },
+ "25968": {
+  "alias": [
+   "crema de esparragos"
+  ],
+  "es": "Sopa de espárragos, envasada para calentar"
+ },
+ "25969": {
+  "alias": [
+   "sopa",
+   "crema"
+  ],
+  "es": "Sopa (alimento medio)"
+ },
+ "25972": {
+  "alias": [
+   "sopa de miso",
+   "miso"
+  ],
+  "es": "Sopa de miso, deshidratada reconstituida"
  },
  "25995": {
   "alias": [
@@ -6882,6 +9758,12 @@
    "atun fresco"
   ],
   "es": "Atún, crudo"
+ },
+ "26054": {
+  "alias": [
+   "pescado en salsa"
+  ],
+  "es": "Pescado en salsa, congelado"
  },
  "26055": {
   "alias": [
@@ -7333,6 +10215,13 @@
   ],
   "es": "Sardina, a la parrilla"
  },
+ "26140": {
+  "alias": [
+   "pescado cocinado",
+   "pescado"
+  ],
+  "es": "Pescado cocinado (alimento medio)"
+ },
  "26141": {
   "alias": [
    "higado de bacalao"
@@ -7753,6 +10642,69 @@
   ],
   "es": "Lenguado, a la sartén"
  },
+ "26249": {
+  "alias": [
+   "pescado blanco"
+  ],
+  "es": "Pescado blanco, cocinado (alimento medio)"
+ },
+ "26250": {
+  "alias": [
+   "pescado blanco"
+  ],
+  "es": "Pescado blanco de mar, cocinado (alimento medio)"
+ },
+ "26256": {
+  "alias": [
+   "ficelle picarde",
+   "crep gratinada"
+  ],
+  "es": "Ficelle picarde (crep gratinada de jamón y setas), envasada"
+ },
+ "26257": {
+  "alias": [
+   "zanahoria rallada",
+   "ensalada de zanahoria"
+  ],
+  "es": "Zanahoria rallada, con salsa, envasada"
+ },
+ "26258": {
+  "alias": [
+   "ensalada de remolacha"
+  ],
+  "es": "Ensalada de remolacha, con salsa, envasada"
+ },
+ "26259": {
+  "alias": [
+   "coleslaw",
+   "ensalada de col"
+  ],
+  "es": "Ensalada de col (coleslaw), con salsa, envasada"
+ },
+ "26260": {
+  "alias": [
+   "ensalada de pepino"
+  ],
+  "es": "Ensalada de pepino con nata o queso batido, envasada"
+ },
+ "26261": {
+  "alias": [
+   "ensalada de lentejas"
+  ],
+  "es": "Ensalada de lentejas y salchicha ahumada, envasada"
+ },
+ "26262": {
+  "alias": [
+   "ensalada griega"
+  ],
+  "es": "Ensalada griega, con salsa, envasada"
+ },
+ "26263": {
+  "alias": [
+   "ensalada de arroz"
+  ],
+  "es": "Ensalada de arroz a la nizarda, con salsa, envasada"
+ },
  "26264": {
   "alias": [
    "ñoquis de patata",
@@ -7766,6 +10718,69 @@
    "gnocchi"
   ],
   "es": "Ñoquis de sémola, crudos"
+ },
+ "26266": {
+  "alias": [
+   "croissant de jamon y queso",
+   "cruasan mixto"
+  ],
+  "es": "Cruasán de jamón y queso, envasado"
+ },
+ "26267": {
+  "alias": [
+   "tarta de espinacas",
+   "quiche de espinacas"
+  ],
+  "es": "Tarta de espinacas y queso de cabra, envasada"
+ },
+ "26268": {
+  "alias": [
+   "tielle setoise",
+   "empanada de pulpo"
+  ],
+  "es": "Tielle de Sète (empanada de pulpo), envasada"
+ },
+ "26269": {
+  "alias": [
+   "tabule con pollo",
+   "ensalada de cuscus"
+  ],
+  "es": "Tabulé o ensalada de cuscús con pollo, envasado"
+ },
+ "26270": {
+  "alias": [
+   "pizza de atun",
+   "pizza"
+  ],
+  "es": "Pizza de atún, envasada"
+ },
+ "26271": {
+  "alias": [
+   "pizza kebab",
+   "pizza"
+  ],
+  "es": "Pizza kebab, envasada"
+ },
+ "26272": {
+  "alias": [
+   "pizza de pollo",
+   "pizza"
+  ],
+  "es": "Pizza de pollo, envasada"
+ },
+ "26273": {
+  "alias": [
+   "pizza de queso y patata",
+   "pizza"
+  ],
+  "es": "Pizza tipo raclette o tartiflette, envasada"
+ },
+ "26274": {
+  "alias": [
+   "pizza de jamon curado",
+   "pizza"
+  ],
+  "es": "Pizza de speck o jamón curado, envasada"
  },
  "26275": {
   "alias": [
@@ -8659,6 +11674,14 @@
   ],
   "es": "Diot (salchicha saboyana), crudo"
  },
+ "30181": {
+  "alias": [
+   "picada de soja",
+   "soja texturizada",
+   "heura"
+  ],
+  "es": "Picada vegetal de soja, envasada"
+ },
  "30300": {
   "alias": [
    "salchichon",
@@ -9525,6 +12548,198 @@
   ],
   "es": "Picatostes al ajo con finas hierbas o cebolla, envasados"
  },
+ "39001": {
+  "alias": [
+   "batido",
+   "milkshake"
+  ],
+  "es": "Batido de leche (milkshake), de restaurante de comida rápida"
+ },
+ "39200": {
+  "alias": [
+   "natillas de chocolate",
+   "natillas"
+  ],
+  "es": "Natillas de chocolate, refrigeradas"
+ },
+ "39206": {
+  "alias": [
+   "mousse de chocolate"
+  ],
+  "es": "Mousse de chocolate (base láctea), refrigerada"
+ },
+ "39209": {
+  "alias": [
+   "flan",
+   "flan de caramelo"
+  ],
+  "es": "Flan de caramelo, refrigerado"
+ },
+ "39210": {
+  "alias": [
+   "mousse de chocolate"
+  ],
+  "es": "Mousse de chocolate tradicional, envasada"
+ },
+ "39211": {
+  "alias": [
+   "natillas",
+   "crema de postre"
+  ],
+  "es": "Natillas de huevo (tarrina de crema de chocolate, vainilla…), refrigeradas"
+ },
+ "39212": {
+  "alias": [
+   "arroz con leche"
+  ],
+  "es": "Arroz con leche, refrigerado"
+ },
+ "39213": {
+  "alias": [
+   "creme brulee",
+   "crema quemada"
+  ],
+  "es": "Crème brûlée, refrigerada"
+ },
+ "39214": {
+  "alias": [
+   "natillas de vainilla",
+   "natillas"
+  ],
+  "es": "Natillas de vainilla, en conserva"
+ },
+ "39215": {
+  "alias": [
+   "isla flotante",
+   "ile flottante"
+  ],
+  "es": "Isla flotante, refrigerada"
+ },
+ "39216": {
+  "alias": [
+   "clafoutis"
+  ],
+  "es": "Clafoutis de frutas, envasado"
+ },
+ "39218": {
+  "alias": [
+   "semola con leche"
+  ],
+  "es": "Sémola con leche, refrigerada"
+ },
+ "39220": {
+  "alias": [
+   "liegeois",
+   "postre con nata"
+  ],
+  "es": "Liégeois de frutas, envasado"
+ },
+ "39228": {
+  "alias": [
+   "mousse de frutas"
+  ],
+  "es": "Mousse de frutas, refrigerada"
+ },
+ "39229": {
+  "alias": [
+   "natillas de vainilla",
+   "natillas"
+  ],
+  "es": "Natillas de vainilla, refrigeradas"
+ },
+ "39230": {
+  "alias": [
+   "natillas"
+  ],
+  "es": "Natillas, refrigeradas (alimento medio)"
+ },
+ "39232": {
+  "alias": [
+   "pastel de arroz",
+   "arroz con leche"
+  ],
+  "es": "Pastel de arroz, en conserva"
+ },
+ "39233": {
+  "alias": [
+   "coulant de chocolate",
+   "fondant de chocolate"
+  ],
+  "es": "Coulant de chocolate negro con crema inglesa, envasado"
+ },
+ "39234": {
+  "alias": [
+   "coulant de chocolate",
+   "bizcocho de chocolate"
+  ],
+  "es": "Bizcocho de chocolate con corazón fundente, envasado (refrigerado)"
+ },
+ "39235": {
+  "alias": [
+   "mousse liegeois",
+   "postre con nata"
+  ],
+  "es": "Mousse liégeoise (chocolate, café, caramelo o vainilla), refrigerada"
+ },
+ "39236": {
+  "alias": [
+   "torrija",
+   "pain perdu"
+  ],
+  "es": "Torrija (pain perdu)"
+ },
+ "39246": {
+  "alias": [
+   "natillas de cafe",
+   "natillas"
+  ],
+  "es": "Natillas de café, refrigeradas"
+ },
+ "39247": {
+  "alias": [
+   "natillas de caramelo",
+   "natillas"
+  ],
+  "es": "Natillas de caramelo, refrigeradas"
+ },
+ "39248": {
+  "alias": [
+   "mousse de chocolate vegana"
+  ],
+  "es": "Mousse de chocolate vegetal, envasada"
+ },
+ "39400": {
+  "alias": [
+   "ponche de huevo",
+   "eggnog"
+  ],
+  "es": "Ponche de huevo, sin alcohol"
+ },
+ "39505": {
+  "alias": [
+   "natillas"
+  ],
+  "es": "Natillas, en conserva (alimento medio)"
+ },
+ "39506": {
+  "alias": [
+   "natillas de chocolate",
+   "natillas"
+  ],
+  "es": "Natillas de chocolate, en conserva"
+ },
+ "39511": {
+  "alias": [
+   "natillas"
+  ],
+  "es": "Natillas, refrigeradas o en conserva (alimento medio)"
+ },
+ "39710": {
+  "alias": [
+   "crema pastelera"
+  ],
+  "es": "Crema pastelera"
+ },
  "4000": {
   "alias": [
    "tapioca",
@@ -10101,6 +13316,13 @@
    "riñones"
   ],
   "es": "Riñón de ternera, crudo"
+ },
+ "4041": {
+  "alias": [
+   "aligot",
+   "pure de patata con queso"
+  ],
+  "es": "Aligot (puré de patata con tomme fresca), envasado"
  },
  "4042": {
   "alias": [
@@ -11330,12 +14552,32 @@
   ],
   "es": "Colines (grissini)"
  },
+ "7811": {
+  "alias": [
+   "focaccia"
+  ],
+  "es": "Focaccia, con guarnición"
+ },
+ "7812": {
+  "alias": [
+   "fougasse",
+   "pan provenzal"
+  ],
+  "es": "Fougasse, con guarnición"
+ },
  "7813": {
   "alias": [
    "tortilla de maiz",
    "tortilla mexicana"
   ],
   "es": "Tortilla mexicana blanda (para rellenar), de maíz"
+ },
+ "7814": {
+  "alias": [
+   "bizcocho salado",
+   "cake salado"
+  ],
+  "es": "Bizcocho salado (queso, verduras, carne, pescado, ave…), envasado"
  },
  "7815": {
   "alias": [
@@ -11546,6 +14788,20 @@
   ],
   "es": "Tarama, envasado"
  },
+ "8296": {
+  "alias": [
+   "terrina de verduras",
+   "pastel de verduras"
+  ],
+  "es": "Terrina o mousse de verduras"
+ },
+ "8297": {
+  "alias": [
+   "flan de verduras",
+   "pudin de verduras"
+  ],
+  "es": "Flan de verduras"
+ },
  "8300": {
   "alias": [
    "pate de higado",
@@ -11745,6 +15001,27 @@
   ],
   "es": "Andouillette de Troyes, para cocinar"
  },
+ "8601": {
+  "alias": [
+   "callos",
+   "tripas a la moda de caen"
+  ],
+  "es": "Callos a la moda de Caen"
+ },
+ "8602": {
+  "alias": [
+   "callos",
+   "tripas"
+  ],
+  "es": "Callos a la moda de Caen, envasados"
+ },
+ "8612": {
+  "alias": [
+   "callos con tomate",
+   "callos"
+  ],
+  "es": "Callos con tomate o a la provenzal"
+ },
  "8703": {
   "alias": [
    "morcilla",
@@ -11885,6 +15162,20 @@
    "trigo precocido"
   ],
   "es": "Trigo duro precocido, grano entero, cocido, sin sal"
+ },
+ "9082": {
+  "alias": [
+   "trigo cocinado",
+   "trigo de microondas"
+  ],
+  "es": "Trigo duro precocido cocinado, en bolsa para microondas"
+ },
+ "9083": {
+  "alias": [
+   "trigo cocinado",
+   "trigo para saltear"
+  ],
+  "es": "Trigo duro precocido, grano entero, cocinado, para saltear"
  },
  "9085": {
   "alias": [
