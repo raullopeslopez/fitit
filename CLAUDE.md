@@ -47,10 +47,14 @@ cd backend
 uv run python -m scripts.import_ciqual --download          # 3.185 alimentos, ~1 s
 uv run python -m scripts.import_ciqual --download --dry-run  # parsea y cuenta, no escribe
 
-# Traducir FR → ES. Dos pasos a propósito: el caro deja un JSON reutilizable.
-GEMINI_API_KEY=... uv run python -m scripts.translate_foods   # 80 lotes, reanudable
-uv run python -m scripts.translate_foods --apply data/ciqual_es.json   # sin red ni clave
+# Pasar el catálogo a español. `data/ciqual_es.json` ya está en el repo con las
+# 3.185 traducciones y sus alias, así que esto no gasta red ni clave.
+uv run python -m scripts.translate_foods --apply data/ciqual_es.json
 ```
+
+`ciqual_es.json` es un **artefacto de datos**: se lee, se corrige a mano y se vuelve a
+aplicar. Rehacer la base de datos no cuesta traducir otra vez. `scripts/translate_foods.py`
+sigue sirviendo para regenerarlo con un LLM externo (`GEMINI_API_KEY`), pero no hace falta.
 
 El import es idempotente y **no pisa nada tuyo**: sólo escribe filas de catálogo
 (`user_id IS NULL`), nunca borra, y no devuelve al francés un nombre ya traducido.

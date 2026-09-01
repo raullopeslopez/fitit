@@ -530,6 +530,35 @@
   ],
   "es": "Crema de casis"
  },
+ "1022": {
+  "alias": [
+   "ponche",
+   "coctel"
+  ],
+  "es": "Cóctel tipo ponche, 16 % de alcohol"
+ },
+ "1023": {
+  "alias": [
+   "coñac",
+   "brandy",
+   "armañac"
+  ],
+  "es": "Aguardiente de vino (tipo armañac, coñac)"
+ },
+ "1024": {
+  "alias": [
+   "calvados",
+   "aguardiente de manzana"
+  ],
+  "es": "Aguardiente tipo calvados"
+ },
+ "1026": {
+  "alias": [
+   "sake",
+   "alcohol de arroz"
+  ],
+  "es": "Sake (alcohol de arroz)"
+ },
  "1027": {
   "alias": [
    "queso vegano para untar",
@@ -565,6 +594,1082 @@
    "pate vegano"
   ],
   "es": "Especialidad vegetal tipo paté, envasada"
+ },
+ "11000": {
+  "alias": [
+   "ajo",
+   "ajos"
+  ],
+  "es": "Ajo, crudo"
+ },
+ "11001": {
+  "alias": [
+   "caldo de carne",
+   "pastilla de caldo",
+   "avecrem"
+  ],
+  "es": "Caldo de vacuno, deshidratado"
+ },
+ "11002": {
+  "alias": [
+   "perifollo"
+  ],
+  "es": "Perifollo, fresco"
+ },
+ "11003": {
+  "alias": [
+   "cebollino",
+   "cebollino fresco"
+  ],
+  "es": "Cebollino, fresco"
+ },
+ "11004": {
+  "alias": [
+   "pepinillo",
+   "pepinillos"
+  ],
+  "es": "Pepinillo, en vinagre"
+ },
+ "11005": {
+  "alias": [
+   "curry",
+   "curry en polvo"
+  ],
+  "es": "Curry, en polvo"
+ },
+ "11006": {
+  "alias": [
+   "jengibre en polvo",
+   "jengibre"
+  ],
+  "es": "Jengibre, en polvo"
+ },
+ "11007": {
+  "alias": [
+   "gelatina",
+   "gelatina en polvo",
+   "hojas de gelatina"
+  ],
+  "es": "Gelatina, seca"
+ },
+ "11008": {
+  "alias": [
+   "ketchup",
+   "salsa de tomate"
+  ],
+  "es": "Kétchup, envasado"
+ },
+ "11009": {
+  "alias": [
+   "levadura nutricional",
+   "levadura alimentaria"
+  ],
+  "es": "Levadura alimentaria"
+ },
+ "11010": {
+  "alias": [
+   "levadura fresca",
+   "levadura de panaderia"
+  ],
+  "es": "Levadura de panadería, prensada"
+ },
+ "11013": {
+  "alias": [
+   "mostaza"
+  ],
+  "es": "Mostaza"
+ },
+ "11014": {
+  "alias": [
+   "perejil"
+  ],
+  "es": "Perejil, fresco"
+ },
+ "11015": {
+  "alias": [
+   "pimienta negra",
+   "pimienta"
+  ],
+  "es": "Pimienta negra, molida"
+ },
+ "11016": {
+  "alias": [
+   "rabano picante",
+   "wasabi occidental"
+  ],
+  "es": "Rábano picante, crudo"
+ },
+ "11017": {
+  "alias": [
+   "sal",
+   "sal comun"
+  ],
+  "es": "Sal blanca alimentaria, sin yodar ni fluorar (marina, ígnea o gema)"
+ },
+ "11018": {
+  "alias": [
+   "vinagre"
+  ],
+  "es": "Vinagre"
+ },
+ "11019": {
+  "alias": [
+   "pimienta blanca",
+   "pimienta"
+  ],
+  "es": "Pimienta blanca, molida"
+ },
+ "11021": {
+  "alias": [
+   "mostaza a la antigua",
+   "mostaza en grano"
+  ],
+  "es": "Mostaza a la antigua (en grano)"
+ },
+ "11023": {
+  "alias": [
+   "ajo en polvo",
+   "ajo seco"
+  ],
+  "es": "Ajo seco, en polvo"
+ },
+ "11024": {
+  "alias": [
+   "perejil seco",
+   "perejil"
+  ],
+  "es": "Perejil, seco"
+ },
+ "11025": {
+  "alias": [
+   "canela",
+   "canela molida"
+  ],
+  "es": "Canela, molida"
+ },
+ "11026": {
+  "alias": [
+   "cilantro en grano",
+   "semilla de cilantro"
+  ],
+  "es": "Cilantro, semilla"
+ },
+ "11027": {
+  "alias": [
+   "menta",
+   "hierbabuena"
+  ],
+  "es": "Menta, fresca"
+ },
+ "11029": {
+  "alias": [
+   "menta seca",
+   "hierbabuena"
+  ],
+  "es": "Menta, seca"
+ },
+ "11032": {
+  "alias": [
+   "albahaca seca",
+   "albahaca"
+  ],
+  "es": "Albahaca, seca"
+ },
+ "11033": {
+  "alias": [
+   "albahaca"
+  ],
+  "es": "Albahaca, fresca"
+ },
+ "11034": {
+  "alias": [
+   "mejorana"
+  ],
+  "es": "Mejorana, seca"
+ },
+ "11035": {
+  "alias": [
+   "oregano"
+  ],
+  "es": "Orégano, seco"
+ },
+ "11036": {
+  "alias": [
+   "romero seco",
+   "romero"
+  ],
+  "es": "Romero, seco"
+ },
+ "11037": {
+  "alias": [
+   "salvia seca",
+   "salvia"
+  ],
+  "es": "Salvia, seca"
+ },
+ "11038": {
+  "alias": [
+   "tomillo seco",
+   "tomillo"
+  ],
+  "es": "Tomillo, seco"
+ },
+ "11039": {
+  "alias": [
+   "azafran"
+  ],
+  "es": "Azafrán"
+ },
+ "11040": {
+  "alias": [
+   "alcaparras",
+   "alcaparra"
+  ],
+  "es": "Alcaparras, en vinagre"
+ },
+ "11042": {
+  "alias": [
+   "comino",
+   "comino en grano"
+  ],
+  "es": "Comino, semilla"
+ },
+ "11043": {
+  "alias": [
+   "tapenade",
+   "pate de aceitunas"
+  ],
+  "es": "Tapenade (paté de aceitunas)"
+ },
+ "11044": {
+  "alias": [
+   "sal de apio"
+  ],
+  "es": "Sal de apio"
+ },
+ "11045": {
+  "alias": [
+   "levadura seca",
+   "levadura de panaderia"
+  ],
+  "es": "Levadura de panadería, deshidratada"
+ },
+ "11046": {
+  "alias": [
+   "levadura quimica",
+   "royal",
+   "impulsor"
+  ],
+  "es": "Levadura química (impulsor)"
+ },
+ "11048": {
+  "alias": [
+   "nuez moscada"
+  ],
+  "es": "Nuez moscada"
+ },
+ "11049": {
+  "alias": [
+   "pimenton",
+   "paprika"
+  ],
+  "es": "Pimentón (paprika)"
+ },
+ "11051": {
+  "alias": [
+   "salsa tartara"
+  ],
+  "es": "Salsa tártara, envasada"
+ },
+ "11052": {
+  "alias": [
+   "clavo",
+   "clavo de olor"
+  ],
+  "es": "Clavo de olor"
+ },
+ "11053": {
+  "alias": [
+   "laurel",
+   "hoja de laurel"
+  ],
+  "es": "Laurel, hoja"
+ },
+ "11054": {
+  "alias": [
+   "mayonesa",
+   "mahonesa"
+  ],
+  "es": "Mayonesa (70 % MG mín.), envasada"
+ },
+ "11055": {
+  "alias": [
+   "cebolleta en vinagre",
+   "cebollitas en vinagre"
+  ],
+  "es": "Cebolleta en vinagre"
+ },
+ "11056": {
+  "alias": [
+   "cuatro especias",
+   "quatre epices"
+  ],
+  "es": "Cuatro especias"
+ },
+ "11057": {
+  "alias": [
+   "vainilla",
+   "vaina de vainilla"
+  ],
+  "es": "Vainilla, en vaina"
+ },
+ "11058": {
+  "alias": [
+   "sal yodada",
+   "sal"
+  ],
+  "es": "Sal blanca alimentaria, yodada, sin fluorar (marina, ígnea o gema)"
+ },
+ "11060": {
+  "alias": [
+   "hierbas provenzales",
+   "hierbas de provenza"
+  ],
+  "es": "Hierbas provenzales, secas"
+ },
+ "11061": {
+  "alias": [
+   "semillas de amapola",
+   "adormidera"
+  ],
+  "es": "Adormidera (amapola), semilla"
+ },
+ "11062": {
+  "alias": [
+   "ajedrea"
+  ],
+  "es": "Ajedrea, seca"
+ },
+ "11064": {
+  "alias": [
+   "alcaravea",
+   "comino de prado"
+  ],
+  "es": "Alcaravea, semilla"
+ },
+ "11065": {
+  "alias": [
+   "extracto de vainilla",
+   "vainilla"
+  ],
+  "es": "Vainilla, extracto alcohólico"
+ },
+ "11066": {
+  "alias": [
+   "semilla de hinojo",
+   "hinojo en grano"
+  ],
+  "es": "Hinojo, semilla"
+ },
+ "11068": {
+  "alias": [
+   "romero"
+  ],
+  "es": "Romero, fresco"
+ },
+ "11069": {
+  "alias": [
+   "salvia"
+  ],
+  "es": "Salvia, fresca"
+ },
+ "11070": {
+  "alias": [
+   "tomillo"
+  ],
+  "es": "Tomillo, fresco"
+ },
+ "11073": {
+  "alias": [
+   "ketchup light",
+   "ketchup"
+  ],
+  "es": "Kétchup bajo en azúcares, envasado"
+ },
+ "11074": {
+  "alias": [
+   "jengibre",
+   "jengibre fresco"
+  ],
+  "es": "Jengibre, raíz cruda"
+ },
+ "11075": {
+  "alias": [
+   "cardamomo"
+  ],
+  "es": "Cardamomo, molido"
+ },
+ "11077": {
+  "alias": [
+   "fenogreco",
+   "alholva"
+  ],
+  "es": "Fenogreco, semilla"
+ },
+ "11079": {
+  "alias": [
+   "mayonesa light",
+   "mayonesa"
+  ],
+  "es": "Mayonesa con menos grasa (light), envasada"
+ },
+ "11080": {
+  "alias": [
+   "hierbas aromaticas",
+   "finas hierbas"
+  ],
+  "es": "Hierbas aromáticas frescas (alimento medio)"
+ },
+ "11081": {
+  "alias": [
+   "especias",
+   "especia"
+  ],
+  "es": "Especia (alimento medio)"
+ },
+ "11082": {
+  "alias": [
+   "flor de sal",
+   "sal"
+  ],
+  "es": "Flor de sal, sin yodar ni fluorar"
+ },
+ "11083": {
+  "alias": [
+   "sal marina",
+   "sal gorda"
+  ],
+  "es": "Sal marina gris, sin yodar ni fluorar"
+ },
+ "11084": {
+  "alias": [
+   "agar agar",
+   "alga agar"
+  ],
+  "es": "Agar-agar (alga), crudo"
+ },
+ "11085": {
+  "alias": [
+   "agar agar",
+   "alga agar"
+  ],
+  "es": "Agar-agar (alga), seco"
+ },
+ "11086": {
+  "alias": [
+   "espirulina"
+  ],
+  "es": "Espirulina, seca o deshidratada"
+ },
+ "11088": {
+  "alias": [
+   "cayena",
+   "pimienta de cayena",
+   "guindilla molida"
+  ],
+  "es": "Pimienta de Cayena (guindilla molida)"
+ },
+ "11089": {
+  "alias": [
+   "curcuma"
+  ],
+  "es": "Cúrcuma, molida"
+ },
+ "11090": {
+  "alias": [
+   "vinagre de manzana",
+   "vinagre de sidra"
+  ],
+  "es": "Vinagre de sidra (de manzana)"
+ },
+ "11091": {
+  "alias": [
+   "vinagre balsamico",
+   "aceto balsamico"
+  ],
+  "es": "Vinagre balsámico"
+ },
+ "11092": {
+  "alias": [
+   "estragon"
+  ],
+  "es": "Estragón, fresco"
+ },
+ "11093": {
+  "alias": [
+   "eneldo"
+  ],
+  "es": "Eneldo, fresco"
+ },
+ "11094": {
+  "alias": [
+   "cilantro",
+   "cilantro fresco"
+  ],
+  "es": "Cilantro, fresco"
+ },
+ "11096": {
+  "alias": [
+   "sal yodada",
+   "sal"
+  ],
+  "es": "Sal blanca alimentaria, yodada y fluorada a 25 mg/100 g (marina, ígnea o gema)"
+ },
+ "11097": {
+  "alias": [
+   "pepinillo agridulce",
+   "pepinillos"
+  ],
+  "es": "Pepinillo, agridulce"
+ },
+ "11098": {
+  "alias": [
+   "extracto de vainilla",
+   "vainilla"
+  ],
+  "es": "Vainilla, extracto acuoso"
+ },
+ "11100": {
+  "alias": [
+   "salsa barbacoa",
+   "bbq"
+  ],
+  "es": "Salsa barbacoa, envasada"
+ },
+ "11101": {
+  "alias": [
+   "bechamel",
+   "salsa bechamel"
+  ],
+  "es": "Salsa bechamel, envasada"
+ },
+ "11102": {
+  "alias": [
+   "salsa bearnesa",
+   "bearnesa"
+  ],
+  "es": "Salsa bearnesa, envasada"
+ },
+ "11104": {
+  "alias": [
+   "salsa de soja",
+   "soja"
+  ],
+  "es": "Salsa de soja, envasada"
+ },
+ "11105": {
+  "alias": [
+   "salsa holandesa"
+  ],
+  "es": "Salsa holandesa, envasada"
+ },
+ "11107": {
+  "alias": [
+   "salsa de tomate",
+   "tomate frito"
+  ],
+  "es": "Salsa de tomate con cebolla, envasada"
+ },
+ "11108": {
+  "alias": [
+   "vinagreta",
+   "aliño"
+  ],
+  "es": "Vinagreta con aceite de oliva (50-75 % de aceite), envasada"
+ },
+ "11109": {
+  "alias": [
+   "vinagreta light",
+   "aliño"
+  ],
+  "es": "Vinagreta baja en grasa (25-50 % de aceite), envasada"
+ },
+ "11110": {
+  "alias": [
+   "vinagreta",
+   "aliño"
+  ],
+  "es": "Vinagreta (50-75 % de aceite), envasada"
+ },
+ "11111": {
+  "alias": [
+   "salsa armoricana",
+   "salsa americana"
+  ],
+  "es": "Salsa armoricana, envasada"
+ },
+ "11112": {
+  "alias": [
+   "harissa",
+   "salsa picante"
+  ],
+  "es": "Harissa (salsa condimentaria), envasada"
+ },
+ "11114": {
+  "alias": [
+   "salsa boloñesa",
+   "boloñesa"
+  ],
+  "es": "Salsa de tomate con carne o salsa boloñesa, envasada"
+ },
+ "11115": {
+  "alias": [
+   "salsa de pimienta verde",
+   "salsa de pimienta"
+  ],
+  "es": "Salsa a la pimienta verde, envasada"
+ },
+ "11120": {
+  "alias": [
+   "salsa borgoñona",
+   "salsa al vino tinto"
+  ],
+  "es": "Salsa a la borgoñona, envasada"
+ },
+ "11121": {
+  "alias": [
+   "salsa madeira",
+   "salsa de vino"
+  ],
+  "es": "Salsa al Madeira, envasada"
+ },
+ "11122": {
+  "alias": [
+   "salsa de chalota",
+   "salsa a la crema"
+  ],
+  "es": "Salsa de chalota a la crema, envasada"
+ },
+ "11128": {
+  "alias": [
+   "salsa carbonara",
+   "carbonara"
+  ],
+  "es": "Salsa carbonara, envasada"
+ },
+ "11129": {
+  "alias": [
+   "salsa cazadora",
+   "salsa chasseur"
+  ],
+  "es": "Salsa cazadora, envasada"
+ },
+ "11132": {
+  "alias": [
+   "salsa de curry",
+   "curry"
+  ],
+  "es": "Salsa al curry, envasada"
+ },
+ "11140": {
+  "alias": [
+   "beurre blanc",
+   "salsa de mantequilla"
+  ],
+  "es": "Salsa beurre blanc (mantequilla y vino blanco), envasada"
+ },
+ "11143": {
+  "alias": [
+   "bechamel casera",
+   "bechamel"
+  ],
+  "es": "Salsa bechamel, casera"
+ },
+ "11157": {
+  "alias": [
+   "salsa de mostaza",
+   "mostaza"
+  ],
+  "es": "Salsa de mostaza, envasada"
+ },
+ "11158": {
+  "alias": [
+   "salsa de mantequilla"
+  ],
+  "es": "Salsa de mantequilla, envasada"
+ },
+ "11159": {
+  "alias": [
+   "salsa a la crema",
+   "salsa de nata"
+  ],
+  "es": "Salsa a la crema"
+ },
+ "11160": {
+  "alias": [
+   "salsa de setas",
+   "salsa de champiñones"
+  ],
+  "es": "Salsa de setas, envasada"
+ },
+ "11161": {
+  "alias": [
+   "salsa de nata con especias",
+   "salsa a la crema"
+  ],
+  "es": "Salsa a la crema con especias"
+ },
+ "11162": {
+  "alias": [
+   "salsa de nata con hierbas",
+   "salsa a la crema"
+  ],
+  "es": "Salsa a la crema con hierbas"
+ },
+ "11163": {
+  "alias": [
+   "salsa agridulce"
+  ],
+  "es": "Salsa agridulce, envasada"
+ },
+ "11164": {
+  "alias": [
+   "salsa al vino tinto",
+   "salsa de vino"
+  ],
+  "es": "Salsa al vino tinto"
+ },
+ "11166": {
+  "alias": [
+   "salsa de yogur"
+  ],
+  "es": "Salsa de yogur"
+ },
+ "11167": {
+  "alias": [
+   "salsa americana",
+   "salsa armoricana"
+  ],
+  "es": "Salsa americana, envasada"
+ },
+ "11168": {
+  "alias": [
+   "alioli",
+   "ajoaceite"
+  ],
+  "es": "Salsa alioli, envasada"
+ },
+ "11169": {
+  "alias": [
+   "fondo de ternera",
+   "caldo concentrado"
+  ],
+  "es": "Fondo de ternera para salsas y cocción, deshidratado"
+ },
+ "11170": {
+  "alias": [
+   "salsa vasca",
+   "salsa de pimientos"
+  ],
+  "es": "Salsa vasca o salsa de pimientos, envasada"
+ },
+ "11171": {
+  "alias": [
+   "fondo de pollo",
+   "caldo concentrado"
+  ],
+  "es": "Fondo de ave para salsas y cocción, deshidratado"
+ },
+ "11172": {
+  "alias": [
+   "caldo corto",
+   "caldo para pescado"
+  ],
+  "es": "Caldo corto para pescados, deshidratado"
+ },
+ "11174": {
+  "alias": [
+   "caldo de pollo",
+   "pastilla de caldo"
+  ],
+  "es": "Caldo de ave, deshidratado"
+ },
+ "11175": {
+  "alias": [
+   "gelatina al madeira",
+   "gelatina de carne"
+  ],
+  "es": "Gelatina al Madeira, deshidratada"
+ },
+ "11176": {
+  "alias": [
+   "gelatina al madeira",
+   "gelatina de carne"
+  ],
+  "es": "Gelatina al Madeira"
+ },
+ "11177": {
+  "alias": [
+   "salsa de tomate con champiñones",
+   "tomate frito"
+  ],
+  "es": "Salsa de tomate con setas, envasada"
+ },
+ "11178": {
+  "alias": [
+   "salsa de tomate con aceitunas",
+   "tomate frito"
+  ],
+  "es": "Salsa de tomate con aceitunas, envasada"
+ },
+ "11179": {
+  "alias": [
+   "pesto",
+   "salsa pesto"
+  ],
+  "es": "Salsa pesto, envasada"
+ },
+ "11182": {
+  "alias": [
+   "salsa de pimienta"
+  ],
+  "es": "Salsa a la pimienta, caliente, envasada"
+ },
+ "11184": {
+  "alias": [
+   "salsa"
+  ],
+  "es": "Salsa (alimento medio)"
+ },
+ "11187": {
+  "alias": [
+   "salsa para ensalada",
+   "aliño"
+  ],
+  "es": "Salsa para crudités o para ensalada, envasada"
+ },
+ "11189": {
+  "alias": [
+   "salsa de queso",
+   "salsa cuatro quesos"
+  ],
+  "es": "Salsa de queso para risotto o pasta, envasada"
+ },
+ "11191": {
+  "alias": [
+   "salsa roquefort",
+   "salsa de queso azul"
+  ],
+  "es": "Salsa de roquefort, envasada"
+ },
+ "11192": {
+  "alias": [
+   "salsa de setas",
+   "salsa de champiñones"
+  ],
+  "es": "Salsa de setas a la crema, envasada"
+ },
+ "11194": {
+  "alias": [
+   "nuoc mam",
+   "salsa de pescado"
+  ],
+  "es": "Salsa nuoc mam o salsa de pescado, envasada"
+ },
+ "11196": {
+  "alias": [
+   "salsa burger",
+   "salsa para hamburguesa"
+  ],
+  "es": "Salsa para hamburguesa, envasada"
+ },
+ "11198": {
+  "alias": [
+   "salsa para ensalada light",
+   "aliño light"
+  ],
+  "es": "Salsa para crudités o ensalada, baja en grasa, envasada"
+ },
+ "11199": {
+  "alias": [
+   "salsa grand veneur",
+   "salsa de caza"
+  ],
+  "es": "Salsa grand veneur (de caza), envasada"
+ },
+ "11202": {
+  "alias": [
+   "salsa tikka masala",
+   "salsa tandoori"
+  ],
+  "es": "Salsa india tipo tandoori o tikka masala, envasada"
+ },
+ "11203": {
+  "alias": [
+   "salsa kebab",
+   "salsa blanca"
+  ],
+  "es": "Salsa kebab, envasada"
+ },
+ "11205": {
+  "alias": [
+   "salsa rouille",
+   "salsa para sopa de pescado"
+  ],
+  "es": "Salsa rouille, envasada"
+ },
+ "11207": {
+  "alias": [
+   "salsa de tomate con verduras",
+   "tomate frito"
+  ],
+  "es": "Salsa de tomate con verduritas, envasada"
+ },
+ "11208": {
+  "alias": [
+   "salsa de tomate con queso",
+   "tomate frito"
+  ],
+  "es": "Salsa de tomate con queso, envasada"
+ },
+ "11210": {
+  "alias": [
+   "pesto rojo",
+   "pesto rosso"
+  ],
+  "es": "Salsa pesto rosso, envasada"
+ },
+ "11212": {
+  "alias": [
+   "salsa de pimienta"
+  ],
+  "es": "Salsa a la pimienta, condimentaria, fría, envasada"
+ },
+ "11213": {
+  "alias": [
+   "salsa fria",
+   "salsa"
+  ],
+  "es": "Salsa fría (alimento medio)"
+ },
+ "11214": {
+  "alias": [
+   "nata de soja",
+   "crema de soja"
+  ],
+  "es": "Preparado culinario a base de soja, tipo «nata de soja»"
+ },
+ "11215": {
+  "alias": [
+   "caviar de tomate",
+   "pate de tomate"
+  ],
+  "es": "Caviar de tomate (paté de tomate)"
+ },
+ "11216": {
+  "alias": [
+   "salsa de soja dulce",
+   "kecap manis"
+  ],
+  "es": "Salsa de soja dulce, envasada"
+ },
+ "11217": {
+  "alias": [
+   "salsa para rollitos",
+   "nuoc mam"
+  ],
+  "es": "Salsa para rollitos a base de nuoc mam diluido, envasada"
+ },
+ "11218": {
+  "alias": [
+   "salsa caliente",
+   "salsa"
+  ],
+  "es": "Salsa caliente (alimento medio)"
+ },
+ "11219": {
+  "alias": [
+   "boloñesa vegetal",
+   "salsa vegana"
+  ],
+  "es": "Salsa vegetal tipo boloñesa, envasada"
+ },
+ "11220": {
+  "alias": [
+   "vinagre de vino",
+   "vinagre tinto"
+  ],
+  "es": "Vinagre de vino tinto"
+ },
+ "11300": {
+  "alias": [
+   "salsa de chocolate",
+   "sirope de chocolate"
+  ],
+  "es": "Salsa de chocolate, envasada"
+ },
+ "11301": {
+  "alias": [
+   "teriyaki",
+   "salsa teriyaki"
+  ],
+  "es": "Salsa teriyaki, envasada"
+ },
+ "11302": {
+  "alias": [
+   "salsa de acedera"
+  ],
+  "es": "Salsa de acedera, envasada"
+ },
+ "11304": {
+  "alias": [
+   "fondo de ternera",
+   "caldo concentrado"
+  ],
+  "es": "Fondo de ternera, envasado"
+ },
+ "11306": {
+  "alias": [
+   "ajo asado",
+   "ajo"
+  ],
+  "es": "Ajo, asado al horno"
+ },
+ "11307": {
+  "alias": [
+   "ajo salteado",
+   "ajo"
+  ],
+  "es": "Ajo, salteado sin grasa"
+ },
+ "11506": {
+  "alias": [
+   "sacarina",
+   "edulcorante",
+   "aspartamo"
+  ],
+  "es": "Edulcorante de aspartamo, en pastillas"
+ },
+ "11507": {
+  "alias": [
+   "bicarbonato",
+   "bicarbonato de sodio"
+  ],
+  "es": "Bicarbonato sódico"
+ },
+ "11509": {
+  "alias": [
+   "edulcorante en polvo",
+   "aspartamo"
+  ],
+  "es": "Edulcorante de aspartamo, en polvo"
+ },
+ "11510": {
+  "alias": [
+   "fideos de colores",
+   "sprinkles"
+  ],
+  "es": "Fideos de colores (para decorar)"
  },
  "12001": {
   "alias": [
@@ -1617,6 +2722,22 @@
   ],
   "es": "Nectarina o briñón, pulpa y piel, cruda"
  },
+ "13032": {
+  "alias": [
+   "aceituna negra",
+   "aceitunas negras",
+   "olivas negras"
+  ],
+  "es": "Aceituna negra, en salmuera, escurrida"
+ },
+ "13033": {
+  "alias": [
+   "aceituna verde",
+   "aceitunas",
+   "olivas"
+  ],
+  "es": "Aceituna verde, en salmuera, escurrida"
+ },
  "13034": {
   "alias": [
    "naranja",
@@ -1944,6 +3065,13 @@
   ],
   "es": "Compota, de cualquier fruta, baja en azúcares, refrigerada"
  },
+ "13131": {
+  "alias": [
+   "aceituna negra en aceite",
+   "aceitunas negras"
+  ],
+  "es": "Aceituna negra, en aceite (a la griega)"
+ },
  "13132": {
   "alias": [
    "arandano congelado"
@@ -1962,6 +3090,13 @@
    "frambuesa congelada"
   ],
   "es": "Frambuesa, congelada, cruda"
+ },
+ "13147": {
+  "alias": [
+   "aceitunas rellenas",
+   "aceitunas de anchoa"
+  ],
+  "es": "Aceitunas verdes, rellenas (anchoa, pimiento…)"
  },
  "13148": {
   "alias": [
@@ -2012,6 +3147,125 @@
   ],
   "es": "Especialidad de frutas variadas, azucarada (pulpas o purés con otro ingrediente)"
  },
+ "13157": {
+  "alias": [
+   "potito de fruta",
+   "potito"
+  ],
+  "es": "Potito de fruta con plátano, para bebé"
+ },
+ "13158": {
+  "alias": [
+   "potito de fruta",
+   "potito"
+  ],
+  "es": "Potito de fruta sin plátano, para bebé"
+ },
+ "13159": {
+  "alias": [
+   "zumo para bebe",
+   "bebida infantil"
+  ],
+  "es": "Bebida de frutas para bebé desde 4-6 meses"
+ },
+ "13160": {
+  "alias": [
+   "infusion para bebe",
+   "bebida infantil"
+  ],
+  "es": "Bebida a base de plantas para bebé"
+ },
+ "13161": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos con verduras para la cena, desde 4-6 meses"
+ },
+ "13162": {
+  "alias": [
+   "papilla de cereales con fruta",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos con frutas para la merienda, desde 4-6 meses"
+ },
+ "13163": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos para el desayuno, desde 4-6 meses"
+ },
+ "13164": {
+  "alias": [
+   "natillas infantiles",
+   "postre para bebe"
+  ],
+  "es": "Postre lácteo infantil tipo natillas"
+ },
+ "13165": {
+  "alias": [
+   "postre de arroz para bebe",
+   "postre para bebe"
+  ],
+  "es": "Postre lácteo infantil de arroz o sémola"
+ },
+ "13166": {
+  "alias": [
+   "postre para bebe",
+   "yogur infantil"
+  ],
+  "es": "Postre lácteo infantil natural azucarado o con frutas"
+ },
+ "13167": {
+  "alias": [
+   "papilla de cereales",
+   "cereales infantiles"
+  ],
+  "es": "Cereales instantáneos, polvo para reconstituir, desde 4-6 meses"
+ },
+ "13168": {
+  "alias": [
+   "papilla de cereales",
+   "cereales infantiles"
+  ],
+  "es": "Cereales instantáneos, polvo para reconstituir, desde 6 meses"
+ },
+ "13169": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos para el desayuno, desde 8-9 meses"
+ },
+ "13170": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos para el desayuno, desde 12 meses"
+ },
+ "13171": {
+  "alias": [
+   "papilla de frutas",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil láctea con frutas para la merienda, desde 4-6 meses (sin cereales)"
+ },
+ "13172": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos con verduras para la cena, desde 12 meses"
+ },
+ "13173": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos para el desayuno"
+ },
  "13175": {
   "alias": [
    "manzana asada",
@@ -2053,12 +3307,34 @@
   ],
   "es": "Pomelo rosa, pulpa, crudo"
  },
+ "13182": {
+  "alias": [
+   "papilla de cereales",
+   "papilla infantil"
+  ],
+  "es": "Papilla infantil de cereales lácteos (alimento medio)"
+ },
+ "13184": {
+  "alias": [
+   "aceituna",
+   "aceitunas",
+   "olivas"
+  ],
+  "es": "Aceituna (alimento medio)"
+ },
  "13185": {
   "alias": [
    "compota",
    "compota de frutas"
   ],
   "es": "Compota o similar, de cualquier fruta, con azúcar desconocido (alimento medio)"
+ },
+ "13186": {
+  "alias": [
+   "aceituna negra",
+   "aceitunas negras"
+  ],
+  "es": "Aceituna negra (alimento medio)"
  },
  "13187": {
   "alias": [
@@ -3504,6 +4780,731 @@
   ],
   "es": "Aceite de parafina"
  },
+ "18001": {
+  "alias": [
+   "refresco light",
+   "refresco zero"
+  ],
+  "es": "Refresco con gas, sin zumo de fruta, sin azúcar, con edulcorantes"
+ },
+ "18003": {
+  "alias": [
+   "cafe molido",
+   "cafe"
+  ],
+  "es": "Café, molido"
+ },
+ "18004": {
+  "alias": [
+   "cafe",
+   "cafe solo"
+  ],
+  "es": "Café, no instantáneo, sin azúcar, listo para beber"
+ },
+ "18005": {
+  "alias": [
+   "cafe soluble",
+   "nescafe"
+  ],
+  "es": "Café soluble en polvo"
+ },
+ "18008": {
+  "alias": [
+   "agua de manantial",
+   "agua"
+  ],
+  "es": "Agua de manantial embotellada (alimento medio)"
+ },
+ "18009": {
+  "alias": [
+   "agua mineral",
+   "agua"
+  ],
+  "es": "Agua mineral embotellada, de mineralización débil (alimento medio)"
+ },
+ "18010": {
+  "alias": [
+   "gaseosa",
+   "limonada"
+  ],
+  "es": "Gaseosa (limonada), azucarada"
+ },
+ "18011": {
+  "alias": [
+   "agua de coco"
+  ],
+  "es": "Agua de coco"
+ },
+ "18012": {
+  "alias": [
+   "agua con sabor",
+   "agua aromatizada"
+  ],
+  "es": "Bebida de agua mineral o de manantial, aromatizada, azucarada"
+ },
+ "18013": {
+  "alias": [
+   "tonica zero",
+   "tonica"
+  ],
+  "es": "Tónica o bíter, sin azúcar, con edulcorantes"
+ },
+ "18014": {
+  "alias": [
+   "tonica"
+  ],
+  "es": "Tónica o bíter, azucarada, con edulcorantes"
+ },
+ "18015": {
+  "alias": [
+   "te frio",
+   "ice tea"
+  ],
+  "es": "Bebida de té, aromatizada, azucarada, con edulcorantes"
+ },
+ "18016": {
+  "alias": [
+   "gaseosa",
+   "limonada"
+  ],
+  "es": "Gaseosa (limonada), azucarada, con edulcorantes"
+ },
+ "18017": {
+  "alias": [
+   "jarabe",
+   "sirope para diluir"
+  ],
+  "es": "Jarabe para diluir, azucarado"
+ },
+ "18018": {
+  "alias": [
+   "cola",
+   "coca cola",
+   "refresco de cola"
+  ],
+  "es": "Refresco de cola, azucarado"
+ },
+ "18019": {
+  "alias": [
+   "refresco de frutas",
+   "naranjada"
+  ],
+  "es": "Refresco con gas de frutas (10-50 % de zumo), azucarado"
+ },
+ "18020": {
+  "alias": [
+   "te",
+   "te infusionado"
+  ],
+  "es": "Té en infusión, sin azúcar"
+ },
+ "18021": {
+  "alias": [
+   "bebida de frutas light",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (menos del 10 % de zumo), sin azúcar, con edulcorantes"
+ },
+ "18022": {
+  "alias": [
+   "infusion",
+   "tisana",
+   "poleo"
+  ],
+  "es": "Infusión de hierbas, sin azúcar"
+ },
+ "18023": {
+  "alias": [
+   "bebida de frutas",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (menos del 10 % de zumo), azucarada"
+ },
+ "18024": {
+  "alias": [
+   "bebida de frutas",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (10-50 % de zumo), azucarada, con edulcorantes"
+ },
+ "18025": {
+  "alias": [
+   "kombucha"
+  ],
+  "es": "Kombucha, envasada"
+ },
+ "18026": {
+  "alias": [
+   "refresco con gas",
+   "refresco"
+  ],
+  "es": "Refresco con gas, sin zumo de fruta, azucarado"
+ },
+ "18028": {
+  "alias": [
+   "agua con sabor",
+   "agua aromatizada"
+  ],
+  "es": "Bebida de agua mineral o de manantial, aromatizada, sin azúcar ni edulcorantes"
+ },
+ "18029": {
+  "alias": [
+   "refresco",
+   "bebida refrescante"
+  ],
+  "es": "Bebida refrescante sin alcohol (alimento medio)"
+ },
+ "18030": {
+  "alias": [
+   "agua con sabor",
+   "agua aromatizada"
+  ],
+  "es": "Bebida de agua mineral o de manantial, aromatizada, sin azúcar, con edulcorantes"
+ },
+ "18033": {
+  "alias": [
+   "refresco de frutas",
+   "naranjada"
+  ],
+  "es": "Refresco con gas de frutas (menos del 10 % de zumo), azucarado, con edulcorantes"
+ },
+ "18034": {
+  "alias": [
+   "refresco de frutas",
+   "naranjada"
+  ],
+  "es": "Refresco con gas de frutas (10-50 % de zumo), azucarado, con edulcorantes"
+ },
+ "18035": {
+  "alias": [
+   "gaseosa zero",
+   "limonada light"
+  ],
+  "es": "Gaseosa (limonada), sin azúcar, con edulcorantes"
+ },
+ "18037": {
+  "alias": [
+   "cola",
+   "refresco de cola"
+  ],
+  "es": "Refresco de cola, azucarado, con edulcorantes"
+ },
+ "18039": {
+  "alias": [
+   "diabolo",
+   "gaseosa con jarabe"
+  ],
+  "es": "Diábolo (gaseosa con jarabe)"
+ },
+ "18041": {
+  "alias": [
+   "leche de coco",
+   "crema de coco"
+  ],
+  "es": "Leche de coco o crema de coco"
+ },
+ "18044": {
+  "alias": [
+   "agua mineral",
+   "agua"
+  ],
+  "es": "Agua mineral (alimento medio)"
+ },
+ "18045": {
+  "alias": [
+   "agua sin gas",
+   "agua mineral"
+  ],
+  "es": "Agua mineral, sin gas (alimento medio)"
+ },
+ "18046": {
+  "alias": [
+   "agua con gas",
+   "agua mineral"
+  ],
+  "es": "Agua mineral, con gas (alimento medio)"
+ },
+ "18048": {
+  "alias": [
+   "refresco de frutas",
+   "naranjada"
+  ],
+  "es": "Refresco con gas de frutas (proporción de zumo no especificada), azucarado (alimento medio)"
+ },
+ "18049": {
+  "alias": [
+   "refresco de frutas",
+   "naranjada"
+  ],
+  "es": "Refresco con gas de frutas (menos del 10 % de zumo), azucarado"
+ },
+ "18051": {
+  "alias": [
+   "refresco de frutas light",
+   "naranjada zero"
+  ],
+  "es": "Refresco con gas de frutas (10-50 % de zumo), sin azúcar, con edulcorantes"
+ },
+ "18057": {
+  "alias": [
+   "jarabe 0",
+   "bebida de jarabe"
+  ],
+  "es": "Bebida preparada con concentrado para diluir, sin azúcar, con edulcorantes, tipo «jarabe 0 %», diluida en agua"
+ },
+ "18058": {
+  "alias": [
+   "bebida de jarabe",
+   "jarabe diluido"
+  ],
+  "es": "Bebida preparada con jarabe para diluir (menta, fresa…), azucarado, diluido en agua"
+ },
+ "18059": {
+  "alias": [
+   "jarabe 0",
+   "jarabe sin azucar"
+  ],
+  "es": "Concentrado para diluir, sin azúcares añadidos, con edulcorantes, tipo «jarabe 0 %»"
+ },
+ "18060": {
+  "alias": [
+   "cola zero",
+   "cola light",
+   "refresco de cola"
+  ],
+  "es": "Refresco de cola, sin azúcar, con edulcorantes"
+ },
+ "18062": {
+  "alias": [
+   "te frio",
+   "ice tea"
+  ],
+  "es": "Bebida de té, aromatizada, contenido en azúcar y edulcorante desconocido (alimento medio)"
+ },
+ "18063": {
+  "alias": [
+   "cola",
+   "refresco de cola"
+  ],
+  "es": "Refresco de cola, contenido en azúcar y edulcorante desconocido (alimento medio)"
+ },
+ "18064": {
+  "alias": [
+   "te frio",
+   "ice tea"
+  ],
+  "es": "Bebida de té, aromatizada, baja en azúcares"
+ },
+ "18065": {
+  "alias": [
+   "te frio zero",
+   "ice tea"
+  ],
+  "es": "Bebida de té, aromatizada, sin azúcar, con edulcorantes"
+ },
+ "18066": {
+  "alias": [
+   "agua del grifo",
+   "agua"
+  ],
+  "es": "Agua del grifo"
+ },
+ "18067": {
+  "alias": [
+   "cola sin cafeina",
+   "refresco de cola"
+  ],
+  "es": "Refresco de cola, azucarado, sin cafeína"
+ },
+ "18068": {
+  "alias": [
+   "cola zero sin cafeina",
+   "refresco de cola"
+  ],
+  "es": "Refresco de cola, sin azúcar, con edulcorantes, sin cafeína"
+ },
+ "18069": {
+  "alias": [
+   "cafe descafeinado soluble",
+   "descafeinado"
+  ],
+  "es": "Café descafeinado soluble en polvo"
+ },
+ "18070": {
+  "alias": [
+   "descafeinado",
+   "cafe descafeinado"
+  ],
+  "es": "Café descafeinado, no instantáneo, sin azúcar, listo para beber"
+ },
+ "18071": {
+  "alias": [
+   "expreso",
+   "cafe solo",
+   "espresso"
+  ],
+  "es": "Café expreso, no instantáneo, sin azúcar, listo para beber"
+ },
+ "18072": {
+  "alias": [
+   "descafeinado soluble",
+   "descafeinado"
+  ],
+  "es": "Café descafeinado, instantáneo, sin azúcar, listo para beber"
+ },
+ "18073": {
+  "alias": [
+   "cafe soluble",
+   "cafe instantaneo"
+  ],
+  "es": "Café instantáneo, sin azúcar, listo para beber"
+ },
+ "18075": {
+  "alias": [
+   "te frio",
+   "ice tea"
+  ],
+  "es": "Bebida de té, aromatizada, azucarada"
+ },
+ "18076": {
+  "alias": [
+   "te en hoja",
+   "te"
+  ],
+  "es": "Té, en hoja"
+ },
+ "18078": {
+  "alias": [
+   "refresco con gas",
+   "refresco"
+  ],
+  "es": "Refresco con gas, sin zumo de fruta, azucarado, con edulcorantes"
+ },
+ "18100": {
+  "alias": [
+   "cacao en polvo",
+   "cacao puro"
+  ],
+  "es": "Cacao, sin azúcar, soluble en polvo"
+ },
+ "18101": {
+  "alias": [
+   "cacao soluble",
+   "colacao",
+   "nesquik"
+  ],
+  "es": "Cacao o chocolate en polvo para bebida, azucarado"
+ },
+ "18102": {
+  "alias": [
+   "cacao malteado",
+   "colacao"
+  ],
+  "es": "Polvo malteado, de cacao o chocolate para bebida, azucarado, enriquecido en vitaminas y minerales"
+ },
+ "18104": {
+  "alias": [
+   "batido de cacao",
+   "colacao con leche"
+  ],
+  "es": "Bebida de cacao o chocolate, instantánea, azucarada, lista para beber (reconstituida con leche semidesnatada)"
+ },
+ "18106": {
+  "alias": [
+   "batido de cacao",
+   "colacao con leche"
+  ],
+  "es": "Bebida de cacao o chocolate, instantánea, azucarada, enriquecida en vitaminas, lista para beber (reconstituida con leche semidesnatada)"
+ },
+ "18107": {
+  "alias": [
+   "bebida de almendra",
+   "leche de almendras"
+  ],
+  "es": "Bebida de almendra, natural, sin azúcar, sin enriquecer, envasada"
+ },
+ "18110": {
+  "alias": [
+   "bebida de almendra",
+   "leche de almendras"
+  ],
+  "es": "Bebida de almendra, azucarada, enriquecida en calcio, envasada"
+ },
+ "18150": {
+  "alias": [
+   "achicoria",
+   "cafe de achicoria"
+  ],
+  "es": "Achicoria y café, soluble en polvo"
+ },
+ "18151": {
+  "alias": [
+   "cafe con leche",
+   "capuchino",
+   "cortado"
+  ],
+  "es": "Café con leche, cortado o capuchino, instantáneo o no, sin azúcar, listo para beber"
+ },
+ "18152": {
+  "alias": [
+   "achicoria"
+  ],
+  "es": "Achicoria, soluble en polvo"
+ },
+ "18153": {
+  "alias": [
+   "achicoria con leche",
+   "cafe de achicoria"
+  ],
+  "es": "Achicoria y café, instantáneo, sin azúcar, listo para beber (reconstituido con leche semidesnatada)"
+ },
+ "18154": {
+  "alias": [
+   "te negro",
+   "te"
+  ],
+  "es": "Té negro, en infusión, sin azúcar"
+ },
+ "18155": {
+  "alias": [
+   "te verde",
+   "te"
+  ],
+  "es": "Té verde, en infusión, sin azúcar"
+ },
+ "18156": {
+  "alias": [
+   "te oolong",
+   "te azul"
+  ],
+  "es": "Té oolong, en infusión, sin azúcar"
+ },
+ "18160": {
+  "alias": [
+   "capuchino soluble",
+   "cafe con leche soluble"
+  ],
+  "es": "Café con leche o capuchino, soluble en polvo"
+ },
+ "18161": {
+  "alias": [
+   "achicoria con leche",
+   "achicoria"
+  ],
+  "es": "Achicoria, instantánea, sin azúcar, lista para beber (reconstituida con leche semidesnatada)"
+ },
+ "18162": {
+  "alias": [
+   "achicoria",
+   "cafe de achicoria"
+  ],
+  "es": "Achicoria y café, instantáneo, sin azúcar, listo para beber (reconstituido con agua)"
+ },
+ "18163": {
+  "alias": [
+   "capuchino de chocolate",
+   "moka soluble"
+  ],
+  "es": "Café con leche o capuchino al chocolate, soluble en polvo"
+ },
+ "18167": {
+  "alias": [
+   "cacao soluble",
+   "colacao"
+  ],
+  "es": "Cacao o chocolate en polvo azucarado para bebida, enriquecido en vitaminas y minerales"
+ },
+ "18168": {
+  "alias": [
+   "cacao soluble",
+   "nesquik"
+  ],
+  "es": "Cacao o chocolate en polvo para bebida, azucarado, enriquecido en vitaminas"
+ },
+ "18220": {
+  "alias": [
+   "concentrado de limon",
+   "jarabe de limon"
+  ],
+  "es": "Limón o lima, concentrado para diluir, sin azúcares añadidos"
+ },
+ "18304": {
+  "alias": [
+   "bebida de frutas",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (10-50 % de zumo), baja en azúcares"
+ },
+ "18305": {
+  "alias": [
+   "bebida de frutas light",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (10-50 % de zumo), sin azúcar, con edulcorantes"
+ },
+ "18309": {
+  "alias": [
+   "bebida de frutas",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (proporción de zumo no especificada), azucarada"
+ },
+ "18339": {
+  "alias": [
+   "bebida de frutas",
+   "refresco sin gas"
+  ],
+  "es": "Bebida sin gas de frutas (10-50 % de zumo), azucarada"
+ },
+ "18340": {
+  "alias": [
+   "refresco de frutas light",
+   "naranjada zero"
+  ],
+  "es": "Refresco con gas de frutas (menos del 10 % de zumo), sin azúcar, con edulcorantes"
+ },
+ "18341": {
+  "alias": [
+   "refresco de manzana",
+   "sidra sin alcohol"
+  ],
+  "es": "Refresco con gas de manzana (50-99 % de fruta), sin azúcar añadido"
+ },
+ "18343": {
+  "alias": [
+   "zumo con leche",
+   "bebida de leche y zumo"
+  ],
+  "es": "Bebida de zumo de fruta con leche"
+ },
+ "18344": {
+  "alias": [
+   "tonica",
+   "biter"
+  ],
+  "es": "Tónica o bíter, azucarada"
+ },
+ "18345": {
+  "alias": [
+   "refresco de frutas",
+   "agua con gas de frutas"
+  ],
+  "es": "Refresco con gas de frutas (menos del 10 % de zumo), sin azúcar ni edulcorantes"
+ },
+ "18350": {
+  "alias": [
+   "bebida isotonica",
+   "bebida deportiva",
+   "aquarius"
+  ],
+  "es": "Bebida dietética para el deporte"
+ },
+ "18352": {
+  "alias": [
+   "bebida energetica",
+   "red bull",
+   "monster"
+  ],
+  "es": "Bebida energética, azucarada"
+ },
+ "18353": {
+  "alias": [
+   "bebida energetica sin azucar",
+   "red bull zero"
+  ],
+  "es": "Bebida energética, sin azúcar, con edulcorantes"
+ },
+ "18430": {
+  "alias": [
+   "agua de manantial",
+   "agua embotellada"
+  ],
+  "es": "Agua de manantial embotellada"
+ },
+ "18900": {
+  "alias": [
+   "bebida de soja",
+   "leche de soja"
+  ],
+  "es": "Bebida de soja, natural, sin enriquecer, envasada"
+ },
+ "18901": {
+  "alias": [
+   "bebida de soja",
+   "leche de soja"
+  ],
+  "es": "Bebida de soja, natural, enriquecida en calcio, envasada"
+ },
+ "18902": {
+  "alias": [
+   "bebida de soja de sabores",
+   "leche de soja"
+  ],
+  "es": "Bebida de soja, aromatizada, azucarada, sin enriquecer, envasada"
+ },
+ "18903": {
+  "alias": [
+   "bebida de soja de sabores",
+   "leche de soja"
+  ],
+  "es": "Bebida de soja, aromatizada, azucarada, enriquecida en calcio, envasada"
+ },
+ "18904": {
+  "alias": [
+   "bebida de arroz",
+   "leche de arroz"
+  ],
+  "es": "Bebida de arroz, natural, envasada"
+ },
+ "18905": {
+  "alias": [
+   "bebida de avena",
+   "leche de avena"
+  ],
+  "es": "Bebida de avena, natural, envasada"
+ },
+ "18906": {
+  "alias": [
+   "bebida de castaña",
+   "leche de castaña"
+  ],
+  "es": "Bebida de castaña, natural, envasada"
+ },
+ "18907": {
+  "alias": [
+   "bebida de coco",
+   "leche de coco para beber"
+  ],
+  "es": "Bebida de coco, natural, envasada"
+ },
+ "19012": {
+  "alias": [
+   "leche de crecimiento",
+   "leche 3"
+  ],
+  "es": "Leche de crecimiento infantil, líquida (alimento lácteo para niños de corta edad)"
+ },
+ "19013": {
+  "alias": [
+   "leche de inicio",
+   "leche 1"
+  ],
+  "es": "Leche de inicio, lista para consumir (preparado para lactantes)"
+ },
+ "19014": {
+  "alias": [
+   "leche de continuacion",
+   "leche 2"
+  ],
+  "es": "Leche de continuación, lista para consumir (preparado para lactantes)"
+ },
+ "19015": {
+  "alias": [
+   "leche para prematuros",
+   "formula infantil"
+  ],
+  "es": "Leche infantil para prematuros, lista para consumir"
+ },
  "19021": {
   "alias": [
    "leche en polvo",
@@ -3604,6 +5605,27 @@
    "leche baja en lactosa"
   ],
   "es": "Leche semidesnatada (o con algo menos de grasa), baja en lactosa"
+ },
+ "19120": {
+  "alias": [
+   "batido",
+   "batido de leche"
+  ],
+  "es": "Batido lácteo aromatizado (sabor desconocido), azucarado, de leche parcialmente desnatada, enriquecido en vitaminas o minerales (alimento medio)"
+ },
+ "19122": {
+  "alias": [
+   "batido de chocolate",
+   "batido"
+  ],
+  "es": "Batido lácteo de chocolate, azucarado, de leche parcialmente desnatada, enriquecido en vitaminas o minerales"
+ },
+ "19127": {
+  "alias": [
+   "batido de fresa",
+   "batido"
+  ],
+  "es": "Batido lácteo de fresa, azucarado, de leche parcialmente desnatada, enriquecido en vitamina D"
  },
  "19200": {
   "alias": [
@@ -4338,6 +6360,12 @@
   ],
   "es": "Panna cotta, con preparado de frutas o caramelo, refrigerada"
  },
+ "19688": {
+  "alias": [
+   "baba al ron"
+  ],
+  "es": "Babá al ron, envasado"
+ },
  "19689": {
   "alias": [
    "tarta de queso",
@@ -4418,6 +6446,20 @@
   ],
   "es": "Yogur griego, aromatizado, azucarado"
  },
+ "19863": {
+  "alias": [
+   "tzatziki",
+   "salsa de yogur y pepino"
+  ],
+  "es": "Tzatziki, a base de yogur, envasado"
+ },
+ "19864": {
+  "alias": [
+   "tzatziki",
+   "salsa de yogur y pepino"
+  ],
+  "es": "Tzatziki, a base de queso fresco, envasado"
+ },
  "19865": {
   "alias": [
    "kefir",
@@ -4430,6 +6472,12 @@
    "yogur de oveja"
   ],
   "es": "Yogur de leche de oveja, natural, ~6 % MG"
+ },
+ "2000": {
+  "alias": [
+   "zumo de piña"
+  ],
+  "es": "Zumo de piña, a base de concentrado"
  },
  "20000": {
   "alias": [
@@ -4564,6 +6612,13 @@
   ],
   "es": "Pepino, pulpa y piel, crudo"
  },
+ "2002": {
+  "alias": [
+   "zumo multifrutas",
+   "zumo de frutas"
+  ],
+  "es": "Zumo multifrutas, exprimido, multivitaminado"
+ },
  "20020": {
   "alias": [
    "calabacin"
@@ -4684,6 +6739,13 @@
    "puerro"
   ],
   "es": "Puerro, crudo"
+ },
+ "2004": {
+  "alias": [
+   "zumo de frutas",
+   "zumo"
+  ],
+  "es": "Zumo de frutas (alimento medio)"
  },
  "20040": {
   "alias": [
@@ -4809,6 +6871,12 @@
   ],
   "es": "Espinaca, cruda"
  },
+ "2006": {
+  "alias": [
+   "zumo de zanahoria"
+  ],
+  "es": "Zumo de zanahoria, exprimido"
+ },
  "20060": {
   "alias": [
    "espinacas de bote"
@@ -4877,6 +6945,12 @@
   ],
   "es": "Col verde, cruda"
  },
+ "2007": {
+  "alias": [
+   "zumo de limon"
+  ],
+  "es": "Zumo de limón, casero"
+ },
  "20070": {
   "alias": [
    "judias verdes congeladas",
@@ -4936,6 +7010,13 @@
   ],
   "es": "Champiñón (de París), en conserva, escurrido"
  },
+ "2008": {
+  "alias": [
+   "coctel sin alcohol",
+   "mocktail"
+  ],
+  "es": "Cóctel sin alcohol (con zumo de frutas y jarabe)"
+ },
  "20081": {
   "alias": [
    "salsifi de bote"
@@ -4989,6 +7070,13 @@
    "rabano negro"
   ],
   "es": "Rábano negro, crudo"
+ },
+ "2009": {
+  "alias": [
+   "nectar multifrutas",
+   "zumo de frutas"
+  ],
+  "es": "Néctar multifrutas con base de manzana, estándar"
  },
  "20090": {
   "alias": [
@@ -5047,6 +7135,12 @@
   ],
   "es": "Canónigos, crudos"
  },
+ "2010": {
+  "alias": [
+   "nectar multifrutas"
+  ],
+  "es": "Néctar multifrutas con base de manzana, multivitaminado"
+ },
  "20101": {
   "alias": [
    "menestra congelada",
@@ -5090,6 +7184,12 @@
   ],
   "es": "Maíz dulce, en mazorca, congelado, crudo"
  },
+ "2011": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas con base de naranja, multivitaminado"
+ },
  "20111": {
   "alias": [
    "acedera",
@@ -5123,6 +7223,12 @@
    "tomate verde"
   ],
   "es": "Tomate verde, crudo"
+ },
+ "2012": {
+  "alias": [
+   "zumo de naranja"
+  ],
+  "es": "Zumo de naranja, a base de concentrado"
  },
  "20121": {
   "alias": [
@@ -5170,6 +7276,13 @@
   ],
   "es": "Calabaza moscada, pulpa, cruda"
  },
+ "2013": {
+  "alias": [
+   "zumo de naranja natural",
+   "zumo de naranja"
+  ],
+  "es": "Zumo de naranja, casero"
+ },
  "20132": {
   "alias": [
    "potimarron",
@@ -5216,6 +7329,12 @@
   ],
   "es": "Calabaza, cruda"
  },
+ "2014": {
+  "alias": [
+   "zumo de manzana"
+  ],
+  "es": "Zumo de manzana, a base de concentrado"
+ },
  "20141": {
   "alias": [
    "calabaza butternut cocida"
@@ -5233,6 +7352,12 @@
    "calabaza espagueti"
   ],
   "es": "Calabaza espagueti, pulpa, cruda"
+ },
+ "2015": {
+  "alias": [
+   "zumo de pomelo"
+  ],
+  "es": "Zumo de pomelo, a base de concentrado"
  },
  "20151": {
   "alias": [
@@ -5267,6 +7392,13 @@
    "amanita cesarea"
   ],
   "es": "Oronja (amanita de los césares), cruda"
+ },
+ "2016": {
+  "alias": [
+   "zumo de uva",
+   "mosto"
+  ],
+  "es": "Zumo de uva, exprimido"
  },
  "20160": {
   "alias": [
@@ -5331,6 +7463,12 @@
   ],
   "es": "Tomate, pulpa, en conserva"
  },
+ "2017": {
+  "alias": [
+   "zumo de granada"
+  ],
+  "es": "Zumo de granada, exprimido"
+ },
  "20170": {
   "alias": [
    "pure de tomate",
@@ -5357,6 +7495,12 @@
    "guisante mollar"
   ],
   "es": "Tirabeque, crudo"
+ },
+ "2018": {
+  "alias": [
+   "zumo de ciruela"
+  ],
+  "es": "Zumo de ciruela pasa"
  },
  "20180": {
   "alias": [
@@ -5390,6 +7534,13 @@
    "tomate deshidratado"
   ],
   "es": "Tomate, seco"
+ },
+ "2019": {
+  "alias": [
+   "zumo de uva",
+   "mosto"
+  ],
+  "es": "Zumo de uva, a base de concentrado"
  },
  "20192": {
   "alias": [
@@ -5576,6 +7727,12 @@
   ],
   "es": "Champiñón (de París), congelado, crudo"
  },
+ "2023": {
+  "alias": [
+   "zumo de mango"
+  ],
+  "es": "Zumo de mango, fresco"
+ },
  "20230": {
   "alias": [
    "calabacin congelado"
@@ -5638,6 +7795,12 @@
   ],
   "es": "Cebolla amarilla, cruda"
  },
+ "2024": {
+  "alias": [
+   "zumo de maracuya"
+  ],
+  "es": "Zumo de fruta de la pasión o maracuyá, fresco"
+ },
  "20240": {
   "alias": [
    "piperrada",
@@ -5662,6 +7825,75 @@
    "tirabeques cocidos"
   ],
   "es": "Tirabeques, cocidos"
+ },
+ "20246": {
+  "alias": [
+   "potito de verduras",
+   "potito"
+  ],
+  "es": "Potito de verduras, desde 4-6 meses"
+ },
+ "20247": {
+  "alias": [
+   "potito de verduras",
+   "potito"
+  ],
+  "es": "Potito de verduras con féculas, desde 4-6 meses"
+ },
+ "20248": {
+  "alias": [
+   "potito de verduras",
+   "puré infantil"
+  ],
+  "es": "Plato de verduras con féculas, desde 6-8 meses"
+ },
+ "20249": {
+  "alias": [
+   "potito de verduras",
+   "puré infantil"
+  ],
+  "es": "Plato de verduras con féculas y leche o nata, desde 6-8 meses"
+ },
+ "2025": {
+  "alias": [
+   "zumo de pomelo"
+  ],
+  "es": "Zumo de pomelo, casero"
+ },
+ "20250": {
+  "alias": [
+   "potito de verduras",
+   "puré infantil"
+  ],
+  "es": "Plato de verduras con féculas y leche o nata, desde 8-12 meses"
+ },
+ "20251": {
+  "alias": [
+   "potito de verduras",
+   "puré infantil"
+  ],
+  "es": "Plato de verduras con féculas y leche o nata, desde 12 meses"
+ },
+ "20252": {
+  "alias": [
+   "sopa para bebe",
+   "pure infantil"
+  ],
+  "es": "Sopa para bebé de verduras y patata"
+ },
+ "20253": {
+  "alias": [
+   "sopa para bebe",
+   "pure infantil"
+  ],
+  "es": "Sopa para bebé de verduras, cereales y leche"
+ },
+ "20254": {
+  "alias": [
+   "potito de verduras",
+   "puré infantil"
+  ],
+  "es": "Plato de verduras con féculas y leche o nata, desde 18 meses"
  },
  "20255": {
   "alias": [
@@ -5692,6 +7924,12 @@
    "pure de brocoli"
   ],
   "es": "Brócoli, en puré"
+ },
+ "2026": {
+  "alias": [
+   "zumo de tomate"
+  ],
+  "es": "Zumo de tomate, exprimido, salado a 3 g/L"
  },
  "20260": {
   "alias": [
@@ -5761,6 +7999,12 @@
   ],
   "es": "Judía plana, cruda"
  },
+ "2027": {
+  "alias": [
+   "zumo de pomelo"
+  ],
+  "es": "Zumo de pomelo, exprimido"
+ },
  "20270": {
   "alias": [
    "brotes de espinaca",
@@ -5828,6 +8072,12 @@
    "esparrago triguero"
   ],
   "es": "Espárrago verde, crudo"
+ },
+ "2028": {
+  "alias": [
+   "zumo de limon"
+  ],
+  "es": "Zumo de limón, exprimido"
  },
  "20280": {
   "alias": [
@@ -5936,6 +8186,12 @@
   ],
   "es": "Espárrago verde, hervido/cocido en agua"
  },
+ "2030": {
+  "alias": [
+   "zumo de lima"
+  ],
+  "es": "Zumo de lima, casero"
+ },
  "20300": {
   "alias": [
    "berenjena asada"
@@ -5998,6 +8254,12 @@
   ],
   "es": "Col de Bruselas, hervida/cocida en agua"
  },
+ "2031": {
+  "alias": [
+   "zumo de lima"
+  ],
+  "es": "Zumo de lima, exprimido"
+ },
  "20310": {
   "alias": [
    "lombarda estofada"
@@ -6053,6 +8315,12 @@
    "judia amarilla cocida"
   ],
   "es": "Judía amarilla, hervida/cocida en agua"
+ },
+ "2032": {
+  "alias": [
+   "zumo de tomate"
+  ],
+  "es": "Zumo de tomate, exprimido, salado a 6 g/L"
  },
  "20320": {
   "alias": [
@@ -6117,6 +8385,12 @@
   ],
   "es": "Pimiento rojo, salteado sin grasa"
  },
+ "2033": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas, con zumo y puré de frutas"
+ },
  "20330": {
   "alias": [
    "pimiento verde salteado"
@@ -6172,6 +8446,55 @@
   ],
   "es": "Quenelle de tofu (no apta para veganos), envasada"
  },
+ "2034": {
+  "alias": [
+   "zumo de mandarina"
+  ],
+  "es": "Zumo de clementina o mandarina, exprimido"
+ },
+ "2035": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas, exprimido, estándar"
+ },
+ "2036": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas con base de uva, estándar"
+ },
+ "2038": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas con base de naranja, estándar"
+ },
+ "2039": {
+  "alias": [
+   "zumo de granada"
+  ],
+  "es": "Zumo de granada, fresco"
+ },
+ "2043": {
+  "alias": [
+   "nectar de albaricoque",
+   "zumo de albaricoque"
+  ],
+  "es": "Néctar de albaricoque"
+ },
+ "2045": {
+  "alias": [
+   "nectar de papaya"
+  ],
+  "es": "Néctar de papaya"
+ },
+ "2048": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas con base de manzana, estándar"
+ },
  "20496": {
   "alias": [
    "verduras para cuscus"
@@ -6196,6 +8519,12 @@
    "verdura cocida"
   ],
   "es": "Verdura cocida (alimento medio)"
+ },
+ "2050": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas con base de manzana, multivitaminado"
  },
  "20500": {
   "alias": [
@@ -6304,6 +8633,12 @@
   ],
   "es": "Haba, seca"
  },
+ "2052": {
+  "alias": [
+   "zumo de frutas y verduras"
+  ],
+  "es": "Zumo de frutas y verduras, exprimido"
+ },
  "20521": {
   "alias": [
    "lentejas germinadas",
@@ -6325,6 +8660,12 @@
    "frijol"
   ],
   "es": "Alubia roja, seca"
+ },
+ "2053": {
+  "alias": [
+   "zumo de tomate"
+  ],
+  "es": "Zumo de tomate, exprimido (alimento medio)"
  },
  "20530": {
   "alias": [
@@ -6377,6 +8718,13 @@
    "flageolet seco"
   ],
   "es": "Judía flageolet verde, seca"
+ },
+ "2054": {
+  "alias": [
+   "nectar de pera",
+   "zumo de pera"
+  ],
+  "es": "Néctar de pera"
  },
  "20540": {
   "alias": [
@@ -6460,12 +8808,101 @@
   ],
   "es": "Proteína de soja texturizada, rehidratada"
  },
+ "2060": {
+  "alias": [
+   "nectar multifrutas"
+  ],
+  "es": "Néctar multifrutas, multivitaminado"
+ },
+ "2061": {
+  "alias": [
+   "nectar multifrutas"
+  ],
+  "es": "Néctar multifrutas, estándar"
+ },
+ "2062": {
+  "alias": [
+   "nectar multifrutas"
+  ],
+  "es": "Néctar multifrutas con base de naranja, multivitaminado"
+ },
+ "2063": {
+  "alias": [
+   "nectar multifrutas"
+  ],
+  "es": "Néctar multifrutas con base de naranja, estándar"
+ },
+ "2064": {
+  "alias": [
+   "nectar light",
+   "zumo light"
+  ],
+  "es": "Néctar, con edulcorantes, bajo en azúcares"
+ },
+ "2069": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas, a base de concentrado, estándar"
+ },
+ "2070": {
+  "alias": [
+   "zumo de naranja",
+   "zumo de naranja natural"
+  ],
+  "es": "Zumo de naranja, exprimido"
+ },
  "20700": {
   "alias": [
    "legumbre cocida",
    "legumbres"
   ],
   "es": "Legumbre, cocida (alimento medio)"
+ },
+ "2071": {
+  "alias": [
+   "zumo multifrutas"
+  ],
+  "es": "Zumo multifrutas, a base de concentrado, multivitaminado"
+ },
+ "2072": {
+  "alias": [
+   "zumo de frutas",
+   "zumo"
+  ],
+  "es": "Zumo de frutas, exprimido (alimento medio)"
+ },
+ "2073": {
+  "alias": [
+   "zumo de piña"
+  ],
+  "es": "Zumo de piña, exprimido"
+ },
+ "2074": {
+  "alias": [
+   "zumo de manzana"
+  ],
+  "es": "Zumo de manzana, exprimido"
+ },
+ "2075": {
+  "alias": [
+   "zumo de verduras"
+  ],
+  "es": "Zumo de verduras, exprimido (alimento medio)"
+ },
+ "2076": {
+  "alias": [
+   "nectar de manzana",
+   "zumo de manzana"
+  ],
+  "es": "Néctar de manzana"
+ },
+ "2077": {
+  "alias": [
+   "zumo de frutas",
+   "zumo"
+  ],
+  "es": "Zumo de frutas, a base de concentrado (alimento medio)"
  },
  "20800": {
   "alias": [
@@ -6716,6 +9153,12 @@
   ],
   "es": "Tomate, entero, crudo (Martinica)"
  },
+ "20900": {
+  "alias": [
+   "harina de soja"
+  ],
+  "es": "Harina de soja"
+ },
  "20901": {
   "alias": [
    "soja",
@@ -6730,6 +9173,14 @@
    "queso de soja"
   ],
   "es": "Tofu natural, envasado"
+ },
+ "20906": {
+  "alias": [
+   "tofu sedoso",
+   "tofu silken",
+   "tofu"
+  ],
+  "es": "Tofu sedoso, envasado"
  },
  "20911": {
   "alias": [
@@ -6753,11 +9204,38 @@
   ],
   "es": "Filete vegetal o hamburguesa a base de soja"
  },
+ "20916": {
+  "alias": [
+   "miso",
+   "pasta de miso"
+  ],
+  "es": "Miso"
+ },
  "20917": {
   "alias": [
    "tempeh"
   ],
   "es": "Tempeh"
+ },
+ "20918": {
+  "alias": [
+   "almibar"
+  ],
+  "es": "Almíbar de frutas en conserva"
+ },
+ "20919": {
+  "alias": [
+   "almibar ligero",
+   "almibar"
+  ],
+  "es": "Almíbar ligero de frutas en conserva"
+ },
+ "20920": {
+  "alias": [
+   "zumo de piña de lata",
+   "jugo de piña"
+  ],
+  "es": "Zumo de piña de la piña en conserva"
  },
  "20921": {
   "alias": [
@@ -6779,6 +9257,111 @@
    "postre vegetal"
   ],
   "es": "Postre vegetal sin soja (coco, arroz), con fruta, azucarado, enriquecido en calcio, fermentado, envasado"
+ },
+ "20924": {
+  "alias": [
+   "almibar ligero",
+   "almibar"
+  ],
+  "es": "Almíbar ligero de pera en conserva"
+ },
+ "20984": {
+  "alias": [
+   "wakame",
+   "alga wakame"
+  ],
+  "es": "Wakame (Undaria pinnatifida), seca o deshidratada"
+ },
+ "20985": {
+  "alias": [
+   "lechuga de mar",
+   "alga ulva"
+  ],
+  "es": "Lechuga de mar (Ulva sp.), seca o deshidratada"
+ },
+ "20986": {
+  "alias": [
+   "kombu real",
+   "alga kombu"
+  ],
+  "es": "Kombu real (Saccharina latissima), seca o deshidratada"
+ },
+ "20987": {
+  "alias": [
+   "nori",
+   "alga nori"
+  ],
+  "es": "Nori (Porphyra sp.), seca o deshidratada"
+ },
+ "20988": {
+  "alias": [
+   "dulse",
+   "alga dulse"
+  ],
+  "es": "Dulse (Palmaria palmata), seca o deshidratada"
+ },
+ "20990": {
+  "alias": [
+   "kombu",
+   "alga kombu"
+  ],
+  "es": "Kombu japonesa (Laminaria japonica), seca o deshidratada"
+ },
+ "20991": {
+  "alias": [
+   "kombu bretona",
+   "alga kombu"
+  ],
+  "es": "Kombu bretona (Laminaria digitata), seca o deshidratada"
+ },
+ "20992": {
+  "alias": [
+   "judia de mar",
+   "espagueti de mar"
+  ],
+  "es": "Judía de mar (Himanthalia elongata), seca o deshidratada"
+ },
+ "20993": {
+  "alias": [
+   "ogonori",
+   "alga gracilaria"
+  ],
+  "es": "Gracilaria u ogonori (Gracilaria verrucosa), seca o deshidratada"
+ },
+ "20994": {
+  "alias": [
+   "fucus",
+   "alga fucus"
+  ],
+  "es": "Fuco vesiculoso (Fucus serratus o vesiculosus), seco o deshidratado"
+ },
+ "20995": {
+  "alias": [
+   "ao nori",
+   "alga nori"
+  ],
+  "es": "Ao-nori (Enteromorpha sp.), seca o deshidratada"
+ },
+ "20996": {
+  "alias": [
+   "musgo de irlanda",
+   "carragaheen"
+  ],
+  "es": "Musgo de Irlanda o carragaheen (Chondrus crispus), seco o deshidratado"
+ },
+ "20998": {
+  "alias": [
+   "ascofilo",
+   "alga parda"
+  ],
+  "es": "Ascofilo nudoso (Ascophyllum nodosum), seco o deshidratado"
+ },
+ "20999": {
+  "alias": [
+   "wakame atlantica",
+   "alga wakame"
+  ],
+  "es": "Wakame atlántica (Alaria esculenta), seca o deshidratada"
  },
  "21001": {
   "alias": [
@@ -7154,11 +9737,443 @@
   ],
   "es": "Tortilla francesa, rellenos variados: verduras, quesos, carnes… (alimento medio)"
  },
+ "23000": {
+  "alias": [
+   "pastel",
+   "tarta",
+   "bizcocho"
+  ],
+  "es": "Pastel (alimento medio)"
+ },
+ "23005": {
+  "alias": [
+   "paris brest"
+  ],
+  "es": "París-Brest (pasta choux con crema muselina de praliné)"
+ },
+ "23006": {
+  "alias": [
+   "selva negra",
+   "tarta selva negra"
+  ],
+  "es": "Tarta de chocolate tipo selva negra (bizcocho de chocolate y crema en capas, con o sin cerezas)"
+ },
+ "23007": {
+  "alias": [
+   "tarta de mousse",
+   "bavarois"
+  ],
+  "es": "Tarta de mousse de frutas sobre bizcocho, tipo espejo o bávaro"
+ },
+ "23008": {
+  "alias": [
+   "tarta opera",
+   "opera"
+  ],
+  "es": "Entremés tipo Ópera"
+ },
+ "23009": {
+  "alias": [
+   "tarta de fresas",
+   "fraisier"
+  ],
+  "es": "Fraisier o framboisier (tarta de fresas o frambuesas)"
+ },
+ "23021": {
+  "alias": [
+   "baba al ron"
+  ],
+  "es": "Babá al ron"
+ },
+ "23022": {
+  "alias": [
+   "canele",
+   "canele bordeles"
+  ],
+  "es": "Canelé"
+ },
+ "23024": {
+  "alias": [
+   "macaron"
+  ],
+  "es": "Macaron blando relleno de mermelada o crema"
+ },
+ "23027": {
+  "alias": [
+   "macaron"
+  ],
+  "es": "Macaron seco"
+ },
+ "23030": {
+  "alias": [
+   "tronco de navidad",
+   "buche de navidad"
+  ],
+  "es": "Tronco de Navidad (bûche) de pastelería"
+ },
+ "23032": {
+  "alias": [
+   "brownie"
+  ],
+  "es": "Brownie de chocolate, envasado"
+ },
+ "23033": {
+  "alias": [
+   "coquito",
+   "pastelito de coco"
+  ],
+  "es": "Coquito (pastelito de coco)"
+ },
+ "23050": {
+  "alias": [
+   "bizcocho de saboya",
+   "bizcocho"
+  ],
+  "es": "Bizcocho de Saboya"
+ },
+ "23080": {
+  "alias": [
+   "cuatro cuartos",
+   "bizcocho"
+  ],
+  "es": "Bizcocho cuatro cuartos, artesano"
+ },
+ "23081": {
+  "alias": [
+   "cuatro cuartos",
+   "bizcocho"
+  ],
+  "es": "Bizcocho cuatro cuartos, envasado"
+ },
+ "23082": {
+  "alias": [
+   "barrita de bizcocho",
+   "bizcocho"
+  ],
+  "es": "Barrita de bizcocho, envasada"
+ },
+ "23103": {
+  "alias": [
+   "bizcocho de limon",
+   "lemon cake"
+  ],
+  "es": "Bizcocho de limón, de cualquier tipo"
+ },
+ "23121": {
+  "alias": [
+   "far breton",
+   "flan de ciruelas"
+  ],
+  "es": "Far bretón con ciruelas pasas"
+ },
+ "23122": {
+  "alias": [
+   "kouign amann"
+  ],
+  "es": "Kouign amann"
+ },
+ "23200": {
+  "alias": [
+   "pan de especias",
+   "pan de jengibre"
+  ],
+  "es": "Pan de especias"
+ },
+ "23220": {
+  "alias": [
+   "pan de especias relleno",
+   "nonette"
+  ],
+  "es": "Pan de especias relleno (nonette)"
+ },
+ "23300": {
+  "alias": [
+   "baklava",
+   "baklawa"
+  ],
+  "es": "Baklava (dulce oriental de almendra y almíbar)"
+ },
+ "23301": {
+  "alias": [
+   "cuerno de gacela",
+   "corne de gazelle"
+  ],
+  "es": "Cuerno de gacela (dulce oriental de almendra y almíbar)"
+ },
+ "23402": {
+  "alias": [
+   "masa de pizza",
+   "base de pizza"
+  ],
+  "es": "Masa de pizza fina, cruda"
+ },
+ "23410": {
+  "alias": [
+   "masa quebrada",
+   "pasta brisa"
+  ],
+  "es": "Masa quebrada, cruda"
+ },
+ "23412": {
+  "alias": [
+   "masa quebrada",
+   "pasta brisa"
+  ],
+  "es": "Masa quebrada, con grasa vegetal, cocida"
+ },
+ "23414": {
+  "alias": [
+   "masa quebrada",
+   "pasta brisa"
+  ],
+  "es": "Masa quebrada, pura mantequilla, cruda"
+ },
+ "23415": {
+  "alias": [
+   "masa quebrada",
+   "pasta brisa"
+  ],
+  "es": "Masa quebrada, pura mantequilla, congelada, cruda"
+ },
+ "23416": {
+  "alias": [
+   "masa quebrada",
+   "pasta brisa"
+  ],
+  "es": "Masa quebrada, pura mantequilla, cocida"
+ },
+ "23420": {
+  "alias": [
+   "hojaldre",
+   "masa de hojaldre"
+  ],
+  "es": "Hojaldre, con grasa vegetal, crudo"
+ },
+ "23421": {
+  "alias": [
+   "hojaldre",
+   "masa de hojaldre"
+  ],
+  "es": "Hojaldre, congelado, crudo"
+ },
+ "23422": {
+  "alias": [
+   "hojaldre",
+   "masa de hojaldre"
+  ],
+  "es": "Hojaldre, cocido"
+ },
+ "23424": {
+  "alias": [
+   "hojaldre de mantequilla",
+   "hojaldre"
+  ],
+  "es": "Hojaldre puro mantequilla, crudo"
+ },
+ "23425": {
+  "alias": [
+   "hojaldre de mantequilla",
+   "hojaldre"
+  ],
+  "es": "Hojaldre puro mantequilla, congelado, crudo"
+ },
+ "23426": {
+  "alias": [
+   "hojaldre de mantequilla",
+   "hojaldre"
+  ],
+  "es": "Hojaldre puro mantequilla, cocido"
+ },
+ "23430": {
+  "alias": [
+   "pasta brick",
+   "hoja de brick"
+  ],
+  "es": "Pasta brick, cocida en seco sin grasa"
+ },
+ "23440": {
+  "alias": [
+   "masa sablee",
+   "masa quebrada dulce"
+  ],
+  "es": "Masa sablée (quebrada dulce), cruda"
+ },
+ "23442": {
+  "alias": [
+   "masa sablee",
+   "masa quebrada dulce"
+  ],
+  "es": "Masa sablée (quebrada dulce), cocida"
+ },
+ "23444": {
+  "alias": [
+   "masa sablee",
+   "masa quebrada dulce"
+  ],
+  "es": "Masa sablée pura mantequilla, cruda"
+ },
+ "23445": {
+  "alias": [
+   "pasta filo",
+   "masa filo"
+  ],
+  "es": "Pasta filo, cruda"
+ },
+ "23446": {
+  "alias": [
+   "masa sablee",
+   "masa quebrada dulce"
+  ],
+  "es": "Masa sablée pura mantequilla, congelada, cruda"
+ },
+ "23448": {
+  "alias": [
+   "masa sablee",
+   "masa quebrada dulce"
+  ],
+  "es": "Masa sablée pura mantequilla, cocida"
+ },
+ "23455": {
+  "alias": [
+   "petisu",
+   "profiterol",
+   "lionesa"
+  ],
+  "es": "Petisú relleno de nata o crema pastelera"
+ },
+ "23456": {
+  "alias": [
+   "saint honore",
+   "petisu"
+  ],
+  "es": "Petisú con nata montada, Saint-Honoré"
+ },
+ "23457": {
+  "alias": [
+   "petisu de crema",
+   "lionesa"
+  ],
+  "es": "Petisú relleno de crema pastelera"
+ },
+ "23467": {
+  "alias": [
+   "chouquette",
+   "petisu"
+  ],
+  "es": "Chouquette (petisú con azúcar perlado)"
+ },
+ "23472": {
+  "alias": [
+   "profiterol",
+   "profiteroles"
+  ],
+  "es": "Profiterol con helado de vainilla y salsa de chocolate"
+ },
  "23474": {
   "alias": [
    "profiteroles"
   ],
   "es": "Profiteroles (crema pastelera y salsa de chocolate), envasados"
+ },
+ "23477": {
+  "alias": [
+   "eclair",
+   "palo de nata",
+   "pepito"
+  ],
+  "es": "Eclair (palo de nata o crema)"
+ },
+ "23479": {
+  "alias": [
+   "tarta de frutas"
+  ],
+  "es": "Tarta de frutas con crema pastelera"
+ },
+ "23480": {
+  "alias": [
+   "empanadilla de manzana",
+   "chausson"
+  ],
+  "es": "Empanadilla de manzana (chausson)"
+ },
+ "23481": {
+  "alias": [
+   "tarta de manzana",
+   "tarta normanda"
+  ],
+  "es": "Tarta normanda de manzana (harina, huevo, nata, azúcar, calvados)"
+ },
+ "23485": {
+  "alias": [
+   "tarta de limon",
+   "lemon pie"
+  ],
+  "es": "Tarta de limón"
+ },
+ "23490": {
+  "alias": [
+   "tarta de manzana"
+  ],
+  "es": "Tarta o tartaleta de manzana"
+ },
+ "23491": {
+  "alias": [
+   "tarta de fresas"
+  ],
+  "es": "Tarta de fresas"
+ },
+ "23493": {
+  "alias": [
+   "crumble de manzana",
+   "crumble"
+  ],
+  "es": "Crumble de manzana"
+ },
+ "23494": {
+  "alias": [
+   "tarta de albaricoque"
+  ],
+  "es": "Tarta de albaricoque"
+ },
+ "23495": {
+  "alias": [
+   "tarta de frutos rojos"
+  ],
+  "es": "Tarta de frutos rojos"
+ },
+ "23496": {
+  "alias": [
+   "tarta tatin",
+   "tarta de manzana"
+  ],
+  "es": "Tarta Tatin de manzana"
+ },
+ "23497": {
+  "alias": [
+   "tarta de chocolate"
+  ],
+  "es": "Tarta de chocolate, artesana"
+ },
+ "23499": {
+  "alias": [
+   "tarta de frutas",
+   "tartaleta"
+  ],
+  "es": "Tarta o tartaleta de frutas"
+ },
+ "23525": {
+  "alias": [
+   "tarta de flan",
+   "flan parisino"
+  ],
+  "es": "Tarta de flan (flan pastelero o a la parisina)"
+ },
+ "23531": {
+  "alias": [
+   "charlota",
+   "charlotte"
+  ],
+  "es": "Charlota de frutas"
  },
  "23534": {
   "alias": [
@@ -7180,12 +10195,828 @@
   ],
   "es": "Pastel de arroz con caramelo, refrigerado"
  },
+ "23585": {
+  "alias": [
+   "bizcocho de chocolate",
+   "tarta de chocolate"
+  ],
+  "es": "Bizcocho de chocolate"
+ },
+ "23586": {
+  "alias": [
+   "bizcocho de chocolate"
+  ],
+  "es": "Bizcocho esponjoso de chocolate, envasado"
+ },
+ "23588": {
+  "alias": [
+   "bizcocho de yogur",
+   "bizcocho"
+  ],
+  "es": "Bizcocho de yogur"
+ },
+ "23589": {
+  "alias": [
+   "tarta de queso",
+   "cheesecake"
+  ],
+  "es": "Tarta de queso batido"
+ },
+ "23594": {
+  "alias": [
+   "bizcocho genoves",
+   "bizcocho"
+  ],
+  "es": "Bizcocho esponjoso natural tipo genovés"
+ },
+ "2365": {
+  "alias": [
+   "nectar de maracuya"
+  ],
+  "es": "Néctar de fruta de la pasión o maracuyá"
+ },
+ "2366": {
+  "alias": [
+   "nectar de platano"
+  ],
+  "es": "Néctar de plátano"
+ },
+ "2367": {
+  "alias": [
+   "nectar de guayaba"
+  ],
+  "es": "Néctar de guayaba"
+ },
+ "23680": {
+  "alias": [
+   "galette des rois",
+   "roscon de reyes frances"
+  ],
+  "es": "Galette des rois hojaldrada"
+ },
+ "23684": {
+  "alias": [
+   "galette des rois",
+   "pithiviers"
+  ],
+  "es": "Galette des rois hojaldrada rellena de frangipane, y Pithiviers"
+ },
+ "2370": {
+  "alias": [
+   "nectar de mango"
+  ],
+  "es": "Néctar de mango"
+ },
+ "2371": {
+  "alias": [
+   "nectar de melocoton",
+   "zumo de melocoton"
+  ],
+  "es": "Néctar de melocotón"
+ },
+ "2374": {
+  "alias": [
+   "nectar de piña"
+  ],
+  "es": "Néctar de piña"
+ },
+ "2375": {
+  "alias": [
+   "nectar de naranja"
+  ],
+  "es": "Néctar de naranja"
+ },
+ "2377": {
+  "alias": [
+   "zumo de naranja sanguina"
+  ],
+  "es": "Zumo de naranja sanguina, exprimido"
+ },
+ "23799": {
+  "alias": [
+   "crep",
+   "crepe",
+   "filloa"
+  ],
+  "es": "Crep, natural, envasada, refrigerada"
+ },
+ "23800": {
+  "alias": [
+   "crep",
+   "crepe",
+   "filloa"
+  ],
+  "es": "Crep, natural, envasada, a temperatura ambiente"
+ },
+ "23801": {
+  "alias": [
+   "galette de sarraceno",
+   "crep salada"
+  ],
+  "es": "Galette de trigo sarraceno, natural, envasada"
+ },
+ "23802": {
+  "alias": [
+   "pastel vasco",
+   "gateau basque"
+  ],
+  "es": "Pastel vasco, con crema pastelera"
+ },
+ "23803": {
+  "alias": [
+   "pastel vasco",
+   "gateau basque"
+  ],
+  "es": "Pastel vasco, con cerezas"
+ },
  "23805": {
   "alias": [
    "blini",
    "blinis"
   ],
   "es": "Blini"
+ },
+ "23815": {
+  "alias": [
+   "crep de azucar",
+   "crepe"
+  ],
+  "es": "Crep rellena de azúcar, envasada"
+ },
+ "23820": {
+  "alias": [
+   "crep de mermelada",
+   "crepe"
+  ],
+  "es": "Crep rellena de mermelada, casera"
+ },
+ "23821": {
+  "alias": [
+   "crep de nutella",
+   "crep de chocolate"
+  ],
+  "es": "Crep rellena de chocolate o crema de cacao y avellanas, casera"
+ },
+ "23829": {
+  "alias": [
+   "crep de chocolate",
+   "crepe"
+  ],
+  "es": "Crep rellena de chocolate, envasada"
+ },
+ "23830": {
+  "alias": [
+   "crep de fresa",
+   "crepe"
+  ],
+  "es": "Crep rellena de fresa, envasada"
+ },
+ "23849": {
+  "alias": [
+   "gofre de miel",
+   "gofre"
+  ],
+  "es": "Gofre fino relleno de miel, envasado"
+ },
+ "23850": {
+  "alias": [
+   "gofre",
+   "gofre de lieja"
+  ],
+  "es": "Gofre de Bruselas o de Lieja, artesano"
+ },
+ "23851": {
+  "alias": [
+   "gofre",
+   "gofre esponjoso"
+  ],
+  "es": "Gofre esponjoso (tipo Bruselas o Lieja), natural o azucarado, envasado"
+ },
+ "23852": {
+  "alias": [
+   "gofre de chocolate",
+   "gofre"
+  ],
+  "es": "Gofre esponjoso (tipo Bruselas o Lieja), con chocolate, envasado"
+ },
+ "23853": {
+  "alias": [
+   "gofre crujiente",
+   "gofre"
+  ],
+  "es": "Gofre crujiente (fino o seco), natural o azucarado, envasado"
+ },
+ "23854": {
+  "alias": [
+   "gofre de chocolate",
+   "gofre crujiente"
+  ],
+  "es": "Gofre crujiente (fino o seco), con chocolate, envasado"
+ },
+ "23880": {
+  "alias": [
+   "buñuelo",
+   "berlina",
+   "donut"
+  ],
+  "es": "Buñuelo redondo esponjoso, sin relleno, espolvoreado de azúcar"
+ },
+ "23881": {
+  "alias": [
+   "berlina de mermelada",
+   "buñuelo relleno"
+  ],
+  "es": "Buñuelo relleno de mermelada"
+ },
+ "23884": {
+  "alias": [
+   "berlina",
+   "buñuelo relleno"
+  ],
+  "es": "Buñuelo relleno de fruta, envasado"
+ },
+ "23885": {
+  "alias": [
+   "berlina de chocolate",
+   "buñuelo relleno"
+  ],
+  "es": "Buñuelo relleno sabor chocolate, envasado"
+ },
+ "23900": {
+  "alias": [
+   "pasteleria",
+   "pastel",
+   "dulce"
+  ],
+  "es": "Pastelería (alimento medio)"
+ },
+ "23909": {
+  "alias": [
+   "plumcake",
+   "cake de frutas"
+  ],
+  "es": "Plumcake de frutas, envasado"
+ },
+ "23925": {
+  "alias": [
+   "bizcocho marmolado",
+   "bizcocho"
+  ],
+  "es": "Bizcocho marmolado, envasado"
+ },
+ "23930": {
+  "alias": [
+   "pastelito de fruta",
+   "tartaleta"
+  ],
+  "es": "Pastelito de masa quebrada con fruta, envasado"
+ },
+ "23937": {
+  "alias": [
+   "bizcocho de fruta",
+   "bizcocho"
+  ],
+  "es": "Bizcocho esponjoso con fruta, envasado"
+ },
+ "23938": {
+  "alias": [
+   "bizcocho de frutos secos",
+   "bizcocho"
+  ],
+  "es": "Bizcocho esponjoso con frutos secos, envasado"
+ },
+ "23939": {
+  "alias": [
+   "bizcocho de chocolate",
+   "bizcocho relleno"
+  ],
+  "es": "Bizcocho esponjoso relleno de chocolate o con pepitas, envasado"
+ },
+ "23940": {
+  "alias": [
+   "bizcocho de chocolate",
+   "brazo de gitano"
+  ],
+  "es": "Bizcocho genovés relleno y cubierto de chocolate, envasado"
+ },
+ "23941": {
+  "alias": [
+   "minirollito",
+   "bizcocho relleno"
+  ],
+  "es": "Bizcocho esponjoso relleno de fruta tipo minirrollito o minicake, envasado"
+ },
+ "23950": {
+  "alias": [
+   "muffin",
+   "magdalena"
+  ],
+  "es": "Muffin, de arándanos o de chocolate"
+ },
+ "24000": {
+  "alias": [
+   "galleta",
+   "galletas"
+  ],
+  "es": "Galleta seca, sin precisar"
+ },
+ "24001": {
+  "alias": [
+   "galleta",
+   "galleta maria"
+  ],
+  "es": "Galleta seca natural"
+ },
+ "24002": {
+  "alias": [
+   "galleta",
+   "galletas"
+  ],
+  "es": "Galleta seca con contenido garantizado en vitaminas"
+ },
+ "24003": {
+  "alias": [
+   "galleta",
+   "galletas"
+  ],
+  "es": "Galleta seca con contenido garantizado en vitaminas y minerales"
+ },
+ "24004": {
+  "alias": [
+   "galleta de fruta",
+   "galletas"
+  ],
+  "es": "Galleta seca con fruta, baja en sodio"
+ },
+ "24005": {
+  "alias": [
+   "galleta sin azucar",
+   "galletas"
+  ],
+  "es": "Galleta seca con fruta, baja en sodio, sin azúcares añadidos"
+ },
+ "24007": {
+  "alias": [
+   "galleta de chocolate light",
+   "galletas"
+  ],
+  "es": "Galleta seca crujiente de chocolate, baja en grasa"
+ },
+ "24008": {
+  "alias": [
+   "galleta rellena de fruta",
+   "galletas"
+  ],
+  "es": "Galleta seca rellena de fruta, baja en grasa"
+ },
+ "24009": {
+  "alias": [
+   "speculoos",
+   "galleta speculoos"
+  ],
+  "es": "Speculoos"
+ },
+ "24010": {
+  "alias": [
+   "galleta",
+   "galletas"
+  ],
+  "es": "Galleta seca, con grasa vegetal"
+ },
+ "24011": {
+  "alias": [
+   "pastas de te",
+   "surtido de galletas"
+  ],
+  "es": "Galletas secas, surtido de pastas de té"
+ },
+ "24015": {
+  "alias": [
+   "petit beurre",
+   "galleta maria"
+  ],
+  "es": "Galleta seca tipo petit beurre"
+ },
+ "24016": {
+  "alias": [
+   "galleta con chocolate",
+   "galletas"
+  ],
+  "es": "Galleta seca con tableta de chocolate"
+ },
+ "24017": {
+  "alias": [
+   "petit beurre de chocolate",
+   "galleta con chocolate"
+  ],
+  "es": "Galleta seca petit beurre con chocolate"
+ },
+ "24030": {
+  "alias": [
+   "galleta de leche",
+   "galletas"
+  ],
+  "es": "Galleta seca de leche"
+ },
+ "24031": {
+  "alias": [
+   "teja",
+   "galleta crujiente"
+  ],
+  "es": "Galleta seca crujiente (p. ej. teja) sin chocolate, baja en grasa"
+ },
+ "24034": {
+  "alias": [
+   "galleta de desayuno",
+   "galletas"
+  ],
+  "es": "Galleta seca para el desayuno"
+ },
+ "24035": {
+  "alias": [
+   "galleta de desayuno light",
+   "galletas"
+  ],
+  "es": "Galleta seca para el desayuno, baja en azúcares"
+ },
+ "24036": {
+  "alias": [
+   "galleta de chocolate",
+   "galletas"
+  ],
+  "es": "Galleta seca con chocolate, envasada"
+ },
+ "24037": {
+  "alias": [
+   "galleta rellena de fruta",
+   "galletas"
+  ],
+  "es": "Galleta seca rellena de pasta o puré de fruta"
+ },
+ "24038": {
+  "alias": [
+   "galleta bañada en chocolate",
+   "galletas"
+  ],
+  "es": "Galleta seca con cobertura de chocolate"
+ },
+ "24039": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de fruta"
+  ],
+  "es": "Barrita de galleta rellena de fruta, baja en grasa"
+ },
+ "24040": {
+  "alias": [
+   "galleta de desayuno",
+   "galleta de chocolate"
+  ],
+  "es": "Galleta seca para el desayuno, de chocolate"
+ },
+ "24041": {
+  "alias": [
+   "galleta de cereales",
+   "galleta de desayuno"
+  ],
+  "es": "Galleta de cereales para el desayuno, enriquecida en vitaminas y minerales"
+ },
+ "24049": {
+  "alias": [
+   "galleta de mantequilla",
+   "pasta de te"
+  ],
+  "es": "Galleta seca de mantequilla (sablé, galette o palet)"
+ },
+ "24050": {
+  "alias": [
+   "galleta de mantequilla con chocolate"
+  ],
+  "es": "Galleta seca de mantequilla (sablé, galette o palet), con chocolate"
+ },
+ "24051": {
+  "alias": [
+   "barquillo de chocolate",
+   "galleta de chocolate"
+  ],
+  "es": "Galleta seca con chocolate, tipo barquita"
+ },
+ "24052": {
+  "alias": [
+   "tartaleta de chocolate",
+   "galleta de chocolate"
+  ],
+  "es": "Galleta seca con chocolate, tipo tartaleta"
+ },
+ "24053": {
+  "alias": [
+   "galleta de chocolate",
+   "galletas"
+  ],
+  "es": "Galleta seca con chocolate, tipo galette"
+ },
+ "24054": {
+  "alias": [
+   "galleta de fruta",
+   "pasta de te"
+  ],
+  "es": "Galleta seca (sablé, galette o palet), con fruta"
+ },
+ "24055": {
+  "alias": [
+   "galleta de frutos secos",
+   "galletas"
+  ],
+  "es": "Galleta seca rellena de frutos secos (sin chocolate o con poco)"
+ },
+ "24056": {
+  "alias": [
+   "florentina",
+   "galleta de almendra"
+  ],
+  "es": "Florentina (galleta de almendra con chocolate)"
+ },
+ "24060": {
+  "alias": [
+   "galleta merengada",
+   "merengue"
+  ],
+  "es": "Galleta de pastelería merengada"
+ },
+ "24070": {
+  "alias": [
+   "pasta de coco",
+   "galleta de coco"
+  ],
+  "es": "Pasta de té de coco (sablé)"
+ },
+ "24071": {
+  "alias": [
+   "pasta de te",
+   "galleta de mantequilla"
+  ],
+  "es": "Pasta de té (sablé) de pastelería, artesana"
+ },
+ "24072": {
+  "alias": [
+   "pasta de te de fruta",
+   "galleta de fruta"
+  ],
+  "es": "Pasta de té (sablé) con fruta (manzana, frutos rojos…)"
+ },
+ "24080": {
+  "alias": [
+   "pasta de te de chocolate",
+   "galleta de chocolate"
+  ],
+  "es": "Pasta de té (sablé) de cacao o chocolate, con praliné u otro"
+ },
+ "24225": {
+  "alias": [
+   "galleta rellena",
+   "galleta sandwich"
+  ],
+  "es": "Galleta rellena («sándwich») sabor leche o vainilla"
+ },
+ "24231": {
+  "alias": [
+   "galleta rellena de chocolate",
+   "oreo"
+  ],
+  "es": "Galleta rellena («sándwich») sabor chocolate"
+ },
+ "24240": {
+  "alias": [
+   "galleta rellena de fruta",
+   "galleta sandwich"
+  ],
+  "es": "Galleta rellena («sándwich») sabor frutas"
+ },
+ "24300": {
+  "alias": [
+   "barquillo",
+   "gaufrette"
+  ],
+  "es": "Barquillo o abanico sin relleno"
+ },
+ "24311": {
+  "alias": [
+   "barquillo de chocolate",
+   "barquillo"
+  ],
+  "es": "Barquillo relleno de chocolate, envasado"
+ },
+ "24312": {
+  "alias": [
+   "barquillo de avellana",
+   "barquillo"
+  ],
+  "es": "Barquillo relleno de frutos secos (avellana, almendra, praliné…), con o sin chocolate, envasado"
+ },
+ "24313": {
+  "alias": [
+   "barquillo de vainilla",
+   "barquillo"
+  ],
+  "es": "Barquillo relleno de vainilla, envasado"
+ },
+ "24320": {
+  "alias": [
+   "barquillo de fruta",
+   "barquillo"
+  ],
+  "es": "Barquillo relleno, de frutas"
+ },
+ "24360": {
+  "alias": [
+   "cigarrillo de barquillo",
+   "barquillo"
+  ],
+  "es": "Cigarrillo (barquillo enrollado)"
+ },
+ "24370": {
+  "alias": [
+   "crep de encaje",
+   "crepe dentelle"
+  ],
+  "es": "Crep de encaje (barquillo fino bretón)"
+ },
+ "24371": {
+  "alias": [
+   "crep de encaje",
+   "crepe dentelle"
+  ],
+  "es": "Crep de encaje con chocolate, envasada"
+ },
+ "24430": {
+  "alias": [
+   "soletilla",
+   "bizcocho de soletilla",
+   "melindro"
+  ],
+  "es": "Bizcocho de soletilla (boudoir)"
+ },
+ "24441": {
+  "alias": [
+   "lengua de gato",
+   "cigarrillo ruso"
+  ],
+  "es": "Galleta tipo lengua de gato o cigarrillo ruso"
+ },
+ "24520": {
+  "alias": [
+   "merengue",
+   "suspiro"
+  ],
+  "es": "Merengue"
+ },
+ "24615": {
+  "alias": [
+   "teja de almendra",
+   "galleta de almendra"
+  ],
+  "es": "Galleta seca o teja, de almendra"
+ },
+ "24616": {
+  "alias": [
+   "teja de fruta",
+   "galleta de fruta"
+  ],
+  "es": "Galleta seca tipo teja, de frutas"
+ },
+ "24630": {
+  "alias": [
+   "magdalena",
+   "madalena",
+   "madeleine"
+  ],
+  "es": "Magdalena, pura mantequilla, envasada"
+ },
+ "24631": {
+  "alias": [
+   "magdalena de chocolate",
+   "magdalena"
+  ],
+  "es": "Magdalena de chocolate, envasada"
+ },
+ "24632": {
+  "alias": [
+   "magdalena",
+   "madalena"
+  ],
+  "es": "Magdalena corriente, envasada"
+ },
+ "24659": {
+  "alias": [
+   "palmera",
+   "palmerita"
+  ],
+  "es": "Galleta seca hojaldrada, tipo palmera u otras"
+ },
+ "24660": {
+  "alias": [
+   "palmera",
+   "palmerita"
+  ],
+  "es": "Palmera, artesana"
+ },
+ "24663": {
+  "alias": [
+   "tarta de peras",
+   "tarta de pera y almendra"
+  ],
+  "es": "Tarta de peras a la almendra (amandine)"
+ },
+ "24664": {
+  "alias": [
+   "financier",
+   "pastelito de almendra"
+  ],
+  "es": "Pastelito de almendra tipo financier"
+ },
+ "24665": {
+  "alias": [
+   "pastel de almendras",
+   "tarta de almendra"
+  ],
+  "es": "Pastel de almendras, envasado"
+ },
+ "24666": {
+  "alias": [
+   "milhojas",
+   "mille feuille"
+  ],
+  "es": "Milhojas"
+ },
+ "24678": {
+  "alias": [
+   "barquita de fruta",
+   "galleta de fruta"
+  ],
+  "es": "Galleta seca (bizcocho) con cobertura de fruta, tipo barquita"
+ },
+ "24679": {
+  "alias": [
+   "tartaleta de fruta",
+   "galleta de fruta"
+  ],
+  "es": "Galleta seca con cobertura de fruta, tartaleta"
+ },
+ "24680": {
+  "alias": [
+   "bizcocho de naranja",
+   "pastelito de naranja"
+  ],
+  "es": "Bizcocho esponjoso relleno de naranja y cubierto de azúcar glas"
+ },
+ "24684": {
+  "alias": [
+   "cookie",
+   "galleta con pepitas"
+  ],
+  "es": "Galleta con pepitas de chocolate (cookie)"
+ },
+ "24685": {
+  "alias": [
+   "cucurucho",
+   "cono de helado",
+   "barquillo de helado"
+  ],
+  "es": "Cono o cucurucho clásico, para helado"
+ },
+ "24686": {
+  "alias": [
+   "bizcocho de chocolate",
+   "pastelito"
+  ],
+  "es": "Bizcocho seco relleno de fruta y cubierto de chocolate"
+ },
+ "24689": {
+  "alias": [
+   "galleta infantil",
+   "galleta para bebe"
+  ],
+  "es": "Galleta para bebé"
+ },
+ "24690": {
+  "alias": [
+   "galleta baja en carbohidratos",
+   "galleta keto"
+  ],
+  "es": "Galleta seca baja en hidratos"
+ },
+ "24999": {
+  "alias": [
+   "postre"
+  ],
+  "es": "Postre (alimento medio)"
+ },
+ "2500": {
+  "alias": [
+   "smoothie",
+   "batido de frutas"
+  ],
+  "es": "Smoothie"
  },
  "25001": {
   "alias": [
@@ -8490,6 +12321,13 @@
   ],
   "es": "Tomate a la provenzal, casero"
  },
+ "25525": {
+  "alias": [
+   "salsa para pizza",
+   "tomate para pizza"
+  ],
+  "es": "Salsa de guarnición para pizza"
+ },
  "25528": {
   "alias": [
    "pissaladiere",
@@ -8942,6 +12780,13 @@
   ],
   "es": "Seitán, envasado"
  },
+ "25600": {
+  "alias": [
+   "apionabo rallado",
+   "celeri remoulade"
+  ],
+  "es": "Apionabo a la remoulade, envasado"
+ },
  "25601": {
   "alias": [
    "ensalada de atun",
@@ -9024,12 +12869,35 @@
   ],
   "es": "Ensalada de pasta con verduras, con pescado o carne, envasada"
  },
+ "25620": {
+  "alias": [
+   "guacamole",
+   "crema de aguacate"
+  ],
+  "es": "Guacamole, envasado"
+ },
+ "25621": {
+  "alias": [
+   "hummus",
+   "humus",
+   "pure de garbanzos"
+  ],
+  "es": "Hummus, envasado"
+ },
  "25623": {
   "alias": [
    "tarta de maroilles",
    "flamiche"
   ],
   "es": "Tarta o flamiche de maroilles, envasada"
+ },
+ "25624": {
+  "alias": [
+   "caviar de berenjena",
+   "pate de berenjena",
+   "baba ganoush"
+  ],
+  "es": "Caviar de berenjena (paté de berenjena), envasado"
  },
  "25625": {
   "alias": [
@@ -9168,6 +13036,13 @@
    "sopa de sobre"
   ],
   "es": "Sopa al pistou, deshidratada reconstituida"
+ },
+ "25918": {
+  "alias": [
+   "caldo de cocido",
+   "caldo de carne"
+  ],
+  "es": "Caldo de carne y verduras tipo cocido, deshidratado"
  },
  "25919": {
   "alias": [
@@ -9375,6 +13250,20 @@
    "crema"
   ],
   "es": "Sopa (alimento medio)"
+ },
+ "25970": {
+  "alias": [
+   "caldo de cocido",
+   "caldo de carne"
+  ],
+  "es": "Caldo de carne y verduras tipo cocido, sin desgrasar, deshidratado"
+ },
+ "25971": {
+  "alias": [
+   "caldo de cocido desgrasado",
+   "caldo de carne"
+  ],
+  "es": "Caldo de carne y verduras tipo cocido, desgrasado, deshidratado"
  },
  "25972": {
   "alias": [
@@ -11519,6 +15408,21 @@
   ],
   "es": "Asado de ave en salazón, cocido"
  },
+ "29209": {
+  "alias": [
+   "bebida de soja con frutas",
+   "leche de soja"
+  ],
+  "es": "Bebida de soja con zumos de fruta concentrados, envasada"
+ },
+ "3000": {
+  "alias": [
+   "leche de inicio",
+   "leche 1",
+   "formula infantil"
+  ],
+  "es": "Leche de inicio, en polvo (preparado para lactantes)"
+ },
  "30005": {
   "alias": [
    "chipolata",
@@ -11532,6 +15436,13 @@
    "salchicha fresca"
   ],
   "es": "Salchicha de Toulouse, cocida"
+ },
+ "3002": {
+  "alias": [
+   "leche de continuacion",
+   "leche 2"
+  ],
+  "es": "Leche de continuación, en polvo (preparado de continuación)"
  },
  "30050": {
   "alias": [
@@ -11908,6 +15819,945 @@
    "fiambre"
   ],
   "es": "Embutido y charcutería (alimento medio)"
+ },
+ "30999": {
+  "alias": [
+   "mermelada",
+   "confitura"
+  ],
+  "es": "Mermelada, de cualquier fruta, contenido en azúcar desconocido (alimento medio)"
+ },
+ "31000": {
+  "alias": [
+   "barrita de chocolate",
+   "chocolatina"
+  ],
+  "es": "Barrita de chocolate con galleta"
+ },
+ "31001": {
+  "alias": [
+   "barrita de chocolate",
+   "chocolatina"
+  ],
+  "es": "Barrita de chocolate sin galleta, recubierta"
+ },
+ "31002": {
+  "alias": [
+   "barrita de coco",
+   "bounty"
+  ],
+  "es": "Barrita de coco recubierta de chocolate"
+ },
+ "31003": {
+  "alias": [
+   "caramelos",
+   "chuches",
+   "golosinas"
+  ],
+  "es": "Caramelos, de cualquier tipo"
+ },
+ "31004": {
+  "alias": [
+   "chocolate con leche",
+   "chocolate"
+  ],
+  "es": "Chocolate con leche, tableta"
+ },
+ "31005": {
+  "alias": [
+   "chocolate negro",
+   "chocolate"
+  ],
+  "es": "Chocolate negro con menos del 70 % de cacao, tableta"
+ },
+ "31006": {
+  "alias": [
+   "mermelada",
+   "confitura"
+  ],
+  "es": "Mermelada, de cualquier fruta (alimento medio)"
+ },
+ "31007": {
+  "alias": [
+   "chicle",
+   "goma de mascar"
+  ],
+  "es": "Chicle, azucarado"
+ },
+ "31008": {
+  "alias": [
+   "miel"
+  ],
+  "es": "Miel"
+ },
+ "31009": {
+  "alias": [
+   "chocolate con cereales",
+   "chocolate crujiente"
+  ],
+  "es": "Chocolate con leche y cereales crujientes, tableta"
+ },
+ "31010": {
+  "alias": [
+   "chocolate blanco"
+  ],
+  "es": "Chocolate blanco, tableta"
+ },
+ "31012": {
+  "alias": [
+   "chocolatina",
+   "barrita de chocolate"
+  ],
+  "es": "Barritas o confitería de chocolate con leche"
+ },
+ "31013": {
+  "alias": [
+   "polo de sorbete",
+   "sorbete"
+  ],
+  "es": "Sorbete, en polo"
+ },
+ "31014": {
+  "alias": [
+   "gelatina de fruta",
+   "gominola de fruta"
+  ],
+  "es": "Gelatina de fruta (pâte de fruits)"
+ },
+ "31016": {
+  "alias": [
+   "azucar",
+   "azucar blanco"
+  ],
+  "es": "Azúcar blanco"
+ },
+ "31017": {
+  "alias": [
+   "azucar moreno",
+   "azucar"
+  ],
+  "es": "Azúcar moreno"
+ },
+ "31018": {
+  "alias": [
+   "chocolate con almendras",
+   "chocolate con avellanas"
+  ],
+  "es": "Chocolate con leche y frutos secos (avellana, almendra, pasas, praliné), tableta"
+ },
+ "31020": {
+  "alias": [
+   "chocolate sin azucar",
+   "chocolate con leche"
+  ],
+  "es": "Chocolate con leche sin azúcares añadidos, con edulcorantes, tableta"
+ },
+ "31021": {
+  "alias": [
+   "naranja confitada",
+   "piel de naranja"
+  ],
+  "es": "Piel de naranja confitada"
+ },
+ "31023": {
+  "alias": [
+   "marron glace",
+   "castaña confitada"
+  ],
+  "es": "Marrón glacé (castaña confitada)"
+ },
+ "31024": {
+  "alias": [
+   "mermelada de fresa"
+  ],
+  "es": "Mermelada de fresa (extra o clásica)"
+ },
+ "31026": {
+  "alias": [
+   "chocolate blanco con frutos secos"
+  ],
+  "es": "Chocolate blanco con frutos secos (avellana, almendra, pasas, praliné), tableta"
+ },
+ "31027": {
+  "alias": [
+   "fruta confitada",
+   "frutas escarchadas"
+  ],
+  "es": "Fruta confitada"
+ },
+ "31030": {
+  "alias": [
+   "chocolate negro sin azucar",
+   "chocolate sin azucar"
+  ],
+  "es": "Chocolate negro sin azúcares añadidos, con edulcorantes, tableta"
+ },
+ "31032": {
+  "alias": [
+   "nutella",
+   "crema de cacao",
+   "crema de avellanas"
+  ],
+  "es": "Crema de chocolate y avellana para untar"
+ },
+ "31033": {
+  "alias": [
+   "turron",
+   "nougat"
+  ],
+  "es": "Turrón (nougat)"
+ },
+ "31034": {
+  "alias": [
+   "sirope de arce",
+   "jarabe de arce"
+  ],
+  "es": "Sirope de arce"
+ },
+ "31035": {
+  "alias": [
+   "bombon helado",
+   "barrita helada"
+  ],
+  "es": "Barrita helada con chocolate"
+ },
+ "31036": {
+  "alias": [
+   "peladilla",
+   "almendra garrapiñada"
+  ],
+  "es": "Peladilla de almendra"
+ },
+ "31037": {
+  "alias": [
+   "mermelada de albaricoque"
+  ],
+  "es": "Mermelada de albaricoque (extra o clásica)"
+ },
+ "31038": {
+  "alias": [
+   "mermelada de cereza"
+  ],
+  "es": "Mermelada de cereza (extra o clásica)"
+ },
+ "31039": {
+  "alias": [
+   "mermelada de naranja"
+  ],
+  "es": "Mermelada de naranja"
+ },
+ "31040": {
+  "alias": [
+   "dulce de leche"
+  ],
+  "es": "Dulce de leche (confiture de lait)"
+ },
+ "31041": {
+  "alias": [
+   "lacasitos",
+   "grageas de chocolate"
+  ],
+  "es": "Confitería de chocolate grageada"
+ },
+ "31042": {
+  "alias": [
+   "cacahuetes de chocolate",
+   "grageas de cacahuete"
+  ],
+  "es": "Cacahuetes recubiertos de chocolate grageados"
+ },
+ "31044": {
+  "alias": [
+   "azucar vainillado",
+   "azucar de vainilla"
+  ],
+  "es": "Azúcar avainillado"
+ },
+ "31046": {
+  "alias": [
+   "caramelo liquido",
+   "sirope de caramelo"
+  ],
+  "es": "Caramelo líquido o cobertura de caramelo"
+ },
+ "31047": {
+  "alias": [
+   "gelificante",
+   "pectina",
+   "azucar con pectina"
+  ],
+  "es": "Gelificante para mermeladas"
+ },
+ "31050": {
+  "alias": [
+   "nube",
+   "marshmallow",
+   "malvavisco"
+  ],
+  "es": "Nube (marshmallow)"
+ },
+ "31053": {
+  "alias": [
+   "mermelada de ciruela"
+  ],
+  "es": "Mermelada de ciruela (extra o clásica)"
+ },
+ "31054": {
+  "alias": [
+   "chicle sin azucar",
+   "chicle"
+  ],
+  "es": "Chicle, sin azúcar"
+ },
+ "31059": {
+  "alias": [
+   "caramelo",
+   "piruleta"
+  ],
+  "es": "Caramelo duro y piruleta"
+ },
+ "31060": {
+  "alias": [
+   "gominola",
+   "chuches",
+   "ositos de goma"
+  ],
+  "es": "Gominola"
+ },
+ "31062": {
+  "alias": [
+   "mermelada de frambuesa"
+  ],
+  "es": "Mermelada de frambuesa (extra o clásica)"
+ },
+ "31063": {
+  "alias": [
+   "bombon",
+   "bombones"
+  ],
+  "es": "Bombón de chocolate relleno de frutos secos o praliné"
+ },
+ "31064": {
+  "alias": [
+   "sacarina",
+   "edulcorante"
+  ],
+  "es": "Edulcorante de sacarina"
+ },
+ "31066": {
+  "alias": [
+   "bombon",
+   "ferrero rocher"
+  ],
+  "es": "Bombón de chocolate relleno de praliné (rocher)"
+ },
+ "31067": {
+  "alias": [
+   "melaza",
+   "melaza de caña"
+  ],
+  "es": "Melaza de caña"
+ },
+ "31068": {
+  "alias": [
+   "mermelada de arandanos"
+  ],
+  "es": "Mermelada de arándanos (extra o clásica)"
+ },
+ "31069": {
+  "alias": [
+   "chocolate negro con naranja",
+   "chocolate con fruta"
+  ],
+  "es": "Chocolate negro con fruta (naranja, frambuesa, pera), tableta"
+ },
+ "31070": {
+  "alias": [
+   "chocolate negro con almendras",
+   "chocolate con avellanas"
+  ],
+  "es": "Chocolate negro con frutos secos (avellana, almendra, pasas, praliné), tableta"
+ },
+ "31071": {
+  "alias": [
+   "barrita de chocolate",
+   "chocolatina"
+  ],
+  "es": "Barrita de chocolate con frutos secos"
+ },
+ "31072": {
+  "alias": [
+   "chocolate con menta",
+   "after eight"
+  ],
+  "es": "Chocolate negro con relleno de menta"
+ },
+ "31073": {
+  "alias": [
+   "barrita de leche y chocolate",
+   "kinder"
+  ],
+  "es": "Barrita de merienda fresca de leche y chocolate"
+ },
+ "31074": {
+  "alias": [
+   "chocolate negro 70",
+   "chocolate negro"
+  ],
+  "es": "Chocolate negro con 70 % de cacao mínimo, extra, de degustación, tableta"
+ },
+ "31076": {
+  "alias": [
+   "azucar light",
+   "edulcorante"
+  ],
+  "es": "Azúcar light con aspartamo"
+ },
+ "31077": {
+  "alias": [
+   "fructosa"
+  ],
+  "es": "Fructosa"
+ },
+ "31079": {
+  "alias": [
+   "chocolate relleno",
+   "chocolate con leche"
+  ],
+  "es": "Chocolate con leche relleno"
+ },
+ "31080": {
+  "alias": [
+   "chocolate relleno de praline",
+   "chocolate negro"
+  ],
+  "es": "Chocolate negro relleno de praliné, tableta"
+ },
+ "31081": {
+  "alias": [
+   "toffee",
+   "caramelo blando"
+  ],
+  "es": "Caramelo blando de toffee"
+ },
+ "31082": {
+  "alias": [
+   "preparado de frutas",
+   "mermelada"
+  ],
+  "es": "Preparado de frutas variadas (azúcar: entre la mermelada light y la mermelada)"
+ },
+ "31084": {
+  "alias": [
+   "chocolate relleno de praline",
+   "chocolate con leche"
+  ],
+  "es": "Chocolate con leche relleno de praliné, tableta"
+ },
+ "31085": {
+  "alias": [
+   "chocolate de reposteria",
+   "chocolate fondant"
+  ],
+  "es": "Chocolate negro con 40 % de cacao mínimo, de repostería, tableta"
+ },
+ "31086": {
+  "alias": [
+   "jalea de frutas",
+   "mermelada"
+  ],
+  "es": "Jalea de frutas variadas (extra o clásica)"
+ },
+ "31087": {
+  "alias": [
+   "estevia",
+   "edulcorante"
+  ],
+  "es": "Edulcorante a base de extracto de estevia"
+ },
+ "31089": {
+  "alias": [
+   "sirope de agave",
+   "jarabe de agave"
+  ],
+  "es": "Sirope de agave"
+ },
+ "31091": {
+  "alias": [
+   "bombon de barquillo",
+   "kit kat"
+  ],
+  "es": "Bombón de chocolate relleno de barquillo o galleta"
+ },
+ "31092": {
+  "alias": [
+   "calisson",
+   "dulce de almendra"
+  ],
+  "es": "Calissons de Aix-en-Provence"
+ },
+ "31093": {
+  "alias": [
+   "nube de chocolate",
+   "marshmallow"
+  ],
+  "es": "Nube (marshmallow) recubierta de chocolate"
+ },
+ "31094": {
+  "alias": [
+   "caramelo de toffee",
+   "caramelo duro"
+  ],
+  "es": "Caramelo duro de toffee"
+ },
+ "31095": {
+  "alias": [
+   "jalea de grosella",
+   "mermelada de grosella"
+  ],
+  "es": "Jalea de grosella (extra o clásica)"
+ },
+ "31098": {
+  "alias": [
+   "barrita de chocolate",
+   "chocolatina"
+  ],
+  "es": "Barrita de chocolate con leche y turrón blando"
+ },
+ "31099": {
+  "alias": [
+   "barrita de leche y chocolate",
+   "kinder delice"
+  ],
+  "es": "Barrita de merienda fresca de leche y chocolate con bizcocho"
+ },
+ "31100": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de desayuno"
+  ],
+  "es": "Barrita de cereales para el desayuno con leche, con o sin chocolate, enriquecida en vitaminas y minerales"
+ },
+ "31101": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de frutas"
+  ],
+  "es": "Barrita de cereales «equilibrio» con frutas, enriquecida en vitaminas y minerales"
+ },
+ "31102": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de chocolate"
+  ],
+  "es": "Barrita de cereales «equilibrio» con chocolate, enriquecida en vitaminas y minerales"
+ },
+ "31104": {
+  "alias": [
+   "barrita dietetica",
+   "barrita de cereales"
+  ],
+  "es": "Barrita de cereales dietética hipocalórica"
+ },
+ "31106": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de chocolate"
+  ],
+  "es": "Barrita de cereales con chocolate"
+ },
+ "31108": {
+  "alias": [
+   "jalea real"
+  ],
+  "es": "Jalea real"
+ },
+ "31109": {
+  "alias": [
+   "polen"
+  ],
+  "es": "Polen, parcialmente seco"
+ },
+ "31110": {
+  "alias": [
+   "mermelada light",
+   "mermelada sin azucar"
+  ],
+  "es": "Mermelada, de cualquier fruta, baja en azúcares (extra o clásica)"
+ },
+ "31111": {
+  "alias": [
+   "polen fresco",
+   "polen"
+  ],
+  "es": "Polen, fresco"
+ },
+ "31113": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de frutas"
+  ],
+  "es": "Barrita de cereales con frutas"
+ },
+ "31114": {
+  "alias": [
+   "barrita de cereales",
+   "barrita de frutos secos"
+  ],
+  "es": "Barrita de cereales con almendras o avellanas"
+ },
+ "31115": {
+  "alias": [
+   "barrita de cereales"
+  ],
+  "es": "Barrita de cereales con chocolate y frutas"
+ },
+ "31120": {
+  "alias": [
+   "chocolate",
+   "tableta de chocolate"
+  ],
+  "es": "Chocolate, en tableta (alimento medio)"
+ },
+ "31121": {
+  "alias": [
+   "chicle",
+   "goma de mascar"
+  ],
+  "es": "Chicle, contenido en azúcar desconocido (alimento medio)"
+ },
+ "32000": {
+  "alias": [
+   "trigo inflado",
+   "cereales de desayuno"
+  ],
+  "es": "Granos de trigo inflados con miel o caramelo, enriquecidos en vitaminas y minerales"
+ },
+ "32001": {
+  "alias": [
+   "cereales de chocolate",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno con chocolate, sin relleno, enriquecidos en vitaminas y minerales"
+ },
+ "32002": {
+  "alias": [
+   "cereales integrales",
+   "all bran"
+  ],
+  "es": "Cereales de desayuno ricos en fibra, con o sin fruta, enriquecidos en vitaminas y minerales"
+ },
+ "32003": {
+  "alias": [
+   "cereales de desayuno",
+   "cereales"
+  ],
+  "es": "Cereales de desayuno (alimento medio)"
+ },
+ "32004": {
+  "alias": [
+   "muesli",
+   "granola"
+  ],
+  "es": "Muesli (alimento medio)"
+ },
+ "32005": {
+  "alias": [
+   "copos de maiz",
+   "corn flakes"
+  ],
+  "es": "Copos de maíz naturales, enriquecidos en vitaminas y minerales"
+ },
+ "32006": {
+  "alias": [
+   "arroz inflado",
+   "rice krispies"
+  ],
+  "es": "Arroz inflado natural, enriquecido en vitaminas y minerales"
+ },
+ "32008": {
+  "alias": [
+   "cereales integrales de chocolate",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno ricos en fibra, con chocolate, enriquecidos en vitaminas y minerales"
+ },
+ "32009": {
+  "alias": [
+   "copos de trigo de chocolate",
+   "cereales de desayuno"
+  ],
+  "es": "Copos de trigo con chocolate, enriquecidos en vitaminas y minerales"
+ },
+ "32011": {
+  "alias": [
+   "copos de trigo de chocolate",
+   "cereales de desayuno"
+  ],
+  "es": "Copos de trigo con chocolate (sin enriquecer en vitaminas y minerales)"
+ },
+ "32012": {
+  "alias": [
+   "arroz inflado de chocolate",
+   "choco krispies"
+  ],
+  "es": "Arroz inflado con chocolate (sin enriquecer en vitaminas y minerales)"
+ },
+ "32013": {
+  "alias": [
+   "cereales de chocolate",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno con chocolate, sin relleno (sin enriquecer en vitaminas y minerales)"
+ },
+ "32014": {
+  "alias": [
+   "copos de maiz",
+   "corn flakes"
+  ],
+  "es": "Copos de maíz naturales (sin enriquecer en vitaminas y minerales)"
+ },
+ "32016": {
+  "alias": [
+   "cereales rellenos",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno rellenos de chocolate o chocolate y avellana, enriquecidos en vitaminas y minerales"
+ },
+ "32017": {
+  "alias": [
+   "cereales rellenos",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno rellenos de chocolate o chocolate y avellana"
+ },
+ "32018": {
+  "alias": [
+   "cereales rellenos",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno rellenos, de relleno distinto al chocolate, enriquecidos en vitaminas y minerales"
+ },
+ "32021": {
+  "alias": [
+   "cereales de desayuno",
+   "special k"
+  ],
+  "es": "Cereales de desayuno «equilibrio» naturales o con miel, enriquecidos en vitaminas y minerales"
+ },
+ "32022": {
+  "alias": [
+   "cereales de desayuno",
+   "special k"
+  ],
+  "es": "Cereales de desayuno «equilibrio» con chocolate, enriquecidos en vitaminas y minerales"
+ },
+ "32023": {
+  "alias": [
+   "cereales de desayuno con frutas",
+   "special k"
+  ],
+  "es": "Cereales de desayuno «equilibrio» con frutas, enriquecidos en vitaminas y minerales"
+ },
+ "32025": {
+  "alias": [
+   "cereales con frutos secos",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno «equilibrio» con frutos secos, enriquecidos en vitaminas y minerales"
+ },
+ "32028": {
+  "alias": [
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno «equilibrio» con chocolate (sin enriquecer en vitaminas y minerales)"
+ },
+ "32029": {
+  "alias": [
+   "cereales de desayuno con frutas"
+  ],
+  "es": "Cereales de desayuno «equilibrio» con frutas (sin enriquecer en vitaminas y minerales)"
+ },
+ "32030": {
+  "alias": [
+   "cereales de desayuno"
+  ],
+  "es": "Cereales de desayuno «equilibrio» naturales (sin enriquecer en vitaminas y minerales)"
+ },
+ "32031": {
+  "alias": [
+   "cereales de desayuno",
+   "cereales"
+  ],
+  "es": "Cereales de desayuno, enriquecidos en vitaminas y minerales (alimento medio)"
+ },
+ "32032": {
+  "alias": [
+   "cereales de desayuno",
+   "cereales"
+  ],
+  "es": "Cereales de desayuno, sin enriquecer en vitaminas y minerales (alimento medio)"
+ },
+ "32107": {
+  "alias": [
+   "copos de maiz azucarados",
+   "frosties"
+  ],
+  "es": "Copos de maíz azucarados (sin enriquecer en vitaminas y minerales)"
+ },
+ "32108": {
+  "alias": [
+   "granola",
+   "muesli crujiente"
+  ],
+  "es": "Muesli crujiente con frutas, frutos secos o semillas (sin enriquecer en vitaminas y minerales)"
+ },
+ "32109": {
+  "alias": [
+   "granola de chocolate",
+   "muesli crujiente"
+  ],
+  "es": "Muesli crujiente con chocolate (sin enriquecer en vitaminas y minerales)"
+ },
+ "32110": {
+  "alias": [
+   "muesli",
+   "muesli en copos"
+  ],
+  "es": "Muesli en copos con frutas o frutos secos, enriquecido en vitaminas y minerales"
+ },
+ "32111": {
+  "alias": [
+   "granola",
+   "muesli crujiente"
+  ],
+  "es": "Muesli crujiente con frutas o frutos secos, enriquecido en vitaminas y minerales"
+ },
+ "32112": {
+  "alias": [
+   "granola de chocolate",
+   "muesli crujiente"
+  ],
+  "es": "Muesli crujiente con chocolate, con o sin frutas, enriquecido en vitaminas y minerales"
+ },
+ "32113": {
+  "alias": [
+   "muesli sin azucar",
+   "muesli"
+  ],
+  "es": "Muesli en copos con frutas o frutos secos, sin azúcares añadidos"
+ },
+ "32115": {
+  "alias": [
+   "trigo inflado de chocolate",
+   "cereales de desayuno"
+  ],
+  "es": "Granos de trigo inflados con chocolate, enriquecidos en vitaminas y minerales"
+ },
+ "32116": {
+  "alias": [
+   "cereales de fibra",
+   "all bran"
+  ],
+  "es": "Cereales de desayuno muy ricos en fibra, enriquecidos en vitaminas y minerales"
+ },
+ "32121": {
+  "alias": [
+   "copos de maiz azucarados",
+   "frosties"
+  ],
+  "es": "Copos de maíz azucarados, enriquecidos en vitaminas y minerales"
+ },
+ "32123": {
+  "alias": [
+   "copos de trigo con frutos secos",
+   "cereales de desayuno"
+  ],
+  "es": "Copos de trigo con nueces, avellanas o almendras, enriquecidos en vitaminas y minerales"
+ },
+ "32128": {
+  "alias": [
+   "muesli",
+   "muesli tradicional"
+  ],
+  "es": "Muesli en copos o tradicional"
+ },
+ "32129": {
+  "alias": [
+   "bolas de maiz",
+   "cereales de desayuno"
+  ],
+  "es": "Bolas de maíz infladas con miel (sin enriquecer en vitaminas y minerales)"
+ },
+ "32130": {
+  "alias": [
+   "kamut inflado",
+   "trigo inflado"
+  ],
+  "es": "Trigo khorasan integral inflado"
+ },
+ "32131": {
+  "alias": [
+   "arroz inflado de chocolate",
+   "choco krispies"
+  ],
+  "es": "Arroz inflado con chocolate, enriquecido en vitaminas y minerales"
+ },
+ "32133": {
+  "alias": [
+   "bolas de maiz",
+   "miel pops"
+  ],
+  "es": "Bolas de maíz infladas con miel, enriquecidas en vitaminas y minerales"
+ },
+ "32134": {
+  "alias": [
+   "cereales inflados",
+   "cereales de desayuno"
+  ],
+  "es": "Cereales integrales inflados, enriquecidos en vitaminas y minerales"
+ },
+ "32135": {
+  "alias": [
+   "cereales multicereales",
+   "cereales de desayuno"
+  ],
+  "es": "Multicereales inflados o extrusionados, enriquecidos en vitaminas y minerales"
+ },
+ "32136": {
+  "alias": [
+   "granola de quinoa",
+   "muesli crujiente"
+  ],
+  "es": "Muesli crujiente, con quinoa"
+ },
+ "32138": {
+  "alias": [
+   "muesli",
+   "muesli en copos"
+  ],
+  "es": "Muesli en copos con frutas o frutos secos (sin enriquecer en vitaminas y minerales)"
+ },
+ "32139": {
+  "alias": [
+   "muesli",
+   "granola"
+  ],
+  "es": "Muesli enriquecido en vitaminas y minerales (alimento medio)"
+ },
+ "32140": {
+  "alias": [
+   "copos de avena",
+   "avena instantanea"
+  ],
+  "es": "Copos de avena precocidos"
+ },
+ "32141": {
+  "alias": [
+   "muesli",
+   "granola"
+  ],
+  "es": "Muesli sin enriquecer en vitaminas y minerales (alimento medio)"
  },
  "34000": {
   "alias": [
@@ -12432,6 +17282,27 @@
   ],
   "es": "Ave, cocida (alimento medio)"
  },
+ "37000": {
+  "alias": [
+   "base de pizza",
+   "masa de pizza con nata"
+  ],
+  "es": "Base de pizza a la crema"
+ },
+ "37001": {
+  "alias": [
+   "masa de pizza",
+   "base de pizza"
+  ],
+  "es": "Masa de pizza cruda"
+ },
+ "37002": {
+  "alias": [
+   "base de pizza",
+   "masa de pizza"
+  ],
+  "es": "Base de pizza con tomate"
+ },
  "38104": {
   "alias": [
    "chips de gamba",
@@ -12715,6 +17586,36 @@
   ],
   "es": "Ponche de huevo, sin alcohol"
  },
+ "39401": {
+  "alias": [
+   "melocoton melba",
+   "peche melba"
+  ],
+  "es": "Melocotón Melba"
+ },
+ "39500": {
+  "alias": [
+   "helado",
+   "polo",
+   "sorbete"
+  ],
+  "es": "Polo, sorbete o helado, de cualquier sabor (alimento medio)"
+ },
+ "39502": {
+  "alias": [
+   "postre helado",
+   "tarta helada"
+  ],
+  "es": "Postre helado tipo mystère o vacherin"
+ },
+ "39503": {
+  "alias": [
+   "bombon helado",
+   "polo de chocolate",
+   "magnum"
+  ],
+  "es": "Helado en polo, recubierto de chocolate"
+ },
  "39505": {
   "alias": [
    "natillas"
@@ -12728,11 +17629,172 @@
   ],
   "es": "Natillas de chocolate, en conserva"
  },
+ "39509": {
+  "alias": [
+   "cono de helado",
+   "cucurucho",
+   "cornetto"
+  ],
+  "es": "Helado en cono (tamaño estándar)"
+ },
  "39511": {
   "alias": [
    "natillas"
   ],
   "es": "Natillas, refrigeradas o en conserva (alimento medio)"
+ },
+ "39512": {
+  "alias": [
+   "sundae",
+   "copa de helado"
+  ],
+  "es": "Postre helado tipo sundae"
+ },
+ "39515": {
+  "alias": [
+   "helado de tarrina",
+   "helado"
+  ],
+  "es": "Helado, en tarrina grande"
+ },
+ "39516": {
+  "alias": [
+   "tarta helada",
+   "postre helado"
+  ],
+  "es": "Postre helado hojaldrado, para compartir"
+ },
+ "39517": {
+  "alias": [
+   "helado de yogur",
+   "frozen yogurt"
+  ],
+  "es": "Helado de yogur"
+ },
+ "39518": {
+  "alias": [
+   "tortilla noruega",
+   "omelette noruega"
+  ],
+  "es": "Tortilla noruega"
+ },
+ "39519": {
+  "alias": [
+   "pera bella elena",
+   "poire belle helene"
+  ],
+  "es": "Pera Bella Elena"
+ },
+ "39520": {
+  "alias": [
+   "helado cremoso",
+   "helado de tarrina"
+  ],
+  "es": "Helado cremoso, en tarrina grande"
+ },
+ "39521": {
+  "alias": [
+   "helado cremoso",
+   "helado individual"
+  ],
+  "es": "Helado cremoso, en tarrina individual"
+ },
+ "39522": {
+  "alias": [
+   "minicono de helado",
+   "cucurucho"
+  ],
+  "es": "Helado en minicono"
+ },
+ "39523": {
+  "alias": [
+   "helado individual",
+   "helado"
+  ],
+  "es": "Helado, en tarrina individual"
+ },
+ "39524": {
+  "alias": [
+   "sorbete",
+   "sorbete de tarrina"
+  ],
+  "es": "Sorbete, en tarrina grande"
+ },
+ "39525": {
+  "alias": [
+   "sorbete individual",
+   "sorbete"
+  ],
+  "es": "Sorbete, en tarrina individual"
+ },
+ "39526": {
+  "alias": [
+   "polo de hielo",
+   "polo"
+  ],
+  "es": "Polo de hielo"
+ },
+ "39527": {
+  "alias": [
+   "helado"
+  ],
+  "es": "Helado, en tarrina grande o individual (alimento medio)"
+ },
+ "39528": {
+  "alias": [
+   "sorbete en cucurucho",
+   "sorbete"
+  ],
+  "es": "Sorbete, en cono"
+ },
+ "39529": {
+  "alias": [
+   "turron helado",
+   "nougat helado"
+  ],
+  "es": "Turrón helado"
+ },
+ "39530": {
+  "alias": [
+   "limon helado",
+   "sorbete de limon"
+  ],
+  "es": "Limón o naranja helada (sorbete en su cáscara)"
+ },
+ "39531": {
+  "alias": [
+   "helado infantil",
+   "helado"
+  ],
+  "es": "Helado, tarrina pequeña infantil"
+ },
+ "39532": {
+  "alias": [
+   "copa helada",
+   "cafe liegeois"
+  ],
+  "es": "Copa helada tipo café o chocolate liégeois"
+ },
+ "39533": {
+  "alias": [
+   "tronco helado",
+   "buche helada"
+  ],
+  "es": "Tronco helado"
+ },
+ "39534": {
+  "alias": [
+   "copa helada",
+   "melocoton melba"
+  ],
+  "es": "Copa helada sabor melocotón Melba o pera Bella Elena"
+ },
+ "39700": {
+  "alias": [
+   "crema inglesa",
+   "natillas liquidas"
+  ],
+  "es": "Crema inglesa, envasada"
  },
  "39710": {
   "alias": [
@@ -13405,6 +18467,13 @@
   ],
   "es": "Molleja de pato confitada, en conserva"
  },
+ "4090": {
+  "alias": [
+   "fecula de patata",
+   "almidon de patata"
+  ],
+  "es": "Fécula de patata"
+ },
  "4101": {
   "alias": [
    "boniato",
@@ -13429,6 +18498,209 @@
   ],
   "es": "Boniato, puré cocinado con nata"
  },
+ "42000": {
+  "alias": [
+   "sustitutivo de comida",
+   "batido sustitutivo"
+  ],
+  "es": "Sustitutivo de comida hipocalórico, natillas"
+ },
+ "42003": {
+  "alias": [
+   "sustitutivo de comida",
+   "batido sustitutivo"
+  ],
+  "es": "Sustitutivo de comida hipocalórico, listo para beber"
+ },
+ "42004": {
+  "alias": [
+   "sustitutivo de comida",
+   "batido sustitutivo"
+  ],
+  "es": "Sustitutivo de comida hipocalórico, polvo reconstituido con leche desnatada"
+ },
+ "42005": {
+  "alias": [
+   "sustitutivo de comida",
+   "batido sustitutivo"
+  ],
+  "es": "Sustitutivo de comida hipocalórico, polvo reconstituido con leche desnatada, tipo batido"
+ },
+ "42200": {
+  "alias": [
+   "lecitina de soja",
+   "lecitina"
+  ],
+  "es": "Lecitina de soja"
+ },
+ "42501": {
+  "alias": [
+   "cacao infantil",
+   "cacao para bebe"
+  ],
+  "es": "Cacao en polvo para bebé"
+ },
+ "42603": {
+  "alias": [
+   "potito de carne",
+   "potito"
+  ],
+  "es": "Plato de verduras con féculas y carne o pescado, desde 6-8 meses"
+ },
+ "42604": {
+  "alias": [
+   "potito de carne",
+   "potito"
+  ],
+  "es": "Plato de verduras con féculas y carne o pescado, desde 8-12 meses"
+ },
+ "42605": {
+  "alias": [
+   "potito de carne",
+   "potito"
+  ],
+  "es": "Plato de verduras con féculas y carne o pescado, desde 12 meses"
+ },
+ "42606": {
+  "alias": [
+   "potito de carne",
+   "potito"
+  ],
+  "es": "Plato de verduras con féculas y carne o pescado, desde 18 meses"
+ },
+ "5000": {
+  "alias": [
+   "cerveza negra",
+   "cerveza tostada"
+  ],
+  "es": "Cerveza negra"
+ },
+ "5001": {
+  "alias": [
+   "cerveza",
+   "caña"
+  ],
+  "es": "Cerveza corriente (4-5° de alcohol)"
+ },
+ "5002": {
+  "alias": [
+   "cerveza fuerte",
+   "cerveza"
+  ],
+  "es": "Cerveza fuerte (> 8° de alcohol)"
+ },
+ "5003": {
+  "alias": [
+   "sidra"
+  ],
+  "es": "Sidra (alimento medio)"
+ },
+ "5004": {
+  "alias": [
+   "clara",
+   "cerveza con limon"
+  ],
+  "es": "Clara (cerveza con gaseosa)"
+ },
+ "5005": {
+  "alias": [
+   "clara",
+   "cerveza con limon"
+  ],
+  "es": "Clara envasada (< 1° de alcohol)"
+ },
+ "5006": {
+  "alias": [
+   "sidra brut",
+   "sidra"
+  ],
+  "es": "Sidra brut (seca)"
+ },
+ "5007": {
+  "alias": [
+   "sidra dulce",
+   "sidra"
+  ],
+  "es": "Sidra dulce"
+ },
+ "5008": {
+  "alias": [
+   "cerveza suave",
+   "cerveza"
+  ],
+  "es": "Cerveza de baja graduación (3° de alcohol)"
+ },
+ "5009": {
+  "alias": [
+   "cerveza de trigo",
+   "cerveza blanca",
+   "weissbier"
+  ],
+  "es": "Cerveza de trigo (blanca)"
+ },
+ "5010": {
+  "alias": [
+   "cerveza especial",
+   "cerveza"
+  ],
+  "es": "Cerveza especial (5-6° de alcohol)"
+ },
+ "5011": {
+  "alias": [
+   "cerveza artesana",
+   "cerveza de abadia"
+  ],
+  "es": "Cerveza de especialidad o de abadía, regional o artesana (graduación variable)"
+ },
+ "5020": {
+  "alias": [
+   "sidra natural",
+   "sidra"
+  ],
+  "es": "Sidra tradicional"
+ },
+ "5021": {
+  "alias": [
+   "sidra semiseca",
+   "sidra"
+  ],
+  "es": "Sidra tapada semiseca"
+ },
+ "5022": {
+  "alias": [
+   "sidra de frambuesa",
+   "sidra"
+  ],
+  "es": "Sidra aromatizada (frambuesa)"
+ },
+ "5030": {
+  "alias": [
+   "cerveza sin alcohol",
+   "cerveza sin"
+  ],
+  "es": "Cerveza sin alcohol (< 1,2° de alcohol)"
+ },
+ "5100": {
+  "alias": [
+   "refresco de frutas",
+   "espumoso de frutas"
+  ],
+  "es": "Refresco espumoso de frutas"
+ },
+ "51500": {
+  "alias": [
+   "meloukhia",
+   "molokhia"
+  ],
+  "es": "Meloukhia, hojas de corete secas, en polvo"
+ },
+ "51502": {
+  "alias": [
+   "meloukhia",
+   "molokhia"
+  ],
+  "es": "Meloukhia, salsa, artesanal"
+ },
  "51510": {
   "alias": [
    "frik",
@@ -13443,6 +18715,59 @@
    "freekeh"
   ],
   "es": "Frik (trigo duro verde partido), cocido, sin sal"
+ },
+ "51550": {
+  "alias": [
+   "khatfa",
+   "pasta brick"
+  ],
+  "es": "Khatfa de hoja de brick, envasada"
+ },
+ "5201": {
+  "alias": [
+   "vino espumoso",
+   "cava"
+  ],
+  "es": "Vino blanco espumoso"
+ },
+ "5207": {
+  "alias": [
+   "champan",
+   "champagne"
+  ],
+  "es": "Champán"
+ },
+ "5209": {
+  "alias": [
+   "vino espumoso aromatizado"
+  ],
+  "es": "Vino blanco espumoso aromatizado"
+ },
+ "5210": {
+  "alias": [
+   "vino"
+  ],
+  "es": "Vino (alimento medio)"
+ },
+ "5214": {
+  "alias": [
+   "vino tinto",
+   "tinto"
+  ],
+  "es": "Vino tinto"
+ },
+ "5215": {
+  "alias": [
+   "vino blanco"
+  ],
+  "es": "Vino blanco (seco)"
+ },
+ "5216": {
+  "alias": [
+   "vino rosado",
+   "rosado"
+  ],
+  "es": "Vino rosado"
  },
  "53100": {
   "alias": [
@@ -14338,6 +19663,13 @@
   ],
   "es": "Pan de molde tipo brioche, envasado"
  },
+ "7225": {
+  "alias": [
+   "pan brioche",
+   "pan vienes"
+  ],
+  "es": "Pan de brioche o pan vienés"
+ },
  "7255": {
   "alias": [
    "pan de semillas",
@@ -14501,6 +19833,20 @@
   ],
   "es": "Tostada crujiente, extrusionada y tostada"
  },
+ "7412": {
+  "alias": [
+   "tostada crujiente",
+   "barrita crujiente"
+  ],
+  "es": "Tostada crujiente extrusionada, rellena de chocolate"
+ },
+ "7413": {
+  "alias": [
+   "tostada crujiente",
+   "barrita crujiente"
+  ],
+  "es": "Tostada crujiente extrusionada, rellena de fruta"
+ },
  "7420": {
   "alias": [
    "pan crujiente sueco integral",
@@ -14551,6 +19897,765 @@
    "palitos de pan"
   ],
   "es": "Colines (grissini)"
+ },
+ "7600": {
+  "alias": [
+   "bolleria",
+   "bollo"
+  ],
+  "es": "Bollería (alimento medio)"
+ },
+ "76000": {
+  "alias": [
+   "agua abatilles",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Abatilles, embotellada, sin gas, de mineralización débil (Arcachon, 33)"
+ },
+ "76001": {
+  "alias": [
+   "agua aix-les-bains",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Aix-les-Bains, embotellada, sin gas, de mineralización débil (Aix-les-Bains, 73)"
+ },
+ "76002": {
+  "alias": [
+   "agua aizac",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Aizac, embotellada, con gas, de mineralización débil (Aizac, 07)"
+ },
+ "76004": {
+  "alias": [
+   "agua amanda",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Amanda, embotellada, sin gas, de mineralización fuerte (St-Amand, 59)"
+ },
+ "76006": {
+  "alias": [
+   "agua arcens",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Arcens, embotellada, con gas, de mineralización media (Arcens, 07)"
+ },
+ "76007": {
+  "alias": [
+   "agua ardesy",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Ardesy, embotellada, con gas, de mineralización fuerte (Ardes, 63)"
+ },
+ "76010": {
+  "alias": [
+   "agua celtic",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Celtic, embotellada, con o sin gas, de mineralización muy débil (Niederbronn, 67)"
+ },
+ "76011": {
+  "alias": [
+   "agua chambon",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Chambon, embotellada, sin gas, de mineralización débil (Chambon, 45)"
+ },
+ "76012": {
+  "alias": [
+   "agua chantemerle",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Chantemerle, embotellada, sin gas, de mineralización débil (Le Pestrin, 07)"
+ },
+ "76013": {
+  "alias": [
+   "agua chateauneuf",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Chateauneuf, embotellada, con gas, de mineralización fuerte (Chateauneuf, 63)"
+ },
+ "76014": {
+  "alias": [
+   "agua chateldon",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Chateldon, embotellada, con gas, de mineralización fuerte (Chateldon, 63)"
+ },
+ "76015": {
+  "alias": [
+   "agua clos de l'abbaye",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Clos de l'Abbaye, embotellada, sin gas, de mineralización media (St-Amand, 59)"
+ },
+ "76016": {
+  "alias": [
+   "agua contrex",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Contrex, embotellada, sin gas, de mineralización fuerte (Contrexéville, 88)"
+ },
+ "76017": {
+  "alias": [
+   "agua dax",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Dax, embotellada, sin gas, de mineralización media (Dax, 40)"
+ },
+ "76018": {
+  "alias": [
+   "agua didier",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Didier, embotellada, con gas, de mineralización fuerte (Martinique)"
+ },
+ "76019": {
+  "alias": [
+   "agua didier",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Didier, embotellada, sin gas, de mineralización fuerte (Martinique)"
+ },
+ "7602": {
+  "alias": [
+   "cruasan",
+   "croissant"
+  ],
+  "es": "Cruasán, sin precisar"
+ },
+ "76020": {
+  "alias": [
+   "agua evian",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Evian, embotellada, sin gas, de mineralización débil (Evian, 74)"
+ },
+ "76022": {
+  "alias": [
+   "agua hépar",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Hépar, embotellada, sin gas, de mineralización fuerte (Vittel, 88)"
+ },
+ "76023": {
+  "alias": [
+   "agua hydroxydase",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Hydroxydase, embotellada, con gas, de mineralización fuerte (Le Breuil sur Couze, 63)"
+ },
+ "76024": {
+  "alias": [
+   "agua vernière",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Vernière, embotellada, con gas, de mineralización media (Les Aires, 34)"
+ },
+ "76025": {
+  "alias": [
+   "agua luchon",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Luchon, embotellada, sin gas, de mineralización débil (Luchon, 31)"
+ },
+ "76027": {
+  "alias": [
+   "agua mont-roucous",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Mont-Roucous, embotellada, de mineralización muy débil (Lacaune, 81)"
+ },
+ "76028": {
+  "alias": [
+   "agua ogeu",
+   "agua mineral"
+  ],
+  "es": "Agua de manantial Ogeu, embotellada, de mineralización débil (Ogeu, 64)"
+ },
+ "76029": {
+  "alias": [
+   "agua orée du bois",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Orée du bois, embotellada, sin gas, de mineralización media (St-Amand, 59)"
+ },
+ "76030": {
+  "alias": [
+   "agua orezza",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Orezza, embotellada, con gas, de mineralización media (Rapaggio, 20B)"
+ },
+ "76031": {
+  "alias": [
+   "agua parot",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Parot, embotellada, con gas, de mineralización media (St-Romain-le-Puy, 42)"
+ },
+ "76032": {
+  "alias": [
+   "agua plancoet",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Plancoet, embotellada, con o sin gas, de mineralización débil (Plancoet, 22)"
+ },
+ "76033": {
+  "alias": [
+   "agua propiac",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Propiac, embotellada, sin gas, de mineralización fuerte (Propiac, 26)"
+ },
+ "76034": {
+  "alias": [
+   "agua puits st-georges",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Puits St-Georges, embotellada, con gas, de mineralización media (St-Romain-le-Puy, 42)"
+ },
+ "76035": {
+  "alias": [
+   "agua quézac",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Quézac, embotellada, con gas, de mineralización media (Quézac, 48)"
+ },
+ "76036": {
+  "alias": [
+   "agua reine des basaltes",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Reine des basaltes, embotellada, con gas, de mineralización media (Asperjoc, 07)"
+ },
+ "76037": {
+  "alias": [
+   "agua rozana",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Rozana, embotellada, con gas, de mineralización fuerte (Beauregard, 63)"
+ },
+ "76038": {
+  "alias": [
+   "agua sail-les-bains",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Sail-les-Bains, embotellada, sin gas, de mineralización débil (Sail-les-Bains, 42)"
+ },
+ "76039": {
+  "alias": [
+   "agua salvetat",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Salvetat, embotellada, con gas, de mineralización media (La Salvetat, 34)"
+ },
+ "76043": {
+  "alias": [
+   "agua st-amand",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral St-Amand, embotellada, con o sin gas, de mineralización media (St-Amand, 59)"
+ },
+ "76044": {
+  "alias": [
+   "agua st-antonin",
+   "agua mineral"
+  ],
+  "es": "Agua mineral St-Antonin, embotellada, sin gas, de mineralización fuerte (St-Antonin-Noble-Val, 82)"
+ },
+ "76046": {
+  "alias": [
+   "agua st-diéry",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral St-Diéry, embotellada, con gas, de mineralización fuerte (St-Diéry, 63)"
+ },
+ "76047": {
+  "alias": [
+   "agua ste-marguerite",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Ste-Marguerite, embotellada, con gas, de mineralización media (St-Maurice, 63)"
+ },
+ "76049": {
+  "alias": [
+   "agua st-yorre",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral St-Yorre, embotellada, con gas, de mineralización fuerte (Saint-Yorre, 03)"
+ },
+ "76050": {
+  "alias": [
+   "agua thonon",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Thonon, embotellada, sin gas, de mineralización débil (Thonon, 74)"
+ },
+ "76053": {
+  "alias": [
+   "agua ventadour",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Ventadour, embotellada, con gas, de mineralización débil (Le Pestrin, 07)"
+ },
+ "76054": {
+  "alias": [
+   "agua vernet",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Vernet, embotellada, con gas, de mineralización débil (Prades, 07)"
+ },
+ "76055": {
+  "alias": [
+   "agua vichy célestins",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Vichy Célestins, embotellada, con gas, de mineralización fuerte (Saint-Yorre, 03)"
+ },
+ "76056": {
+  "alias": [
+   "agua vittel",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Vittel, embotellada, sin gas, de mineralización media (Vittel, 88)"
+ },
+ "76057": {
+  "alias": [
+   "agua volvic",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Volvic, embotellada, sin gas, de mineralización débil (Volvic, 63)"
+ },
+ "76058": {
+  "alias": [
+   "agua volvic active",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Volvic active, embotellada, con gas, de mineralización débil (Volvic, 63)"
+ },
+ "76059": {
+  "alias": [
+   "agua wattwiller",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Wattwiller, embotellada, con o sin gas, de mineralización débil (Wattwiller, 68)"
+ },
+ "76060": {
+  "alias": [
+   "agua perrier",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Perrier, embotellada, con gas, de mineralización débil (Vergèse, 30)"
+ },
+ "76061": {
+  "alias": [
+   "agua badoit",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Badoit, embotellada, con gas, de mineralización media (St-Galmier, 42)"
+ },
+ "76062": {
+  "alias": [
+   "agua avra",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Avra, embotellada, sin gas, de mineralización débil (Grecia)"
+ },
+ "76063": {
+  "alias": [
+   "agua beckerich",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Beckerich, embotellada, sin gas, de mineralización débil (Luxemburgo)"
+ },
+ "76065": {
+  "alias": [
+   "agua chaudfontaine",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Chaudfontaine, embotellada, sin gas, de mineralización débil (Bélgica)"
+ },
+ "76066": {
+  "alias": [
+   "agua christinen brunnen",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Christinen Brunnen, embotellada, sin gas, de mineralización media (Alemania)"
+ },
+ "76067": {
+  "alias": [
+   "agua courmayeur",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Courmayeur, embotellada, sin gas, de mineralización fuerte (Italia)"
+ },
+ "76069": {
+  "alias": [
+   "agua levissima",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Levissima, embotellada, sin gas, de mineralización débil (Italia)"
+ },
+ "76070": {
+  "alias": [
+   "agua luso",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Luso, embotellada, sin gas, de mineralización muy débil (Portugal)"
+ },
+ "76071": {
+  "alias": [
+   "agua néro",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Néro, embotellada, sin gas, de mineralización débil (Grecia)"
+ },
+ "76072": {
+  "alias": [
+   "agua penacova",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Penacova, embotellada, sin gas, de mineralización muy débil (Portugal)"
+ },
+ "76074": {
+  "alias": [
+   "agua san bernardo",
+   "agua mineral"
+  ],
+  "es": "Agua mineral San Bernardo, embotellada, de mineralización muy débil (Italia)"
+ },
+ "76075": {
+  "alias": [
+   "agua san pellegrino",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral San Pellegrino, embotellada, con gas, de mineralización media (Italia)"
+ },
+ "76076": {
+  "alias": [
+   "agua spa-reine",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Spa-Reine, embotellada, con o sin gas, de mineralización media (Bélgica)"
+ },
+ "76078": {
+  "alias": [
+   "agua valvert",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Valvert, embotellada, sin gas, de mineralización débil (Bélgica)"
+ },
+ "76079": {
+  "alias": [
+   "agua appollinaris",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Appollinaris, embotellada, sin gas, de mineralización fuerte (Alemania)"
+ },
+ "76080": {
+  "alias": [
+   "agua cristaline",
+   "agua mineral"
+  ],
+  "es": "Agua de manantial Cristaline, embotellada, sin gas"
+ },
+ "76081": {
+  "alias": [
+   "agua biovive",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Biovive, embotellada, sin gas, de mineralización débil (Dax, 40)"
+ },
+ "76082": {
+  "alias": [
+   "agua la cairolle",
+   "agua mineral"
+  ],
+  "es": "Agua mineral La Cairolle, embotellada, sin gas, de mineralización fuerte (Les Aires, 34)"
+ },
+ "76083": {
+  "alias": [
+   "agua cilaos",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Cilaos, embotellada, con gas, de mineralización fuerte (Cilaos, 974)"
+ },
+ "76085": {
+  "alias": [
+   "agua la française",
+   "agua mineral"
+  ],
+  "es": "Agua mineral La Française, embotellada, sin gas, de mineralización fuerte (Propiac, 26)"
+ },
+ "76086": {
+  "alias": [
+   "agua montcalm",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Montcalm, embotellada, sin gas, de mineralización muy débil (Auzat, 09)"
+ },
+ "76087": {
+  "alias": [
+   "agua montclar",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Montclar, embotellada, sin gas, de mineralización débil (Montclar, 04)"
+ },
+ "76088": {
+  "alias": [
+   "agua nessel",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Nessel, embotellada, con gas, de mineralización media (Soultzmatt, 68)"
+ },
+ "76089": {
+  "alias": [
+   "agua ogeu",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Ogeu, embotellada, con gas, de mineralización débil (Ogeu-les-Bains, 64)"
+ },
+ "76090": {
+  "alias": [
+   "agua ogeu",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Ogeu, embotellada, sin gas, de mineralización débil (Ogeu-les-Bains, 64)"
+ },
+ "76091": {
+  "alias": [
+   "agua prince noir",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Prince Noir, embotellada, sin gas, de mineralización fuerte (St-Antonin-Noble-Val, 82)"
+ },
+ "76092": {
+  "alias": [
+   "agua st-alban",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral St-Alban, embotellada, con gas, de mineralización media (St-Alban, 42)"
+ },
+ "76093": {
+  "alias": [
+   "agua st-géron",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral St-Géron, embotellada, con gas, de mineralización media (St-Géron, 43)"
+ },
+ "76094": {
+  "alias": [
+   "agua st-michel-de-mourcairol",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral St-Michel-de-Mourcairol, embotellada, con gas, de mineralización media (Les Aires, 34)"
+ },
+ "76095": {
+  "alias": [
+   "agua treignac",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Treignac, embotellada, sin gas, de mineralización muy débil (Treignac, 19)"
+ },
+ "76096": {
+  "alias": [
+   "agua vals",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Vals, embotellada, con gas, de mineralización media (Vals-les-Bains, 07)"
+ },
+ "76097": {
+  "alias": [
+   "agua vauban",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Vauban, embotellada, sin gas, de mineralización media (St-Amand-les-Eaux, 59)"
+ },
+ "76100": {
+  "alias": [
+   "agua carola",
+   "agua mineral",
+   "agua con gas"
+  ],
+  "es": "Agua mineral Carola, embotellada, con o sin gas, de mineralización media (Ribeauville, 68)"
+ },
+ "76101": {
+  "alias": [
+   "agua mont-blanc",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Mont-Blanc, embotellada, sin gas, de mineralización débil (Italia)"
+ },
+ "76102": {
+  "alias": [
+   "agua eden (la goa)",
+   "agua mineral"
+  ],
+  "es": "Agua mineral Eden (La Goa), embotellada, sin gas, de mineralización débil (Suiza)"
+ },
+ "7615": {
+  "alias": [
+   "cruasan",
+   "croissant"
+  ],
+  "es": "Cruasán corriente, artesano"
+ },
+ "7620": {
+  "alias": [
+   "cruasan de mantequilla",
+   "croissant"
+  ],
+  "es": "Cruasán de mantequilla, artesano"
+ },
+ "7650": {
+  "alias": [
+   "cruasan de almendras",
+   "croissant"
+  ],
+  "es": "Cruasán de almendras, artesano"
+ },
+ "7710": {
+  "alias": [
+   "bollo de leche",
+   "suizo"
+  ],
+  "es": "Bollo de leche, artesano"
+ },
+ "7711": {
+  "alias": [
+   "bollo de leche",
+   "suizo"
+  ],
+  "es": "Bollo de leche, envasado"
+ },
+ "7712": {
+  "alias": [
+   "bollo de leche con chocolate",
+   "suizo de chocolate"
+  ],
+  "es": "Bollo de leche con pepitas de chocolate, envasado"
+ },
+ "7720": {
+  "alias": [
+   "caracola de pasas",
+   "caracola"
+  ],
+  "es": "Caracola de pasas (bollería)"
+ },
+ "7730": {
+  "alias": [
+   "napolitana de chocolate",
+   "napolitana"
+  ],
+  "es": "Napolitana de chocolate hojaldrada, artesana"
+ },
+ "7733": {
+  "alias": [
+   "napolitana de chocolate",
+   "napolitana"
+  ],
+  "es": "Napolitana de chocolate, envasada"
+ },
+ "7735": {
+  "alias": [
+   "brioche de chocolate",
+   "bollo de chocolate"
+  ],
+  "es": "Brioche (o briochitos) con pepitas de chocolate, envasado"
+ },
+ "7737": {
+  "alias": [
+   "brioche de chocolate",
+   "bollo relleno"
+  ],
+  "es": "Brioche relleno de chocolate"
+ },
+ "7738": {
+  "alias": [
+   "brioche de fruta",
+   "bollo relleno"
+  ],
+  "es": "Brioche relleno de fruta, envasado"
+ },
+ "7739": {
+  "alias": [
+   "brioche de crema",
+   "bollo de crema"
+  ],
+  "es": "Brioche relleno de crema pastelera (tipo «chinois»), envasado"
+ },
+ "7740": {
+  "alias": [
+   "brioche",
+   "bollo"
+  ],
+  "es": "Brioche, envasado"
+ },
+ "7741": {
+  "alias": [
+   "brioche",
+   "bollo"
+  ],
+  "es": "Brioche, sin precisar"
+ },
+ "7742": {
+  "alias": [
+   "brioche artesano",
+   "bollo"
+  ],
+  "es": "Brioche, de panadería tradicional"
+ },
+ "7744": {
+  "alias": [
+   "roscon",
+   "brioche de frutas confitadas"
+  ],
+  "es": "Roscón navideño (brioche) con frutas confitadas, envasado"
+ },
+ "7745": {
+  "alias": [
+   "brioche de mantequilla",
+   "bollo"
+  ],
+  "es": "Brioche puro mantequilla, envasado"
  },
  "7811": {
   "alias": [
@@ -15331,6 +21436,13 @@
   ],
   "es": "Avena, cruda"
  },
+ "9311": {
+  "alias": [
+   "copos de avena",
+   "avena"
+  ],
+  "es": "Copos de avena"
+ },
  "9313": {
   "alias": [
    "copos de avena",
@@ -15409,12 +21521,132 @@
   ],
   "es": "Centeno entero, crudo"
  },
+ "9410": {
+  "alias": [
+   "harina semiintegral",
+   "harina de trigo"
+  ],
+  "es": "Harina de trigo blando T110"
+ },
+ "9415": {
+  "alias": [
+   "harina integral",
+   "harina de trigo integral"
+  ],
+  "es": "Harina de trigo blando T150 (integral)"
+ },
+ "9435": {
+  "alias": [
+   "harina de fuerza",
+   "harina de trigo"
+  ],
+  "es": "Harina de trigo blando T65"
+ },
+ "9436": {
+  "alias": [
+   "harina de panaderia",
+   "harina de trigo"
+  ],
+  "es": "Harina de trigo blando T55 (para pan)"
+ },
+ "9437": {
+  "alias": [
+   "harina con levadura",
+   "harina bizcochona"
+  ],
+  "es": "Harina de trigo blando con levadura incorporada"
+ },
+ "9440": {
+  "alias": [
+   "harina de reposteria",
+   "harina floja"
+  ],
+  "es": "Harina de trigo blando T45 (para repostería)"
+ },
+ "9445": {
+  "alias": [
+   "harina semiintegral",
+   "harina de trigo"
+  ],
+  "es": "Harina de trigo blando T80"
+ },
+ "9480": {
+  "alias": [
+   "harina de espelta",
+   "espelta"
+  ],
+  "es": "Harina de espelta (espelta mayor)"
+ },
+ "9510": {
+  "alias": [
+   "maicena",
+   "almidon de maiz",
+   "fecula de maiz"
+  ],
+  "es": "Almidón o fécula de maíz"
+ },
+ "9520": {
+  "alias": [
+   "harina de arroz"
+  ],
+  "es": "Harina de arroz"
+ },
+ "9530": {
+  "alias": [
+   "harina de centeno integral",
+   "harina de centeno"
+  ],
+  "es": "Harina de centeno T170"
+ },
+ "9532": {
+  "alias": [
+   "harina de centeno"
+  ],
+  "es": "Harina de centeno T85"
+ },
+ "9533": {
+  "alias": [
+   "harina de centeno"
+  ],
+  "es": "Harina de centeno T130"
+ },
+ "9540": {
+  "alias": [
+   "harina de trigo sarraceno",
+   "harina de alforfon"
+  ],
+  "es": "Harina de trigo sarraceno"
+ },
+ "9545": {
+  "alias": [
+   "harina de maiz"
+  ],
+  "es": "Harina de maíz"
+ },
+ "9550": {
+  "alias": [
+   "harina de cebada"
+  ],
+  "es": "Harina de cebada"
+ },
+ "9555": {
+  "alias": [
+   "harina de mijo"
+  ],
+  "es": "Harina de mijo"
+ },
  "9570": {
   "alias": [
    "harina de castaña",
    "castaña molida"
   ],
   "es": "Harina de castaña"
+ },
+ "9580": {
+  "alias": [
+   "harina de garbanzo"
+  ],
+  "es": "Harina de garbanzo"
  },
  "9610": {
   "alias": [
@@ -15449,6 +21681,60 @@
    "polenta"
   ],
   "es": "Polenta o sémola de maíz, cocida, sin sal"
+ },
+ "9621": {
+  "alias": [
+   "salvado de trigo",
+   "salvado",
+   "afrecho"
+  ],
+  "es": "Salvado de trigo"
+ },
+ "9640": {
+  "alias": [
+   "salvado de avena",
+   "salvado"
+  ],
+  "es": "Salvado de avena"
+ },
+ "9641": {
+  "alias": [
+   "salvado de maiz",
+   "salvado"
+  ],
+  "es": "Salvado de maíz"
+ },
+ "9643": {
+  "alias": [
+   "salvado de arroz",
+   "salvado"
+  ],
+  "es": "Salvado de arroz"
+ },
+ "9647": {
+  "alias": [
+   "salvado"
+  ],
+  "es": "Salvado (alimento medio)"
+ },
+ "9660": {
+  "alias": [
+   "germen de trigo"
+  ],
+  "es": "Germen de trigo"
+ },
+ "96778": {
+  "alias": [
+   "masa de pizza",
+   "base de pizza"
+  ],
+  "es": "Masa de pizza cocida"
+ },
+ "96781": {
+  "alias": [
+   "almidon de arroz"
+  ],
+  "es": "Almidón de arroz"
  },
  "9681": {
   "alias": [

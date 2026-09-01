@@ -50,6 +50,3 @@ design_handoff_*/
 # ochenta llamadas a un LLM.
 backend/data/*
 !backend/data/ciqual_es.json
-!backend/data/es_parts/
-backend/data/es_parts/*
-!backend/data/es_parts/*.json

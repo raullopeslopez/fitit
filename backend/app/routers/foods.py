@@ -7,7 +7,7 @@ Search reads both; writes only ever touch yours.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer, selectinload
 
@@ -24,6 +24,20 @@ router = APIRouter(prefix="/foods", tags=["foods"])
 # than fits on the screen twice over, and the cap is what keeps "a" from
 # dragging three thousand CIQUAL rows across the wire.
 SEARCH_LIMIT = 30
+
+# Cuántas filas se traen para ordenar, antes de quedarse con `SEARCH_LIMIT`.
+#
+# El orden fino se calcula en Python (`_rank`), así que hace falta el conjunto
+# de candidatos... salvo que sea absurdo. Con CIQUAL cargado, buscar `a` casa
+# con 3.090 de los 3.185 alimentos: 113 ms de ordenación para pintar treinta
+# nombres que, con una sola letra escrita, no responden a ninguna pregunta.
+# Medido, 2026-08-31.
+#
+# El corte va por longitud de nombre ascendente y no arbitrariamente: con una
+# consulta corta, los nombres cortos son los que más probablemente se buscan
+# (`Pan` antes que `Pan de centeno de la panadería de abajo`). Las búsquedas
+# reales no lo tocan — `pollo` casa con 74 filas y `pan` con 111.
+CANDIDATE_LIMIT = 400
 
 
 def _visible(user_id: int):
@@ -82,7 +96,11 @@ def search_stmt(user_id: int, needle: str):
         # razonamiento que `Day.workouts`).
         return stmt.where(Food.user_id == user_id).order_by(Food.id.desc())
     alias_matches = select(FoodAlias.food_id).where(FoodAlias.alias_folded.contains(needle))
-    return stmt.where(or_(Food.name_folded.contains(needle), Food.id.in_(alias_matches)))
+    return (
+        stmt.where(or_(Food.name_folded.contains(needle), Food.id.in_(alias_matches)))
+        .order_by(func.length(Food.name_folded))
+        .limit(CANDIDATE_LIMIT)
+    )
 
 
 @router.get("", response_model=list[FoodOut])
