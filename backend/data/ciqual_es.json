@@ -1,0 +1,4038 @@
+{
+ "13000": {
+  "alias": [
+   "albaricoque",
+   "albercoque",
+   "alberge"
+  ],
+  "es": "Albaricoque, sin hueso, crudo"
+ },
+ "13001": {
+  "alias": [
+   "orejones",
+   "albaricoque seco",
+   "orejones de albaricoque"
+  ],
+  "es": "Albaricoque, sin hueso, seco"
+ },
+ "13002": {
+  "alias": [
+   "piña",
+   "ananá",
+   "piña natural"
+  ],
+  "es": "Piña, pulpa, cruda"
+ },
+ "13004": {
+  "alias": [
+   "aguacate",
+   "avocado"
+  ],
+  "es": "Aguacate, pulpa, crudo"
+ },
+ "13005": {
+  "alias": [
+   "platano",
+   "banana",
+   "guineo"
+  ],
+  "es": "Plátano, pulpa, crudo"
+ },
+ "13007": {
+  "alias": [
+   "grosella negra",
+   "casis",
+   "cassis"
+  ],
+  "es": "Grosella negra, cruda"
+ },
+ "13008": {
+  "alias": [
+   "cereza",
+   "picota"
+  ],
+  "es": "Cereza, sin hueso, cruda"
+ },
+ "13009": {
+  "alias": [
+   "limon",
+   "limon amarillo"
+  ],
+  "es": "Limón, pulpa, crudo"
+ },
+ "13010": {
+  "alias": [
+   "membrillo",
+   "codony"
+  ],
+  "es": "Membrillo, crudo"
+ },
+ "13011": {
+  "alias": [
+   "datil",
+   "datiles"
+  ],
+  "es": "Dátil, pulpa y piel, seco"
+ },
+ "13012": {
+  "alias": [
+   "higo",
+   "breva"
+  ],
+  "es": "Higo, crudo"
+ },
+ "13013": {
+  "alias": [
+   "higo seco",
+   "higos pasos"
+  ],
+  "es": "Higo, seco"
+ },
+ "13014": {
+  "alias": [
+   "fresa",
+   "fresón",
+   "maduixa"
+  ],
+  "es": "Fresa, cruda"
+ },
+ "13015": {
+  "alias": [
+   "frambuesa",
+   "gerd"
+  ],
+  "es": "Frambuesa, cruda"
+ },
+ "13016": {
+  "alias": [
+   "maracuya",
+   "fruta de la pasion",
+   "parchita"
+  ],
+  "es": "Fruta de la pasión o maracuyá, pulpa y pepitas, cruda"
+ },
+ "13018": {
+  "alias": [
+   "granada",
+   "magrana"
+  ],
+  "es": "Granada, pulpa y granos, cruda"
+ },
+ "13019": {
+  "alias": [
+   "grosella",
+   "grosella roja"
+  ],
+  "es": "Grosella, cruda"
+ },
+ "13020": {
+  "alias": [
+   "grosella espinosa",
+   "uva espina"
+  ],
+  "es": "Grosella espinosa, cruda"
+ },
+ "13021": {
+  "alias": [
+   "kiwi",
+   "actinidia"
+  ],
+  "es": "Kiwi, pulpa y semillas, crudo"
+ },
+ "13023": {
+  "alias": [
+   "lichi",
+   "litchi"
+  ],
+  "es": "Lichi, pulpa, crudo"
+ },
+ "13024": {
+  "alias": [
+   "mandarina",
+   "clementina",
+   "satsuma"
+  ],
+  "es": "Clementina o mandarina, pulpa, cruda"
+ },
+ "13025": {
+  "alias": [
+   "mango"
+  ],
+  "es": "Mango, pulpa, crudo"
+ },
+ "13026": {
+  "alias": [
+   "melon",
+   "melon cantalupo",
+   "melon frances"
+  ],
+  "es": "Melón cantalupo (p. ej. Charentais, de Cavaillon), pulpa, crudo"
+ },
+ "13027": {
+  "alias": [
+   "ciruela mirabel",
+   "mirabel"
+  ],
+  "es": "Ciruela mirabel, cruda"
+ },
+ "13028": {
+  "alias": [
+   "arandano",
+   "arandano azul",
+   "mirtilo"
+  ],
+  "es": "Arándano, crudo"
+ },
+ "13029": {
+  "alias": [
+   "mora",
+   "zarzamora",
+   "mora de zarza"
+  ],
+  "es": "Mora (de zarza), cruda"
+ },
+ "13030": {
+  "alias": [
+   "nectarina",
+   "briñon"
+  ],
+  "es": "Nectarina o briñón, pulpa y piel, cruda"
+ },
+ "13034": {
+  "alias": [
+   "naranja",
+   "taronja"
+  ],
+  "es": "Naranja, pulpa, cruda"
+ },
+ "13035": {
+  "alias": [
+   "papaya",
+   "lechosa"
+  ],
+  "es": "Papaya, pulpa, cruda"
+ },
+ "13036": {
+  "alias": [
+   "sandia",
+   "melon de agua"
+  ],
+  "es": "Sandía, pulpa, cruda"
+ },
+ "13037": {
+  "alias": [
+   "pera",
+   "pera conferencia"
+  ],
+  "es": "Pera, pulpa y piel, cruda"
+ },
+ "13038": {
+  "alias": [
+   "compota de manzana",
+   "pure de manzana"
+  ],
+  "es": "Compota de manzana"
+ },
+ "13039": {
+  "alias": [
+   "manzana",
+   "poma"
+  ],
+  "es": "Manzana, pulpa y piel, cruda"
+ },
+ "13040": {
+  "alias": [
+   "pomelo",
+   "toronja"
+  ],
+  "es": "Pomelo, pulpa, crudo"
+ },
+ "13041": {
+  "alias": [
+   "ciruela claudia",
+   "claudia",
+   "ciruela verde"
+  ],
+  "es": "Ciruela Claudia, cruda"
+ },
+ "13042": {
+  "alias": [
+   "ciruela pasa",
+   "pasas de ciruela"
+  ],
+  "es": "Ciruela pasa, seca"
+ },
+ "13043": {
+  "alias": [
+   "melocoton",
+   "presec",
+   "durazno"
+  ],
+  "es": "Melocotón, pulpa y piel, crudo"
+ },
+ "13044": {
+  "alias": [
+   "uva blanca",
+   "uva de mesa"
+  ],
+  "es": "Uva blanca, de grano grande (tipo Italia o Dátil), cruda"
+ },
+ "13045": {
+  "alias": [
+   "uva negra",
+   "uva tinta"
+  ],
+  "es": "Uva negra, cruda"
+ },
+ "13046": {
+  "alias": [
+   "pasas",
+   "uvas pasas",
+   "pasas sultanas"
+  ],
+  "es": "Uva pasa, seca"
+ },
+ "13047": {
+  "alias": [
+   "ruibarbo"
+  ],
+  "es": "Ruibarbo, tallo, crudo"
+ },
+ "13048": {
+  "alias": [
+   "ruibarbo cocido"
+  ],
+  "es": "Ruibarbo, tallo, cocido, azucarado"
+ },
+ "13050": {
+  "alias": [
+   "manzana pelada",
+   "manzana"
+  ],
+  "es": "Manzana, pulpa, cruda"
+ },
+ "13051": {
+  "alias": [
+   "frutas deshidratadas",
+   "mix de frutas secas"
+  ],
+  "es": "Mezcla de aperitivo de frutas exóticas, seca"
+ },
+ "13054": {
+  "alias": [
+   "carambola",
+   "fruta estrella"
+  ],
+  "es": "Carambola, pulpa, cruda"
+ },
+ "13056": {
+  "alias": [
+   "chirimoya",
+   "anona"
+  ],
+  "es": "Anona o chirimoya, pulpa, cruda"
+ },
+ "13061": {
+  "alias": [
+   "feijoa",
+   "guayabo del Brasil"
+  ],
+  "es": "Feijoa, pulpa, cruda"
+ },
+ "13063": {
+  "alias": [
+   "higo chumbo",
+   "chumbera",
+   "tuna"
+  ],
+  "es": "Higo chumbo, pulpa y semillas, crudo"
+ },
+ "13066": {
+  "alias": [
+   "caqui",
+   "palosanto",
+   "persimon"
+  ],
+  "es": "Caqui, pulpa, crudo"
+ },
+ "13067": {
+  "alias": [
+   "lima",
+   "limon verde"
+  ],
+  "es": "Lima, pulpa, cruda"
+ },
+ "13071": {
+  "alias": [
+   "mora de morera",
+   "moral"
+  ],
+  "es": "Mora negra (de morera), cruda"
+ },
+ "13077": {
+  "alias": [
+   "rambutan",
+   "lichi peludo"
+  ],
+  "es": "Rambután, pulpa, crudo"
+ },
+ "13080": {
+  "alias": [
+   "tamarindo"
+  ],
+  "es": "Tamarindo, fruto maduro, pulpa, crudo"
+ },
+ "13083": {
+  "alias": [
+   "guayaba",
+   "guayabo"
+  ],
+  "es": "Guayaba, pulpa, cruda"
+ },
+ "13085": {
+  "alias": [
+   "manzana reineta",
+   "reineta"
+  ],
+  "es": "Manzana reineta (Canadá), pulpa, cruda"
+ },
+ "13086": {
+  "alias": [
+   "manzana golden",
+   "golden"
+  ],
+  "es": "Manzana Golden, pulpa, cruda"
+ },
+ "13089": {
+  "alias": [
+   "platano deshidratado",
+   "chips de platano"
+  ],
+  "es": "Plátano, pulpa, seco"
+ },
+ "13100": {
+  "alias": [
+   "ciruela",
+   "pruna"
+  ],
+  "es": "Ciruela, cruda"
+ },
+ "13101": {
+  "alias": [
+   "uva chasselas",
+   "uva blanca"
+  ],
+  "es": "Uva Chasselas, cruda"
+ },
+ "13107": {
+  "alias": [
+   "pera pelada",
+   "pera"
+  ],
+  "es": "Pera, pulpa, cruda"
+ },
+ "13108": {
+  "alias": [
+   "compota",
+   "compota de frutas"
+  ],
+  "es": "Compota, de cualquier fruta"
+ },
+ "13109": {
+  "alias": [
+   "compota sin azucar",
+   "compota light"
+  ],
+  "es": "Compota, de cualquier fruta, baja en azúcares"
+ },
+ "13110": {
+  "alias": [
+   "guinda",
+   "cereza acida"
+  ],
+  "es": "Guinda, cruda"
+ },
+ "13111": {
+  "alias": [
+   "manzana deshidratada",
+   "chips de manzana"
+  ],
+  "es": "Manzana, seca"
+ },
+ "13112": {
+  "alias": [
+   "uva",
+   "uvas"
+  ],
+  "es": "Uva, cruda"
+ },
+ "13113": {
+  "alias": [
+   "arandano rojo",
+   "cranberry"
+  ],
+  "es": "Arándano rojo (cranberry), crudo"
+ },
+ "13118": {
+  "alias": [
+   "melocoton deshidratado",
+   "orejones de melocoton"
+  ],
+  "es": "Melocotón, seco"
+ },
+ "13121": {
+  "alias": [
+   "manzana granny",
+   "granny smith",
+   "manzana verde"
+  ],
+  "es": "Manzana Granny Smith, pulpa, cruda"
+ },
+ "13122": {
+  "alias": [
+   "manzana granny con piel",
+   "granny smith"
+  ],
+  "es": "Manzana Granny Smith, pulpa y piel, cruda"
+ },
+ "13125": {
+  "alias": [
+   "ralladura de limon",
+   "piel de limon",
+   "cascara de limon"
+  ],
+  "es": "Limón, ralladura de piel, cruda"
+ },
+ "13126": {
+  "alias": [
+   "sauco",
+   "baya de sauco"
+  ],
+  "es": "Saúco, baya, cruda"
+ },
+ "13128": {
+  "alias": [
+   "chayote",
+   "cidra",
+   "chuchu"
+  ],
+  "es": "Chayote o cidra, cruda"
+ },
+ "13129": {
+  "alias": [
+   "compota refrigerada",
+   "compota sin azucar"
+  ],
+  "es": "Compota, de cualquier fruta, baja en azúcares, refrigerada"
+ },
+ "13132": {
+  "alias": [
+   "arandano congelado"
+  ],
+  "es": "Arándano, congelado, crudo"
+ },
+ "13134": {
+  "alias": [
+   "macedonia",
+   "ensalada de frutas"
+  ],
+  "es": "Macedonia de frutas, cruda"
+ },
+ "13136": {
+  "alias": [
+   "frambuesa congelada"
+  ],
+  "es": "Frambuesa, congelada, cruda"
+ },
+ "13148": {
+  "alias": [
+   "nectarina amarilla",
+   "nectarina"
+  ],
+  "es": "Nectarina o briñón, amarilla, pulpa y piel, cruda"
+ },
+ "13149": {
+  "alias": [
+   "nectarina blanca",
+   "nectarina"
+  ],
+  "es": "Nectarina o briñón, blanca, pulpa y piel, cruda"
+ },
+ "13150": {
+  "alias": [
+   "mora congelada",
+   "zarzamora congelada"
+  ],
+  "es": "Mora (de zarza), congelada, cruda"
+ },
+ "13151": {
+  "alias": [
+   "compota de manzana light",
+   "compota sin azucar"
+  ],
+  "es": "Compota de manzana, baja en azúcares"
+ },
+ "13152": {
+  "alias": [
+   "postre de frutas",
+   "tarrina de frutas"
+  ],
+  "es": "Postre de frutas, de cualquier fruta (azúcar: entre la compota ligera y la compota normal)"
+ },
+ "13153": {
+  "alias": [
+   "pure de frutas",
+   "compota sin azucares añadidos"
+  ],
+  "es": "Puré de frutas, de cualquier fruta, tipo «compota sin azúcares añadidos»"
+ },
+ "13154": {
+  "alias": [
+   "especialidad de frutas",
+   "preparado de frutas"
+  ],
+  "es": "Especialidad de frutas variadas, azucarada (pulpas o purés con otro ingrediente)"
+ },
+ "13175": {
+  "alias": [
+   "manzana asada",
+   "manzana al horno"
+  ],
+  "es": "Manzana, pulpa, asada al horno"
+ },
+ "13176": {
+  "alias": [
+   "manzana cocida"
+  ],
+  "es": "Manzana, pulpa, hervida/cocida en agua"
+ },
+ "13177": {
+  "alias": [
+   "chayote cocido",
+   "cidra cocida"
+  ],
+  "es": "Chayote o cidra, hervida/cocida en agua"
+ },
+ "13178": {
+  "alias": [
+   "arandano rojo seco",
+   "cranberries secos"
+  ],
+  "es": "Arándano rojo (cranberry), seco, azucarado"
+ },
+ "13179": {
+  "alias": [
+   "pomelo amarillo",
+   "pomelo blanco"
+  ],
+  "es": "Pomelo amarillo, pulpa, crudo"
+ },
+ "13180": {
+  "alias": [
+   "pomelo rosa",
+   "pomelo rojo"
+  ],
+  "es": "Pomelo rosa, pulpa, crudo"
+ },
+ "13185": {
+  "alias": [
+   "compota",
+   "compota de frutas"
+  ],
+  "es": "Compota o similar, de cualquier fruta, con azúcar desconocido (alimento medio)"
+ },
+ "13187": {
+  "alias": [
+   "pure de manzana",
+   "compota sin azucar"
+  ],
+  "es": "Puré de manzana, tipo «compota sin azúcares añadidos»"
+ },
+ "13188": {
+  "alias": [
+   "pera conferencia",
+   "pera"
+  ],
+  "es": "Pera Conferencia, pulpa, cruda"
+ },
+ "13189": {
+  "alias": [
+   "pera williams",
+   "pera"
+  ],
+  "es": "Pera Williams, pulpa, cruda"
+ },
+ "13190": {
+  "alias": [
+   "manzana chantecler"
+  ],
+  "es": "Manzana Chantecler, pulpa, cruda"
+ },
+ "13191": {
+  "alias": [
+   "manzana gala",
+   "gala"
+  ],
+  "es": "Manzana Gala, pulpa, cruda"
+ },
+ "13192": {
+  "alias": [
+   "manzana pink lady",
+   "pink lady"
+  ],
+  "es": "Manzana Pink Lady, pulpa, cruda"
+ },
+ "13193": {
+  "alias": [
+   "melocoton blanco"
+  ],
+  "es": "Melocotón blanco, pulpa y piel, crudo"
+ },
+ "13194": {
+  "alias": [
+   "melocoton blanco pelado"
+  ],
+  "es": "Melocotón blanco, pulpa, crudo"
+ },
+ "13195": {
+  "alias": [
+   "melocoton amarillo"
+  ],
+  "es": "Melocotón amarillo, pulpa, crudo"
+ },
+ "13200": {
+  "alias": [
+   "mango jose",
+   "mango"
+  ],
+  "es": "Mango José, pulpa, crudo (La Reunión)"
+ },
+ "13201": {
+  "alias": [
+   "piña victoria",
+   "piña"
+  ],
+  "es": "Piña Victoria (Queen Victoria), pulpa, cruda (La Reunión)"
+ },
+ "13202": {
+  "alias": [
+   "papaya colombo",
+   "papaya"
+  ],
+  "es": "Papaya Colombo (fruto maduro), pulpa sin pepitas, cruda (La Reunión)"
+ },
+ "13400": {
+  "alias": [
+   "mamey en almibar",
+   "abricot pays"
+  ],
+  "es": "Mamey (abricot pays), pulpa, en almíbar, en conserva, sin escurrir (Martinica)"
+ },
+ "13401": {
+  "alias": [
+   "mamey",
+   "abricot pays",
+   "mamey amarillo"
+  ],
+  "es": "Mamey (abricot pays), pulpa, crudo (Martinica)"
+ },
+ "13402": {
+  "alias": [
+   "piña",
+   "ananá"
+  ],
+  "es": "Piña, pulpa, cruda (Martinica)"
+ },
+ "13403": {
+  "alias": [
+   "caimito",
+   "estrella"
+  ],
+  "es": "Caimito, pulpa, crudo (Martinica)"
+ },
+ "13404": {
+  "alias": [
+   "acerola",
+   "cereza acerola",
+   "cereza de Barbados"
+  ],
+  "es": "Acerola, pulpa, cruda (Martinica)"
+ },
+ "13405": {
+  "alias": [
+   "pomelo",
+   "pampelmusa",
+   "shaddock"
+  ],
+  "es": "Pomelo chadeque, pulpa, crudo (Martinica)"
+ },
+ "13406": {
+  "alias": [
+   "chips de mamey"
+  ],
+  "es": "Chips de mamey (abricot pays), pulpa (Martinica)"
+ },
+ "13407": {
+  "alias": [
+   "pure de guayaba",
+   "guayaba"
+  ],
+  "es": "Guayaba, pulpa, en puré (Martinica)"
+ },
+ "13408": {
+  "alias": [
+   "zumo de carambola"
+  ],
+  "es": "Zumo de carambola, filtrado (Martinica)"
+ },
+ "13409": {
+  "alias": [
+   "zumo de carambola"
+  ],
+  "es": "Zumo de carambola, sin filtrar (Martinica)"
+ },
+ "13410": {
+  "alias": [
+   "zumo de limon"
+  ],
+  "es": "Zumo de limón punch (variedad de calibre pequeño), zumo puro (Martinica)"
+ },
+ "13411": {
+  "alias": [
+   "zumo de lima",
+   "zumo de limon verde"
+  ],
+  "es": "Zumo de lima (variedad de calibre grande), zumo puro (Martinica)"
+ },
+ "13412": {
+  "alias": [
+   "zumo de guanabana",
+   "guanabana"
+  ],
+  "es": "Zumo de guanábana (corossol) (Martinica)"
+ },
+ "13413": {
+  "alias": [
+   "zumo de maracuya"
+  ],
+  "es": "Zumo de fruta de la pasión o maracuyá, zumo puro (Martinica)"
+ },
+ "13414": {
+  "alias": [
+   "zumo de granada"
+  ],
+  "es": "Zumo de granada (Martinica)"
+ },
+ "13415": {
+  "alias": [
+   "zumo de lima"
+  ],
+  "es": "Zumo de lima, zumo puro (Martinica)"
+ },
+ "13416": {
+  "alias": [
+   "zumo de mandarina"
+  ],
+  "es": "Zumo de mandarina común, zumo puro filtrado y pasteurizado (Martinica)"
+ },
+ "13417": {
+  "alias": [
+   "zumo de mandarina"
+  ],
+  "es": "Zumo de mandarina común, zumo puro filtrado (Martinica)"
+ },
+ "13418": {
+  "alias": [
+   "zumo de mandarina"
+  ],
+  "es": "Zumo de mandarina macaque, zumo puro filtrado (Martinica)"
+ },
+ "13419": {
+  "alias": [
+   "zumo de jobo",
+   "jobo"
+  ],
+  "es": "Zumo de jobo (moubin), zumo puro (Martinica)"
+ },
+ "13420": {
+  "alias": [
+   "zumo de pomelo"
+  ],
+  "es": "Zumo de pomelo (variedad local), zumo puro (Martinica)"
+ },
+ "13421": {
+  "alias": [
+   "zumo de jobo indio",
+   "manzana de oro"
+  ],
+  "es": "Zumo de jobo indio verde «gigante» (variedad local), fruto maduro, filtrado (Martinica)"
+ },
+ "13422": {
+  "alias": [
+   "zumo de jobo indio",
+   "manzana de oro"
+  ],
+  "es": "Zumo de jobo indio verde «gigante» (variedad local), fruto verde, filtrado (Martinica)"
+ },
+ "13423": {
+  "alias": [
+   "zumo de jobo indio",
+   "manzana de oro"
+  ],
+  "es": "Zumo de jobo indio verde «enano» (variedad híbrida), fruto maduro, filtrado (Martinica)"
+ },
+ "13424": {
+  "alias": [
+   "zumo de jobo indio",
+   "manzana de oro"
+  ],
+  "es": "Zumo de jobo indio verde «enano» (variedad híbrida), fruto verde, filtrado (Martinica)"
+ },
+ "13425": {
+  "alias": [
+   "mandarina en almibar"
+  ],
+  "es": "Mandarina común, pulpa, en almíbar, en conserva, sin escurrir (Martinica)"
+ },
+ "13426": {
+  "alias": [
+   "mango bassignac",
+   "mango"
+  ],
+  "es": "Mango Bassignac, pulpa, crudo (Martinica)"
+ },
+ "13427": {
+  "alias": [
+   "mango moussache",
+   "mango"
+  ],
+  "es": "Mango Moussache, pulpa, crudo (Martinica)"
+ },
+ "13428": {
+  "alias": [
+   "mango julie",
+   "mango"
+  ],
+  "es": "Mango Julie, pulpa, crudo (Martinica)"
+ },
+ "13429": {
+  "alias": [
+   "mango verde"
+  ],
+  "es": "Mango verde, pulpa, crudo (Martinica)"
+ },
+ "13430": {
+  "alias": [
+   "melon"
+  ],
+  "es": "Melón, pulpa, crudo (Martinica)"
+ },
+ "13431": {
+  "alias": [
+   "naranja"
+  ],
+  "es": "Naranja (variedad local), pulpa (Martinica)"
+ },
+ "13432": {
+  "alias": [
+   "naranja amarga",
+   "naranja agria"
+  ],
+  "es": "Naranja amarga, pulpa, cruda (Martinica)"
+ },
+ "13433": {
+  "alias": [
+   "sandia"
+  ],
+  "es": "Sandía, pulpa, cruda (Martinica)"
+ },
+ "13434": {
+  "alias": [
+   "marañon",
+   "manzana de caju",
+   "merey"
+  ],
+  "es": "Marañón (manzana de cajú), pulpa, crudo (Martinica)"
+ },
+ "13435": {
+  "alias": [
+   "anon",
+   "chirimoya",
+   "saramuyo"
+  ],
+  "es": "Anón (chirimoya escamosa), pulpa, cruda (Martinica)"
+ },
+ "13436": {
+  "alias": [
+   "manzana de agua",
+   "pomarrosa"
+  ],
+  "es": "Manzana de agua (pomarrosa de Malaca), pulpa, cruda (Martinica)"
+ },
+ "13437": {
+  "alias": [
+   "granadilla",
+   "parcha"
+  ],
+  "es": "Granadilla (pomme liane), pulpa, cruda (Martinica)"
+ },
+ "13438": {
+  "alias": [
+   "jobo indio",
+   "manzana de oro",
+   "ambarella"
+  ],
+  "es": "Jobo indio, maduro, fruto entero, crudo (Martinica)"
+ },
+ "13439": {
+  "alias": [
+   "jobo indio verde",
+   "manzana de oro"
+  ],
+  "es": "Jobo indio, verde o inmaduro, fruto entero, crudo (Martinica)"
+ },
+ "13440": {
+  "alias": [
+   "yaca",
+   "jackfruit",
+   "fruta del jack"
+  ],
+  "es": "Yaca (jackfruit), pulpa, cruda (Martinica)"
+ },
+ "13529": {
+  "alias": [
+   "durian"
+  ],
+  "es": "Durián, pulpa, crudo"
+ },
+ "13549": {
+  "alias": [
+   "kumquat",
+   "naranja china"
+  ],
+  "es": "Kumquat, sin pepitas, crudo"
+ },
+ "13552": {
+  "alias": [
+   "longan",
+   "ojo de dragon"
+  ],
+  "es": "Longan, pulpa, crudo"
+ },
+ "13614": {
+  "alias": [
+   "pummelo",
+   "pomelo chino",
+   "pampelmusa"
+  ],
+  "es": "Pomelo chino (pummelo), pulpa, crudo"
+ },
+ "13620": {
+  "alias": [
+   "manzana golden con piel",
+   "golden"
+  ],
+  "es": "Manzana Golden, pulpa y piel, cruda"
+ },
+ "13621": {
+  "alias": [
+   "uva moscatel",
+   "uva negra"
+  ],
+  "es": "Uva negra Moscatel, cruda"
+ },
+ "13623": {
+  "alias": [
+   "orejones tiernos",
+   "albaricoque seco"
+  ],
+  "es": "Albaricoque, sin hueso, seco y tierno (rehidratado al 35-45 %)"
+ },
+ "13704": {
+  "alias": [
+   "albaricoque en almibar"
+  ],
+  "es": "Albaricoque en almíbar (sin precisar si ligero o clásico), en conserva, escurrido (alimento medio)"
+ },
+ "13705": {
+  "alias": [
+   "macedonia en almibar",
+   "coctel de frutas"
+  ],
+  "es": "Macedonia o cóctel de frutas en almíbar (sin precisar), en conserva, escurrida (alimento medio)"
+ },
+ "13706": {
+  "alias": [
+   "macedonia en almibar",
+   "coctel de frutas"
+  ],
+  "es": "Macedonia o cóctel de frutas en almíbar, en conserva, escurrida"
+ },
+ "13707": {
+  "alias": [
+   "macedonia en almibar",
+   "coctel de frutas"
+  ],
+  "es": "Macedonia o cóctel de frutas en almíbar, en conserva, sin escurrir"
+ },
+ "13708": {
+  "alias": [
+   "macedonia en almibar light"
+  ],
+  "es": "Macedonia o cóctel de frutas en almíbar ligero, en conserva, escurrida"
+ },
+ "13709": {
+  "alias": [
+   "macedonia en almibar light"
+  ],
+  "es": "Macedonia o cóctel de frutas en almíbar ligero, en conserva, sin escurrir"
+ },
+ "13712": {
+  "alias": [
+   "albaricoque en almibar light"
+  ],
+  "es": "Albaricoque en almíbar ligero, en conserva, escurrido"
+ },
+ "13713": {
+  "alias": [
+   "albaricoque en almibar light"
+  ],
+  "es": "Albaricoque en almíbar ligero, en conserva, sin escurrir"
+ },
+ "13714": {
+  "alias": [
+   "albaricoque en almibar"
+  ],
+  "es": "Albaricoque en almíbar, en conserva, escurrido"
+ },
+ "13715": {
+  "alias": [
+   "albaricoque en almibar"
+  ],
+  "es": "Albaricoque en almíbar, en conserva, sin escurrir"
+ },
+ "13716": {
+  "alias": [
+   "piña en su jugo",
+   "piña de lata"
+  ],
+  "es": "Piña en su jugo, en conserva, escurrida"
+ },
+ "13717": {
+  "alias": [
+   "piña en su jugo",
+   "piña de lata"
+  ],
+  "es": "Piña en su jugo, en conserva, sin escurrir"
+ },
+ "13718": {
+  "alias": [
+   "piña en almibar"
+  ],
+  "es": "Piña en almíbar ligero, en conserva, escurrida"
+ },
+ "13719": {
+  "alias": [
+   "piña en almibar"
+  ],
+  "es": "Piña en almíbar ligero, en conserva, sin escurrir"
+ },
+ "13730": {
+  "alias": [
+   "melocoton en almibar"
+  ],
+  "es": "Melocotón en almíbar ligero, en conserva, escurrido"
+ },
+ "13731": {
+  "alias": [
+   "melocoton en almibar"
+  ],
+  "es": "Melocotón en almíbar ligero, en conserva, sin escurrir"
+ },
+ "13734": {
+  "alias": [
+   "pera en almibar"
+  ],
+  "es": "Pera en almíbar ligero, en conserva, escurrida"
+ },
+ "13735": {
+  "alias": [
+   "pera en almibar"
+  ],
+  "es": "Pera en almíbar ligero, en conserva, sin escurrir"
+ },
+ "13742": {
+  "alias": [
+   "melon miel",
+   "melon honeydew",
+   "melon amarillo"
+  ],
+  "es": "Melón miel (honeydew), pulpa, crudo"
+ },
+ "13997": {
+  "alias": [
+   "frutos rojos",
+   "frutos del bosque"
+  ],
+  "es": "Frutos rojos, crudos (frambuesas, fresas, grosellas, grosellas negras)"
+ },
+ "13998": {
+  "alias": [
+   "coulis de frutos rojos",
+   "salsa de frutos rojos"
+  ],
+  "es": "Coulis de frutos rojos (frambuesas, fresas, grosellas, grosellas negras)"
+ },
+ "13999": {
+  "alias": [
+   "fruta"
+  ],
+  "es": "Fruta cruda (alimento medio)"
+ },
+ "15000": {
+  "alias": [
+   "almendra",
+   "almendras crudas"
+  ],
+  "es": "Almendra (con piel)"
+ },
+ "15001": {
+  "alias": [
+   "cacahuete",
+   "mani",
+   "cacahuetes"
+  ],
+  "es": "Cacahuete"
+ },
+ "15002": {
+  "alias": [
+   "cacahuete tostado",
+   "cacahuete salado"
+  ],
+  "es": "Cacahuete, tostado, salado"
+ },
+ "15004": {
+  "alias": [
+   "avellana",
+   "avellanas"
+  ],
+  "es": "Avellana"
+ },
+ "15005": {
+  "alias": [
+   "nuez",
+   "nueces",
+   "nuez pelada"
+  ],
+  "es": "Nuez, seca, en mitades"
+ },
+ "15006": {
+  "alias": [
+   "coco",
+   "coco fresco"
+  ],
+  "es": "Coco, pulpa madura, fresco"
+ },
+ "15007": {
+  "alias": [
+   "coco rallado",
+   "coco seco"
+  ],
+  "es": "Coco, pulpa, seco"
+ },
+ "15008": {
+  "alias": [
+   "nuez de brasil",
+   "coquito de brasil"
+  ],
+  "es": "Nuez de Brasil"
+ },
+ "15009": {
+  "alias": [
+   "pistacho",
+   "pistachos salados"
+  ],
+  "es": "Pistacho, tostado, salado"
+ },
+ "15010": {
+  "alias": [
+   "sesamo",
+   "ajonjoli",
+   "semillas de sesamo"
+  ],
+  "es": "Sésamo, semilla"
+ },
+ "15011": {
+  "alias": [
+   "pipas de girasol",
+   "pipas",
+   "semillas de girasol"
+  ],
+  "es": "Girasol, semilla"
+ },
+ "15013": {
+  "alias": [
+   "crema de castañas"
+  ],
+  "es": "Crema de castañas"
+ },
+ "15014": {
+  "alias": [
+   "coco tierno",
+   "coco verde"
+  ],
+  "es": "Coco, pulpa inmadura, fresco"
+ },
+ "15016": {
+  "alias": [
+   "crema de castañas"
+  ],
+  "es": "Crema de castañas a la vainilla, en conserva"
+ },
+ "15018": {
+  "alias": [
+   "mix de frutos secos",
+   "coctel de frutos secos"
+  ],
+  "es": "Mezcla de aperitivo de semillas saladas y pasas"
+ },
+ "15019": {
+  "alias": [
+   "anacardo",
+   "anacardos salados",
+   "castaña de caju"
+  ],
+  "es": "Anacardo, tostado, salado"
+ },
+ "15020": {
+  "alias": [
+   "castaña cocida"
+  ],
+  "es": "Castaña, hervida/cocida en agua"
+ },
+ "15021": {
+  "alias": [
+   "castaña asada",
+   "castañas"
+  ],
+  "es": "Castaña, asada"
+ },
+ "15023": {
+  "alias": [
+   "nuez fresca",
+   "nueces"
+  ],
+  "es": "Nuez, fresca"
+ },
+ "15024": {
+  "alias": [
+   "castaña"
+  ],
+  "es": "Castaña, cruda"
+ },
+ "15025": {
+  "alias": [
+   "piñon",
+   "piñones"
+  ],
+  "es": "Piñón"
+ },
+ "15026": {
+  "alias": [
+   "nuez pecana",
+   "pecana",
+   "pacana"
+  ],
+  "es": "Nuez pecana"
+ },
+ "15027": {
+  "alias": [
+   "macadamia",
+   "nuez macadamia"
+  ],
+  "es": "Nuez de macadamia"
+ },
+ "15028": {
+  "alias": [
+   "pipas de calabaza",
+   "semillas de calabaza"
+  ],
+  "es": "Semilla de calabaza (cucurbitáceas)"
+ },
+ "15029": {
+  "alias": [
+   "brotes de alfalfa",
+   "germinado de alfalfa"
+  ],
+  "es": "Alfalfa, semilla germinada"
+ },
+ "15032": {
+  "alias": [
+   "semilla de alfalfa",
+   "alfalfa"
+  ],
+  "es": "Alfalfa, semilla"
+ },
+ "15033": {
+  "alias": [
+   "avellana tostada"
+  ],
+  "es": "Avellana, tostada"
+ },
+ "15034": {
+  "alias": [
+   "semillas de lino",
+   "linaza"
+  ],
+  "es": "Lino, semilla"
+ },
+ "15035": {
+  "alias": [
+   "sesamo pelado",
+   "ajonjoli"
+  ],
+  "es": "Sésamo, semilla descascarillada"
+ },
+ "15037": {
+  "alias": [
+   "cacahuete tostado",
+   "cacahuete salado"
+  ],
+  "es": "Cacahuete, tostado en seco, salado"
+ },
+ "15038": {
+  "alias": [
+   "sesamo tostado"
+  ],
+  "es": "Sésamo, tostado, semilla descascarillada"
+ },
+ "15039": {
+  "alias": [
+   "castaña de bote",
+   "castañas cocidas"
+  ],
+  "es": "Castaña, en conserva"
+ },
+ "15041": {
+  "alias": [
+   "almendra pelada",
+   "almendra blanqueada"
+  ],
+  "es": "Almendra, pelada o escaldada"
+ },
+ "15042": {
+  "alias": [
+   "almendra tostada",
+   "almendras saladas"
+  ],
+  "es": "Almendra, tostada, salada"
+ },
+ "15043": {
+  "alias": [
+   "macadamia salada"
+  ],
+  "es": "Nuez de macadamia, tostada, salada"
+ },
+ "15044": {
+  "alias": [
+   "pistacho tostado"
+  ],
+  "es": "Pistacho, tostado"
+ },
+ "15045": {
+  "alias": [
+   "pipas de girasol saladas",
+   "pipas"
+  ],
+  "es": "Girasol, semilla, tostada y salada"
+ },
+ "15046": {
+  "alias": [
+   "pecana salada"
+  ],
+  "es": "Nuez pecana, salada"
+ },
+ "15047": {
+  "alias": [
+   "semillas de chia",
+   "chia"
+  ],
+  "es": "Chía, semilla, seca"
+ },
+ "15048": {
+  "alias": [
+   "mix de frutos secos",
+   "mezcla de semillas"
+  ],
+  "es": "Mezcla de aperitivo de semillas (sin sal) y frutas deshidratadas"
+ },
+ "15049": {
+  "alias": [
+   "mix de frutos secos con pasas"
+  ],
+  "es": "Mezcla de aperitivo de semillas (sin sal) y pasas"
+ },
+ "15050": {
+  "alias": [
+   "avellana salada"
+  ],
+  "es": "Avellana, tostada, salada"
+ },
+ "15052": {
+  "alias": [
+   "semillas de lino",
+   "linaza"
+  ],
+  "es": "Lino marrón, semilla"
+ },
+ "15053": {
+  "alias": [
+   "cacahuete sin sal"
+  ],
+  "es": "Cacahuete, tostado, sin sal añadida"
+ },
+ "15054": {
+  "alias": [
+   "anacardo sin sal"
+  ],
+  "es": "Anacardo, tostado, sin sal"
+ },
+ "15055": {
+  "alias": [
+   "anacardo sin sal"
+  ],
+  "es": "Anacardo, tostado en seco, sin sal"
+ },
+ "15201": {
+  "alias": [
+   "mazapan",
+   "pasta de almendra"
+  ],
+  "es": "Mazapán (pasta de almendra), envasado"
+ },
+ "15202": {
+  "alias": [
+   "crema de cacahuete",
+   "mantequilla de cacahuete",
+   "peanut butter"
+  ],
+  "es": "Crema de cacahuete"
+ },
+ "15203": {
+  "alias": [
+   "tahini",
+   "tahin",
+   "pasta de sesamo"
+  ],
+  "es": "Tahini (puré de sésamo)"
+ },
+ "20000": {
+  "alias": [
+   "alcachofa cocida",
+   "alcachofa"
+  ],
+  "es": "Alcachofa, cocida"
+ },
+ "20001": {
+  "alias": [
+   "esparrago cocido",
+   "esparragos"
+  ],
+  "es": "Espárrago, hervido/cocido en agua"
+ },
+ "20002": {
+  "alias": [
+   "berenjena cocida"
+  ],
+  "es": "Berenjena, cocida"
+ },
+ "20003": {
+  "alias": [
+   "remolacha cocida",
+   "remolacha"
+  ],
+  "es": "Remolacha roja, cocida"
+ },
+ "20004": {
+  "alias": [
+   "acelga",
+   "acelgas"
+  ],
+  "es": "Acelga, cruda"
+ },
+ "20005": {
+  "alias": [
+   "acelga cocida"
+  ],
+  "es": "Acelga, cocida"
+ },
+ "20006": {
+  "alias": [
+   "brocoli cocido",
+   "brecol"
+  ],
+  "es": "Brócoli, cocido"
+ },
+ "20007": {
+  "alias": [
+   "zanahoria de bote"
+  ],
+  "es": "Zanahoria, en conserva, escurrida"
+ },
+ "20008": {
+  "alias": [
+   "zanahoria cocida"
+  ],
+  "es": "Zanahoria, cocida"
+ },
+ "20009": {
+  "alias": [
+   "zanahoria"
+  ],
+  "es": "Zanahoria, cruda"
+ },
+ "20010": {
+  "alias": [
+   "champiñon",
+   "setas",
+   "hongos"
+  ],
+  "es": "Seta o champiñón, de cualquier tipo, crudo"
+ },
+ "20011": {
+  "alias": [
+   "champiñones de bote",
+   "setas en conserva"
+  ],
+  "es": "Seta o champiñón, de cualquier tipo, en conserva, escurrido"
+ },
+ "20012": {
+  "alias": [
+   "escarola",
+   "escarola rizada"
+  ],
+  "es": "Escarola rizada, cruda"
+ },
+ "20013": {
+  "alias": [
+   "coles de bruselas cocidas"
+  ],
+  "es": "Col de Bruselas, cocida"
+ },
+ "20014": {
+  "alias": [
+   "lombarda",
+   "col lombarda",
+   "col roja"
+  ],
+  "es": "Lombarda, cruda"
+ },
+ "20015": {
+  "alias": [
+   "col cocida",
+   "berza"
+  ],
+  "es": "Col verde, cocida"
+ },
+ "20016": {
+  "alias": [
+   "coliflor"
+  ],
+  "es": "Coliflor, cruda"
+ },
+ "20017": {
+  "alias": [
+   "coliflor cocida"
+  ],
+  "es": "Coliflor, cocida"
+ },
+ "20018": {
+  "alias": [
+   "palmito",
+   "palmitos"
+  ],
+  "es": "Palmito, en conserva, escurrido"
+ },
+ "20019": {
+  "alias": [
+   "pepino"
+  ],
+  "es": "Pepino, pulpa y piel, crudo"
+ },
+ "20020": {
+  "alias": [
+   "calabacin"
+  ],
+  "es": "Calabacín, pulpa y piel, crudo"
+ },
+ "20021": {
+  "alias": [
+   "calabacin cocido"
+  ],
+  "es": "Calabacín, pulpa y piel, cocido"
+ },
+ "20022": {
+  "alias": [
+   "berros",
+   "berro"
+  ],
+  "es": "Berro de agua, crudo"
+ },
+ "20023": {
+  "alias": [
+   "apio"
+  ],
+  "es": "Apio en rama, crudo"
+ },
+ "20024": {
+  "alias": [
+   "apio cocido"
+  ],
+  "es": "Apio en rama, cocido"
+ },
+ "20025": {
+  "alias": [
+   "apionabo cocido",
+   "apio nabo"
+  ],
+  "es": "Apionabo, cocido"
+ },
+ "20026": {
+  "alias": [
+   "endibia",
+   "endibias"
+  ],
+  "es": "Endibia, cruda"
+ },
+ "20027": {
+  "alias": [
+   "espinacas cocidas"
+  ],
+  "es": "Espinaca, cocida"
+ },
+ "20028": {
+  "alias": [
+   "hinojo"
+  ],
+  "es": "Hinojo, crudo"
+ },
+ "20029": {
+  "alias": [
+   "brotes de soja",
+   "soja germinada"
+  ],
+  "es": "Brotes de soja (judía mungo germinada), en conserva, escurridos"
+ },
+ "20030": {
+  "alias": [
+   "judias verdes cocidas",
+   "habichuelas"
+  ],
+  "es": "Judía verde, cocida"
+ },
+ "20031": {
+  "alias": [
+   "lechuga"
+  ],
+  "es": "Lechuga, cruda"
+ },
+ "20033": {
+  "alias": [
+   "nabo cocido"
+  ],
+  "es": "Nabo, cocido"
+ },
+ "20034": {
+  "alias": [
+   "cebolla"
+  ],
+  "es": "Cebolla, cruda"
+ },
+ "20035": {
+  "alias": [
+   "cebolla pochada",
+   "cebolla cocida"
+  ],
+  "es": "Cebolla, cocida"
+ },
+ "20036": {
+  "alias": [
+   "guisantes de bote",
+   "arvejas"
+  ],
+  "es": "Guisantes, en conserva, escurridos"
+ },
+ "20037": {
+  "alias": [
+   "guisantes cocidos"
+  ],
+  "es": "Guisantes, cocidos"
+ },
+ "20038": {
+  "alias": [
+   "diente de leon"
+  ],
+  "es": "Diente de león, crudo"
+ },
+ "20039": {
+  "alias": [
+   "puerro"
+  ],
+  "es": "Puerro, crudo"
+ },
+ "20040": {
+  "alias": [
+   "puerro cocido"
+  ],
+  "es": "Puerro, cocido"
+ },
+ "20041": {
+  "alias": [
+   "pimiento"
+  ],
+  "es": "Pimiento verde, amarillo o rojo, crudo"
+ },
+ "20043": {
+  "alias": [
+   "calabaza de bote"
+  ],
+  "es": "Calabaza, en conserva, escurrida"
+ },
+ "20044": {
+  "alias": [
+   "calabaza"
+  ],
+  "es": "Calabaza, cruda"
+ },
+ "20045": {
+  "alias": [
+   "rabano",
+   "rabanitos"
+  ],
+  "es": "Rabanito rojo, crudo"
+ },
+ "20046": {
+  "alias": [
+   "salsifi",
+   "escorzonera"
+  ],
+  "es": "Salsifí, cocido"
+ },
+ "20047": {
+  "alias": [
+   "tomate"
+  ],
+  "es": "Tomate, crudo"
+ },
+ "20048": {
+  "alias": [
+   "tomate pelado",
+   "tomate de lata"
+  ],
+  "es": "Tomate, pelado, en conserva, escurrido"
+ },
+ "20049": {
+  "alias": [
+   "mazorca de maiz",
+   "maiz"
+  ],
+  "es": "Maíz dulce, en mazorca, cocido"
+ },
+ "20050": {
+  "alias": [
+   "aguaturma",
+   "tupinambo",
+   "pataca"
+  ],
+  "es": "Aguaturma (tupinambo), cocida"
+ },
+ "20051": {
+  "alias": [
+   "menestra",
+   "macedonia de verduras"
+  ],
+  "es": "Menestra de verduras, en conserva, escurrida"
+ },
+ "20052": {
+  "alias": [
+   "alcachofa"
+  ],
+  "es": "Alcachofa, cruda"
+ },
+ "20053": {
+  "alias": [
+   "berenjena"
+  ],
+  "es": "Berenjena, cruda"
+ },
+ "20054": {
+  "alias": [
+   "cardo"
+  ],
+  "es": "Cardo, crudo"
+ },
+ "20055": {
+  "alias": [
+   "apionabo",
+   "apio nabo"
+  ],
+  "es": "Apionabo, crudo"
+ },
+ "20056": {
+  "alias": [
+   "champiñon",
+   "champiñones"
+  ],
+  "es": "Champiñón (de París), crudo"
+ },
+ "20057": {
+  "alias": [
+   "brocoli",
+   "brecol"
+  ],
+  "es": "Brócoli, crudo"
+ },
+ "20058": {
+  "alias": [
+   "coles de bruselas"
+  ],
+  "es": "Col de Bruselas, cruda"
+ },
+ "20059": {
+  "alias": [
+   "espinacas"
+  ],
+  "es": "Espinaca, cruda"
+ },
+ "20060": {
+  "alias": [
+   "espinacas de bote"
+  ],
+  "es": "Espinaca, en conserva, escurrida"
+ },
+ "20061": {
+  "alias": [
+   "judias verdes",
+   "habichuelas",
+   "vainas"
+  ],
+  "es": "Judía verde, cruda"
+ },
+ "20062": {
+  "alias": [
+   "judias verdes de bote"
+  ],
+  "es": "Judía verde, en conserva, escurrida"
+ },
+ "20063": {
+  "alias": [
+   "judia amarilla",
+   "judias mantequilla"
+  ],
+  "es": "Judía amarilla (haricot beurre), en conserva, escurrida"
+ },
+ "20064": {
+  "alias": [
+   "nabo"
+  ],
+  "es": "Nabo, pelado, crudo"
+ },
+ "20065": {
+  "alias": [
+   "colinabo",
+   "col rabano"
+  ],
+  "es": "Colinabo, crudo"
+ },
+ "20066": {
+  "alias": [
+   "maiz dulce",
+   "maiz de bote"
+  ],
+  "es": "Maíz dulce, en conserva, escurrido"
+ },
+ "20067": {
+  "alias": [
+   "alcachofas de bote"
+  ],
+  "es": "Alcachofa, en conserva, escurrida"
+ },
+ "20068": {
+  "alias": [
+   "tomate concentrado",
+   "concentrado de tomate"
+  ],
+  "es": "Tomate concentrado, en conserva"
+ },
+ "20069": {
+  "alias": [
+   "col",
+   "berza",
+   "repollo"
+  ],
+  "es": "Col verde, cruda"
+ },
+ "20070": {
+  "alias": [
+   "judias verdes congeladas",
+   "habichuelas",
+   "vainas",
+   "bajocas"
+  ],
+  "es": "Judía verde, congelada, cruda"
+ },
+ "20071": {
+  "alias": [
+   "judias verdes congeladas"
+  ],
+  "es": "Judía verde, congelada, cocida"
+ },
+ "20072": {
+  "alias": [
+   "guisantes"
+  ],
+  "es": "Guisantes, crudos"
+ },
+ "20073": {
+  "alias": [
+   "esparrago"
+  ],
+  "es": "Espárrago, pelado, crudo"
+ },
+ "20074": {
+  "alias": [
+   "alcachofa al vapor"
+  ],
+  "es": "Alcachofa, cocida al vapor a presión"
+ },
+ "20076": {
+  "alias": [
+   "esparragos de bote",
+   "esparragos blancos"
+  ],
+  "es": "Espárrago, en conserva, escurrido"
+ },
+ "20077": {
+  "alias": [
+   "coles de bruselas de bote"
+  ],
+  "es": "Col de Bruselas, en conserva, escurrida"
+ },
+ "20078": {
+  "alias": [
+   "apio de bote"
+  ],
+  "es": "Apio en rama, en conserva, escurrido"
+ },
+ "20079": {
+  "alias": [
+   "champiñones de bote",
+   "champiñon laminado"
+  ],
+  "es": "Champiñón (de París), en conserva, escurrido"
+ },
+ "20081": {
+  "alias": [
+   "salsifi de bote"
+  ],
+  "es": "Salsifí, en conserva, escurrido"
+ },
+ "20082": {
+  "alias": [
+   "coliflor congelada"
+  ],
+  "es": "Coliflor, congelada, cruda"
+ },
+ "20083": {
+  "alias": [
+   "espinacas congeladas"
+  ],
+  "es": "Espinaca, congelada, cruda"
+ },
+ "20084": {
+  "alias": [
+   "guisantes congelados"
+  ],
+  "es": "Guisantes, congelados, crudos"
+ },
+ "20085": {
+  "alias": [
+   "pimiento verde"
+  ],
+  "es": "Pimiento verde, crudo"
+ },
+ "20086": {
+  "alias": [
+   "pimiento verde asado"
+  ],
+  "es": "Pimiento verde, cocido"
+ },
+ "20087": {
+  "alias": [
+   "pimiento rojo"
+  ],
+  "es": "Pimiento rojo, crudo"
+ },
+ "20088": {
+  "alias": [
+   "pimiento rojo asado"
+  ],
+  "es": "Pimiento rojo, cocido"
+ },
+ "20089": {
+  "alias": [
+   "rabano negro"
+  ],
+  "es": "Rábano negro, crudo"
+ },
+ "20090": {
+  "alias": [
+   "escarola"
+  ],
+  "es": "Escarola lisa, cruda"
+ },
+ "20091": {
+  "alias": [
+   "remolacha"
+  ],
+  "es": "Remolacha roja, cruda"
+ },
+ "20092": {
+  "alias": [
+   "zanahoria deshidratada"
+  ],
+  "es": "Zanahoria, deshidratada"
+ },
+ "20093": {
+  "alias": [
+   "guisantes con zanahoria"
+  ],
+  "es": "Guisantes con zanahoria, en conserva, escurridos"
+ },
+ "20094": {
+  "alias": [
+   "colinabo cocido"
+  ],
+  "es": "Colinabo, hervido/cocido en agua"
+ },
+ "20095": {
+  "alias": [
+   "lombarda cocida"
+  ],
+  "es": "Lombarda, hervida/cocida en agua"
+ },
+ "20096": {
+  "alias": [
+   "calabaza cocida",
+   "calabaza asada"
+  ],
+  "es": "Calabaza, cocida"
+ },
+ "20097": {
+  "alias": [
+   "chalota",
+   "escalonia"
+  ],
+  "es": "Chalota, cruda"
+ },
+ "20099": {
+  "alias": [
+   "canonigos",
+   "hierba de los canonigos"
+  ],
+  "es": "Canónigos, crudos"
+ },
+ "20101": {
+  "alias": [
+   "menestra congelada",
+   "verduras congeladas"
+  ],
+  "es": "Verduras, mezcla congelada, crudas"
+ },
+ "20102": {
+  "alias": [
+   "champiñon cocido"
+  ],
+  "es": "Champiñón (de París), hervido/cocido en agua"
+ },
+ "20103": {
+  "alias": [
+   "rebozuelo",
+   "chantarela",
+   "girola"
+  ],
+  "es": "Rebozuelo (chantarela), crudo"
+ },
+ "20105": {
+  "alias": [
+   "colmenilla",
+   "morilla",
+   "murgula"
+  ],
+  "es": "Colmenilla, cruda"
+ },
+ "20106": {
+  "alias": [
+   "trufa negra",
+   "trufa"
+  ],
+  "es": "Trufa negra, cruda"
+ },
+ "20108": {
+  "alias": [
+   "mazorca congelada",
+   "maiz"
+  ],
+  "es": "Maíz dulce, en mazorca, congelado, crudo"
+ },
+ "20111": {
+  "alias": [
+   "acedera",
+   "vinagrera"
+  ],
+  "es": "Acedera, cruda"
+ },
+ "20114": {
+  "alias": [
+   "seta de ostra",
+   "pleuroto",
+   "girgola"
+  ],
+  "es": "Seta de ostra (pleuroto), cruda"
+ },
+ "20116": {
+  "alias": [
+   "col blanca",
+   "repollo"
+  ],
+  "es": "Col blanca, cruda"
+ },
+ "20118": {
+  "alias": [
+   "hinojo cocido"
+  ],
+  "es": "Hinojo, hervido/cocido en agua"
+ },
+ "20119": {
+  "alias": [
+   "tomate verde"
+  ],
+  "es": "Tomate verde, crudo"
+ },
+ "20121": {
+  "alias": [
+   "espinacas congeladas cocidas"
+  ],
+  "es": "Espinaca, congelada, cocida"
+ },
+ "20122": {
+  "alias": [
+   "coliflor congelada"
+  ],
+  "es": "Coliflor, congelada, cocida"
+ },
+ "20123": {
+  "alias": [
+   "lechuga batavia",
+   "batavia"
+  ],
+  "es": "Lechuga batavia, cruda"
+ },
+ "20124": {
+  "alias": [
+   "guisantes congelados"
+  ],
+  "es": "Guisantes, congelados, cocidos"
+ },
+ "20125": {
+  "alias": [
+   "champiñon salteado",
+   "champiñon a la plancha"
+  ],
+  "es": "Champiñón (de París), salteado sin grasa"
+ },
+ "20126": {
+  "alias": [
+   "judia de lima",
+   "garrofon",
+   "haba lima"
+  ],
+  "es": "Judía de Lima, cruda"
+ },
+ "20128": {
+  "alias": [
+   "calabaza moscada"
+  ],
+  "es": "Calabaza moscada, pulpa, cruda"
+ },
+ "20132": {
+  "alias": [
+   "potimarron",
+   "calabaza roja"
+  ],
+  "es": "Calabaza potimarrón, pulpa, cruda"
+ },
+ "20133": {
+  "alias": [
+   "chirivia cocida"
+  ],
+  "es": "Chirivía, cocida"
+ },
+ "20134": {
+  "alias": [
+   "calabaza hokkaido",
+   "potimarron"
+  ],
+  "es": "Calabaza hokkaido, pulpa, cruda"
+ },
+ "20135": {
+  "alias": [
+   "puerro pochado",
+   "fondue de puerro"
+  ],
+  "es": "Puerro pochado (fondue de puerro)"
+ },
+ "20136": {
+  "alias": [
+   "calabaza melonera"
+  ],
+  "es": "Calabaza melonera, pulpa, cruda"
+ },
+ "20138": {
+  "alias": [
+   "calabaza butternut",
+   "calabaza cacahuete"
+  ],
+  "es": "Calabaza cacahuete (butternut), pulpa, cruda"
+ },
+ "20139": {
+  "alias": [
+   "calabaza"
+  ],
+  "es": "Calabaza, cruda"
+ },
+ "20141": {
+  "alias": [
+   "calabaza butternut cocida"
+  ],
+  "es": "Calabaza cacahuete (butternut), pulpa, cocida"
+ },
+ "20143": {
+  "alias": [
+   "calabaza espagueti"
+  ],
+  "es": "Calabaza espagueti, pulpa, cocida"
+ },
+ "20145": {
+  "alias": [
+   "calabaza espagueti"
+  ],
+  "es": "Calabaza espagueti, pulpa, cruda"
+ },
+ "20151": {
+  "alias": [
+   "guindilla",
+   "chile",
+   "pimiento picante"
+  ],
+  "es": "Guindilla, cruda"
+ },
+ "20155": {
+  "alias": [
+   "corazones de alcachofa"
+  ],
+  "es": "Alcachofa, corazón, en conserva, escurrida"
+ },
+ "20156": {
+  "alias": [
+   "fondos de alcachofa"
+  ],
+  "es": "Alcachofa, fondo, en conserva, escurrida"
+ },
+ "20158": {
+  "alias": [
+   "espinaca de nueva zelanda",
+   "tetragonia"
+  ],
+  "es": "Espinaca de Nueva Zelanda (tetragonia), cocida"
+ },
+ "20159": {
+  "alias": [
+   "oronja",
+   "amanita cesarea"
+  ],
+  "es": "Oronja (amanita de los césares), cruda"
+ },
+ "20160": {
+  "alias": [
+   "boletus",
+   "hongo",
+   "seta de calabaza"
+  ],
+  "es": "Boletus (cèpe), crudo"
+ },
+ "20161": {
+  "alias": [
+   "champiñon silvestre",
+   "champiñon de campo"
+  ],
+  "es": "Champiñón silvestre, crudo"
+ },
+ "20162": {
+  "alias": [
+   "radicchio",
+   "achicoria roja"
+  ],
+  "es": "Achicoria roja (radicchio), cruda"
+ },
+ "20163": {
+  "alias": [
+   "achicoria verde"
+  ],
+  "es": "Achicoria verde, cruda"
+ },
+ "20165": {
+  "alias": [
+   "rutabaga",
+   "nabo sueco"
+  ],
+  "es": "Colinabo sueco (rutabaga), cocido"
+ },
+ "20166": {
+  "alias": [
+   "calabaza",
+   "calabaza de halloween"
+  ],
+  "es": "Calabaza de invierno, pulpa, cruda"
+ },
+ "20167": {
+  "alias": [
+   "col china",
+   "pak choi",
+   "bok choy"
+  ],
+  "es": "Col china (pak choi o pé-tsai), cruda"
+ },
+ "20168": {
+  "alias": [
+   "pimiento amarillo"
+  ],
+  "es": "Pimiento amarillo, crudo"
+ },
+ "20169": {
+  "alias": [
+   "pulpa de tomate",
+   "tomate triturado"
+  ],
+  "es": "Tomate, pulpa, en conserva"
+ },
+ "20170": {
+  "alias": [
+   "pure de tomate",
+   "tomate triturado"
+  ],
+  "es": "Tomate, puré, en conserva"
+ },
+ "20171": {
+  "alias": [
+   "lechuga romana"
+  ],
+  "es": "Lechuga romana, cruda"
+ },
+ "20172": {
+  "alias": [
+   "tomate cherry",
+   "cherry"
+  ],
+  "es": "Tomate cherry, crudo"
+ },
+ "20173": {
+  "alias": [
+   "tirabeque",
+   "guisante mollar"
+  ],
+  "es": "Tirabeque, crudo"
+ },
+ "20180": {
+  "alias": [
+   "cebolla deshidratada",
+   "cebolla en polvo"
+  ],
+  "es": "Cebolla, deshidratada"
+ },
+ "20181": {
+  "alias": [
+   "chirivia"
+  ],
+  "es": "Chirivía, cruda"
+ },
+ "20183": {
+  "alias": [
+   "brotes de soja",
+   "soja germinada"
+  ],
+  "es": "Brotes de soja (judía mungo germinada), crudos"
+ },
+ "20188": {
+  "alias": [
+   "brotes de bambu"
+  ],
+  "es": "Brotes de bambú, en conserva, escurridos"
+ },
+ "20189": {
+  "alias": [
+   "tomate seco",
+   "tomate deshidratado"
+  ],
+  "es": "Tomate, seco"
+ },
+ "20192": {
+  "alias": [
+   "tomate corazon de buey",
+   "tomate rosa"
+  ],
+  "es": "Tomate acostillado o corazón de buey, crudo"
+ },
+ "20195": {
+  "alias": [
+   "judia amarilla",
+   "judias mantequilla"
+  ],
+  "es": "Judía amarilla (haricot beurre), cruda"
+ },
+ "20196": {
+  "alias": [
+   "aguaturma",
+   "tupinambo",
+   "pataca"
+  ],
+  "es": "Aguaturma (tupinambo), cruda"
+ },
+ "20197": {
+  "alias": [
+   "escorzonera",
+   "salsifi negro"
+  ],
+  "es": "Escorzonera (salsifí negro), cruda"
+ },
+ "20198": {
+  "alias": [
+   "brotes de bambu"
+  ],
+  "es": "Brote de bambú, crudo"
+ },
+ "20199": {
+  "alias": [
+   "mastuerzo",
+   "berro de jardin"
+  ],
+  "es": "Mastuerzo, crudo"
+ },
+ "20200": {
+  "alias": [
+   "lechuga iceberg",
+   "iceberg"
+  ],
+  "es": "Lechuga iceberg, cruda"
+ },
+ "20201": {
+  "alias": [
+   "rutabaga",
+   "nabo sueco"
+  ],
+  "es": "Colinabo sueco (rutabaga), crudo"
+ },
+ "20202": {
+  "alias": [
+   "oreja de judas",
+   "seta negra",
+   "hongo negro"
+  ],
+  "es": "Oreja de Judas (seta negra), seca"
+ },
+ "20203": {
+  "alias": [
+   "judia amarilla congelada"
+  ],
+  "es": "Judía amarilla, congelada, cruda"
+ },
+ "20204": {
+  "alias": [
+   "brocoli congelado"
+  ],
+  "es": "Brócoli, congelado, crudo"
+ },
+ "20205": {
+  "alias": [
+   "brocoli congelado"
+  ],
+  "es": "Brócoli, congelado, cocido"
+ },
+ "20206": {
+  "alias": [
+   "coles de bruselas congeladas"
+  ],
+  "es": "Col de Bruselas, congelada, cruda"
+ },
+ "20207": {
+  "alias": [
+   "coles de bruselas congeladas"
+  ],
+  "es": "Col de Bruselas, congelada, cocida"
+ },
+ "20208": {
+  "alias": [
+   "zanahoria congelada"
+  ],
+  "es": "Zanahoria, congelada, cruda"
+ },
+ "20209": {
+  "alias": [
+   "zanahoria congelada"
+  ],
+  "es": "Zanahoria, congelada, cocida"
+ },
+ "20210": {
+  "alias": [
+   "pepino pelado"
+  ],
+  "es": "Pepino, pulpa, crudo"
+ },
+ "20211": {
+  "alias": [
+   "shiitake seco",
+   "seta shiitake"
+  ],
+  "es": "Shiitake, seco"
+ },
+ "20212": {
+  "alias": [
+   "shiitake"
+  ],
+  "es": "Shiitake, cocido"
+ },
+ "20214": {
+  "alias": [
+   "guisantes con zanahoria congelados"
+  ],
+  "es": "Guisantes con zanahoria, congelados, crudos"
+ },
+ "20215": {
+  "alias": [
+   "guisantes con zanahoria congelados"
+  ],
+  "es": "Guisantes con zanahoria, congelados, cocidos"
+ },
+ "20216": {
+  "alias": [
+   "tirabeque cocido"
+  ],
+  "es": "Tirabeque, hervido/cocido en agua"
+ },
+ "20217": {
+  "alias": [
+   "rucula",
+   "roqueta"
+  ],
+  "es": "Rúcula, cruda"
+ },
+ "20218": {
+  "alias": [
+   "kale",
+   "col rizada",
+   "berza rizada"
+  ],
+  "es": "Col rizada (kale), cruda"
+ },
+ "20219": {
+  "alias": [
+   "kale cocido"
+  ],
+  "es": "Col rizada (kale), cocida"
+ },
+ "20221": {
+  "alias": [
+   "col china cocida",
+   "pak choi"
+  ],
+  "es": "Col china (pak choi o pé-tsai), cocida"
+ },
+ "20228": {
+  "alias": [
+   "champiñon congelado"
+  ],
+  "es": "Champiñón (de París), congelado, crudo"
+ },
+ "20230": {
+  "alias": [
+   "calabacin congelado"
+  ],
+  "es": "Calabacín, pulpa y piel, congelado, crudo"
+ },
+ "20231": {
+  "alias": [
+   "crosne",
+   "alcachofa japonesa"
+  ],
+  "es": "Crosne (alcachofa japonesa), congelado, crudo"
+ },
+ "20232": {
+  "alias": [
+   "fondos de alcachofa congelados"
+  ],
+  "es": "Alcachofa, fondo, congelada, cruda"
+ },
+ "20233": {
+  "alias": [
+   "maiz congelado"
+  ],
+  "es": "Maíz dulce, congelado, crudo"
+ },
+ "20234": {
+  "alias": [
+   "nabo congelado"
+  ],
+  "es": "Nabo, congelado, crudo"
+ },
+ "20235": {
+  "alias": [
+   "cebolla congelada"
+  ],
+  "es": "Cebolla, congelada, cruda"
+ },
+ "20236": {
+  "alias": [
+   "puerro congelado"
+  ],
+  "es": "Puerro, congelado, crudo"
+ },
+ "20237": {
+  "alias": [
+   "salsifi congelado"
+  ],
+  "es": "Salsifí, congelado, crudo"
+ },
+ "20238": {
+  "alias": [
+   "cebolla roja",
+   "cebolla morada"
+  ],
+  "es": "Cebolla roja, cruda"
+ },
+ "20239": {
+  "alias": [
+   "cebolla amarilla"
+  ],
+  "es": "Cebolla amarilla, cruda"
+ },
+ "20241": {
+  "alias": [
+   "cardo cocido"
+  ],
+  "es": "Cardo, cocido"
+ },
+ "20242": {
+  "alias": [
+   "tomate cocido"
+  ],
+  "es": "Tomate, pulpa y piel, hervido/cocido en agua"
+ },
+ "20243": {
+  "alias": [
+   "tirabeques cocidos"
+  ],
+  "es": "Tirabeques, cocidos"
+ },
+ "20255": {
+  "alias": [
+   "chalota cocida"
+  ],
+  "es": "Chalota, cocida"
+ },
+ "20256": {
+  "alias": [
+   "tomate seco en aceite"
+  ],
+  "es": "Tomate, seco, en aceite"
+ },
+ "20257": {
+  "alias": [
+   "pure de judias verdes"
+  ],
+  "es": "Judías verdes, en puré"
+ },
+ "20258": {
+  "alias": [
+   "pure de verduras"
+  ],
+  "es": "Verduras (3-4 clases mezcladas), en puré"
+ },
+ "20259": {
+  "alias": [
+   "pure de brocoli"
+  ],
+  "es": "Brócoli, en puré"
+ },
+ "20260": {
+  "alias": [
+   "coulis de tomate",
+   "tomate triturado"
+  ],
+  "es": "Tomate, coulis, en conserva (puré reducido al 11 %)"
+ },
+ "20261": {
+  "alias": [
+   "pure de zanahoria"
+  ],
+  "es": "Zanahoria, en puré"
+ },
+ "20263": {
+  "alias": [
+   "verduras para sopa",
+   "sopa juliana"
+  ],
+  "es": "Verduras para sopa, congeladas, crudas"
+ },
+ "20264": {
+  "alias": [
+   "pure de calabacin"
+  ],
+  "es": "Calabacín, en puré"
+ },
+ "20265": {
+  "alias": [
+   "juliana de verduras",
+   "brunoise"
+  ],
+  "es": "Juliana o brunoise de verduras, congelada, cruda"
+ },
+ "20266": {
+  "alias": [
+   "verduras para pisto",
+   "pisto congelado"
+  ],
+  "es": "Verduras para pisto (ratatouille), congeladas"
+ },
+ "20267": {
+  "alias": [
+   "menestra congelada",
+   "primavera de verduras"
+  ],
+  "es": "Menestra primavera, congelada, cruda (judías verdes, zanahoria, patata, guisantes, cebolla)"
+ },
+ "20268": {
+  "alias": [
+   "doble concentrado de tomate",
+   "tomate concentrado"
+  ],
+  "es": "Tomate, doble concentrado, en conserva"
+ },
+ "20269": {
+  "alias": [
+   "judia plana",
+   "judia perona"
+  ],
+  "es": "Judía plana, cruda"
+ },
+ "20270": {
+  "alias": [
+   "brotes de espinaca",
+   "espinaca baby"
+  ],
+  "es": "Espinaca, brotes tiernos para ensalada, cruda"
+ },
+ "20271": {
+  "alias": [
+   "menestra congelada"
+  ],
+  "es": "Menestra de verduras, congelada, precocida (para recocer)"
+ },
+ "20272": {
+  "alias": [
+   "mezclum",
+   "brotes tiernos",
+   "ensalada de brotes"
+  ],
+  "es": "Mezclum o ensalada de brotes tiernos"
+ },
+ "20275": {
+  "alias": [
+   "pimiento de bote",
+   "pimiento morron"
+  ],
+  "es": "Pimiento rojo, en conserva, escurrido"
+ },
+ "20276": {
+  "alias": [
+   "tomate redondo",
+   "tomate de ensalada"
+  ],
+  "es": "Tomate redondo, crudo"
+ },
+ "20277": {
+  "alias": [
+   "esparrago blanco"
+  ],
+  "es": "Espárrago blanco, hervido/cocido en agua"
+ },
+ "20278": {
+  "alias": [
+   "pure de apionabo"
+  ],
+  "es": "Apionabo, en puré"
+ },
+ "20279": {
+  "alias": [
+   "esparrago verde",
+   "esparrago triguero"
+  ],
+  "es": "Espárrago verde, crudo"
+ },
+ "20280": {
+  "alias": [
+   "romanesco",
+   "brocoli romanesco"
+  ],
+  "es": "Romanesco (brócoli romanesco), crudo"
+ },
+ "20282": {
+  "alias": [
+   "esparrago blanco"
+  ],
+  "es": "Espárrago blanco o morado, pelado, crudo"
+ },
+ "20283": {
+  "alias": [
+   "salicornia",
+   "esparrago de mar"
+  ],
+  "es": "Salicornia, fresca"
+ },
+ "20284": {
+  "alias": [
+   "pure de guisantes"
+  ],
+  "es": "Guisantes, en puré"
+ },
+ "20285": {
+  "alias": [
+   "pure de espinacas"
+  ],
+  "es": "Espinaca, en puré"
+ },
+ "20288": {
+  "alias": [
+   "sucrine",
+   "lechuga sucrine",
+   "cogollo"
+  ],
+  "es": "Lechuga sucrine, cruda"
+ },
+ "20289": {
+  "alias": [
+   "tomate asado"
+  ],
+  "es": "Tomate, pulpa y piel, asado al horno"
+ },
+ "20290": {
+  "alias": [
+   "romanesco cocido"
+  ],
+  "es": "Romanesco (brócoli romanesco), cocido"
+ },
+ "20291": {
+  "alias": [
+   "potimarron cocido"
+  ],
+  "es": "Calabaza potimarrón, pulpa, estofada"
+ },
+ "20292": {
+  "alias": [
+   "calabaza moscada cocida"
+  ],
+  "es": "Calabaza moscada, pulpa, cocida"
+ },
+ "20293": {
+  "alias": [
+   "judia coco",
+   "alubia coco"
+  ],
+  "es": "Judía coco, hervida/cocida en agua"
+ },
+ "20295": {
+  "alias": [
+   "hoja de roble",
+   "lechuga hoja de roble"
+  ],
+  "es": "Lechuga hoja de roble, cruda"
+ },
+ "20296": {
+  "alias": [
+   "bok choy",
+   "col china",
+   "bredes"
+  ],
+  "es": "Col china (bok choy), tallos y hojas, al vapor (La Reunión)"
+ },
+ "20297": {
+  "alias": [
+   "chayote",
+   "cidra",
+   "chuchu"
+  ],
+  "es": "Chayote o cidra, pulpa con pepitas, al vapor (La Reunión)"
+ },
+ "20298": {
+  "alias": [
+   "pure de zanahoria"
+  ],
+  "es": "Zanahoria, puré cocinado con nata, envasado"
+ },
+ "20299": {
+  "alias": [
+   "esparrago verde cocido",
+   "esparrago triguero"
+  ],
+  "es": "Espárrago verde, hervido/cocido en agua"
+ },
+ "20300": {
+  "alias": [
+   "berenjena asada"
+  ],
+  "es": "Berenjena, pulpa y piel, asada al horno"
+ },
+ "20301": {
+  "alias": [
+   "acelga cocida",
+   "pencas de acelga"
+  ],
+  "es": "Acelga, penca y hoja, hervida/cocida en agua"
+ },
+ "20302": {
+  "alias": [
+   "brocoli al dente"
+  ],
+  "es": "Brócoli, hervido/cocido en agua, al dente"
+ },
+ "20303": {
+  "alias": [
+   "brocoli cocido"
+  ],
+  "es": "Brócoli, hervido/cocido en agua, muy hecho"
+ },
+ "20304": {
+  "alias": [
+   "brocoli al vapor"
+  ],
+  "es": "Brócoli, al vapor"
+ },
+ "20305": {
+  "alias": [
+   "zanahoria al dente"
+  ],
+  "es": "Zanahoria, hervida/cocida en agua, al dente"
+ },
+ "20306": {
+  "alias": [
+   "zanahoria cocida"
+  ],
+  "es": "Zanahoria, hervida/cocida en agua, muy hecha"
+ },
+ "20307": {
+  "alias": [
+   "zanahoria al vapor"
+  ],
+  "es": "Zanahoria, al vapor"
+ },
+ "20308": {
+  "alias": [
+   "col blanca cocida",
+   "repollo cocido"
+  ],
+  "es": "Col blanca, hervida/cocida en agua"
+ },
+ "20309": {
+  "alias": [
+   "coles de bruselas cocidas"
+  ],
+  "es": "Col de Bruselas, hervida/cocida en agua"
+ },
+ "20310": {
+  "alias": [
+   "lombarda estofada"
+  ],
+  "es": "Lombarda, estofada"
+ },
+ "20311": {
+  "alias": [
+   "col cocida",
+   "berza cocida"
+  ],
+  "es": "Col verde, hervida/cocida en agua"
+ },
+ "20312": {
+  "alias": [
+   "coliflor al vapor"
+  ],
+  "es": "Coliflor, al vapor"
+ },
+ "20313": {
+  "alias": [
+   "calabacin asado"
+  ],
+  "es": "Calabacín, pulpa y piel, asado al horno"
+ },
+ "20314": {
+  "alias": [
+   "apio estofado"
+  ],
+  "es": "Apio en rama, estofado"
+ },
+ "20315": {
+  "alias": [
+   "apionabo cocido"
+  ],
+  "es": "Apionabo, hervido/cocido en agua"
+ },
+ "20316": {
+  "alias": [
+   "endibia asada",
+   "endibias al horno"
+  ],
+  "es": "Endibia, asada al horno"
+ },
+ "20317": {
+  "alias": [
+   "hinojo estofado"
+  ],
+  "es": "Hinojo, estofado"
+ },
+ "20318": {
+  "alias": [
+   "judia amarilla cocida"
+  ],
+  "es": "Judía amarilla, hervida/cocida en agua"
+ },
+ "20320": {
+  "alias": [
+   "judias verdes cocidas",
+   "habichuelas"
+  ],
+  "es": "Judía verde, hervida/cocida en agua"
+ },
+ "20321": {
+  "alias": [
+   "nabo cocido"
+  ],
+  "es": "Nabo, hervido/cocido en agua"
+ },
+ "20322": {
+  "alias": [
+   "cebolla salteada"
+  ],
+  "es": "Cebolla blanca o amarilla, salteada sin grasa"
+ },
+ "20323": {
+  "alias": [
+   "cebolleta salteada",
+   "cebolla tierna"
+  ],
+  "es": "Cebolleta (cebolla tierna), salteada sin grasa"
+ },
+ "20324": {
+  "alias": [
+   "cebolla roja salteada",
+   "cebolla morada"
+  ],
+  "es": "Cebolla roja, salteada sin grasa"
+ },
+ "20325": {
+  "alias": [
+   "chirivia estofada"
+  ],
+  "es": "Chirivía, estofada"
+ },
+ "20326": {
+  "alias": [
+   "guisantes cocidos"
+  ],
+  "es": "Guisantes, hervidos/cocidos en agua"
+ },
+ "20327": {
+  "alias": [
+   "puerro cocido"
+  ],
+  "es": "Puerro, hervido/cocido en agua"
+ },
+ "20328": {
+  "alias": [
+   "pimiento amarillo salteado"
+  ],
+  "es": "Pimiento amarillo, salteado sin grasa"
+ },
+ "20329": {
+  "alias": [
+   "pimiento rojo salteado"
+  ],
+  "es": "Pimiento rojo, salteado sin grasa"
+ },
+ "20330": {
+  "alias": [
+   "pimiento verde salteado"
+  ],
+  "es": "Pimiento verde, salteado sin grasa"
+ },
+ "20331": {
+  "alias": [
+   "potimarron cocido"
+  ],
+  "es": "Calabaza potimarrón, pulpa, hervida/cocida en agua"
+ },
+ "20332": {
+  "alias": [
+   "calabaza asada"
+  ],
+  "es": "Calabaza, asada al horno"
+ },
+ "20333": {
+  "alias": [
+   "salsifi cocido"
+  ],
+  "es": "Salsifí, hervido/cocido en agua"
+ },
+ "20334": {
+  "alias": [
+   "tomate asado"
+  ],
+  "es": "Tomate, asado al horno"
+ },
+ "20335": {
+  "alias": [
+   "chalota salteada"
+  ],
+  "es": "Chalota, salteada sin grasa"
+ },
+ "20336": {
+  "alias": [
+   "espinacas cocidas"
+  ],
+  "es": "Espinaca, hervida/cocida en agua"
+ },
+ "20496": {
+  "alias": [
+   "verduras para cuscus"
+  ],
+  "es": "Verduras para cuscús, congeladas, crudas"
+ },
+ "20497": {
+  "alias": [
+   "verduras para cuscus"
+  ],
+  "es": "Verduras para cuscús, cocidas"
+ },
+ "20499": {
+  "alias": [
+   "verdura cocida"
+  ],
+  "es": "Verdura cocida (alimento medio)"
+ },
+ "20500": {
+  "alias": [
+   "habas cocidas"
+  ],
+  "es": "Haba, hervida/cocida en agua"
+ },
+ "20501": {
+  "alias": [
+   "alubia blanca",
+   "judia blanca",
+   "habichuela blanca"
+  ],
+  "es": "Alubia blanca, seca"
+ },
+ "20502": {
+  "alias": [
+   "alubia blanca cocida",
+   "judia blanca"
+  ],
+  "es": "Alubia blanca, hervida/cocida en agua"
+ },
+ "20503": {
+  "alias": [
+   "alubia roja cocida",
+   "judia roja"
+  ],
+  "es": "Alubia roja, hervida/cocida en agua"
+ },
+ "20504": {
+  "alias": [
+   "lenteja",
+   "lentejas"
+  ],
+  "es": "Lenteja, seca"
+ },
+ "20505": {
+  "alias": [
+   "lentejas cocidas"
+  ],
+  "es": "Lenteja, hervida/cocida en agua"
+ },
+ "20506": {
+  "alias": [
+   "guisante partido cocido"
+  ],
+  "es": "Guisante seco partido, hervido/cocido en agua"
+ },
+ "20507": {
+  "alias": [
+   "garbanzos cocidos"
+  ],
+  "es": "Garbanzo, hervido/cocido en agua"
+ },
+ "20508": {
+  "alias": [
+   "flageolet",
+   "alubia flageolet"
+  ],
+  "es": "Judía flageolet, en conserva, escurrida"
+ },
+ "20510": {
+  "alias": [
+   "lentejas de bote",
+   "lentejas cocinadas"
+  ],
+  "es": "Lenteja, cocinada, en conserva, escurrida"
+ },
+ "20511": {
+  "alias": [
+   "alubias de bote",
+   "judias blancas de bote"
+  ],
+  "es": "Alubia blanca, en conserva, escurrida"
+ },
+ "20513": {
+  "alias": [
+   "flageolet cocido"
+  ],
+  "es": "Judía flageolet, hervida/cocida en agua"
+ },
+ "20515": {
+  "alias": [
+   "guisante partido",
+   "guisante seco"
+  ],
+  "es": "Guisante seco partido"
+ },
+ "20516": {
+  "alias": [
+   "garbanzo",
+   "garbanzos"
+  ],
+  "es": "Garbanzo, seco"
+ },
+ "20517": {
+  "alias": [
+   "habas frescas",
+   "habas"
+  ],
+  "es": "Haba para desgranar, fresca"
+ },
+ "20518": {
+  "alias": [
+   "habas secas"
+  ],
+  "es": "Haba, seca"
+ },
+ "20521": {
+  "alias": [
+   "lentejas germinadas",
+   "germinado de lenteja"
+  ],
+  "es": "Lenteja, germinada"
+ },
+ "20524": {
+  "alias": [
+   "alubias rojas de bote",
+   "judias rojas"
+  ],
+  "es": "Alubia roja, en conserva, escurrida"
+ },
+ "20525": {
+  "alias": [
+   "alubia roja",
+   "judia roja",
+   "frijol"
+  ],
+  "es": "Alubia roja, seca"
+ },
+ "20530": {
+  "alias": [
+   "judia mungo",
+   "soja verde"
+  ],
+  "es": "Judía mungo, seca"
+ },
+ "20531": {
+  "alias": [
+   "judia mungo cocida"
+  ],
+  "es": "Judía mungo, hervida/cocida en agua"
+ },
+ "20532": {
+  "alias": [
+   "garbanzos de bote"
+  ],
+  "es": "Garbanzo, en conserva, escurrido"
+ },
+ "20534": {
+  "alias": [
+   "altramuz",
+   "chocho",
+   "lupino"
+  ],
+  "es": "Altramuz, semilla cruda"
+ },
+ "20535": {
+  "alias": [
+   "lenteja roja",
+   "lenteja coral"
+  ],
+  "es": "Lenteja roja (coral), seca"
+ },
+ "20536": {
+  "alias": [
+   "habas congeladas"
+  ],
+  "es": "Haba, fresca, congelada"
+ },
+ "20537": {
+  "alias": [
+   "flageolet congelado"
+  ],
+  "es": "Judía flageolet, congelada"
+ },
+ "20539": {
+  "alias": [
+   "flageolet seco"
+  ],
+  "es": "Judía flageolet verde, seca"
+ },
+ "20540": {
+  "alias": [
+   "flageolet cocido"
+  ],
+  "es": "Judía flageolet verde, hervida/cocida en agua"
+ },
+ "20541": {
+  "alias": [
+   "habas peladas congeladas"
+  ],
+  "es": "Haba, pelada, congelada, cruda"
+ },
+ "20542": {
+  "alias": [
+   "habas peladas cocidas"
+  ],
+  "es": "Haba, pelada, congelada, cocida en agua"
+ },
+ "20543": {
+  "alias": [
+   "habas congeladas cocidas"
+  ],
+  "es": "Haba, congelada, hervida/cocida en agua"
+ },
+ "20581": {
+  "alias": [
+   "cacahuete cocido"
+  ],
+  "es": "Cacahuete, hervido/cocido en agua, salado"
+ },
+ "20584": {
+  "alias": [
+   "tomate en rama"
+  ],
+  "es": "Tomate en rama, crudo"
+ },
+ "20585": {
+  "alias": [
+   "lenteja verde",
+   "lenteja pardina"
+  ],
+  "es": "Lenteja verde, seca"
+ },
+ "20586": {
+  "alias": [
+   "lenteja rubia",
+   "lenteja castellana"
+  ],
+  "es": "Lenteja rubia, seca"
+ },
+ "20587": {
+  "alias": [
+   "lenteja verde cocida"
+  ],
+  "es": "Lenteja verde, hervida/cocida en agua"
+ },
+ "20588": {
+  "alias": [
+   "lenteja rubia cocida"
+  ],
+  "es": "Lenteja rubia, hervida/cocida en agua"
+ },
+ "20589": {
+  "alias": [
+   "lenteja roja cocida"
+  ],
+  "es": "Lenteja roja (coral), hervida/cocida en agua"
+ },
+ "20590": {
+  "alias": [
+   "crosne",
+   "alcachofa japonesa"
+  ],
+  "es": "Crosne (alcachofa japonesa), cocido"
+ },
+ "20700": {
+  "alias": [
+   "legumbre cocida",
+   "legumbres"
+  ],
+  "es": "Legumbre, cocida (alimento medio)"
+ },
+ "20800": {
+  "alias": [
+   "platano al vapor",
+   "banana"
+  ],
+  "es": "Plátano amarillo, pulpa, al vapor (Martinica)"
+ },
+ "20801": {
+  "alias": [
+   "chips de calabaza"
+  ],
+  "es": "Chips de calabaza giraumon (variedad local), pulpa (Martinica)"
+ },
+ "20802": {
+  "alias": [
+   "chips de calabaza"
+  ],
+  "es": "Chips de calabaza giraumon (variedad phoenix), pulpa (Martinica)"
+ },
+ "20803": {
+  "alias": [
+   "malanga",
+   "yautia"
+  ],
+  "es": "Malanga (chou caraïbe), pulpa, al vapor (Martinica)"
+ },
+ "20804": {
+  "alias": [
+   "chayote blanco",
+   "cidra",
+   "christophine"
+  ],
+  "es": "Chayote de piel blanca, pulpa, al vapor (Martinica)"
+ },
+ "20805": {
+  "alias": [
+   "chayote verde",
+   "cidra"
+  ],
+  "es": "Chayote de piel verde, pulpa, al vapor (Martinica)"
+ },
+ "20806": {
+  "alias": [
+   "chayote de bote",
+   "cidra"
+  ],
+  "es": "Chayote blanco, pulpa, en conserva, sin escurrir (Martinica)"
+ },
+ "20807": {
+  "alias": [
+   "chayote congelado",
+   "cidra"
+  ],
+  "es": "Chayote, pulpa, al vapor, congelado (Martinica)"
+ },
+ "20808": {
+  "alias": [
+   "pepino"
+  ],
+  "es": "Pepino, pulpa con semillas, crudo (Martinica)"
+ },
+ "20809": {
+  "alias": [
+   "pepino pelado"
+  ],
+  "es": "Pepino, pulpa, crudo (Martinica)"
+ },
+ "20810": {
+  "alias": [
+   "berros"
+  ],
+  "es": "Berro, hoja, crudo (Martinica)"
+ },
+ "20811": {
+  "alias": [
+   "malanga",
+   "taro",
+   "dachine"
+  ],
+  "es": "Malanga o taro (dachine), pulpa, al vapor (Martinica)"
+ },
+ "20812": {
+  "alias": [
+   "harina de boniato",
+   "harina de batata"
+  ],
+  "es": "Harina de pulpa de boniato (Martinica)"
+ },
+ "20813": {
+  "alias": [
+   "fruto del pan",
+   "panapen",
+   "arbol del pan"
+  ],
+  "es": "Fruto del pan, pulpa, al vapor (Martinica)"
+ },
+ "20814": {
+  "alias": [
+   "calabaza",
+   "giraumon"
+  ],
+  "es": "Calabaza giraumon (variedad local), pulpa, al vapor (Martinica)"
+ },
+ "20815": {
+  "alias": [
+   "calabaza congelada",
+   "giraumon"
+  ],
+  "es": "Calabaza giraumon (variedad local), pulpa, al vapor, congelada (Martinica)"
+ },
+ "20816": {
+  "alias": [
+   "calabaza rallada",
+   "giraumon"
+  ],
+  "es": "Calabaza giraumon (variedad local), pulpa, rallada, cruda (Martinica)"
+ },
+ "20817": {
+  "alias": [
+   "calabaza",
+   "giraumon"
+  ],
+  "es": "Calabaza giraumon (variedad phoenix), pulpa, al vapor (Martinica)"
+ },
+ "20818": {
+  "alias": [
+   "calabaza rallada",
+   "giraumon"
+  ],
+  "es": "Calabaza giraumon (variedad phoenix), pulpa, rallada, cruda (Martinica)"
+ },
+ "20819": {
+  "alias": [
+   "calabaza congelada",
+   "giraumon"
+  ],
+  "es": "Calabaza giraumon (variedad phoenix), pulpa, congelada, al vapor (Martinica)"
+ },
+ "20820": {
+  "alias": [
+   "okra",
+   "quimbombo",
+   "gombo"
+  ],
+  "es": "Okra (gombo), entera, en conserva, sin escurrir (Martinica)"
+ },
+ "20821": {
+  "alias": [
+   "okra",
+   "quimbombo"
+  ],
+  "es": "Okra (gombo), entera, al vapor (Martinica)"
+ },
+ "20822": {
+  "alias": [
+   "okra congelada",
+   "quimbombo"
+  ],
+  "es": "Okra (gombo), pulpa, escaldada, congelada (Martinica)"
+ },
+ "20823": {
+  "alias": [
+   "ñame",
+   "ñame cousse couche"
+  ],
+  "es": "Ñame cousse-couche, pulpa, al vapor (Martinica)"
+ },
+ "20824": {
+  "alias": [
+   "ñame amarillo"
+  ],
+  "es": "Ñame amarillo, pulpa, al vapor (Martinica)"
+ },
+ "20825": {
+  "alias": [
+   "ñame"
+  ],
+  "es": "Ñame Saint Martin, pulpa, al vapor (Martinica)"
+ },
+ "20826": {
+  "alias": [
+   "aguaturma",
+   "tupinambo",
+   "pataca"
+  ],
+  "es": "Aguaturma (tupinambo), pulpa, al vapor (Martinica)"
+ },
+ "20827": {
+  "alias": [
+   "kamanioc",
+   "yuca",
+   "mandioca"
+  ],
+  "es": "Kamanioc (yuca dulce), pulpa, al vapor (Martinica)"
+ },
+ "20828": {
+  "alias": [
+   "massissi"
+  ],
+  "es": "Massissi, pulpa, crudo (Martinica)"
+ },
+ "20829": {
+  "alias": [
+   "papaya",
+   "lechosa"
+  ],
+  "es": "Papaya, pulpa, cruda (Martinica)"
+ },
+ "20830": {
+  "alias": [
+   "papaya al vapor"
+  ],
+  "es": "Papaya, pulpa, al vapor (Martinica)"
+ },
+ "20831": {
+  "alias": [
+   "boniato congelado",
+   "batata"
+  ],
+  "es": "Boniato, pulpa, escaldado, congelado (Martinica)"
+ },
+ "20832": {
+  "alias": [
+   "boniato al vapor",
+   "batata"
+  ],
+  "es": "Boniato, pulpa, al vapor (Martinica)"
+ },
+ "20833": {
+  "alias": [
+   "guandu",
+   "gandul",
+   "frijol de palo"
+  ],
+  "es": "Guandú (gandul), entero, al vapor (Martinica)"
+ },
+ "4000": {
+  "alias": [
+   "tapioca",
+   "perlas de tapioca",
+   "yuca"
+  ],
+  "es": "Tapioca o perlas del Japón, cruda"
+ },
+ "4002": {
+  "alias": [
+   "patata asada",
+   "patata al horno",
+   "papa al horno"
+  ],
+  "es": "Patata, sin piel, asada al horno"
+ },
+ "4003": {
+  "alias": [
+   "patata cocida",
+   "patata hervida",
+   "papa hervida"
+  ],
+  "es": "Patata, hervida/cocida en agua"
+ },
+ "4004": {
+  "alias": [
+   "patatas de bolsa",
+   "chips",
+   "patatas chips"
+  ],
+  "es": "Patatas fritas de bolsa, naturales o aromatizadas, estándar"
+ },
+ "4007": {
+  "alias": [
+   "patata nueva cocida",
+   "patata temprana"
+  ],
+  "es": "Patata nueva, hervida/cocida en agua"
+ },
+ "4008": {
+  "alias": [
+   "patata cruda",
+   "patata pelada",
+   "papa"
+  ],
+  "es": "Patata, sin piel, cruda"
+ },
+ "4011": {
+  "alias": [
+   "patata de bote",
+   "patata en lata"
+  ],
+  "es": "Patata, en conserva, escurrida"
+ },
+ "4013": {
+  "alias": [
+   "bolitas de patata",
+   "patata noisette"
+  ],
+  "es": "Patata avellana (bolitas), congelada, cruda"
+ },
+ "4014": {
+  "alias": [
+   "patata al vapor",
+   "patata cocida al vacio"
+  ],
+  "es": "Patata al vapor, envasada al vacío"
+ },
+ "4015": {
+  "alias": [
+   "patata salteada",
+   "patata a la sarten"
+  ],
+  "es": "Patata salteada a la sartén, con grasa"
+ },
+ "4016": {
+  "alias": [
+   "copos de patata",
+   "pure de patata en copos"
+  ],
+  "es": "Patata, copos deshidratados, con leche o nata"
+ },
+ "4017": {
+  "alias": [
+   "pure de patata",
+   "pure de sobre"
+  ],
+  "es": "Patata, puré de copos reconstituido con leche entera y grasa"
+ },
+ "4018": {
+  "alias": [
+   "pure de patata casero",
+   "pure de patata"
+  ],
+  "es": "Patata, puré con leche y mantequilla, sin sal"
+ },
+ "4019": {
+  "alias": [
+   "pure de patata ligero",
+   "pure de sobre"
+  ],
+  "es": "Patata, puré de copos reconstituido con leche semidesnatada y agua, sin sal"
+ },
+ "4020": {
+  "alias": [
+   "patata dauphine",
+   "buñuelo de patata"
+  ],
+  "es": "Patata dauphine (buñuelo de patata), congelada, cruda"
+ },
+ "4021": {
+  "alias": [
+   "patata dauphine",
+   "buñuelo de patata"
+  ],
+  "es": "Patata dauphine (buñuelo de patata), congelada, cocida"
+ },
+ "4022": {
+  "alias": [
+   "copos de patata",
+   "pure en copos"
+  ],
+  "es": "Patata, copos deshidratados, naturales"
+ },
+ "4023": {
+  "alias": [
+   "patata nueva",
+   "patata temprana"
+  ],
+  "es": "Patata nueva, cruda"
+ },
+ "4025": {
+  "alias": [
+   "gajos de patata",
+   "patatas deluxe",
+   "wedges"
+  ],
+  "es": "Gajos de patata especiados (potatoes o wedges), congelados, cocidos"
+ },
+ "4026": {
+  "alias": [
+   "patata asada",
+   "patata al horno"
+  ],
+  "es": "Patata, asada al horno"
+ },
+ "4027": {
+  "alias": [
+   "patata salteada congelada",
+   "patata rustica"
+  ],
+  "es": "Patata salteada/dorada, prefrita, congelada, cocida"
+ },
+ "4028": {
+  "alias": [
+   "patata vieja cocida",
+   "patata cocida"
+  ],
+  "es": "Patata de conservación, sin piel, hervida/cocida en agua"
+ },
+ "4029": {
+  "alias": [
+   "patata nueva cocida",
+   "patata temprana"
+  ],
+  "es": "Patata temprana, sin piel, hervida/cocida en agua"
+ },
+ "4030": {
+  "alias": [
+   "patatas al horno",
+   "patatas fritas de horno"
+  ],
+  "es": "Patatas fritas, congeladas, asadas al horno"
+ },
+ "4032": {
+  "alias": [
+   "patatas fritas",
+   "patatas congeladas fritas"
+  ],
+  "es": "Patatas fritas, congeladas, fritas en freidora"
+ },
+ "4034": {
+  "alias": [
+   "patata duquesa"
+  ],
+  "es": "Patata duquesa, congelada, cocida"
+ },
+ "4035": {
+  "alias": [
+   "bolitas de patata",
+   "patata noisette"
+  ],
+  "es": "Patata avellana (bolitas), congelada, cocida"
+ },
+ "4036": {
+  "alias": [
+   "patata a la grasa de pato",
+   "patatas confitadas"
+  ],
+  "es": "Patata salteada en grasa de pato"
+ },
+ "4037": {
+  "alias": [
+   "chips artesanas",
+   "patatas de bolsa"
+  ],
+  "es": "Patatas fritas de bolsa, naturales o aromatizadas, artesanas"
+ },
+ "4038": {
+  "alias": [
+   "chips light",
+   "patatas de bolsa ligeras"
+  ],
+  "es": "Patatas fritas de bolsa y similares, naturales o aromatizadas, bajas en grasa"
+ },
+ "4039": {
+  "alias": [
+   "rosti",
+   "torta de patata",
+   "galette de patata"
+  ],
+  "es": "Rösti o torta de patata"
+ },
+ "4042": {
+  "alias": [
+   "patata duquesa"
+  ],
+  "es": "Patata duquesa, congelada, cruda"
+ },
+ "4043": {
+  "alias": [
+   "patata salteada congelada",
+   "patata rustica"
+  ],
+  "es": "Patata salteada/dorada, prefrita, congelada, cruda"
+ },
+ "4044": {
+  "alias": [
+   "patatas de horno",
+   "patatas fritas congeladas"
+  ],
+  "es": "Patatas fritas, congeladas, prefritas, para horno"
+ },
+ "4045": {
+  "alias": [
+   "patatas de microondas",
+   "patatas fritas congeladas"
+  ],
+  "es": "Patatas fritas, congeladas, prefritas, para microondas"
+ },
+ "4046": {
+  "alias": [
+   "patatas de freidora",
+   "patatas fritas congeladas"
+  ],
+  "es": "Patatas fritas, congeladas, prefritas, para freidora"
+ },
+ "4047": {
+  "alias": [
+   "pure de patata"
+  ],
+  "es": "Patata, puré (alimento medio)"
+ },
+ "4048": {
+  "alias": [
+   "patata cocida"
+  ],
+  "es": "Patata, cocida (alimento medio)"
+ },
+ "4101": {
+  "alias": [
+   "boniato",
+   "batata",
+   "camote",
+   "patata dulce"
+  ],
+  "es": "Boniato, crudo"
+ },
+ "4102": {
+  "alias": [
+   "boniato cocido",
+   "batata asada",
+   "camote cocido"
+  ],
+  "es": "Boniato, cocido"
+ },
+ "4103": {
+  "alias": [
+   "pure de boniato",
+   "pure de batata"
+  ],
+  "es": "Boniato, puré cocinado con nata"
+ },
+ "9570": {
+  "alias": [
+   "harina de castaña",
+   "castaña molida"
+  ],
+  "es": "Harina de castaña"
+ }
+}

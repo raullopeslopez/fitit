@@ -114,3 +114,27 @@ Una fila de `foods` con `user_id` no nulo es un alimento que diste de alta tú, 
 import **nunca** la toca: sólo escribe filas de catálogo (`user_id IS NULL`). Tampoco
 borra: un alimento que desaparezca de una edición futura de CIQUAL se queda, porque hay
 entradas del diario apuntándolo.
+
+## Criterios de traducción (FR → ES)
+
+Aplicados a `data/ciqual_es.json`. Escritos aquí porque el fichero se genera por
+tandas y la coherencia entre la primera y la última es lo que se rompe solo.
+
+- **`cru` / `cuit` no se pierden nunca.** Es la mitad del valor del dato: entre una
+  patata cruda y una cocida hay 130 kcal contra 350. Lo mismo con `sec`, `surgelé`,
+  `appertisé`, `égoutté`, `préemballé`.
+- **Nomenclatura española, no calco.** Los cortes de carne y los nombres de pescado van
+  como los llama una pescadería o una carnicería de aquí: `tende de tranche` → `tapa`,
+  `bar ou loup` → `lubina`. Un calco literal es un nombre que nadie busca.
+- **Alias de España.** Tres a cinco sinónimos con los que alguien buscaría aquí, incluidos
+  regionalismos peninsulares (`bajocas`, `presec`, `codony`). Los americanismos entran
+  sólo cuando también se usan aquí (`batata`, `camote`).
+- **Ningún alias que sea otro alimento.** Es la regla que más recorta: en `dorada` no va
+  `besugo`, en `hígado de oca` no va `foie` a secas (sugiere foie gras), en `rösti` no va
+  `tortilla de patata`. Un alias que apunta a otra cosa no es un atajo, es un error de
+  registro esperando a pasar.
+- **Lo que no se reconoce se transcribe literal y se apoya en los alias.** `Chadèque` se
+  queda `chadeque` con `pomelo` y `pampelmusa` al lado. Un nombre aproximado es peor que
+  uno literal: el literal se nota, el aproximado no.
+- **`aliment moyen` → `alimento medio`.** Es una categoría de CIQUAL, no un alimento, y
+  conviene que se siga notando.
