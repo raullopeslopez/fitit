@@ -184,6 +184,19 @@ export const FOOD_DAY = {
   ],
   totals: { kcal: 985, protein: 49.3, fat: 19.7, carbs: 118.2, fiber: null },
   unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 1 },
+  // Los subtotales por raíl, como los manda el servidor: las cinco comidas
+  // siempre, y una vacía sumando `null` en vez de 0.
+  by_slot: [
+    ['desayuno', 250, 0],
+    ['comida', 583, 0],
+    ['cena', null, 1],
+    ['snack', null, 0],
+    [null, 62, 0],
+  ].map(([slot, kcal, sinFibra]) => ({
+    slot,
+    totals: { kcal, protein: null, fat: null, carbs: null, fiber: kcal === null ? null : 0 },
+    unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: sinFibra },
+  })),
 }
 
 // El repertorio que la rejilla «Lo de siempre» dibuja. Nombres largos de CIQUAL
@@ -330,10 +343,9 @@ export async function mountComida() {
   const view = await mountApp()
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
-  // Por la CTA, no por su texto: con repertorio en pantalla el botón dice
-  // «Buscar otro alimento» y sin él «Añadir alimento», y el helper que espera
-  // por una de las dos copias deja la otra mitad de la suite sin montar.
-  await vi.waitFor(() => expect(document.querySelector('.food-cta')).not.toBeNull(), {
+  // Por el primer raíl: la pantalla ya no tiene una CTA al pie, y los raíles
+  // son lo primero que se dibuja con el día cargado.
+  await vi.waitFor(() => expect(document.querySelector('.food-rail')).not.toBeNull(), {
     timeout: 5000,
   })
   await settle()

@@ -30,12 +30,14 @@ import {
 
 afterEach(() => clearForcedTheme())
 
-const macroCells = () => [...document.querySelectorAll('.food-macro')]
+// El total del día pasó de tarjeta hero a tira fina: mismos cuatro valores,
+// misma regla de la raya, otra caja.
+const macroCells = () => [...document.querySelectorAll('.food-strip-macro')]
 
 describe('Comida', () => {
   it('llega con el día pintado', async () => {
     await mountComida()
-    expect(document.querySelector('.food-sum')).not.toBeNull()
+    expect(document.querySelector('.food-strip')).not.toBeNull()
     expect(macroCells()).toHaveLength(4)
   })
 
@@ -71,7 +73,7 @@ describe('Comida', () => {
 
   it('la raya de un dato desconocido se pinta como una cifra, no como un hueco', async () => {
     await mountComida()
-    const values = macroCells().map((cell) => cell.querySelector('.food-macro-value'))
+    const values = macroCells().map((cell) => cell.querySelector('.food-strip-value'))
     const dash = values.find((el) => el.textContent === '—')
     const number = values.find((el) => el.textContent !== '—')
     expect(dash).toBeDefined()
@@ -104,7 +106,7 @@ describe('Comida', () => {
 
   it('las cuatro macros caben en 430 px sin desbordar', async () => {
     await mountComida()
-    const card = document.querySelector('.food-sum')
+    const card = document.querySelector('.food-strip')
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth)
     // Y ninguna celda se sale de la tarjeta que las contiene.
     const box = paintedRect(card)
@@ -130,9 +132,9 @@ describe('Comida', () => {
   it('abrir la CTA trae el buscador a la pantalla', async () => {
     await mountComida()
     const user = userEvent.setup()
-    // Por la clase y no por la copia: con repertorio en pantalla la CTA dice
-    // «Buscar otro alimento», y es el mismo botón.
-    await user.click(document.querySelector('.food-cta'))
+    // Por el `+` del último raíl, que es el caso peor: el panel se abre lo más
+    // abajo que puede abrirse.
+    await user.click(screen.getByRole('button', { name: 'Añadir a snack' }))
     await settle()
 
     // El panel se abre al pie de una lista que ya pasa de la línea de
@@ -155,7 +157,7 @@ describe('Comida', () => {
   it('el panel abierto no deja ni un control bajo la barra', async () => {
     await mountComida()
     const user = userEvent.setup()
-    await user.click(document.querySelector('.food-cta'))
+    await user.click(screen.getByRole('button', { name: 'Añadir a snack' }))
     await user.type(screen.getByLabelText('Buscar alimento'), 'pan')
     // El desplegado con resultados es el panel en su tamaño máximo, que es el
     // único que hace falta medir: si cabe éste, caben todos.
@@ -215,16 +217,33 @@ describe('Comida', () => {
     expect(c.top).toBeGreaterThan(a.bottom - 1)
   })
 
-  it('la CTA de añadir es alcanzable, no queda bajo la barra de pestañas', async () => {
+  it('el + de cada raíl es un objetivo de dedo y no queda bajo la barra', async () => {
     await mountComida()
-    const cta = document.querySelector('.food-cta')
     const nav = document.querySelector('nav.bottom-nav')
-    cta.scrollIntoView({ block: 'center' })
-    await settle()
-    // `overlap` devuelve el rectángulo común, o `null` cuando no se tocan —
-    // que es lo que tiene que pasar aquí.
-    expect(overlap(paintedRect(nav), paintedRect(cta)), 'la barra fija tapa la CTA').toBeNull()
-    // Y es un objetivo de dedo: 44 px es el suelo que usa el resto de la app.
-    expect(paintedRect(cta).height).toBeGreaterThanOrEqual(44)
+    const adds = [...document.querySelectorAll('.food-rail-add')]
+    // Cuatro: uno por comida. El montón sin asignar no lleva, a propósito.
+    expect(adds).toHaveLength(4)
+    for (const add of adds) {
+      add.scrollIntoView({ block: 'center' })
+      await settle()
+      const rect = paintedRect(add)
+      // 44 px es el suelo que usa el resto de la app, y este control se pulsa
+      // cuatro veces al día.
+      expect(rect.height, add.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
+      expect(rect.width, add.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
+      expect(overlap(paintedRect(nav), rect), 'la barra fija tapa un +').toBeNull()
+    }
+  })
+
+  it('el subtotal de un raíl vacío es una raya con la tinta de una cifra', async () => {
+    await mountComida()
+    const kcal = [...document.querySelectorAll('.food-rail-kcal')]
+    const raya = kcal.find((e) => e.textContent.startsWith('—'))
+    const cifra = kcal.find((e) => !e.textContent.startsWith('—'))
+    expect(raya, 'ningún raíl vacío en el fixture').toBeDefined()
+    // Misma razón que en el total del día: en `--muted` la raya se leería como
+    // «aquí no hay nada», y lo que dice es «aquí no has comido todavía».
+    expect(getComputedStyle(raya).color).toBe(getComputedStyle(cifra).color)
+    expect(paintedRect(raya).height).toBeCloseTo(paintedRect(cifra).height, 0)
   })
 })

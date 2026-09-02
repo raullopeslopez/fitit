@@ -3797,6 +3797,122 @@ button.set-chip:active:not(:disabled) {
   text-align: center;
 }
 
+/* La tira del total, en lugar de la tarjeta hero.
+   Con cuatro raíles debajo, 143 px de tarjeta empujaban el último raíl y la
+   rejilla de «lo de siempre» fuera de la pantalla. La cifra sigue siendo lo más
+   grande que hay aquí —es lo que la pantalla mide— pero deja de necesitar una
+   superficie para decirlo: una regla debajo basta para separarla de la lista. */
+.food-strip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding-bottom: 0.7rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.food-strip-kcal {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.food-strip-unit {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.food-strip-macros {
+  display: flex;
+  gap: 0.55rem;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* El rótulo en `--muted` y la cifra en tinta: la raya de un desconocido tiene
+   que leerse con el mismo peso que un número, aquí igual que en la tarjeta que
+   esta tira sustituye. */
+.food-strip-short {
+  color: var(--muted);
+}
+.food-strip-value {
+  color: var(--text);
+}
+
+/* Los raíles: las cuatro comidas, siempre, con su subtotal y su `+`.
+   Que estén aunque no tengan nada es el cambio: el raíl es la puerta por la que
+   se registra *en* esa comida, así que no puede aparecer sólo cuando ya has
+   comido. Y como se entra por el sitio, el desplegable «Comida» del formulario
+   deja de tener una pregunta que hacer. */
+.food-rail {
+  margin-bottom: 1.1rem;
+}
+.food-rail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  margin: 0;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.food-rail-name {
+  flex: 1;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.food-rail-kcal {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Ámbar, y es la única excepción de esta pantalla: no es una etiqueta que se
+   pinta de acento, es el control que se pulsa cuatro veces al día. Un `+` en
+   `--muted` sobre una cabecera en `--muted` no se lee como un botón. */
+.food-rail-add {
+  width: 44px;
+  min-height: 44px;
+  margin-right: -0.6rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--accent-ink);
+}
+.food-rail-add:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: var(--radius-control);
+}
+.food-rail-empty {
+  margin: 0.5rem 0 0;
+}
+
+/* Los huecos de comida dentro del formulario. Ver el comentario del JSX: aquí
+   ya no se pregunta, se corrige. */
+.food-slot-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.food-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .food-group {
   margin-bottom: 1.2rem;
 }

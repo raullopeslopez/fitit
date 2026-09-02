@@ -21,13 +21,31 @@ import {
 } from './food.js'
 import { formatDayShort } from './format.js'
 
-// Las entradas del día, agrupadas en el orden en que se come. Un grupo vacío no
-// se dibuja: una cabecera "Cena" sobre nada no separa nada.
-function byMealSlot(entries) {
-  const order = [...MEAL_SLOTS.map((s) => s.key), null]
-  return order
-    .map((key) => ({ key, entries: entries.filter((e) => (e.meal_slot ?? null) === key) }))
-    .filter((group) => group.entries.length > 0)
+// Los raíles del día: las cuatro comidas, siempre, con su subtotal y lo que
+// lleven dentro. Una comida vacía **sí** se dibuja — es por donde se entra a
+// registrar en ella, y un raíl que aparece y desaparece según lo que hayas
+// comido mueve de sitio el control que ibas a pulsar.
+//
+// El montón sin asignar es la excepción: no tiene `+`, porque nadie quiere
+// *decidir* no decidir, así que sólo se dibuja cuando ya hay algo en él.
+//
+// Los subtotales llegan del servidor (`by_slot`). Sumarlos aquí sería una
+// segunda implementación de la regla de los nulos, y esa regla vive entera en
+// `backend/app/nutrition.py`.
+function rails(day) {
+  const bySlot = day.by_slot?.length
+    ? day.by_slot
+    : [...MEAL_SLOTS.map((s) => ({ slot: s.key })), { slot: null }]
+  return bySlot
+    .map((group) => {
+      const key = group.slot ?? null
+      return {
+        key,
+        totals: group.totals ?? {},
+        entries: day.entries.filter((e) => (e.meal_slot ?? null) === key),
+      }
+    })
+    .filter((rail) => rail.key !== null || rail.entries.length > 0)
 }
 
 export default function Comida() {
@@ -36,7 +54,8 @@ export default function Comida() {
   // fechar lo que escribes.
   const [dayIso, setDayIso] = useState(() => foodDayIso())
   const [day, setDay] = useState(null)
-  const [adding, setAdding] = useState(false)
+  // `null` = cerrado. Si no, `{ slot }`: la comida por cuyo `+` has entrado.
+  const [adding, setAdding] = useState(null)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
   // Lo de siempre: lo que más repites, a un toque. No depende del día que se
@@ -79,7 +98,7 @@ export default function Comida() {
   const note = unknownNote(day?.unknown)
 
   async function afterWrite() {
-    setAdding(false)
+    setAdding(null)
     setEditing(null)
     // Las dos cosas que acaban de cambiar: el día y el recuento del que sale el
     // repertorio. Registrar dos veces lo mismo lo sube en la rejilla.
@@ -139,37 +158,53 @@ export default function Comida() {
 
       {error && <p className="alert">{error}</p>}
 
-      {day && day.entries.length > 0 && (
-        <div className="card card-hero food-sum">
-          <p className="food-kcal">
-            {formatMacro(totals.kcal)}
-            <span className="food-kcal-unit"> kcal</span>
-          </p>
-          <div className="food-macros" data-testid="food-macros">
+      {/* El total del día, en una tira y no en una tarjeta. Con cuatro raíles
+          debajo, la tarjeta hero de 143 px empujaba «lo de siempre» y el último
+          raíl fuera de la pantalla: la cifra sigue siendo lo más grande que hay
+          aquí, pero ya no necesita una superficie para decirlo. */}
+      {day && (
+        <div className="food-strip" data-testid="food-macros">
+          <span className="food-strip-kcal">{formatMacro(totals.kcal)}</span>
+          <span className="food-strip-unit">kcal</span>
+          <span className="food-strip-macros">
             {MACROS.map((macro) => (
-              <div className="food-macro" key={macro.key}>
-                <span className="food-macro-value">
+              <span className="food-strip-macro" key={macro.key}>
+                <span className="food-strip-short">{macro.short}</span>{' '}
+                <span className="food-strip-value">
                   {formatMacro(totals[macro.key], { decimals: macro.decimals })}
                 </span>
-                <span className="food-macro-label">{macro.label}</span>
-              </div>
+              </span>
             ))}
-          </div>
-          {/* Una raya en un total se lee como "no comí nada de eso", que es lo
-              contrario de lo que dice. Así que se explica en voz alta. */}
-          {note && <p className="hint food-unknown">{note}</p>}
+          </span>
         </div>
       )}
-
-      {day && day.entries.length === 0 && !adding && (
-        <p className="hint food-empty">Aún no has registrado nada.</p>
-      )}
+      {/* Una raya en un total se lee como "no comí nada de eso", que es lo
+          contrario de lo que dice. Así que se explica en voz alta. */}
+      {note && <p className="hint food-unknown">{note}</p>}
 
       {day &&
-        byMealSlot(day.entries).map((group) => (
-          <section className="food-group" key={group.key ?? 'sin-asignar'}>
-            <h3 className="food-group-title">{slotLabel(group.key)}</h3>
-            {group.entries.map((entry) =>
+        rails(day).map((rail) => (
+          <section className="food-rail" key={rail.key ?? 'sin-asignar'}>
+            <h3 className="food-rail-head">
+              <span className="food-rail-name">{slotLabel(rail.key)}</span>
+              <span className="food-rail-kcal">{formatMacro(rail.totals.kcal)} kcal</span>
+              {/* Entrar por el raíl es lo que jubila el desplegable «Comida»:
+                  la respuesta la da el sitio por el que has pulsado. */}
+              {rail.key !== null && (
+                <button
+                  type="button"
+                  className="food-rail-add"
+                  aria-label={`Añadir a ${slotLabel(rail.key).toLowerCase()}`}
+                  onClick={() => setAdding({ slot: rail.key })}
+                >
+                  +
+                </button>
+              )}
+            </h3>
+            {rail.entries.length === 0 && !(adding?.slot === rail.key) && (
+              <p className="hint food-rail-empty">Nada aún</p>
+            )}
+            {rail.entries.map((entry) =>
               editing === entry.id ? (
                 <EntryEditor
                   key={entry.id}
@@ -189,6 +224,9 @@ export default function Comida() {
                   <span className="food-entry-kcal">{formatMacro(entry.kcal)} kcal</span>
                 </button>
               ),
+            )}
+            {adding?.slot === rail.key && (
+              <AddFood slot={rail.key} onDone={afterWrite} onCancel={() => setAdding(null)} />
             )}
           </section>
         ))}
@@ -216,20 +254,7 @@ export default function Comida() {
         </section>
       )}
 
-      {adding ? (
-        <AddFood onDone={afterWrite} onCancel={() => setAdding(false)} />
-      ) : (
-        <button
-          type="button"
-          className="primary btn-full food-cta"
-          onClick={() => setAdding(true)}
-        >
-          {/* Con la rejilla arriba, «Añadir alimento» ya no distingue nada: las
-              dos cosas de la pantalla añaden. Lo que este botón hace de más es
-              buscar. */}
-          {showSiempre ? 'Buscar otro alimento' : 'Añadir alimento'}
-        </button>
-      )}
+
     </div>
   )
 }
@@ -296,7 +321,7 @@ function EntryEditor({ entry, onDone, onCancel }) {
 //
 // El alta manual es la ÚNICA puerta por la que se escribe en `foods`: nada en
 // este proyecto crea un alimento sin que alguien lo confirme en un formulario.
-function AddFood({ onDone, onCancel }) {
+function AddFood({ slot = null, onDone, onCancel }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [chosen, setChosen] = useState(null)
@@ -350,7 +375,14 @@ function AddFood({ onDone, onCancel }) {
   }
 
   if (chosen) {
-    return <Amount food={chosen} onDone={onDone} onCancel={() => setChosen(null)} />
+    return (
+      <Amount
+        food={chosen}
+        initialSlot={slot}
+        onDone={onDone}
+        onCancel={() => setChosen(null)}
+      />
+    )
   }
 
   return (
@@ -395,12 +427,14 @@ function AddFood({ onDone, onCancel }) {
 // Cuánto, y a qué comida. La porción por defecto llega ya elegida cuando el
 // alimento tiene una: registrar "una rebanada" no puede obligarte a pensar en
 // gramos.
-function Amount({ food, onDone, onCancel }) {
+function Amount({ food, initialSlot = null, onDone, onCancel }) {
   const preset = food.portions?.find((p) => p.is_default) ?? null
   const [portionId, setPortionId] = useState(preset?.id ?? null)
   const [quantity, setQuantity] = useState('1')
   const [grams, setGrams] = useState(preset ? '' : '100')
-  const [slot, setSlot] = useState('')
+  // Ya contestado por el raíl del que vienes. Sigue siendo cambiable: la
+  // pregunta desaparece, la libertad no.
+  const [slot, setSlot] = useState(initialSlot ?? '')
   const [busy, setBusy] = useState(false)
 
   async function submit(event) {
@@ -459,16 +493,32 @@ function Amount({ food, onDone, onCancel }) {
           />
         </div>
       )}
+      {/* Chips y no un desplegable: la respuesta ya viene puesta desde el raíl,
+          así que esto dejó de ser una pregunta y pasó a ser una corrección — y
+          una corrección de un toque no se merece dos (abrir y elegir). */}
       <div className="field">
-        <label htmlFor="food-slot">Comida</label>
-        <select id="food-slot" value={slot} onChange={(e) => setSlot(e.target.value)}>
-          <option value="">Sin asignar</option>
+        <span className="food-slot-label">Comida</span>
+        <div className="food-slots">
           {MEAL_SLOTS.map((s) => (
-            <option key={s.key} value={s.key}>
+            <button
+              type="button"
+              key={s.key}
+              className={`chip${slot === s.key ? ' is-active' : ''}`}
+              aria-pressed={slot === s.key}
+              onClick={() => setSlot(slot === s.key ? '' : s.key)}
+            >
               {s.label}
-            </option>
+            </button>
           ))}
-        </select>
+          <button
+            type="button"
+            className={`chip${slot === '' ? ' is-active' : ''}`}
+            aria-pressed={slot === ''}
+            onClick={() => setSlot('')}
+          >
+            Sin asignar
+          </button>
+        </div>
       </div>
       <div className="food-editor-actions">
         <button type="submit" className="primary" disabled={busy}>

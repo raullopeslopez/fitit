@@ -6,6 +6,7 @@ the macro columns are copies rather than a join.
 """
 
 from datetime import UTC, date, datetime
+from typing import get_args
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
@@ -15,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from ..auth import get_current_user
 from ..db import get_session
 from ..models import Food, LogEntry
+from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
     dump_nutrients,
@@ -22,7 +24,7 @@ from ..nutrition import (
     food_log_date,
     sumar_nutrientes,
 )
-from ..schemas import FoodDayOut, LogEntryIn, LogEntryOut, LogEntryPatch
+from ..schemas import FoodDayOut, LogEntryIn, LogEntryOut, LogEntryPatch, SlotTotalsOut
 from ..serialization import to_entry_out
 
 router = APIRouter(prefix="/food-log", tags=["food-log"])
@@ -115,7 +117,28 @@ async def get_food_day(
         entries=[to_entry_out(e) for e in entries],
         totals=totals,
         unknown=unknown,
+        by_slot=_by_slot(entries),
     )
+
+
+# Las cinco comidas, en el orden en que se comen y con el montón sin asignar al
+# final. Es el mismo orden que la pantalla dibuja, y sale de `MealSlot` para que
+# añadir una comida sea un sitio y no tres.
+SLOT_ORDER: tuple[str | None, ...] = (*get_args(MealSlot), None)
+
+
+def _by_slot(entries) -> list[SlotTotalsOut]:
+    """Un subtotal por comida, **incluidas las vacías**.
+
+    Salen todas para que la pantalla pueda dibujar un raíl que todavía no tiene
+    nada sin sumar por su cuenta: una comida vacía suma `null`, no 0, y esa
+    regla vive en `sumar_nutrientes` y en ningún otro sitio.
+    """
+    out = []
+    for slot in SLOT_ORDER:
+        totals, unknown = sumar_nutrientes([e for e in entries if (e.meal_slot or None) == slot])
+        out.append(SlotTotalsOut(slot=slot, totals=totals, unknown=unknown))
+    return out
 
 
 @router.patch("/{entry_id}", response_model=LogEntryOut)

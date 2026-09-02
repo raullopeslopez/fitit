@@ -444,15 +444,36 @@ class LogEntryOut(BaseModel):
     entry_source: str = "manual"
 
 
+class SlotTotalsOut(BaseModel):
+    """Lo que suma una comida por su cuenta.
+
+    Mismas reglas que el día entero, aplicadas a un trozo: un nutriente que a
+    alguna entrada le falta sale `null`, y una comida en la que no hay nada
+    suma `null` y no 0 — no has comido cero calorías en el almuerzo, es que
+    todavía no has almorzado.
+    """
+
+    slot: MealSlot | None = None
+    totals: dict[str, float | None]
+    unknown: dict[str, int]
+
+
 class FoodDayOut(BaseModel):
     """One food day: what was eaten, what it adds up to, and what it can't.
 
     `totals[n]` is null whenever any entry is missing that nutrient, and
     `unknown[n]` says how many were — so the screen can print "1.840 kcal" and
     "— · 3 sin fibra" instead of a total that quietly counts unknowns as zero.
+
+    `by_slot` trae las cinco comidas **siempre**, tengan algo o no, y en el
+    orden en que se comen. Que salgan todas es lo que deja a la pantalla
+    dibujar un raíl vacío sin inventarse un total: la aritmética nutricional
+    vive entera en `app/nutrition.py`, y sumar por comida en el cliente sería
+    una segunda implementación de la regla de los nulos.
     """
 
     date: Date
     entries: list[LogEntryOut]
     totals: dict[str, float | None]
     unknown: dict[str, int]
+    by_slot: list[SlotTotalsOut] = Field(default_factory=list)

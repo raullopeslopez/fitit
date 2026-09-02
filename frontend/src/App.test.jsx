@@ -72,7 +72,8 @@ describe('App', () => {
     render(<App />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Comida' }))
-    expect(await screen.findByRole('button', { name: 'Añadir alimento' })).toBeInTheDocument()
+    // Los raíles de comida: la pantalla ya no tiene un botón de añadir al pie.
+    expect(await screen.findByRole('button', { name: 'Añadir a desayuno' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')
 
     await userEvent.click(screen.getByRole('button', { name: 'Días' }))
