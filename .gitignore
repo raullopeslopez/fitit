@@ -50,3 +50,12 @@ design_handoff_*/
 # ochenta llamadas a un LLM.
 backend/data/*
 !backend/data/ciqual_es.json
+
+# Entregas de marca y diseño que llegan por email o descarga y se miran, no se
+# ejecutan: los zips de branding, los PDF de exploración y los prototipos
+# sueltos que acompañan a una propuesta. Lo que de esa conversación acaba
+# siendo el sistema vive en `brand/` y en `frontend/src/styles.css`; el
+# paquetito original es material de trabajo, y pesa.
+/*.zip
+/*.pdf
+/Cold Start (standalone).html
