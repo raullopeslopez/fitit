@@ -39,6 +39,28 @@ describe('Comida', () => {
     expect(macroCells()).toHaveLength(4)
   })
 
+  it('la fecha y sus dos pasos van en un solo renglón', async () => {
+    await mountComida()
+    const nav = document.querySelector('.food-daynav')
+    const [prev, next] = [...nav.querySelectorAll('.food-daystep')].map(paintedRect)
+    const stamp = paintedRect(nav.querySelector('.food-daystamp'))
+
+    // Un renglón, no tres. La fila mide lo que mide un objetivo de dedo, y no
+    // la suma de sus tres hijos apilados: cuando `.food-daynav` no llega a
+    // pintarse —un comentario sin abrir más arriba en la hoja se lo comió— los
+    // hijos se apilan y esto pasa de 44 a 110 px sin que falle nada más.
+    expect(paintedRect(nav).height).toBeLessThanOrEqual(56)
+
+    // Y los tres a la misma altura: el sello entre los dos pasos, cada uno a un
+    // lado. Con `‹` encima de la fecha y `›` debajo no hay «alineación» que
+    // arreglar — no es una fila.
+    const middle = (box) => box.top + box.height / 2
+    expect(middle(prev)).toBeCloseTo(middle(stamp), 0)
+    expect(middle(next)).toBeCloseTo(middle(stamp), 0)
+    expect(prev.right).toBeLessThanOrEqual(stamp.left + 0.5)
+    expect(next.left).toBeGreaterThanOrEqual(stamp.right - 0.5)
+  })
+
   it('la raya de un dato desconocido se pinta como una cifra, no como un hueco', async () => {
     await mountComida()
     const values = macroCells().map((cell) => cell.querySelector('.food-macro-value'))

@@ -3667,16 +3667,23 @@ button.set-chip:active:not(:disabled) {
    arriba se queda a 24 px de traer «Crear …» y «Cancelar» por encima de la
    barra, y los dos botones que hacen falta para terminar quedan tapados justo
    cuando se necesitan. Medido en `comida.browser-test.jsx`, que es donde
-   aparecerá otra vez si un panel crece. */
-.comida {
-  padding-bottom: 7rem;
-}
+   aparecerá otra vez si un panel crece.
 
    La pantalla es un instrumento como las otras dos: números en mono, rótulos
    en Micro (mayúscula, letterspaced, no-prosa) y un solo acento. Lo único
    propio de esta pantalla es la raya: un total desconocido se imprime como `—`
    y no como 0, y la raya tiene que leerse a la misma altura que un número o se
-   confunde con un hueco de maquetación. */
+   confunde con un hueco de maquetación.
+
+   Este párrafo estuvo suelto, sin el `/*` que lo abría, y no era un fallo
+   cosmético: al encontrarse prosa donde esperaba un selector, el parser entra
+   en recuperación de errores y se traga tokens hasta el siguiente bloque
+   `{ … }` — que era `.food-daynav` entero. La fila de fecha llevaba meses sin
+   su `display: flex`, con los dos pasos apilados sobre y bajo el sello, y
+   ningún test lo veía. Lo mide ahora `comida.browser-test.jsx`. */
+.comida {
+  padding-bottom: 7rem;
+}
 
 /* La fecha en su propia línea, con los dos pasos a los lados. Es un sello de
    datos, no prosa: mono y en mayúscula, como el de la lista de días. */
