@@ -115,7 +115,17 @@ export default function Comida() {
         >
           ‹
         </button>
-        <h2 className="food-daystamp">{formatDayShort(dayIso)}</h2>
+        {/* La fecha en su propio `span` y no suelta en el `h2`: el sello de
+            «Hoy» va al lado, y con los dos como texto plano del mismo elemento
+            no hay forma de leer la fecha sola —ni desde una prueba ni desde un
+            lector de pantalla—. */}
+        <h2 className="food-daystamp">
+          <span className="food-daystamp-date">{formatDayShort(dayIso)}</span>
+          {/* Que estés en hoy se deducía de que la flecha derecha estaba
+              apagada, que es pedirle al ojo que compare dos controles para
+              contestar a la pregunta más simple de la pantalla. */}
+          {isToday && <span className="food-today">Hoy</span>}
+        </h2>
         <button
           type="button"
           className="link-btn food-daystep"

@@ -59,6 +59,14 @@ describe('Comida', () => {
     expect(middle(next)).toBeCloseTo(middle(stamp), 0)
     expect(prev.right).toBeLessThanOrEqual(stamp.left + 0.5)
     expect(next.left).toBeGreaterThanOrEqual(stamp.right - 0.5)
+
+    // El sello «Hoy» va dentro del renglón, no lo estira: su borde y su relleno
+    // son más altos que el texto que rodean, y sin corregir la línea base la
+    // fila crecía por un adorno de 11 px.
+    const hoy = paintedRect(document.querySelector('.food-today'))
+    const fecha = paintedRect(document.querySelector('.food-daystamp-date'))
+    expect(middle(hoy)).toBeCloseTo(middle(fecha), 0)
+    expect(paintedRect(nav).height).toBeLessThanOrEqual(48)
   })
 
   it('la raya de un dato desconocido se pinta como una cifra, no como un hueco', async () => {

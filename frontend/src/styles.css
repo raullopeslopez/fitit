@@ -3696,14 +3696,38 @@ button.set-chip:active:not(:disabled) {
 }
 .food-daystamp {
   flex: 1;
+  /* Flex y no `text-align: center`: el sello de «Hoy» va al lado de la fecha y
+     centrarlos como texto los alinea por la línea base, que no es su centro —
+     el borde y el relleno del sello son más altos que las letras que rodean. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   margin: 0;
-  text-align: center;
   font-family: var(--font-mono);
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
+/* «Hoy» es un sello, no una etiqueta que se lea como palabra: mayúscula,
+   letterspaced y en el escalón Micro que DESIGN.md reserva para eso. Va en
+   `--muted` y con el borde del sistema — el ámbar significa que algo ha pasado,
+   y estar en el día de hoy no es un logro. */
+.food-today {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /* No crece la fila: `.food-daystamp` lo centra, y el sello es más bajo que el
+     objetivo de dedo de 44 px que ya gobierna el renglón. */
+  line-height: 1.3;
+}
+
 .food-daystep {
   min-width: 44px;
   min-height: 44px;

@@ -81,6 +81,14 @@ describe('Comida', () => {
     await waitFor(() => expect(api.getFoodDay).toHaveBeenLastCalledWith('2026-08-31'))
   })
 
+  it('dice si estás en hoy, en vez de dejarlo deducir de una flecha apagada', async () => {
+    render(<Comida />)
+    expect(await screen.findByText('Hoy')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
+    await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
+    expect(screen.queryByText('Hoy')).not.toBeInTheDocument()
+  })
+
   it('no deja adelantarse a un día que todavía no ha pasado', async () => {
     render(<Comida />)
     await screen.findByText('LUN 31 AGO')
