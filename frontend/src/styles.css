@@ -3843,6 +3843,59 @@ button.set-chip:active:not(:disabled) {
   margin-left: 0.9rem;
 }
 
+/* Lo de siempre: el repertorio, por delante del buscador.
+   Comer es repetirse, y la caja de búsqueda trataba cada día como si fuera el
+   primero: escribir «huevo» para volver a registrar los mismos 120 g de ayer,
+   y de anteayer. La rejilla pone lo que repites a un toque, con la cantidad y
+   la comida que ya usas.
+
+   Dos columnas y no una lista: son cuatro o seis, se miran de un vistazo y una
+   lista de seis filas empujaría la CTA fuera de la pantalla. Cada azulejo lleva
+   el nombre en el cuerpo de la app —es el contenido de la ficha, igual que en
+   una fila del diario— y debajo, en mono, lo que se va a escribir. */
+.food-siempre-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.food-repeat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  /* Un nombre de CIQUAL de dos líneas cabe sin que el azulejo crezca respecto
+     al de al lado: la rejilla iguala las alturas, pero el suelo evita que una
+     fila de nombres cortos quede más baja que un objetivo de dedo. */
+  min-height: 72px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+.food-repeat-name {
+  font-weight: 600;
+  line-height: 1.25;
+}
+.food-repeat-meta {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* Mismo velo que una fila del diario mientras el dedo está encima: es la misma
+   manipulación directa, no un botón de acento. */
+.food-repeat:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, var(--surface));
+}
+.food-repeat:disabled {
+  opacity: 0.5;
+}
+.food-siempre-hint {
+  margin: 0.55rem 0 0;
+}
+
 /* Al pie de la lista y no fija, a diferencia de la de Días. Allí la CTA es
    `Continuar entreno`: la quieres a mano estés donde estés del scroll, porque
    estás a mitad de sesión. Aquí registras al terminar de comer, con el día

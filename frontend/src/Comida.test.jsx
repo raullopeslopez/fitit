@@ -54,6 +54,7 @@ describe('Comida', () => {
     vi.setSystemTime(new Date(2026, 7, 31, 12, 0))
     api.getFoodDay.mockResolvedValue(day())
     api.searchFoods.mockResolvedValue([])
+    api.frequentFoods.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -252,6 +253,68 @@ describe('Comida', () => {
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
       await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
       await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalledWith(10))
+    })
+  })
+  describe('lo de siempre', () => {
+    const SIEMPRE = [
+      { food_id: 1, name: 'Pan de la panadería', brand: null, grams: 80, kcal: 200, meal_slot: 'desayuno', times: 7 },
+      { food_id: 2, name: 'Huevo cocido', brand: null, grams: 120, kcal: 166, meal_slot: null, times: 4 },
+    ]
+
+    it('pone lo que repites a un toque, con su cantidad y sus kcal', async () => {
+      api.frequentFoods.mockResolvedValue(SIEMPRE)
+      render(<Comida />)
+      const tile = await screen.findByRole('button', { name: /Pan de la panadería/ })
+      expect(within(tile).getByText('80 g · 200 kcal')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Huevo cocido/ })).toBeInTheDocument()
+    })
+
+    it('un toque lo registra con la cantidad y la comida de siempre', async () => {
+      api.frequentFoods.mockResolvedValue(SIEMPRE)
+      api.logFood.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+      await waitFor(() =>
+        expect(api.logFood).toHaveBeenCalledWith({ foodId: 1, grams: 80, mealSlot: 'desayuno' }),
+      )
+    })
+
+    it('y vuelve a leer el día y el repertorio, que acaban de cambiar', async () => {
+      api.frequentFoods.mockResolvedValue(SIEMPRE)
+      api.logFood.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Huevo cocido/ }))
+      await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledTimes(2))
+      expect(api.frequentFoods).toHaveBeenCalledTimes(2)
+    })
+
+    it('sin repertorio todavía, la sección no existe', async () => {
+      render(<Comida />)
+      await screen.findByText('Aún no has registrado nada.')
+      expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Añadir alimento' })).toBeInTheDocument()
+    })
+
+    it('con repertorio, la CTA dice que lo suyo es buscar otra cosa', async () => {
+      api.frequentFoods.mockResolvedValue(SIEMPRE)
+      render(<Comida />)
+      expect(await screen.findByRole('button', { name: 'Buscar otro alimento' })).toBeInTheDocument()
+    })
+
+    it('no se ofrece en un día pasado: registraría en hoy sin decirlo', async () => {
+      api.frequentFoods.mockResolvedValue(SIEMPRE)
+      render(<Comida />)
+      await screen.findByRole('button', { name: /Pan de la panadería/ })
+      await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
+      await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
+      expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
+    })
+
+    it('si el repertorio no se puede leer, la pantalla sigue en pie', async () => {
+      api.frequentFoods.mockRejectedValue(new Error('offline'))
+      render(<Comida />)
+      expect(await screen.findByText('Aún no has registrado nada.')).toBeInTheDocument()
+      expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
     })
   })
 })

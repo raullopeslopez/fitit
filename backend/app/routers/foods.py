@@ -6,6 +6,8 @@ belongings. Anything you typed yourself carries your id and is yours to correct.
 Search reads both; writes only ever touch yours.
 """
 
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,9 +15,10 @@ from sqlalchemy.orm import defer, selectinload
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import Food, FoodAlias, Portion
+from ..models import Food, FoodAlias, LogEntry, Portion
 from ..naming import fold_exercise_name as fold
-from ..schemas import FoodIn, FoodOut, FoodPatch
+from ..nutrition import calcular_nutrientes
+from ..schemas import FoodIn, FoodOut, FoodPatch, FrequentFoodOut
 from ..serialization import to_food_out
 
 router = APIRouter(prefix="/foods", tags=["foods"])
@@ -173,6 +176,115 @@ async def create_food(
     await session.commit()
     await session.refresh(food, ["portions"])
     return to_food_out(food, user_id)
+
+
+# El repertorio: cuántas entradas se miran para construirlo, y desde cuándo.
+#
+# Comer es repetirse, pero lo que repites cambia: un mes de arroz no puede
+# seguir mandando en marzo. La ventana es lo que hace que la rejilla se parezca
+# a lo que comes *ahora*, y el tope es lo que impide que un diario de dos años
+# se traiga entero para contar cuatro filas.
+FREQUENT_WINDOW_DAYS = 90
+FREQUENT_SCAN = 400
+
+
+@router.get("/frequent", response_model=list[FrequentFoodOut])
+async def frequent_foods(
+    limit: int = Query(default=6, ge=1, le=12),
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[FrequentFoodOut]:
+    """Lo que sueles comer, lo más repetido primero.
+
+    Va **antes** de `/{food_id}` a propósito: declarado después, «frequent» se
+    leería como un id y la ruta contestaría 422 sin llegar aquí.
+
+    El recuento se hace en Python y no en SQL. Son cuatrocientas filas como
+    mucho, y la moda de los gramos —la cantidad que de verdad repites, no la
+    última que escribiste— pide una ventana que SQLite y Postgres no escriben
+    igual. Con este volumen, la claridad gana.
+    """
+    since = date.today() - timedelta(days=FREQUENT_WINDOW_DAYS)
+    entries = list(
+        (
+            await session.execute(
+                select(LogEntry)
+                .where(LogEntry.user_id == user_id, LogEntry.log_date >= since)
+                .order_by(LogEntry.logged_at.desc(), LogEntry.id.desc())
+                .limit(FREQUENT_SCAN)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # `food_id` es nulo cuando el alimento se borró del catálogo: la fila del
+    # diario sigue leyéndose por su nombre congelado, pero no hay nada que
+    # volver a registrar de un toque, así que no entra en el repertorio.
+    tally: dict[int, list[LogEntry]] = {}
+    for entry in entries:
+        if entry.food_id is not None:
+            tally.setdefault(entry.food_id, []).append(entry)
+
+    # Lo más repetido primero; a igualdad, lo más reciente. `entries` ya viene
+    # de la más nueva a la más vieja, así que la primera de cada grupo lo dice.
+    ranked = sorted(tally.items(), key=lambda kv: (-len(kv[1]), -kv[1][0].id))[:limit]
+    if not ranked:
+        return []
+
+    foods = {
+        food.id: food
+        for food in (
+            await session.execute(
+                # Sin `defer(nutrients_json)`, a diferencia de la búsqueda:
+                # `calcular_nutrientes` lo lee, y una columna diferida se
+                # cargaría sola con IO síncrona dentro del bucle asíncrono.
+                select(Food).where(
+                    Food.id.in_([food_id for food_id, _ in ranked]),
+                    # `_visible` y no un `or_` a mano: además de lo que es tuyo
+                    # y lo que es de todos, deja fuera lo archivado — un
+                    # alimento que retiraste no puede volver de un toque.
+                    _visible(user_id),
+                )
+            )
+        )
+        .unique()
+        .scalars()
+        .all()
+    }
+
+    out: list[FrequentFoodOut] = []
+    for food_id, rows in ranked:
+        food = foods.get(food_id)
+        if food is None:
+            continue
+        grams = _most_repeated(row.grams for row in rows)
+        out.append(
+            FrequentFoodOut(
+                food_id=food.id,
+                name=food.name,
+                brand=food.brand,
+                grams=grams,
+                kcal=calcular_nutrientes(food, grams)["kcal"],
+                meal_slot=_most_repeated(row.meal_slot for row in rows),
+                times=len(rows),
+            )
+        )
+    return out
+
+
+def _most_repeated(values):
+    """El valor que más se repite; a igualdad, el de la entrada más reciente.
+
+    El desempate no es un detalle: con 80, 80 y 200 g la moda es 80 —la
+    cantidad que de verdad usas—, pero con 80 y 200 las dos empatan y lo último
+    que hiciste es la mejor apuesta. `values` llega ya de la más nueva a la más
+    vieja, así que el primer máximo que encuentra es el más reciente.
+    """
+    counts: dict[object, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return max(counts, key=lambda value: counts[value])
 
 
 @router.get("/{food_id}", response_model=FoodOut)

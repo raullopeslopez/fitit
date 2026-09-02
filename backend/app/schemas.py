@@ -376,6 +376,24 @@ class FoodOut(BaseModel):
     is_mine: bool = False
 
 
+class FrequentFoodOut(BaseModel):
+    """Un alimento del repertorio: lo que sueles comer, con la cantidad y la
+    comida a la que suele ir.
+
+    `kcal` es una **previsión** de la entrada que se escribiría al tocarlo, no
+    una cifra congelada: se calcula desde el alimento de hoy, igual que la
+    calculará `POST /food-log`. Nada de esto toca `log_entries`.
+    """
+
+    food_id: int
+    name: str
+    brand: str | None = None
+    grams: float
+    kcal: float | None = None
+    meal_slot: str | None = None
+    times: int
+
+
 class LogEntryIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
