@@ -68,6 +68,7 @@ describe('App', () => {
       totals: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
       unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 },
     })
+    api.frequentFoods.mockResolvedValue([])
     render(<App />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Comida' }))

@@ -119,10 +119,12 @@ describe('Comida', () => {
     expect(paintedRect(kcal).right).toBeLessThanOrEqual(rowBox.right + 0.5)
   })
 
-  it('abrir «Añadir alimento» trae el buscador a la pantalla', async () => {
+  it('abrir la CTA trae el buscador a la pantalla', async () => {
     await mountComida()
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Añadir alimento' }))
+    // Por la clase y no por la copia: con repertorio en pantalla la CTA dice
+    // «Buscar otro alimento», y es el mismo botón.
+    await user.click(document.querySelector('.food-cta'))
     await settle()
 
     // El panel se abre al pie de una lista que ya pasa de la línea de
@@ -145,7 +147,7 @@ describe('Comida', () => {
   it('el panel abierto no deja ni un control bajo la barra', async () => {
     await mountComida()
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Añadir alimento' }))
+    await user.click(document.querySelector('.food-cta'))
     await user.type(screen.getByLabelText('Buscar alimento'), 'pan')
     // El desplegado con resultados es el panel en su tamaño máximo, que es el
     // único que hace falta medir: si cabe éste, caben todos.
@@ -176,6 +178,33 @@ describe('Comida', () => {
           `(${rect.top.toFixed(1)}–${rect.bottom.toFixed(1)}) en ${hit?.height.toFixed(1)}px`,
       ).toBeNull()
     }
+  })
+
+  it('la rejilla de «lo de siempre» va en dos columnas y se puede tocar', async () => {
+    await mountComida()
+    const tiles = [...document.querySelectorAll('.food-repeat')]
+    expect(tiles.length, 'la rejilla no se está pintando').toBeGreaterThanOrEqual(4)
+
+    const nav = paintedRect(document.querySelector('nav.bottom-nav'))
+    const card = paintedRect(document.querySelector('.food-siempre'))
+    for (const tile of tiles) {
+      tile.scrollIntoView({ block: 'center' })
+      await settle()
+      const rect = paintedRect(tile)
+      // Objetivo de dedo, como todo lo que se pulsa en esta app.
+      expect(rect.height, tile.textContent).toBeGreaterThanOrEqual(44)
+      // Y dentro de la columna, con un nombre de CIQUAL de dos líneas dentro:
+      // lo que se sale de 430 px no se lee, se adivina.
+      expect(rect.right).toBeLessThanOrEqual(card.right + 0.5)
+      expect(overlap(nav, paintedRect(tile)), 'la barra tapa un azulejo').toBeNull()
+    }
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+
+    // Dos columnas de verdad: los dos primeros a la misma altura, el tercero
+    // debajo. Una sola columna de seis filas empujaría la CTA fuera.
+    const [a, b, c] = tiles.map(paintedRect)
+    expect(a.top).toBeCloseTo(b.top, 0)
+    expect(c.top).toBeGreaterThan(a.bottom - 1)
   })
 
   it('la CTA de añadir es alcanzable, no queda bajo la barra de pestañas', async () => {

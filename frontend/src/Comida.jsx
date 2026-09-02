@@ -4,6 +4,7 @@ import {
   correctFoodEntry,
   createFood,
   deleteFoodEntry,
+  frequentFoods,
   getFoodDay,
   logFood,
   searchFoods,
@@ -38,6 +39,10 @@ export default function Comida() {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
+  // Lo de siempre: lo que más repites, a un toque. No depende del día que se
+  // esté mirando, así que se lee aparte y no se vuelve a pedir al pasar de día.
+  const [siempre, setSiempre] = useState([])
+  const [quick, setQuick] = useState(null)
 
   const load = useCallback(async (iso) => {
     try {
@@ -48,9 +53,25 @@ export default function Comida() {
     }
   }, [])
 
+  // Un repertorio que no llega no es un error de la pantalla: la lista del día
+  // y el buscador siguen sirviendo. Se queda vacío y la sección no se dibuja.
+  const loadSiempre = useCallback(async () => {
+    try {
+      // `?? []` y no a pelo: una respuesta vacía no puede dejar la pantalla
+      // sin lista del día por un `.length` sobre `undefined`.
+      setSiempre((await frequentFoods()) ?? [])
+    } catch {
+      setSiempre([])
+    }
+  }, [])
+
   useEffect(() => {
     load(dayIso)
   }, [dayIso, load])
+
+  useEffect(() => {
+    loadSiempre()
+  }, [loadSiempre])
 
   // Hoy es el último día al que se puede llegar: no se registra por adelantado.
   const isToday = dayIso === foodDayIso()
@@ -60,8 +81,28 @@ export default function Comida() {
   async function afterWrite() {
     setAdding(false)
     setEditing(null)
-    await load(dayIso)
+    // Las dos cosas que acaban de cambiar: el día y el recuento del que sale el
+    // repertorio. Registrar dos veces lo mismo lo sube en la rejilla.
+    await Promise.all([load(dayIso), loadSiempre()])
   }
+
+  // Un toque sobre lo de siempre: la cantidad y la comida que ya usas, sin
+  // buscador y sin formulario. `logFood` fecha con el reloj del móvil, así que
+  // esto sólo se ofrece en el día en curso — ver la condición de la sección.
+  async function quickLog(item) {
+    setQuick(item.food_id)
+    try {
+      await logFood({ foodId: item.food_id, grams: item.grams, mealSlot: item.meal_slot })
+      await afterWrite()
+    } finally {
+      setQuick(null)
+    }
+  }
+
+  // Sólo en hoy. En un día pasado el toque escribiría en el día en curso —
+  // `logged_at` es el reloj del móvil— y la entrada aparecería en una pantalla
+  // que no estás mirando, sin error por ninguna parte.
+  const showSiempre = isToday && siempre.length > 0
 
   return (
     <div className="comida">
@@ -142,6 +183,29 @@ export default function Comida() {
           </section>
         ))}
 
+      {showSiempre && (
+        <section className="food-group food-siempre">
+          <h3 className="food-group-title">Lo de siempre</h3>
+          <div className="food-siempre-grid">
+            {siempre.map((item) => (
+              <button
+                type="button"
+                className="food-repeat"
+                key={item.food_id}
+                disabled={quick !== null}
+                onClick={() => quickLog(item)}
+              >
+                <span className="food-repeat-name">{item.name}</span>
+                <span className="food-repeat-meta">
+                  {formatAmount(item.grams)} · {formatMacro(item.kcal)} kcal
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="hint food-siempre-hint">Un toque lo registra con la cantidad de siempre.</p>
+        </section>
+      )}
+
       {adding ? (
         <AddFood onDone={afterWrite} onCancel={() => setAdding(false)} />
       ) : (
@@ -150,7 +214,10 @@ export default function Comida() {
           className="primary btn-full food-cta"
           onClick={() => setAdding(true)}
         >
-          Añadir alimento
+          {/* Con la rejilla arriba, «Añadir alimento» ya no distingue nada: las
+              dos cosas de la pantalla añaden. Lo que este botón hace de más es
+              buscar. */}
+          {showSiempre ? 'Buscar otro alimento' : 'Añadir alimento'}
         </button>
       )}
     </div>

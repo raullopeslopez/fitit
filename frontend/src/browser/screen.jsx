@@ -186,6 +186,16 @@ export const FOOD_DAY = {
   unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 1 },
 }
 
+// El repertorio que la rejilla «Lo de siempre» dibuja. Nombres largos de CIQUAL
+// a propósito: es lo que mete dos líneas en un azulejo de media pantalla, y por
+// tanto lo único que mide si la rejilla aguanta.
+export const FREQUENT = [
+  { food_id: 501, name: 'Pan de centeno de la panadería de abajo', brand: null, grams: 64, kcal: 160, meal_slot: 'desayuno', times: 12 },
+  { food_id: 502, name: 'Pechuga de pollo a la plancha', brand: null, grams: 180, kcal: 297, meal_slot: 'comida', times: 9 },
+  { food_id: 503, name: 'Arroz blanco cocido', brand: null, grams: 220, kcal: 286, meal_slot: 'comida', times: 7 },
+  { food_id: 504, name: 'Café con leche', brand: null, grams: 200, kcal: 62, meal_slot: null, times: 6 },
+]
+
 // Instalado antes de montar nada: `Days` pide `/days` en su primer render y un
 // stub puesto dentro de un componente ya habría perdido esa carrera.
 //
@@ -213,6 +223,8 @@ function stubNetwork() {
     ],
     [/\/exercises$/, EXERCISES],
     [/\/food-log$/, FOOD_DAY],
+    // Antes que `/foods$`: leído al revés, «frequent» se buscaría como un id.
+    [/\/foods\/frequent$/, FREQUENT],
     [/\/foods$/, FOODS],
   ]
   const json = (body, status = 200) =>
@@ -318,7 +330,12 @@ export async function mountComida() {
   const view = await mountApp()
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
-  await screen.findByRole('button', { name: 'Añadir alimento' }, { timeout: 5000 })
+  // Por la CTA, no por su texto: con repertorio en pantalla el botón dice
+  // «Buscar otro alimento» y sin él «Añadir alimento», y el helper que espera
+  // por una de las dos copias deja la otra mitad de la suite sin montar.
+  await vi.waitFor(() => expect(document.querySelector('.food-cta')).not.toBeNull(), {
+    timeout: 5000,
+  })
   await settle()
   return view
 }

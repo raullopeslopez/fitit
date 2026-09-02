@@ -114,3 +114,18 @@ def test_your_own_food_outranks_the_catalogue(alice_and_bob, db_sessionmaker):
     asyncio.run(_seed_catalogue(db_sessionmaker, "pan"))
     mine = client.post("/foods", json={"name": "Pan", "kcal_100g": 260}, headers=alice).json()
     assert [f["id"] for f in client.get("/foods?q=pan", headers=alice).json()][0] == mine["id"]
+
+
+def test_bobs_repertoire_is_not_alices(alice_and_bob):
+    """«Lo de siempre» es de quien lo come.
+
+    El repertorio se construye desde el diario, que nunca se comparte: lo que
+    Alice repite cinco veces no puede aparecerle a Bob a un toque.
+    """
+    client, alice, bob = alice_and_bob
+    food = client.post("/foods", json={"name": "Bacalao", "kcal_100g": 80}, headers=alice).json()
+    for _ in range(5):
+        client.post("/food-log", json={"food_id": food["id"], "grams": 200}, headers=alice)
+
+    assert [r["name"] for r in client.get("/foods/frequent", headers=alice).json()] == ["Bacalao"]
+    assert client.get("/foods/frequent", headers=bob).json() == []

@@ -227,6 +227,14 @@ export function searchFoods(q = '') {
   return apiFetch(`/foods${query}`)
 }
 
+// Lo de siempre: lo que más repites de los últimos noventa días, con la
+// cantidad y la comida a la que suele ir. Las kcal que trae son la previsión de
+// lo que se registraría al tocarlo, no una cifra congelada — quien congela es
+// `logFood`, al escribir.
+export function frequentFoods(limit = 6) {
+  return apiFetch(`/foods/frequent?limit=${limit}`)
+}
+
 // Da de alta un alimento a mano — el pan de la panadería, los piquillos de tu
 // madre. Es la única puerta por la que se escribe en el catálogo: ni el
 // escáner, ni un import, ni un parser pueden crear un alimento sin que alguien
