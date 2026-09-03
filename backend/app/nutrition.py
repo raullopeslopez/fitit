@@ -124,6 +124,28 @@ def sumar_nutrientes(entries) -> tuple[dict, dict]:
     return totals, unknown
 
 
+def restante(target: float | None, eaten: float | None) -> float | None:
+    """Lo que queda de un objetivo diario: `target - eaten`.
+
+    `None` en `target` significa «no has fijado un objetivo» y se propaga:
+    sin objetivo no hay resta que hacer, y la pantalla cae a enseñar sólo lo
+    comido, como antes de que existiera esta función.
+
+    `None` en `eaten` es la excepción deliberada a la regla de `sumar_nutrientes`:
+    ahí un total sale `None` tanto si el día está vacío como si a alguna
+    entrada le falta el dato, porque "no escribiste nada" y "hay un dato que
+    falta" son cosas distintas que el total por sí solo no distingue. Aquí no
+    hace falta distinguirlas: lo que la cifra grande responde es "cuánto me
+    queda por gastar", y en los dos casos la única respuesta que tiene sentido
+    es el objetivo entero (o lo que quede de él) — así que un total `None`
+    cuenta como cero comido a este único efecto, nunca como un resto
+    desconocido.
+    """
+    if target is None:
+        return None
+    return _round(target - (eaten or 0), _MACRO_PLACES)
+
+
 def food_log_date(moment: datetime) -> date:
     """The food day a moment falls in, read off the client's own clock.
 

@@ -39,6 +39,11 @@ class User(Base):
         String(255), unique=True, index=True, nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Un objetivo diario, fijo por usuario y no por día: cuánto y (de proteína)
+    # cuánto quieres comer. `NULL` es «todavía no lo has fijado», no cero — igual
+    # que un nutriente sin medir en `foods`, la ausencia no es una medida.
+    objetivo_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
+    objetivo_proteina: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Exercise(Base):

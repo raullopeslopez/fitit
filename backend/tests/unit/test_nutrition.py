@@ -9,6 +9,7 @@ from app.nutrition import (
     calcular_nutrientes,
     escalar_nutrientes,
     food_log_date,
+    restante,
     sumar_nutrientes,
 )
 
@@ -99,3 +100,23 @@ def test_the_cut_off_reads_the_offset_the_client_sent():
 
 def test_a_naive_moment_is_read_as_utc():
     assert food_log_date(datetime(2026, 9, 1, 2, 0)) == date(2026, 8, 31)
+
+
+def test_no_target_no_remaining():
+    assert restante(None, 1200) is None
+    assert restante(None, None) is None
+
+
+def test_remaining_is_target_minus_eaten():
+    assert restante(2800, 1811) == 989
+
+
+def test_an_empty_or_unknown_total_counts_as_zero_eaten():
+    # Distinto de `sumar_nutrientes`, a propósito: aquí la cifra tiene que
+    # responder "cuánto me queda", y la única respuesta con sentido para un
+    # día que todavía no cuadra es el objetivo entero.
+    assert restante(2800, None) == 2800
+
+
+def test_overeating_goes_negative():
+    assert restante(1800, 2100) == -300

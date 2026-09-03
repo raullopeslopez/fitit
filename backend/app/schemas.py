@@ -284,6 +284,27 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    # `None` es «todavía no lo has fijado», no cero: la misma distinción que
+    # `foods.kcal_100g`, aplicada a un objetivo en vez de a una medida.
+    objetivo_kcal: float | None = None
+    objetivo_proteina: float | None = None
+
+
+class UserTargetsIn(BaseModel):
+    """El objetivo diario, fijo por usuario. Manda los dos campos siempre —
+    nunca un PATCH parcial — porque `None` aquí es una instrucción («bórralo»),
+    no «no lo toques», y esas dos cosas no se pueden distinguir con un campo
+    opcional que se omite."""
+
+    objetivo_kcal: float | None = Field(default=None, gt=0, le=20000)
+    objetivo_proteina: float | None = Field(default=None, gt=0, le=1000)
+
+
 # ---------------------------------------------------------------------------
 # Comida
 #
@@ -477,3 +498,10 @@ class FoodDayOut(BaseModel):
     totals: dict[str, float | None]
     unknown: dict[str, int]
     by_slot: list[SlotTotalsOut] = Field(default_factory=list)
+    # El objetivo del perfil, tal cual — `None` si el usuario no lo ha fijado
+    # todavía — y lo que queda de él, ya restado en el servidor por la misma
+    # razón que los subtotales: para que la pantalla no reimplemente la regla
+    # de los nulos (`restante`, en `nutrition.py`).
+    target_kcal: float | None = None
+    target_protein: float | None = None
+    remaining_kcal: float | None = None
