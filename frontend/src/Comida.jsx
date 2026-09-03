@@ -828,18 +828,11 @@ function AddFood({ slot = null, onDone, onCancel }) {
           color de los demás y siga siendo el control real. `capture` pide la
           trasera del móvil; en un ordenador el navegador lo ignora y ofrece un
           fichero, que para probar va igual de bien. */}
-      <label className="link-btn food-photo" htmlFor="food-photo">
-        {reading ? 'Leyendo…' : 'Leer etiqueta'}
-        <input
-          id="food-photo"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={reading}
-          onChange={photograph}
-        />
-      </label>
-      {/* Sólo donde el navegador sabe decodificar. En un Chrome de Android está;
+      {/* Primero el escáner, y no la etiqueta, porque es el que no cuesta
+          nada: sin clave, sin cuota y sin modelo. El orden en que se ofrecen
+          dos puertas es lo que decide por cuál se entra.
+
+          Sólo donde el navegador sabe decodificar. En un Chrome de Android está;
           en un Safari, no — y un botón que no puede funcionar es peor que uno
           que no está, porque no hay forma de saber por qué falla. */}
       {canScan() && (
@@ -855,6 +848,18 @@ function AddFood({ slot = null, onDone, onCancel }) {
           />
         </label>
       )}
+      <label className="link-btn food-photo" htmlFor="food-photo">
+        {reading ? 'Leyendo…' : 'Leer etiqueta'}
+        <input
+          id="food-photo"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={reading}
+          onChange={photograph}
+        />
+      </label>
+
       <button type="button" className="link-btn food-cancel" onClick={onCancel}>
         Cancelar
       </button>
