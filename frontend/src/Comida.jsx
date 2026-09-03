@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
 import {
   correctFoodEntry,
@@ -9,6 +9,7 @@ import {
   logFood,
   readLabel,
   searchFoods,
+  setTargets,
 } from './api.js'
 import {
   MACROS,
@@ -16,6 +17,8 @@ import {
   foodDayIso,
   formatAmount,
   formatMacro,
+  inferMealSlot,
+  proteinProgress,
   shiftDay,
   slotLabel,
   droppedNote,
@@ -50,6 +53,13 @@ function rails(day) {
     .filter((rail) => rail.key !== null || rail.entries.length > 0)
 }
 
+// Una entrada está completa cuando ninguno de sus nutrientes es `null`. Sirve
+// para el filtro que abre el chip de «sin fibra»: no hay una bandera para
+// esto en el servidor porque no hace falta una — se lee directamente de la
+// entrada, igual que la pantalla ya lee `entry.fiber` para imprimirlo.
+const NUTRIENT_KEYS = ['kcal', ...MACROS.map((m) => m.key)]
+const isIncomplete = (entry) => NUTRIENT_KEYS.some((key) => entry[key] == null)
+
 export default function Comida() {
   // El día que se está mirando. Arranca en el día alimentario en curso, que a
   // las 02:00 sigue siendo el de ayer — misma regla que el servidor usa para
@@ -64,6 +74,18 @@ export default function Comida() {
   // esté mirando, así que se lee aparte y no se vuelve a pedir al pasar de día.
   const [siempre, setSiempre] = useState([])
   const [quick, setQuick] = useState(null)
+  // El filtro que abre el chip de nutrientes desconocidos: sólo las entradas
+  // a las que les falta algo, para poder corregirlas sin buscarlas a ojo.
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false)
+  // El objetivo diario, en su propio cajón — no es del día, es del perfil.
+  const [targetOpen, setTargetOpen] = useState(false)
+  const [targetKcal, setTargetKcal] = useState('')
+  const [targetProtein, setTargetProtein] = useState('')
+  const [savingTarget, setSavingTarget] = useState(false)
+  // La última entrada borrada, con un «Deshacer» que vive donde estaba —no
+  // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
+  const [deleted, setDeleted] = useState(null)
+  const [undoing, setUndoing] = useState(false)
 
   const load = useCallback(async (iso) => {
     try {
@@ -94,17 +116,31 @@ export default function Comida() {
     loadSiempre()
   }, [loadSiempre])
 
+  // Cambiar de día deja atrás cualquier borrado a medio deshacer: el «Deshacer»
+  // vive en el raíl en el que se hizo, y ese raíl ya no está en pantalla.
+  useEffect(() => {
+    setDeleted(null)
+  }, [dayIso])
+
   // Hoy es el último día al que se puede llegar: no se registra por adelantado.
   const isToday = dayIso === foodDayIso()
   const totals = day?.totals ?? {}
   const note = unknownNote(day?.unknown)
+  const hasTarget = day?.target_kcal != null
+  const editingEntry = editing != null ? (day?.entries.find((e) => e.id === editing) ?? null) : null
 
   async function afterWrite() {
     setAdding(null)
     setEditing(null)
+    setDeleted(null)
     // Las dos cosas que acaban de cambiar: el día y el recuento del que sale el
     // repertorio. Registrar dos veces lo mismo lo sube en la rejilla.
     await Promise.all([load(dayIso), loadSiempre()])
+  }
+
+  function closeSheet() {
+    setAdding(null)
+    setEditing(null)
   }
 
   // Un toque sobre lo de siempre: la cantidad y la comida que ya usas, sin
@@ -117,6 +153,59 @@ export default function Comida() {
       await afterWrite()
     } finally {
       setQuick(null)
+    }
+  }
+
+  // Borrar ya no vive en el formulario: se desliza la fila, y lo que queda es
+  // un «Deshacer» donde estaba la entrada, no un aviso que caduca solo.
+  async function handleDeleteEntry(entry) {
+    try {
+      await deleteFoodEntry(entry.id)
+    } catch {
+      setError('No se ha podido borrar la entrada.')
+      return
+    }
+    setDeleted(entry)
+    await Promise.all([load(dayIso), loadSiempre()])
+  }
+
+  // Deshacer es volver a registrar lo mismo, con la hora original — no una
+  // papelera: `log_entries` congela, así que no hay nada que «recuperar», sólo
+  // algo que volver a escribir igual que se escribió la primera vez.
+  async function handleUndo() {
+    if (!deleted) return
+    setUndoing(true)
+    try {
+      await logFood({
+        foodId: deleted.food_id,
+        grams: deleted.grams,
+        mealSlot: deleted.meal_slot,
+        loggedAt: deleted.logged_at,
+      })
+      await afterWrite()
+    } catch {
+      setError('No se ha podido deshacer el borrado.')
+    } finally {
+      setUndoing(false)
+    }
+  }
+
+  function openTarget() {
+    setTargetKcal(day?.target_kcal != null ? String(day.target_kcal) : '')
+    setTargetProtein(day?.target_protein != null ? String(day.target_protein) : '')
+    setTargetOpen(true)
+  }
+
+  async function saveTarget(event) {
+    event.preventDefault()
+    const parse = (raw) => (raw.trim() === '' ? null : Number(raw.replace(',', '.')))
+    setSavingTarget(true)
+    try {
+      await setTargets({ kcal: parse(targetKcal), protein: parse(targetProtein) })
+      setTargetOpen(false)
+      await load(dayIso)
+    } finally {
+      setSavingTarget(false)
     }
   }
 
@@ -158,13 +247,104 @@ export default function Comida() {
         </button>
       </div>
 
+      {/* El objetivo es del perfil, no del día: se fija una vez y se corrige
+          rara vez, así que vive en un cajón callado como el de las preferencias
+          de Entreno (DESIGN.md: «sticky preferences count as rare actions»),
+          no en un control permanente sobre las cifras que sí cambian a diario. */}
+      <div className="food-target">
+        <button
+          type="button"
+          className="food-target-toggle"
+          aria-expanded={targetOpen}
+          onClick={() => (targetOpen ? setTargetOpen(false) : openTarget())}
+        >
+          <span>Objetivo diario</span>
+          <span className="food-target-summary">
+            {hasTarget ? `${formatMacro(day.target_kcal)} kcal` : 'Sin fijar'}
+          </span>
+        </button>
+        {targetOpen && (
+          <form className="food-target-panel" onSubmit={saveTarget}>
+            <div className="field">
+              <label htmlFor="target-kcal">Kcal al día</label>
+              <input
+                id="target-kcal"
+                inputMode="decimal"
+                placeholder="p. ej. 2800"
+                value={targetKcal}
+                onChange={(e) => setTargetKcal(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="target-protein">Proteína al día (g)</label>
+              <input
+                id="target-protein"
+                inputMode="decimal"
+                placeholder="p. ej. 160"
+                value={targetProtein}
+                onChange={(e) => setTargetProtein(e.target.value)}
+              />
+            </div>
+            <div className="food-editor-actions">
+              <button type="submit" className="primary" disabled={savingTarget}>
+                Guardar
+              </button>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => setTargetOpen(false)}
+                disabled={savingTarget}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {error && <p className="alert">{error}</p>}
 
-      {/* El total del día, en una tira y no en una tarjeta. Con cuatro raíles
-          debajo, la tarjeta hero de 143 px empujaba «lo de siempre» y el último
-          raíl fuera de la pantalla: la cifra sigue siendo lo más grande que hay
-          aquí, pero ya no necesita una superficie para decirlo. */}
-      {day && (
+      {/* Con objetivo fijado, la cifra grande deja de ser lo comido y pasa a
+          ser lo que queda (`objetivo − comido`, calculado en el servidor,
+          igual que los subtotales): es la pregunta que se hace a las 20:00.
+          Lo comido sigue ahí, pequeño y a la derecha. */}
+      {day && hasTarget && (
+        <div className="food-hero" data-testid="food-macros">
+          <div className="food-hero-top">
+            <span className="food-hero-remaining">{formatMacro(day.remaining_kcal)}</span>
+            <span className="food-hero-remaining-unit">kcal por comer</span>
+            <span className="food-hero-total">
+              {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)}
+            </span>
+          </div>
+          <div className="food-hero-protein">
+            <span className="food-hero-protein-label">Proteína</span>
+            <span className="food-hero-protein-value">{formatMacro(totals.protein)}</span>
+            {day.target_protein != null && (
+              <span className="food-hero-protein-target">/ {formatMacro(day.target_protein)} g</span>
+            )}
+          </div>
+          {day.target_protein != null && (
+            <div className="food-hero-bar">
+              <div style={{ width: `${proteinProgress(totals.protein, day.target_protein) ?? 0}%` }} />
+            </div>
+          )}
+          <div className="food-hero-macros">
+            {MACROS.filter((macro) => macro.key !== 'protein').map((macro) => (
+              <span className="food-hero-macro" key={macro.key}>
+                <span className="food-strip-short">{macro.short}</span>{' '}
+                <span className="food-strip-value">
+                  {formatMacro(totals[macro.key], { decimals: macro.decimals })}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sin objetivo, la tira de siempre: el total del día y sus cuatro
+          macros, sin nada que restar todavía. */}
+      {day && !hasTarget && (
         <div className="food-strip" data-testid="food-macros">
           <span className="food-strip-kcal">{formatMacro(totals.kcal)}</span>
           <span className="food-strip-unit">kcal</span>
@@ -180,63 +360,36 @@ export default function Comida() {
           </span>
         </div>
       )}
+
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
-          contrario de lo que dice. Así que se explica en voz alta. */}
-      {note && <p className="hint food-unknown">{note}</p>}
+          contrario de lo que dice. Así que se explica en voz alta — y ahora se
+          toca: filtra el día a esas entradas, que es lo único que se puede
+          corregir. */}
+      {note && (
+        <button
+          type="button"
+          className={`chip food-unknown-chip${onlyIncomplete ? ' is-active' : ''}`}
+          aria-pressed={onlyIncomplete}
+          onClick={() => setOnlyIncomplete((v) => !v)}
+        >
+          {note}
+        </button>
+      )}
 
-      {day &&
-        rails(day).map((rail) => (
-          <section className="food-rail" key={rail.key ?? 'sin-asignar'}>
-            <h3 className="food-rail-head">
-              <span className="food-rail-name">{slotLabel(rail.key)}</span>
-              <span className="food-rail-kcal">{formatMacro(rail.totals.kcal)} kcal</span>
-              {/* Entrar por el raíl es lo que jubila el desplegable «Comida»:
-                  la respuesta la da el sitio por el que has pulsado. */}
-              {rail.key !== null && (
-                <button
-                  type="button"
-                  className="food-rail-add"
-                  aria-label={`Añadir a ${slotLabel(rail.key).toLowerCase()}`}
-                  onClick={() => setAdding({ slot: rail.key })}
-                >
-                  +
-                </button>
-              )}
-            </h3>
-            {rail.entries.length === 0 && !(adding?.slot === rail.key) && (
-              <p className="hint food-rail-empty">Nada aún</p>
-            )}
-            {rail.entries.map((entry) =>
-              editing === entry.id ? (
-                <EntryEditor
-                  key={entry.id}
-                  entry={entry}
-                  onDone={afterWrite}
-                  onCancel={() => setEditing(null)}
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="link-row food-entry"
-                  key={entry.id}
-                  onClick={() => setEditing(entry.id)}
-                >
-                  <span className="food-entry-name">{entry.food_name}</span>
-                  <span className="food-entry-amount">{formatAmount(entry.grams)}</span>
-                  <span className="food-entry-kcal">{formatMacro(entry.kcal)} kcal</span>
-                </button>
-              ),
-            )}
-            {adding?.slot === rail.key && (
-              <AddFood slot={rail.key} onDone={afterWrite} onCancel={() => setAdding(null)} />
-            )}
-          </section>
-        ))}
-
+      {/* Lo de siempre, delante de los raíles: es el camino de un toque, y
+          vivía debajo de los cuatro raíles — con un día medio registrado había
+          que desplazar para llegar a él. */}
       {showSiempre && (
         <section className="food-group food-siempre">
-          <h3 className="food-group-title">Lo de siempre</h3>
-          <div className="food-siempre-grid">
+          <div className="food-siempre-head">
+            <h3 className="food-group-title">Lo de siempre</h3>
+            {/* El hueco al que iría cada toque ya lo dice cada azulejo — lee
+                `item.meal_slot`, la comida en la que sueles registrar ese
+                alimento, más fiable que una única hora para todo el repertorio.
+                Esto es sólo el contexto: qué hora es ahora mismo. */}
+            <span className="food-siempre-slot">→ {slotLabel(inferMealSlot())} ahora</span>
+          </div>
+          <div className="food-siempre-strip">
             {siempre.map((item) => (
               <button
                 type="button"
@@ -256,25 +409,191 @@ export default function Comida() {
         </section>
       )}
 
+      {day &&
+        rails(day).map((rail) => {
+          const visible = onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries
+          const undoHere = deleted && (deleted.meal_slot ?? null) === rail.key
+          return (
+            <section className="food-rail" key={rail.key ?? 'sin-asignar'}>
+              <h3 className="food-rail-head">
+                <span className="food-rail-name">{slotLabel(rail.key)}</span>
+                {/* Un raíl vacío es una línea: sin «Nada aún» y sin subtotal en
+                    cero, porque la cabecera con su `+` ya dice que está vacío. */}
+                {rail.entries.length > 0 && (
+                  <span className="food-rail-kcal">{formatMacro(rail.totals.kcal)} kcal</span>
+                )}
+                {/* Entrar por el raíl es lo que jubila el desplegable «Comida»:
+                    la respuesta la da el sitio por el que has pulsado. Baja a
+                    control secundario —color, no tamaño: DESIGN.md fija 44px
+                    como suelo para todo lo que se toca, y éste se toca cuatro
+                    veces al día— porque «Añadir alimento» abajo es ahora el
+                    destino principal. */}
+                {rail.key !== null && (
+                  <button
+                    type="button"
+                    className="food-rail-add"
+                    aria-label={`Añadir a ${slotLabel(rail.key).toLowerCase()}`}
+                    onClick={() => setAdding({ slot: rail.key })}
+                  >
+                    +
+                  </button>
+                )}
+              </h3>
+              {visible.map((entry) => (
+                <EntryRow
+                  key={entry.id}
+                  entry={entry}
+                  onEdit={() => setEditing(entry.id)}
+                  onDelete={handleDeleteEntry}
+                />
+              ))}
+              {undoHere && (
+                <p className="retag-undo">
+                  <span>{deleted.food_name} borrada.</span>
+                  <button
+                    type="button"
+                    className="retag-undo-action"
+                    aria-label={`Deshacer el borrado de ${deleted.food_name}`}
+                    onClick={handleUndo}
+                    disabled={undoing}
+                  >
+                    Deshacer
+                  </button>
+                </p>
+              )}
+            </section>
+          )
+        })}
 
+      {/* Un solo destino para «añadir», al alcance del pulgar — el mismo sitio
+          en el que Días fija su CTA (DESIGN.md: la acción principal va abajo,
+          nunca arriba). El buscador y la cantidad se abren en una hoja que
+          llega sobre el teclado en vez de empujar la lista. */}
+      <div className="food-cta">
+        <button
+          type="button"
+          className="primary btn-full"
+          onClick={() => setAdding({ slot: inferMealSlot() })}
+        >
+          Añadir alimento
+        </button>
+      </div>
+
+      {(adding || editingEntry) && (
+        <div className="sheet-scrim" onClick={closeSheet}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={adding ? 'Añadir alimento' : 'Editar entrada'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {adding && <AddFood slot={adding.slot} onDone={afterWrite} onCancel={closeSheet} />}
+            {!adding && editingEntry && (
+              <EntryEditor entry={editingEntry} onDone={afterWrite} onCancel={closeSheet} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-// Repesar o borrar lo ya registrado. Los gramos son lo único editable aquí: los
+// Cuánto se puede arrastrar una fila hacia la izquierda para revelar «Borrar»,
+// y a partir de dónde soltar la deja abierta en vez de volver a cerrarla.
+const SWIPE_OPEN = -76
+const SWIPE_ARM = -34
+
+// La fila de una entrada. Deslizarla revela «Borrar» detrás; tocarla —sin
+// arrastre— la abre para editar. Un segundo toque con la fila abierta la
+// vuelve a cerrar, en vez de abrir el editor por sorpresa.
+function EntryRow({ entry, onEdit, onDelete }) {
+  const dragXRef = useRef(0)
+  const startX = useRef(0)
+  const originX = useRef(0)
+  const dragging = useRef(false)
+  const moved = useRef(false)
+  const [, forceRender] = useReducer((n) => n + 1, 0)
+
+  function setDrag(x) {
+    dragXRef.current = x
+    forceRender()
+  }
+
+  function onPointerDown(e) {
+    dragging.current = true
+    moved.current = false
+    startX.current = e.clientX
+    originX.current = dragXRef.current
+  }
+
+  function onPointerMove(e) {
+    if (!dragging.current) return
+    const delta = e.clientX - startX.current
+    if (Math.abs(delta) > 4) moved.current = true
+    setDrag(Math.max(SWIPE_OPEN, Math.min(0, originX.current + delta)))
+  }
+
+  function endDrag() {
+    if (!dragging.current) return
+    dragging.current = false
+    setDrag(dragXRef.current <= SWIPE_ARM ? SWIPE_OPEN : 0)
+  }
+
+  function onRowClick() {
+    if (moved.current) return
+    if (dragXRef.current !== 0) {
+      setDrag(0)
+      return
+    }
+    onEdit()
+  }
+
+  const dragX = dragXRef.current
+  const open = dragX !== 0
+
+  return (
+    <div className="food-entry-swipe">
+      <div className="food-entry-swipe-actions">
+        <button
+          type="button"
+          className="food-entry-delete"
+          aria-label={`Borrar ${entry.food_name}`}
+          aria-hidden={!open}
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            setDrag(0)
+            onDelete(entry)
+          }}
+        >
+          Borrar
+        </button>
+      </div>
+      <button
+        type="button"
+        className="link-row food-entry"
+        style={{ transform: `translateX(${dragX}px)` }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClick={onRowClick}
+      >
+        <span className="food-entry-name">{entry.food_name}</span>
+        <span className="food-entry-amount">{formatAmount(entry.grams)}</span>
+        <span className="food-entry-kcal">{formatMacro(entry.kcal)} kcal</span>
+      </button>
+    </div>
+  )
+}
+
+// Repesar lo ya registrado. Los gramos son lo único editable aquí: los
 // nutrientes se reescalan en el servidor desde lo que se congeló, y no hay
-// ninguna pantalla desde la que se puedan escribir a mano.
+// ninguna pantalla desde la que se puedan escribir a mano. Borrar ya no vive
+// aquí — se desliza la fila que abrió este editor.
 function EntryEditor({ entry, onDone, onCancel }) {
   const [grams, setGrams] = useState(String(entry.grams))
   const [busy, setBusy] = useState(false)
-  const box = useRef(null)
-
-  // La fila que tocas puede ser la última de la lista, y el editor es más alto
-  // que ella: sin esto, abrir la última entrada la empuja fuera de la pantalla.
-  useEffect(() => {
-    // Ver la nota de `AddFood`: en jsdom este método no existe.
-    box.current?.scrollIntoView?.({ block: 'center' })
-  }, [])
 
   async function save(event) {
     event.preventDefault()
@@ -285,14 +604,8 @@ function EntryEditor({ entry, onDone, onCancel }) {
     await onDone()
   }
 
-  async function remove() {
-    setBusy(true)
-    await deleteFoodEntry(entry.id)
-    await onDone()
-  }
-
   return (
-    <form className="card card-compose food-editor" onSubmit={save} ref={box}>
+    <form className="card card-compose food-editor" onSubmit={save}>
       <p className="food-editor-name">{entry.food_name}</p>
       <div className="field">
         <label htmlFor={`grams-${entry.id}`}>Gramos</label>
@@ -310,9 +623,6 @@ function EntryEditor({ entry, onDone, onCancel }) {
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
-        <button type="button" className="link-btn food-danger" onClick={remove} disabled={busy}>
-          Borrar
-        </button>
       </div>
     </form>
   )
@@ -326,6 +636,11 @@ function EntryEditor({ entry, onDone, onCancel }) {
 function AddFood({ slot = null, onDone, onCancel }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
+  // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
+  // esto, los ~180 ms de rebote más lo que tarde la red se pintan iguales que
+  // «no hay nada»: lista vacía y una oferta de crear el alimento debajo, que
+  // es una respuesta —la equivocada— a una pregunta que aún no se ha hecho.
+  const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState(null)
   const [creating, setCreating] = useState(false)
   // Lo que devolvió la foto. Es una **propuesta** para el formulario, no un
@@ -334,25 +649,12 @@ function AddFood({ slot = null, onDone, onCancel }) {
   const [label, setLabel] = useState(null)
   const [reading, setReading] = useState(false)
   const latest = useRef(0)
-  const box = useRef(null)
   const field = useRef(null)
 
-  // El panel se abre al pie de la lista del día, que con un día registrado ya
-  // queda por debajo de la línea de flotación: pulsabas «Añadir alimento» y la
-  // pantalla no se movía, que es indistinguible de un botón roto. Así que el
-  // panel se trae a la vista y el cursor entra en la búsqueda — que es lo
-  // siguiente que ibas a hacer de todas formas.
-  //
-  // `start` y no `center`: el panel crece con los resultados y pasa de media
-  // pantalla, así que centrarlo deja su pie —«Crear …» y «Cancelar»— contra la
-  // barra de pestañas. Alineado arriba, la lista de resultados cae hacia el
-  // hueco que queda debajo, que es la dirección en la que crece.
+  // El cursor entra en la búsqueda al abrir: es lo siguiente que ibas a hacer
+  // de todas formas. Ya no hace falta `scrollIntoView` — la hoja llega siempre
+  // entera a la pantalla, sea cual sea el raíl que la abrió.
   useEffect(() => {
-    // `?.` sobre el método, no sólo sobre la referencia: jsdom no implementa
-    // `scrollIntoView` —no tiene motor de maquetación, así que no hay a dónde
-    // desplazarse— y llamarlo a pelo revienta la suite de siempre. Lo que esto
-    // hace de verdad se mide en `comida.browser-test.jsx`, en Chromium.
-    box.current?.scrollIntoView?.({ block: 'start' })
     field.current?.focus()
   }, [])
 
@@ -360,10 +662,13 @@ function AddFood({ slot = null, onDone, onCancel }) {
     if (chosen || creating) return
     const term = query.trim()
     const ticket = ++latest.current
+    setSearching(true)
     const timer = setTimeout(async () => {
       const found = await searchFoods(term)
       // Una respuesta lenta de una búsqueda anterior no puede pisar la actual.
-      if (ticket === latest.current) setResults(found)
+      if (ticket !== latest.current) return
+      setResults(found)
+      setSearching(false)
     }, 180)
     return () => clearTimeout(timer)
   }, [query, chosen, creating])
@@ -418,7 +723,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
   }
 
   return (
-    <div className="card card-compose food-search" ref={box}>
+    <div className="card card-compose food-search">
       <div className="field">
         <label htmlFor="food-q">Buscar alimento</label>
         <input
@@ -444,7 +749,15 @@ function AddFood({ slot = null, onDone, onCancel }) {
           </li>
         ))}
       </ul>
-      {query.trim() && (
+      {/* Los tres estados de una búsqueda son tres frases distintas, y sólo dos
+          de ellas ofrecen crear el alimento. «Todavía no lo sé» no ofrece nada:
+          el catálogo trae 3.185 alimentos y proponer dar de alta uno antes de
+          haberlo mirado es la forma más rápida de duplicarlo. */}
+      {query.trim() && searching && <p className="food-search-note">Buscando…</p>}
+      {query.trim() && !searching && results.length === 0 && (
+        <p className="food-search-note">Ningún alimento se llama «{query.trim()}».</p>
+      )}
+      {query.trim() && !searching && (
         <button type="button" className="link-btn" onClick={() => setCreating(true)}>
           Crear «{query.trim()}»
         </button>
@@ -658,11 +971,14 @@ function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
   const [values, setValues] = useState(() => fromLabel(label))
   const [busy, setBusy] = useState(false)
 
-  // El formulario se trae a la vista al aparecer, y no basta con que lo hiciera
-  // el panel al abrirse: `AddFood` se desplaza una vez, en su primer montaje, y
-  // de la búsqueda al formulario no vuelve a hacerlo. Medido a 430×932 con el
-  // panel abierto por segunda vez: «Guardar alimento» nacía a 1047 px de una
-  // pantalla de 932 — rellenabas siete campos y el botón no estaba.
+  // El formulario se trae a la vista al aparecer.
+  //
+  // Nació contra un defecto que la hoja ya no tiene —cuando esto era un panel
+  // en línea, `AddFood` se desplazaba sólo en su primer montaje y a la segunda
+  // vuelta «Guardar alimento» nacía a 1047 px de una pantalla de 932—, y sigue
+  // sirviendo dentro de ella: la hoja tiene techo (`max-height: 88dvh`) y su
+  // contenido rueda, así que con siete campos el principio del formulario puede
+  // nacer por encima del borde.
   //
   // Y con una etiqueta leída importa el doble: lo primero que hay que ver es la
   // línea que dice de qué columna salieron las cifras, que es lo que separa

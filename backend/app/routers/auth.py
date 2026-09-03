@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import create_access_token, hash_password, verify_password
+from ..auth import create_access_token, get_current_user, hash_password, verify_password
 from ..db import get_session
 from ..google import InvalidGoogleToken, verify_id_token
 from ..models import User
-from ..schemas import GoogleCredentialIn, LoginIn, RegisterIn, TokenOut
+from ..schemas import GoogleCredentialIn, LoginIn, RegisterIn, TokenOut, UserOut, UserTargetsIn
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -103,3 +103,28 @@ async def google_sign_in(
         await session.refresh(user)
 
     return TokenOut(access_token=create_access_token(user.id))
+
+
+@router.get("/me", response_model=UserOut)
+async def get_me(
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    return await session.get(User, user_id)
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_targets(
+    payload: UserTargetsIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    """Fija (o borra, con `null`) el objetivo diario. Un usuario, un objetivo:
+    vive en el perfil, no en el día, así que cambiarlo hoy no reescribe lo que
+    la pantalla enseñó ayer."""
+    user = await session.get(User, user_id)
+    user.objetivo_kcal = payload.objetivo_kcal
+    user.objetivo_proteina = payload.objetivo_proteina
+    await session.commit()
+    await session.refresh(user)
+    return user

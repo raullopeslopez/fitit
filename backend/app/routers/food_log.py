@@ -15,13 +15,14 @@ from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import Food, LogEntry
+from ..models import Food, LogEntry, User
 from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
     dump_nutrients,
     escalar_nutrientes,
     food_log_date,
+    restante,
     sumar_nutrientes,
 )
 from ..schemas import FoodDayOut, LogEntryIn, LogEntryOut, LogEntryPatch, SlotTotalsOut
@@ -112,12 +113,16 @@ async def get_food_day(
         .all()
     )
     totals, unknown = sumar_nutrientes(entries)
+    user = await session.get(User, user_id)
     return FoodDayOut(
         date=log_date,
         entries=[to_entry_out(e) for e in entries],
         totals=totals,
         unknown=unknown,
         by_slot=_by_slot(entries),
+        target_kcal=user.objetivo_kcal,
+        target_protein=user.objetivo_proteina,
+        remaining_kcal=restante(user.objetivo_kcal, totals["kcal"]),
     )
 
 

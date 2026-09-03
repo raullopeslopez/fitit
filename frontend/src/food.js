@@ -97,6 +97,28 @@ const UNKNOWN_LABELS = {
   fiber: 'fibra',
 }
 
+// A qué comida va lo que registras ahora mismo, si no dices otra cosa. Bandas
+// horarias, no una hora exacta: lo que importa es "sobre esta hora come la
+// gente", no el minuto. Arranca en las 04:00 porque ahí es donde el día
+// alimentario arranca (`DAY_STARTS_AT_HOUR`), así que la madrugada tardía
+// cuenta como el cierre del día anterior, no como un desayuno adelantado.
+export function inferMealSlot(moment = new Date()) {
+  const hour = moment.getHours()
+  if (hour < 4) return 'snack'
+  if (hour < 11) return 'desayuno'
+  if (hour < 17) return 'comida'
+  if (hour < 21) return 'snack'
+  return 'cena'
+}
+
+// Cuánto de la barra de proteína pintar, en un [0, 100] que nunca se sale de
+// la barra ni cuando te pasas del objetivo. `null` cuando no hay objetivo:
+// una barra sin meta no mide nada, y dibujarla en 0 diría lo contrario.
+export function proteinProgress(eaten, target) {
+  if (target == null || target <= 0) return null
+  return Math.max(0, Math.min(100, Math.round(((eaten ?? 0) / target) * 100)))
+}
+
 export function unknownNote(unknown = {}) {
   const missing = Object.keys(UNKNOWN_LABELS).filter((key) => (unknown[key] ?? 0) > 0)
   if (missing.length === 0) return null

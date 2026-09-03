@@ -11,6 +11,26 @@ def test_an_empty_day_totals_unknown_not_zero(client):
     assert day["unknown"]["kcal"] == 0
 
 
+def test_without_a_target_the_day_carries_none(client):
+    day = client.get("/food-log?date=2026-08-31").json()
+    assert day["target_kcal"] is None
+    assert day["target_protein"] is None
+    assert day["remaining_kcal"] is None
+
+
+def test_the_day_carries_the_target_and_what_remains(client):
+    client.patch("/auth/me", json={"objetivo_kcal": 2800, "objetivo_proteina": 160})
+    food = create(client, "Arroz", kcal_100g=130)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-08-31T14:00:00+02:00"},
+    )
+    day = client.get("/food-log?date=2026-08-31").json()
+    assert day["target_kcal"] == 2800
+    assert day["target_protein"] == 160
+    assert day["remaining_kcal"] == 2670
+
+
 def test_totals_add_up_across_entries(client):
     rice = create(client, "Arroz", kcal_100g=130, protein_100g=2.7)
     chicken = create(client, "Pollo", kcal_100g=165, protein_100g=31)

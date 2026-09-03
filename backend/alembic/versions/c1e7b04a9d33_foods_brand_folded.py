@@ -1,7 +1,7 @@
 """foods: la marca, buscable
 
 Revision ID: c1e7b04a9d33
-Revises: b8d0f42a6e17
+Revises: eec6fc05a66d
 Create Date: 2026-09-03 10:00:00.000000
 
 `brand` se guardaba desde el primer día y no se buscaba: la consulta de
@@ -25,7 +25,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c1e7b04a9d33"
-down_revision: str | None = "b8d0f42a6e17"
+down_revision: str | None = "eec6fc05a66d"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
