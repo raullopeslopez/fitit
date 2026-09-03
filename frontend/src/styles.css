@@ -4045,3 +4045,29 @@ button.set-chip:active:not(:disabled) {
 .food-cta {
   margin-bottom: 1rem;
 }
+
+/* La cámara del alta de alimento. El disparador de verdad es el `input`, así
+   que el `label` lo envuelve y toma el aspecto de los demás enlaces del panel;
+   el input se esconde sin `display:none`, que lo sacaría del árbol de
+   accesibilidad y dejaría la etiqueta sin nada que etiquetar. */
+.food-photo input[type='file'] {
+  height: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+
+.food-label-read {
+  margin: 0 0 0.6rem;
+}
+
+/* Tinta, no `--muted`. Dice por qué un campo está en blanco, y un hueco sin
+   explicación se lee como «la etiqueta no lo declara» — que es lo contrario de
+   lo que ha pasado. La misma razón por la que una raya en un total se imprime
+   con la tinta de una cifra. */
+.food-label-warn {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}

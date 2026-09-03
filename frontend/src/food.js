@@ -108,3 +108,30 @@ export function unknownNote(unknown = {}) {
   })
   return `— no es cero: ${parts.join(', ')}.`
 }
+
+// Lo que la foto dijo y el backend no se creyó.
+//
+// Un campo vacío en el formulario se lee como «la etiqueta no lo declara», y
+// aquí significa otra cosa: la etiqueta a lo mejor lo declara y la lectura no
+// se sostenía. Sin esta línea el hueco miente por omisión.
+//
+// Con artículo en la tabla —«la fibra», «los hidratos»— por lo mismo que
+// `UNKNOWN_LABELS` no lo lleva: allí se encadenan tras un número («2 sin
+// fibra») y aquí van sueltos, donde el artículo hace falta y el género lo
+// resuelve la propia tabla en vez de una regla.
+const DROPPED_LABELS = {
+  kcal: 'las kcal',
+  protein: 'la proteína',
+  fat: 'la grasa',
+  carbs: 'los hidratos',
+  fiber: 'la fibra',
+}
+
+export function droppedNote(dropped = []) {
+  const named = dropped.map((key) => DROPPED_LABELS[key]).filter(Boolean)
+  if (named.length === 0) return null
+  const list =
+    named.length === 1 ? named[0] : `${named.slice(0, -1).join(', ')} y ${named.at(-1)}`
+  const verb = named.length === 1 ? 'aparece' : 'aparecen'
+  return `Descarté ${list}: no ${verb} en la tabla que leí.`
+}
