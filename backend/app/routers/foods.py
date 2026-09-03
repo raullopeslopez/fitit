@@ -18,10 +18,25 @@ from ..config import settings
 from ..db import get_session
 from ..gemini import LabelUnreadable, read_label
 from ..label import ColumnRefused, read_from_payload
+from ..openfoodfacts import (
+    NotFound,
+    Unreachable,
+    Unusable,
+    fetch,
+    looks_like_a_barcode,
+    read_product,
+)
 from ..models import Food, FoodAlias, LogEntry, Portion
 from ..naming import fold_exercise_name as fold
 from ..nutrition import NUTRIENTS, calcular_nutrientes
-from ..schemas import FoodIn, FoodOut, FoodPatch, FrequentFoodOut, LabelReadOut
+from ..schemas import (
+    BarcodeLookupOut,
+    FoodIn,
+    FoodOut,
+    FoodPatch,
+    FrequentFoodOut,
+    LabelReadOut,
+)
 from ..serialization import to_food_out
 
 router = APIRouter(prefix="/foods", tags=["foods"])
@@ -37,6 +52,16 @@ SEARCH_LIMIT = 30
 MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 UNKNOWN_NUTRIENTS = dict.fromkeys(NUTRIENTS)
+
+
+async def get_barcode_lookup():
+    """Quien resuelve un EAN contra Open Food Facts.
+
+    Dependencia y no llamada directa por lo mismo que el lector de etiquetas:
+    en la suite no hay red, y lo que hay que fijar no es que OFF conteste sino
+    qué hacemos con lo que conteste — que es donde está todo el riesgo.
+    """
+    return fetch
 
 
 async def get_label_reader():
@@ -193,6 +218,7 @@ async def create_food(
         name_folded=fold(payload.name),
         brand=payload.brand or None,
         brand_folded=fold(payload.brand) if payload.brand else None,
+        barcode=payload.barcode or None,
         source="manual",
         # A number you typed off a Spanish label is the European convention,
         # where fibre is counted apart from carbohydrate.
@@ -219,6 +245,69 @@ async def create_food(
     await session.commit()
     await session.refresh(food, ["portions"])
     return to_food_out(food, user_id)
+
+
+@router.get("/barcode/{ean}", response_model=BarcodeLookupOut)
+async def scan_barcode(
+    ean: str,
+    lookup=Depends(get_barcode_lookup),
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> BarcodeLookupOut:
+    """Resuelve un código de barras. La puerta barata.
+
+    Primero mira si ya lo tienes: **un producto conocido no consulta a nadie**,
+    así que la segunda vez que escaneas el mismo yogur funciona sin red, sin
+    espera y sin gastar la cuota de fotos. Ésa es la regla que hace que esto
+    valga la pena, y la que el escáner suele romper.
+
+    Si no lo tienes, se lo pregunta a Open Food Facts y devuelve una
+    **propuesta** para el formulario. No escribe: dar de alta sigue siendo cosa
+    de alguien mirando lo que hay escrito. Que un código acierte no es permiso.
+
+    Ninguna de sus salidas es un callejón — la peor te deja tecleando con el
+    código ya puesto, que es una línea menos que antes de escanear.
+    """
+    code = ean.strip()
+    if not looks_like_a_barcode(code):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="eso no es un código de barras",
+        )
+
+    mine = (
+        (
+            await session.execute(
+                select(Food)
+                .options(selectinload(Food.portions))
+                .where(Food.barcode == code, Food.user_id == user_id, Food.archived.is_(False))
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if mine is not None:
+        return BarcodeLookupOut(barcode=code, food=to_food_out(mine, user_id))
+
+    try:
+        payload = await lookup(code)
+        read = read_product(code, payload)
+    except NotFound:
+        return BarcodeLookupOut(barcode=code, refusal="unknown")
+    except Unusable as refused:
+        # Con su motivo: «no me vale» sin decir por qué se lee como un fallo de
+        # la app, y esto no lo es — es una ficha que no da para lo que pide la
+        # base de datos.
+        return BarcodeLookupOut(barcode=code, refusal="unusable", refused_reason=refused.reason)
+    except Unreachable:
+        return BarcodeLookupOut(barcode=code, refusal="offline")
+
+    return BarcodeLookupOut(
+        barcode=code,
+        name=read.name,
+        brand=read.brand,
+        nutrients=read.nutrients,
+    )
 
 
 @router.post("/label", response_model=LabelReadOut)

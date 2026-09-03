@@ -41,6 +41,7 @@ VERSIONS = BACKEND / "alembic" / "versions"
 COLUMN_MIGRATIONS = (
     "a3e91d5c7b40_add_food_tracking.py",
     "c1e7b04a9d33_foods_brand_folded.py",
+    "d2a8f31c6740_foods_barcode.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

@@ -8,6 +8,7 @@ import {
   getFoodDay,
   logFood,
   readLabel,
+  scanBarcode,
   searchFoods,
   setTargets,
 } from './api.js'
@@ -647,6 +648,9 @@ function AddFood({ slot = null, onDone, onCancel }) {
   // alimento: sigue haciendo falta que alguien mire lo que hay escrito y le dé
   // a guardar, igual que si lo hubiera tecleado entero.
   const [label, setLabel] = useState(null)
+  // Lo que devolvió el escáner: o el alimento que ya tenías, o una propuesta de
+  // Open Food Facts, o el motivo por el que no hay ninguna de las dos.
+  const [scan, setScan] = useState(null)
   const [reading, setReading] = useState(false)
   const latest = useRef(0)
   const field = useRef(null)
@@ -691,6 +695,63 @@ function AddFood({ slot = null, onDone, onCancel }) {
       setReading(false)
       setCreating(true)
     }
+  }
+
+  // Un código de barras, decodificado **en el móvil** y resuelto contra Open
+  // Food Facts. La foto no sale de aquí: `BarcodeDetector` es nativo, así que
+  // decodificar no cuesta red, ni clave, ni cuota, ni un byte de librería. Al
+  // servidor sólo viaja el número.
+  //
+  // Misma interacción que «Leer etiqueta» —una foto— en vez de un vídeo en
+  // directo: es un gesto que ya conoces, no pide permiso de cámara continuo, y
+  // para un código impreso en un envase quieto una foto sobra.
+  async function photographBarcode(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setReading(true)
+    try {
+      const codes = await detectBarcodes(file)
+      if (codes.length === 0) {
+        // Sin código no se pregunta a nadie: no hay nada por lo que preguntar,
+        // y decirlo es más útil que un «no encontrado» que suena a que el
+        // producto no existe.
+        setScan({ refusal: 'nocode' })
+        return
+      }
+      setScan(await scanBarcode(codes[0]))
+    } catch {
+      setScan({ refusal: 'offline' })
+    } finally {
+      setReading(false)
+    }
+  }
+
+  // Un alimento que ya era tuyo no pasa por el alta: se va derecho a «cuánto»,
+  // que es lo único que faltaba por decidir.
+  if (scan?.food) {
+    return (
+      <Amount
+        food={scan.food}
+        initialSlot={slot}
+        onDone={onDone}
+        onCancel={() => setScan(null)}
+      />
+    )
+  }
+
+  if (scan) {
+    return (
+      <NewFood
+        name={scan.name || query.trim()}
+        scan={scan}
+        onCreated={(food) => {
+          setScan(null)
+          setChosen(food)
+        }}
+        onCancel={() => setScan(null)}
+      />
+    )
   }
 
   if (creating) {
@@ -778,6 +839,22 @@ function AddFood({ slot = null, onDone, onCancel }) {
           onChange={photograph}
         />
       </label>
+      {/* Sólo donde el navegador sabe decodificar. En un Chrome de Android está;
+          en un Safari, no — y un botón que no puede funcionar es peor que uno
+          que no está, porque no hay forma de saber por qué falla. */}
+      {canScan() && (
+        <label className="link-btn food-photo" htmlFor="food-scan">
+          {reading ? 'Leyendo…' : 'Escanear código'}
+          <input
+            id="food-scan"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={reading}
+            onChange={photographBarcode}
+          />
+        </label>
+      )}
       <button type="button" className="link-btn food-cancel" onClick={onCancel}>
         Cancelar
       </button>
@@ -893,6 +970,48 @@ function Amount({ food, initialSlot = null, onDone, onCancel }) {
   )
 }
 
+// ¿Sabe este navegador leer un código de barras?
+//
+// `BarcodeDetector` es nativo en Chrome y en Android, y no existe en Safari ni
+// en Firefox. Traer una librería para cubrirlos serían cientos de kilobytes en
+// el bundle de una app que se usa en un móvil Android — y el resto de la
+// pantalla sigue funcionando sin esto: se teclea, o se lee la etiqueta.
+export function canScan() {
+  return typeof window !== 'undefined' && 'BarcodeDetector' in window
+}
+
+// Los códigos que haya en la foto, decodificados aquí mismo. Devuelve una lista
+// vacía si no ve ninguno, que no es un error: es una foto sin código.
+async function detectBarcodes(file) {
+  const detector = new window.BarcodeDetector({
+    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'],
+  })
+  const bitmap = await createImageBitmap(file)
+  const found = await detector.detect(bitmap)
+  return found.map((code) => code.rawValue).filter(Boolean)
+}
+
+// Qué contar del escaneo, encima del formulario.
+//
+// Sin esta línea, un formulario en blanco después de escanear no se distingue
+// de uno abierto a mano, y te quedas sin saber si el código se leyó, si nadie
+// lo conoce o si no había red — tres cosas que piden respuestas distintas.
+function ScanNote({ scan }) {
+  const message = {
+    nocode: 'No he visto ningún código en la foto.',
+    unknown: 'Ese código no está en Open Food Facts. Tecléalo.',
+    offline: 'No he podido preguntar por ese código. Tecléalo.',
+    unusable: {
+      'por ración': 'Los datos de ese código vienen por ración. No me sirven: tecléalo.',
+      'por 100 ml': 'Los datos de ese código vienen por 100 ml, no por 100 g. Tecléalo.',
+      'sin kcal': 'La ficha de ese código no trae kcal. Tecléalo.',
+    }[scan.refused_reason],
+  }[scan.refusal]
+
+  if (!message) return null
+  return <p className="food-label-warn">{message}</p>
+}
+
 // Qué contar de la lectura, encima del formulario.
 //
 // Las tres salidas de la cámara acaban en este mismo formulario y sólo cambian
@@ -944,9 +1063,8 @@ function LabelNote({ label }) {
 // campo que nadie va a repasar es un dato inventado que ya nadie desmiente.
 // Coma decimal porque es la que vas a leer en la etiqueta y la que espera
 // `number()` al guardar.
-function fromLabel(label) {
+function fromNutrients(read) {
   const empty = { kcal: '', protein: '', fat: '', carbs: '', fiber: '' }
-  const read = label?.nutrients
   if (!read) return empty
   return Object.fromEntries(
     Object.keys(empty).map((key) => [
@@ -960,15 +1078,15 @@ function fromLabel(label) {
 //
 // Sólo el nombre es obligatorio. Un macro que no escribes se manda como `null`,
 // nunca como 0 — nadie lo ha medido, y un cero afirmaría que sí y que no hay.
-function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
+function NewFood({ name: initialName, label = null, scan = null, onCreated, onCancel }) {
   const box = useRef(null)
   const [name, setName] = useState(initialName)
   // La marca va aparte del nombre porque es un dato distinto: se pinta aparte
   // en los resultados y se busca por su cuenta. De un producto envasado te
   // acuerdas por el súper —«el de Hacendado»— antes que por su nombre
   // comercial, así que escribirla aquí es lo que lo hace encontrable luego.
-  const [brand, setBrand] = useState(label?.brand ?? '')
-  const [values, setValues] = useState(() => fromLabel(label))
+  const [brand, setBrand] = useState(label?.brand ?? scan?.brand ?? '')
+  const [values, setValues] = useState(() => fromNutrients(label?.nutrients ?? scan?.nutrients))
   const [busy, setBusy] = useState(false)
 
   // El formulario se trae a la vista al aparecer.
@@ -1004,6 +1122,9 @@ function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
       // En blanco es `null`, no cadena vacía: no tiene marca, que es distinto
       // de tener una marca que se llama «».
       brand: brand.trim() || null,
+      // El código que trajo el escaneo. Sin guardarlo, escanear el mismo yogur
+      // mañana vuelve a preguntar a Open Food Facts por algo que ya tienes.
+      barcode: scan?.barcode ?? null,
       kcal_100g: number(values.kcal),
       protein_100g: number(values.protein),
       fat_100g: number(values.fat),
@@ -1024,6 +1145,7 @@ function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
   return (
     <form className="card card-compose food-new" ref={box} onSubmit={submit}>
       {label && <LabelNote label={label} />}
+      {scan && <ScanNote scan={scan} />}
       <div className="field">
         <label htmlFor="food-name">Nombre</label>
         <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />

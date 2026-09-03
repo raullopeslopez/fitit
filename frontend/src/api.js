@@ -260,6 +260,16 @@ export function readLabel(file) {
   return apiFetch('/foods/label', { method: 'POST', body: form })
 }
 
+// Resuelve un código de barras. La puerta barata: no gasta clave ni cuota, y
+// cuando el producto ya es tuyo ni siquiera sale de la base de datos.
+//
+// Devuelve siempre 200 salvo que el código esté malformado. Los tres finales
+// —ya lo tienes, propuesta de Open Food Facts, o nada— se distinguen por los
+// campos que trae, no por el estado HTTP.
+export function scanBarcode(ean) {
+  return apiFetch(`/foods/barcode/${encodeURIComponent(ean)}`)
+}
+
 // Corrige un alimento tuyo. No toca nada de lo ya registrado: el diario congeló
 // sus números al escribirlos.
 export function correctFood(foodId, fields) {

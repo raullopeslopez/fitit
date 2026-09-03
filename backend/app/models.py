@@ -157,7 +157,18 @@ class Food(Base):
     # un `alim_code` es un alimento, ejecutar el import dos veces actualiza en
     # vez de duplicar. Los alimentos manuales llevan `source_ref` a NULL y no
     # chocan entre sí — Postgres y SQLite tratan cada NULL como distinto.
-    __table_args__ = (UniqueConstraint("source", "source_ref", name="uq_foods_source_source_ref"),)
+    __table_args__ = (
+        UniqueConstraint("source", "source_ref", name="uq_foods_source_source_ref"),
+        # Por usuario y no global, que es donde este esquema se separa del que
+        # el plan escribió cuando esto era una app de un solo usuario. Un EAN
+        # identifica el mismo producto para todo el mundo, pero el alimento que
+        # lo lleva es de quien lo dio de alta: con una clave global, el segundo
+        # en escanear un Actimel chocaría contra la fila del primero.
+        #
+        # Los NULL no chocan entre sí ni en Postgres ni en SQLite, así que los
+        # alimentos sin código —CIQUAL entero— caben sin estorbar.
+        UniqueConstraint("user_id", "barcode", name="uq_foods_user_barcode"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int | None] = mapped_column(
@@ -176,6 +187,15 @@ class Food(Base):
     # marca es la mitad de cómo recuerdas un producto envasado —"el de
     # Hacendado"—, así que tiene que entrar en la búsqueda igual que el nombre.
     brand_folded: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
+    # El código de barras del envase, cuando lo tiene. Es lo que hace que la
+    # segunda vez que escaneas el mismo yogur no se le pregunte a nadie: se
+    # busca aquí, se encuentra, y no hay ni red ni modelo de por medio.
+    #
+    # Columna y no tabla aparte: un alimento es un producto y un producto lleva
+    # un código. Si algún día hicieran falta dos EAN para el mismo alimento —el
+    # mismo yogur en pack de 4 y de 8—, esto se promueve a tabla sin perder
+    # nada por el camino.
+    barcode: Mapped[str | None] = mapped_column(String(14), index=True, nullable=True)
     # 'ciqual' | 'off' | 'manual' | 'fdc'
     source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
     source_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
