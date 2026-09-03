@@ -3681,8 +3681,11 @@ button.set-chip:active:not(:disabled) {
    `{ … }` — que era `.food-daynav` entero. La fila de fecha llevaba meses sin
    su `display: flex`, con los dos pasos apilados sobre y bajo el sello, y
    ningún test lo veía. Lo mide ahora `comida.browser-test.jsx`. */
+/* Sitio para la CTA fija: la lista corre por debajo, y sin este hueco su
+   última fila —el último raíl, o el aviso de «Deshacer» que puede colgar de
+   él— quedaría tapada por la barra. */
 .comida {
-  padding-bottom: 7rem;
+  padding-bottom: 9rem;
 }
 
 /* La fecha en su propia línea, con los dos pasos a los lados. Es un sello de
@@ -3874,9 +3877,11 @@ button.set-chip:active:not(:disabled) {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* Ámbar, y es la única excepción de esta pantalla: no es una etiqueta que se
-   pinta de acento, es el control que se pulsa cuatro veces al día. Un `+` en
-   `--muted` sobre una cabecera en `--muted` no se lee como un botón. */
+/* Bajó a control secundario cuando «Añadir alimento» ganó una CTA fija: por
+   color, no por tamaño — DESIGN.md fija 44px como suelo para todo lo que se
+   toca, y éste se sigue tocando cuatro veces al día. En `--muted` sobre una
+   cabecera igual de apagada sigue leyéndose como botón porque el `+` es su
+   único contenido: no hay texto de alrededor con el que confundirlo. */
 .food-rail-add {
   width: 44px;
   min-height: 44px;
@@ -3888,7 +3893,12 @@ button.set-chip:active:not(:disabled) {
   font-family: var(--font-mono);
   font-size: 1.35rem;
   line-height: 1;
-  color: var(--accent-ink);
+  color: var(--muted);
+}
+@media (hover: hover) {
+  .food-rail-add:hover:not(:disabled) {
+    color: var(--accent-ink);
+  }
 }
 .food-rail-add:active:not(:disabled) {
   background: color-mix(in srgb, var(--text) 8%, transparent);
@@ -3983,32 +3993,59 @@ button.set-chip:active:not(:disabled) {
   margin-left: 0.9rem;
 }
 
-/* Lo de siempre: el repertorio, por delante del buscador.
+/* Lo de siempre: el repertorio, delante de los raíles.
    Comer es repetirse, y la caja de búsqueda trataba cada día como si fuera el
    primero: escribir «huevo» para volver a registrar los mismos 120 g de ayer,
-   y de anteayer. La rejilla pone lo que repites a un toque, con la cantidad y
-   la comida que ya usas.
+   y de anteayer. La tira pone lo que repites a un toque, con la cantidad y la
+   comida que ya usas.
 
-   Dos columnas y no una lista: son cuatro o seis, se miran de un vistazo y una
-   lista de seis filas empujaría la CTA fuera de la pantalla. Cada azulejo lleva
-   el nombre en el cuerpo de la app —es el contenido de la ficha, igual que en
-   una fila del diario— y debajo, en mono, lo que se va a escribir. */
-.food-siempre-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+   Vivía al pie de la pantalla, bajo los cuatro raíles: con un día a medias
+   registrado había que desplazar para llegar al camino de un toque, mientras
+   que el de cinco pasos (+ → buscar → elegir → cantidad → añadir) estaba
+   siempre a la vista. Delante de los raíles y en una tira horizontal, no en
+   una rejilla de dos columnas: aquí compite por sitio con lo que la pantalla
+   mide de verdad —el objetivo y los raíles— así que ocupa una fila, no dos o
+   tres. */
+.food-siempre-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+/* Contexto, no destino: cada azulejo registra en la comida que le es propia
+   (`item.meal_slot`), más fiable para ese alimento que una hora única para
+   todo el repertorio. Esto sólo dice qué hora es ahora. */
+.food-siempre-slot {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.food-siempre-strip {
+  display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  padding-bottom: 0.15rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.food-siempre-strip::-webkit-scrollbar {
+  display: none;
 }
 .food-repeat {
+  flex: none;
+  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   gap: 0.2rem;
-  /* Un nombre de CIQUAL de dos líneas cabe sin que el azulejo crezca respecto
-     al de al lado: la rejilla iguala las alturas, pero el suelo evita que una
-     fila de nombres cortos quede más baja que un objetivo de dedo. */
-  min-height: 72px;
+  /* Ancho fijo y no el del contenido: un nombre corto no puede hacer más
+     estrecho el azulejo de al lado, o la tira deja de leerse como una fila de
+     targets iguales. */
+  width: 8.5rem;
+  min-height: 44px;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -4036,12 +4073,214 @@ button.set-chip:active:not(:disabled) {
   margin: 0.55rem 0 0;
 }
 
-/* Al pie de la lista y no fija, a diferencia de la de Días. Allí la CTA es
-   `Continuar entreno`: la quieres a mano estés donde estés del scroll, porque
-   estás a mitad de sesión. Aquí registras al terminar de comer, con el día
-   entero delante, y una barra fija sobre una lista corta gasta 60 px
-   permanentes para ahorrar un gesto que no se hace a mitad de nada. Candidata
-   a revisarse en la fase 2, que es la que mide la fricción de verdad. */
+/* Fija sobre la barra de pestañas, como la de Días — al alcance del pulgar sea
+   cual sea la posición del scroll (DESIGN.md: la acción principal va abajo,
+   nunca arriba). Antes era una CTA al pie, sin fijar: con un día a medio
+   registrar quedaba bajo la línea de flotación igual que el repertorio, y el
+   único camino siempre a la vista era el `+` de cada raíl. Ahora hay un solo
+   destino para «añadir», y el `+` del raíl baja a control secundario. */
 .food-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  /* 3.5rem son los 56px de `.tab`, más el 1px del `border-top` que
+     `.bottom-nav` añade por su cuenta — sin él, la CTA y la barra se solapan
+     un píxel exacto. */
+  bottom: calc(3.5rem + 1px + env(safe-area-inset-bottom));
+  z-index: 11;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+}
+
+/* El objetivo diario: un cajón callado, como las preferencias fijas de
+   Entreno (`.head-menu-pop`/`.menu-pref`) — se fija una vez y se corrige rara
+   vez, así que no se queda abierto sobre las cifras que sí cambian a diario. */
+.food-target {
+  margin: 0.2rem 0 0.9rem;
+}
+.food-target-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.food-target-toggle::after {
+  content: '›';
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.food-target-toggle[aria-expanded='true']::after {
+  transform: rotate(90deg);
+}
+.food-target-summary {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+.food-target-panel {
+  margin-top: 0.5rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* La cifra grande deja de ser lo comido y pasa a ser lo que queda del
+   objetivo — la pregunta que se hace a las 20:00. Reemplaza a `.food-strip`
+   cuando hay un objetivo fijado; sin uno, `.food-strip` se queda tal cual. */
+.food-hero {
+  padding-bottom: 0.9rem;
   margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.food-hero-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.food-hero-remaining {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.food-hero-remaining-unit {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.food-hero-total {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.food-hero-protein {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+.food-hero-protein-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.food-hero-protein-value {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.food-hero-protein-target {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* Una sola barra de acento en toda la pantalla, como manda DESIGN.md: el
+   ámbar señala una cosa, no cuatro — grasa, hidratos y fibra se quedan en
+   mono, sin barra propia. */
+.food-hero-bar {
+  height: 8px;
+  margin-top: 0.4rem;
+  border-radius: 9999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.food-hero-bar > div {
+  height: 100%;
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .food-hero-bar > div {
+    transition: width 250ms ease;
+  }
+}
+.food-hero-macros {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+/* El pie que explica una raya, ahora un control: filtra el día a las
+   entradas a las que les falta el dato, que es lo único que se puede
+   corregir. Reutiliza `.chip`; una frase entera dentro de una píldora es
+   inusual, pero es el mismo texto que ya llevaba `.food-unknown` y cambiarlo
+   no era el punto — que se pueda tocar sí lo era. */
+.food-unknown-chip {
+  display: block;
+  width: 100%;
+  max-width: max-content;
+  height: auto;
+  min-height: 36px;
+  margin: 0.5rem 0 0;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+/* La fila de una entrada, deslizable. `Borrar` vive detrás, revelado por el
+   arrastre — fuera del formulario de edición, que es donde vivía pegado a
+   `Guardar`. `overflow: hidden` en el envoltorio recorta lo que el arrastre
+   no ha revelado todavía; sin arrastrar, el fondo opaco de la fila ya lo tapa
+   entero, así que el recorte es un cinturón y tirantes, no el mecanismo. */
+.food-entry-swipe {
+  position: relative;
+  overflow: hidden;
+}
+.food-entry-swipe-actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.food-entry-delete {
+  width: 76px;
+  border: 0;
+  background: var(--danger);
+  color: var(--on-danger);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.food-entry-swipe > .food-entry {
+  position: relative;
+  width: 100%;
+  background: var(--bg);
+  /* Sigue al dedo mientras se arrastra (JS, en línea) y sólo anima el salto
+     final —abrir del todo o volver a cerrar— para que el gesto en curso no se
+     sienta pastoso. */
+  touch-action: pan-y;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .food-entry-swipe > .food-entry {
+    transition: transform 0.15s ease;
+  }
 }
