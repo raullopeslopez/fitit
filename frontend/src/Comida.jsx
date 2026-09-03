@@ -634,6 +634,11 @@ function EntryEditor({ entry, onDone, onCancel }) {
 function AddFood({ slot = null, onDone, onCancel }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
+  // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
+  // esto, los ~180 ms de rebote más lo que tarde la red se pintan iguales que
+  // «no hay nada»: lista vacía y una oferta de crear el alimento debajo, que
+  // es una respuesta —la equivocada— a una pregunta que aún no se ha hecho.
+  const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState(null)
   const [creating, setCreating] = useState(false)
   const latest = useRef(0)
@@ -650,10 +655,13 @@ function AddFood({ slot = null, onDone, onCancel }) {
     if (chosen || creating) return
     const term = query.trim()
     const ticket = ++latest.current
+    setSearching(true)
     const timer = setTimeout(async () => {
       const found = await searchFoods(term)
       // Una respuesta lenta de una búsqueda anterior no puede pisar la actual.
-      if (ticket === latest.current) setResults(found)
+      if (ticket !== latest.current) return
+      setResults(found)
+      setSearching(false)
     }, 180)
     return () => clearTimeout(timer)
   }, [query, chosen, creating])
@@ -709,7 +717,15 @@ function AddFood({ slot = null, onDone, onCancel }) {
           </li>
         ))}
       </ul>
-      {query.trim() && (
+      {/* Los tres estados de una búsqueda son tres frases distintas, y sólo dos
+          de ellas ofrecen crear el alimento. «Todavía no lo sé» no ofrece nada:
+          el catálogo trae 3.185 alimentos y proponer dar de alta uno antes de
+          haberlo mirado es la forma más rápida de duplicarlo. */}
+      {query.trim() && searching && <p className="food-search-note">Buscando…</p>}
+      {query.trim() && !searching && results.length === 0 && (
+        <p className="food-search-note">Ningún alimento se llama «{query.trim()}».</p>
+      )}
+      {query.trim() && !searching && (
         <button type="button" className="link-btn" onClick={() => setCreating(true)}>
           Crear «{query.trim()}»
         </button>
