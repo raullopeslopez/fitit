@@ -1,4 +1,4 @@
-"""The food migration must build the tables the models describe.
+"""Las migraciones de comida tienen que construir las tablas que describen los modelos.
 
 conftest builds the test schema with `Base.metadata.create_all`, so the whole
 suite could pass against models that the migration never actually creates —
@@ -12,8 +12,9 @@ one error in this feature that no later fix can undo, because the information
 it destroys was never written down.
 
 The full chain can't be replayed on SQLite (b7f3c2a10d94 uses `ALTER COLUMN ...
-SET NOT NULL`, which SQLite rejects), so this drives the one migration against
-a database holding only what it references.
+SET NOT NULL`, which SQLite rejects), so this drives just the migrations that
+shape these tables' columns, against a database holding only what they
+reference.
 """
 
 import importlib.util
@@ -28,13 +29,25 @@ from app.models import Base
 from app.nutrition import NUTRIENTS
 
 BACKEND = Path(__file__).resolve().parents[2]
-MIGRATION = BACKEND / "alembic" / "versions" / "a3e91d5c7b40_add_food_tracking.py"
+VERSIONS = BACKEND / "alembic" / "versions"
+
+# Las migraciones que dan forma a las **columnas** de estas tablas, en orden.
+# Cuando una migración nueva añada o quite una, va aquí — si no, este fichero
+# deja de comprobar lo que dice comprobar y el desajuste sale en el deploy.
+#
+# `b8d0f42a6e17` no está a propósito: sólo añade una restricción de unicidad, y
+# SQLite no sabe añadirla a una tabla ya creada (haría falta modo batch). No
+# toca ninguna columna, así que no tiene nada que decir aquí.
+COLUMN_MIGRATIONS = (
+    "a3e91d5c7b40_add_food_tracking.py",
+    "c1e7b04a9d33_foods_brand_folded.py",
+)
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")
 
 
-def _load_migration():
-    spec = importlib.util.spec_from_file_location("migration_a3e91d5c7b40", MIGRATION)
+def _load_migration(filename):
+    spec = importlib.util.spec_from_file_location(f"migration_{filename}", VERSIONS / filename)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -49,7 +62,8 @@ def migrated():
         conn.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY)"))
         context = MigrationContext.configure(conn)
         with Operations.context(context):
-            _load_migration().upgrade()
+            for filename in COLUMN_MIGRATIONS:
+                _load_migration(filename).upgrade()
         inspector = inspect(conn)
         schema = {
             table: {c["name"]: c["nullable"] for c in inspector.get_columns(table)}

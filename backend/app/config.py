@@ -1,6 +1,6 @@
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     # feature is simply off: /auth/google refuses everything rather than
     # accepting tokens minted for whoever else's app.
     google_client_id: str = ""
+    # Lee la etiqueta de una foto. Vacía significa que la feature está apagada
+    # —igual que `google_client_id`—: el botón de la cámara no aparece y nadie
+    # llama a nadie. `SecretStr` y no `str` para que un traceback que imprima
+    # la configuración saque asteriscos y no la clave.
+    gemini_api_key: SecretStr = SecretStr("")
+    # Configurable porque qué modelos sirve el tier gratuito depende del
+    # proyecto y no está publicado: se mira en AI Studio y se pone aquí, sin
+    # tocar código.
+    gemini_model: str = "gemini-3.8-flash"
 
     @field_validator("database_url")
     @classmethod

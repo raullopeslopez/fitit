@@ -8,17 +8,20 @@ Search reads both; writes only ever touch yours.
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer, selectinload
 
 from ..auth import get_current_user
+from ..config import settings
 from ..db import get_session
+from ..gemini import LabelUnreadable, read_label
+from ..label import ColumnRefused, read_from_payload
 from ..models import Food, FoodAlias, LogEntry, Portion
 from ..naming import fold_exercise_name as fold
-from ..nutrition import calcular_nutrientes
-from ..schemas import FoodIn, FoodOut, FoodPatch, FrequentFoodOut
+from ..nutrition import NUTRIENTS, calcular_nutrientes
+from ..schemas import FoodIn, FoodOut, FoodPatch, FrequentFoodOut, LabelReadOut
 from ..serialization import to_food_out
 
 router = APIRouter(prefix="/foods", tags=["foods"])
@@ -27,6 +30,34 @@ router = APIRouter(prefix="/foods", tags=["foods"])
 # than fits on the screen twice over, and the cap is what keeps "a" from
 # dragging three thousand CIQUAL rows across the wire.
 SEARCH_LIMIT = 30
+
+# Una foto de móvil ronda el megabyte. Ocho es sitio de sobra para la que venga
+# sin encoger, y un techo que impide que una subida rara ocupe la memoria del
+# proceso mientras se descodifica.
+MAX_PHOTO_BYTES = 8 * 1024 * 1024
+
+UNKNOWN_NUTRIENTS = dict.fromkeys(NUTRIENTS)
+
+
+async def get_label_reader():
+    """Quien lee la etiqueta, o `None` si la feature está apagada.
+
+    Dependencia y no llamada directa para que la suite pueda ponerle otro
+    delante: los tests de esto no llaman a Gemini —no hay red, ni clave, ni
+    cuota que gastar en CI— y lo que comprueban es qué hace el backend con lo
+    que el modelo conteste, que es donde está todo el riesgo.
+    """
+    key = settings.gemini_api_key.get_secret_value()
+    if not key:
+        return None
+
+    async def reader(image: bytes, mime_type: str) -> dict:
+        return await read_label(
+            image, api_key=key, model=settings.gemini_model, mime_type=mime_type
+        )
+
+    return reader
+
 
 # Cuántas filas se traen para ordenar, antes de quedarse con `SEARCH_LIMIT`.
 #
@@ -65,6 +96,11 @@ def _rank(food: Food, needle: str, alias_hits: set[int]) -> tuple:
         bucket = 2
     elif needle in folded:
         bucket = 3
+    elif food.brand_folded and needle in food.brand_folded:
+        # Acierto por marca: te ha traído el alimento, pero no por su nombre.
+        # Al mismo nivel que un alias, porque es lo mismo que es — otra forma
+        # de llamar a la misma cosa.
+        bucket = 4
     else:
         bucket = 4 if food.id in alias_hits else 5
     # Yours ahead of the catalogue's at equal rank: you typed it because the
@@ -100,7 +136,13 @@ def search_stmt(user_id: int, needle: str):
         return stmt.where(Food.user_id == user_id).order_by(Food.id.desc())
     alias_matches = select(FoodAlias.food_id).where(FoodAlias.alias_folded.contains(needle))
     return (
-        stmt.where(or_(Food.name_folded.contains(needle), Food.id.in_(alias_matches)))
+        stmt.where(
+            or_(
+                Food.name_folded.contains(needle),
+                Food.brand_folded.contains(needle),
+                Food.id.in_(alias_matches),
+            )
+        )
         .order_by(func.length(Food.name_folded))
         .limit(CANDIDATE_LIMIT)
     )
@@ -149,7 +191,8 @@ async def create_food(
         user_id=user_id,
         name=payload.name,
         name_folded=fold(payload.name),
-        brand=payload.brand,
+        brand=payload.brand or None,
+        brand_folded=fold(payload.brand) if payload.brand else None,
         source="manual",
         # A number you typed off a Spanish label is the European convention,
         # where fibre is counted apart from carbohydrate.
@@ -176,6 +219,72 @@ async def create_food(
     await session.commit()
     await session.refresh(food, ["portions"])
     return to_food_out(food, user_id)
+
+
+@router.post("/label", response_model=LabelReadOut)
+async def read_a_label(
+    photo: UploadFile = File(...),
+    reader=Depends(get_label_reader),
+    user_id: int = Depends(get_current_user),
+) -> LabelReadOut:
+    """Lee la tabla nutricional de una foto y **propone** un alta.
+
+    No escribe. Devuelve lo que rellenaría el formulario, y el formulario sigue
+    siendo la única puerta del catálogo — la misma regla que ya vale para el
+    import y para el parser. Que la foto acierte no la convierte en permiso.
+
+    Las tres salidas acaban en el mismo sitio, el formulario, y sólo cambia con
+    cuánto viene puesto:
+
+    - se leyó          → campos rellenos, y en pantalla de qué columna salieron
+    - `refusal=column` → en blanco, porque lo leído era por ración o por 100 ml
+    - `refusal=unreadable` → en blanco, porque no hubo respuesta
+
+    Ninguna es un callejón: un fallo aquí te deja tecleando, que es exactamente
+    donde estabas antes de que existiera el botón.
+    """
+    if reader is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="la lectura de etiquetas no está configurada",
+        )
+    image = await photo.read()
+    if len(image) > MAX_PHOTO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="la foto es demasiado grande",
+        )
+    try:
+        payload = await reader(image, photo.content_type or "image/jpeg")
+    except LabelUnreadable as exc:
+        # Sin red, saturado, respuesta rara: da igual cuál, se termina tecleando.
+        # La cuota es la excepción y viaja aparte, porque repetir la foto no la
+        # arregla y hay que decirlo o te quedas insistiendo.
+        if exc.quota:
+            return LabelReadOut(
+                refusal="quota",
+                quota_scope=exc.quota,
+                nutrients=dict(UNKNOWN_NUTRIENTS),
+            )
+        return LabelReadOut(refusal="unreadable", nutrients=dict(UNKNOWN_NUTRIENTS))
+    try:
+        read = read_from_payload(payload)
+    except ColumnRefused as refused:
+        # Rechazada entera, no reescalada. El nombre y la marca tampoco se
+        # aprovechan: si la columna estaba mal leída, lo demás de esa lectura no
+        # merece más confianza que ella.
+        return LabelReadOut(
+            refusal="column",
+            refused_column=refused.header,
+            nutrients=dict(UNKNOWN_NUTRIENTS),
+        )
+    return LabelReadOut(
+        name=read.name,
+        brand=read.brand,
+        column_header=read.column_header,
+        nutrients=read.nutrients,
+        dropped=list(read.dropped),
+    )
 
 
 # El repertorio: cuántas entradas se miran para construirlo, y desde cuándo.
@@ -322,6 +431,7 @@ async def correct_food(
         food.name_folded = fold(food.name)
     if "brand" in fields:
         food.brand = fields.pop("brand") or None
+        food.brand_folded = fold(food.brand) if food.brand else None
     for field, value in fields.items():
         setattr(food, field, value)
     await session.commit()

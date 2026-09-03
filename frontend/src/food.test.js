@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   MEAL_SLOTS,
+  droppedNote,
   foodDayIso,
   formatAmount,
   formatMacro,
@@ -98,6 +99,29 @@ describe('el pie que explica una raya', () => {
   it('encadena varios, el primero con el sustantivo y el resto sin él', () => {
     expect(unknownNote({ ...none, kcal: 1, fiber: 2 })).toBe(
       '— no es cero: 1 entrada sin kcal, 2 sin fibra.',
+    )
+  })
+})
+
+describe('droppedNote', () => {
+  it('no dice nada cuando no se descartó nada', () => {
+    expect(droppedNote([])).toBe(null)
+    expect(droppedNote()).toBe(null)
+  })
+
+  it('nombra el único descartado, con su artículo', () => {
+    expect(droppedNote(['fiber'])).toBe('Descarté la fibra: no aparece en la tabla que leí.')
+  })
+
+  it('encadena varios y concuerda el verbo', () => {
+    expect(droppedNote(['fiber', 'protein'])).toBe(
+      'Descarté la fibra y la proteína: no aparecen en la tabla que leí.',
+    )
+  })
+
+  it('ignora una clave que no es un nutriente', () => {
+    expect(droppedNote(['fiber', 'sodio'])).toBe(
+      'Descarté la fibra: no aparece en la tabla que leí.',
     )
   })
 })

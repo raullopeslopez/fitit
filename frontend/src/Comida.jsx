@@ -7,6 +7,7 @@ import {
   frequentFoods,
   getFoodDay,
   logFood,
+  readLabel,
   searchFoods,
   setTargets,
 } from './api.js'
@@ -20,6 +21,7 @@ import {
   proteinProgress,
   shiftDay,
   slotLabel,
+  droppedNote,
   unknownNote,
 } from './food.js'
 import { formatDayShort } from './format.js'
@@ -641,6 +643,11 @@ function AddFood({ slot = null, onDone, onCancel }) {
   const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState(null)
   const [creating, setCreating] = useState(false)
+  // Lo que devolvió la foto. Es una **propuesta** para el formulario, no un
+  // alimento: sigue haciendo falta que alguien mire lo que hay escrito y le dé
+  // a guardar, igual que si lo hubiera tecleado entero.
+  const [label, setLabel] = useState(null)
+  const [reading, setReading] = useState(false)
   const latest = useRef(0)
   const field = useRef(null)
 
@@ -666,15 +673,40 @@ function AddFood({ slot = null, onDone, onCancel }) {
     return () => clearTimeout(timer)
   }, [query, chosen, creating])
 
+  // La foto va al servidor y vuelve como propuesta. Un fallo de red no puede
+  // dejarte mirando un botón que no hace nada: se abre el formulario igual, en
+  // blanco, que es donde estabas antes de que existiera la cámara.
+  async function photograph(event) {
+    const file = event.target.files?.[0]
+    // El input se limpia siempre: sin esto, elegir la misma foto dos veces
+    // seguidas no dispara `change` y el botón parece roto la segunda vez.
+    event.target.value = ''
+    if (!file) return
+    setReading(true)
+    try {
+      setLabel(await readLabel(file))
+    } catch {
+      setLabel({ refusal: 'unreadable' })
+    } finally {
+      setReading(false)
+      setCreating(true)
+    }
+  }
+
   if (creating) {
     return (
       <NewFood
-        name={query.trim()}
+        name={label?.name || query.trim()}
+        label={label}
         onCreated={(food) => {
           setCreating(false)
+          setLabel(null)
           setChosen(food)
         }}
-        onCancel={() => setCreating(false)}
+        onCancel={() => {
+          setCreating(false)
+          setLabel(null)
+        }}
       />
     )
   }
@@ -730,6 +762,22 @@ function AddFood({ slot = null, onDone, onCancel }) {
           Crear «{query.trim()}»
         </button>
       )}
+      {/* Un `label` y no un botón porque lo que abre la cámara es el `input`:
+          envolverlo es la única forma de que el disparador sea del tamaño y el
+          color de los demás y siga siendo el control real. `capture` pide la
+          trasera del móvil; en un ordenador el navegador lo ignora y ofrece un
+          fichero, que para probar va igual de bien. */}
+      <label className="link-btn food-photo" htmlFor="food-photo">
+        {reading ? 'Leyendo…' : 'Leer etiqueta'}
+        <input
+          id="food-photo"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={reading}
+          onChange={photograph}
+        />
+      </label>
       <button type="button" className="link-btn food-cancel" onClick={onCancel}>
         Cancelar
       </button>
@@ -845,14 +893,102 @@ function Amount({ food, initialSlot = null, onDone, onCancel }) {
   )
 }
 
+// Qué contar de la lectura, encima del formulario.
+//
+// Las tres salidas de la cámara acaban en este mismo formulario y sólo cambian
+// en cuánto viene puesto, así que lo único que las distingue es esta línea. Sin
+// ella, «lo he leído todo» y «no he leído nada» se ven igual: campos con texto o
+// campos sin él, que es exactamente lo que ves cuando tecleas.
+function LabelNote({ label }) {
+  if (label.refusal === 'column') {
+    return (
+      <p className="food-label-warn">
+        Esa columna es «{label.refused_column}», no por 100 g. No me sirve: tecléalo.
+      </p>
+    )
+  }
+  if (label.refusal === 'unreadable') {
+    return <p className="food-label-warn">No he podido leer la etiqueta. Tecléala.</p>
+  }
+  // Sin cuota no es lo mismo que ilegible: repetir la foto no lo arregla. Y la
+  // del minuto no es la del día — a una se le espera y a la otra no —, así que
+  // decir «espera un minuto» a quien tiene que volver mañana es mandarlo a
+  // mirar el móvil para nada.
+  if (label.refusal === 'quota') {
+    return (
+      <p className="food-label-warn">
+        {label.quota_scope === 'day'
+          ? 'Se han acabado las fotos de hoy. Tecléalo.'
+          : 'Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'}
+      </p>
+    )
+  }
+  const dropped = droppedNote(label.dropped)
+  return (
+    <>
+      {label.column_header && (
+        <p className="hint food-label-read">Leído de «{label.column_header}».</p>
+      )}
+      {/* En tinta y no en `--muted`: explica por qué un campo está vacío, y un
+          hueco sin explicar se lee como «la etiqueta no lo declara», que aquí es
+          justo lo contrario de lo que ha pasado. */}
+      {dropped && <p className="food-label-warn">{dropped}</p>}
+    </>
+  )
+}
+
+// Lo leído de la foto, en las cadenas que el formulario sabe pintar.
+//
+// `null` se convierte en cadena vacía y no en '0' — es la misma distinción de
+// siempre, aquí en su forma más peligrosa: un 0 puesto por la cámara en un
+// campo que nadie va a repasar es un dato inventado que ya nadie desmiente.
+// Coma decimal porque es la que vas a leer en la etiqueta y la que espera
+// `number()` al guardar.
+function fromLabel(label) {
+  const empty = { kcal: '', protein: '', fat: '', carbs: '', fiber: '' }
+  const read = label?.nutrients
+  if (!read) return empty
+  return Object.fromEntries(
+    Object.keys(empty).map((key) => [
+      key,
+      read[key] == null ? '' : String(read[key]).replace('.', ','),
+    ]),
+  )
+}
+
 // El alta manual: el pan de la panadería, los piquillos de tu madre.
 //
 // Sólo el nombre es obligatorio. Un macro que no escribes se manda como `null`,
 // nunca como 0 — nadie lo ha medido, y un cero afirmaría que sí y que no hay.
-function NewFood({ name: initialName, onCreated, onCancel }) {
+function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
+  const box = useRef(null)
   const [name, setName] = useState(initialName)
-  const [values, setValues] = useState({ kcal: '', protein: '', fat: '', carbs: '', fiber: '' })
+  // La marca va aparte del nombre porque es un dato distinto: se pinta aparte
+  // en los resultados y se busca por su cuenta. De un producto envasado te
+  // acuerdas por el súper —«el de Hacendado»— antes que por su nombre
+  // comercial, así que escribirla aquí es lo que lo hace encontrable luego.
+  const [brand, setBrand] = useState(label?.brand ?? '')
+  const [values, setValues] = useState(() => fromLabel(label))
   const [busy, setBusy] = useState(false)
+
+  // El formulario se trae a la vista al aparecer.
+  //
+  // Nació contra un defecto que la hoja ya no tiene —cuando esto era un panel
+  // en línea, `AddFood` se desplazaba sólo en su primer montaje y a la segunda
+  // vuelta «Guardar alimento» nacía a 1047 px de una pantalla de 932—, y sigue
+  // sirviendo dentro de ella: la hoja tiene techo (`max-height: 88dvh`) y su
+  // contenido rueda, así que con siete campos el principio del formulario puede
+  // nacer por encima del borde.
+  //
+  // Y con una etiqueta leída importa el doble: lo primero que hay que ver es la
+  // línea que dice de qué columna salieron las cifras, que es lo que separa
+  // confirmar de firmar en blanco.
+  //
+  // `?.` sobre el método porque jsdom no implementa `scrollIntoView`; lo que
+  // esto hace de verdad se mide en `comida.browser-test.jsx`, en Chromium.
+  useEffect(() => {
+    box.current?.scrollIntoView?.({ block: 'start' })
+  }, [])
 
   const number = (raw) => {
     const value = Number(String(raw).replace(',', '.'))
@@ -865,6 +1001,9 @@ function NewFood({ name: initialName, onCreated, onCancel }) {
     setBusy(true)
     const food = await createFood({
       name: name.trim(),
+      // En blanco es `null`, no cadena vacía: no tiene marca, que es distinto
+      // de tener una marca que se llama «».
+      brand: brand.trim() || null,
       kcal_100g: number(values.kcal),
       protein_100g: number(values.protein),
       fat_100g: number(values.fat),
@@ -883,10 +1022,20 @@ function NewFood({ name: initialName, onCreated, onCancel }) {
   ]
 
   return (
-    <form className="card card-compose food-new" onSubmit={submit}>
+    <form className="card card-compose food-new" ref={box} onSubmit={submit}>
+      {label && <LabelNote label={label} />}
       <div className="field">
         <label htmlFor="food-name">Nombre</label>
         <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="field">
+        <label htmlFor="food-brand">Marca</label>
+        <input
+          id="food-brand"
+          autoComplete="off"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+        />
       </div>
       {FIELDS.map((field) => (
         <div className="field" key={field.key}>

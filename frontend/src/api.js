@@ -46,10 +46,14 @@ export async function googleLogin(credential) {
 // /api (Vite proxy), and on 401 drops the token + notifies the app to log out.
 export async function apiFetch(path, options = {}) {
   const token = getToken()
+  // Una subida multipart tiene que llevar su propio `Content-Type`, con el
+  // `boundary` que genera el navegador. Ponérselo nosotros —aunque sea el
+  // correcto— deja el boundary fuera y el servidor no encuentra las partes.
+  const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData
   const res = await fetch(`/api${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isForm ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -241,6 +245,19 @@ export function frequentFoods(limit = 6) {
 // lo confirme en un formulario.
 export function createFood(food) {
   return apiFetch('/foods', { method: 'POST', body: JSON.stringify(food) })
+}
+
+// Lee la tabla nutricional de una foto y devuelve lo que **rellenaría** el
+// formulario de alta. No da de alta nada: la puerta del catálogo sigue siendo
+// `createFood`, con alguien mirando lo que hay escrito antes de guardarlo.
+//
+// Siempre contesta 200 salvo que la feature esté apagada. Cuando no ha podido
+// leer, lo dice en `refusal` en vez de fallar — porque las tres salidas acaban
+// en el mismo formulario y sólo cambia con cuánto viene puesto.
+export function readLabel(file) {
+  const form = new FormData()
+  form.append('photo', file)
+  return apiFetch('/foods/label', { method: 'POST', body: form })
 }
 
 // Corrige un alimento tuyo. No toca nada de lo ya registrado: el diario congeló

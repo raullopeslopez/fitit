@@ -316,6 +316,150 @@ describe('Comida', () => {
       expect(api.createFood.mock.calls[0][0].protein_100g).toBe(null)
     })
 
+    it('guarda la marca del alimento', async () => {
+      api.searchFoods.mockResolvedValue([])
+      api.createFood.mockResolvedValue({ ...PAN, id: 43, name: 'Yogur natural' })
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'yogur')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «yogur»' }))
+      await userEvent.type(screen.getByLabelText('Marca'), 'Hacendado')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+      await waitFor(() =>
+        expect(api.createFood).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'yogur', brand: 'Hacendado' }),
+        ),
+      )
+    })
+
+    // La cámara. Lee la etiqueta y **propone**: el formulario sigue siendo la
+    // puerta, y lo que el backend no pudo respaldar llega en blanco, nunca a
+    // cero.
+    describe('leer la etiqueta de una foto', () => {
+      const JPEG = () => new File([new Uint8Array([255, 216, 255])], 'etiqueta.jpg', {
+        type: 'image/jpeg',
+      })
+
+      const LEIDO = {
+        name: 'Yogur natural',
+        brand: 'Hacendado',
+        column_header: 'por 100 g',
+        nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
+        dropped: [],
+        refusal: null,
+        refused_column: null,
+      }
+
+      async function fotografiar(respuesta) {
+        api.searchFoods.mockResolvedValue([])
+        api.readLabel.mockResolvedValue(respuesta)
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+      }
+
+      it('rellena el formulario con lo que ha leído', async () => {
+        await fotografiar(LEIDO)
+        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
+        expect(screen.getByLabelText('Marca')).toHaveValue('Hacendado')
+        expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
+        expect(screen.getByLabelText('Fibra por 100 g')).toHaveValue('0,3')
+      })
+
+      it('dice de qué columna salieron los números', async () => {
+        await fotografiar(LEIDO)
+        expect(await screen.findByText('Leído de «por 100 g».')).toBeInTheDocument()
+      })
+
+      it('deja en blanco lo que descartó, y dice cuál', async () => {
+        await fotografiar({
+          ...LEIDO,
+          nutrients: { ...LEIDO.nutrients, fiber: null },
+          dropped: ['fiber'],
+        })
+        expect(await screen.findByLabelText('Fibra por 100 g')).toHaveValue('')
+        expect(screen.getByText(/Descarté la fibra/)).toBeInTheDocument()
+      })
+
+      it('con una columna que no es por 100 g no propone nada y lo explica', async () => {
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'column',
+          refused_column: 'por ración (125 g)',
+        })
+        expect(await screen.findByLabelText('Kcal por 100 g')).toHaveValue('')
+        expect(
+          screen.getByText(/«por ración \(125 g\)».*no por 100 g/),
+        ).toBeInTheDocument()
+      })
+
+      it('si no ha podido leerla, te deja tecleando', async () => {
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'unreadable',
+        })
+        expect(await screen.findByLabelText('Nombre')).toHaveValue('')
+        expect(screen.getByText('No he podido leer la etiqueta. Tecléala.')).toBeInTheDocument()
+      })
+
+      it('sin cuota del minuto, dice que esperes, no que la foto esté mal', async () => {
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'quota',
+          quota_scope: 'minute',
+        })
+        expect(
+          await screen.findByText('Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'),
+        ).toBeInTheDocument()
+      })
+
+      it('sin cuota del día, no te manda a esperar un minuto que no sirve', async () => {
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'quota',
+          quota_scope: 'day',
+        })
+        expect(await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')).toBeInTheDocument()
+        expect(screen.queryByText(/Espera un minuto/)).toBeNull()
+      })
+
+      it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {
+        await fotografiar(LEIDO)
+        await screen.findByLabelText('Nombre')
+        expect(api.createFood).not.toHaveBeenCalled()
+      })
+    })
+
+    it('una marca en blanco se manda como null, no como cadena vacía', async () => {
+      api.searchFoods.mockResolvedValue([])
+      api.createFood.mockResolvedValue({ ...PAN, id: 44, name: 'Yogur natural' })
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'yogur')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «yogur»' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+      await waitFor(() => expect(api.createFood).toHaveBeenCalled())
+      expect(api.createFood.mock.calls[0][0].brand).toBe(null)
+    })
+
     // Mientras la búsqueda está en vuelo, la lista está vacía — y una lista
     // vacía con «Crear «huevo»» debajo es una frase: «esto no está en el
     // catálogo». Es la frase equivocada, porque todavía no se ha mirado.
