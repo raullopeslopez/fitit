@@ -98,3 +98,41 @@ def test_correcting_a_food_updates_the_catalogue(client):
 
 def test_logging_an_unknown_food_is_a_404(client):
     assert client.post("/food-log", json={"food_id": 9999, "grams": 100}).status_code == 404
+
+
+# La marca — Hacendado, Deluxe, Central Lechera. Se guarda aparte del nombre
+# porque es un dato distinto y se pinta aparte, pero tiene que **buscarse**: un
+# alimento que sólo responde a su nombre es invisible cuando lo que recuerdas
+# del yogur es de qué súper era.
+
+
+def test_search_finds_a_food_by_its_brand(client):
+    create(client, "Yogur natural", brand="Hacendado")
+    assert [f["name"] for f in client.get("/foods?q=hacendado").json()] == ["Yogur natural"]
+
+
+def test_brand_search_is_accent_and_case_blind(client):
+    create(client, "Leche entera", brand="Día")
+    assert [f["name"] for f in client.get("/foods?q=DIA").json()] == ["Leche entera"]
+
+
+def test_a_name_match_comes_before_a_brand_only_match(client):
+    create(client, "Leche entera", brand="Central Lechera")
+    create(client, "Central de compras, arroz")
+    found = [f["name"] for f in client.get("/foods?q=central").json()]
+    assert found == ["Central de compras, arroz", "Leche entera"]
+
+
+def test_correcting_the_brand_follows_the_fold(client):
+    food = create(client, "Yogur natural", brand="Hacendado")
+    resp = client.patch(f"/foods/{food['id']}", json={"brand": "Deluxe"})
+    assert resp.status_code == 200, resp.text
+    assert [f["name"] for f in client.get("/foods?q=deluxe").json()] == ["Yogur natural"]
+    # Y deja de responder a la que ya no es.
+    assert client.get("/foods?q=hacendado").json() == []
+
+
+def test_clearing_the_brand_clears_what_it_answered_to(client):
+    food = create(client, "Yogur natural", brand="Hacendado")
+    client.patch(f"/foods/{food['id']}", json={"brand": ""})
+    assert client.get("/foods?q=hacendado").json() == []

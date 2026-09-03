@@ -65,6 +65,11 @@ def _rank(food: Food, needle: str, alias_hits: set[int]) -> tuple:
         bucket = 2
     elif needle in folded:
         bucket = 3
+    elif food.brand_folded and needle in food.brand_folded:
+        # Acierto por marca: te ha traído el alimento, pero no por su nombre.
+        # Al mismo nivel que un alias, porque es lo mismo que es — otra forma
+        # de llamar a la misma cosa.
+        bucket = 4
     else:
         bucket = 4 if food.id in alias_hits else 5
     # Yours ahead of the catalogue's at equal rank: you typed it because the
@@ -100,7 +105,13 @@ def search_stmt(user_id: int, needle: str):
         return stmt.where(Food.user_id == user_id).order_by(Food.id.desc())
     alias_matches = select(FoodAlias.food_id).where(FoodAlias.alias_folded.contains(needle))
     return (
-        stmt.where(or_(Food.name_folded.contains(needle), Food.id.in_(alias_matches)))
+        stmt.where(
+            or_(
+                Food.name_folded.contains(needle),
+                Food.brand_folded.contains(needle),
+                Food.id.in_(alias_matches),
+            )
+        )
         .order_by(func.length(Food.name_folded))
         .limit(CANDIDATE_LIMIT)
     )
@@ -149,7 +160,8 @@ async def create_food(
         user_id=user_id,
         name=payload.name,
         name_folded=fold(payload.name),
-        brand=payload.brand,
+        brand=payload.brand or None,
+        brand_folded=fold(payload.brand) if payload.brand else None,
         source="manual",
         # A number you typed off a Spanish label is the European convention,
         # where fibre is counted apart from carbohydrate.
@@ -322,6 +334,7 @@ async def correct_food(
         food.name_folded = fold(food.name)
     if "brand" in fields:
         food.brand = fields.pop("brand") or None
+        food.brand_folded = fold(food.brand) if food.brand else None
     for field, value in fields.items():
         setattr(food, field, value)
     await session.commit()

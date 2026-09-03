@@ -538,6 +538,11 @@ function Amount({ food, initialSlot = null, onDone, onCancel }) {
 // nunca como 0 — nadie lo ha medido, y un cero afirmaría que sí y que no hay.
 function NewFood({ name: initialName, onCreated, onCancel }) {
   const [name, setName] = useState(initialName)
+  // La marca va aparte del nombre porque es un dato distinto: se pinta aparte
+  // en los resultados y se busca por su cuenta. De un producto envasado te
+  // acuerdas por el súper —«el de Hacendado»— antes que por su nombre
+  // comercial, así que escribirla aquí es lo que lo hace encontrable luego.
+  const [brand, setBrand] = useState('')
   const [values, setValues] = useState({ kcal: '', protein: '', fat: '', carbs: '', fiber: '' })
   const [busy, setBusy] = useState(false)
 
@@ -552,6 +557,9 @@ function NewFood({ name: initialName, onCreated, onCancel }) {
     setBusy(true)
     const food = await createFood({
       name: name.trim(),
+      // En blanco es `null`, no cadena vacía: no tiene marca, que es distinto
+      // de tener una marca que se llama «».
+      brand: brand.trim() || null,
       kcal_100g: number(values.kcal),
       protein_100g: number(values.protein),
       fat_100g: number(values.fat),
@@ -574,6 +582,15 @@ function NewFood({ name: initialName, onCreated, onCancel }) {
       <div className="field">
         <label htmlFor="food-name">Nombre</label>
         <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="field">
+        <label htmlFor="food-brand">Marca</label>
+        <input
+          id="food-brand"
+          autoComplete="off"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+        />
       </div>
       {FIELDS.map((field) => (
         <div className="field" key={field.key}>

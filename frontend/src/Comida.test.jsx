@@ -282,6 +282,36 @@ describe('Comida', () => {
       expect(api.createFood.mock.calls[0][0].protein_100g).toBe(null)
     })
 
+    it('guarda la marca del alimento', async () => {
+      api.searchFoods.mockResolvedValue([])
+      api.createFood.mockResolvedValue({ ...PAN, id: 43, name: 'Yogur natural' })
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'yogur')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «yogur»' }))
+      await userEvent.type(screen.getByLabelText('Marca'), 'Hacendado')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+      await waitFor(() =>
+        expect(api.createFood).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'yogur', brand: 'Hacendado' }),
+        ),
+      )
+    })
+
+    it('una marca en blanco se manda como null, no como cadena vacía', async () => {
+      api.searchFoods.mockResolvedValue([])
+      api.createFood.mockResolvedValue({ ...PAN, id: 44, name: 'Yogur natural' })
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'yogur')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «yogur»' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+      await waitFor(() => expect(api.createFood).toHaveBeenCalled())
+      expect(api.createFood.mock.calls[0][0].brand).toBe(null)
+    })
+
     it('vuelve a leer el día después de registrar', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())

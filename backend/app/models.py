@@ -168,6 +168,11 @@ class Food(Base):
     # (see app/naming.py).
     name_folded: Mapped[str] = mapped_column(String(160), index=True)
     brand: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Plegada, y por el mismo motivo que `name_folded`: sin forma portable de
+    # quitar acentos en SQL, buscar "dia" no encontraría un yogur de "Día". La
+    # marca es la mitad de cómo recuerdas un producto envasado —"el de
+    # Hacendado"—, así que tiene que entrar en la búsqueda igual que el nombre.
+    brand_folded: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
     # 'ciqual' | 'off' | 'manual' | 'fdc'
     source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
     source_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
