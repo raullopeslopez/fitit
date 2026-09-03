@@ -39,3 +39,15 @@ Feature: Read a packaged product's label off a photo
     Given the label reader is not configured
     When I photograph a label
     Then the app says the reader is switched off
+
+  Scenario: A used-up minute is not a used-up day
+    Given the camera has run out of requests for this minute
+    When I photograph a label
+    Then nothing is proposed
+    And it says to wait a minute rather than to come back tomorrow
+
+  Scenario: A used-up day says so
+    Given the camera has run out of requests for today
+    When I photograph a label
+    Then nothing is proposed
+    And it says the day's allowance is gone

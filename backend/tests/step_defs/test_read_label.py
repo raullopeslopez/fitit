@@ -9,6 +9,7 @@ cuando lee mal, que es lo que no se ve.
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from app.gemini import LabelUnreadable
 from app.main import app
 from app.routers.foods import get_label_reader
 
@@ -30,16 +31,16 @@ CLEAN = {
 }
 
 
-def _install(payload=None, *, fails=False, configured=True):
+def _install(payload=None, *, fails=False, configured=True, quota=None):
     if not configured:
         app.dependency_overrides[get_label_reader] = lambda: None
         return
 
     async def reader(image: bytes, mime_type: str) -> dict:
+        if quota:
+            raise LabelUnreadable("429", quota=quota)
         if fails:
-            from app.gemini import LabelUnreadable
-
-            raise LabelUnreadable("sin cuota")
+            raise LabelUnreadable("no contestó")
         return payload
 
     app.dependency_overrides[get_label_reader] = lambda: reader
@@ -78,6 +79,16 @@ def given_unreadable():
 @given("the label reader is not configured")
 def given_unconfigured():
     _install(configured=False)
+
+
+@given("the camera has run out of requests for this minute")
+def given_minute_quota():
+    _install(quota="minute")
+
+
+@given("the camera has run out of requests for today")
+def given_day_quota():
+    _install(quota="day")
 
 
 @when("I photograph a label", target_fixture="response")
@@ -155,3 +166,17 @@ def then_not_created(client, name):
 @then("the app says the reader is switched off")
 def then_switched_off(response):
     assert response.status_code == 503
+
+
+@then("it says to wait a minute rather than to come back tomorrow")
+def then_minute_quota(response):
+    body = response.json()
+    assert body["refusal"] == "quota"
+    assert body["quota_scope"] == "minute"
+
+
+@then("it says the day's allowance is gone")
+def then_day_quota(response):
+    body = response.json()
+    assert body["refusal"] == "quota"
+    assert body["quota_scope"] == "day"

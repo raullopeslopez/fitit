@@ -48,17 +48,20 @@ async def _read(monkeypatch, handler, **kwargs):
 
 
 async def test_a_503_is_retried_and_the_photo_survives(monkeypatch):
-    handler, calls = _transport(503, 503, 200)
+    handler, calls = _transport(503, 200)
     read = await _read(monkeypatch, handler, backoff=0)
     assert read["name"] == "Yogur"
-    assert calls["n"] == 3
+    assert calls["n"] == 2
 
 
 async def test_it_gives_up_rather_than_hammering(monkeypatch):
+    """Dos intentos, no más. El tier gratuito da 5 peticiones por minuto: con
+    tres, una sola foto desafortunada se lleva 4 del mismo minuto — que es el
+    pico que quedó registrado en el panel la primera noche."""
     handler, calls = _transport(503)
     with pytest.raises(LabelUnreadable):
         await _read(monkeypatch, handler, backoff=0)
-    assert calls["n"] == 3
+    assert calls["n"] == 2
 
 
 async def test_a_bad_key_is_not_retried(monkeypatch):
@@ -75,3 +78,46 @@ async def test_an_exhausted_quota_is_not_retried(monkeypatch):
     with pytest.raises(LabelUnreadable):
         await _read(monkeypatch, handler, backoff=0)
     assert calls["n"] == 1
+
+
+async def test_an_exhausted_quota_says_so(monkeypatch):
+    """«Sin cuota» y «no se lee» piden cosas distintas a quien está delante.
+
+    Confundirlas te deja reintentando una foto que nunca va a salir, porque lo
+    que falla no es la foto. El 429 llega hasta la pantalla con su propio
+    nombre.
+    """
+    handler, _ = _transport(429)
+    with pytest.raises(LabelUnreadable) as raised:
+        await _read(monkeypatch, handler, backoff=0)
+    assert raised.value.quota == "minute"
+
+
+async def test_a_server_error_is_not_a_quota_problem(monkeypatch):
+    handler, _ = _transport(503)
+    with pytest.raises(LabelUnreadable) as raised:
+        await _read(monkeypatch, handler, backoff=0)
+    assert raised.value.quota is None
+
+
+async def test_a_daily_quota_is_told_apart_from_a_per_minute_one(monkeypatch):
+    """Esperar un minuto arregla una y no arregla la otra."""
+
+    def handler(request):
+        return httpx.Response(
+            429,
+            json={
+                "error": {
+                    "details": [
+                        {
+                            "quotaMetric": "generate_content_free_tier_requests",
+                            "quotaId": "GenerateRequestsPerDayPerProjectPerModel",
+                        }
+                    ]
+                }
+            },
+        )
+
+    with pytest.raises(LabelUnreadable) as raised:
+        await _read(monkeypatch, handler, backoff=0)
+    assert raised.value.quota == "day"

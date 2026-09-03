@@ -59,12 +59,24 @@ REGLAS:
 
 
 class LabelUnreadable(Exception):
-    """El modelo no contestó, o contestó algo que no es JSON.
+    """No hay lectura utilizable. Sin red, saturado, una respuesta rara.
 
-    Cuota agotada, sin red, tier cambiado, una respuesta rara: da igual cuál de
-    los cuatro. Lo único que importa río abajo es que no hay lectura, y que eso
-    tiene que acabar en el formulario en blanco y no en un callejón.
+    Casi siempre da igual por qué: acabe como acabe, se termina tecleando. La
+    excepción es la cuota, y por eso `quota` viaja aparte.
+
+    «Sin cuota» y «no se lee» piden cosas distintas a quien está delante del
+    yogur: una foto ilegible se arregla repitiéndola, y una cuota agotada no se
+    arregla con nada hasta mañana. Contarlas como lo mismo te deja repitiendo
+    una foto que ya no puede salir.
     """
+
+    def __init__(self, message: str, *, quota: str | None = None):
+        # None | 'minute' | 'day'. La diferencia no es cosmética: una cuota por
+        # minuto se pasa esperando y la del día no se pasa hasta mañana, y
+        # decirle «espera un minuto» a la segunda es mandarte a mirar el móvil
+        # sesenta segundos para nada.
+        self.quota = quota
+        super().__init__(message)
 
 
 # Cuántas veces se pregunta cuando el que falla es el servidor, y cuánto se
@@ -78,13 +90,42 @@ class LabelUnreadable(Exception):
 # Tres intentos y no más: al otro lado de esto hay alguien con el móvil en una
 # mano y un yogur en la otra, y esperar quince segundos para acabar tecleando es
 # peor que teclear desde el principio.
-ATTEMPTS = 3
-BACKOFF = 1.0
+# Dos, no tres. El tier gratuito da **5 peticiones por minuto y 20 al día**
+# (medido en el panel de AI Studio el 2026-09-04), y con tres intentos una sola
+# foto desafortunada gastaba 4 del mismo minuto — el pico real que quedó
+# registrado — y 3 de las 20 del día. Dos acotan el coste de una foto a dos
+# peticiones y dejan sitio al minuto siguiente.
+#
+# El tercer intento lo pone la persona: repetir la foto tarda más de doce
+# segundos, que es justo el espaciado que este límite pide.
+ATTEMPTS = 2
+BACKOFF = 2.0
 
 # Lo que no se reintenta: 4xx. Una clave mala, una cuota agotada o una petición
 # malformada contestan lo mismo por mucho que se insista, y en el caso de la
 # cuota cada intento gasta de lo que ya no hay.
 RETRIABLE = range(500, 600)
+
+# Cuota agotada. No es un fallo del que se salga insistiendo.
+QUOTA = 429
+
+# Cómo se reconoce en el cuerpo del 429 que la agotada es la del día. Google
+# nombra la métrica que se ha pasado, y las diarias lo llevan en el nombre.
+DAY_MARKERS = ("perday", "per_day", "per day", "daily", "requests_per_day")
+
+
+def _quota_scope(response: httpx.Response) -> str:
+    """'day' si el 429 habla de una cuota diaria; 'minute' en cualquier otro caso.
+
+    Ante la duda, 'minute': mandar a esperar un minuto a quien en realidad tiene
+    que esperar a mañana cuesta un minuto; decirle que vuelva mañana a quien
+    sólo tenía que esperar un minuto le cuesta la foto.
+    """
+    try:
+        body = response.text.lower().replace("-", "")
+    except Exception:
+        return "minute"
+    return "day" if any(marker in body for marker in DAY_MARKERS) else "minute"
 
 
 async def read_label(
@@ -132,6 +173,11 @@ async def read_label(
             return json.loads(text)
         except httpx.HTTPStatusError as exc:
             last = exc
+            if exc.response.status_code == QUOTA:
+                # Ni se reintenta ni se disfraza: cada intento gastaría de lo
+                # que ya no hay, y quien está delante necesita saber que no es
+                # cuestión de repetir la foto.
+                raise LabelUnreadable(str(exc), quota=_quota_scope(exc.response)) from exc
             if exc.response.status_code not in RETRIABLE:
                 break
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:

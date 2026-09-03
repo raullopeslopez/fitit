@@ -500,6 +500,11 @@ class LabelReadOut(BaseModel):
     # Por qué no hay lectura utilizable, cuando no la hay.
     #   'column'     — se leyó, pero de una columna que no es por 100 g
     #   'unreadable' — no hubo respuesta del modelo, o no se entendió
-    refusal: Literal["column", "unreadable"] | None = None
+    #   'quota'      — no quedan peticiones; ver `quota_scope`
+    refusal: Literal["column", "unreadable", "quota"] | None = None
+    # 'minute' se pasa esperando; 'day' no se pasa hasta mañana. Separadas
+    # porque mandar a esperar un minuto a quien tiene que volver mañana es un
+    # minuto mirando el móvil para nada.
+    quota_scope: Literal["minute", "day"] | None = None
     # La cabecera rechazada, para poder decir en pantalla cuál era.
     refused_column: str | None = None

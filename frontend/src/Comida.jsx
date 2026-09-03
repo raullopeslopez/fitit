@@ -597,6 +597,19 @@ function LabelNote({ label }) {
   if (label.refusal === 'unreadable') {
     return <p className="food-label-warn">No he podido leer la etiqueta. Tecléala.</p>
   }
+  // Sin cuota no es lo mismo que ilegible: repetir la foto no lo arregla. Y la
+  // del minuto no es la del día — a una se le espera y a la otra no —, así que
+  // decir «espera un minuto» a quien tiene que volver mañana es mandarlo a
+  // mirar el móvil para nada.
+  if (label.refusal === 'quota') {
+    return (
+      <p className="food-label-warn">
+        {label.quota_scope === 'day'
+          ? 'Se han acabado las fotos de hoy. Tecléalo.'
+          : 'Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'}
+      </p>
+    )
+  }
   const dropped = droppedNote(label.dropped)
   return (
     <>

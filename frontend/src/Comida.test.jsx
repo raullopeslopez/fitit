@@ -377,6 +377,35 @@ describe('Comida', () => {
         expect(screen.getByText('No he podido leer la etiqueta. Tecléala.')).toBeInTheDocument()
       })
 
+      it('sin cuota del minuto, dice que esperes, no que la foto esté mal', async () => {
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'quota',
+          quota_scope: 'minute',
+        })
+        expect(
+          await screen.findByText('Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'),
+        ).toBeInTheDocument()
+      })
+
+      it('sin cuota del día, no te manda a esperar un minuto que no sirve', async () => {
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'quota',
+          quota_scope: 'day',
+        })
+        expect(await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')).toBeInTheDocument()
+        expect(screen.queryByText(/Espera un minuto/)).toBeNull()
+      })
+
       it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {
         await fotografiar(LEIDO)
         await screen.findByLabelText('Nombre')

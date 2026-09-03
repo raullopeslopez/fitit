@@ -256,9 +256,16 @@ async def read_a_label(
         )
     try:
         payload = await reader(image, photo.content_type or "image/jpeg")
-    except LabelUnreadable:
-        # Cuota agotada, sin red, respuesta rara: da igual. Lo que la pantalla
-        # necesita saber es que hay que teclear, no qué dijo la API de Google.
+    except LabelUnreadable as exc:
+        # Sin red, saturado, respuesta rara: da igual cuál, se termina tecleando.
+        # La cuota es la excepción y viaja aparte, porque repetir la foto no la
+        # arregla y hay que decirlo o te quedas insistiendo.
+        if exc.quota:
+            return LabelReadOut(
+                refusal="quota",
+                quota_scope=exc.quota,
+                nutrients=dict(UNKNOWN_NUTRIENTS),
+            )
         return LabelReadOut(refusal="unreadable", nutrients=dict(UNKNOWN_NUTRIENTS))
     try:
         read = read_from_payload(payload)
