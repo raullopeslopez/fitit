@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Comida from './Comida.jsx'
@@ -314,6 +314,43 @@ describe('Comida', () => {
       // Un macro que no has escrito se manda como null, no como 0: nadie lo ha
       // medido, y un 0 diría que lo midió y no hay.
       expect(api.createFood.mock.calls[0][0].protein_100g).toBe(null)
+    })
+
+    // Mientras la búsqueda está en vuelo, la lista está vacía — y una lista
+    // vacía con «Crear «huevo»» debajo es una frase: «esto no está en el
+    // catálogo». Es la frase equivocada, porque todavía no se ha mirado.
+    it('mientras busca lo dice, y no ofrece crear lo que aún no ha buscado', async () => {
+      let resolve
+      api.searchFoods.mockImplementation(() => new Promise((r) => { resolve = r }))
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'huevo')
+
+      expect(await screen.findByText('Buscando…')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Crear «huevo»' })).toBeNull()
+
+      // El rebote de 180 ms va por delante de la llamada: `Buscando…` se pinta
+      // antes de que `searchFoods` llegue a existir, que es exactamente la
+      // ventana que esta prueba defiende.
+      await waitFor(() => expect(api.searchFoods).toHaveBeenCalled())
+      await act(async () => {
+        resolve([PAN])
+      })
+      expect(screen.queryByText('Buscando…')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Crear «huevo»' })).toBeInTheDocument()
+    })
+
+    // Y cuando de verdad no hay nada, se dice con palabras. Un hueco no es una
+    // respuesta (DESIGN.md: «An empty result must name the right failure»).
+    it('cuando el catálogo no tiene nada lo dice con palabras', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'huevo')
+      expect(
+        await screen.findByText('Ningún alimento se llama «huevo».'),
+      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Crear «huevo»' })).toBeInTheDocument()
     })
 
     it('vuelve a leer el día después de registrar', async () => {

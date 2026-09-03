@@ -1191,13 +1191,31 @@ button.workout-title:active:not(:disabled) {
   justify-content: center;
   background: color-mix(in srgb, #000 55%, transparent);
 }
+/* La hoja tiene techo, y lo que no cabe se desplaza dentro de ella.
+   Sin techo crecía **hacia arriba** —está anclada al pie de un `.sheet-scrim`
+   fijo— y se salía por el borde superior de la pantalla, que en un contenedor
+   `fixed` no es "hay más arriba": es contenido inalcanzable, sin scroll que lo
+   devuelva. Medido a 430×932 con una búsqueda de «huevo» (30 resultados, el
+   tope del servidor): el campo de búsqueda aterrizaba en y −1198, y lo único
+   visible era el pie de la hoja —«Crear «huevo»» y «Cancelar»—, de modo que
+   una búsqueda con treinta coincidencias se leía como una sin ninguna.
+   `dvh` y no `vh` porque el teclado sí encoge el viewport de maquetación
+   (`interactive-widget=resizes-content`, en `index.html`), y la hoja se abre
+   siempre con el teclado subiendo. */
 .sheet {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 480px;
+  max-height: 88dvh;
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   background: var(--surface);
   border-top: 1px solid var(--border);
   border-radius: var(--radius) var(--radius) 0 0;
+  overflow-y: auto;
+  /* Al llegar al final, la página de debajo no se pone a rodar: la hoja es
+     modal y el fondo tiene que quedarse donde estaba. */
+  overscroll-behavior: contain;
 }
 .sheet-item {
   display: block;
@@ -3968,10 +3986,35 @@ button.set-chip:active:not(:disabled) {
   color: var(--danger);
 }
 
+/* Dentro de la hoja, lo único que se desplaza es la lista: el campo de
+   búsqueda se queda arriba —se sigue escribiendo en él mientras se mira— y
+   «Crear …» y «Cancelar» se quedan abajo. Si el que rodara fuera el bloque
+   entero, buscar un segundo término obligaría a subir a buscar el campo.
+   El tope son 46dvh porque es lo que deja sitio, dentro de los 88dvh de la
+   hoja, al campo con su etiqueta y a los dos botones del pie. */
+.food-search {
+  min-height: 0;
+}
 .food-results {
   list-style: none;
   margin: 0.2rem 0 0.6rem;
   padding: 0;
+  max-height: 46dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* Las dos reglas son el canto de la caja que rueda, y sólo se dibujan cuando
+   hay algo que rodar. Sin ellas, la fila que el borde parte por la mitad queda
+   pegada al campo de búsqueda sin nada entre las dos: un nombre cortado en
+   horizontal contra otro control se lee como un fallo de pintado, no como «hay
+   más abajo» (DESIGN.md). Una raya lo convierte en un borde, que es lo que es
+   — y a diferencia de un degradado no miente en los extremos del recorrido,
+   donde no hay nada que desvanecer. */
+.food-results:not(:empty) {
+  padding: 0.15rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .food-result-brand {
   font-weight: 400;
@@ -3982,6 +4025,14 @@ button.set-chip:active:not(:disabled) {
   font-size: 0.8rem;
   color: var(--muted);
   white-space: nowrap;
+}
+/* «Buscando…» y «Ningún alimento se llama …» ocupan el mismo renglón, debajo
+   de la lista y encima de la oferta de crear: es prosa sobre el estado de la
+   búsqueda, no un control, así que va en `--muted` y en cuerpo pequeño. */
+.food-search-note {
+  margin: 0.2rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 .food-portions {
   display: flex;

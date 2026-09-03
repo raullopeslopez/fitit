@@ -216,7 +216,11 @@ export const FREQUENT = [
 // y por eso el choque de nombres —el bloque que hace la única pregunta
 // irreversible del editor— no lo medía nadie: sus dos botones aterrizaban
 // enteros debajo de la barra de pestañas con la suite en verde.
-function stubNetwork() {
+// El catálogo que contesta a `/foods`. Parametrizado porque el tamaño de la
+// respuesta *es* lo que se mide en la prueba de la hoja: un alimento cabe en
+// cualquier pantalla, y con los treinta que devuelve una búsqueda de verdad la
+// hoja pasa a medir más que el teléfono.
+function stubNetwork(catalogue = FOODS) {
   const routes = [
     [/\/health$/, { ok: true }],
     [/\/workouts\/1$/, OPEN_WORKOUT],
@@ -238,7 +242,7 @@ function stubNetwork() {
     [/\/food-log$/, FOOD_DAY],
     // Antes que `/foods$`: leído al revés, «frequent» se buscaría como un id.
     [/\/foods\/frequent$/, FREQUENT],
-    [/\/foods$/, FOODS],
+    [/\/foods$/, catalogue],
   ]
   const json = (body, status = 200) =>
     new Response(JSON.stringify(body), {
@@ -304,13 +308,13 @@ function stubNetwork() {
 // entradas del historial (el editor marca «abierto» para que el gesto de atrás
 // lo cierre). Sin devolver el scroll a cero cada prueba empieza donde acabó la
 // anterior, que es la peor forma de que un barrido salga verde.
-export async function mountApp({ openWorkout = null } = {}) {
+export async function mountApp({ openWorkout = null, catalogue = FOODS } = {}) {
   localStorage.clear()
   localStorage.setItem('fitit_token', 'browser-geometry')
   // Por la misma puerta que la app: la marca lleva un sello de tiempo y sólo
   // vale cuatro horas, así que escribir el id a pelo deja a `App` en Días.
   if (openWorkout != null) setOpenWorkout(openWorkout)
-  const restore = stubNetwork()
+  const restore = stubNetwork(catalogue)
   window.scrollTo(0, 0)
   const view = render(<App />)
   return { ...view, restore }
@@ -339,8 +343,8 @@ export async function mountProgreso() {
 }
 
 /** Comida, con el día de arriba ya cargado. */
-export async function mountComida() {
-  const view = await mountApp()
+export async function mountComida({ catalogue = FOODS } = {}) {
+  const view = await mountApp({ catalogue })
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
   // Por el primer raíl, y no por la CTA: los raíles son lo primero que se

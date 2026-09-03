@@ -34,6 +34,24 @@ afterEach(() => clearForcedTheme())
 // misma regla de la raya, otra caja.
 const macroCells = () => [...document.querySelectorAll('.food-strip-macro')]
 
+// Lo que devuelve de verdad una búsqueda de «huevo» contra el catálogo CIQUAL:
+// treinta filas, que es el tope del servidor (`SEARCH_LIMIT`). El tamaño es el
+// dato — con una sola fila la hoja cabe en cualquier pantalla y no hay nada
+// que medir.
+const HUEVOS = Array.from({ length: 30 }, (_, i) => ({
+  id: 700 + i,
+  name: `Huevo de gallina, ${['entero', 'clara', 'yema'][i % 3]}, variedad ${i + 1}`,
+  brand: null,
+  source: 'ciqual',
+  kcal_100g: 130 + i,
+  protein_100g: 12,
+  fat_100g: 9,
+  carbs_100g: 0.7,
+  fiber_100g: 0,
+  portions: [],
+  is_mine: false,
+}))
+
 describe('Comida', () => {
   it('llega con el día pintado', async () => {
     await mountComida()
@@ -287,5 +305,68 @@ describe('Comida', () => {
       overlap(paintedRect(cta), paintedRect(last)),
       'la CTA tapa el último raíl al llegar al fondo de verdad',
     ).toBeNull()
+  })
+
+  // ── La hoja del buscador con una búsqueda de verdad ─────────────────────
+  //
+  // «huevo» no devuelve un alimento: devuelve los treinta que cabe devolver
+  // (`SEARCH_LIMIT`). Treinta filas de ~44 px son ~1.300 px de lista dentro de
+  // una hoja anclada abajo en un teléfono de 932 px. Lo que pasaba entonces es
+  // que la hoja crecía **hacia arriba**, fuera del `.sheet-scrim` fijo, y como
+  // nada de eso tenía scroll propio no había forma de volver: el campo de
+  // búsqueda y las primeras coincidencias quedaban por encima del borde
+  // superior de la pantalla, y lo único visible era el pie —«Crear «huevo»» y
+  // «Cancelar»—, que es exactamente lo que se lee como «no está en el
+  // catálogo».
+  it('treinta resultados no empujan el buscador fuera de la pantalla', async () => {
+    await mountComida({ catalogue: HUEVOS })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Añadir alimento' }))
+    await user.type(screen.getByLabelText('Buscar alimento'), 'huevo')
+    await vi.waitFor(
+      () => expect(document.querySelectorAll('.food-result').length).toBe(HUEVOS.length),
+      { timeout: 5000 },
+    )
+    await settle()
+
+    const field = paintedRect(screen.getByLabelText('Buscar alimento'))
+    expect(field.top, 'el campo de búsqueda se ha ido por encima del borde').toBeGreaterThanOrEqual(0)
+    expect(field.bottom).toBeLessThanOrEqual(window.innerHeight)
+
+    // Y la salida sigue estando dentro, que es lo otro que se pierde cuando la
+    // hoja desborda por los dos lados.
+    const cancel = paintedRect(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(cancel.bottom, 'Cancelar cae fuera de la pantalla').toBeLessThanOrEqual(
+      window.innerHeight + 0.5,
+    )
+  })
+
+  it('la lista de resultados tiene su propio recorrido', async () => {
+    await mountComida({ catalogue: HUEVOS })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Añadir alimento' }))
+    await user.type(screen.getByLabelText('Buscar alimento'), 'huevo')
+    await vi.waitFor(
+      () => expect(document.querySelectorAll('.food-result').length).toBe(HUEVOS.length),
+      { timeout: 5000 },
+    )
+    await settle()
+
+    // Treinta filas no caben: el desbordamiento tiene que ser *scroll*, no
+    // recorte. Sin esto la mitad del catálogo es inalcanzable.
+    const list = document.querySelector('.food-results')
+    expect(list.scrollHeight, 'la lista cabe entera, la prueba no mide nada').toBeGreaterThan(
+      list.clientHeight,
+    )
+
+    list.scrollTop = list.scrollHeight
+    await settle()
+    expect(list.scrollTop, 'la lista no se desplaza').toBeGreaterThan(0)
+
+    // Y al llegar abajo, el último resultado se ve de verdad.
+    const rows = [...document.querySelectorAll('.food-result')]
+    const last = paintedRect(rows[rows.length - 1])
+    expect(last.bottom).toBeLessThanOrEqual(window.innerHeight + 0.5)
+    expect(last.top).toBeGreaterThanOrEqual(0)
   })
 })
