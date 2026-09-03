@@ -13,6 +13,7 @@ el request. De ahí que el prompt no pida sólo los números, sino de dónde sal
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 
@@ -66,6 +67,26 @@ class LabelUnreadable(Exception):
     """
 
 
+# Cuántas veces se pregunta cuando el que falla es el servidor, y cuánto se
+# espera entre una y otra.
+#
+# Medido contra la API el 2026-09-03: de tres llamadas seguidas, dos volvieron
+# con `503 Service Unavailable` — el modelo saturado, ni la clave ni la cuota.
+# Sin reintento el botón acertaría una vez de cada tres y parecería roto las
+# otras dos.
+#
+# Tres intentos y no más: al otro lado de esto hay alguien con el móvil en una
+# mano y un yogur en la otra, y esperar quince segundos para acabar tecleando es
+# peor que teclear desde el principio.
+ATTEMPTS = 3
+BACKOFF = 1.0
+
+# Lo que no se reintenta: 4xx. Una clave mala, una cuota agotada o una petición
+# malformada contestan lo mismo por mucho que se insista, y en el caso de la
+# cuota cada intento gasta de lo que ya no hay.
+RETRIABLE = range(500, 600)
+
+
 async def read_label(
     image: bytes,
     *,
@@ -73,6 +94,7 @@ async def read_label(
     model: str,
     mime_type: str = "image/jpeg",
     timeout: float = 30.0,
+    backoff: float = BACKOFF,
 ) -> dict:
     """Manda la foto y devuelve el JSON del modelo, sin juzgarlo."""
     body = {
@@ -93,21 +115,34 @@ async def read_label(
         # misma foto deberían dar lo mismo, y aquí la creatividad es el fallo.
         "generationConfig": {"responseMimeType": "application/json", "temperature": 0},
     }
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                API.format(model=model),
-                json=body,
-                # En cabecera y no en la query: una clave en la URL acaba en
-                # cualquier log de acceso que haya por el camino.
-                headers={"x-goog-api-key": api_key},
-            )
-            response.raise_for_status()
-            payload = response.json()
-        text = payload["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(text)
-    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
-        # El mensaje se queda aquí. Río arriba sólo se sabe que no hubo lectura:
-        # lo que cuenta un error de la API no le dice nada a quien está delante
-        # de la cámara, y puede llevar dentro trozos de la petición.
-        raise LabelUnreadable(str(exc)) from exc
+    last: Exception | None = None
+    for attempt in range(ATTEMPTS):
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    API.format(model=model),
+                    json=body,
+                    # En cabecera y no en la query: una clave en la URL acaba en
+                    # cualquier log de acceso que haya por el camino.
+                    headers={"x-goog-api-key": api_key},
+                )
+                response.raise_for_status()
+                payload = response.json()
+            text = payload["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text)
+        except httpx.HTTPStatusError as exc:
+            last = exc
+            if exc.response.status_code not in RETRIABLE:
+                break
+        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+            # Un corte de red o una respuesta a medias son de los que mejoran
+            # solos; una respuesta que no es JSON, no — pero distinguirlas
+            # costaría más de lo que ahorra, y el tope de tres las acota igual.
+            last = exc
+        if attempt < ATTEMPTS - 1 and backoff:
+            await asyncio.sleep(backoff * (attempt + 1))
+
+    # El mensaje se queda aquí. Río arriba sólo se sabe que no hubo lectura: lo
+    # que cuenta un error de la API no le dice nada a quien está delante de la
+    # cámara, y puede llevar dentro trozos de la petición.
+    raise LabelUnreadable(str(last)) from last

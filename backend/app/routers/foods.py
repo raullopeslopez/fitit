@@ -58,6 +58,7 @@ async def get_label_reader():
 
     return reader
 
+
 # Cuántas filas se traen para ordenar, antes de quedarse con `SEARCH_LIMIT`.
 #
 # El orden fino se calcula en Python (`_rank`), así que hace falta el conjunto

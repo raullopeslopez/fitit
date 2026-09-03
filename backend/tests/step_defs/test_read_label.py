@@ -84,7 +84,9 @@ def given_unconfigured():
 def when_photograph(client):
     return client.post(
         "/foods/label",
-        files={"photo": ("etiqueta.jpg", b"\xff\xd8\xff\xe0 no es una foto de verdad", "image/jpeg")},
+        files={
+            "photo": ("etiqueta.jpg", b"\xff\xd8\xff\xe0 no es una foto de verdad", "image/jpeg")
+        },
     )
 
 

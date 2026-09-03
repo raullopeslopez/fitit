@@ -152,9 +152,7 @@ class Food(Base):
     # un `alim_code` es un alimento, ejecutar el import dos veces actualiza en
     # vez de duplicar. Los alimentos manuales llevan `source_ref` a NULL y no
     # chocan entre sí — Postgres y SQLite tratan cada NULL como distinto.
-    __table_args__ = (
-        UniqueConstraint("source", "source_ref", name="uq_foods_source_source_ref"),
-    )
+    __table_args__ = (UniqueConstraint("source", "source_ref", name="uq_foods_source_source_ref"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int | None] = mapped_column(
