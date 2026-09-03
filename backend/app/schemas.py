@@ -477,3 +477,29 @@ class FoodDayOut(BaseModel):
     totals: dict[str, float | None]
     unknown: dict[str, int]
     by_slot: list[SlotTotalsOut] = Field(default_factory=list)
+
+
+# La etiqueta leída de una foto: una **propuesta** para el formulario de alta,
+# nunca un alimento. Todo es opcional porque la mitad de las veces la foto sólo
+# contesta a la mitad de las preguntas, y media respuesta sigue ahorrando
+# trabajo.
+class LabelReadOut(BaseModel):
+    name: str | None = None
+    brand: str | None = None
+    # La cabecera de la que salieron los números, literal. Va a la pantalla: una
+    # cifra que no dice de dónde viene no se puede confirmar, sólo aceptar.
+    column_header: str | None = None
+    # Las cinco claves siempre, con `None` donde no se sabe. Un nutriente que
+    # falte del diccionario y uno que valga `None` significan lo mismo, y tener
+    # una sola forma de decirlo evita que la pantalla los trate distinto.
+    nutrients: dict[str, float | None] = Field(default_factory=dict)
+    # Cifras que el modelo mandó y el backend tiró por no venir respaldadas por
+    # ninguna fila transcrita. La pantalla las nombra: el hueco no puede
+    # confundirse con "la etiqueta no lo declara".
+    dropped: list[str] = Field(default_factory=list)
+    # Por qué no hay lectura utilizable, cuando no la hay.
+    #   'column'     — se leyó, pero de una columna que no es por 100 g
+    #   'unreadable' — no hubo respuesta del modelo, o no se entendió
+    refusal: Literal["column", "unreadable"] | None = None
+    # La cabecera rechazada, para poder decir en pantalla cuál era.
+    refused_column: str | None = None

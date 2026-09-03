@@ -8,17 +8,20 @@ Search reads both; writes only ever touch yours.
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer, selectinload
 
 from ..auth import get_current_user
+from ..config import settings
 from ..db import get_session
+from ..gemini import LabelUnreadable, read_label
+from ..label import ColumnRefused, read_from_payload
 from ..models import Food, FoodAlias, LogEntry, Portion
 from ..naming import fold_exercise_name as fold
-from ..nutrition import calcular_nutrientes
-from ..schemas import FoodIn, FoodOut, FoodPatch, FrequentFoodOut
+from ..nutrition import NUTRIENTS, calcular_nutrientes
+from ..schemas import FoodIn, FoodOut, FoodPatch, FrequentFoodOut, LabelReadOut
 from ..serialization import to_food_out
 
 router = APIRouter(prefix="/foods", tags=["foods"])
@@ -27,6 +30,33 @@ router = APIRouter(prefix="/foods", tags=["foods"])
 # than fits on the screen twice over, and the cap is what keeps "a" from
 # dragging three thousand CIQUAL rows across the wire.
 SEARCH_LIMIT = 30
+
+# Una foto de móvil ronda el megabyte. Ocho es sitio de sobra para la que venga
+# sin encoger, y un techo que impide que una subida rara ocupe la memoria del
+# proceso mientras se descodifica.
+MAX_PHOTO_BYTES = 8 * 1024 * 1024
+
+UNKNOWN_NUTRIENTS = dict.fromkeys(NUTRIENTS)
+
+
+async def get_label_reader():
+    """Quien lee la etiqueta, o `None` si la feature está apagada.
+
+    Dependencia y no llamada directa para que la suite pueda ponerle otro
+    delante: los tests de esto no llaman a Gemini —no hay red, ni clave, ni
+    cuota que gastar en CI— y lo que comprueban es qué hace el backend con lo
+    que el modelo conteste, que es donde está todo el riesgo.
+    """
+    key = settings.gemini_api_key.get_secret_value()
+    if not key:
+        return None
+
+    async def reader(image: bytes, mime_type: str) -> dict:
+        return await read_label(
+            image, api_key=key, model=settings.gemini_model, mime_type=mime_type
+        )
+
+    return reader
 
 # Cuántas filas se traen para ordenar, antes de quedarse con `SEARCH_LIMIT`.
 #
@@ -188,6 +218,65 @@ async def create_food(
     await session.commit()
     await session.refresh(food, ["portions"])
     return to_food_out(food, user_id)
+
+
+@router.post("/label", response_model=LabelReadOut)
+async def read_a_label(
+    photo: UploadFile = File(...),
+    reader=Depends(get_label_reader),
+    user_id: int = Depends(get_current_user),
+) -> LabelReadOut:
+    """Lee la tabla nutricional de una foto y **propone** un alta.
+
+    No escribe. Devuelve lo que rellenaría el formulario, y el formulario sigue
+    siendo la única puerta del catálogo — la misma regla que ya vale para el
+    import y para el parser. Que la foto acierte no la convierte en permiso.
+
+    Las tres salidas acaban en el mismo sitio, el formulario, y sólo cambia con
+    cuánto viene puesto:
+
+    - se leyó          → campos rellenos, y en pantalla de qué columna salieron
+    - `refusal=column` → en blanco, porque lo leído era por ración o por 100 ml
+    - `refusal=unreadable` → en blanco, porque no hubo respuesta
+
+    Ninguna es un callejón: un fallo aquí te deja tecleando, que es exactamente
+    donde estabas antes de que existiera el botón.
+    """
+    if reader is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="la lectura de etiquetas no está configurada",
+        )
+    image = await photo.read()
+    if len(image) > MAX_PHOTO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="la foto es demasiado grande",
+        )
+    try:
+        payload = await reader(image, photo.content_type or "image/jpeg")
+    except LabelUnreadable:
+        # Cuota agotada, sin red, respuesta rara: da igual. Lo que la pantalla
+        # necesita saber es que hay que teclear, no qué dijo la API de Google.
+        return LabelReadOut(refusal="unreadable", nutrients=dict(UNKNOWN_NUTRIENTS))
+    try:
+        read = read_from_payload(payload)
+    except ColumnRefused as refused:
+        # Rechazada entera, no reescalada. El nombre y la marca tampoco se
+        # aprovechan: si la columna estaba mal leída, lo demás de esa lectura no
+        # merece más confianza que ella.
+        return LabelReadOut(
+            refusal="column",
+            refused_column=refused.header,
+            nutrients=dict(UNKNOWN_NUTRIENTS),
+        )
+    return LabelReadOut(
+        name=read.name,
+        brand=read.brand,
+        column_header=read.column_header,
+        nutrients=read.nutrients,
+        dropped=list(read.dropped),
+    )
 
 
 # El repertorio: cuántas entradas se miran para construirlo, y desde cuándo.

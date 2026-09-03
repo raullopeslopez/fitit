@@ -12,6 +12,9 @@ dependencies = [
     "pydantic-settings>=2.7",
     "pyjwt[crypto]>=2.13.0",
     "bcrypt>=5.0.0",
+    "httpx>=0.28",
+    # La foto de la etiqueta sube como multipart.
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]
