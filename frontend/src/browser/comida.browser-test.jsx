@@ -246,4 +246,108 @@ describe('Comida', () => {
     expect(getComputedStyle(raya).color).toBe(getComputedStyle(cifra).color)
     expect(paintedRect(raya).height).toBeCloseTo(paintedRect(cifra).height, 0)
   })
+
+  // El alta manual creció a siete campos —Marca entró con el lector de
+  // etiquetas— y «Guardar alimento» se fue por debajo del borde: quedaba a 918
+  // px en una pantalla de 932, o sea fuera, y había que arrastrar para llegar a
+  // él después de rellenar. Eso no se ve en jsdom, donde toda caja mide cero.
+  describe('el alta de alimento', () => {
+    async function abrirAlta() {
+      const user = userEvent.setup()
+      await mountComida()
+      await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+      await user.type(await screen.findByLabelText('Buscar alimento'), 'piquillos')
+      await user.click(await screen.findByRole('button', { name: /^Crear /, timeout: 5000 }))
+      await screen.findByLabelText('Nombre')
+      await settle()
+      return user
+    }
+
+    const guardar = () =>
+      [...document.querySelectorAll('button')].find((b) => b.textContent === 'Guardar alimento')
+
+    it('«Guardar alimento» se ve sin arrastrar', async () => {
+      await abrirAlta()
+      const rect = paintedRect(guardar())
+      expect(rect.bottom).toBeLessThanOrEqual(window.innerHeight)
+      expect(rect.height).toBeGreaterThanOrEqual(44)
+    })
+
+    it('y se puede pulsar: no hay nada por encima suyo', async () => {
+      await abrirAlta()
+      const boton = guardar()
+      const rect = paintedRect(boton)
+      // `elementFromPoint` y no sólo la caja: un elemento puede estar dentro de
+      // la pantalla y aun así tener la barra de pestañas por delante, que es el
+      // defecto que esta suite existe para cazar.
+      const encima = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      expect(boton.contains(encima) || encima === boton).toBe(true)
+    })
+
+    it('la barra de pestañas no lo tapa', async () => {
+      await abrirAlta()
+      const nav = document.querySelector('.bottom-nav')
+      expect(overlap(paintedRect(nav), paintedRect(guardar()))).toBeNull()
+    })
+
+    // Y por la puerta de la cámara, que es la que lo rompía: `AddFood` se
+    // desplaza al abrirse, pero al pasar de la búsqueda al formulario no vuelve
+    // a hacerlo — y el formulario que sale de una foto es el largo, con las
+    // cinco cifras puestas. Medido antes del arreglo: el botón arrancaba a 918
+    // px en una pantalla de 932, o sea fuera.
+    function conFoto(input) {
+      const dt = new DataTransfer()
+      dt.items.add(new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' }))
+      input.files = dt.files
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    async function fotografiar() {
+      const user = userEvent.setup()
+      await mountComida()
+      await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+      conFoto(document.getElementById('food-photo'))
+      await screen.findByLabelText('Nombre')
+      await settle()
+    }
+
+    it('tras leer una etiqueta, «Guardar alimento» también se ve', async () => {
+      await fotografiar()
+      expect(document.getElementById('food-name').value).toBe('Yogur natural')
+      const rect = paintedRect(guardar())
+      expect(rect.bottom).toBeLessThanOrEqual(window.innerHeight)
+    })
+
+    it('y se sigue viendo la segunda vez que abres el panel', async () => {
+      // La primera vuelta salía bien y las siguientes no, que es la forma más
+      // cara de tener un fallo: al probarlo una vez parece correcto. `AddFood`
+      // se desplazaba en su primer montaje y nunca más, así que en la segunda
+      // vuelta el scroll volvía a 0 y el botón nacía a 1047 px de una pantalla
+      // de 932. Tres vueltas, porque con una no se distingue.
+      const user = userEvent.setup()
+      await mountComida()
+      for (let vuelta = 1; vuelta <= 3; vuelta++) {
+        await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+        conFoto(document.getElementById('food-photo'))
+        await screen.findByLabelText('Nombre')
+        await settle()
+        const rect = paintedRect(guardar())
+        expect(rect.bottom, `vuelta ${vuelta}`).toBeLessThanOrEqual(window.innerHeight)
+        await user.click(
+          [...document.querySelectorAll('button')].find((b) => b.textContent === 'Cancelar'),
+        )
+        await settle()
+      }
+    })
+
+    it('y lo primero que se ve es qué se leyó, no el final del formulario', async () => {
+      await fotografiar()
+      // La línea que dice de qué columna salieron las cifras es la que convierte
+      // «confirmar» en algo distinto de «firmar en blanco». Si nace fuera de la
+      // pantalla, no la lee nadie.
+      const nota = paintedRect(document.querySelector('.food-label-read'))
+      expect(nota.top).toBeGreaterThanOrEqual(0)
+      expect(nota.bottom).toBeLessThanOrEqual(window.innerHeight)
+    })
+  })
 })

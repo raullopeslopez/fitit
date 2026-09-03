@@ -238,6 +238,21 @@ function stubNetwork() {
     [/\/food-log$/, FOOD_DAY],
     // Antes que `/foods$`: leído al revés, «frequent» se buscaría como un id.
     [/\/foods\/frequent$/, FREQUENT],
+    // Una etiqueta leída, con las cinco cifras puestas: lo que interesa medir
+    // de esto es la **altura** del formulario que sale detrás, que es la misma
+    // venga la lectura de donde venga.
+    [
+      /\/foods\/label$/,
+      {
+        name: 'Yogur natural',
+        brand: 'Hacendado',
+        column_header: 'por 100 g',
+        nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
+        dropped: [],
+        refusal: null,
+        refused_column: null,
+      },
+    ],
     [/\/foods$/, FOODS],
   ]
   const json = (body, status = 200) =>

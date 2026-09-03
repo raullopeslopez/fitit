@@ -635,6 +635,7 @@ function fromLabel(label) {
 // Sólo el nombre es obligatorio. Un macro que no escribes se manda como `null`,
 // nunca como 0 — nadie lo ha medido, y un cero afirmaría que sí y que no hay.
 function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
+  const box = useRef(null)
   const [name, setName] = useState(initialName)
   // La marca va aparte del nombre porque es un dato distinto: se pinta aparte
   // en los resultados y se busca por su cuenta. De un producto envasado te
@@ -643,6 +644,22 @@ function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
   const [brand, setBrand] = useState(label?.brand ?? '')
   const [values, setValues] = useState(() => fromLabel(label))
   const [busy, setBusy] = useState(false)
+
+  // El formulario se trae a la vista al aparecer, y no basta con que lo hiciera
+  // el panel al abrirse: `AddFood` se desplaza una vez, en su primer montaje, y
+  // de la búsqueda al formulario no vuelve a hacerlo. Medido a 430×932 con el
+  // panel abierto por segunda vez: «Guardar alimento» nacía a 1047 px de una
+  // pantalla de 932 — rellenabas siete campos y el botón no estaba.
+  //
+  // Y con una etiqueta leída importa el doble: lo primero que hay que ver es la
+  // línea que dice de qué columna salieron las cifras, que es lo que separa
+  // confirmar de firmar en blanco.
+  //
+  // `?.` sobre el método porque jsdom no implementa `scrollIntoView`; lo que
+  // esto hace de verdad se mide en `comida.browser-test.jsx`, en Chromium.
+  useEffect(() => {
+    box.current?.scrollIntoView?.({ block: 'start' })
+  }, [])
 
   const number = (raw) => {
     const value = Number(String(raw).replace(',', '.'))
@@ -676,7 +693,7 @@ function NewFood({ name: initialName, label = null, onCreated, onCancel }) {
   ]
 
   return (
-    <form className="card card-compose food-new" onSubmit={submit}>
+    <form className="card card-compose food-new" ref={box} onSubmit={submit}>
       {label && <LabelNote label={label} />}
       <div className="field">
         <label htmlFor="food-name">Nombre</label>
