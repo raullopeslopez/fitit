@@ -343,8 +343,8 @@ export async function mountComida() {
   const view = await mountApp()
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
-  // Por el primer raíl: la pantalla ya no tiene una CTA al pie, y los raíles
-  // son lo primero que se dibuja con el día cargado.
+  // Por el primer raíl, y no por la CTA: los raíles son lo primero que se
+  // dibuja con el día ya cargado, así que esperar a uno de ellos basta.
   await vi.waitFor(() => expect(document.querySelector('.food-rail')).not.toBeNull(), {
     timeout: 5000,
   })

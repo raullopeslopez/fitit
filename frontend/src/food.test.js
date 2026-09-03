@@ -5,6 +5,8 @@ import {
   foodDayIso,
   formatAmount,
   formatMacro,
+  inferMealSlot,
+  proteinProgress,
   shiftDay,
   slotLabel,
   unknownNote,
@@ -97,5 +99,35 @@ describe('el pie que explica una raya', () => {
     expect(unknownNote({ ...none, kcal: 1, fiber: 2 })).toBe(
       '— no es cero: 1 entrada sin kcal, 2 sin fibra.',
     )
+  })
+})
+
+describe('a qué comida va lo que registras ahora', () => {
+  it('sigue las bandas horarias habituales', () => {
+    expect(inferMealSlot(new Date(2026, 8, 2, 8, 0))).toBe('desayuno')
+    expect(inferMealSlot(new Date(2026, 8, 2, 14, 0))).toBe('comida')
+    expect(inferMealSlot(new Date(2026, 8, 2, 18, 0))).toBe('snack')
+    expect(inferMealSlot(new Date(2026, 8, 2, 22, 0))).toBe('cena')
+  })
+
+  it('la madrugada tardía cuenta como el cierre del día anterior, no como desayuno', () => {
+    expect(inferMealSlot(new Date(2026, 8, 2, 2, 0))).toBe('snack')
+  })
+})
+
+describe('la barra de proteína', () => {
+  it('sin objetivo no hay barra que pintar', () => {
+    expect(proteinProgress(80, null)).toBe(null)
+    expect(proteinProgress(80, 0)).toBe(null)
+  })
+
+  it('el porcentaje del objetivo cubierto', () => {
+    expect(proteinProgress(118, 160)).toBe(74)
+    expect(proteinProgress(0, 160)).toBe(0)
+    expect(proteinProgress(null, 160)).toBe(0)
+  })
+
+  it('nunca se sale de la barra al pasarse del objetivo', () => {
+    expect(proteinProgress(200, 160)).toBe(100)
   })
 })

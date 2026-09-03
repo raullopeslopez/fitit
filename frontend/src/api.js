@@ -251,8 +251,17 @@ export function correctFood(foodId, fields) {
 
 // Registra una cantidad. `logged_at` se manda con el offset del móvil porque es
 // lo que decide en qué día alimentario cae — el servidor no tiene otro reloj
-// con el que fechar una cena de la 01:30.
-export function logFood({ foodId, grams = null, portionId = null, quantity = 1, mealSlot = null }) {
+// con el que fechar una cena de la 01:30. `loggedAt` es la excepción: deshacer
+// un borrado vuelve a escribir la entrada con su hora original, no con la de
+// ahora, para que no cambie de día alimentario al recuperarse.
+export function logFood({
+  foodId,
+  grams = null,
+  portionId = null,
+  quantity = 1,
+  mealSlot = null,
+  loggedAt = null,
+}) {
   return apiFetch('/food-log', {
     method: 'POST',
     body: JSON.stringify({
@@ -261,7 +270,7 @@ export function logFood({ foodId, grams = null, portionId = null, quantity = 1, 
       portion_id: portionId,
       quantity,
       meal_slot: mealSlot,
-      logged_at: new Date().toISOString(),
+      logged_at: loggedAt ?? new Date().toISOString(),
     }),
   })
 }
@@ -279,4 +288,13 @@ export function correctFoodEntry(entryId, fields) {
 
 export function deleteFoodEntry(entryId) {
   return apiFetch(`/food-log/${entryId}`, { method: 'DELETE' })
+}
+
+// El objetivo diario, fijo por usuario. `null` en cualquiera de los dos campos
+// lo borra: manda siempre los dos, nunca sólo el que ha cambiado.
+export function setTargets({ kcal = null, protein = null }) {
+  return apiFetch('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify({ objetivo_kcal: kcal, objetivo_proteina: protein }),
+  })
 }
