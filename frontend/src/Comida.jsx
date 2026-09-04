@@ -689,8 +689,12 @@ function AddFood({ slot = null, onDone, onCancel }) {
     setReading(true)
     try {
       setLabel(await readLabel(file))
-    } catch {
-      setLabel({ refusal: 'unreadable' })
+    } catch (error) {
+      // Un 503 es «el servidor no tiene esto configurado», que no es lo mismo
+      // que «no he podido leer la etiqueta»: contarlo como lo segundo te deja
+      // repitiendo la foto contra algo que no puede funcionar. Pasó de verdad,
+      // el 2026-09-04, y costó una sesión de depuración.
+      setLabel({ refusal: error?.status === 503 ? 'off' : 'unreadable' })
     } finally {
       setReading(false)
       setCreating(true)
@@ -1033,6 +1037,13 @@ function LabelNote({ label }) {
   }
   if (label.refusal === 'unreadable') {
     return <p className="food-label-warn">No he podido leer la etiqueta. Tecléala.</p>
+  }
+  // Ni la foto ni la red: falta la clave en el servidor. Se dice así porque el
+  // que puede arreglarlo es quien lee esto.
+  if (label.refusal === 'off') {
+    return (
+      <p className="food-label-warn">La lectura de etiquetas no está configurada en el servidor.</p>
+    )
   }
   // Sin cuota no es lo mismo que ilegible: repetir la foto no lo arregla. Y la
   // del minuto no es la del día — a una se le espera y a la otra no —, así que

@@ -100,6 +100,14 @@ class LabelUnreadable(Exception):
 # segundos, que es justo el espaciado que este límite pide.
 ATTEMPTS = 2
 BACKOFF = 2.0
+# Doce segundos por intento, no treinta. Con dos intentos y la espera de por
+# medio, el peor caso pasa de 62 segundos a 26 — y sesenta segundos de «Leyendo…»
+# con el yogur en la mano no son una espera, son una pantalla colgada: dejas de
+# mirar, cierras la app, y el fallo se cuenta como que no funciona.
+#
+# Una lectura buena tarda un par de segundos. Doce ya son cuatro veces eso: lo
+# que hay más allá no es una respuesta lenta, es una respuesta que no viene.
+TIMEOUT = 12.0
 
 # Lo que no se reintenta: 4xx. Una clave mala, una cuota agotada o una petición
 # malformada contestan lo mismo por mucho que se insista, y en el caso de la
@@ -134,7 +142,7 @@ async def read_label(
     api_key: str,
     model: str,
     mime_type: str = "image/jpeg",
-    timeout: float = 30.0,
+    timeout: float = TIMEOUT,
     backoff: float = BACKOFF,
 ) -> dict:
     """Manda la foto y devuelve el JSON del modelo, sin juzgarlo."""

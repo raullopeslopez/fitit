@@ -506,6 +506,22 @@ describe('Comida', () => {
         ).toBeInTheDocument()
       })
 
+      it('si el servidor no tiene la lectura configurada, lo dice tal cual', async () => {
+        // El fallo de producción del 2026-09-04: sin clave en el servidor, el
+        // 503 se pintaba como «no he podido leer la etiqueta» y te dejaba
+        // repitiendo la foto contra algo que nunca iba a funcionar.
+        api.searchFoods.mockResolvedValue([])
+        api.readLabel.mockRejectedValue(Object.assign(new Error('nope'), { status: 503 }))
+        api.logFood.mockResolvedValue(entry())
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        expect(
+          await screen.findByText('La lectura de etiquetas no está configurada en el servidor.'),
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/No he podido leer la etiqueta/)).toBeNull()
+      })
+
       it('si no ha podido leerla, te deja tecleando', async () => {
         await fotografiar({
           ...LEIDO,
