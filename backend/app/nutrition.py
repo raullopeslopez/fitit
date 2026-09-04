@@ -169,3 +169,71 @@ def dump_nutrients(nutrients: dict | None) -> str | None:
     having none recorded, which is what it is.
     """
     return json.dumps(nutrients, sort_keys=True) if nutrients else None
+
+
+# ---------------------------------------------------------------------------
+# ¿Cuadra la etiqueta consigo misma?
+#
+# Una etiqueta no declara cinco cifras independientes: declara las kilocalorías
+# **y** los macros que las producen, y las dos afirmaciones tienen que dar lo
+# mismo. Eso convierte a cada cifra en testigo de las otras cuatro, que es la
+# única defensa que hay contra un dígito mal leído.
+#
+# Existe por la lectura desde una foto. Lo demás que la protege comprueba
+# coherencia —que ninguna cifra venga sin una fila que la respalde, que la
+# columna sea la buena, que ningún macro sea absurdo— y nada de eso caza
+# `Proteínas 3,8 g` leído como `8,8 g`: la fila está, el número es plausible, la
+# columna es la correcta. Pasa todo y se congela en el diario.
+#
+# Sirve igual para lo tecleado a mano, donde el dedo se equivoca de tecla.
+
+# Reglamento (UE) 1169/2011, anexo XIV. La fibra a 2 y no a 4: contarla a 4
+# inflaría la estimación de un pan integral hasta hacerla saltar sola.
+_KCAL_PER_GRAM = {"protein": 4.0, "fat": 9.0, "carbs": 4.0, "fiber": 2.0}
+
+# Cuánto puede separarse lo calculado de lo declarado sin que sea un error de
+# lectura. Dos márgenes porque los dos fallan solos: el relativo se dispara en
+# cifras pequeñas —4 kcal contra 6 es un 50% y no es nada— y el absoluto se
+# queda corto en un aceite de 900. Manda el mayor de los dos.
+_TOLERANCE_KCAL = 8.0
+_TOLERANCE_SHARE = 0.15
+
+
+def atwater_kcal(
+    protein: float | None = None,
+    fat: float | None = None,
+    carbs: float | None = None,
+    fiber: float | None = None,
+) -> float:
+    """Las kilocalorías que dan esos macros, por los factores de la UE.
+
+    Lo desconocido cuenta como 0 **sólo aquí dentro**, y es deliberado: esto no
+    es un nutriente que se guarde, es una estimación para compararla con otra
+    cifra. La regla de que `None` no es cero protege lo que se escribe en la
+    base de datos, y esto no escribe nada.
+    """
+    grams = {"protein": protein, "fat": fat, "carbs": carbs, "fiber": fiber}
+    return sum(_KCAL_PER_GRAM[k] * (v or 0) for k, v in grams.items())
+
+
+def kcal_disagreement(
+    kcal: float | None,
+    protein: float | None = None,
+    fat: float | None = None,
+    carbs: float | None = None,
+    fiber: float | None = None,
+) -> tuple[float, float] | None:
+    """`(declaradas, calculadas)` cuando no cuadran; `None` cuando sí, o cuando
+    no hay con qué comparar.
+
+    Callar sin los tres macros principales es la única respuesta honesta: un
+    aviso ahí saltaría en todos los alimentos dados de alta a medias, que son
+    la mayoría, y un aviso que salta siempre deja de leerse.
+    """
+    if kcal is None or protein is None or fat is None or carbs is None:
+        return None
+    computed = atwater_kcal(protein=protein, fat=fat, carbs=carbs, fiber=fiber)
+    allowed = max(_TOLERANCE_KCAL, _TOLERANCE_SHARE * max(kcal, computed))
+    if abs(computed - kcal) <= allowed:
+        return None
+    return (kcal, round(computed, 1))

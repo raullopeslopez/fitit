@@ -1028,13 +1028,40 @@ function ScanNote({ scan }) {
   }[scan.refusal]
 
   if (!message) {
-    return scan.per === '100ml' ? (
-      <p className="food-label-warn">
-        Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
-      </p>
-    ) : null
+    return (
+      <>
+        {scan.per === '100ml' && (
+          <p className="food-label-warn">
+            Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+          </p>
+        )}
+        <MismatchNote mismatch={scan.mismatch} />
+      </>
+    )
   }
   return <p className="food-label-warn">{message}</p>
+}
+
+// Cuando las kcal y los macros de la misma etiqueta no dan lo mismo.
+//
+// Es la única defensa contra un dígito mal leído. Una cifra sin fila que la
+// respalde se cae, una columna equivocada se rechaza y un macro absurdo se
+// tira — pero `Proteínas 3,8 g` leído como `8,8` tiene su fila, es plausible y
+// viene de la columna correcta: pasa todo. Lo delata que las cifras de una
+// etiqueta no son independientes.
+//
+// Avisa y no rechaza: el producto puede llevar polioles, o la etiqueta
+// redondear raro. Lo que hace falta no es impedir el guardado, es que mirar el
+// bote deje de ser opcional — y para eso hay que decir **qué** no cuadra, no
+// que algo no cuadra.
+function MismatchNote({ mismatch }) {
+  if (!mismatch) return null
+  return (
+    <p className="food-label-warn">
+      Las cifras no cuadran: pone {formatMacro(mismatch.declared)} kcal, pero los macros suman{' '}
+      {formatMacro(mismatch.computed)}. Comprueba la etiqueta.
+    </p>
+  )
 }
 
 // Qué contar de la lectura, encima del formulario.
@@ -1136,6 +1163,7 @@ function LabelNote({ label }) {
           hueco sin explicar se lee como «la etiqueta no lo declara», que aquí es
           justo lo contrario de lo que ha pasado. */}
       {dropped && <p className="food-label-warn">{dropped}</p>}
+      <MismatchNote mismatch={label.mismatch} />
       <ReadRows rows={label.rows} />
     </>
   )
