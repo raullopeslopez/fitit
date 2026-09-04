@@ -506,6 +506,22 @@ describe('Comida', () => {
         ).toBeInTheDocument()
       })
 
+      it('si el servidor no tiene la lectura configurada, lo dice tal cual', async () => {
+        // El fallo de producción del 2026-09-04: sin clave en el servidor, el
+        // 503 se pintaba como «no he podido leer la etiqueta» y te dejaba
+        // repitiendo la foto contra algo que nunca iba a funcionar.
+        api.searchFoods.mockResolvedValue([])
+        api.readLabel.mockRejectedValue(Object.assign(new Error('nope'), { status: 503 }))
+        api.logFood.mockResolvedValue(entry())
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        expect(
+          await screen.findByText('La lectura de etiquetas no está configurada en el servidor.'),
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/No he podido leer la etiqueta/)).toBeNull()
+      })
+
       it('si no ha podido leerla, te deja tecleando', async () => {
         await fotografiar({
           ...LEIDO,
@@ -546,6 +562,115 @@ describe('Comida', () => {
         })
         expect(await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')).toBeInTheDocument()
         expect(screen.queryByText(/Espera un minuto/)).toBeNull()
+      })
+
+      // El caso que se vio en producción el 2026-09-04: la llamada salió bien
+      // —200 en los logs— y en pantalla no había ni cifras ni aviso. Una
+      // lectura de la que no sale ningún número no es una lectura buena, y
+      // pintarla como tal deja al usuario mirando siete campos vacíos sin nada
+      // que explique por qué.
+      it('una lectura de la que no sale ninguna cifra lo dice', async () => {
+        await fotografiar({
+          ...LEIDO,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          dropped: [],
+        })
+        expect(
+          await screen.findByText('No he sacado ninguna cifra de la foto. Tecléalas.'),
+        ).toBeInTheDocument()
+      })
+
+      it('y una foto tomada después de escanear no se queda sin pintar', async () => {
+        // `scan` se comprobaba antes que la lectura, así que un escaneo previo
+        // sin limpiar tapaba lo que devolviera la etiqueta: la llamada se
+        // pagaba y su resultado no llegaba a la pantalla.
+        api.searchFoods.mockResolvedValue([])
+        api.scanBarcode.mockResolvedValue({ barcode: '8410128750121', food: null, refusal: 'unknown' })
+        api.readLabel.mockResolvedValue(LEIDO)
+        api.logFood.mockResolvedValue(entry())
+        window.BarcodeDetector = class {
+          detect() {
+            return Promise.resolve([{ rawValue: '8410128750121' }])
+          }
+        }
+        window.createImageBitmap = () => Promise.resolve({})
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Escanear código'), JPEG())
+        await screen.findByText('Ese código no está en Open Food Facts. Tecléalo.')
+        await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
+        expect(screen.getByText('Leído de «por 100 g».')).toBeInTheDocument()
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
+      })
+
+      // Los dos disparadores compartían el mismo indicador, así que mientras
+      // uno leía la hoja decía «Leyendo… Leyendo…», dos veces, una al lado de
+      // la otra. Sólo se anuncia el que has pulsado.
+      it('sólo se pone «Leyendo…» el botón que has pulsado', async () => {
+        // Los dos disparadores en pantalla, que es la condición del fallo.
+        window.BarcodeDetector = class {
+          detect() {
+            return Promise.resolve([])
+          }
+        }
+        window.createImageBitmap = () => Promise.resolve({})
+        api.searchFoods.mockResolvedValue([])
+        let resolve
+        api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+
+        expect(screen.getAllByText('Leyendo…')).toHaveLength(1)
+        expect(screen.getByLabelText('Escanear código')).toBeInTheDocument()
+        await act(async () => {
+          resolve(LEIDO)
+        })
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
+      })
+
+      it('una etiqueta por 100 ml se rellena, y lo dice', async () => {
+        await fotografiar({ ...LEIDO, column_header: 'ø/100 ml', per: '100ml' })
+        expect(await screen.findByLabelText('Kcal por 100 g')).toHaveValue('61')
+        expect(
+          screen.getByText('Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.'),
+        ).toBeInTheDocument()
+      })
+
+      // «¿Qué ha leído?» no se contesta con un veredicto. Con las filas
+      // delante se ve de un vistazo si leyó bien y el backend descartó, o si
+      // leyó mal desde el principio — y eso no lo dice ningún mensaje.
+      it('enseña la tabla que dice haber leído, a un toque', async () => {
+        await fotografiar({
+          ...LEIDO,
+          rows: ['Valor energético 61 kcal', 'Proteínas 3,8 g'],
+        })
+        await screen.findByLabelText('Nombre')
+        expect(screen.queryByText('Valor energético 61 kcal')).toBeNull()
+        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        expect(screen.getByText('Valor energético 61 kcal')).toBeInTheDocument()
+        expect(screen.getByText('Proteínas 3,8 g')).toBeInTheDocument()
+      })
+
+      it('y también cuando no ha sacado ninguna cifra, que es cuando más falta hace', async () => {
+        await fotografiar({
+          ...LEIDO,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          rows: ['Energia 61 kcal'],
+        })
+        await screen.findByText('No he sacado ninguna cifra de la foto. Tecléalas.')
+        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        expect(screen.getByText('Energia 61 kcal')).toBeInTheDocument()
+      })
+
+      it('sin transcripción no ofrece un desplegable vacío', async () => {
+        await fotografiar({ ...LEIDO, rows: [] })
+        await screen.findByLabelText('Nombre')
+        expect(screen.queryByRole('button', { name: 'Ver lo que he leído' })).toBeNull()
       })
 
       it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {

@@ -101,12 +101,23 @@ def test_a_per_ration_column_is_refused(header):
         read_from_payload(payload(column_header=header))
 
 
-@pytest.mark.parametrize("header", ["por 100 ml", "100 ml", "por 100 mL"])
-def test_a_per_100_ml_column_is_refused(header):
-    """`foods` guarda por 100 g. Pasar de mililitros a gramos necesita una
-    densidad que la etiqueta no trae."""
-    with pytest.raises(ColumnRefused):
-        read_from_payload(payload(column_header=header))
+@pytest.mark.parametrize("header", ["por 100 ml", "100 ml", "por 100 mL", "ø/100 ml"])
+def test_a_per_100_ml_column_is_read_and_flagged(header):
+    """Media nevera se etiqueta por volumen —leche, bebidas vegetales, zumos—,
+    así que rechazarlas dejaba la cámara inservible para todas ellas.
+
+    Se leen y se marcan: en un líquido acuoso 100 ml son ~103 g, un 3% menos
+    error que pesar una ración a ojo. Aceptar no es convertir a escondidas —los
+    números se guardan tal cual y la pantalla dice de qué unidad salen antes de
+    que nadie pulse guardar—, que es lo que la regla prohíbe de verdad.
+    """
+    read = read_from_payload(payload(column_header=header))
+    assert read.per == "100ml"
+    assert read.nutrients["kcal"] == 61
+
+
+def test_a_per_100_g_column_says_so():
+    assert read_from_payload(payload()).per == "100g"
 
 
 def test_a_column_it_could_not_read_is_refused():

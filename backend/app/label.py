@@ -70,6 +70,7 @@ GRAM_CEILING = 100.0
 KCAL_CEILING = 1000.0
 
 _HUNDRED_GRAMS = re.compile(r"100\s*(g\b|gr\b|gramos\b|g$)")
+_HUNDRED_ML = re.compile(r"100\s*(ml\b|ml$|mililitros\b|cc\b)")
 _PER_PORTION = ("racion", "porcion", "unidad", "envase", "pieza", "rebanada")
 
 
@@ -83,6 +84,15 @@ class LabelRead:
     # 100 g»»— porque una cifra que no sabes de dónde sale no se puede
     # confirmar, sólo firmar en blanco.
     column_header: str
+    # '100g' o '100ml'. Media nevera —leche, bebidas vegetales, zumos, caldos—
+    # se etiqueta por volumen, así que rechazarlas dejaba la cámara inservible
+    # para todas ellas. Se aceptan y **se dice**: en un líquido acuoso 100 ml
+    # son ~103 g, un 3% de diferencia, menos error que pesar una ración a ojo.
+    #
+    # Aceptar no es convertir a escondidas, que es lo que la regla prohíbe: los
+    # números se guardan tal cual y la pantalla dice de qué unidad salen, en
+    # tinta, antes de que nadie pulse guardar.
+    per: str
     nutrients: dict[str, float | None]
     # Lo que el modelo mandó y esto tiró por no venir respaldado. La pantalla lo
     # necesita para no dejar el hueco mudo: un campo vacío se lee como «la
@@ -94,7 +104,8 @@ def read_from_payload(payload: dict) -> LabelRead:
     """Valida lo que devolvió el modelo. Lanza `ColumnRefused` si no hay forma
     de saber que los números son por 100 g."""
     header = payload.get("column_header")
-    if not _hundred_grams(header):
+    per = _per_unit(header)
+    if per is None:
         raise ColumnRefused(header)
 
     rows = [fold(str(row)) for row in payload.get("rows") or []]
@@ -126,26 +137,31 @@ def read_from_payload(payload: dict) -> LabelRead:
         name=_text(payload.get("name")),
         brand=_text(payload.get("brand")),
         column_header=str(header),
+        per=per,
         nutrients=nutrients,
         dropped=tuple(dropped),
     )
 
 
-def _hundred_grams(header: str | None) -> bool:
-    """¿Los números son por 100 g?
+def _per_unit(header: str | None) -> str | None:
+    """De qué unidad son los números: `'100g'`, `'100ml'`, o nada.
 
-    Sólo `True` cuando se puede afirmar. Sin cabecera, con mililitros o con una
-    ración de por medio, la respuesta es no — y no hay rama que intente
-    reescalar: el factor tendríamos que ponerlo nosotros.
+    `None` es el rechazo, y se reserva para lo que **no se puede afirmar**: sin
+    cabecera, o con una ración de por medio. Ahí el factor tendríamos que
+    ponerlo nosotros, y un número inventado es indistinguible de uno medido.
+
+    Los mililitros no son ese caso: son una unidad conocida y declarada. Se
+    aceptan y se avisa. La ración se sigue rechazando porque su factor —cuántos
+    gramos tiene «una ración»— cambia con cada producto y a veces ni se imprime.
     """
     if not header:
-        return False
+        return None
     folded = fold(str(header))
-    if "ml" in folded.split() or "100 ml" in folded:
-        return False
     if any(word in folded for word in _PER_PORTION):
-        return False
-    return bool(_HUNDRED_GRAMS.search(folded))
+        return None
+    if _HUNDRED_ML.search(folded):
+        return "100ml"
+    return "100g" if _HUNDRED_GRAMS.search(folded) else None
 
 
 def _backed_by_a_row(nutrient: str, rows: list[str]) -> bool:

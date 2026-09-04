@@ -651,7 +651,11 @@ function AddFood({ slot = null, onDone, onCancel }) {
   // Lo que devolvió el escáner: o el alimento que ya tenías, o una propuesta de
   // Open Food Facts, o el motivo por el que no hay ninguna de las dos.
   const [scan, setScan] = useState(null)
-  const [reading, setReading] = useState(false)
+  // Cuál de las dos cámaras está leyendo: 'label', 'scan' o ninguna. Un solo
+  // booleano ponía «Leyendo…» en los dos disparadores a la vez, así que la hoja
+  // decía «Leyendo… Leyendo…» — dos veces, una al lado de la otra, y ninguna te
+  // decía cuál era la tuya.
+  const [reading, setReading] = useState(null)
   const latest = useRef(0)
   const field = useRef(null)
 
@@ -686,13 +690,21 @@ function AddFood({ slot = null, onDone, onCancel }) {
     // seguidas no dispara `change` y el botón parece roto la segunda vez.
     event.target.value = ''
     if (!file) return
-    setReading(true)
+    setReading('label')
+    // Una lectura nueva manda sobre lo que dijera el escáner: `scan` se mira
+    // antes que `creating` al pintar, así que dejarlo puesto haría que el
+    // resultado de esta foto —ya pagada— no llegase a la pantalla.
+    setScan(null)
     try {
       setLabel(await readLabel(file))
-    } catch {
-      setLabel({ refusal: 'unreadable' })
+    } catch (error) {
+      // Un 503 es «el servidor no tiene esto configurado», que no es lo mismo
+      // que «no he podido leer la etiqueta»: contarlo como lo segundo te deja
+      // repitiendo la foto contra algo que no puede funcionar. Pasó de verdad,
+      // el 2026-09-04, y costó una sesión de depuración.
+      setLabel({ refusal: error?.status === 503 ? 'off' : 'unreadable' })
     } finally {
-      setReading(false)
+      setReading(null)
       setCreating(true)
     }
   }
@@ -709,7 +721,9 @@ function AddFood({ slot = null, onDone, onCancel }) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    setReading(true)
+    setReading('scan')
+    setLabel(null)
+    setCreating(false)
     try {
       const codes = await detectBarcodes(file)
       if (codes.length === 0) {
@@ -723,7 +737,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
     } catch {
       setScan({ refusal: 'offline' })
     } finally {
-      setReading(false)
+      setReading(null)
     }
   }
 
@@ -837,7 +851,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
           que no está, porque no hay forma de saber por qué falla. */}
       {canScan() && (
         <label className="link-btn food-photo" htmlFor="food-scan">
-          {reading ? 'Leyendo…' : 'Escanear código'}
+          {reading === 'scan' ? 'Leyendo…' : 'Escanear código'}
           <input
             id="food-scan"
             type="file"
@@ -849,7 +863,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
         </label>
       )}
       <label className="link-btn food-photo" htmlFor="food-photo">
-        {reading ? 'Leyendo…' : 'Leer etiqueta'}
+        {reading === 'label' ? 'Leyendo…' : 'Leer etiqueta'}
         <input
           id="food-photo"
           type="file"
@@ -1013,7 +1027,13 @@ function ScanNote({ scan }) {
     }[scan.refused_reason],
   }[scan.refusal]
 
-  if (!message) return null
+  if (!message) {
+    return scan.per === '100ml' ? (
+      <p className="food-label-warn">
+        Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+      </p>
+    ) : null
+  }
   return <p className="food-label-warn">{message}</p>
 }
 
@@ -1023,6 +1043,34 @@ function ScanNote({ scan }) {
 // en cuánto viene puesto, así que lo único que las distingue es esta línea. Sin
 // ella, «lo he leído todo» y «no he leído nada» se ven igual: campos con texto o
 // campos sin él, que es exactamente lo que ves cuando tecleas.
+// Lo que el modelo dice haber transcrito, a un toque.
+//
+// Existe porque un veredicto no contesta a «¿qué ha leído?». Con las filas
+// delante se ve de un vistazo si leyó bien y el backend descartó las cifras, o
+// si leyó mal desde el principio — y son dos problemas distintos, con dos
+// arreglos distintos, que sin esto se ven exactamente igual.
+//
+// Plegado, porque cuando la lectura sale bien es ruido: la información que
+// hace falta ya está en los siete campos.
+function ReadRows({ rows }) {
+  const [open, setOpen] = useState(false)
+  if (!rows || rows.length === 0) return null
+  return (
+    <div className="food-label-rows">
+      <button type="button" className="link-btn" onClick={() => setOpen(!open)}>
+        {open ? 'Ocultar lo leído' : 'Ver lo que he leído'}
+      </button>
+      {open && (
+        <ul>
+          {rows.map((row, index) => (
+            <li key={index}>{row}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function LabelNote({ label }) {
   if (label.refusal === 'column') {
     return (
@@ -1033,6 +1081,13 @@ function LabelNote({ label }) {
   }
   if (label.refusal === 'unreadable') {
     return <p className="food-label-warn">No he podido leer la etiqueta. Tecléala.</p>
+  }
+  // Ni la foto ni la red: falta la clave en el servidor. Se dice así porque el
+  // que puede arreglarlo es quien lee esto.
+  if (label.refusal === 'off') {
+    return (
+      <p className="food-label-warn">La lectura de etiquetas no está configurada en el servidor.</p>
+    )
   }
   // Sin cuota no es lo mismo que ilegible: repetir la foto no lo arregla. Y la
   // del minuto no es la del día — a una se le espera y a la otra no —, así que
@@ -1047,16 +1102,41 @@ function LabelNote({ label }) {
       </p>
     )
   }
+  // Una lectura de la que no sale ninguna cifra no es una lectura buena, por
+  // mucho que la llamada haya ido bien. Visto en producción el 2026-09-04: el
+  // servidor devolvió 200, la pantalla abrió siete campos vacíos y lo único
+  // escrito era un «Leído de …» en gris. Ni datos ni explicación — que es peor
+  // que un error, porque un error al menos se entiende.
+  const anyRead = Object.values(label.nutrients ?? {}).some((value) => value != null)
+  if (!anyRead) {
+    return (
+      <>
+        <p className="food-label-warn">No he sacado ninguna cifra de la foto. Tecléalas.</p>
+        <ReadRows rows={label.rows} />
+      </>
+    )
+  }
+
   const dropped = droppedNote(label.dropped)
   return (
     <>
       {label.column_header && (
         <p className="hint food-label-read">Leído de «{label.column_header}».</p>
       )}
+      {/* En tinta, y encima de los campos que describe: los números están en
+          casillas que dicen «por 100 g» y no son gramos. No se convierte nada
+          —eso exigiría una densidad que la etiqueta no trae—, se dice lo que
+          son y decides tú. En un líquido acuoso la diferencia es del 3%. */}
+      {label.per === '100ml' && (
+        <p className="food-label-warn">
+          Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+        </p>
+      )}
       {/* En tinta y no en `--muted`: explica por qué un campo está vacío, y un
           hueco sin explicar se lee como «la etiqueta no lo declara», que aquí es
           justo lo contrario de lo que ha pasado. */}
       {dropped && <p className="food-label-warn">{dropped}</p>}
+      <ReadRows rows={label.rows} />
     </>
   )
 }

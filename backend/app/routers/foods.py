@@ -6,7 +6,9 @@ belongings. Anything you typed yourself carries your id and is yours to correct.
 Search reads both; writes only ever touch yours.
 """
 
+import logging
 from datetime import date, timedelta
+from time import perf_counter
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
@@ -52,6 +54,17 @@ SEARCH_LIMIT = 30
 MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 UNKNOWN_NUTRIENTS = dict.fromkeys(NUTRIENTS)
+
+# La única parte de la app que llama a un tercero mientras alguien espera, y por
+# tanto la única que puede fallar por motivos que no están en el código. Sin una
+# línea por lectura, «no he podido leer la etiqueta» es indistinguible en los
+# logs de «no había clave», de «Google devolvió 503» y de «se acabó la cuota» —
+# y averiguar cuál de los cuatro fue exige acceso a la API de Render y a alguien
+# que sepa leerla. Pasó el 2026-09-04.
+#
+# Qué pasó, no qué comes: ni la clave, ni un byte de la foto, ni el nombre del
+# alimento. Un log es el sitio más fácil de olvidar que existe.
+log = logging.getLogger("app.label")
 
 
 async def get_barcode_lookup():
@@ -268,6 +281,17 @@ async def scan_barcode(
     Ninguna de sus salidas es un callejón — la peor te deja tecleando con el
     código ya puesto, que es una línea menos que antes de escanear.
     """
+    started = perf_counter()
+
+    def note(outcome: str, **fields) -> None:
+        parts = " ".join(f"{k}={v}" for k, v in fields.items() if v not in (None, "", ()))
+        log.info(
+            "barcode scan: outcome=%s ms=%d %s",
+            outcome,
+            round((perf_counter() - started) * 1000),
+            parts,
+        )
+
     code = ean.strip()
     if not looks_like_a_barcode(code):
         raise HTTPException(
@@ -287,25 +311,39 @@ async def scan_barcode(
         .first()
     )
     if mine is not None:
+        # `asked=no` es la línea que dice que la regla se está cumpliendo: un
+        # producto conocido no sale a la red. Si esto empieza a salir `yes` para
+        # cosas que ya tienes, el escáner ha dejado de ser la puerta barata.
+        note("mine", asked="no")
         return BarcodeLookupOut(barcode=code, food=to_food_out(mine, user_id))
 
     try:
         payload = await lookup(code)
         read = read_product(code, payload)
     except NotFound:
+        note("unknown", asked="yes")
         return BarcodeLookupOut(barcode=code, refusal="unknown")
     except Unusable as refused:
         # Con su motivo: «no me vale» sin decir por qué se lee como un fallo de
         # la app, y esto no lo es — es una ficha que no da para lo que pide la
         # base de datos.
+        note("unusable", asked="yes", reason=repr(refused.reason))
         return BarcodeLookupOut(barcode=code, refusal="unusable", refused_reason=refused.reason)
-    except Unreachable:
+    except Unreachable as exc:
+        note("offline", asked="yes", error=type(exc.__cause__).__name__)
         return BarcodeLookupOut(barcode=code, refusal="offline")
 
+    note(
+        "off",
+        asked="yes",
+        per=read.per,
+        read=sum(1 for v in read.nutrients.values() if v is not None),
+    )
     return BarcodeLookupOut(
         barcode=code,
         name=read.name,
         brand=read.brand,
+        per=read.per,
         nutrients=read.nutrients,
     )
 
@@ -332,13 +370,22 @@ async def read_a_label(
     Ninguna es un callejón: un fallo aquí te deja tecleando, que es exactamente
     donde estabas antes de que existiera el botón.
     """
+    started = perf_counter()
+
+    def note(outcome: str, **fields) -> None:
+        parts = " ".join(f"{k}={v}" for k, v in fields.items() if v not in (None, "", ()))
+        elapsed = round((perf_counter() - started) * 1000)
+        log.info("label read: outcome=%s ms=%d %s", outcome, elapsed, parts)
+
     if reader is None:
+        note("not_configured")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="la lectura de etiquetas no está configurada",
         )
     image = await photo.read()
     if len(image) > MAX_PHOTO_BYTES:
+        note("too_big", kb=len(image) // 1024)
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="la foto es demasiado grande",
@@ -350,15 +397,21 @@ async def read_a_label(
         # La cuota es la excepción y viaja aparte, porque repetir la foto no la
         # arregla y hay que decirlo o te quedas insistiendo.
         if exc.quota:
+            note("quota", model=settings.gemini_model, scope=exc.quota)
             return LabelReadOut(
                 refusal="quota",
                 quota_scope=exc.quota,
                 nutrients=dict(UNKNOWN_NUTRIENTS),
             )
+        # La clase del error de debajo, no su mensaje: distingue un timeout de
+        # una respuesta que no era JSON, y no puede llevar dentro trozos de la
+        # petición.
+        note("unreadable", model=settings.gemini_model, error=type(exc.__cause__).__name__)
         return LabelReadOut(refusal="unreadable", nutrients=dict(UNKNOWN_NUTRIENTS))
     try:
         read = read_from_payload(payload)
     except ColumnRefused as refused:
+        note("column", model=settings.gemini_model, header=repr(refused.header))
         # Rechazada entera, no reescalada. El nombre y la marca tampoco se
         # aprovechan: si la columna estaba mal leída, lo demás de esa lectura no
         # merece más confianza que ella.
@@ -367,10 +420,24 @@ async def read_a_label(
             refused_column=refused.header,
             nutrients=dict(UNKNOWN_NUTRIENTS),
         )
+    note(
+        "ok",
+        model=settings.gemini_model,
+        per=read.per,
+        # Cuántas cifras se creyeron y cuántas se tiraron. Es lo que dice, con
+        # el tiempo, si el modelo va bien — sin guardar ni una etiqueta.
+        read=sum(1 for v in read.nutrients.values() if v is not None),
+        dropped=",".join(read.dropped),
+    )
     return LabelReadOut(
         name=read.name,
         brand=read.brand,
         column_header=read.column_header,
+        per=read.per,
+        # La transcripción viaja a la pantalla. Es lo único que contesta a «¿qué
+        # ha leído?» sin obligar a creerse el veredicto — y sin ella, un
+        # formulario vacío y uno relleno se explican igual de mal.
+        rows=[str(row) for row in (payload.get("rows") or [])][:20],
         nutrients=read.nutrients,
         dropped=list(read.dropped),
     )
