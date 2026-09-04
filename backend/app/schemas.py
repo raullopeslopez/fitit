@@ -356,6 +356,10 @@ class FoodIn(BaseModel):
     carbs_100g: float | None = Field(default=None, ge=0, le=100)
     fiber_100g: float | None = Field(default=None, ge=0, le=100)
     portions: list[PortionIn] = Field(default_factory=list, max_length=8)
+    # El código que traía el escaneo, para que la segunda vez no haya que
+    # preguntarle a nadie. Sólo llega desde un formulario que alguien confirmó:
+    # escanear no da de alta nada por su cuenta.
+    barcode: str | None = Field(default=None, max_length=14)
 
     @field_validator("brand")
     @classmethod
@@ -536,3 +540,25 @@ class LabelReadOut(BaseModel):
     quota_scope: Literal["minute", "day"] | None = None
     # La cabecera rechazada, para poder decir en pantalla cuál era.
     refused_column: str | None = None
+
+
+# Un código de barras resuelto. Tres finales, y la pantalla los distingue por
+# los campos que vienen:
+#   `food`      — ya lo tenías. No se ha preguntado a nadie, y se registra ya.
+#   propuesta   — OFF lo conoce: nombre, marca y macros para el formulario.
+#   `refusal`   — no hay nada utilizable, y por qué.
+class BarcodeLookupOut(BaseModel):
+    barcode: str
+    # El alimento tuyo que ya llevaba ese código. Cuando viene, la consulta no
+    # ha salido de la base de datos: ni red, ni OFF, ni espera.
+    food: FoodOut | None = None
+    name: str | None = None
+    brand: str | None = None
+    nutrients: dict[str, float | None] = Field(default_factory=dict)
+    # 'unknown'  — OFF no lo conoce; das de alta a mano con el código puesto
+    # 'unusable' — lo conoce, pero su ficha no sirve (ver `refused_reason`)
+    # 'offline'  — no se pudo preguntar
+    refusal: Literal["unknown", "unusable", "offline"] | None = None
+    # Por qué no servía: 'por ración', 'por 100 ml', 'sin kcal'. A la pantalla,
+    # porque «no me vale» sin motivo se lee como un fallo de la app.
+    refused_reason: str | None = None

@@ -333,6 +333,114 @@ describe('Comida', () => {
       )
     })
 
+    // El escáner. La puerta barata: un EAN se resuelve contra Open Food Facts
+    // sin clave, sin cuota y sin modelo, y la segunda vez ni siquiera sale de
+    // la base de datos.
+    describe('escanear un código de barras', () => {
+      const JPEG = () =>
+        new File([new Uint8Array([255, 216, 255])], 'codigo.jpg', { type: 'image/jpeg' })
+
+      // `BarcodeDetector` es nativo en Chrome/Android y no existe en jsdom, así
+      // que aquí se pone uno de mentira. Lo que se prueba no es que decodifique
+      // —eso lo hace el navegador— sino qué hace la pantalla con lo que salga.
+      function conDetector(codigos) {
+        window.BarcodeDetector = class {
+          static getSupportedFormats() {
+            return Promise.resolve(['ean_13'])
+          }
+          detect() {
+            return Promise.resolve(codigos.map((rawValue) => ({ rawValue })))
+          }
+        }
+        window.createImageBitmap = () => Promise.resolve({})
+      }
+
+      afterEach(() => {
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
+      })
+
+      async function escanear(respuesta, codigos = ['8410128750121']) {
+        conDetector(codigos)
+        api.searchFoods.mockResolvedValue([])
+        if (respuesta) api.scanBarcode.mockResolvedValue(respuesta)
+        api.logFood.mockResolvedValue(entry())
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Escanear código'), JPEG())
+      }
+
+      it('un producto que ya tienes se registra sin pasar por el formulario', async () => {
+        await escanear({ barcode: '8410128750121', food: { ...PAN, name: 'Yogur natural' } })
+        // Va directo a la cantidad: el alimento ya existe, no hay nada que dar
+        // de alta.
+        expect(await screen.findByLabelText('Gramos')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
+      })
+
+      it('uno que conoce Open Food Facts llega como propuesta, no como alta', async () => {
+        await escanear({
+          barcode: '8410128750121',
+          food: null,
+          name: 'Yogur natural',
+          brand: 'Hacendado',
+          nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
+          refusal: null,
+        })
+        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
+        expect(screen.getByLabelText('Marca')).toHaveValue('Hacendado')
+        expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
+        expect(api.createFood).not.toHaveBeenCalled()
+      })
+
+      it('el código viaja hasta el alta, para no volver a preguntarlo mañana', async () => {
+        await escanear({ barcode: '8410128750121', food: null, refusal: 'unknown' })
+        api.createFood.mockResolvedValue({ ...PAN, id: 50 })
+        await userEvent.type(await screen.findByLabelText('Nombre'), 'Pan de la panadería')
+        await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+        await waitFor(() =>
+          expect(api.createFood).toHaveBeenCalledWith(
+            expect.objectContaining({ barcode: '8410128750121' }),
+          ),
+        )
+      })
+
+      it('un código que nadie conoce lo dice, y te deja tecleando', async () => {
+        await escanear({ barcode: '8410128750121', food: null, refusal: 'unknown' })
+        expect(
+          await screen.findByText('Ese código no está en Open Food Facts. Tecléalo.'),
+        ).toBeInTheDocument()
+        expect(screen.getByLabelText('Nombre')).toHaveValue('')
+      })
+
+      it('una ficha por ración se rechaza y se explica', async () => {
+        await escanear({
+          barcode: '8410128750121',
+          food: null,
+          refusal: 'unusable',
+          refused_reason: 'por ración',
+        })
+        expect(
+          await screen.findByText('Los datos de ese código vienen por ración. No me sirven: tecléalo.'),
+        ).toBeInTheDocument()
+      })
+
+      it('sin red lo dice, y no lo hace pasar por un código desconocido', async () => {
+        await escanear({ barcode: '8410128750121', food: null, refusal: 'offline' })
+        expect(
+          await screen.findByText('No he podido preguntar por ese código. Tecléalo.'),
+        ).toBeInTheDocument()
+      })
+
+      it('si en la foto no hay código, lo dice sin preguntar a nadie', async () => {
+        await escanear(null, [])
+        expect(
+          await screen.findByText('No he visto ningún código en la foto.'),
+        ).toBeInTheDocument()
+        expect(api.scanBarcode).not.toHaveBeenCalled()
+      })
+    })
+
     // La cámara. Lee la etiqueta y **propone**: el formulario sigue siendo la
     // puerta, y lo que el backend no pudo respaldar llega en blanco, nunca a
     // cero.
