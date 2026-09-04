@@ -180,3 +180,39 @@ def then_day_quota(response):
     body = response.json()
     assert body["refusal"] == "quota"
     assert body["quota_scope"] == "day"
+
+
+@given("the camera reads a label whose calories do not match its macros")
+def given_mismatch():
+    """Un dígito mal leído: 3,8 g de proteína transcritos como 8,8.
+
+    La fila existe, el número es plausible y la columna es la buena, así que
+    ningún otro filtro lo ve. Lo delata que las cifras de una etiqueta no son
+    independientes: 4·8,8 + 9·3,2 + 4·4,5 + 2·0,3 son 83, no 61.
+    """
+    _install(
+        {
+            **CLEAN,
+            "rows": [*CLEAN["rows"][:-1], "Proteínas 8,8 g"],
+            "nutrients": {**CLEAN["nutrients"], "protein": 8.8},
+        }
+    )
+
+
+@then("the form still comes back filled in")
+def then_still_filled(response):
+    """Avisa, no rechaza: el producto puede llevar polioles y la etiqueta puede
+    redondear raro. Quien mira el envase decide; esto sólo le da el motivo."""
+    assert response.json()["nutrients"]["kcal"] == 61
+
+
+@then(
+    parsers.parse(
+        "it warns that {declared:d} declared kcal do not match the {computed:d} the macros make"
+    )
+)
+def then_mismatch(response, declared, computed):
+    off = response.json()["mismatch"]
+    assert off is not None, "no ha saltado el descuadre"
+    assert off["declared"] == declared
+    assert round(off["computed"]) == computed

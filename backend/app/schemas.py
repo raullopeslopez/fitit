@@ -511,6 +511,16 @@ class FoodDayOut(BaseModel):
     remaining_kcal: float | None = None
 
 
+# Las kilocalorías declaradas y las que salen de los macros, cuando no
+# coinciden. Es la única defensa contra un dígito mal leído: la fila existe, el
+# número es plausible y la columna es la correcta, así que ningún otro filtro lo
+# ve — pero las cifras de una etiqueta no son independientes, y romper esa
+# igualdad delata la que se leyó mal.
+class KcalMismatch(BaseModel):
+    declared: float
+    computed: float
+
+
 # La etiqueta leída de una foto: una **propuesta** para el formulario de alta,
 # nunca un alimento. Todo es opcional porque la mitad de las veces la foto sólo
 # contesta a la mitad de las preguntas, y media respuesta sigue ahorrando
@@ -530,6 +540,10 @@ class LabelReadOut(BaseModel):
     # veredicto: con las filas delante se ve de un vistazo si leyó bien y el
     # backend descartó, o si leyó mal desde el principio.
     rows: list[str] = Field(default_factory=list)
+    # Cuando las kcal y los macros no dan lo mismo. No se rechaza la lectura por
+    # esto —el producto puede llevar polioles, o la etiqueta redondear raro—,
+    # pero sí se dice: es lo que convierte confirmar en comprobar.
+    mismatch: KcalMismatch | None = None
     # Las cinco claves siempre, con `None` donde no se sabe. Un nutriente que
     # falte del diccionario y uno que valga `None` significan lo mismo, y tener
     # una sola forma de decirlo evita que la pantalla los trate distinto.
@@ -565,6 +579,9 @@ class BarcodeLookupOut(BaseModel):
     brand: str | None = None
     per: Literal["100g", "100ml"] | None = None
     nutrients: dict[str, float | None] = Field(default_factory=dict)
+    # Open Food Facts la rellena cualquiera, así que sus fichas también traen
+    # cifras que no cuadran entre sí. Mismo aviso, misma razón.
+    mismatch: KcalMismatch | None = None
     # 'unknown'  — OFF no lo conoce; das de alta a mano con el código puesto
     # 'unusable' — lo conoce, pero su ficha no sirve (ver `refused_reason`)
     # 'offline'  — no se pudo preguntar
