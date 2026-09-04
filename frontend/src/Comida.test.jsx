@@ -606,6 +606,33 @@ describe('Comida', () => {
         delete window.createImageBitmap
       })
 
+      // Los dos disparadores compartían el mismo indicador, así que mientras
+      // uno leía la hoja decía «Leyendo… Leyendo…», dos veces, una al lado de
+      // la otra. Sólo se anuncia el que has pulsado.
+      it('sólo se pone «Leyendo…» el botón que has pulsado', async () => {
+        // Los dos disparadores en pantalla, que es la condición del fallo.
+        window.BarcodeDetector = class {
+          detect() {
+            return Promise.resolve([])
+          }
+        }
+        window.createImageBitmap = () => Promise.resolve({})
+        api.searchFoods.mockResolvedValue([])
+        let resolve
+        api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+
+        expect(screen.getAllByText('Leyendo…')).toHaveLength(1)
+        expect(screen.getByLabelText('Escanear código')).toBeInTheDocument()
+        await act(async () => {
+          resolve(LEIDO)
+        })
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
+      })
+
       it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {
         await fotografiar(LEIDO)
         await screen.findByLabelText('Nombre')

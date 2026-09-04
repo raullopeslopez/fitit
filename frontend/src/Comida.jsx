@@ -651,7 +651,11 @@ function AddFood({ slot = null, onDone, onCancel }) {
   // Lo que devolvió el escáner: o el alimento que ya tenías, o una propuesta de
   // Open Food Facts, o el motivo por el que no hay ninguna de las dos.
   const [scan, setScan] = useState(null)
-  const [reading, setReading] = useState(false)
+  // Cuál de las dos cámaras está leyendo: 'label', 'scan' o ninguna. Un solo
+  // booleano ponía «Leyendo…» en los dos disparadores a la vez, así que la hoja
+  // decía «Leyendo… Leyendo…» — dos veces, una al lado de la otra, y ninguna te
+  // decía cuál era la tuya.
+  const [reading, setReading] = useState(null)
   const latest = useRef(0)
   const field = useRef(null)
 
@@ -686,7 +690,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
     // seguidas no dispara `change` y el botón parece roto la segunda vez.
     event.target.value = ''
     if (!file) return
-    setReading(true)
+    setReading('label')
     // Una lectura nueva manda sobre lo que dijera el escáner: `scan` se mira
     // antes que `creating` al pintar, así que dejarlo puesto haría que el
     // resultado de esta foto —ya pagada— no llegase a la pantalla.
@@ -700,7 +704,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
       // el 2026-09-04, y costó una sesión de depuración.
       setLabel({ refusal: error?.status === 503 ? 'off' : 'unreadable' })
     } finally {
-      setReading(false)
+      setReading(null)
       setCreating(true)
     }
   }
@@ -717,7 +721,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    setReading(true)
+    setReading('scan')
     setLabel(null)
     setCreating(false)
     try {
@@ -733,7 +737,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
     } catch {
       setScan({ refusal: 'offline' })
     } finally {
-      setReading(false)
+      setReading(null)
     }
   }
 
@@ -847,7 +851,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
           que no está, porque no hay forma de saber por qué falla. */}
       {canScan() && (
         <label className="link-btn food-photo" htmlFor="food-scan">
-          {reading ? 'Leyendo…' : 'Escanear código'}
+          {reading === 'scan' ? 'Leyendo…' : 'Escanear código'}
           <input
             id="food-scan"
             type="file"
@@ -859,7 +863,7 @@ function AddFood({ slot = null, onDone, onCancel }) {
         </label>
       )}
       <label className="link-btn food-photo" htmlFor="food-photo">
-        {reading ? 'Leyendo…' : 'Leer etiqueta'}
+        {reading === 'label' ? 'Leyendo…' : 'Leer etiqueta'}
         <input
           id="food-photo"
           type="file"
