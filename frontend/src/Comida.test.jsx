@@ -564,6 +564,48 @@ describe('Comida', () => {
         expect(screen.queryByText(/Espera un minuto/)).toBeNull()
       })
 
+      // El caso que se vio en producción el 2026-09-04: la llamada salió bien
+      // —200 en los logs— y en pantalla no había ni cifras ni aviso. Una
+      // lectura de la que no sale ningún número no es una lectura buena, y
+      // pintarla como tal deja al usuario mirando siete campos vacíos sin nada
+      // que explique por qué.
+      it('una lectura de la que no sale ninguna cifra lo dice', async () => {
+        await fotografiar({
+          ...LEIDO,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          dropped: [],
+        })
+        expect(
+          await screen.findByText('No he sacado ninguna cifra de la foto. Tecléalas.'),
+        ).toBeInTheDocument()
+      })
+
+      it('y una foto tomada después de escanear no se queda sin pintar', async () => {
+        // `scan` se comprobaba antes que la lectura, así que un escaneo previo
+        // sin limpiar tapaba lo que devolviera la etiqueta: la llamada se
+        // pagaba y su resultado no llegaba a la pantalla.
+        api.searchFoods.mockResolvedValue([])
+        api.scanBarcode.mockResolvedValue({ barcode: '8410128750121', food: null, refusal: 'unknown' })
+        api.readLabel.mockResolvedValue(LEIDO)
+        api.logFood.mockResolvedValue(entry())
+        window.BarcodeDetector = class {
+          detect() {
+            return Promise.resolve([{ rawValue: '8410128750121' }])
+          }
+        }
+        window.createImageBitmap = () => Promise.resolve({})
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Escanear código'), JPEG())
+        await screen.findByText('Ese código no está en Open Food Facts. Tecléalo.')
+        await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
+        expect(screen.getByText('Leído de «por 100 g».')).toBeInTheDocument()
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
+      })
+
       it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {
         await fotografiar(LEIDO)
         await screen.findByLabelText('Nombre')

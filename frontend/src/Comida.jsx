@@ -687,6 +687,10 @@ function AddFood({ slot = null, onDone, onCancel }) {
     event.target.value = ''
     if (!file) return
     setReading(true)
+    // Una lectura nueva manda sobre lo que dijera el escáner: `scan` se mira
+    // antes que `creating` al pintar, así que dejarlo puesto haría que el
+    // resultado de esta foto —ya pagada— no llegase a la pantalla.
+    setScan(null)
     try {
       setLabel(await readLabel(file))
     } catch (error) {
@@ -714,6 +718,8 @@ function AddFood({ slot = null, onDone, onCancel }) {
     event.target.value = ''
     if (!file) return
     setReading(true)
+    setLabel(null)
+    setCreating(false)
     try {
       const codes = await detectBarcodes(file)
       if (codes.length === 0) {
@@ -1058,6 +1064,16 @@ function LabelNote({ label }) {
       </p>
     )
   }
+  // Una lectura de la que no sale ninguna cifra no es una lectura buena, por
+  // mucho que la llamada haya ido bien. Visto en producción el 2026-09-04: el
+  // servidor devolvió 200, la pantalla abrió siete campos vacíos y lo único
+  // escrito era un «Leído de …» en gris. Ni datos ni explicación — que es peor
+  // que un error, porque un error al menos se entiende.
+  const anyRead = Object.values(label.nutrients ?? {}).some((value) => value != null)
+  if (!anyRead) {
+    return <p className="food-label-warn">No he sacado ninguna cifra de la foto. Tecléalas.</p>
+  }
+
   const dropped = droppedNote(label.dropped)
   return (
     <>
