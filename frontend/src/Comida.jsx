@@ -1100,9 +1100,14 @@ function ReadRows({ rows }) {
 
 function LabelNote({ label }) {
   if (label.refusal === 'column') {
+    // Sin cabecera no es que la columna fuera mala: es que no se leyó, y
+    // decirlo con unas comillas vacías —«Esa columna es «», no por 100 g»— no
+    // significa nada. Son dos fallos distintos y piden dos frases distintas.
     return (
       <p className="food-label-warn">
-        Esa columna es «{label.refused_column}», no por 100 g. No me sirve: tecléalo.
+        {label.refused_column
+          ? `Esa columna es «${label.refused_column}», no por 100 g. No me sirve: tecléalo.`
+          : 'No he encontrado la cabecera de la tabla. Tecléalo.'}
       </p>
     )
   }
