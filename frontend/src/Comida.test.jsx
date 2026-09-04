@@ -673,6 +673,24 @@ describe('Comida', () => {
         expect(screen.queryByRole('button', { name: 'Ver lo que he leído' })).toBeNull()
       })
 
+      // La única defensa contra un dígito mal leído. Una fila que existe, un
+      // número plausible y la columna correcta pasan todos los demás filtros;
+      // lo que no pasa es que las kcal y los macros de la misma etiqueta no
+      // den lo mismo.
+      it('avisa cuando las cifras no cuadran entre sí, y no las esconde', async () => {
+        await fotografiar({
+          ...LEIDO,
+          nutrients: { ...LEIDO.nutrients, protein: 8.8 },
+          mismatch: { declared: 61, computed: 82.6 },
+        })
+        expect(await screen.findByLabelText('Proteína por 100 g')).toHaveValue('8,8')
+        expect(
+          screen.getByText(
+            'Las cifras no cuadran: pone 61 kcal, pero los macros suman 83. Comprueba la etiqueta.',
+          ),
+        ).toBeInTheDocument()
+      })
+
       it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {
         await fotografiar(LEIDO)
         await screen.findByLabelText('Nombre')

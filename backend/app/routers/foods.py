@@ -30,9 +30,10 @@ from ..openfoodfacts import (
 )
 from ..models import Food, FoodAlias, LogEntry, Portion
 from ..naming import fold_exercise_name as fold
-from ..nutrition import NUTRIENTS, calcular_nutrientes
+from ..nutrition import NUTRIENTS, calcular_nutrientes, kcal_disagreement
 from ..schemas import (
     BarcodeLookupOut,
+    KcalMismatch,
     FoodIn,
     FoodOut,
     FoodPatch,
@@ -333,11 +334,13 @@ async def scan_barcode(
         note("offline", asked="yes", error=type(exc.__cause__).__name__)
         return BarcodeLookupOut(barcode=code, refusal="offline")
 
+    off_by = kcal_disagreement(**read.nutrients)
     note(
         "off",
         asked="yes",
         per=read.per,
         read=sum(1 for v in read.nutrients.values() if v is not None),
+        mismatch=f"{off_by[0]}vs{off_by[1]}" if off_by else None,
     )
     return BarcodeLookupOut(
         barcode=code,
@@ -345,6 +348,7 @@ async def scan_barcode(
         brand=read.brand,
         per=read.per,
         nutrients=read.nutrients,
+        mismatch=KcalMismatch(declared=off_by[0], computed=off_by[1]) if off_by else None,
     )
 
 
@@ -420,10 +424,14 @@ async def read_a_label(
             refused_column=refused.header,
             nutrients=dict(UNKNOWN_NUTRIENTS),
         )
+    # Lo único que caza un dígito mal leído: las kcal y los macros de una
+    # etiqueta tienen que dar lo mismo, y un 3 leído como 8 rompe la igualdad.
+    off_by = kcal_disagreement(**read.nutrients)
     note(
         "ok",
         model=settings.gemini_model,
         per=read.per,
+        mismatch=f"{off_by[0]}vs{off_by[1]}" if off_by else None,
         # Cuántas cifras se creyeron y cuántas se tiraron. Es lo que dice, con
         # el tiempo, si el modelo va bien — sin guardar ni una etiqueta.
         read=sum(1 for v in read.nutrients.values() if v is not None),
@@ -440,6 +448,7 @@ async def read_a_label(
         rows=[str(row) for row in (payload.get("rows") or [])][:20],
         nutrients=read.nutrients,
         dropped=list(read.dropped),
+        mismatch=KcalMismatch(declared=off_by[0], computed=off_by[1]) if off_by else None,
     )
 
 

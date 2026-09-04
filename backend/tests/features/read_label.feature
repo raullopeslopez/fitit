@@ -51,3 +51,9 @@ Feature: Read a packaged product's label off a photo
     When I photograph a label
     Then nothing is proposed
     And it says the day's allowance is gone
+
+  Scenario: Figures that do not add up are flagged
+    Given the camera reads a label whose calories do not match its macros
+    When I photograph a label
+    Then the form still comes back filled in
+    And it warns that 61 declared kcal do not match the 83 the macros make
