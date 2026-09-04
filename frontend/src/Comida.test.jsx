@@ -633,6 +633,46 @@ describe('Comida', () => {
         delete window.createImageBitmap
       })
 
+      it('una etiqueta por 100 ml se rellena, y lo dice', async () => {
+        await fotografiar({ ...LEIDO, column_header: 'ø/100 ml', per: '100ml' })
+        expect(await screen.findByLabelText('Kcal por 100 g')).toHaveValue('61')
+        expect(
+          screen.getByText('Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.'),
+        ).toBeInTheDocument()
+      })
+
+      // «¿Qué ha leído?» no se contesta con un veredicto. Con las filas
+      // delante se ve de un vistazo si leyó bien y el backend descartó, o si
+      // leyó mal desde el principio — y eso no lo dice ningún mensaje.
+      it('enseña la tabla que dice haber leído, a un toque', async () => {
+        await fotografiar({
+          ...LEIDO,
+          rows: ['Valor energético 61 kcal', 'Proteínas 3,8 g'],
+        })
+        await screen.findByLabelText('Nombre')
+        expect(screen.queryByText('Valor energético 61 kcal')).toBeNull()
+        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        expect(screen.getByText('Valor energético 61 kcal')).toBeInTheDocument()
+        expect(screen.getByText('Proteínas 3,8 g')).toBeInTheDocument()
+      })
+
+      it('y también cuando no ha sacado ninguna cifra, que es cuando más falta hace', async () => {
+        await fotografiar({
+          ...LEIDO,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          rows: ['Energia 61 kcal'],
+        })
+        await screen.findByText('No he sacado ninguna cifra de la foto. Tecléalas.')
+        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        expect(screen.getByText('Energia 61 kcal')).toBeInTheDocument()
+      })
+
+      it('sin transcripción no ofrece un desplegable vacío', async () => {
+        await fotografiar({ ...LEIDO, rows: [] })
+        await screen.findByLabelText('Nombre')
+        expect(screen.queryByRole('button', { name: 'Ver lo que he leído' })).toBeNull()
+      })
+
       it('lo leído es una propuesta: no da de alta nada hasta que lo guardas', async () => {
         await fotografiar(LEIDO)
         await screen.findByLabelText('Nombre')

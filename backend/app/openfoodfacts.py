@@ -81,6 +81,11 @@ class Scanned:
     barcode: str
     name: str | None
     brand: str | None
+    # '100g' o '100ml'. `_100g` es el nombre del campo en OFF, no una promesa:
+    # en una bebida esas cifras son por 100 ml. Se aceptan y se marcan, igual
+    # que la columna equivalente de una etiqueta — rechazarlas dejaba fuera
+    # media nevera, y en un líquido acuoso la diferencia es del 3%.
+    per: str
     nutrients: dict[str, float | None]
 
 
@@ -112,9 +117,6 @@ def read_product(ean: str, payload: dict) -> Scanned:
         # pueden venir calculados o no venir: no hay forma de saber cuál, y
         # adivinarlo es escalar por un factor inventado.
         raise Unusable("por ración")
-    if _is_liquid(product):
-        raise Unusable("por 100 ml")
-
     nutrients = {}
     for nutrient, field in OFF_FIELDS.items():
         nutrients[nutrient] = _number((product.get("nutriments") or {}).get(field))
@@ -127,6 +129,7 @@ def read_product(ean: str, payload: dict) -> Scanned:
 
     return Scanned(
         barcode=ean,
+        per="100ml" if _is_liquid(product) else "100g",
         name=_text(product.get("product_name")),
         brand=_text((product.get("brands") or "").split(",")[0]),
         nutrients=nutrients,

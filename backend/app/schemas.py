@@ -521,6 +521,15 @@ class LabelReadOut(BaseModel):
     # La cabecera de la que salieron los números, literal. Va a la pantalla: una
     # cifra que no dice de dónde viene no se puede confirmar, sólo aceptar.
     column_header: str | None = None
+    # '100g' o '100ml'. La pantalla lo dice en tinta cuando es lo segundo: los
+    # números se guardan tal cual, sin convertir, y quien confirma tiene que
+    # saber de qué unidad salen antes de pulsar guardar.
+    per: Literal["100g", "100ml"] | None = None
+    # La tabla tal y como el modelo dice haberla transcrito, línea a línea. Es
+    # lo único que contesta a «¿qué ha leído?» sin tener que creerse el
+    # veredicto: con las filas delante se ve de un vistazo si leyó bien y el
+    # backend descartó, o si leyó mal desde el principio.
+    rows: list[str] = Field(default_factory=list)
     # Las cinco claves siempre, con `None` donde no se sabe. Un nutriente que
     # falte del diccionario y uno que valga `None` significan lo mismo, y tener
     # una sola forma de decirlo evita que la pantalla los trate distinto.
@@ -554,6 +563,7 @@ class BarcodeLookupOut(BaseModel):
     food: FoodOut | None = None
     name: str | None = None
     brand: str | None = None
+    per: Literal["100g", "100ml"] | None = None
     nutrients: dict[str, float | None] = Field(default_factory=dict)
     # 'unknown'  — OFF no lo conoce; das de alta a mano con el código puesto
     # 'unusable' — lo conoce, pero su ficha no sirve (ver `refused_reason`)

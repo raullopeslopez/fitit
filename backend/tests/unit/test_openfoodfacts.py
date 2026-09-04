@@ -86,12 +86,24 @@ def test_values_per_serving_are_refused_not_rescaled():
         {"quantity": "1,5 L"},
     ],
 )
-def test_a_drink_is_refused_because_millilitres_are_not_grams(product):
+def test_a_drink_is_read_and_flagged(product):
     """`_100g` es el nombre del campo, no una promesa: en una bebida esas cifras
-    son por 100 ml, y pasarlas a gramos necesita una densidad que no viene."""
-    with pytest.raises(Unusable) as refused:
-        read_product(EAN, ficha(**product))
-    assert refused.value.reason == "por 100 ml"
+    son por 100 ml.
+
+    Se aceptan y se marcan, como la columna equivalente de una etiqueta:
+    rechazarlas dejaba fuera media nevera —leche, bebidas vegetales, zumos,
+    caldos— y en un líquido acuoso la diferencia con los gramos es del 3%. Lo
+    que la regla prohíbe es **convertir a escondidas**, y aquí no se convierte
+    nada: los números se guardan tal cual y la pantalla dice de qué unidad
+    salen antes de que nadie pulse guardar.
+    """
+    read = read_product(EAN, ficha(**product))
+    assert read.per == "100ml"
+    assert read.nutrients["kcal"] == 61
+
+
+def test_a_solid_says_it_is_grams():
+    assert read_product(EAN, ficha()).per == "100g"
 
 
 def test_an_absurd_figure_is_dropped_rather_than_stored():

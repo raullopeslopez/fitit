@@ -1027,7 +1027,13 @@ function ScanNote({ scan }) {
     }[scan.refused_reason],
   }[scan.refusal]
 
-  if (!message) return null
+  if (!message) {
+    return scan.per === '100ml' ? (
+      <p className="food-label-warn">
+        Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+      </p>
+    ) : null
+  }
   return <p className="food-label-warn">{message}</p>
 }
 
@@ -1037,6 +1043,34 @@ function ScanNote({ scan }) {
 // en cuánto viene puesto, así que lo único que las distingue es esta línea. Sin
 // ella, «lo he leído todo» y «no he leído nada» se ven igual: campos con texto o
 // campos sin él, que es exactamente lo que ves cuando tecleas.
+// Lo que el modelo dice haber transcrito, a un toque.
+//
+// Existe porque un veredicto no contesta a «¿qué ha leído?». Con las filas
+// delante se ve de un vistazo si leyó bien y el backend descartó las cifras, o
+// si leyó mal desde el principio — y son dos problemas distintos, con dos
+// arreglos distintos, que sin esto se ven exactamente igual.
+//
+// Plegado, porque cuando la lectura sale bien es ruido: la información que
+// hace falta ya está en los siete campos.
+function ReadRows({ rows }) {
+  const [open, setOpen] = useState(false)
+  if (!rows || rows.length === 0) return null
+  return (
+    <div className="food-label-rows">
+      <button type="button" className="link-btn" onClick={() => setOpen(!open)}>
+        {open ? 'Ocultar lo leído' : 'Ver lo que he leído'}
+      </button>
+      {open && (
+        <ul>
+          {rows.map((row, index) => (
+            <li key={index}>{row}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function LabelNote({ label }) {
   if (label.refusal === 'column') {
     return (
@@ -1075,7 +1109,12 @@ function LabelNote({ label }) {
   // que un error, porque un error al menos se entiende.
   const anyRead = Object.values(label.nutrients ?? {}).some((value) => value != null)
   if (!anyRead) {
-    return <p className="food-label-warn">No he sacado ninguna cifra de la foto. Tecléalas.</p>
+    return (
+      <>
+        <p className="food-label-warn">No he sacado ninguna cifra de la foto. Tecléalas.</p>
+        <ReadRows rows={label.rows} />
+      </>
+    )
   }
 
   const dropped = droppedNote(label.dropped)
@@ -1084,10 +1123,20 @@ function LabelNote({ label }) {
       {label.column_header && (
         <p className="hint food-label-read">Leído de «{label.column_header}».</p>
       )}
+      {/* En tinta, y encima de los campos que describe: los números están en
+          casillas que dicen «por 100 g» y no son gramos. No se convierte nada
+          —eso exigiría una densidad que la etiqueta no trae—, se dice lo que
+          son y decides tú. En un líquido acuoso la diferencia es del 3%. */}
+      {label.per === '100ml' && (
+        <p className="food-label-warn">
+          Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+        </p>
+      )}
       {/* En tinta y no en `--muted`: explica por qué un campo está vacío, y un
           hueco sin explicar se lee como «la etiqueta no lo declara», que aquí es
           justo lo contrario de lo que ha pasado. */}
       {dropped && <p className="food-label-warn">{dropped}</p>}
+      <ReadRows rows={label.rows} />
     </>
   )
 }

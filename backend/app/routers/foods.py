@@ -333,11 +333,17 @@ async def scan_barcode(
         note("offline", asked="yes", error=type(exc.__cause__).__name__)
         return BarcodeLookupOut(barcode=code, refusal="offline")
 
-    note("off", asked="yes", read=sum(1 for v in read.nutrients.values() if v is not None))
+    note(
+        "off",
+        asked="yes",
+        per=read.per,
+        read=sum(1 for v in read.nutrients.values() if v is not None),
+    )
     return BarcodeLookupOut(
         barcode=code,
         name=read.name,
         brand=read.brand,
+        per=read.per,
         nutrients=read.nutrients,
     )
 
@@ -417,6 +423,7 @@ async def read_a_label(
     note(
         "ok",
         model=settings.gemini_model,
+        per=read.per,
         # Cuántas cifras se creyeron y cuántas se tiraron. Es lo que dice, con
         # el tiempo, si el modelo va bien — sin guardar ni una etiqueta.
         read=sum(1 for v in read.nutrients.values() if v is not None),
@@ -426,6 +433,11 @@ async def read_a_label(
         name=read.name,
         brand=read.brand,
         column_header=read.column_header,
+        per=read.per,
+        # La transcripción viaja a la pantalla. Es lo único que contesta a «¿qué
+        # ha leído?» sin obligar a creerse el veredicto — y sin ella, un
+        # formulario vacío y uno relleno se explican igual de mal.
+        rows=[str(row) for row in (payload.get("rows") or [])][:20],
         nutrients=read.nutrients,
         dropped=list(read.dropped),
     )
