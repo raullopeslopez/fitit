@@ -506,6 +506,25 @@ describe('Comida', () => {
         ).toBeInTheDocument()
       })
 
+      it('sin cabecera no pinta unas comillas vacías', async () => {
+        // Visto probando en producción: el modelo no vio la cabecera, devolvió
+        // «» y la pantalla decía «Esa columna es «», no por 100 g», que no
+        // significa nada. No es que la columna fuera mala: es que no se leyó.
+        await fotografiar({
+          ...LEIDO,
+          name: null,
+          brand: null,
+          column_header: null,
+          nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          refusal: 'column',
+          refused_column: '',
+        })
+        expect(
+          await screen.findByText('No he encontrado la cabecera de la tabla. Tecléalo.'),
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/«»/)).toBeNull()
+      })
+
       it('si el servidor no tiene la lectura configurada, lo dice tal cual', async () => {
         // El fallo de producción del 2026-09-04: sin clave en el servidor, el
         // 503 se pintaba como «no he podido leer la etiqueta» y te dejaba
