@@ -1,368 +1,382 @@
-# Registrar con la voz: qué se puede hacer hoy y cuál de los tres caminos vale
+# Registrar comida con la voz: dónde está el problema de verdad
 
-Revisión previa a implementar nada. La pregunta era «con IA y/o con lo que ofrezca
-el propio teléfono», y la respuesta corta es que **el teléfono llega más lejos de lo
-que parece y la IA hace falta más tarde de lo que parece** — pero sólo si se parte
-el problema en dos capas, que es lo que hace este documento.
+Revisión previa a implementar nada. La pregunta era «con IA y/o con lo que ofrezca el
+propio teléfono», y la respuesta corta es que **la parte de oírte está resuelta y es
+gratis, y el problema entero está en el otro lado**: convertir «un yogur natural» en
+un número de gramos sin inventárselo.
 
 Misma regla que los otros documentos de esta carpeta: lo que no he verificado va
 marcado como tal.
 
 ---
 
-## 0. Confianza en cada fuente
+## 1. El problema no es oírte
+
+Es tentador leer «registrar con la voz» como un problema de reconocimiento de voz. No
+lo es. Lo dice el propio flujo de hoy: para meter un yogur en el diario tocas *Buscar
+alimento*, escribes «yog», tocas la fila, escribes los gramos, eliges la comida y
+guardas. De esos seis pasos, **el dictado sólo se come el segundo**.
+
+Lo que sí se come de golpe es el caso de varias cosas a la vez: «dos huevos, una
+tostada de pan integral y un café con leche» son hoy tres ciclos completos de
+búsqueda, y dictados son uno. Ahí está el valor, y por eso el diseño tiene que ser
+**multientrada desde el primer día** — una funcionalidad que sólo sepa meter un
+alimento por dictado no gana nada al teclado.
+
+Y luego está el muro, que es la sección 6: dictar «un yogur» no dice cuántos gramos
+es un yogur, y este proyecto tiene prohibido inventárselo.
+
+---
+
+## 2. Confianza en cada fuente
 
 | Fuente | Qué aporta | Confianza | Por qué |
 |---|---|---|---|
-| `backend/app/gemini.py`, `label.py`, `foods.py` | Coste, cuota y forma de una llamada al modelo en request | **Alta** | Código de este repo, con las cuotas ya medidas contra la API en agosto y septiembre |
-| `frontend/src/offline.js` | Que el registro de series funciona sin red | **Alta** | Código de este repo |
-| `backend/app/schemas.py`, `models.py` | Que `entry_source="voice"` está reservado desde el día uno | **Alta** | Código de este repo |
-| [Gemini API — Audio understanding](https://ai.google.dev/gemini-api/docs/audio) | Formatos de audio, tope de 20 MB, 32 tokens/segundo | **Alta** | Documentación oficial, leída |
-| [MDN — `SpeechRecognition`](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition) | Que en Chrome el reconocimiento va contra un servidor y **no funciona sin red**; `available()`, `install()`, `processLocally` | **Alta** | Documentación oficial, leída |
-| [Explainer de reconocimiento en el dispositivo (WebAudio/W3C)](https://github.com/WebAudio/web-speech-api/blob/main/explainers/on-device-speech-recognition.md) | Los cuatro estados de `available()` | **Alta** | Explainer oficial, leído |
-| [Intent to Ship: On-device Web Speech API](https://groups.google.com/a/chromium.org/g/blink-dev/c/VNOok2dbmHM/m/gwbtzV-lAQAJ) | Que lo local ya está enviado en Chrome | **Media-alta** | Hilo de blink-dev, leído por encima |
-| Soporte de `webkitSpeechRecognition` en Chrome Android | Que la API existe en tu móvil | ⚠️ **Media** | Fuentes secundarias. **Se resuelve en cinco minutos con tu teléfono** — sección 8 |
-| Disponibilidad de `es-ES` en el dispositivo | Si el dictado funciona en el sótano | ⚠️ **Sin verificar** | Depende del móvil concreto. Misma comprobación de la sección 8 |
+| `foods.py`, `food_log.py`, `models.py`, `schemas.py` | Que el catálogo no se edita, que las raciones sólo nacen en `POST /foods`, que `_resolve_grams` exige gramos o ración | **Alta** | Código de este repo |
+| `features/frequent_foods.feature` | Que el repertorio ya devuelve los gramos que repites y la comida a la que suele ir | **Alta** | Spec de este repo |
+| `scripts/import_ciqual.py` | Que las 3.185 filas de CIQUAL entran **sin ninguna ración** | **Alta** | Sin una sola mención a `Portion` en el script |
+| `gemini.py` | Cuota real: 5 peticiones/minuto, 20/día, compartidas con el lector de etiquetas | **Alta** | Medido contra el panel de AI Studio el 2026-09-04 |
+| [Gemini — Audio understanding](https://ai.google.dev/gemini-api/docs/audio) | Acepta `audio/webm`, 20 MB por petición, 32 tokens/segundo | **Alta** | Documentación oficial, leída |
+| [MDN — `SpeechRecognition`](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition) | Que en Chrome el reconocimiento va por red; `available()`, `install()`, `processLocally` | **Alta** | Documentación oficial, leída |
+| [Explainer de reconocimiento local](https://github.com/WebAudio/web-speech-api/blob/main/explainers/on-device-speech-recognition.md) | Los cuatro estados de `available()` | **Alta** | Explainer oficial, leído |
+| Soporte de `webkitSpeechRecognition` en Chrome Android | Que la API existe en tu móvil | ⚠️ **Media** | Fuentes secundarias. **Se resuelve en cinco minutos con tu teléfono** — sección 10 |
+| Qué tal reconoce `es-ES` los nombres de comida | Si «cortado» o «pechuga» llegan enteros | ⚠️ **Sin verificar** | Misma comprobación de la sección 10 |
 
 ---
 
-## 1. Son dos funcionalidades, no una
+## 3. Las dos capas
 
-«Registrar con la voz» significa cosas distintas en las dos pantallas, y meterlas en
-el mismo saco es lo que hace que el proyecto parezca grande.
-
-**Serie de entreno.** Estás de pie, con las manos ocupadas y sudadas, dentro de una
-tarjeta de ejercicio que ya sabe qué ejercicio es. Lo que falta son **dos números**:
-`80 por 8`. El vocabulario es cerrado, el margen de ambigüedad es casi nulo y la
-pantalla ya imprime el par en ese mismo orden (`shownPair` pinta `peso×reps`), así
-que lo que se dice y lo que se ve coinciden sin tener que enseñar nada.
-
-**Entrada de comida.** Estás sentado, con una mano libre, y lo que falta es
-**resolver un nombre contra un catálogo de 3.185 filas** y ponerle una cantidad:
-«un yogur natural de Hacendado». El vocabulario es abierto y la ambigüedad es el
-problema entero — hay doce yogures.
-
-Son dos problemas de dificultad muy distinta. El primero se resuelve sin IA. El
-segundo puede que también, y si no, la IA entra por un sitio mucho más barato que
-el que uno supondría.
-
----
-
-## 2. Las dos capas
-
-Todo lo que viene después depende de partirlo aquí:
+Partirlo aquí es lo que decide todo lo demás:
 
 - **Capa A — audio → texto.** «Convierte lo que he dicho en una cadena.»
-- **Capa B — texto → intención.** «Convierte esa cadena en `{reps: 8, weight: 80}`.»
+- **Capa B — texto → entradas del diario.** «Convierte esa cadena en filas de `log_entries`.»
 
-Se pueden elegir por separado, y **elegirlas por separado es lo que abarata la
-funcionalidad hasta hacerla viable.** El diseño que sale de pensarlo como un bloque
-—grabar audio, mandárselo a un modelo, que devuelva la serie— es el más caro de los
-posibles y encima es el que falla justo donde hace falta. Sección 4.
+La capa A está resuelta, es gratis e ilimitada. **Toda la dificultad, todo el riesgo y
+todo el trabajo están en la capa B.** El diseño que trata esto como un bloque —grabar,
+mandárselo a un modelo, que devuelva las entradas— parece el más moderno y es el que
+más se equivoca, porque le pide al modelo justo lo que el modelo no puede saber: cuánto
+pesa tu yogur.
 
 ---
 
-## 3. Capa A: las tres formas de convertir voz en texto
+## 4. Capa A: cómo oírte
 
-### 3.1 Web Speech API (lo que ofrece el propio teléfono)
+### 4.1 Web Speech API (lo que ofrece el propio teléfono)
 
-`webkitSpeechRecognition` en Chrome. Cinco líneas, cero backend, cero coste:
+Cinco líneas, cero backend, cero coste:
 
 ```js
 const rec = new webkitSpeechRecognition()
 rec.lang = 'es-ES'
 rec.interimResults = true      // para pintar lo que va oyendo
-rec.onresult = (e) => parseSerie(e.results[0][0].transcript)
+rec.onresult = (e) => proponer(e.results[0][0].transcript)
 rec.start()
 ```
 
-- **Coste:** cero. Sin clave, sin cuota, sin límite de peticiones.
-- **Latencia:** con `interimResults` el texto aparece mientras hablas.
-- **Dónde va el audio:** por defecto, **a un servidor de Google**. Que la API sea
-  del navegador no la hace local — es el punto que más se malinterpreta de esta API
-  y el que decide la sección 4.
-- **Navegadores:** Chrome sí; Safari desde iOS 14.5 pero con fama de irregular;
-  Firefox no. El proyecto ya tiene el precedente exacto de cómo tratar esto:
-  `canScan()` en `Comida.jsx` esconde el botón de código de barras donde
-  `BarcodeDetector` no existe, con el argumento escrito de que «un botón que no
-  puede funcionar es peor que uno que no está».
+- **Coste:** cero. Sin clave, sin cuota, sin límite.
+- **Latencia:** con `interimResults`, el texto aparece mientras hablas.
+- **Dónde va el audio:** por defecto a un servidor de Google, así que **necesita red**.
+  Para comida eso da igual: la pantalla ya necesita red para buscar en el catálogo,
+  así que la voz no añade ninguna dependencia nueva. (No así en el gimnasio — sección 12.)
+- **Navegadores:** Chrome sí; Safari desde iOS 14.5 pero irregular; Firefox no. El
+  proyecto ya tiene el precedente exacto: `canScan()` esconde el botón de código de
+  barras donde `BarcodeDetector` no existe, con el argumento escrito de que «un botón
+  que no puede funcionar es peor que uno que no está».
 
-### 3.2 Reconocimiento en el dispositivo (la misma API, en local)
+### 4.2 Audio → Gemini
 
-La novedad que cambia el análisis. Chrome añadió tres piezas a esa misma API:
+`MediaRecorder` graba y se manda el `.webm` a `generateContent`, igual que la foto de
+la etiqueta. Está confirmado que acepta `audio/webm`, con tope de 20 MB, a 32 tokens
+por segundo — un dictado de diez segundos son 320 tokens, calderilla.
 
-```js
-await SpeechRecognition.available({ langs: ['es-ES'], processLocally: true })
-// → 'available' | 'downloadable' | 'downloading' | 'unavailable'
-await SpeechRecognition.install({ langs: ['es-ES'], processLocally: true })
-rec.processLocally = true
-```
+Lo que no es calderilla es la cuota: **20 peticiones al día, compartidas con el lector
+de etiquetas**. Un dictado por comida son 3–5 al día, así que cabe — pero cada dictado
+es una foto de etiqueta que ese día ya no puedes hacer.
 
-Con el paquete de idioma instalado, **el audio no sale del teléfono y el dictado
-funciona sin red**. Eso es exactamente lo que este proyecto necesita, y es gratis.
-Lo que no sé es si `es-ES` está disponible en tu móvil: la disponibilidad depende
-del fabricante y de la versión. Se comprueba en un minuto (sección 8).
+Y a cambio de ese coste no te llevas gran cosa, porque **el modelo tampoco sabe cuántos
+gramos es un yogur**. Pagas la cuota por la parte fácil.
 
-### 3.3 Audio → Gemini (la vía «IA»)
+### 4.3 El punto de partida honesto: el dictado del teclado ya funciona
 
-`MediaRecorder` graba, se sube el `.webm` y se manda a `generateContent` como
-`inline_data`, igual que la foto de la etiqueta. Está confirmado que la API acepta
-`audio/webm`, que el tope de petición son 20 MB y que el audio cuesta 32 tokens por
-segundo — un dictado de diez segundos son 320 tokens, calderilla.
+Hoy, tocando el micro de Gboard con el buscador de alimentos enfocado, ya dictas
+«yogur natural». Coste cero, cero código. Lo que eso **no** te da:
 
-**Y aun así es la peor opción para las series, por una razón que no son los tokens.**
-Lo dice tu propio código, medido en el panel de AI Studio el 2026-09-04 y anotado
-en `gemini.py`:
+1. No entiende **varias cosas de una vez**. Es la razón principal de la funcionalidad.
+2. No rellena los **gramos** ni la **comida**: sigues tocando dos campos más.
+3. No sabe que «cortado» es «café con leche».
 
-> El tier gratuito da **5 peticiones por minuto y 20 al día**.
+Si el trabajo no elimina esos tres, no ha valido la pena. Es el listón.
 
-Un entreno son 20–30 series. Con una llamada por serie, **el primer ejercicio se
-come la cuota del día entero** — y se la come compartiéndola con el lector de
-etiquetas, que la necesita para la comida. No es que salga caro: es que no cabe.
+### 4.4 Comparativa
 
-Donde sí cabe es en **un dictado largo por sesión o por comida** («press banca
-ochenta por ocho, ochenta por siete, ochenta por seis»): una petición en vez de
-veinticinco. Es una funcionalidad legítima, pero es otra —«contar lo que ya hice»
-en vez de «registrar mientras entreno»— y llega tarde: lo que se dicta a
-posteriori compite con la memoria, no con el teclado.
+| | Web Speech | MediaRecorder → Gemini | Dictado de Gboard |
+|---|---|---|---|
+| Coste por uso | 0 | 1 de 20 al día | 0 |
+| Latencia | ~instantánea | 2–12 s | ~instantánea |
+| Trabajo de backend | Ninguno | Endpoint + validador | Ninguno |
+| Varias cosas de un tirón | Sí, si la capa B lo trocea | Sí | No |
+| Te enseña lo que ha oído | Sí | Sí | Sí (lo escribe) |
+| **Resuelve los gramos** | **No** | **No** | **No** |
 
-### 3.4 El punto de partida honesto: el dictado del teclado ya funciona
-
-Antes de construir nada: hoy, tocando el micro de Gboard con el campo de reps
-enfocado, ya se dicta un número. Coste cero, cero código.
-
-Lo que eso **no** te da, y es todo lo que justifica esta funcionalidad:
-
-1. Sigue habiendo que **tocar el campo** — dos campos, dos toques, con las manos ocupadas.
-2. No entiende **la serie entera de una vez**: «ochenta por ocho» en un campo numérico no es nada.
-3. No encadena series sin volver a la pantalla.
-
-Si al final el trabajo no elimina esos tres toques, no ha valido la pena. Es el
-listón contra el que hay que medir cualquier prototipo.
-
-### 3.5 Comparativa
-
-| | Web Speech (nube) | Web Speech (local) | MediaRecorder → Gemini | Dictado de Gboard |
-|---|---|---|---|---|
-| Coste por uso | 0 | 0 | 1 de 20 al día | 0 |
-| **Funciona sin red** | **No** | **Sí** | No | No (dictado de Google) |
-| Latencia | ~instantánea | ~instantánea | 2–12 s | ~instantánea |
-| El audio sale del móvil | Sí | **No** | Sí | Sí |
-| Trabajo de backend | Ninguno | Ninguno | Endpoint + validador | Ninguno |
-| Serie entera de un tirón | Sí | Sí | Sí | No |
-| Vocabulario abierto (comida) | Regular | Regular | **Bueno** | Regular |
+La última fila es la que importa, y es la que hace que la elección de capa A sea casi
+indiferente. Por eso: **Web Speech**, que es la gratis.
 
 ---
 
-## 4. El hallazgo que decide: el gimnasio es un sótano
+## 5. Capa B: del texto al diario, en cuatro pasos
 
-Está escrito en la primera línea de `frontend/src/offline.js`:
+«dos huevos, una tostada de pan integral y un café con leche»
 
-> Gyms are basements and the free tier sleeps, so a set you have already done must
-> never depend on a request succeeding right now.
+1. **Trocear** en `[(2, "huevos"), (1, "tostada de pan integral"), (1, "café con leche")]`.
+   Corta por comas y por «y». Números en palabras («ciento veinticinco») o en dígitos,
+   según lo que devuelva el reconocedor.
+2. **Buscar** cada trozo en `/foods/search`, que ya pliega acentos (`fold_exercise_name`)
+   y ya ordena por exactitud (`_rank`). **Aquí no elige el modelo: elige el catálogo.**
+3. **Poner los gramos.** Sección 6. Es el paso difícil.
+4. **Proponer**, no registrar. Sección 8.
 
-Ese comentario es la razón de que exista la cola de `localStorage`, y **descalifica
-de golpe las dos opciones que van por red** para el caso de las series. Una
-funcionalidad de voz que necesita cobertura falla exactamente en el sitio donde se
-usa, y falla en silencio: tocas el micro, no pasa nada, y no hay forma de distinguir
-«no te he oído» de «no hay red».
+Dos cosas que este repo ya tiene y que hacen el paso 2 mucho mejor de lo que parece:
 
-De ahí salen las tres conclusiones que ordenan todo lo demás:
-
-1. **Para las series, la capa A tiene que ser local** (`processLocally`) o no tiene
-   sentido construirla. Si `es-ES` no está disponible en el dispositivo, la
-   funcionalidad se degrada a «funciona con cobertura», y eso **hay que decirlo en
-   pantalla**, con la misma lógica con que `ScanNote` distingue «no he visto código»
-   de «no había red».
-2. **Para las series, la capa B tiene que ser local también.** Un parser en el
-   frontend, no un endpoint. Un parser que necesita servidor tiene el mismo problema
-   que el reconocimiento que necesita servidor.
-3. **Gemini no pinta nada en el registro de series.** Ni por cuota, ni por latencia,
-   ni por red. Donde puede pintar algo es en la comida, y sobre **texto**, no sobre
-   audio (sección 6.3).
+- **La tabla `food_aliases`.** La traducción de CIQUAL dejó 3.185 nombres **con sus
+  alias**, y `_rank` los puntúa. O sea que la distancia entre cómo hablas y cómo se
+  llama la fila ya está parcialmente cubierta sin IA ninguna.
+- **`entry_source="voice"`**, reservado en `schemas.py` y en `models.py` desde el día
+  uno, con el comentario escrito de que existe «so that, a month in, "how much do I
+  actually use the voice parser?" is a query rather than a guess». El backend de la
+  comida **no hay que tocarlo**: basta con mandar ese valor.
 
 ---
 
-## 5. Capa B, series: una gramática, no un modelo
+## 6. El muro: los gramos
 
-Lo que hay que entender es un lenguaje diminuto y cerrado. Un parser determinista lo
-cubre en unas ochenta líneas, corre sin red, tarda cero, no cuesta nada y —esto es
-lo importante— **se prueba entero sin mock, sin clave y sin cuota**, que es lo que
-`gemini.py`/`label.py` tuvieron que separar a propósito para conseguir.
+Aquí es donde se decide si esta funcionalidad es buena o es una máquina de ensuciar el
+diario.
 
-Lo que tiene que reconocer, en `frontend/src/voz.js`:
+### 6.1 Por qué es un muro
 
-| Lo que dices | Lo que sale |
+- `_resolve_grams()` sólo acepta dos cosas: `grams`, o un `portion_id` **de ese
+  alimento**. Si no llega ninguna, devuelve 422. No hay tercera vía, y está bien que no
+  la haya.
+- **Las 3.185 filas de CIQUAL entran sin una sola ración.** Lo he comprobado: no hay ni
+  una mención a `Portion` en `import_ciqual.py`.
+- **Y no se les pueden añadir.** Las raciones sólo nacen dentro de `POST /foods`, y
+  `PATCH /foods/{id}` contesta `403 "the shared catalogue is not editable"` para
+  cualquier fila con `user_id IS NULL`.
+
+Conclusión incómoda: **hoy, «dos rebanadas» sólo puede funcionar con alimentos que
+hayas dado de alta tú.** Para todo lo que venga de CIQUAL —que es casi todo— una
+cantidad dicha en unidades no tiene ninguna forma legítima de convertirse en gramos.
+
+Y la tentación es obvia y hay que decirla en voz alta para poder rechazarla: poner 125 g
+por yogur, 60 g por huevo, 30 g por rebanada. Sería **exactamente el mismo pecado que
+el `0` de fibra** que `label.py` se dedica a impedir, con otro disfraz: un número que
+nadie midió, congelado en `log_entries`, indistinguible para siempre de uno que pesaste.
+Con el agravante de que un peso inventado no chirría en pantalla — 125 g de yogur es
+perfectamente creíble.
+
+### 6.2 La salida: tu propio repertorio
+
+`GET /foods/frequent` ya devuelve, por cada alimento que has comido, **los gramos que
+repites** y **la comida a la que suele ir**. Y la spec es explícita sobre cuál devuelve:
+
+> Scenario: The amount offered is the one I repeat, not the last one I typed
+
+Eso no es un número inventado: es tuyo, lo escribiste tú, y ya está en el diario. Usarlo
+para rellenar el campo —enseñándolo, editable— es legítimo. Es memoria, no adivinanza.
+
+**Las cuatro reglas, por orden de prioridad:**
+
+| Lo que dices | De dónde salen los gramos |
 |---|---|
-| «ochenta por ocho» | `{ weight: 80, reps: 8 }` |
-| «80 por 8» (si el reconocedor ya digitaliza) | igual |
-| «ochenta kilos ocho repeticiones» | igual |
-| «ochenta y dos y medio por seis» | `{ weight: 82.5, reps: 6 }` |
-| «ciento veinte por tres» | `{ weight: 120, reps: 3 }` |
-| «ocho repeticiones» | `{ reps: 8 }` — el peso se queda el que ya trae el formulario |
-| «corporal ocho», «sin peso ocho» | `{ weight: null, reps: 8 }` |
-| cualquier otra cosa | `null` — y no se toca el formulario |
+| «ciento veinticinco gramos de yogur natural» | De lo que has dicho |
+| «dos rebanadas de pan de molde» (alimento **tuyo**, con ración «rebanada») | `portion_id` × cantidad |
+| «un yogur natural», sin cantidad | De tu repertorio: los gramos que sueles poner |
+| Cualquier otra cosa | **En blanco. Los pones tú.** |
 
-Dos detalles que no son de estilo:
+La cuarta regla es la que sostiene las otras tres. Y la primera vez que dictas algo
+siempre caes en ella — pero sólo la primera vez: pones los gramos, la entrada se
+escribe, y a partir de la tercera vez el repertorio ya la conoce. **La funcionalidad se
+afila sola con el uso, sin que nadie invente nada.**
 
-- **El orden es peso × reps porque la pantalla ya lo pinta así.** No hay que
-  enseñar una convención nueva; hay que respetar la que ya está impresa.
-- **Nunca se corrige un par implausible dándole la vuelta.** «Ocho por ochenta»
-  son 8 kg y 80 reps, y es raro, pero adivinar que querías decir lo contrario es
-  precisamente lo que `label.py` se niega a hacer con la columna «por ración»:
-  antes rechazar que reescalar a ojo. Se rellena lo que se ha oído y lo ves.
+### 6.3 La trampa del ×cantidad
 
-El reconocedor **no se puede sesgar**: `SpeechGrammarList` no hace nada en Chrome.
-Por eso el vocabulario de la fase 1 son números y nada más — el día que se dicte el
-nombre del ejercicio («press banca» sale como «presbanca», «prensa banca», «press
-franca»), la salvación es que ese problema ya está resuelto en este repo:
-`fold_exercise_name()` y el emparejamiento de `test_exercise_matching.py` son
-exactamente para esto.
+El repertorio guarda **gramos por entrada**, no gramos por unidad. Si sueles registrar
+120 g de huevo cocido, nadie sabe si esos 120 g eran un huevo o dos.
 
----
+Así que **cuando dices una cantidad en unidades y no hay ración, no se multiplica nada**:
+los gramos se quedan en blanco y la cantidad dicha se enseña. Multiplicar el repertorio
+por la cantidad dicha sería escalar por un factor que nadie eligió, que es literalmente
+lo que `label.py` se niega a hacer con la columna «por ración» —
 
-## 6. Capa B, comida: el catálogo resuelve, la voz sólo trocea
+> Rechazar no es fallar: el formulario se abre igual, en blanco, y lo tecleas.
 
-### 6.1 Lo que la voz no puede hacer, y no es negociable
+— y sería peor aquí, porque allí se rechaza la lectura entera y aquí saldría una cifra
+creíble.
 
-De `CLAUDE.md`:
+### 6.4 La decisión que te dejo encima de la mesa
 
-> **Nada crea alimentos solo.** Ni un import, ni el escáner, ni un parser: `POST
-> /foods` desde un formulario que el usuario rellenó es la única puerta.
+**Lo que más sube el techo de esta funcionalidad no es la voz: son las raciones sobre el
+catálogo compartido.** Con una tabla de raciones tuyas apuntando a filas de CIQUAL
+—«huevo: unidad = 60 g», dicho por ti una vez— la regla 2 pasa de cubrir tus cuatro
+alimentos propios a cubrirlo todo, y «dos huevos» se registra entero de un tirón.
 
-El parser de voz está nombrado ahí, por escrito, antes de existir. Así que la voz
-**puede** elegir un alimento del catálogo y ponerle gramos; **no puede** dar de alta
-uno que no esté. Cuando el nombre no casa con nada, el final del camino es el
-formulario en blanco, igual que una foto ilegible.
-
-Y `NULL` sigue sin ser `0`: la voz no rellena un macro que nadie ha medido.
-
-### 6.2 Lo que ya está preparado para esto
-
-El esquema lleva la funcionalidad reservada desde el primer día:
-
-```python
-# schemas.py
-EntrySource = Literal["manual", "barcode", "template", "repeat", "voice"]
-quantity: float = Field(default=1, gt=0, le=100)  # "dos rebanadas"
-```
-
-El comentario de `models.py` dice para qué: «so that, a month in, "how much do I
-actually use the voice parser?" is a query rather than a guess». O sea que del lado
-de la comida el backend **no hay que tocarlo**: mandar `entry_source="voice"` en
-`POST /food-log` es todo.
-
-> ⚠️ **Del lado de las series no existe ese campo.** `set_entries` no tiene columna
-> de origen. Si quieres poder responder la misma pregunta para el entreno, hace
-> falta una migración Alembic con un `source` en `set_entries`. Es una decisión
-> tuya, no un detalle: sin ella, dentro de un mes «¿uso la voz en el gimnasio?» se
-> contesta de memoria.
-
-### 6.3 Dónde entra la IA, si es que entra
-
-«Un yogur natural de Hacendado y dos rebanadas de pan integral» se trocea en
-`[(1, "yogur natural", "Hacendado"), (2, "rebanada", "pan integral")]`, y **el que
-resuelve cada trozo es el buscador que ya existe**: `/foods/search` pliega acentos
-con `fold_exercise_name` y ordena por exactitud (`_rank`). El modelo no elige el
-alimento; propone un texto de búsqueda. Si hay doce yogures, se pintan los doce y
-tocas uno — que es lo que hace la pantalla hoy.
-
-Con esa forma, la IA es opcional:
-
-- **Sin IA:** un parser de «cantidad + unidad + nombre» cubre la mayoría de las
-  frases reales, y lo que no entiende se queda en el buscador con el texto dictado
-  tal cual. Coste cero.
-- **Con IA (Gemini, sobre texto):** una llamada por dictado, no por alimento; ~200
-  tokens de entrada. Aguanta «me he comido medio paquete de pasta con atún y un
-  chorro de aceite», que el parser no. Sigue gastando de las 20 peticiones diarias
-  que comparte con el lector de etiquetas, así que **son ~5 dictados al día**, que
-  para comidas da de sobra y para series no daba.
-
-Recomendación: construir la versión sin IA y **medirla** (`entry_source="voice"` ya
-lo permite). Si el parser falla lo bastante como para molestar, ya está el sitio
-hecho para meter el modelo detrás, con el patrón de `gemini.py` + validador tal cual.
+Es una migración Alembic y un endpoint, no es gratis, y **no viola ninguna regla del
+proyecto**: no crea alimentos, no edita el catálogo, y el número lo pones tú. Pero es
+una decisión tuya y no la tomo yo. Sin ella, la fase 1 funciona y es útil; con ella, es
+notablemente mejor.
 
 ---
 
-## 7. La propuesta, en tres fases
+## 7. Dónde entra la IA de verdad
 
-**Fase 1 — Series, sin red y sin IA.** Un botón de micro en la tarjeta de ejercicio
-del entreno en curso. Tocas, dices «ochenta por ocho», la serie queda registrada con
-un deshacer visible. `voz.js` (parser) + `reconocimiento.js` (envoltorio de la API,
-con el `canScan()` de `Comida.jsx` como plantilla para esconder el botón donde no
-funcione). Backend: nada, salvo la migración de `source` si la quieres.
+Menos de lo que parece, y por un sitio distinto del que uno supondría.
 
-Por qué registra en vez de pedir confirmación: la serie no es ambigua una vez estás
-dentro de la tarjeta, y obligar a mirar y confirmar devuelve el toque que la
-funcionalidad venía a quitar. La red de seguridad es el deshacer —el mismo patrón
-que ya usa el borrado de entradas de comida— más el «Corregir» que ya existe.
+**No hace falta para trocear.** «Dos huevos y un yogur» lo parte una función pura de
+ochenta líneas que corre gratis, al instante, y que se prueba entera sin red, sin clave
+y sin cuota — que es justo lo que `gemini.py` y `label.py` tuvieron que separar a
+propósito para conseguir.
 
-**Fase 2 — Comida, con el catálogo.** Micro en el buscador de alimentos. Dictas, se
-trocea, se busca, eliges. Aquí **sí** se rellena el formulario en vez de registrar:
-doce yogures son doce yogures.
+**No resuelve los gramos.** Sección 6. Es el muro para todo el mundo, modelo incluido.
 
-**Fase 3 — IA sobre el texto, sólo si la fase 2 se queda corta.** Y sólo para comida.
+**Sí ayuda con el nombre.** CIQUAL habla en formal traducido del francés («Yogur
+natural, entero») y tú hablas en castellano de cocina («un cortado», «pechuga a la
+plancha», «un yogur de esos griegos»). Ahí un modelo convierte tu frase en un término de
+búsqueda decente. Pero fíjate en la forma: **el modelo propone texto de búsqueda; el que
+elige el alimento sigue siendo `/foods/search`.** Nunca devuelve un `food_id`.
 
-Nada de esto propone tocar `DESIGN.md`: el control se decide ahí antes de pintarlo.
+Y ese hueco ya está medio tapado por los alias de la traducción, así que la única forma
+honesta de saber si merece la cuota es **medirlo**: construir la fase 1 sin IA, mirar
+con `entry_source="voice"` cuántos dictados acaban en «no lo encuentro», y meter el
+modelo detrás sólo si el número molesta. El patrón de `gemini.py` + validador está
+hecho y se reutiliza tal cual.
 
 ---
 
-## 8. Cómo salir de dudas en cinco minutos
+## 8. Lo que la voz no puede hacer nunca
 
-Dos cosas deciden si la fase 1 es lo que promete, y ninguna se puede contestar desde
-aquí: hacen falta **tu** móvil y **tu** Chrome. Abre `fitit-n4q0.onrender.com` en el
-teléfono, conecta el depurador y pega esto en la consola:
+De `CLAUDE.md`, y el parser de voz está nombrado ahí por escrito antes de existir:
+
+> **Nada crea alimentos solo.** Ni un import, ni el escáner, ni un parser: `POST /foods`
+> desde un formulario que el usuario rellenó es la única puerta.
+
+De ahí, tres límites que no son negociables:
+
+1. **No da de alta alimentos.** Si «cortado» no casa con nada, el final del camino es el
+   buscador con el texto puesto, o el formulario en blanco. Igual que una foto ilegible.
+2. **No registra sola.** Propone filas; tú confirmas. La comida sí es ambigua —hay doce
+   yogures— y aquí no vale el «deshacer» que bastaría para una serie de entreno: una
+   entrada mal resuelta congela macros equivocados en `log_entries`.
+3. **No rellena un macro que nadie ha medido.** `NULL` no es `0`, tampoco por voz.
+
+Y una cuarta que copio directamente de `label.py`: **cada fila propuesta tiene que poder
+señalar las palabras de las que salió.** `_backed_by_a_row()` tira toda cifra que la
+transcripción no respalde; aquí, una entrada que no se pueda anclar a un trozo de lo que
+dijiste es una entrada inventada, y se tira igual. Por eso la transcripción se enseña:
+es la prueba, no la decoración.
+
+---
+
+## 9. La propuesta
+
+**Un tercer botón en `Comida.jsx`**, al lado de *Escanear código* y *Leer etiqueta*.
+Los tres acaban en el mismo sitio: el formulario relleno, que tú confirmas.
+
+**Dónde:** pantalla *Comida*, en la fila de acciones que hoy tiene los dos botones de
+cámara, debajo del buscador de alimentos.
+
+**Qué ves, antes → después:** hoy hay dos botones; pasa a haber tres. El nuevo se llama
+**«Dictar»**, y mientras escucha dice **«Escuchando…»** — la misma forma que el
+«Leyendo…» de los otros dos, y por la misma razón: que se vea cuál de los tres está
+trabajando.
+
+**Qué tienes que hacer para verlo:** abrir *Comida* y mirar. Tocar *Dictar* pide el
+micrófono la primera vez.
+
+**Después de hablar** aparece, encima del formulario:
+
+- La transcripción: **«He oído: "dos huevos y un yogur natural"»**
+- Una fila por cosa entendida, cada una con su alimento resuelto, sus gramos y su
+  comida, y un botón de confirmar.
+- Donde no haya gramos: **«Pon los gramos»**, con el campo enfocado.
+- Donde salgan del repertorio: **«125 g · lo que sueles poner»**.
+- Donde no haya alimento: **«No tengo "cortado" en el catálogo. Búscalo o tecléalo.»**
+
+**Dónde no se ve nada:** en un navegador sin `SpeechRecognition` el botón no existe,
+igual que hoy no existe *Escanear código* en Safari.
+
+**Qué se toca:** `frontend/src/voz.js` (trocear, números en castellano — función pura),
+el envoltorio del reconocedor, y la pantalla. **Backend: nada**, salvo que decidas lo de
+las raciones (6.4).
+
+**Nada de esto fija estilos:** el control se decide contra `DESIGN.md` antes de pintarlo.
+
+---
+
+## 10. Cómo salir de dudas en cinco minutos
+
+Dos cosas deciden cuánto trabajo es esto, y ninguna se contesta desde aquí: hacen falta
+**tu** móvil y **tu** Chrome. Abre `fitit-n4q0.onrender.com`, conecta el depurador y
+pega esto:
 
 ```js
-// 1. ¿Existe la API, y hay reconocimiento local en español?
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition
 console.log('API:', !!SR)
-console.log('local es-ES:', SR.available && await SR.available({ langs: ['es-ES'], processLocally: true }))
 
-// 2. ¿Qué texto devuelve realmente? Di «ochenta por ocho».
 const r = new SR(); r.lang = 'es-ES'
 r.onresult = (e) => console.log('OÍDO:', JSON.stringify(e.results[0][0].transcript))
 r.start()
+// Di: «dos huevos, ciento veinticinco gramos de yogur natural y un cortado»
 ```
 
-- Si la línea 2 dice `'available'` o `'downloadable'` → la fase 1 funciona en el
-  sótano y merece la pena entera.
-- Si dice `'unavailable'` → funciona sólo con cobertura, y hay que decidir si eso
-  sigue valiendo (yo diría que sí para la comida, y que a medias para el entreno).
-- Lo que imprima `OÍDO:` decide el parser: si sale `"80 por 8"` la gramática de
-  números sobra casi entera; si sale `"ochenta por ocho"`, hace falta completa. Muy
-  probablemente salgan las dos según el día, así que se soportarán las dos — pero
-  saber cuál es la común decide cuál se prueba primero.
+Lo que imprima decide dos cosas:
+
+- **Si los números salen como `"125"` o como `"ciento veinticinco"`.** Lo primero deja
+  la gramática de números casi sin trabajo; lo segundo la pide entera. Probablemente
+  salgan las dos según el día, así que se soportarán las dos — pero saber cuál es la
+  común decide cuál se prueba primero.
+- **Si «cortado» llega entero**, y en general qué tal aguanta el vocabulario de cocina.
+  Es lo único que puede justificar meter a Gemini (sección 7).
+
+Antes de esa prueba no merece la pena escribir el parser.
 
 ---
 
-## 9. Cómo se prueba
+## 11. Cómo se prueba
 
-- **El parser, en `vitest`.** Es una función pura: entra una cadena, sale un objeto
-  o `null`. Es el sitio donde vive de verdad la especificación de esta
-  funcionalidad, y no cuesta ni red ni cuota.
-- **El envoltorio del reconocimiento, en jsdom**, con `window.SpeechRecognition`
-  suplantado — el mismo truco con el que ya se prueba `BarcodeDetector`.
-- **La suite de navegador no puede probar esto.** El Chromium de Playwright no trae
-  la clave del servicio de voz de Google, así que la API o no está o no contesta.
-  Que quede dicho: el micro real sólo se prueba en el teléfono, a mano.
-- ⚠️ **Y esto choca con «spec-first».** El proyecto pone el comportamiento en
-  `.feature` con pytest-bdd, y la fase 1 **no toca el backend**: no hay nada que
-  escribir en Gherkin salvo que se añada la columna `source`. La fase 2 sí (una
-  entrada con `entry_source="voice"` es comprobable de punta a punta). Es una
-  decisión tuya y la dejo encima de la mesa en vez de tomarla: o la fase 1 acepta
-  que su spec vive en vitest, o se empieza por la fase 2, que encaja en el molde de
-  siempre.
+- **El troceador, en `vitest`.** Es una función pura: entra una cadena, salen tuplas o
+  nada. Es donde vive de verdad la especificación, y no cuesta ni red ni cuota.
+- **El envoltorio del reconocedor, en jsdom**, con `window.SpeechRecognition` suplantado
+  — el mismo truco con el que ya se prueba `BarcodeDetector`.
+- **La suite de navegador no puede probar esto.** El Chromium de Playwright no trae la
+  clave del servicio de voz de Google. El micro real se prueba en el teléfono, a mano.
+- **Y sí hay Gherkin que escribir**, al contrario que en el entreno: una entrada con
+  `entry_source="voice"` es comprobable de punta a punta, y las reglas de la sección 6
+  son escenarios de libro — «una cantidad en unidades sin ración no propone gramos»,
+  «los gramos del repertorio son los que repito, no los últimos». Encaja en el molde
+  spec-first de siempre.
 
 ---
 
-## 10. Lo que no he verificado
+## 12. Lo que no he verificado, y un apunte sobre el entreno
 
-- Si `es-ES` está disponible en el dispositivo en tu móvil. Sección 8.
-- Si Chrome Android devuelve los números como dígitos o como palabras. Sección 8.
-- Si el permiso del micro sobrevive bien en la PWA instalada (`display: standalone`).
+Sin verificar:
+
+- Que `webkitSpeechRecognition` exista en tu Chrome Android. Sección 10.
+- Si los números vuelven en dígitos o en palabras. Sección 10.
+- Qué tal reconoce `es-ES` el vocabulario de cocina. Sección 10.
+- Si el permiso del micrófono sobrevive bien en la PWA instalada (`display: standalone`).
   Debería concederse una vez por origen, pero no lo he probado ahí.
-- Qué tal reconoce `es-ES` los nombres de ejercicio en la jerga del gimnasio. Por eso
-  no están en la fase 1.
-- Si `continuous = true` aguanta varias series seguidas en Android sin cortarse.
-  Tiene mala fama; la fase 1 lo evita usando un disparo por serie.
+- Cuántos de tus dictados reales caerían en la regla 4 (gramos en blanco). Depende de tu
+  repertorio, y sólo se sabe midiendo.
+
+**Y el entreno, de paso.** Lo miré antes de que me dijeras que esto era para comida, y
+hay una conclusión que merece quedar escrita porque es la contraria: en el gimnasio
+**la voz por red no vale**. Lo dice `offline.js` en su primera línea —«Gyms are
+basements and the free tier sleeps»—, y el reconocimiento de Chrome va contra un
+servidor. Ahí la capa A tendría que ser local (`processLocally`, que Chrome ya soporta y
+que haría falta comprobar en tu móvil) y la capa B un parser en el frontend. Gemini
+queda fuera del registro de series por cuota: 20 peticiones al día contra 25 series por
+sesión. Dos apuntes más para ese día: `set_entries` **no tiene columna de origen** —al
+contrario que `log_entries`—, así que la adopción no se podría medir sin una migración;
+y una serie sí admite registrarse con un «deshacer» en vez de pedir confirmación,
+porque dentro de la tarjeta de un ejercicio no hay ambigüedad ninguna.
