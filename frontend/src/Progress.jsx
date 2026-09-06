@@ -229,8 +229,20 @@ const SPOKEN = {
 // mark that explains it, which is the whole figure the card exists for reading
 // last. Name over it in support, spec-sheet order — label left, value right,
 // track after.
-function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
-  const { state, gap, band } = bandState(group, shown)
+//
+// `indirect` is how much of `shown` arrived as another lift's secondary group,
+// and it is what the band is judged on: RP publish their landmarks for direct
+// sets only — "we've already factored in the indirect volume from pressing
+// movements" — while the row prints the fractional total. Handing `bandState`
+// the total was comparing two different quantities, and it cost the card four
+// of its nine rows on a normal week: Tríceps read over its ceiling off ten
+// direct sets because four days of pressing had posted ten half-sets into it,
+// and Hombro, Bíceps and Femoral each read "en zona" on volume the chest and
+// the back had done for them. The figure the row prints does not change — it
+// is a real quantity and the log went to trouble to compute it — only which
+// question the mark under it answers.
+function VolumeRow({ group, shown, indirect = 0, deload, target, judging, shortWeek }) {
+  const { state, gap, band } = bandState(group, shown, indirect)
   const { lo, hi } = CHANNEL
 
   // A deload replaces the band outright — the week is aiming at a third of your
@@ -238,7 +250,9 @@ function VolumeRow({ group, shown, deload, target, judging, shortWeek }) {
   // The band's own left edge becomes the target rule, which keeps the geometry
   // and the row height identical while the meaning underneath changes.
   const goal = deload ? (target ?? band?.mev ?? 1) : null
-  const at = deload ? clamp01((shown / Math.max(goal, 0.1)) * lo) : bandPosition(group, shown)
+  const at = deload
+    ? clamp01((shown / Math.max(goal, 0.1)) * lo)
+    : bandPosition(group, shown, indirect)
 
   const tail = deload
     ? [Math.min(at, lo), Math.max(at, lo)]
@@ -537,7 +551,7 @@ export function PeriodSummary({ days }) {
   const owed =
     handover && handover.sets > 0
       ? handover.rows
-          .map((row) => ({ group: row.group, ...bandState(row.group, row.sets) }))
+          .map((row) => ({ group: row.group, ...bandState(row.group, row.sets, row.indirect) }))
           .filter((row) => row.state === 'bajo')
           .sort((a, b) => b.gap - a.gap)
           .map((row) => row.group)
@@ -650,6 +664,9 @@ export function PeriodSummary({ days }) {
           key={row.group}
           group={row.group}
           shown={summary.averaged ? row.perWeek : row.sets}
+          // Same unit as `shown` on both sides of the month switch, or the band
+          // would be judged on a month of indirect work against a weekly average.
+          indirect={summary.averaged ? row.indirectPerWeek : row.indirect}
           deload={deload}
           target={targetFor(row.group)}
           judging={judging}
