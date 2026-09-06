@@ -743,6 +743,66 @@ describe('Progress', () => {
       })
     })
 
+    // A logged set counts half a set toward every muscle it trains on the way
+    // past, so a row's printed figure is direct work plus a share of somebody
+    // else's. RP's bands are written for direct sets only — they say so
+    // outright — which is why `bandState` and `bandPosition` take the indirect
+    // share as a second argument. The row was calling both with one.
+    //
+    // The result was a card that judged four of its nine rows on volume they
+    // had not done. On a real week of the log: Tríceps read "sobre" its ceiling
+    // off ten direct sets and four days of pressing, so the screen advised
+    // cutting the one muscle sitting dead centre of its band; and Hombro,
+    // Bíceps and Femoral all read "en zona" having done zero, two and zero
+    // direct sets respectively. The one row that spoke up was Gemelo, and four
+    // others should have.
+    const pressOf = (id) => ({ ...setOf(id, 'Pecho'), secondary_groups: ['Hombro', 'Tríceps'] })
+    const pressWeek = (presses, triceps) => {
+      const sets = []
+      let id = 200
+      for (let i = 0; i < presses; i++) sets.push(pressOf((id += 1)))
+      for (let i = 0; i < triceps; i++) sets.push(setOf((id += 1), 'Tríceps'))
+      return [{ id: 9, date: '2026-07-22', workouts: [{ id: 9, sets }] }]
+    }
+    const statesByName = (container) => {
+      const names = [...container.querySelectorAll('.sum-name')].map((n) => n.textContent)
+      const states = [...container.querySelectorAll('.sum-state')].map((s) => s.textContent)
+      return Object.fromEntries(names.map((n, i) => [n, states[i]]))
+    }
+
+    // Twenty presses and ten pushdowns. Tríceps prints 20 — ten direct plus ten
+    // half-sets — against a ceiling of 16, and every one of the ten it is over
+    // by came from the chest. Ten direct sets is the middle of its band.
+    it('does not call a muscle over its ceiling on volume the chest did', async () => {
+      api.listDays.mockResolvedValue(pressWeek(20, 10))
+      const { container } = render(<Progress />)
+
+      await waitFor(() => {
+        expect(statesByName(container)['Tríceps']).toBe('')
+      })
+      const label = [...container.querySelectorAll('.sum-track')]
+        .map((t) => t.getAttribute('aria-label'))
+        .find((l) => l.startsWith('Tríceps'))
+      expect(label).toBe('Tríceps: 20 — en zona')
+      expect(container.querySelector('.sum-row .sum-mark.is-over')).toBeNull()
+    })
+
+    // The mirror of it, and the more expensive half: pressing posts half a set
+    // to Hombro too, so twenty presses print 10 against a floor of 8 and the
+    // row falls silent. Not one direct set of shoulder work was done.
+    it('still asks for a muscle that only ever appeared as somebody else', async () => {
+      api.listDays.mockResolvedValue(pressWeek(20, 10))
+      const { container } = render(<Progress />)
+
+      await waitFor(() => {
+        expect(statesByName(container)['Hombro']).toBe('faltan 8')
+      })
+      const label = [...container.querySelectorAll('.sum-track')]
+        .map((t) => t.getAttribute('aria-label'))
+        .find((l) => l.startsWith('Hombro'))
+      expect(label).toBe('Hombro: 10 — por debajo de la zona')
+    })
+
     // A group that has gone quiet keeps its row at zero, and that row is the one
     // with something to say: the whole zone is still owed.
     it('tells a silent muscle the whole zone is still owed', async () => {
