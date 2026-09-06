@@ -205,6 +205,14 @@ h2 {
   background: transparent;
   color: var(--text);
 }
+/* Un enlace deshabilitado se pintaba igual que uno vivo: mismo peso, misma
+   tinta, y nada al tocarlo. Es el 0,4 de `.day-repeat:disabled`, que es la
+   convención que ya tenía la casa. Alcanza también al «Cancelar» de los
+   formularios de comida, que se deshabilitan mientras guardan. */
+.link-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* Bottom navigation — primary nav in thumb reach for one-handed gym use. */
 .bottom-nav {
@@ -4040,8 +4048,81 @@ button.set-chip:active:not(:disabled) {
   gap: 0.4rem;
   margin-bottom: 0.9rem;
 }
+/* ── El pie de la hoja de alta ─────────────────────────────────────────────
+   Tres cosas distintas que se pintaban idénticas: crear un alimento, apuntar
+   con la cámara y salir. Los cuatro controles eran `.link-btn` —transparente,
+   sin borde, tinta plena, 600— y además `inline-flex`, así que fluían en la
+   misma línea y rompían por donde cupieran. Medido a 430 px: «Crear «pollo»»
+   en x=36 y «Leer etiqueta» en x=164, hombro con hombro, y «Cancelar» debajo
+   en x=51 por un `margin-left` que no significaba nada en pantalla.
+
+   La jerarquía ahora la dan la forma y el sitio, no el color: las cámaras son
+   lo único enmarcado (son herramientas, y son dos, y van juntas), «Crear …»
+   sigue siendo un enlace porque cuelga de la búsqueda que acaba de fallar, y
+   «Cancelar» baja a `--muted` porque salir no compite con nada. */
+.food-create {
+  display: flex;
+  width: 100%;
+}
+.food-cameras {
+  margin: 0.5rem 0 0.4rem;
+}
+/* Label, no Micro: es prosa, y DESIGN.md reserva Micro para sellos en
+   versales. Muted porque rotula, no manda. */
+.food-cameras-head {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+/* `1fr` y no `auto-fit`: con una sola cámara —Safari, sin `BarcodeDetector`—
+   `auto-fit` la estiraría a lo ancho de la hoja y el hueco de la que falta se
+   leería como que la que queda es la principal. Media hoja dice lo que es. */
+.food-cameras-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+.food-camera {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+/* Ámbar en el borde de la que está leyendo. Es la única de las dos que está
+   haciendo algo, y ámbar aquí no decora: dice cuál es la tuya. */
+.food-camera.is-busy {
+  border-color: var(--accent);
+}
+/* Y la otra se apaga. Sin esto el `disabled` vivía sólo en el `input`, que no
+   se ve, así que la cámara bloqueada se pintaba idéntica a la que funciona. */
+.food-camera[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+.food-camera:active:not([aria-disabled='true']) {
+  background: var(--surface);
+}
+@media (hover: hover) {
+  .food-camera:hover:not([aria-disabled='true']) {
+    border-color: var(--accent);
+  }
+}
 .food-cancel {
-  margin-left: 0.9rem;
+  display: flex;
+  width: 100%;
+  margin-top: 0.3rem;
+  color: var(--muted);
 }
 
 /* Lo de siempre: el repertorio, delante de los raíles.

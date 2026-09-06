@@ -833,46 +833,84 @@ function AddFood({ slot = null, onDone, onCancel }) {
         <p className="food-search-note">Ningún alimento se llama «{query.trim()}».</p>
       )}
       {query.trim() && !searching && (
-        <button type="button" className="link-btn" onClick={() => setCreating(true)}>
+        <button type="button" className="link-btn food-create" onClick={() => setCreating(true)}>
           Crear «{query.trim()}»
         </button>
       )}
-      {/* Un `label` y no un botón porque lo que abre la cámara es el `input`:
-          envolverlo es la única forma de que el disparador sea del tamaño y el
-          color de los demás y siga siendo el control real. `capture` pide la
-          trasera del móvil; en un ordenador el navegador lo ignora y ofrece un
-          fichero, que para probar va igual de bien. */}
-      {/* Primero el escáner, y no la etiqueta, porque es el que no cuesta
-          nada: sin clave, sin cuota y sin modelo. El orden en que se ofrecen
-          dos puertas es lo que decide por cuál se entra.
+      {/* Las dos cámaras, juntas y bajo un rótulo.
+          Sueltas eran dos `link-btn` más, indistinguibles de «Crear …» y de
+          «Cancelar»: cuatro textos en negrita del mismo tamaño y la misma
+          tinta que además fluían en línea y rompían por donde cupieran —
+          medido a 430 px, «Crear «pollo»» y «Leer etiqueta» compartían
+          renglón y «Cancelar» caía debajo y sangrado. Agruparlas dice de
+          golpe las dos cosas que faltaban: que estas dos son hermanas entre
+          sí, y que no son hermanas de las otras.
 
-          Sólo donde el navegador sabe decodificar. En un Chrome de Android está;
-          en un Safari, no — y un botón que no puede funcionar es peor que uno
-          que no está, porque no hay forma de saber por qué falla. */}
-      {canScan() && (
-        <label className="link-btn food-photo" htmlFor="food-scan">
-          {reading === 'scan' ? 'Leyendo…' : 'Escanear código'}
-          <input
-            id="food-scan"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={reading}
-            onChange={photographBarcode}
-          />
-        </label>
-      )}
-      <label className="link-btn food-photo" htmlFor="food-photo">
-        {reading === 'label' ? 'Leyendo…' : 'Leer etiqueta'}
-        <input
-          id="food-photo"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={reading}
-          onChange={photograph}
-        />
-      </label>
+          Y el rótulo pone el verbo una vez, así que cada botón puede nombrar
+          sólo **a qué le apuntas**. «Escanear código» y «Leer etiqueta» eran
+          verbo + nombre, de la misma longitud —128 y 129 px— y de la misma
+          forma: dos etiquetas que se leen como una. */}
+      <div className="food-cameras">
+        <p className="food-cameras-head">Rellenar con la cámara</p>
+        <div className="food-cameras-row">
+          {/* Un `label` y no un botón porque lo que abre la cámara es el
+              `input`: envolverlo es la única forma de que el disparador tenga
+              el aspecto de un control y siga siendo el control real. `capture`
+              pide la trasera del móvil; en un ordenador el navegador lo ignora
+              y ofrece un fichero, que para probar va igual de bien.
+
+              `aria-disabled` y no sólo el `disabled` del `input`: el atributo
+              vive en algo invisible, así que sin esto la cámara que no puede
+              usarse se pinta idéntica a la que sí. */}
+          {/* Primero el escáner, y no la etiqueta, porque es el que no cuesta
+              nada: sin clave, sin cuota y sin modelo. El orden en que se
+              ofrecen dos puertas es lo que decide por cuál se entra.
+
+              Sólo donde el navegador sabe decodificar. En un Chrome de Android
+              está; en un Safari, no — y un botón que no puede funcionar es peor
+              que uno que no está, porque no hay forma de saber por qué falla. */}
+          {canScan() && (
+            <label
+              className={`food-camera food-photo${reading === 'scan' ? ' is-busy' : ''}`}
+              htmlFor="food-scan"
+              aria-disabled={reading === 'label' || undefined}
+              aria-busy={reading === 'scan' || undefined}
+            >
+              <Disparador leyendo={reading === 'scan'}>Código de barras</Disparador>
+              {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» mientras
+                  lee, y sin esto el nombre del control se iba con él — quien
+                  navega a ciegas se quedaba con dos disparadores llamados
+                  «Leyendo…» y ninguno con nombre. */}
+              <input
+                id="food-scan"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                aria-label="Código de barras"
+                disabled={reading}
+                onChange={photographBarcode}
+              />
+            </label>
+          )}
+          <label
+            className={`food-camera food-photo${reading === 'label' ? ' is-busy' : ''}`}
+            htmlFor="food-photo"
+            aria-disabled={reading === 'scan' || undefined}
+            aria-busy={reading === 'label' || undefined}
+          >
+            <Disparador leyendo={reading === 'label'}>Etiqueta</Disparador>
+            <input
+              id="food-photo"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              aria-label="Etiqueta"
+              disabled={reading}
+              onChange={photograph}
+            />
+          </label>
+        </div>
+      </div>
 
       <button type="button" className="link-btn food-cancel" onClick={onCancel}>
         Cancelar
@@ -986,6 +1024,22 @@ function Amount({ food, initialSlot = null, onDone, onCancel }) {
         </button>
       </div>
     </form>
+  )
+}
+
+// Lo que pone dentro de una cámara: su nombre, o que está leyendo.
+//
+// El punto es el mismo `.pending-dot` que ya lleva una serie encolada, y por la
+// misma razón: una lectura puede tardar hasta veintiséis segundos —dos intentos
+// de doce, más la espera de en medio (`backend/app/gemini.py`)—, y un texto
+// quieto durante veintiséis segundos no se distingue de una pantalla colgada.
+function Disparador({ leyendo, children }) {
+  if (!leyendo) return children
+  return (
+    <>
+      Leyendo…
+      <span className="pending-dot" />
+    </>
   )
 }
 

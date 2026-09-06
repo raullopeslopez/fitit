@@ -367,7 +367,7 @@ describe('Comida', () => {
         api.logFood.mockResolvedValue(entry())
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Escanear código'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Código de barras'), JPEG())
       }
 
       it('un producto que ya tienes se registra sin pasar por el formulario', async () => {
@@ -464,7 +464,7 @@ describe('Comida', () => {
         api.readLabel.mockResolvedValue(respuesta)
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
       }
 
       it('rellena el formulario con lo que ha leído', async () => {
@@ -534,7 +534,7 @@ describe('Comida', () => {
         api.logFood.mockResolvedValue(entry())
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
         expect(
           await screen.findByText('La lectura de etiquetas no está configurada en el servidor.'),
         ).toBeInTheDocument()
@@ -615,10 +615,10 @@ describe('Comida', () => {
         window.createImageBitmap = () => Promise.resolve({})
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Escanear código'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Código de barras'), JPEG())
         await screen.findByText('Ese código no está en Open Food Facts. Tecléalo.')
         await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
         expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
         expect(screen.getByText('Leído de «por 100 g».')).toBeInTheDocument()
         delete window.BarcodeDetector
@@ -641,10 +641,44 @@ describe('Comida', () => {
         api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Leer etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
 
         expect(screen.getAllByText('Leyendo…')).toHaveLength(1)
-        expect(screen.getByLabelText('Escanear código')).toBeInTheDocument()
+        expect(screen.getByLabelText('Código de barras')).toBeInTheDocument()
+        await act(async () => {
+          resolve(LEIDO)
+        })
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
+      })
+
+      // El `disabled` vivía en el `input`, que no se ve; lo que se ve es el
+      // `label` que lo envuelve. Así que mientras una cámara leía, la otra
+      // seguía pintada exactamente igual que cuando funciona —misma tinta,
+      // mismo peso, mismo borde— y al tocarla no pasaba nada. Un control que
+      // no responde y no lo dice no se distingue de uno roto.
+      it('la otra cámara se ve apagada mientras una lee', async () => {
+        window.BarcodeDetector = class {
+          detect() {
+            return Promise.resolve([])
+          }
+        }
+        window.createImageBitmap = () => Promise.resolve({})
+        api.searchFoods.mockResolvedValue([])
+        let resolve
+        api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
+
+        // El `label`, y no el `input` que devuelve `getByLabelText`: el input
+        // está escondido, y lo que el ojo tiene que ver apagado es el marco.
+        const marco = (n) => screen.getByLabelText(n).closest('label')
+        expect(marco('Código de barras')).toHaveAttribute('aria-disabled', 'true')
+        // Y la que está leyendo no se apaga: está trabajando, no bloqueada.
+        expect(marco('Etiqueta')).not.toHaveAttribute('aria-disabled', 'true')
+        expect(marco('Etiqueta').className).toContain('is-busy')
+
         await act(async () => {
           resolve(LEIDO)
         })
