@@ -399,6 +399,109 @@ describe('Comida', () => {
     })
   })
 
+  // El pie de la hoja: tres cosas distintas que se pintaban iguales.
+  //
+  // Los cuatro controles eran `.link-btn` —transparente, sin borde, tinta
+  // plena, 600— y encima `inline-flex`, así que fluían en la misma línea y
+  // rompían por donde cupieran. Es un defecto que jsdom no puede ver: sin motor
+  // de maquetación no hay línea que compartir ni ancho que desbordar, y las 68
+  // pruebas de `Comida.test.jsx` pasaban con el pie hecho un acordeón.
+  describe('el pie de la hoja de alta', () => {
+    async function abrirBuscando() {
+      // Las dos cámaras en pantalla, que es el caso que se mide: sin
+      // `BarcodeDetector` sólo se pinta una y no hay pareja que comparar.
+      window.BarcodeDetector = class {
+        detect() {
+          return Promise.resolve([])
+        }
+      }
+      const user = userEvent.setup()
+      await mountComida()
+      await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+      await settle()
+      // Con texto escrito, para que «Crear …» esté puesto: es el control que
+      // compartía renglón con una cámara.
+      await user.type(document.getElementById('food-q'), 'pollo')
+      await vi.waitFor(() => expect(document.querySelector('.food-create')).not.toBeNull())
+      await settle()
+      return user
+    }
+
+    afterEach(() => {
+      delete window.BarcodeDetector
+    })
+
+    const cams = () => [...document.querySelectorAll('.food-camera')]
+
+    it('las dos cámaras van hombro con hombro y caben en 430 px', async () => {
+      await abrirBuscando()
+      const [izq, der] = cams().map((el) => el.getBoundingClientRect())
+      expect(cams()).toHaveLength(2)
+      // Misma línea: es lo que dice que son hermanas.
+      expect(Math.round(izq.top)).toBe(Math.round(der.top))
+      expect(izq.right).toBeLessThanOrEqual(der.left)
+      // Y ninguna se sale, ni empuja la página a lo ancho.
+      expect(der.right).toBeLessThanOrEqual(window.innerWidth)
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+      // 44px es el suelo de DESIGN.md para todo lo que se toca.
+      expect(izq.height).toBeGreaterThanOrEqual(44)
+      expect(der.height).toBeGreaterThanOrEqual(44)
+    })
+
+    it('«Crear …» y «Cancelar» ya no comparten renglón con una cámara', async () => {
+      await abrirBuscando()
+      const crear = document.querySelector('.food-create').getBoundingClientRect()
+      const cancelar = document.querySelector('.food-cancel').getBoundingClientRect()
+      for (const cam of cams().map((el) => el.getBoundingClientRect())) {
+        // Cada uno en su banda vertical: o entero encima, o entero debajo.
+        expect(crear.bottom, 'crear').toBeLessThanOrEqual(cam.top)
+        expect(cancelar.top, 'cancelar').toBeGreaterThanOrEqual(cam.bottom)
+      }
+      // Y los tres arrancan en la misma vertical: el `margin-left` que sangraba
+      // «Cancelar» 15 px respecto de todo lo demás ya no está.
+      expect(Math.round(cancelar.left)).toBe(Math.round(crear.left))
+      expect(Math.round(cancelar.left)).toBe(Math.round(cams()[0].getBoundingClientRect().left))
+    })
+
+    it('mientras una lee, la otra se ve apagada de verdad', async () => {
+      const user = await abrirBuscando()
+      const real = window.fetch
+      // La lectura se queda colgada a propósito: es el estado que dura hasta
+      // veintiséis segundos (dos intentos de doce más la espera de en medio,
+      // `backend/app/gemini.py`) y el único en el que se puede mirar.
+      window.fetch = (url, opts) =>
+        String(url).includes('/foods/label') ? new Promise(() => {}) : real(url, opts)
+      try {
+        await user.upload(
+          document.getElementById('food-photo'),
+          new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' }),
+        )
+        await settle()
+        const [codigo, etiqueta] = cams()
+        // Apagada quiere decir apagada: pintada a menos tinta y sin recoger el
+        // toque. El `disabled` vivía sólo en el `input`, que no se ve.
+        expect(getComputedStyle(codigo).opacity).toBe('0.4')
+        expect(getComputedStyle(codigo).pointerEvents).toBe('none')
+        // Y la que trabaja no se apaga; se marca. Ámbar es el único color que
+        // esta hoja gasta, y lo gasta en decir cuál de las dos es la tuya.
+        expect(getComputedStyle(etiqueta).opacity).toBe('1')
+        // El token, resuelto por el navegador: leerlo de `--accent` a pelo
+        // devuelve la cadena sin normalizar y no se puede comparar con un rgb.
+        const sonda = document.createElement('span')
+        sonda.style.color = 'var(--accent)'
+        document.body.append(sonda)
+        const ambar = getComputedStyle(sonda).color
+        sonda.remove()
+        expect(getComputedStyle(etiqueta).borderTopColor).toBe(ambar)
+        expect(getComputedStyle(codigo).borderTopColor).not.toBe(ambar)
+        // El punto que late es el mismo de una serie encolada, no uno nuevo.
+        expect(etiqueta.querySelector('.pending-dot')).not.toBeNull()
+      } finally {
+        window.fetch = real
+      }
+    })
+  })
+
   it('la CTA fija no tapa la barra de pestañas, y el hueco al pie basta para el último raíl', async () => {
     await mountComida()
     const cta = document.querySelector('.food-cta')
