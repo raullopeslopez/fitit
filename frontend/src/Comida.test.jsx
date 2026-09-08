@@ -1088,3 +1088,117 @@ describe('Comida', () => {
     })
   })
 })
+
+// La hoja de corregir un alimento. `correctFood` existía en `api.js` desde que
+// se escribió el backend y no la llamaba nadie: la U del CRUD tenía endpoint,
+// tenía envoltorio y no tenía pantalla (revisión del CRUD, 2026-09-08).
+describe('corregir un alimento', () => {
+  const abrir = async (food = PAN) => {
+    api.searchFoods.mockResolvedValue([food])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
+  }
+
+  beforeEach(() => {
+    api.getFoodDay.mockResolvedValue(day())
+    api.frequentFoods.mockResolvedValue([])
+  })
+
+  it('el catálogo compartido no se ofrece corregir', async () => {
+    // `is_mine` es falso en una fila de CIQUAL, y el servidor la rechazaría con
+    // un 403. Un control que no puede funcionar es peor que uno que no está.
+    await abrir({ ...PAN, is_mine: false, name: 'Arroz blanco cocido' })
+    expect(screen.queryByRole('button', { name: 'Corregir' })).not.toBeInTheDocument()
+  })
+
+  it('corrige las cifras sin tocar lo ya registrado', async () => {
+    api.correctFood.mockResolvedValue({ ...PAN, kcal_100g: 265 })
+    await abrir()
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.clear(screen.getByLabelText('Kcal por 100 g'))
+    await userEvent.type(screen.getByLabelText('Kcal por 100 g'), '265')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(1, expect.objectContaining({ kcal_100g: 265 })),
+    )
+  })
+
+  it('un macro que se vacía queda desconocido, no en cero', async () => {
+    api.correctFood.mockResolvedValue({ ...PAN, fiber_100g: null })
+    await abrir()
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.clear(screen.getByLabelText('Fibra por 100 g'))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(1, expect.objectContaining({ fiber_100g: null })),
+    )
+  })
+
+  it('corrige un código de barras mal tecleado', async () => {
+    api.correctFood.mockResolvedValue(PAN)
+    await abrir({ ...PAN, barcode: '8410000000009' })
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.clear(screen.getByLabelText('Código de barras'))
+    await userEvent.type(screen.getByLabelText('Código de barras'), '8410000000001')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ barcode: '8410000000001' }),
+      ),
+    )
+  })
+
+  it('añade una ración y la deja por defecto', async () => {
+    api.correctFood.mockResolvedValue(PAN)
+    await abrir()
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir ración' }))
+    await userEvent.type(screen.getByLabelText('Ración 1'), 'rebanada')
+    await userEvent.type(screen.getByLabelText('Gramos de la ración 1'), '30')
+    await userEvent.click(screen.getByRole('radio', { name: 'Ración 1 por defecto' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          portions: [{ label: 'rebanada', grams: 30, is_default: true }],
+        }),
+      ),
+    )
+  })
+
+  it('quita una ración que ya tenía', async () => {
+    api.correctFood.mockResolvedValue(PAN)
+    await abrir({
+      ...PAN,
+      portions: [{ id: 7, label: 'rebanada', grams: 30, is_default: true }],
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar la ración 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(1, expect.objectContaining({ portions: [] })),
+    )
+  })
+
+  it('archivar pide un segundo toque, y dice que el diario no se toca', async () => {
+    api.archiveFood.mockResolvedValue(null)
+    await abrir()
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Archivar' }))
+    expect(api.archiveFood).not.toHaveBeenCalled()
+    expect(
+      screen.getByText('Desaparece de la búsqueda. Lo que ya registraste no se toca.'),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Archivar de todas formas' }))
+    await waitFor(() => expect(api.archiveFood).toHaveBeenCalledWith(1))
+  })
+
+  it('el catálogo compartido tampoco se ofrece archivar', async () => {
+    await abrir({ ...PAN, is_mine: false })
+    expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
+  })
+})

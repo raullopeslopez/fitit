@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
 import {
+  archiveFood,
+  correctFood,
   correctFoodEntry,
   createFood,
   deleteFoodEntry,
@@ -922,7 +924,12 @@ function AddFood({ slot = null, onDone, onCancel }) {
 // Cuánto, y a qué comida. La porción por defecto llega ya elegida cuando el
 // alimento tiene una: registrar "una rebanada" no puede obligarte a pensar en
 // gramos.
-function Amount({ food, initialSlot = null, onDone, onCancel }) {
+function Amount({ food: initialFood, initialSlot = null, onDone, onCancel }) {
+  // El alimento que se está registrando, que la corrección puede reescribir sin
+  // salir de aquí: corriges las kcal y sigues con «cuánto», que es lo que
+  // estabas haciendo cuando te diste cuenta de que estaban mal.
+  const [food, setFood] = useState(initialFood)
+  const [correcting, setCorrecting] = useState(false)
   const preset = food.portions?.find((p) => p.is_default) ?? null
   const [portionId, setPortionId] = useState(preset?.id ?? null)
   const [quantity, setQuantity] = useState('1')
@@ -947,6 +954,22 @@ function Amount({ food, initialSlot = null, onDone, onCancel }) {
       mealSlot: slot || null,
     })
     await onDone()
+  }
+
+  if (correcting) {
+    return (
+      <FoodEditor
+        food={food}
+        onSaved={(saved) => {
+          setFood(saved)
+          setCorrecting(false)
+        }}
+        // Archivado, ya no se puede registrar: la hoja vuelve a la búsqueda,
+        // que es de donde vino.
+        onArchived={onCancel}
+        onCancel={() => setCorrecting(false)}
+      />
+    )
   }
 
   return (
@@ -1022,6 +1045,19 @@ function Amount({ food, initialSlot = null, onDone, onCancel }) {
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
+        {/* Corregir es un acto raro y registrar es el de cada comida, así que
+            no compite con «Añadir»: enlace, al final de la fila, y sólo donde
+            funcionaría — el catálogo compartido no es tuyo para corregirlo. */}
+        {food.is_mine && (
+          <button
+            type="button"
+            className="link-btn food-correct"
+            onClick={() => setCorrecting(true)}
+            disabled={busy}
+          >
+            Corregir
+          </button>
+        )}
       </div>
     </form>
   )
@@ -1245,6 +1281,238 @@ function fromNutrients(read) {
     ]),
   )
 }
+
+// Corregir un alimento tuyo: las cifras, el código y las raciones.
+//
+// La otra cara de `NewFood`, y se parece a ella a propósito — mismos campos, en
+// el mismo orden, con los mismos rótulos. Es el mismo objeto: que el alta y la
+// corrección se lean distinto es cómo se acaba dudando de si son la misma cosa.
+//
+// Sólo lo tuyo. Una fila del catálogo compartido es una medición de todos, el
+// servidor la rechaza con un 403, y `is_mine` es lo que deja no ofrecer siquiera
+// la puerta: un control que no puede funcionar es peor que uno que no está.
+//
+// Nada de lo aquí escrito toca el diario. Las entradas congelaron sus números
+// al escribirse, que es exactamente para lo que los congelaron: una etiqueta
+// que leíste mal en marzo no puede reescribir lo que sumaba febrero.
+function FoodEditor({ food, onSaved, onArchived, onCancel }) {
+  const [name, setName] = useState(food.name)
+  const [brand, setBrand] = useState(food.brand ?? '')
+  const [barcode, setBarcode] = useState(food.barcode ?? '')
+  const [values, setValues] = useState(() => ({
+    kcal: food.kcal_100g ?? '',
+    protein: food.protein_100g ?? '',
+    fat: food.fat_100g ?? '',
+    carbs: food.carbs_100g ?? '',
+    fiber: food.fiber_100g ?? '',
+  }))
+  const [portions, setPortions] = useState(() =>
+    (food.portions ?? []).map((p) => ({
+      label: p.label,
+      grams: String(p.grams),
+      is_default: p.is_default,
+    })),
+  )
+  // El segundo toque de archivar. No es un modal: lo que archivar cuesta —nada
+  // de lo registrado— cabe en una línea al lado del botón, así que no hace
+  // falta apagar la pantalla para contarlo (a diferencia de borrar un
+  // ejercicio, cuyo precio son meses de series que no están a la vista).
+  const [armed, setArmed] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const number = (raw) => {
+    const value = Number(String(raw).replace(',', '.'))
+    return String(raw).trim() === '' || !Number.isFinite(value) ? null : value
+  }
+
+  const setPortion = (index, patch) =>
+    setPortions(portions.map((p, i) => (i === index ? { ...p, ...patch } : p)))
+
+  // Una sola por defecto: marcar otra desmarca la anterior, aquí y no en el
+  // servidor, para que la pantalla no enseñe dos mientras decide.
+  const makeDefault = (index) =>
+    setPortions(portions.map((p, i) => ({ ...p, is_default: i === index })))
+
+  async function submit(event) {
+    event.preventDefault()
+    if (!name.trim()) return
+    setBusy(true)
+    const saved = await correctFood(food.id, {
+      name: name.trim(),
+      brand: brand.trim() || null,
+      barcode: barcode.trim() || null,
+      kcal_100g: number(values.kcal),
+      protein_100g: number(values.protein),
+      fat_100g: number(values.fat),
+      carbs_100g: number(values.carbs),
+      fiber_100g: number(values.fiber),
+      // La lista entera sustituye a la anterior, que es como el servidor la
+      // recibe. Las que se quedaron sin nombre o sin gramos no se mandan: una
+      // fila a medio escribir no es una ración.
+      portions: portions
+        .filter((p) => p.label.trim() && number(p.grams) !== null)
+        .map((p) => ({
+          label: p.label.trim(),
+          grams: number(p.grams),
+          is_default: p.is_default,
+        })),
+    })
+    onSaved(saved)
+  }
+
+  async function archive() {
+    setBusy(true)
+    await archiveFood(food.id)
+    await onArchived()
+  }
+
+  return (
+    <form className="card card-compose food-edit" onSubmit={submit}>
+      <div className="field">
+        <label htmlFor="edit-name">Nombre</label>
+        <input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="field">
+        <label htmlFor="edit-brand">Marca</label>
+        <input
+          id="edit-brand"
+          autoComplete="off"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+        />
+      </div>
+      {EDIT_FIELDS.map((field) => (
+        <div className="field" key={field.key}>
+          <label htmlFor={`edit-${field.key}`}>{field.label}</label>
+          <input
+            id={`edit-${field.key}`}
+            inputMode="decimal"
+            value={values[field.key]}
+            onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+          />
+        </div>
+      ))}
+      <div className="field">
+        <label htmlFor="edit-barcode">Código de barras</label>
+        <input
+          id="edit-barcode"
+          inputMode="numeric"
+          autoComplete="off"
+          value={barcode}
+          onChange={(e) => setBarcode(e.target.value)}
+        />
+      </div>
+
+      {/* Las raciones son lo que hace que registrar «dos rebanadas» no te
+          obligue a pesar el pan. La tabla existía en el servidor desde el
+          principio y no había ninguna pantalla que las escribiera. */}
+      <fieldset className="food-portions">
+        <legend>Raciones</legend>
+        {portions.map((portion, index) => (
+          <div className="food-portion" key={index}>
+            <input
+              aria-label={`Ración ${index + 1}`}
+              placeholder="rebanada"
+              value={portion.label}
+              onChange={(e) => setPortion(index, { label: e.target.value })}
+            />
+            <input
+              aria-label={`Gramos de la ración ${index + 1}`}
+              inputMode="decimal"
+              placeholder="g"
+              value={portion.grams}
+              onChange={(e) => setPortion(index, { grams: e.target.value })}
+            />
+            {/* Con su rótulo a la vista. Sin él era un círculo ámbar suelto al
+                lado de «Quitar»: el `aria-label` decía lo que hacía a quien
+                navega a ciegas, y a quien mira no se lo decía nadie. */}
+            <label className="food-portion-default">
+              <input
+                type="radio"
+                name="portion-default"
+                aria-label={`Ración ${index + 1} por defecto`}
+                checked={portion.is_default}
+                onChange={() => makeDefault(index)}
+              />
+              Por defecto
+            </label>
+            <button
+              type="button"
+              className="link-btn"
+              aria-label={`Quitar la ración ${index + 1}`}
+              onClick={() => setPortions(portions.filter((_, i) => i !== index))}
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() =>
+            setPortions([...portions, { label: '', grams: '', is_default: portions.length === 0 }])
+          }
+        >
+          Añadir ración
+        </button>
+      </fieldset>
+
+      <p className="hint">Lo que dejes en blanco queda como desconocido, no como cero.</p>
+      <p className="hint">Corregir un alimento no cambia nada de lo que ya registraste.</p>
+
+      <div className="food-editor-actions">
+        <button type="submit" className="primary" disabled={busy}>
+          Guardar alimento
+        </button>
+        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
+          Cancelar
+        </button>
+        {!armed && (
+          <button
+            type="button"
+            className="link-btn food-danger"
+            onClick={() => setArmed(true)}
+            disabled={busy}
+          >
+            Archivar
+          </button>
+        )}
+      </div>
+      {armed && (
+        <div className="food-archive-confirm">
+          <p className="hint">Desaparece de la búsqueda. Lo que ya registraste no se toca.</p>
+          <div className="food-editor-actions">
+            <button
+              type="button"
+              className="link-btn food-danger"
+              onClick={archive}
+              disabled={busy}
+            >
+              Archivar de todas formas
+            </button>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setArmed(false)}
+              disabled={busy}
+            >
+              Dejarlo donde está
+            </button>
+          </div>
+        </div>
+      )}
+    </form>
+  )
+}
+
+// Los cinco macros, en el mismo orden y con los mismos rótulos que el alta.
+const EDIT_FIELDS = [
+  { key: 'kcal', label: 'Kcal por 100 g' },
+  { key: 'protein', label: 'Proteína por 100 g' },
+  { key: 'fat', label: 'Grasa por 100 g' },
+  { key: 'carbs', label: 'Hidratos por 100 g' },
+  { key: 'fiber', label: 'Fibra por 100 g' },
+]
 
 // El alta manual: el pan de la panadería, los piquillos de tu madre.
 //

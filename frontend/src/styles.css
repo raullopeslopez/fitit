@@ -3994,6 +3994,78 @@ button.set-chip:active:not(:disabled) {
   color: var(--danger);
 }
 
+/* «Corregir» dentro de la hoja de cuánto. Misma regla que `.food-danger`: es un
+   acto raro y «Añadir» es el de cada comida, así que se va al final de la fila
+   y no toma peso de botón (DESIGN.md: cuando un acto raro y uno por serie se
+   pelean por el sitio, gana el de cada serie). */
+.food-correct {
+  margin-left: auto;
+}
+
+/* Las raciones. Cada una es una fila: nombre, gramos, cuál es la de por
+   defecto y cómo quitarla. Sin `fieldset` de cromo — sólo el rótulo, que es lo
+   que dice de qué va el bloque. */
+.food-portions {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0.2rem 0 0.9rem;
+  padding: 0.7rem 0 0;
+}
+.food-portions legend {
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+/* Dos renglones y no uno: a 430 px, nombre + gramos + «Por defecto» + «Quitar»
+   en línea deja el nombre en una rendija. Arriba lo que se escribe, abajo lo
+   que se decide sobre lo escrito. */
+.food-portion {
+  display: grid;
+  grid-template-columns: 1fr 4.5rem;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  margin-top: 0.7rem;
+}
+.food-portion-default {
+  /* El rótulo va con el control, no encima: `label` es de bloque en esta hoja
+     y aquí tiene que leerse en la misma línea que su radio. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.food-portion > .link-btn {
+  justify-self: end;
+}
+/* 44 y no se negocia (DESIGN.md): elegir la ración por defecto con el pulgar
+   es lo que esta fila existe para permitir. */
+.food-portion input[type='radio'] {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* El segundo toque de archivar, pegado al botón que lo armó. No es un modal
+   porque lo que cuesta cabe en una línea: el diario no se toca. */
+.food-archive-confirm {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+}
+/* Aquí dentro el rojo ya no es la acción rara al final de una fila de otras:
+   es el acto del bloque, y la salida va a su lado. Con el `margin-left: auto`
+   que `.food-danger` trae de la fila de arriba, «Archivar de todas formas» se
+   iba a la derecha y empujaba «Dejarlo donde está» a un renglón suelto debajo
+   — la salida más lejos y peor puesta que el acto irreversible. */
+.food-archive-confirm .food-danger {
+  margin-left: 0;
+}
+
 /* Dentro de la hoja, lo único que se desplaza es la lista: el campo de
    búsqueda se queda arriba —se sigue escribiendo en él mientras se mira— y
    «Crear …» y «Cancelar» se quedan abajo. Si el que rodara fuera el bloque
