@@ -29,7 +29,7 @@ from ..openfoodfacts import (
     looks_like_a_barcode,
     read_product,
 )
-from ..models import Food, FoodAlias, LogEntry, Portion
+from ..models import Food, FoodAlias, LogEntry, Portion, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import NUTRIENTS, calcular_nutrientes, kcal_disagreement
 from ..schemas import (
@@ -117,11 +117,6 @@ async def get_label_reader():
 CANDIDATE_LIMIT = 400
 
 
-def _visible(user_id: int):
-    """Rows this user may see: the shared catalogue plus their own, unarchived."""
-    return (Food.archived.is_(False)) & (or_(Food.user_id.is_(None), Food.user_id == user_id))
-
-
 def _rank(food: Food, needle: str, alias_hits: set[int]) -> tuple:
     """Best match first: the exact name, then names that start with what was
     typed, then names that merely contain it, and only then alias-only hits.
@@ -167,7 +162,7 @@ def search_stmt(user_id: int, needle: str):
     stmt = (
         select(Food)
         .options(selectinload(Food.portions), defer(Food.nutrients_json))
-        .where(_visible(user_id))
+        .where(visible_foods(user_id))
     )
     if not needle:
         # Nada escrito todavía: tu propia estantería, la más reciente primero.
@@ -574,10 +569,10 @@ async def frequent_foods(
                 # cargaría sola con IO síncrona dentro del bucle asíncrono.
                 select(Food).where(
                     Food.id.in_([food_id for food_id, _ in ranked]),
-                    # `_visible` y no un `or_` a mano: además de lo que es tuyo
-                    # y lo que es de todos, deja fuera lo archivado — un
+                    # `visible_foods` y no un `or_` a mano: además de lo que
+                    # es tuyo y lo que es de todos, deja fuera lo archivado — un
                     # alimento que retiraste no puede volver de un toque.
-                    _visible(user_id),
+                    visible_foods(user_id),
                 )
             )
         )
@@ -673,6 +668,38 @@ async def correct_food(
     return to_food_out(food, user_id)
 
 
+@router.delete("/{food_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def archive_food(
+    food_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Retira un alimento tuyo de la estantería.
+
+    Blando, y no un borrado: el diario que lo menciona tiene que seguir
+    leyéndose. Desaparece de la búsqueda, del repertorio y del escáner, y las
+    entradas que lo citan siguen enteras porque congelaron su nombre y sus
+    cifras al escribirse — que es para lo que las congelaron.
+
+    Sólo lo tuyo. Una fila del catálogo compartido es de todos y `archived` es
+    una columna suya, así que retirarla la escondería para todo el mundo:
+    esconderla sólo para quien lo pide haría falta otra tabla, y no la hay.
+    """
+    food = await _load(session, food_id, user_id)
+    if food.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="the shared catalogue is not editable",
+        )
+    food.archived = True
+    # Y suelta el código de barras. Es lo que identifica al producto, no a la
+    # fila que retiraste: reteniéndolo, volver a dar de alta el mismo yogur
+    # chocaría contra `uq_foods_user_barcode` y el 409 señalaría un alimento
+    # que ya no se ve desde ninguna pantalla — un callejón sin salida.
+    food.barcode = None
+    await session.commit()
+
+
 async def _load(session: AsyncSession, food_id: int, user_id: int) -> Food:
     food = (
         await session.execute(
@@ -682,7 +709,7 @@ async def _load(session: AsyncSession, food_id: int, user_id: int) -> Food:
             # revienta en cuanto alguien la lea — una trampa esperando a que
             # `FoodOut` crezca.
             .options(selectinload(Food.portions))
-            .where(Food.id == food_id, _visible(user_id))
+            .where(Food.id == food_id, visible_foods(user_id))
         )
     ).scalar_one_or_none()
     if food is None:

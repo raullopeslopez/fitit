@@ -13,6 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
     false,
     func,
+    or_,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -225,6 +226,18 @@ class Food(Base):
     portions: Mapped[list["Portion"]] = relationship(
         back_populates="food", cascade="all, delete-orphan", order_by="Portion.id"
     )
+
+
+def visible_foods(user_id: int):
+    """Las filas de `foods` que existen para este usuario.
+
+    El catálogo compartido más lo tuyo, sin lo archivado. Vive aquí y no en un
+    router porque los dos la necesitan —el catálogo para buscar, el diario para
+    no dejarte registrar un alimento que retiraste— y dos copias de esta regla
+    es como `food_log` acabó pudiendo escribir contra filas que la búsqueda ya
+    no enseñaba.
+    """
+    return (Food.archived.is_(False)) & (or_(Food.user_id.is_(None), Food.user_id == user_id))
 
 
 class FoodAlias(Base):

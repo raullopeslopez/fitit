@@ -9,13 +9,13 @@ from datetime import UTC, date, datetime
 from typing import get_args
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import Food, LogEntry, User
+from ..models import Food, LogEntry, User, visible_foods
 from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
@@ -41,10 +41,11 @@ async def log_food(
         await session.execute(
             select(Food)
             .options(selectinload(Food.portions))
-            .where(
-                Food.id == payload.food_id,
-                or_(Food.user_id.is_(None), Food.user_id == user_id),
-            )
+            # `visible_foods` y no un `or_` a mano: la regla de qué alimentos
+            # existen para ti es una sola, y esta copia se había quedado sin la
+            # mitad que descarta lo archivado — se podía registrar un alimento
+            # que la búsqueda ya no enseñaba.
+            .where(Food.id == payload.food_id, visible_foods(user_id))
         )
     ).scalar_one_or_none()
     if food is None:

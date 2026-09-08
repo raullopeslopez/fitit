@@ -107,6 +107,18 @@ def test_the_shared_catalogue_is_not_editable(alice_and_bob, db_sessionmaker):
     assert resp.status_code == 403
 
 
+def test_the_shared_catalogue_cannot_be_archived(alice_and_bob, db_sessionmaker):
+    import asyncio
+
+    client, alice, bob = alice_and_bob
+    food_id = asyncio.run(_seed_catalogue(db_sessionmaker, "arroz blanco cocido"))
+    # Por lo mismo que no se puede corregir: la fila es de todos, y `archived`
+    # es una columna suya, así que retirarla la escondería para todo el mundo.
+    # Esconderla sólo para quien lo pide haría falta otra tabla, y no la hay.
+    assert client.delete(f"/foods/{food_id}", headers=alice).status_code == 403
+    assert client.get(f"/foods/{food_id}", headers=bob).status_code == 200
+
+
 def test_your_own_food_outranks_the_catalogue(alice_and_bob, db_sessionmaker):
     import asyncio
 
