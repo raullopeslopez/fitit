@@ -698,38 +698,6 @@ async def correct_food(
     return to_food_out(food, user_id)
 
 
-@router.delete("/{food_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def archive_food(
-    food_id: int,
-    user_id: int = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-) -> None:
-    """Retira un alimento tuyo de la estantería.
-
-    Blando, y no un borrado: el diario que lo menciona tiene que seguir
-    leyéndose. Desaparece de la búsqueda, del repertorio y del escáner, y las
-    entradas que lo citan siguen enteras porque congelaron su nombre y sus
-    cifras al escribirse — que es para lo que las congelaron.
-
-    Sólo lo tuyo. Una fila del catálogo compartido es de todos y `archived` es
-    una columna suya, así que retirarla la escondería para todo el mundo:
-    esconderla sólo para quien lo pide haría falta otra tabla, y no la hay.
-    """
-    food = await _load(session, food_id, user_id)
-    if food.user_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="the shared catalogue is not editable",
-        )
-    food.archived = True
-    # Y suelta el código de barras. Es lo que identifica al producto, no a la
-    # fila que retiraste: reteniéndolo, volver a dar de alta el mismo yogur
-    # chocaría contra `uq_foods_user_barcode` y el 409 señalaría un alimento
-    # que ya no se ve desde ninguna pantalla — un callejón sin salida.
-    food.barcode = None
-    await session.commit()
-
-
 async def _load(session: AsyncSession, food_id: int, user_id: int) -> Food:
     food = (
         await session.execute(

@@ -31,6 +31,12 @@ Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo 
   desde un formulario que el usuario rellenó es la única puerta.
 - **Los alimentos van en la misma BD que los entrenos.** No propongas separarlos; poder
   cruzarlos es el motivo del proyecto.
+- **Un alimento no se borra: se corrige.** No hay `DELETE /foods/{id}` ni control que lo
+  ofrezca, y hay tests que lo fijan por los dos lados. «Borrar» en esta app es la
+  **entrada del diario** —se desliza su fila—, que es otro objeto; un alimento mal dado
+  de alta se arregla escribiendo encima con `PATCH /foods/{id}`, que hace todo lo que
+  retirarlo haría y además lo deja utilizable. La columna `archived` existe y la filtra
+  `visible_foods()`, pero nadie la escribe: es de una fase que no se construyó.
 - **El catálogo compartido es `foods.user_id IS NULL`** (CIQUAL, y luego Open Food Facts):
   se lee, no se edita. Lo que das de alta a mano lleva tu `user_id` y es lo único
   corregible.

@@ -289,13 +289,6 @@ export function recomputeFoodDay(foodId, dayIso) {
   })
 }
 
-// Retira un alimento tuyo de la estantería. Blando en el servidor: desaparece
-// de la búsqueda, del repertorio y del escáner, y lo que ya registraste sigue
-// entero porque congeló su nombre y sus cifras al escribirse.
-export function archiveFood(foodId) {
-  return apiFetch(`/foods/${foodId}`, { method: 'DELETE' })
-}
-
 // Registra una cantidad. `logged_at` se manda con el offset del móvil porque es
 // lo que decide en qué día alimentario cae — el servidor no tiene otro reloj
 // con el que fechar una cena de la 01:30. El sello lo compone `foodMomentIso`,
