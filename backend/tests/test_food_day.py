@@ -185,3 +185,97 @@ def test_moving_an_entry_does_not_reread_the_food(client):
         f"/food-log/{entry['id']}", json={"logged_at": "2026-09-08T14:00:00+02:00"}
     ).json()
     assert moved["kcal"] == 250
+
+
+# Volver a aplicar un alimento corregido a lo ya registrado.
+#
+# Es la única excepción a que `log_entries` congela, y existe porque la regla no
+# distinguía dos casos que no son el mismo: un alimento que **cambió** (la
+# receta, o una medición mejor) y un alimento que estaba **mal tecleado**. En el
+# primero congelar es lo correcto; en el segundo no hubo ningún día en que la
+# cifra fuera cierta, y el diario lleva mintiendo desde el primero.
+#
+# Nunca automático y nunca a todo el historial: sólo el día que se está mirando,
+# y sólo cuando alguien lo pide (2026-09-08).
+
+
+def test_recomputing_reapplies_the_corrected_food_to_that_day(client):
+    food = create(client, "Pan", kcal_100g=250)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+    )
+    client.patch(f"/foods/{food['id']}", json={"kcal_100g": 265})
+    # Sigue congelado hasta que alguien lo pida.
+    assert client.get("/food-log?date=2026-09-08").json()["totals"]["kcal"] == 250
+
+    resp = client.post("/food-log/recompute", json={"food_id": food["id"], "date": "2026-09-08"})
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+    assert client.get("/food-log?date=2026-09-08").json()["totals"]["kcal"] == 265
+
+
+def test_recomputing_respects_the_grams_of_each_entry(client):
+    food = create(client, "Pan", kcal_100g=250)
+    for grams in (100, 200):
+        client.post(
+            "/food-log",
+            json={"food_id": food["id"], "grams": grams, "logged_at": "2026-09-08T14:00:00+02:00"},
+        )
+    client.patch(f"/foods/{food['id']}", json={"kcal_100g": 300})
+    client.post("/food-log/recompute", json={"food_id": food["id"], "date": "2026-09-08"})
+    assert [e["kcal"] for e in client.get("/food-log?date=2026-09-08").json()["entries"]] == [
+        300,
+        600,
+    ]
+
+
+def test_recomputing_leaves_every_other_day_alone(client):
+    # El alcance es el día que estás mirando, y punto. Un dedo equivocado no
+    # puede cambiar los totales de un mes que ya diste por bueno.
+    food = create(client, "Pan", kcal_100g=250)
+    for iso in ("2026-09-07T14:00:00+02:00", "2026-09-08T14:00:00+02:00"):
+        client.post("/food-log", json={"food_id": food["id"], "grams": 100, "logged_at": iso})
+    client.patch(f"/foods/{food['id']}", json={"kcal_100g": 265})
+    client.post("/food-log/recompute", json={"food_id": food["id"], "date": "2026-09-08"})
+    assert client.get("/food-log?date=2026-09-08").json()["totals"]["kcal"] == 265
+    assert client.get("/food-log?date=2026-09-07").json()["totals"]["kcal"] == 250
+
+
+def test_recomputing_leaves_other_foods_alone(client):
+    pan = create(client, "Pan", kcal_100g=250)
+    queso = create(client, "Queso", kcal_100g=350)
+    for food in (pan, queso):
+        client.post(
+            "/food-log",
+            json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+        )
+    client.patch(f"/foods/{pan['id']}", json={"kcal_100g": 265})
+    client.patch(f"/foods/{queso['id']}", json={"kcal_100g": 400})
+    client.post("/food-log/recompute", json={"food_id": pan["id"], "date": "2026-09-08"})
+    assert [e["kcal"] for e in client.get("/food-log?date=2026-09-08").json()["entries"]] == [
+        265,
+        350,
+    ]
+
+
+def test_recomputing_keeps_unknown_unknown(client):
+    # `NULL` no es `0`, tampoco por aquí: un nutriente que el alimento no tiene
+    # medido sigue sin medir en la entrada.
+    food = create(client, "Piquillos de mi madre", kcal_100g=60)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+    )
+    client.patch(f"/foods/{food['id']}", json={"kcal_100g": 70})
+    client.post("/food-log/recompute", json={"food_id": food["id"], "date": "2026-09-08"})
+    entry_out = client.get("/food-log?date=2026-09-08").json()["entries"][0]
+    assert entry_out["kcal"] == 70
+    assert entry_out["protein"] is None
+
+
+def test_recomputing_a_day_with_nothing_of_that_food_changes_nothing(client):
+    food = create(client, "Pan", kcal_100g=250)
+    resp = client.post("/food-log/recompute", json={"food_id": food["id"], "date": "2026-09-08"})
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0

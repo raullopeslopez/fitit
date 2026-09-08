@@ -10,6 +10,7 @@ import {
   getFoodDay,
   logFood,
   readLabel,
+  recomputeFoodDay,
   scanBarcode,
   searchFoods,
   setTargets,
@@ -491,7 +492,19 @@ export default function Comida() {
             aria-label={adding ? 'Añadir alimento' : 'Editar entrada'}
             onClick={(e) => e.stopPropagation()}
           >
-            {adding && <AddFood slot={adding.slot} onDone={afterWrite} onCancel={closeSheet} />}
+            {adding && (
+              <AddFood
+                slot={adding.slot}
+                dayIso={dayIso}
+                entries={day?.entries ?? []}
+                onDone={afterWrite}
+                // Rehacer el día desde la corrección reescribe entradas que ya
+                // están pintadas, y no cierra la hoja: estabas registrando algo
+                // cuando te diste cuenta de la errata, y sigues estándolo.
+                onDayChanged={() => load(dayIso)}
+                onCancel={closeSheet}
+              />
+            )}
             {!adding && editingEntry && (
               <EntryEditor entry={editingEntry} onDone={afterWrite} onCancel={closeSheet} />
             )}
@@ -636,7 +649,7 @@ function EntryEditor({ entry, onDone, onCancel }) {
 //
 // El alta manual es la ÚNICA puerta por la que se escribe en `foods`: nada en
 // este proyecto crea un alimento sin que alguien lo confirme en un formulario.
-function AddFood({ slot = null, onDone, onCancel }) {
+function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCancel }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
@@ -750,7 +763,10 @@ function AddFood({ slot = null, onDone, onCancel }) {
       <Amount
         food={scan.food}
         initialSlot={slot}
+        dayIso={dayIso}
+        entries={entries}
         onDone={onDone}
+        onDayChanged={onDayChanged}
         onCancel={() => setScan(null)}
       />
     )
@@ -793,7 +809,10 @@ function AddFood({ slot = null, onDone, onCancel }) {
       <Amount
         food={chosen}
         initialSlot={slot}
+        dayIso={dayIso}
+        entries={entries}
         onDone={onDone}
+        onDayChanged={onDayChanged}
         onCancel={() => setChosen(null)}
       />
     )
@@ -924,7 +943,15 @@ function AddFood({ slot = null, onDone, onCancel }) {
 // Cuánto, y a qué comida. La porción por defecto llega ya elegida cuando el
 // alimento tiene una: registrar "una rebanada" no puede obligarte a pensar en
 // gramos.
-function Amount({ food: initialFood, initialSlot = null, onDone, onCancel }) {
+function Amount({
+  food: initialFood,
+  initialSlot = null,
+  dayIso,
+  entries = [],
+  onDone,
+  onDayChanged,
+  onCancel,
+}) {
   // El alimento que se está registrando, que la corrección puede reescribir sin
   // salir de aquí: corriges las kcal y sigues con «cuánto», que es lo que
   // estabas haciendo cuando te diste cuenta de que estaban mal.
@@ -960,9 +987,18 @@ function Amount({ food: initialFood, initialSlot = null, onDone, onCancel }) {
     return (
       <FoodEditor
         food={food}
-        onSaved={(saved) => {
+        dayIso={dayIso}
+        // Cuántas entradas de este alimento hay en el día que se está mirando.
+        // Se cuenta aquí y no se pregunta al servidor: la pantalla ya tiene el
+        // día cargado, y es exactamente el mismo conjunto que rehará
+        // `recompute`.
+        affected={entries.filter((e) => e.food_id === food.id).length}
+        onSaved={async (saved, { recomputed = false } = {}) => {
           setFood(saved)
           setCorrecting(false)
+          // Rehacer el día reescribe entradas que la pantalla ya tiene pintadas,
+          // así que hay que volver a pedirlo o se queda enseñando lo viejo.
+          if (recomputed) await onDayChanged?.()
         }}
         // Archivado, ya no se puede registrar: la hoja vuelve a la búsqueda,
         // que es de donde vino.
@@ -1295,7 +1331,7 @@ function fromNutrients(read) {
 // Nada de lo aquí escrito toca el diario. Las entradas congelaron sus números
 // al escribirse, que es exactamente para lo que los congelaron: una etiqueta
 // que leíste mal en marzo no puede reescribir lo que sumaba febrero.
-function FoodEditor({ food, onSaved, onArchived, onCancel }) {
+function FoodEditor({ food, dayIso, affected = 0, onSaved, onArchived, onCancel }) {
   const [name, setName] = useState(food.name)
   const [brand, setBrand] = useState(food.brand ?? '')
   const [barcode, setBarcode] = useState(food.barcode ?? '')
@@ -1319,6 +1355,12 @@ function FoodEditor({ food, onSaved, onArchived, onCancel }) {
   // ejercicio, cuyo precio son meses de series que no están a la vista).
   const [armed, setArmed] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Lo guardado, esperando a que se decida qué hacer con lo que ya hay escrito
+  // en el diario de este día. `null` mientras no haya nada que decidir.
+  const [pending, setPending] = useState(null)
+  // Si el intento de rehacer el día no llegó. El alimento ya está corregido —
+  // eso no se deshace—, y lo que queda es volver a intentarlo o dejarlo.
+  const [failed, setFailed] = useState(false)
 
   const number = (raw) => {
     const value = Number(String(raw).replace(',', '.'))
@@ -1357,13 +1399,71 @@ function FoodEditor({ food, onSaved, onArchived, onCancel }) {
           is_default: p.is_default,
         })),
     })
+    // El congelado sigue siendo la regla: si no hay nada de este alimento en el
+    // día que se está mirando, no hay nada que preguntar y esto se comporta
+    // como siempre.
+    if (affected > 0) {
+      setPending(saved)
+      setBusy(false)
+      return
+    }
     onSaved(saved)
+  }
+
+  async function recompute() {
+    setBusy(true)
+    try {
+      await recomputeFoodDay(food.id, dayIso)
+    } catch {
+      // Sin esto, un fallo de red dejaba «Actualizar» desactivado para siempre
+      // y sin decir por qué: la corrección ya está guardada, así que lo único
+      // que se ha perdido es rehacer el día, y se puede volver a intentar.
+      setFailed(true)
+      setBusy(false)
+      return
+    }
+    await onSaved(pending, { recomputed: true })
   }
 
   async function archive() {
     setBusy(true)
     await archiveFood(food.id)
     await onArchived()
+  }
+
+  // Guardado, y con algo de este alimento en el día que se está mirando. La
+  // oferta sustituye al formulario en vez de colgarse debajo: lo que hay que
+  // decidir ahora es una cosa y sólo una, y el formulario ya no responde a
+  // ninguna pregunta abierta.
+  if (pending) {
+    return (
+      <div className="card card-compose food-edit food-recompute">
+        <p className="food-editor-name">Corregido.</p>
+        <p className="hint">
+          {affected === 1
+            ? '1 entrada de este día usa las cifras antiguas.'
+            : `${affected} entradas de este día usan las cifras antiguas.`}
+        </p>
+        {failed && (
+          <p className="hint food-recompute-failed">
+            No se ha podido actualizar. El alimento sí quedó corregido.
+          </p>
+        )}
+        <div className="food-editor-actions">
+          <button type="button" className="primary" onClick={recompute} disabled={busy}>
+            {failed ? 'Reintentar' : 'Actualizar'}
+          </button>
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => onSaved(pending)}
+            disabled={busy}
+          >
+            Dejarlo como está
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -1474,7 +1574,7 @@ function FoodEditor({ food, onSaved, onArchived, onCancel }) {
             onClick={() => setArmed(true)}
             disabled={busy}
           >
-            Archivar
+            Borrar
           </button>
         )}
       </div>
@@ -1488,7 +1588,7 @@ function FoodEditor({ food, onSaved, onArchived, onCancel }) {
               onClick={archive}
               disabled={busy}
             >
-              Archivar de todas formas
+              Borrar de todas formas
             </button>
             <button
               type="button"

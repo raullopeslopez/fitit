@@ -59,6 +59,31 @@ def test_bob_does_not_see_alices_diary(alice_and_bob):
     assert client.delete(f"/food-log/{entry['id']}", headers=bob).status_code == 404
 
 
+def test_recomputing_a_day_never_reaches_another_persons_diary(alice_and_bob):
+    # El endpoint que rehace entradas es el único que reescribe el diario, así
+    # que es el que más importa que esté atado al dueño por los dos lados: el
+    # alimento y las entradas.
+    client, alice, bob = alice_and_bob
+    resp = client.post("/foods", json={"name": "Pan", "kcal_100g": 250}, headers=alice)
+    food_id = resp.json()["id"]
+    client.post(
+        "/food-log",
+        json={"food_id": food_id, "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+        headers=alice,
+    )
+    client.patch(f"/foods/{food_id}", json={"kcal_100g": 900}, headers=alice)
+    # Para Bob ese alimento no existe, así que tampoco existe el día que rehacer.
+    assert (
+        client.post(
+            "/food-log/recompute",
+            json={"food_id": food_id, "date": "2026-09-08"},
+            headers=bob,
+        ).status_code
+        == 404
+    )
+    assert client.get("/food-log?date=2026-09-08", headers=alice).json()["totals"]["kcal"] == 250
+
+
 async def _seed_catalogue(sessionmaker, name: str) -> int:
     """A shared-catalogue row, which is what the CIQUAL import will write.
 

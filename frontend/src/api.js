@@ -277,6 +277,18 @@ export function correctFood(foodId, fields) {
   return apiFetch(`/foods/${foodId}`, { method: 'PATCH', body: JSON.stringify(fields) })
 }
 
+// Vuelve a aplicar un alimento corregido a lo registrado de **un** día.
+//
+// La única excepción a que el diario congela sus cifras, y por eso viaja sola y
+// con nombre propio: guardar una corrección no la llama: la llama la pantalla,
+// después de preguntar, y sólo con el día que se está mirando.
+export function recomputeFoodDay(foodId, dayIso) {
+  return apiFetch('/food-log/recompute', {
+    method: 'POST',
+    body: JSON.stringify({ food_id: foodId, date: dayIso }),
+  })
+}
+
 // Retira un alimento tuyo de la estantería. Blando en el servidor: desaparece
 // de la búsqueda, del repertorio y del escáner, y lo que ya registraste sigue
 // entero porque congeló su nombre y sus cifras al escribirse.
