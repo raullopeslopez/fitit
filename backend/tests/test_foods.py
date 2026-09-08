@@ -136,3 +136,47 @@ def test_clearing_the_brand_clears_what_it_answered_to(client):
     food = create(client, "Yogur natural", brand="Hacendado")
     client.patch(f"/foods/{food['id']}", json={"brand": ""})
     assert client.get("/foods?q=hacendado").json() == []
+
+
+# Dos peticiones que tumbaban el proceso con un 500 en vez de contestar lo que
+# les pasaba (revisión del CRUD, 2026-09-08).
+
+
+def test_a_food_cannot_be_left_without_a_name(client):
+    # `name` es lo único del patch donde `null` no significa nada: la columna es
+    # NOT NULL y el nombre es por lo que se busca. El resto de campos sí acepta
+    # `null` a propósito —desmedir un nutriente es legítimo, y es la regla de
+    # que `NULL` no es `0`—, así que la única forma honesta de rechazar esto es
+    # rechazarlo por campo. Antes llegaba hasta `fold(None)` y reventaba.
+    food = create(client, "Pan", kcal_100g=250)
+    resp = client.patch(f"/foods/{food['id']}", json={"name": None})
+    assert resp.status_code == 422
+    assert client.get(f"/foods/{food['id']}").json()["name"] == "Pan"
+
+
+def test_unmeasuring_a_nutrient_is_still_allowed(client):
+    # La otra cara del test de arriba: el rechazo es del nombre, no de `null`.
+    food = create(client, "Pan", kcal_100g=250, fiber_100g=3)
+    resp = client.patch(f"/foods/{food['id']}", json={"fiber_100g": None})
+    assert resp.status_code == 200
+    # Desconocida, no cero. Nadie la ha medido.
+    assert resp.json()["fiber_100g"] is None
+
+
+def test_the_same_barcode_twice_says_which_food_already_has_it(client):
+    # Un doble toque en «Guardar» llegaba al índice único y salía por un 500.
+    # Con el código ya puesto, lo que hace falta saber es cuál es el alimento
+    # que lo tiene: es casi siempre el que acabas de crear sin enterarte.
+    first = create(client, "Yogur griego", barcode="8410000000001")
+    resp = client.post("/foods", json={"name": "Yogur griego", "barcode": "8410000000001"})
+    assert resp.status_code == 409
+    detail = resp.json()["detail"]
+    assert detail["food"]["id"] == first["id"]
+    assert detail["food"]["name"] == "Yogur griego"
+
+
+def test_two_foods_without_a_barcode_do_not_collide(client):
+    # El índice es por usuario y código, y los NULL no chocan entre sí: CIQUAL
+    # entero cabe sin estorbar, y dos alimentos tuyos sin código también.
+    create(client, "Piquillos de mi madre")
+    assert client.post("/foods", json={"name": "Pisto de mi madre"}).status_code == 201

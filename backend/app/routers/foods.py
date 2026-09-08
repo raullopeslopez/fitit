@@ -12,6 +12,7 @@ from time import perf_counter
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer, selectinload
 
@@ -33,6 +34,9 @@ from ..naming import fold_exercise_name as fold
 from ..nutrition import NUTRIENTS, calcular_nutrientes, kcal_disagreement
 from ..schemas import (
     BarcodeLookupOut,
+    BarcodeClash,
+    BarcodeTaken,
+    BarcodeTakenError,
     KcalMismatch,
     FoodIn,
     FoodOut,
@@ -213,7 +217,12 @@ async def search_foods(
     return [to_food_out(f, user_id) for f in rows[:SEARCH_LIMIT]]
 
 
-@router.post("", response_model=FoodOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=FoodOut,
+    status_code=status.HTTP_201_CREATED,
+    responses={409: {"model": BarcodeTakenError, "description": "That barcode is already yours"}},
+)
 async def create_food(
     payload: FoodIn,
     user_id: int = Depends(get_current_user),
@@ -226,6 +235,18 @@ async def create_food(
     the parser. A catalogue that grows without anyone deciding it should is a
     catalogue you stop trusting the search results of.
     """
+    if payload.barcode:
+        clash = (
+            await session.execute(
+                select(Food).where(
+                    Food.user_id == user_id,
+                    Food.barcode == payload.barcode,
+                )
+            )
+        ).scalar_one_or_none()
+        if clash is not None:
+            raise _barcode_taken(clash)
+
     food = Food(
         user_id=user_id,
         name=payload.name,
@@ -256,9 +277,40 @@ async def create_food(
                 is_default=portion.is_default and index == 0,
             )
         )
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        # La comprobación de arriba resuelve el caso normal; ésta es la carrera
+        # que deja pasar, y es la que de verdad ocurre: dos toques seguidos en
+        # «Guardar» son dos peticiones que miran antes de que ninguna escriba.
+        await session.rollback()
+        clash = (
+            await session.execute(
+                select(Food).where(Food.user_id == user_id, Food.barcode == payload.barcode)
+            )
+        ).scalar_one_or_none()
+        if clash is None:
+            raise
+        raise _barcode_taken(clash) from None
     await session.refresh(food, ["portions"])
     return to_food_out(food, user_id)
+
+
+def _barcode_taken(clash: Food) -> HTTPException:
+    """El 409 de un código repetido, con el alimento que ya lo lleva dentro.
+
+    Mismo trato que el 409 del renombrado: el número por sí solo no deja hacer
+    nada. La búsqueda va por nombre y no por código, así que el cliente no
+    tiene forma de encontrar el alimento que choca — y es casi siempre uno que
+    acabas de crear sin enterarte.
+    """
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=BarcodeTaken(
+            message="ya tienes un alimento con ese código de barras",
+            food=BarcodeClash(id=clash.id, name=clash.name, brand=clash.brand),
+        ).model_dump(),
+    )
 
 
 @router.get("/barcode/{ean}", response_model=BarcodeLookupOut)
@@ -592,6 +644,16 @@ async def correct_food(
         )
     fields = payload.model_dump(exclude_unset=True)
     if "name" in fields:
+        if fields["name"] is None:
+            # El único campo del patch donde `null` no significa nada: la
+            # columna es NOT NULL y el nombre es por lo que se busca. Los demás
+            # sí lo aceptan a propósito —desmedir un nutriente es legítimo, y es
+            # la regla de que `NULL` no es `0`—, así que el rechazo va por
+            # campo y no por la petición entera. Antes llegaba a `fold(None)`.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="un alimento no puede quedarse sin nombre",
+            )
         food.name = fields.pop("name")
         food.name_folded = fold(food.name)
     if "brand" in fields:

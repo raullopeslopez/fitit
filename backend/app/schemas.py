@@ -382,6 +382,36 @@ class FoodPatch(BaseModel):
     fiber_100g: float | None = Field(default=None, ge=0, le=100)
 
 
+class BarcodeClash(BaseModel):
+    """El alimento tuyo que ya lleva el código que un alta acaba de traer."""
+
+    id: int
+    name: str
+    brand: str | None = None
+
+
+class BarcodeTaken(BaseModel):
+    """El cuerpo del 409 cuando das de alta un código que ya tienes.
+
+    Mismo trato que el 409 del renombrado de ejercicios: un objeto y no una
+    cadena, porque el número por sí solo no deja hacer nada. Con el código ya
+    puesto, lo que hace falta saber es **cuál** es el alimento que lo lleva —
+    casi siempre uno que creaste sin enterarte, de un doble toque en Guardar—,
+    y eso el cliente no puede averiguarlo: la búsqueda va por nombre, no por
+    código, y el alimento que choca puede no estar en ninguna lista cargada.
+    """
+
+    message: str
+    food: BarcodeClash
+
+
+class BarcodeTakenError(BaseModel):
+    """El sobre en que FastAPI envuelve el detalle, para que el 409 aparezca en
+    el esquema con su forma (mismo motivo que `NameTakenError`)."""
+
+    detail: BarcodeTaken
+
+
 class FoodOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
