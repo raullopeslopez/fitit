@@ -212,3 +212,61 @@ def test_only_one_portion_ends_up_being_the_default(client):
         ],
     )
     assert [p["is_default"] for p in food["portions"]] == [True, False]
+
+
+# Retirar un alimento de tu estantería. Blando a propósito: el diario que lo
+# menciona tiene que seguir leyéndose, y por eso `log_entries` congela sus
+# números y su nombre (revisión del CRUD, 2026-09-08).
+
+
+def test_archiving_takes_a_food_out_of_the_search(client):
+    food = create(client, "Pan de la gasolinera")
+    assert client.delete(f"/foods/{food['id']}").status_code == 204
+    assert client.get("/foods?q=gasolinera").json() == []
+    assert client.get("/foods").json() == []
+
+
+def test_archiving_leaves_the_diary_alone(client):
+    food = create(client, "Pan de la gasolinera", kcal_100g=250)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+    )
+    client.delete(f"/foods/{food['id']}")
+    day = client.get("/food-log?date=2026-09-08").json()
+    # Sigue ahí, con su nombre y sus cifras congeladas. Retirar un alimento no
+    # es borrar la quincena en que lo comiste.
+    assert [e["food_name"] for e in day["entries"]] == ["Pan de la gasolinera"]
+    assert day["totals"]["kcal"] == 250
+
+
+def test_an_archived_food_leaves_the_repertoire(client):
+    # El repertorio es «vuelve a registrar esto de un toque», y un alimento que
+    # retiraste no puede volver de un toque.
+    food = create(client, "Pan de la gasolinera", kcal_100g=250)
+    for _ in range(3):
+        client.post(
+            "/food-log",
+            json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+        )
+    assert [f["name"] for f in client.get("/foods/frequent").json()] == ["Pan de la gasolinera"]
+    client.delete(f"/foods/{food['id']}")
+    assert client.get("/foods/frequent").json() == []
+
+
+def test_an_archived_food_cannot_be_logged_again(client):
+    food = create(client, "Pan de la gasolinera", kcal_100g=250)
+    client.delete(f"/foods/{food['id']}")
+    resp = client.post("/food-log", json={"food_id": food["id"], "grams": 100})
+    assert resp.status_code == 404
+
+
+def test_archiving_frees_the_barcode(client):
+    # Si no lo soltara, volver a dar de alta el mismo producto chocaría contra
+    # el índice único y el 409 señalaría un alimento que ya no se ve desde
+    # ninguna pantalla: un callejón sin salida. El código identifica al
+    # producto, no a la fila que retiraste.
+    food = create(client, "Yogur griego", barcode="8410000000001")
+    client.delete(f"/foods/{food['id']}")
+    resp = client.post("/foods", json={"name": "Yogur griego", "barcode": "8410000000001"})
+    assert resp.status_code == 201
