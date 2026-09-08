@@ -3987,17 +3987,11 @@ button.set-chip:active:not(:disabled) {
   gap: 0.9rem;
   flex-wrap: wrap;
 }
-/* Borrar se queda dentro del editor que abre la fila, en rojo y como enlace:
-   destructivo pero raro, así que no compite con Guardar. */
-.food-danger {
-  margin-left: auto;
-  color: var(--danger);
-}
 
-/* «Corregir» dentro de la hoja de cuánto. Misma regla que `.food-danger`: es un
-   acto raro y «Añadir» es el de cada comida, así que se va al final de la fila
-   y no toma peso de botón (DESIGN.md: cuando un acto raro y uno por serie se
-   pelean por el sitio, gana el de cada serie). */
+/* «Corregir» dentro de la hoja de cuánto: es un acto raro y «Añadir» es el de
+   cada comida, así que se va al final de la fila y no toma peso de botón
+   (DESIGN.md: cuando un acto raro y uno por serie se pelean por el sitio, gana
+   el de cada serie). */
 .food-correct {
   margin-left: auto;
 }
