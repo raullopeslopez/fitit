@@ -176,7 +176,11 @@ def search_stmt(user_id: int, needle: str):
         # alimentos dados de alta en el mismo segundo comparten marca de tiempo,
         # y el id es lo que el orden de inserción es de verdad (mismo
         # razonamiento que `Day.workouts`).
-        return stmt.where(Food.user_id == user_id).order_by(Food.id.desc())
+        #
+        # Con su tope, como la otra rama: sin él se traía la estantería entera
+        # para cortarla a treinta en Python, que es la única consulta del
+        # módulo que no se limitaba a sí misma.
+        return stmt.where(Food.user_id == user_id).order_by(Food.id.desc()).limit(SEARCH_LIMIT)
     alias_matches = select(FoodAlias.food_id).where(FoodAlias.alias_folded.contains(needle))
     return (
         stmt.where(
@@ -266,15 +270,18 @@ async def create_food(
     )
     session.add(food)
     await session.flush()
+    # La primera **marcada** gana, no la primera a secas: un valor por defecto
+    # ambiguo no es un valor por defecto, pero exigir que sea la de arriba
+    # descartaba en silencio la marca de cualquier otra y dejaba el alimento
+    # sin ninguna.
+    default_at = next((i for i, p in enumerate(payload.portions) if p.is_default), None)
     for index, portion in enumerate(payload.portions):
         session.add(
             Portion(
                 food_id=food.id,
                 label=portion.label,
                 grams=portion.grams,
-                # First one wins if the form marked several; a default that is
-                # ambiguous is not a default.
-                is_default=portion.is_default and index == 0,
+                is_default=index == default_at,
             )
         )
     try:

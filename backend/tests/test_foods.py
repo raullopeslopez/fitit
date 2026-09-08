@@ -180,3 +180,35 @@ def test_two_foods_without_a_barcode_do_not_collide(client):
     # entero cabe sin estorbar, y dos alimentos tuyos sin código también.
     create(client, "Piquillos de mi madre")
     assert client.post("/foods", json={"name": "Pisto de mi madre"}).status_code == 201
+
+
+def test_the_default_portion_can_be_any_of_them(client):
+    # El código decía «gana la primera», pero lo que hacía era «sólo la primera
+    # puede serlo»: marcando la segunda no quedaba ninguna por defecto, y al
+    # registrar no venía nada preseleccionado (revisión del CRUD, 2026-09-08).
+    food = create(
+        client,
+        "Pan de molde",
+        portions=[
+            {"label": "rebanada", "grams": 30, "is_default": False},
+            {"label": "paquete", "grams": 500, "is_default": True},
+        ],
+    )
+    assert [(p["label"], p["is_default"]) for p in food["portions"]] == [
+        ("rebanada", False),
+        ("paquete", True),
+    ]
+
+
+def test_only_one_portion_ends_up_being_the_default(client):
+    # Un formulario que marque varias no puede dejar dos: un valor por defecto
+    # ambiguo no es un valor por defecto. Gana la primera marcada.
+    food = create(
+        client,
+        "Aceite",
+        portions=[
+            {"label": "cucharada", "grams": 10, "is_default": True},
+            {"label": "chorro", "grams": 25, "is_default": True},
+        ],
+    )
+    assert [p["is_default"] for p in food["portions"]] == [True, False]
