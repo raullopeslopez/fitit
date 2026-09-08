@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
 import {
-  archiveFood,
   correctFood,
   correctFoodEntry,
   createFood,
@@ -1000,9 +999,6 @@ function Amount({
           // así que hay que volver a pedirlo o se queda enseñando lo viejo.
           if (recomputed) await onDayChanged?.()
         }}
-        // Archivado, ya no se puede registrar: la hoja vuelve a la búsqueda,
-        // que es de donde vino.
-        onArchived={onCancel}
         onCancel={() => setCorrecting(false)}
       />
     )
@@ -1331,7 +1327,7 @@ function fromNutrients(read) {
 // Nada de lo aquí escrito toca el diario. Las entradas congelaron sus números
 // al escribirse, que es exactamente para lo que los congelaron: una etiqueta
 // que leíste mal en marzo no puede reescribir lo que sumaba febrero.
-function FoodEditor({ food, dayIso, affected = 0, onSaved, onArchived, onCancel }) {
+function FoodEditor({ food, dayIso, affected = 0, onSaved, onCancel }) {
   const [name, setName] = useState(food.name)
   const [brand, setBrand] = useState(food.brand ?? '')
   const [barcode, setBarcode] = useState(food.barcode ?? '')
@@ -1349,11 +1345,6 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onArchived, onCancel 
       is_default: p.is_default,
     })),
   )
-  // El segundo toque de archivar. No es un modal: lo que archivar cuesta —nada
-  // de lo registrado— cabe en una línea al lado del botón, así que no hace
-  // falta apagar la pantalla para contarlo (a diferencia de borrar un
-  // ejercicio, cuyo precio son meses de series que no están a la vista).
-  const [armed, setArmed] = useState(false)
   const [busy, setBusy] = useState(false)
   // Lo guardado, esperando a que se decida qué hacer con lo que ya hay escrito
   // en el diario de este día. `null` mientras no haya nada que decidir.
@@ -1423,12 +1414,6 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onArchived, onCancel 
       return
     }
     await onSaved(pending, { recomputed: true })
-  }
-
-  async function archive() {
-    setBusy(true)
-    await archiveFood(food.id)
-    await onArchived()
   }
 
   // Guardado, y con algo de este alimento en el día que se está mirando. La
@@ -1567,40 +1552,7 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onArchived, onCancel 
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
-        {!armed && (
-          <button
-            type="button"
-            className="link-btn food-danger"
-            onClick={() => setArmed(true)}
-            disabled={busy}
-          >
-            Borrar
-          </button>
-        )}
       </div>
-      {armed && (
-        <div className="food-archive-confirm">
-          <p className="hint">Desaparece de la búsqueda. Lo que ya registraste no se toca.</p>
-          <div className="food-editor-actions">
-            <button
-              type="button"
-              className="link-btn food-danger"
-              onClick={archive}
-              disabled={busy}
-            >
-              Borrar de todas formas
-            </button>
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => setArmed(false)}
-              disabled={busy}
-            >
-              Dejarlo donde está
-            </button>
-          </div>
-        </div>
-      )}
     </form>
   )
 }

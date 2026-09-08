@@ -1188,22 +1188,15 @@ describe('corregir un alimento', () => {
     )
   })
 
-  it('borrar pide un segundo toque, y dice que el diario no se toca', async () => {
-    api.archiveFood.mockResolvedValue(null)
+  it('un alimento no se puede borrar, sólo corregir', async () => {
+    // «Borrar» en esta app es la entrada del diario, y eso se hace deslizando
+    // su fila. Un alimento mal dado de alta se arregla escribiendo encima, que
+    // es lo que hace esta misma hoja.
     await abrir()
     await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
-    expect(api.archiveFood).not.toHaveBeenCalled()
-    expect(
-      screen.getByText('Desaparece de la búsqueda. Lo que ya registraste no se toca.'),
-    ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Borrar de todas formas' }))
-    await waitFor(() => expect(api.archiveFood).toHaveBeenCalledWith(1))
-  })
-
-  it('el catálogo compartido tampoco se ofrece borrar', async () => {
-    await abrir({ ...PAN, is_mine: false })
     expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Guardar alimento' })).toBeInTheDocument()
   })
 })
 
@@ -1305,10 +1298,4 @@ describe('corregir un alimento y el registro de ese día', () => {
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled()
   })
 
-  it('el botón de quitar un alimento se llama Borrar', async () => {
-    api.getFoodDay.mockResolvedValue(day())
-    await abrirCorregir()
-    expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
-  })
 })
