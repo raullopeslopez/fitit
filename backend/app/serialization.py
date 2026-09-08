@@ -23,6 +23,7 @@ def to_food_out(food: Food, user_id: int) -> FoodOut:
         fat_100g=food.fat_100g,
         carbs_100g=food.carbs_100g,
         fiber_100g=food.fiber_100g,
+        barcode=food.barcode,
         portions=[PortionOut.model_validate(p) for p in food.portions],
         is_mine=food.user_id == user_id,
     )

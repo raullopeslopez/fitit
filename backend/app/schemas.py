@@ -380,6 +380,15 @@ class FoodPatch(BaseModel):
     fat_100g: float | None = Field(default=None, ge=0, le=100)
     carbs_100g: float | None = Field(default=None, ge=0, le=100)
     fiber_100g: float | None = Field(default=None, ge=0, le=100)
+    # Un EAN mal tecleado no tenía arreglo: se escribía al dar de alta y ya no
+    # se tocaba. `null` lo borra, que es lo que quieres cuando el que pusiste
+    # era de otro producto.
+    barcode: str | None = Field(default=None, max_length=14)
+    # La lista entera sustituye a la que hubiera. Reemplazar y no parchear
+    # porque una ración no tiene identidad que preservar —el diario guarda los
+    # gramos ya resueltos, nunca un puntero a la ración— así que rehacerlas no
+    # puede desfechar nada. Omitido las deja como estén; `[]` las quita todas.
+    portions: list[PortionIn] | None = Field(default=None, max_length=8)
 
 
 class BarcodeClash(BaseModel):
@@ -425,6 +434,10 @@ class FoodOut(BaseModel):
     fat_100g: float | None = None
     carbs_100g: float | None = None
     fiber_100g: float | None = None
+    # El código del envase, cuando lo tiene. Sin él la pantalla no puede
+    # enseñarlo, ni dejar corregirlo, ni distinguir un alimento escaneado de
+    # uno tecleado a mano.
+    barcode: str | None = None
     portions: list[PortionOut] = Field(default_factory=list)
     # True when this row is yours to correct. The shared CIQUAL catalogue is
     # reference data: the screen offers "Corregir" only where it would work.
@@ -473,12 +486,16 @@ class LogEntryIn(BaseModel):
 
 
 class LogEntryPatch(BaseModel):
-    """Re-weigh or re-slot an entry. The nutrients ride along, rescaled from
-    what was frozen — never re-read from the food, which may have been corrected
-    since."""
+    """Re-weigh, re-slot or re-date an entry. The nutrients ride along, rescaled
+    from what was frozen — never re-read from the food, which may have been
+    corrected since."""
 
     grams: float | None = Field(default=None, gt=0, le=5000)
     meal_slot: MealSlot | None = None
+    # El instante, con el offset del móvil, igual que al crearla: es lo que
+    # decide el día alimentario, y sin esto una entrada fechada en el día que
+    # no era sólo se arreglaba borrándola y volviéndola a escribir.
+    logged_at: datetime | None = None
 
 
 class LogEntryOut(BaseModel):

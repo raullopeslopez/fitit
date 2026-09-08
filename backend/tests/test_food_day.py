@@ -151,3 +151,37 @@ def test_before_the_cut_belongs_to_the_day_you_have_been_awake_for(client):
     assert [e["food_name"] for e in client.get("/food-log?date=2026-09-07").json()["entries"]] == [
         "Queso"
     ]
+
+
+def test_an_entry_filed_on_the_wrong_day_can_be_moved(client):
+    # Sin esto, arreglar una entrada mal fechada era borrarla y volver a
+    # escribirla. El día se deriva del sello con la misma regla que al crearla,
+    # que es la única que existe.
+    food = create(client, "Tostada", kcal_100g=250)
+    entry = client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-07T23:00:00+02:00"},
+    ).json()
+    assert entry["log_date"] == "2026-09-07"
+    moved = client.patch(
+        f"/food-log/{entry['id']}", json={"logged_at": "2026-09-08T14:00:00+02:00"}
+    )
+    assert moved.status_code == 200
+    assert moved.json()["log_date"] == "2026-09-08"
+    assert client.get("/food-log?date=2026-09-07").json()["entries"] == []
+    assert len(client.get("/food-log?date=2026-09-08").json()["entries"]) == 1
+
+
+def test_moving_an_entry_does_not_reread_the_food(client):
+    # Re-fechar es re-fechar. Las cifras siguen siendo las que se congelaron,
+    # aunque el alimento se haya corregido por medio.
+    food = create(client, "Tostada", kcal_100g=250)
+    entry = client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-07T23:00:00+02:00"},
+    ).json()
+    client.patch(f"/foods/{food['id']}", json={"kcal_100g": 999})
+    moved = client.patch(
+        f"/food-log/{entry['id']}", json={"logged_at": "2026-09-08T14:00:00+02:00"}
+    ).json()
+    assert moved["kcal"] == 250
