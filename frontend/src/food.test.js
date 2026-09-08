@@ -4,6 +4,7 @@ import {
   MEAL_SLOTS,
   droppedNote,
   foodDayIso,
+  foodMomentIso,
   formatAmount,
   formatMacro,
   inferMealSlot,
@@ -26,6 +27,34 @@ describe('el día alimentario', () => {
 
   it('cruza el cambio de mes hacia atrás', () => {
     expect(foodDayIso(new Date(2026, 8, 1, 2, 0))).toBe('2026-08-31')
+  })
+})
+
+describe('el sello que viaja con una entrada', () => {
+  // Lo que el servidor hace con él: `food_log_date()` aplica el offset y luego
+  // resta las 4 h, o sea que se queda con el reloj de pared que trae el sello.
+  const backendFoodDay = (stamp) => {
+    const [y, m, d, hh, mm] = stamp.match(/\d+/g).map(Number)
+    return foodDayIso(new Date(y, m - 1, d, hh, mm))
+  }
+
+  it('escribe el reloj de pared, no el instante en UTC', () => {
+    const stamp = foodMomentIso(new Date(2026, 8, 8, 5, 0, 30))
+    expect(stamp.slice(0, 19)).toBe('2026-09-08T05:00:30')
+  })
+
+  it('lleva un offset con forma de offset, nunca una Z', () => {
+    expect(foodMomentIso(new Date(2026, 8, 8, 5, 0))).toMatch(/[+-]\d{2}:\d{2}$/)
+  })
+
+  // La franja en la que las dos reglas se separaron: entre el corte y el corte
+  // más el offset. Con `toISOString()` un desayuno de las 05:00 en Madrid se
+  // guardaba en el día anterior mientras la pantalla pedía el de hoy.
+  it('fecha igual que la pantalla en toda la franja del corte', () => {
+    for (const hour of [0, 1, 3, 4, 5, 6, 12, 23]) {
+      const moment = new Date(2026, 8, 8, hour, 0)
+      expect(backendFoodDay(foodMomentIso(moment))).toBe(foodDayIso(moment))
+    }
   })
 })
 

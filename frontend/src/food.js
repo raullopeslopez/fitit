@@ -26,6 +26,29 @@ export function foodDayIso(moment = new Date()) {
   return iso(shifted)
 }
 
+// El mismo momento, sellado con el offset del móvil, tal y como viaja al
+// servidor. Vive aquí y no en `api.js` a propósito: es la otra mitad de
+// `foodDayIso` —una decide en qué día cae un momento, la otra se lo cuenta a
+// quien deriva `log_date`— y mientras estuvieron en ficheros distintos se
+// separaron. `api.js` sellaba con `toISOString()`, que **siempre** sale en UTC:
+// con el offset perdido, un desayuno a las 05:00 en Madrid llegaba como las
+// 03:00 y `food_log_date()` lo fechaba el día anterior. La entrada se guardaba
+// en ayer mientras la pantalla pedía hoy, sin un error en ninguna parte
+// (2026-09-08).
+//
+// Lo que el servidor lee del sello es el reloj de pared, así que es el reloj de
+// pared lo que hay que escribir — no el instante traducido a otro huso.
+export function foodMomentIso(moment = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  // `getTimezoneOffset` cuenta al revés que el sello: en Madrid en verano
+  // devuelve -120 y lo que hay que escribir es `+02:00`.
+  const offset = -moment.getTimezoneOffset()
+  const sign = offset < 0 ? '-' : '+'
+  const abs = Math.abs(offset)
+  const clock = `${pad(moment.getHours())}:${pad(moment.getMinutes())}:${pad(moment.getSeconds())}`
+  return `${iso(moment)}T${clock}${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
+}
+
 // El día anterior o el siguiente. Construido sobre `Date` y no sobre aritmética
 // de cadenas para que los meses y los años se ocupen de sí mismos; a mediodía
 // para que ningún cambio de hora se lleve el día por delante.

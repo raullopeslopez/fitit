@@ -1,4 +1,5 @@
-import { apiFetch, deleteExercise, mergeExercise, register } from './api.js'
+import { apiFetch, deleteExercise, logFood, mergeExercise, register } from './api.js'
+import { foodDayIso } from './food.js'
 import { getToken, setToken, setUnauthorizedHandler } from './auth.js'
 
 describe('apiFetch', () => {
@@ -183,5 +184,59 @@ describe('register', () => {
     )
 
     await expect(register('amigo', 's3cretpass')).rejects.toMatchObject({ status: 500 })
+  })
+})
+
+// El sello que viaja con una entrada del diario decide en qué día alimentario
+// cae, y el servidor no tiene otro reloj con el que fecharla. `toISOString()`
+// no sirve: siempre sale en UTC, y con el offset perdido un desayuno a las
+// 05:00 en Madrid llega al backend como las 03:00, que restadas las cuatro
+// horas del corte cae en el día anterior. La pantalla pide un día y le
+// contestan otro, sin error en ninguna parte (2026-09-08).
+describe('logFood y el día alimentario', () => {
+  // Lo que hace el servidor con lo que le mandamos: `food_log_date()` aplica el
+  // offset primero y luego resta las 4 h, o sea que se queda con el reloj de
+  // pared que trae el sello. Reproducirlo aquí es lo único que comprueba que
+  // las dos reglas siguen siendo la misma.
+  const backendFoodDay = (stamp) => {
+    const [y, m, d, hh, mm] = stamp.match(/\d+/g).map(Number)
+    return foodDayIso(new Date(y, m - 1, d, hh, mm))
+  }
+
+  const bodyOf = async (fetchMock) => JSON.parse(fetchMock.mock.calls[0][1].body)
+
+  beforeEach(() => {
+    localStorage.clear()
+    setToken('tok')
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('manda el reloj del móvil, no UTC, para el desayuno de las 05:00', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 8, 8, 5, 0))
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await logFood({ foodId: 1, grams: 100 })
+
+    const { logged_at: stamp } = await bodyOf(fetchMock)
+    // El offset de verdad, nunca `Z`: con `+00:00` en un runner en UTC vale,
+    // porque ahí sí es el reloj del usuario.
+    expect(stamp).toMatch(/[+-]\d{2}:\d{2}$/)
+    // Y la comprobación que importa: el día que el servidor derivará del sello
+    // es el mismo que la pantalla está pintando.
+    expect(backendFoodDay(stamp)).toBe(foodDayIso(new Date(2026, 8, 8, 5, 0)))
+  })
+
+  it('sigue respetando la hora original al deshacer un borrado', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await logFood({ foodId: 1, grams: 100, loggedAt: '2026-08-31T14:00:00+02:00' })
+
+    expect((await bodyOf(fetchMock)).logged_at).toBe('2026-08-31T14:00:00+02:00')
   })
 })
