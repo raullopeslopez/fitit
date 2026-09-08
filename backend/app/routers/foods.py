@@ -235,16 +235,7 @@ async def create_food(
     catalogue you stop trusting the search results of.
     """
     if payload.barcode:
-        clash = (
-            await session.execute(
-                select(Food).where(
-                    Food.user_id == user_id,
-                    Food.barcode == payload.barcode,
-                )
-            )
-        ).scalar_one_or_none()
-        if clash is not None:
-            raise _barcode_taken(clash)
+        await _refuse_a_taken_barcode(session, user_id, payload.barcode)
 
     food = Food(
         user_id=user_id,
@@ -265,20 +256,8 @@ async def create_food(
     )
     session.add(food)
     await session.flush()
-    # La primera **marcada** gana, no la primera a secas: un valor por defecto
-    # ambiguo no es un valor por defecto, pero exigir que sea la de arriba
-    # descartaba en silencio la marca de cualquier otra y dejaba el alimento
-    # sin ninguna.
-    default_at = next((i for i, p in enumerate(payload.portions) if p.is_default), None)
-    for index, portion in enumerate(payload.portions):
-        session.add(
-            Portion(
-                food_id=food.id,
-                label=portion.label,
-                grams=portion.grams,
-                is_default=index == default_at,
-            )
-        )
+    for portion in _portion_rows(payload.portions, food.id):
+        session.add(portion)
     try:
         await session.commit()
     except IntegrityError:
@@ -298,6 +277,23 @@ async def create_food(
     return to_food_out(food, user_id)
 
 
+async def _refuse_a_taken_barcode(
+    session: AsyncSession, user_id: int, barcode: str, *, except_food_id: int | None = None
+) -> None:
+    """Salta con un 409 si ese código ya es de otro alimento tuyo.
+
+    `except_food_id` deja que una corrección reescriba el código que el
+    alimento ya tenía sin chocar consigo mismo (mismo motivo por el que el
+    renombrado de ejercicios se excluye de su propia comprobación).
+    """
+    stmt = select(Food).where(Food.user_id == user_id, Food.barcode == barcode)
+    if except_food_id is not None:
+        stmt = stmt.where(Food.id != except_food_id)
+    clash = (await session.execute(stmt)).scalar_one_or_none()
+    if clash is not None:
+        raise _barcode_taken(clash)
+
+
 def _barcode_taken(clash: Food) -> HTTPException:
     """El 409 de un código repetido, con el alimento que ya lo lleva dentro.
 
@@ -313,6 +309,22 @@ def _barcode_taken(clash: Food) -> HTTPException:
             food=BarcodeClash(id=clash.id, name=clash.name, brand=clash.brand),
         ).model_dump(),
     )
+
+
+def _portion_rows(portions, food_id: int) -> list[Portion]:
+    """Las raciones tal y como se guardan, con una sola por defecto.
+
+    La primera **marcada** gana, no la primera a secas: un valor por defecto
+    ambiguo no es un valor por defecto, pero exigir que sea la de arriba
+    descartaba en silencio la marca de cualquier otra y dejaba el alimento sin
+    ninguna. Compartida entre el alta y la corrección para que la regla no se
+    conteste distinto según por dónde entres.
+    """
+    default_at = next((i for i, p in enumerate(portions) if p.is_default), None)
+    return [
+        Portion(food_id=food_id, label=p.label, grams=p.grams, is_default=i == default_at)
+        for i, p in enumerate(portions)
+    ]
 
 
 @router.get("/barcode/{ean}", response_model=BarcodeLookupOut)
@@ -625,7 +637,11 @@ async def get_food(
     return to_food_out(food, user_id)
 
 
-@router.patch("/{food_id}", response_model=FoodOut)
+@router.patch(
+    "/{food_id}",
+    response_model=FoodOut,
+    responses={409: {"model": BarcodeTakenError, "description": "That barcode is already yours"}},
+)
 async def correct_food(
     food_id: int,
     payload: FoodPatch,
@@ -661,6 +677,20 @@ async def correct_food(
     if "brand" in fields:
         food.brand = fields.pop("brand") or None
         food.brand_folded = fold(food.brand) if food.brand else None
+    if "barcode" in fields:
+        new_barcode = fields.pop("barcode") or None
+        if new_barcode:
+            await _refuse_a_taken_barcode(
+                session, user_id, new_barcode, except_food_id=food.id
+            )
+        food.barcode = new_barcode
+    if "portions" in fields:
+        fields.pop("portions")
+        # La lista entera sustituye a la anterior. Se puede rehacer sin miedo
+        # porque el diario guarda los gramos ya resueltos y nunca un puntero a
+        # la ración: nada de lo registrado apunta a estas filas.
+        food.portions.clear()
+        food.portions.extend(_portion_rows(payload.portions or [], food.id))
     for field, value in fields.items():
         setattr(food, field, value)
     await session.commit()

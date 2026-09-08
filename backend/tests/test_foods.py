@@ -270,3 +270,85 @@ def test_archiving_frees_the_barcode(client):
     client.delete(f"/foods/{food['id']}")
     resp = client.post("/foods", json={"name": "Yogur griego", "barcode": "8410000000001"})
     assert resp.status_code == 201
+
+
+# Lo que los PATCH aceptaban y tiraban en silencio: pydantic descartaba el
+# campo desconocido, el router no se enteraba y la respuesta era un 200 que no
+# había cambiado nada (revisión del CRUD, 2026-09-08).
+
+
+def test_the_barcode_comes_back_with_the_food(client):
+    # Se escribía y no se leía nunca: `FoodOut` no lo llevaba, así que ninguna
+    # pantalla podía enseñarlo ni distinguir un alimento escaneado de uno
+    # tecleado.
+    food = create(client, "Yogur griego", barcode="8410000000001")
+    assert food["barcode"] == "8410000000001"
+    assert client.get(f"/foods/{food['id']}").json()["barcode"] == "8410000000001"
+
+
+def test_a_mistyped_barcode_can_be_corrected(client):
+    food = create(client, "Yogur griego", barcode="8410000000009")
+    resp = client.patch(f"/foods/{food['id']}", json={"barcode": "8410000000001"})
+    assert resp.status_code == 200
+    assert resp.json()["barcode"] == "8410000000001"
+
+
+def test_a_barcode_can_be_cleared(client):
+    food = create(client, "Yogur griego", barcode="8410000000001")
+    assert client.patch(f"/foods/{food['id']}", json={"barcode": None}).json()["barcode"] is None
+
+
+def test_correcting_a_barcode_onto_one_you_have_says_which(client):
+    mine = create(client, "Yogur griego", barcode="8410000000001")
+    other = create(client, "Yogur natural", barcode="8410000000002")
+    resp = client.patch(f"/foods/{other['id']}", json={"barcode": "8410000000001"})
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["food"]["id"] == mine["id"]
+
+
+def test_portions_can_be_corrected(client):
+    food = create(
+        client,
+        "Pan de molde",
+        portions=[{"label": "rebanada", "grams": 30, "is_default": True}],
+    )
+    resp = client.patch(
+        f"/foods/{food['id']}",
+        json={
+            "portions": [
+                {"label": "rebanada", "grams": 32, "is_default": True},
+                {"label": "paquete", "grams": 500, "is_default": False},
+            ]
+        },
+    )
+    assert resp.status_code == 200
+    assert [(p["label"], p["grams"], p["is_default"]) for p in resp.json()["portions"]] == [
+        ("rebanada", 32, True),
+        ("paquete", 500, False),
+    ]
+
+
+def test_correcting_portions_uses_the_same_default_rule_as_creating(client):
+    food = create(client, "Aceite")
+    resp = client.patch(
+        f"/foods/{food['id']}",
+        json={
+            "portions": [
+                {"label": "cucharada", "grams": 10, "is_default": False},
+                {"label": "chorro", "grams": 25, "is_default": True},
+            ]
+        },
+    )
+    assert [p["is_default"] for p in resp.json()["portions"]] == [False, True]
+
+
+def test_correcting_a_food_still_leaves_the_diary_frozen(client):
+    # La regla de siempre, ahora que el patch toca más cosas: nada de lo ya
+    # registrado se mueve.
+    food = create(client, "Pan", kcal_100g=250)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T14:00:00+02:00"},
+    )
+    client.patch(f"/foods/{food['id']}", json={"kcal_100g": 400})
+    assert client.get("/food-log?date=2026-09-08").json()["totals"]["kcal"] == 250

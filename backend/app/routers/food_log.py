@@ -154,17 +154,26 @@ async def correct_entry(
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> LogEntryOut:
-    """Re-weigh or re-slot an entry.
+    """Re-weigh, re-slot or re-date an entry.
 
     Changing the grams rescales what was frozen; it does not read the food
     again. Going back to `foods` would quietly adopt any correction made to it
     since, turning "I put 200 g, not 150" into a silent rewrite of the numbers
-    you were looking at when you typed it.
+    you were looking at when you typed it. Moving it in time changes nothing but
+    when it happened, for the same reason.
     """
     entry = await _load_entry(session, entry_id, user_id)
     fields = payload.model_dump(exclude_unset=True)
     if "meal_slot" in fields:
         entry.meal_slot = fields["meal_slot"]
+    moment = fields.get("logged_at")
+    if moment is not None:
+        # El día se deriva del sello con `food_log_date`, la misma regla y el
+        # mismo sitio que al escribirla: si el re-fechado tuviera la suya, una
+        # entrada movida caería en un día distinto del que caería recién
+        # creada a esa misma hora.
+        entry.logged_at = moment.astimezone(UTC) if moment.tzinfo else moment.replace(tzinfo=UTC)
+        entry.log_date = food_log_date(moment)
     new_grams = fields.get("grams")
     if new_grams is not None and new_grams != entry.grams:
         rescaled = escalar_nutrientes(entry, old_grams=entry.grams, new_grams=new_grams)
