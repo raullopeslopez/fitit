@@ -1,3 +1,4 @@
+import { foodMomentIso } from './food.js'
 import { clearToken, getToken, notifyUnauthorized } from './auth.js'
 
 export async function login(username, password) {
@@ -278,7 +279,9 @@ export function correctFood(foodId, fields) {
 
 // Registra una cantidad. `logged_at` se manda con el offset del móvil porque es
 // lo que decide en qué día alimentario cae — el servidor no tiene otro reloj
-// con el que fechar una cena de la 01:30. `loggedAt` es la excepción: deshacer
+// con el que fechar una cena de la 01:30. El sello lo compone `foodMomentIso`,
+// que vive junto a `foodDayIso` para que las dos mitades de la regla no puedan
+// volver a separarse. `loggedAt` es la excepción: deshacer
 // un borrado vuelve a escribir la entrada con su hora original, no con la de
 // ahora, para que no cambie de día alimentario al recuperarse.
 export function logFood({
@@ -297,7 +300,7 @@ export function logFood({
       portion_id: portionId,
       quantity,
       meal_slot: mealSlot,
-      logged_at: loggedAt ?? new Date().toISOString(),
+      logged_at: loggedAt ?? foodMomentIso(),
     }),
   })
 }

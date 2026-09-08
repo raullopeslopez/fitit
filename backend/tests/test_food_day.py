@@ -122,3 +122,32 @@ def test_the_entry_keeps_the_name_the_food_had(client):
     client.patch(f"/foods/{food['id']}", json={"name": "Pan de pueblo"})
     day = client.get("/food-log?date=2026-08-31").json()
     assert [e["food_name"] for e in day["entries"]] == ["Pan de la panadería"]
+
+
+# La otra mitad del contrato con `foodDayIso()` en el frontend. Los demás specs
+# de este fichero mandan siempre `+02:00` explícito, así que ninguno miraba lo
+# que decide el offset: el corte de las 04:00 es **local**, y un desayuno a las
+# 05:00 en Madrid es del día 8 aunque en UTC sean todavía las 03:00 del 8 y
+# restarle cuatro horas a eso dé el 7. El cliente sellaba con `toISOString()`
+# —siempre UTC— y por ahí se colaba la entrada al día anterior (2026-09-08).
+def test_the_cut_is_local_not_utc(client):
+    food = create(client, "Tostada", kcal_100g=250)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 100, "logged_at": "2026-09-08T05:00:00+02:00"},
+    )
+    assert [e["food_name"] for e in client.get("/food-log?date=2026-09-08").json()["entries"]] == [
+        "Tostada"
+    ]
+    assert client.get("/food-log?date=2026-09-07").json()["entries"] == []
+
+
+def test_before_the_cut_belongs_to_the_day_you_have_been_awake_for(client):
+    food = create(client, "Queso", kcal_100g=350)
+    client.post(
+        "/food-log",
+        json={"food_id": food["id"], "grams": 30, "logged_at": "2026-09-08T01:30:00+02:00"},
+    )
+    assert [e["food_name"] for e in client.get("/food-log?date=2026-09-07").json()["entries"]] == [
+        "Queso"
+    ]
