@@ -17,8 +17,14 @@ Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo 
   convertirlo en cero sin que sea una decisión explícita y comentada. En pantalla se
   imprime `—`, con la misma tinta que una cifra, nunca en `--muted`.
 - **`log_entries` congela.** Las macros son copias, no un join contra `foods`. Nada las
-  recalcula desde el alimento — ni siquiera repesar una entrada, que reescala lo
-  congelado (`escalar_nutrientes`).
+  recalcula desde el alimento **por su cuenta** — ni siquiera repesar una entrada, que
+  reescala lo congelado (`escalar_nutrientes`).
+  La única excepción es `POST /food-log/recompute`, y es explícita: la regla no
+  distinguía un alimento que **cambió** (receta nueva, mejor medición: lo de marzo estaba
+  bien entonces) de uno **mal tecleado** (no hubo ningún día en que la cifra fuera cierta,
+  y congelarla conserva el error). Rehace **un solo día**, el que se está mirando, y sólo
+  cuando alguien lo pide desde la hoja de «Corregir». Nada más puede llamarla, y ampliar
+  su alcance a más de un día es rediscutir esta regla, no un detalle de implementación.
 - **Toda la aritmética nutricional vive en `backend/app/nutrition.py`.** No la dupliques
   y no la muevas al router.
 - **Nada crea alimentos solo.** Ni un import, ni el escáner, ni un parser: `POST /foods`
