@@ -25,7 +25,15 @@ from ..nutrition import (
     restante,
     sumar_nutrientes,
 )
-from ..schemas import FoodDayOut, LogEntryIn, LogEntryOut, LogEntryPatch, SlotTotalsOut
+from ..schemas import (
+    FoodDayOut,
+    LogEntryIn,
+    LogEntryOut,
+    LogEntryPatch,
+    RecomputeIn,
+    RecomputeOut,
+    SlotTotalsOut,
+)
 from ..serialization import to_entry_out
 
 router = APIRouter(prefix="/food-log", tags=["food-log"])
@@ -145,6 +153,70 @@ def _by_slot(entries) -> list[SlotTotalsOut]:
         totals, unknown = sumar_nutrientes([e for e in entries if (e.meal_slot or None) == slot])
         out.append(SlotTotalsOut(slot=slot, totals=totals, unknown=unknown))
     return out
+
+
+@router.post("/recompute", response_model=RecomputeOut)
+async def recompute_day(
+    payload: RecomputeIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> RecomputeOut:
+    """Vuelve a aplicar un alimento corregido a lo registrado de **un** día.
+
+    La única excepción a que `log_entries` congela, y por eso está aquí sola,
+    con nombre propio y sin que nada la llame por su cuenta.
+
+    Existe porque la regla del congelado no distinguía dos casos que no son el
+    mismo. Si el alimento **cambió** —otra receta, una medición mejor—, lo de
+    marzo estaba bien entonces y recalcularlo reescribiría un mes ya cerrado:
+    eso es lo que el congelado protege y sigue protegiendo. Pero si el alimento
+    estaba **mal tecleado**, no hubo ningún día en que esa cifra fuera cierta, y
+    congelarla es conservar el error. Corregir el alimento es justo lo que hace
+    alguien que acaba de darse cuenta de lo segundo.
+
+    Dos cosas la mantienen a raya, y las dos son deliberadas:
+
+    - **Sólo un día**, el que se está mirando. El alcance es lo único que separa
+      «arreglo lo de hoy» de «un dedo equivocado me cambia el trimestre».
+    - **Sólo cuando alguien lo pide.** Guardar una corrección no dispara esto;
+      la pantalla ofrece y se puede decir que no, y decir que no deja el diario
+      exactamente como estaba.
+
+    La aritmética sigue siendo la de siempre (`calcular_nutrientes`, en
+    `nutrition.py`), aplicada a los gramos que cada entrada ya tenía: esto
+    re-lee el alimento, no re-pesa la entrada.
+    """
+    food = (
+        await session.execute(
+            select(Food).where(Food.id == payload.food_id, visible_foods(user_id))
+        )
+    ).scalar_one_or_none()
+    if food is None:
+        raise HTTPException(status_code=404, detail="food not found")
+
+    entries = list(
+        (
+            await session.execute(
+                select(LogEntry).where(
+                    LogEntry.user_id == user_id,
+                    LogEntry.log_date == payload.date,
+                    LogEntry.food_id == food.id,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for entry in entries:
+        computed = calcular_nutrientes(food, entry.grams)
+        entry.nutrients_json = dump_nutrients(computed.pop("nutrients"))
+        for field, value in computed.items():
+            setattr(entry, field, value)
+        # El nombre viaja con las cifras: si corregiste la errata del nombre, la
+        # fila del diario tiene que dejar de enseñarla también.
+        entry.food_name_snapshot = food.name
+    await session.commit()
+    return RecomputeOut(updated=len(entries))
 
 
 @router.patch("/{entry_id}", response_model=LogEntryOut)

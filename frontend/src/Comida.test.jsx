@@ -1102,6 +1102,10 @@ describe('corregir un alimento', () => {
   }
 
   beforeEach(() => {
+    // Como el describe grande: sin esto, `toHaveBeenCalled` de un test ve las
+    // llamadas del anterior y una aserción de «no se llamó» pasa o falla según
+    // el orden en que corran.
+    vi.resetAllMocks()
     api.getFoodDay.mockResolvedValue(day())
     api.frequentFoods.mockResolvedValue([])
   })
@@ -1184,21 +1188,127 @@ describe('corregir un alimento', () => {
     )
   })
 
-  it('archivar pide un segundo toque, y dice que el diario no se toca', async () => {
+  it('borrar pide un segundo toque, y dice que el diario no se toca', async () => {
     api.archiveFood.mockResolvedValue(null)
     await abrir()
     await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Archivar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
     expect(api.archiveFood).not.toHaveBeenCalled()
     expect(
       screen.getByText('Desaparece de la búsqueda. Lo que ya registraste no se toca.'),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Archivar de todas formas' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar de todas formas' }))
     await waitFor(() => expect(api.archiveFood).toHaveBeenCalledWith(1))
   })
 
-  it('el catálogo compartido tampoco se ofrece archivar', async () => {
+  it('el catálogo compartido tampoco se ofrece borrar', async () => {
     await abrir({ ...PAN, is_mine: false })
+    expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
+  })
+})
+
+// Corregir un alimento y lo que hay en el diario de ese día.
+//
+// El congelado sigue siendo la regla: nada se recalcula solo. Pero corregir un
+// alimento es lo que hace quien acaba de ver que lo tecleó mal, y ahí congelar
+// es conservar el error — así que la pantalla lo ofrece, para ese día y sólo si
+// se acepta (2026-09-08).
+describe('corregir un alimento y el registro de ese día', () => {
+  const conPan = (overrides = {}) =>
+    day({
+      entries: [entry({ id: 10, food_id: 1, food_name: 'Pan de la panadería', kcal: 250 })],
+      ...overrides,
+    })
+
+  const abrirCorregir = async () => {
+    api.searchFoods.mockResolvedValue([PAN])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
+    // Dentro de la lista de resultados: el día de estos tests ya lleva una
+    // entrada con este mismo nombre, y tocar esa abre otra cosa.
+    const lista = await screen.findByRole('list')
+    // `find` y no `get`: la búsqueda rebota 180 ms, y la lista existe vacía
+    // desde el primer pintado.
+    await userEvent.click(await within(lista).findByRole('button', { name: /Pan de la panadería/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.setSystemTime(new Date(2026, 7, 31, 12, 0))
+    api.frequentFoods.mockResolvedValue([])
+    api.correctFood.mockResolvedValue({ ...PAN, kcal_100g: 265 })
+    api.recomputeFoodDay.mockResolvedValue({ updated: 1 })
+  })
+
+  it('ofrece rehacer lo de ese día, diciendo cuántas entradas son', async () => {
+    api.getFoodDay.mockResolvedValue(conPan())
+    await abrirCorregir()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    expect(await screen.findByText('1 entrada de este día usa las cifras antiguas.')).toBeInTheDocument()
+    // Todavía no ha tocado nada: ofrecer no es hacer.
+    expect(api.recomputeFoodDay).not.toHaveBeenCalled()
+  })
+
+  it('rehace ese día cuando se acepta', async () => {
+    api.getFoodDay.mockResolvedValue(conPan())
+    await abrirCorregir()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Actualizar' }))
+    await waitFor(() => expect(api.recomputeFoodDay).toHaveBeenCalledWith(1, '2026-08-31'))
+  })
+
+  it('decir que no deja el diario como estaba', async () => {
+    api.getFoodDay.mockResolvedValue(conPan())
+    await abrirCorregir()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Dejarlo como está' }))
+    expect(api.recomputeFoodDay).not.toHaveBeenCalled()
+  })
+
+  it('sin nada de ese alimento ese día no ofrece nada', async () => {
+    api.getFoodDay.mockResolvedValue(day())
+    await abrirCorregir()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() => expect(api.correctFood).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: 'Actualizar' })).not.toBeInTheDocument()
+  })
+
+  it('cuenta en plural cuando son varias', async () => {
+    api.getFoodDay.mockResolvedValue(
+      day({
+        entries: [
+          entry({ id: 10, food_id: 1, food_name: 'Pan de la panadería', kcal: 250 }),
+          entry({ id: 11, food_id: 1, food_name: 'Pan de la panadería', kcal: 500 }),
+        ],
+      }),
+    )
+    await abrirCorregir()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    expect(
+      await screen.findByText('2 entradas de este día usan las cifras antiguas.'),
+    ).toBeInTheDocument()
+  })
+
+  it('si rehacer el día falla, lo dice y se puede reintentar', async () => {
+    // El alimento ya está corregido cuando esto se intenta, así que un fallo
+    // aquí no puede dejar el botón muerto ni callarse lo que sí se guardó.
+    api.getFoodDay.mockResolvedValue(conPan())
+    api.recomputeFoodDay.mockRejectedValue(new Error('sin red'))
+    await abrirCorregir()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Actualizar' }))
+    expect(
+      await screen.findByText('No se ha podido actualizar. El alimento sí quedó corregido.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled()
+  })
+
+  it('el botón de quitar un alimento se llama Borrar', async () => {
+    api.getFoodDay.mockResolvedValue(day())
+    await abrirCorregir()
+    expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
   })
 })

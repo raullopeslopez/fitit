@@ -498,6 +498,21 @@ class LogEntryPatch(BaseModel):
     logged_at: datetime | None = None
 
 
+class RecomputeIn(BaseModel):
+    """Volver a aplicar un alimento corregido a lo registrado de un solo día."""
+
+    food_id: int
+    date: Date
+
+
+class RecomputeOut(BaseModel):
+    """Cuántas entradas se rehicieron. La pantalla lo dice antes de hacerlo y lo
+    confirma después: un acto que reescribe el diario no puede terminar en
+    silencio."""
+
+    updated: int
+
+
 class LogEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

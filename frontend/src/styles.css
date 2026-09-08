@@ -4066,6 +4066,13 @@ button.set-chip:active:not(:disabled) {
   margin-left: 0;
 }
 
+/* El aviso de que rehacer el día no llegó. En rojo porque es un fallo, y no en
+   `--muted` como los otros `.hint` de la hoja: ahí se leería como una nota más
+   sobre lo que acaba de ir bien. */
+.food-recompute-failed {
+  color: var(--danger);
+}
+
 /* Dentro de la hoja, lo único que se desplaza es la lista: el campo de
    búsqueda se queda arriba —se sigue escribiendo en él mientras se mira— y
    «Crear …» y «Cancelar» se quedan abajo. Si el que rodara fuera el bloque
