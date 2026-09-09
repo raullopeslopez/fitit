@@ -415,7 +415,19 @@ describe('Comida', () => {
         expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
       })
 
-      it('uno que conoce Open Food Facts llega como propuesta, no como alta', async () => {
+      // El ahorro que hace que esto valga la pena.
+      //
+      // Un producto resuelto por su código se guarda sin preguntar: el código lo
+      // identifica mejor que cualquier nombre que yo teclee, la ficha viene de
+      // una base pública, y poner un formulario delante es pedir una firma sin
+      // lectura —nadie corrige campo por campo un dato que no ha medido—. Es lo
+      // que convierte «veinte fotos al día» en «veinte productos nuevos al día».
+      //
+      // La excepción no llega a la lectura de la tabla: allí las cifras las ha
+      // interpretado un modelo mirando una foto y la revisión sigue siendo
+      // obligatoria. La frontera es dato identificado contra dato interpretado.
+      it('uno que conoce Open Food Facts se guarda solo, con su código', async () => {
+        api.createFood.mockResolvedValue({ ...PAN, id: 70, name: 'Yogur natural' })
         await escanear({
           barcode: '8410128750121',
           food: null,
@@ -424,10 +436,58 @@ describe('Comida', () => {
           nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
           refusal: null,
         })
-        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
-        expect(screen.getByLabelText('Marca')).toHaveValue('Hacendado')
-        expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
-        expect(api.createFood).not.toHaveBeenCalled()
+        await waitFor(() =>
+          expect(api.createFood).toHaveBeenCalledWith(
+            expect.objectContaining({
+              name: 'Yogur natural',
+              brand: 'Hacendado',
+              barcode: '8410128750121',
+              kcal_100g: 61,
+              fiber_100g: 0.3,
+            }),
+          ),
+        )
+        // Y va derecho a «cuánto», que es lo único que faltaba por decidir.
+        expect(await screen.findByLabelText('Gramos')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
+      })
+
+      it('y dice de dónde salió, y que ya está en tus alimentos', async () => {
+        api.createFood.mockResolvedValue({ ...PAN, id: 70, name: 'Yogur natural' })
+        await escanear({
+          barcode: '8410128750121',
+          food: null,
+          name: 'Yogur natural',
+          brand: 'Hacendado',
+          nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
+          refusal: null,
+        })
+        // Se cuenta **después**, no antes: el peldaño barato no se anuncia como
+        // una opción que elegir, se usa y se dice que se ha usado.
+        expect(
+          await screen.findByText('Leído del código de barras. No ha hecho falta la tabla.'),
+        ).toBeInTheDocument()
+        expect(screen.getByText('Se guarda en tus alimentos, con su código.')).toBeInTheDocument()
+      })
+
+      it('un nutriente que la ficha no trae se guarda desconocido, no en cero', async () => {
+        api.createFood.mockResolvedValue({ ...PAN, id: 70 })
+        await escanear({
+          barcode: '8410128750121',
+          food: null,
+          name: 'Yogur natural',
+          brand: 'Hacendado',
+          nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5 },
+          refusal: null,
+        })
+        // Guardar sin preguntar no puede convertir un hueco en una medición: la
+        // fibra que la ficha no declara viaja como `null`, igual que si nadie la
+        // hubiera tecleado.
+        await waitFor(() =>
+          expect(api.createFood).toHaveBeenCalledWith(
+            expect.objectContaining({ fiber_100g: null }),
+          ),
+        )
       })
 
       it('el código viaja hasta el alta aunque acabes tecleando, para no volver a preguntarlo mañana', async () => {
@@ -547,7 +607,7 @@ describe('Comida', () => {
 
       it('dice de qué columna salieron los números', async () => {
         await fotografiar(LEIDO)
-        expect(await screen.findByText('Leído de «por 100 g».')).toBeInTheDocument()
+        expect(await screen.findByText('Leído de «por 100 g»')).toBeInTheDocument()
       })
 
       it('deja en blanco lo que descartó, y dice cuál', async () => {
@@ -695,11 +755,14 @@ describe('Comida', () => {
 
         await userEvent.upload(screen.getByLabelText('Enfocar la tabla'), JPEG())
         expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
-        expect(screen.getByText('Leído de «por 100 g».')).toBeInTheDocument()
+        expect(screen.getByText('Leído de «por 100 g»')).toBeInTheDocument()
         // Y el código que abrió todo esto sigue vivo: se guardará con el
         // alimento, que es lo que evita repetir la escalada mañana.
         api.createFood.mockResolvedValue({ ...PAN, id: 60 })
-        await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+        // La lectura de la tabla **sí** pasa por confirmación: las cifras las ha
+        // interpretado un modelo mirando una foto, y ahí no hay código que las
+        // identifique. Es la frontera de la excepción del escaneo.
+        await userEvent.click(screen.getByRole('button', { name: 'Dar de alta y continuar' }))
         await waitFor(() =>
           expect(api.createFood).toHaveBeenCalledWith(
             expect.objectContaining({ barcode: '8410128750121' }),
@@ -735,7 +798,7 @@ describe('Comida', () => {
         await fotografiar({ ...LEIDO, column_header: 'ø/100 ml', per: '100ml' })
         expect(await screen.findByLabelText('Kcal por 100 g')).toHaveValue('61')
         expect(
-          screen.getByText('Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.'),
+          screen.getByText('Los números son por 100 ml, no por 100 g. Los guardo tal cual.'),
         ).toBeInTheDocument()
       })
 
@@ -749,7 +812,7 @@ describe('Comida', () => {
         })
         await screen.findByLabelText('Nombre')
         expect(screen.queryByText('Valor energético 61 kcal')).toBeNull()
-        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
         expect(screen.getByText('Valor energético 61 kcal')).toBeInTheDocument()
         expect(screen.getByText('Proteínas 3,8 g')).toBeInTheDocument()
       })
@@ -761,14 +824,14 @@ describe('Comida', () => {
           rows: ['Energia 61 kcal'],
         })
         await screen.findByText('No he sacado ninguna cifra de la foto. Tecléalas.')
-        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
         expect(screen.getByText('Energia 61 kcal')).toBeInTheDocument()
       })
 
       it('sin transcripción no ofrece un desplegable vacío', async () => {
         await fotografiar({ ...LEIDO, rows: [] })
         await screen.findByLabelText('Nombre')
-        expect(screen.queryByRole('button', { name: 'Ver lo que he leído' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Ver' })).toBeNull()
       })
 
       // La única defensa contra un dígito mal leído. Una fila que existe, un
@@ -1073,6 +1136,129 @@ describe('Comida', () => {
           'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
         ),
       ).toBeInTheDocument()
+    })
+  })
+
+  // ── Revisa la lectura ─────────────────────────────────────────────────
+  describe('revisar la lectura', () => {
+    const JPEG = () => new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' })
+
+    async function leer(respuesta) {
+      api.searchFoods.mockResolvedValue([])
+      api.readLabel.mockResolvedValue(respuesta)
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+      await screen.findByLabelText('Nombre')
+    }
+
+    const CON_DESCARTE = {
+      name: 'Yogur natural',
+      brand: 'Hacendado',
+      column_header: 'Valores medios por 100 g',
+      per: '100g',
+      nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: null },
+      dropped: ['fiber'],
+      rows: [
+        'Valor energético 61 kcal',
+        'Proteínas 3,8 g',
+        'Grasas 3,2 g',
+        'de las cuales saturadas 2,1 g',
+        'Hidratos de carbono 4,5 g',
+      ],
+      refusal: null,
+    }
+
+    it('la pantalla dice que se revisa, no que se rellena', async () => {
+      await leer(CON_DESCARTE)
+      // Un formulario en blanco se rellena; éste viene lleno y lo que toca es
+      // mirarlo. Decirlo desde el título es la diferencia entre confirmar y
+      // firmar en blanco.
+      expect(screen.getByText('Alta de alimento')).toBeInTheDocument()
+      expect(screen.getByText('Revisa la lectura')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Dar de alta y continuar' })).toBeInTheDocument()
+      expect(
+        screen.getByText('Nada entra en tu catálogo hasta que lo confirmes aquí.'),
+      ).toBeInTheDocument()
+    })
+
+    it('el bloque de procedencia cuenta cuántas cifras salieron y de dónde', async () => {
+      await leer(CON_DESCARTE)
+      expect(screen.getByText('4 de 5 cifras')).toBeInTheDocument()
+      expect(screen.getByText('Leído de «Valores medios por 100 g»')).toBeInTheDocument()
+      // «sin conversión» no es un adorno: afirma que nadie ha multiplicado nada
+      // por un factor que no estaba impreso.
+      expect(screen.getByText('columna única · sin conversión')).toBeInTheDocument()
+    })
+
+    it('el campo descartado queda vacío, y se dice por qué', async () => {
+      await leer(CON_DESCARTE)
+      // Vacío, no en cero: un cero ahí es una afirmación —«medido, y no
+      // tiene»— que nadie va a desmentir después.
+      expect(screen.getByLabelText('Fibra por 100 g')).toHaveValue('')
+      expect(screen.getByLabelText('Fibra por 100 g')).toHaveAttribute('placeholder', '—')
+      // Y el hueco no se queda mudo: sin esta línea se lee como «la etiqueta no
+      // lo declara», que es lo contrario de lo que ha pasado.
+      const nota = screen.getByText('Descarté la fibra: no aparece en la tabla que leí.')
+      expect(nota).toHaveAttribute('role', 'alert')
+    })
+
+    it('la unidad se dice una vez, y el nombre accesible la conserva entera', async () => {
+      await leer(CON_DESCARTE)
+      // Cinco rótulos con «… por 100 g» eran la misma frase cinco veces para
+      // distinguir cinco cosas que ya se distinguen por su nombre.
+      expect(screen.getByText('Por 100 g')).toBeInTheDocument()
+      // Quien navega a ciegas oye el campo suelto, sin el encabezado que lo
+      // enmarca, así que ahí la unidad sigue entera.
+      expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
+      expect(screen.getByLabelText('Hidratos por 100 g')).toHaveValue('4,5')
+    })
+
+    it('la transcripción llega plegada, y se abre a un toque', async () => {
+      await leer(CON_DESCARTE)
+      // Plegada porque cuando la lectura sale bien es ruido: lo que hace falta
+      // ya está en los campos.
+      expect(screen.getByText('Lo que transcribí')).toBeInTheDocument()
+      expect(screen.queryByText('Proteínas 3,8 g')).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
+      expect(screen.getByText('Proteínas 3,8 g')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Ocultar' })).toBeInTheDocument()
+    })
+
+    it('una fila que no respalda ningún campo se lee a media voz', async () => {
+      await leer(CON_DESCARTE)
+      await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
+      // «de las cuales saturadas» es un desglose de la fila de arriba, no la
+      // fila que sostiene la grasa: apagarla deja que salten a la vista las que
+      // sí respaldan una cifra.
+      expect(screen.getByText('de las cuales saturadas 2,1 g')).toHaveClass('is-aside')
+      expect(screen.getByText('Grasas 3,2 g')).not.toHaveClass('is-aside')
+    })
+
+    it('por 100 ml se acepta y se dice, no se convierte', async () => {
+      await leer({ ...CON_DESCARTE, column_header: 'por 100 ml', per: '100ml' })
+      // Convertir exigiría una densidad que la etiqueta no trae. En un líquido
+      // acuoso la diferencia es del 3%: se guardan tal cual y se dice.
+      expect(screen.getByText('columna única · por 100 ml')).toBeInTheDocument()
+      const aviso = screen.getByText('Los números son por 100 ml, no por 100 g. Los guardo tal cual.')
+      expect(aviso).toHaveAttribute('role', 'alert')
+      expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
+    })
+
+    it('un alta a mano no finge que hay algo que revisar', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'piquillos')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «piquillos»' }))
+      await screen.findByLabelText('Nombre')
+      // Sin lectura no hay procedencia que contar ni transcripción que enseñar,
+      // y el título dice otra cosa: esto se rellena, no se revisa.
+      expect(screen.getByText('Nuevo alimento')).toBeInTheDocument()
+      expect(screen.queryByText('Revisa la lectura')).toBeNull()
+      expect(screen.queryByText('Procedencia')).toBeNull()
+      expect(screen.queryByText('Lo que transcribí')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Guardar alimento' })).toBeInTheDocument()
     })
   })
 

@@ -273,17 +273,28 @@ function stubNetwork(catalogue = FOODS) {
       /\/foods\/barcode\//,
       { barcode: '8410128750121', food: null, refusal: 'unknown' },
     ],
-    // Una etiqueta leída, con las cinco cifras puestas: lo que interesa medir
-    // de esto es la **altura** del formulario que sale detrás, que es la misma
-    // venga la lectura de donde venga.
+    // Una etiqueta leída, con cuatro de las cinco cifras y una descartada: es
+    // lo que hace que el bloque de procedencia diga algo («4 de 5 cifras», más
+    // el aviso del descarte) y que la transcripción tenga filas que enseñar,
+    // incluida una que no respalda ningún campo.
     [
       /\/foods\/label$/,
       {
         name: 'Yogur natural',
         brand: 'Hacendado',
-        column_header: 'por 100 g',
-        nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
-        dropped: [],
+        column_header: 'Valores medios por 100 g',
+        per: '100g',
+        rows: [
+          'Valor energético 258 kJ / 61 kcal',
+          'Grasas 3,2 g',
+          'de las cuales saturadas 2,1 g',
+          'Hidratos de carbono 4,5 g',
+          'de los cuales azúcares 4,5 g',
+          'Proteínas 3,8 g',
+          'Sal 0,12 g',
+        ],
+        nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: null },
+        dropped: ['fiber'],
         refusal: null,
         refused_column: null,
       },

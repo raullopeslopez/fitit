@@ -828,6 +828,10 @@ function AddFood({
   // envase se resuelva en el peldaño gratis. Sin esto, escalar tiraba el único
   // dato que la foto sí había dado.
   const [barcode, setBarcode] = useState(null)
+  // El alimento que la ficha pública acaba de meter en tu catálogo. Distinto de
+  // `chosen` (lo elegiste en la lista) y de `scan.food` (ya era tuyo) porque la
+  // pantalla lo cuenta distinto: éste no estaba y ahora sí.
+  const [resolved, setResolved] = useState(null)
   const latest = useRef(0)
   const field = useRef(null)
 
@@ -887,6 +891,7 @@ function AddFood({
     if (!file) return
     setEscalating(null)
     setBarcode(null)
+    setResolved(null)
 
     // Peldaño 1: el código. Sólo donde el navegador sabe decodificar — en un
     // Chrome de Android está, en un Safari no —, y si no sabe, la escalada
@@ -901,12 +906,34 @@ function AddFood({
         if (codes.length > 0) {
           setBarcode(codes[0])
           const found = await scanBarcode(codes[0])
-          setReading(null)
           // Con ficha utilizable se acabó: ni tabla, ni modelo, ni cuota.
-          if (found?.food || !found?.refusal) {
+          if (found?.food) {
+            setReading(null)
             setScan(found)
             return
           }
+          if (!found?.refusal) {
+            // Y se guarda sin preguntar. Un formulario delante de esto sería
+            // pedir una firma sin lectura: nadie corrige campo por campo una
+            // ficha que no ha medido, y el código identifica el producto mejor
+            // que cualquier nombre que uno teclee. Guardarlo es lo que convierte
+            // «veinte fotos al día» en «veinte productos nuevos al día».
+            //
+            // Sin preguntar no significa inventando: un nutriente que la ficha
+            // no trae viaja `null`, igual que si nadie lo hubiera tecleado.
+            try {
+              setResolved(await createFood(fromScan(found, codes[0])))
+            } catch {
+              // Si el guardado no llega, no se pierde la lectura: el formulario
+              // se abre con lo que la ficha traía y se guarda a mano.
+              setScan(found)
+              setCreating(true)
+            } finally {
+              setReading(null)
+            }
+            return
+          }
+          setReading(null)
           // El código se leyó y no sirve. Aquí **no** se lee la tabla de esta
           // misma foto: el código y la tabla están en caras distintas del
           // envase, así que esa foto casi nunca tiene tabla que leer y gastar
@@ -956,33 +983,29 @@ function AddFood({
     }
   }
 
-  // Un alimento que ya era tuyo no pasa por el alta: se va derecho a «cuánto»,
-  // que es lo único que faltaba por decidir.
-  if (scan?.food) {
+  // Resuelto por el código: ni formulario ni confirmación, derecho a «cuánto».
+  //
+  // `scan.food` es el que ya tenías —segunda vez que fotografías el mismo
+  // yogur—, y `resolved` el que se acaba de guardar desde la ficha pública. Los
+  // dos llegan al mismo sitio porque son la misma situación: el producto está
+  // identificado y lo único que faltaba por decidir es la cantidad.
+  const conocido = scan?.food ?? resolved
+  if (conocido) {
     return (
       <Amount
-        food={scan.food}
+        food={conocido}
         initialSlot={slot}
         dayIso={dayIso}
         entries={entries}
+        // De dónde salió, contado **después**: el peldaño barato no se anuncia
+        // como una opción que elegir, se usa y luego se dice que se ha usado.
+        source={scan?.food ? 'catalogo' : resolved ? 'codigo' : null}
         onDone={onDone}
         onDayChanged={onDayChanged}
-        onCancel={() => setScan(null)}
-      />
-    )
-  }
-
-  if (scan) {
-    return (
-      <NewFood
-        name={scan.name || query.trim()}
-        scan={scan}
-        barcode={barcode ?? scan.barcode ?? null}
-        onCreated={(food) => {
+        onCancel={() => {
           setScan(null)
-          setChosen(food)
+          setResolved(null)
         }}
-        onCancel={() => setScan(null)}
       />
     )
   }
@@ -1214,6 +1237,25 @@ function AddFood({
   )
 }
 
+// Una ficha de la base pública, en lo que `POST /foods` espera.
+//
+// `??` y no `||`: un nutriente que vale 0 en la ficha es una medición —un agua
+// con cero grasa—, y `||` lo convertiría en `null`, que dice lo contrario. Lo
+// que sí sale `null` es lo que la ficha no trae, porque no se sabe.
+function fromScan(found, code) {
+  const n = found.nutrients ?? {}
+  return {
+    name: found.name,
+    brand: found.brand || null,
+    barcode: found.barcode ?? code ?? null,
+    kcal_100g: n.kcal ?? null,
+    protein_100g: n.protein ?? null,
+    fat_100g: n.fat ?? null,
+    carbs_100g: n.carbs ?? null,
+    fiber_100g: n.fiber ?? null,
+  }
+}
+
 // La foto de un `input[type=file]`, y el input limpio detrás.
 //
 // Sin limpiarlo, elegir la misma foto dos veces seguidas no dispara `change` y
@@ -1327,6 +1369,7 @@ function Amount({
   initialSlot = null,
   dayIso,
   entries = [],
+  source = null,
   onDone,
   onDayChanged,
   onCancel,
@@ -1387,6 +1430,7 @@ function Amount({
   return (
     <form className="card card-compose food-amount" onSubmit={submit}>
       <p className="food-amount-name">{food.name}</p>
+      <Procedencia source={source} />
       {food.portions?.length > 0 && (
         <div className="food-portions">
           {food.portions.map((portion) => (
@@ -1475,6 +1519,32 @@ function Amount({
   )
 }
 
+// De dónde ha salido este alimento, contado **después** de resolverlo.
+//
+// El orden importa: un menú por adelantado —«¿escaneo o leo la etiqueta?»— te
+// hace elegir una tecnología antes de saber cuál funciona. Contarlo después es
+// una explicación, no una pregunta, y es lo que deja que el peldaño barato pase
+// desapercibido cuando acierta.
+//
+// Sólo aparece cuando la cámara ha hecho algo. Si has elegido el alimento en la
+// lista no hay nada que contar: ya sabes de dónde salió, lo has tocado tú.
+function Procedencia({ source }) {
+  if (source === 'catalogo') {
+    return (
+      <p className="hint food-source">
+        Leído del código de barras. Ya lo tenías en tus alimentos.
+      </p>
+    )
+  }
+  if (source !== 'codigo') return null
+  return (
+    <>
+      <p className="hint food-source">Leído del código de barras. No ha hecho falta la tabla.</p>
+      <p className="hint food-source">Se guarda en tus alimentos, con su código.</p>
+    </>
+  )
+}
+
 // Lo que pone dentro de una cámara: su nombre, o que está leyendo.
 //
 // El punto es el mismo `.pending-dot` que ya lleva una serie encolada, y por la
@@ -1514,34 +1584,26 @@ async function detectBarcodes(file) {
 
 // Qué contar del escaneo, encima del formulario.
 //
-// Sin esta línea, un formulario en blanco después de escanear no se distingue
-// de uno abierto a mano, y te quedas sin saber si el código se leyó, si nadie
-// lo conoce o si no había red — tres cosas que piden respuestas distintas.
+// Ya casi nunca se pinta. Los rechazos del código —desconocido, sin red, ficha
+// inservible— dejaron de acabar en un formulario cuando la escalada se llevó
+// esos tres casos a su propio peldaño, que además ofrece volver a intentarlo
+// con una foto de la tabla. Aquí sólo queda el camino que la escalada no
+// cubre: la ficha llegó bien y el guardado automático no pudo escribirla, así
+// que se abre el formulario con lo que traía.
+//
+// Lo que sí sigue haciendo falta decir es de qué unidad salen los números y si
+// no cuadran entre sí, porque eso viaja con la ficha buena.
 function ScanNote({ scan }) {
-  const message = {
-    nocode: 'No he visto ningún código en la foto.',
-    unknown: 'Ese código no está en Open Food Facts. Tecléalo.',
-    offline: 'No he podido preguntar por ese código. Tecléalo.',
-    unusable: {
-      'por ración': 'Los datos de ese código vienen por ración. No me sirven: tecléalo.',
-      'por 100 ml': 'Los datos de ese código vienen por 100 ml, no por 100 g. Tecléalo.',
-      'sin kcal': 'La ficha de ese código no trae kcal. Tecléalo.',
-    }[scan.refused_reason],
-  }[scan.refusal]
-
-  if (!message) {
-    return (
-      <>
-        {scan.per === '100ml' && (
-          <p className="food-label-warn">
-            Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
-          </p>
-        )}
-        <MismatchNote mismatch={scan.mismatch} />
-      </>
-    )
-  }
-  return <p className="food-label-warn">{message}</p>
+  return (
+    <>
+      {scan.per === '100ml' && (
+        <p className="food-label-warn" role="alert">
+          Los números son por 100 ml, no por 100 g. Los guardo tal cual.
+        </p>
+      )}
+      <MismatchNote mismatch={scan.mismatch} />
+    </>
+  )
 }
 
 // Cuando las kcal y los macros de la misma etiqueta no dan lo mismo.
@@ -1581,23 +1643,53 @@ function MismatchNote({ mismatch }) {
 //
 // Plegado, porque cuando la lectura sale bien es ruido: la información que
 // hace falta ya está en los siete campos.
-function ReadRows({ rows }) {
+// Lo que el modelo dice haber transcrito, a un toque.
+//
+// Existe porque un veredicto no contesta a «¿qué ha leído?». Con las filas
+// delante se ve de un vistazo si leyó bien y el backend descartó las cifras, o
+// si leyó mal desde el principio — dos problemas distintos, con dos arreglos
+// distintos, que sin esto se ven exactamente igual.
+//
+// Plegada por defecto: cuando la lectura sale bien es ruido, porque lo que hace
+// falta ya está en los campos. Y cuando sale mal, está a un toque.
+function Transcripcion({ rows }) {
   const [open, setOpen] = useState(false)
-  if (!rows || rows.length === 0) return null
   return (
-    <div className="food-label-rows">
-      <button type="button" className="link-btn" onClick={() => setOpen(!open)}>
-        {open ? 'Ocultar lo leído' : 'Ver lo que he leído'}
-      </button>
+    <section className="food-transcript">
+      <p className="food-transcript-head">
+        <span className="card-eyebrow">Lo que transcribí</span>
+        <button type="button" className="link-btn" onClick={() => setOpen(!open)}>
+          {open ? 'Ocultar' : 'Ver'}
+        </button>
+      </p>
       {open && (
-        <ul>
+        <div className="card food-transcript-rows">
           {rows.map((row, index) => (
-            <li key={index}>{row}</li>
+            <p className={`food-transcript-row${backsAField(row) ? '' : ' is-aside'}`} key={index}>
+              {row}
+            </p>
           ))}
-        </ul>
+        </div>
       )}
-    </div>
+    </section>
   )
+}
+
+// Las palabras con las que el backend reconoce la fila de un nutriente
+// (`ROW_WORDS`, en `app/label.py`). Aquí sólo deciden **opacidad**: una fila que
+// no respalda ningún campo —«de las cuales saturadas»— se lee más apagada para
+// que las que sí sostienen una cifra salten a la vista.
+//
+// Que esta lista se separe de la del backend no rompe nada: allí decide si una
+// cifra se guarda, aquí sólo cuánta tinta lleva un renglón.
+const ROW_WORDS = /kcal|energ|calor|protein|grasa|lipid|hidrato|carbohidrat|glucid|fibra/i
+
+function backsAField(row) {
+  const folded = String(row).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  // «de las cuales …» es siempre un desglose de la fila de arriba, nunca la
+  // fila que respalda un campo.
+  if (/de (las |los )?cual/i.test(folded)) return false
+  return ROW_WORDS.test(folded)
 }
 
 function LabelNote({ label }) {
@@ -1644,35 +1736,49 @@ function LabelNote({ label }) {
   const anyRead = Object.values(label.nutrients ?? {}).some((value) => value != null)
   if (!anyRead) {
     return (
-      <>
-        <p className="food-label-warn">No he sacado ninguna cifra de la foto. Tecléalas.</p>
-        <ReadRows rows={label.rows} />
-      </>
+      <p className="food-label-warn" role="alert">
+        No he sacado ninguna cifra de la foto. Tecléalas.
+      </p>
     )
   }
 
+  // De dónde salen las cifras, en su propio bloque y antes que los campos.
+  //
+  // Una cifra que no dice de dónde viene no se puede confirmar, sólo firmar en
+  // blanco. Así que el bloque contesta a las tres preguntas por orden: **cuántas**
+  // cifras salieron de las cinco, **de qué columna**, y **qué se hizo con ellas**.
+  const kept = Object.values(label.nutrients ?? {}).filter((v) => v != null).length
   const dropped = droppedNote(label.dropped)
   return (
-    <>
+    <div className="card food-origin">
+      <p className="food-origin-head">
+        <span className="card-eyebrow">Procedencia</span>
+        <span className="food-origin-count">{kept} de 5 cifras</span>
+      </p>
       {label.column_header && (
-        <p className="hint food-label-read">Leído de «{label.column_header}».</p>
+        <p className="food-origin-column">Leído de «{label.column_header}»</p>
       )}
-      {/* En tinta, y encima de los campos que describe: los números están en
-          casillas que dicen «por 100 g» y no son gramos. No se convierte nada
-          —eso exigiría una densidad que la etiqueta no trae—, se dice lo que
-          son y decides tú. En un líquido acuoso la diferencia es del 3%. */}
+      {/* «sin conversión» no es un adorno: es la afirmación de que nadie ha
+          multiplicado nada por un factor que no estaba impreso. */}
+      <p className="food-origin-how">
+        columna única · {label.per === '100ml' ? 'por 100 ml' : 'sin conversión'}
+      </p>
+      {/* En tinta y no en `--muted`, y no en `--danger`: no es un error, es lo
+          que pasó. Un hueco sin explicar se lee como «la etiqueta no lo
+          declara», que aquí es justo lo contrario. `role="alert"` porque
+          aparecen al llegar a la pantalla y hay que oírlos, no buscarlos. */}
       {label.per === '100ml' && (
-        <p className="food-label-warn">
-          Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+        <p className="food-label-warn" role="alert">
+          Los números son por 100 ml, no por 100 g. Los guardo tal cual.
         </p>
       )}
-      {/* En tinta y no en `--muted`: explica por qué un campo está vacío, y un
-          hueco sin explicar se lee como «la etiqueta no lo declara», que aquí es
-          justo lo contrario de lo que ha pasado. */}
-      {dropped && <p className="food-label-warn">{dropped}</p>}
+      {dropped && (
+        <p className="food-label-warn" role="alert">
+          {dropped}
+        </p>
+      )}
       <MismatchNote mismatch={label.mismatch} />
-      <ReadRows rows={label.rows} />
-    </>
+    </div>
   )
 }
 
@@ -2008,51 +2114,98 @@ function NewFood({ name: initialName, label = null, scan = null, barcode = null,
     onCreated(food)
   }
 
-  const FIELDS = [
-    { key: 'kcal', label: 'Kcal por 100 g' },
-    { key: 'protein', label: 'Proteína por 100 g' },
-    { key: 'fat', label: 'Grasa por 100 g' },
-    { key: 'carbs', label: 'Hidratos por 100 g' },
-    { key: 'fiber', label: 'Fibra por 100 g' },
-  ]
+  // ¿Vino esto de una lectura que sacó cifras, o es un formulario en blanco?
+  // No es lo mismo: uno se **revisa** y el otro se rellena, y la pantalla lo
+  // dice desde el título.
+  const leido = Boolean(label && !label.refusal && anyValue(label.nutrients))
+  const campo = (key) => ({
+    id: `food-${key}`,
+    inputMode: 'decimal',
+    value: values[key],
+    onChange: (e) => setValues({ ...values, [key]: e.target.value }),
+  })
 
   return (
-    <form className="card card-compose food-new" ref={box} onSubmit={submit}>
-      {label && <LabelNote label={label} />}
-      {scan && <ScanNote scan={scan} />}
-      <div className="field">
-        <label htmlFor="food-name">Nombre</label>
-        <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="field">
-        <label htmlFor="food-brand">Marca</label>
-        <input
-          id="food-brand"
-          autoComplete="off"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-        />
-      </div>
-      {FIELDS.map((field) => (
-        <div className="field" key={field.key}>
-          <label htmlFor={`food-${field.key}`}>{field.label}</label>
-          <input
-            id={`food-${field.key}`}
-            inputMode="decimal"
-            value={values[field.key]}
-            onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
-          />
-        </div>
-      ))}
-      <p className="hint">Lo que dejes en blanco queda como desconocido, no como cero.</p>
-      <div className="food-editor-actions">
-        <button type="submit" className="primary" disabled={busy}>
-          Guardar alimento
-        </button>
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Alta de alimento">
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">Alta de alimento</span>
+          <span className="food-screen-slot">{leido ? 'Revisa la lectura' : 'Nuevo alimento'}</span>
+        </p>
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
-      </div>
-    </form>
+      </header>
+
+      <form className="food-screen-body food-new" ref={box} onSubmit={submit}>
+        {label && <LabelNote label={label} />}
+        {scan && <ScanNote scan={scan} />}
+
+        <div className="field">
+          <label htmlFor="food-name">Nombre</label>
+          <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="food-brand">Marca</label>
+          <input
+            id="food-brand"
+            autoComplete="off"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+          />
+        </div>
+
+        {/* Los cinco números, en dos filas de dos y uno.
+            Cinco `.field` a lo ancho eran cinco renglones de «… por 100 g»
+            repetido, que es la misma frase cinco veces para distinguir cinco
+            cosas que ya se distinguen por su nombre. La unidad se dice una vez,
+            arriba, y los rótulos se quedan con lo que cambia.
+
+            El `aria-label` sí la conserva entera: quien navega a ciegas oye el
+            campo suelto, sin el encabezado que lo enmarca. Y contiene el rótulo
+            visible, que es lo que WCAG pide de un nombre accesible más largo. */}
+        <p className="card-eyebrow food-new-unit">Por 100 g</p>
+        <div className="row">
+          <div className="field stepper-field">
+            <label htmlFor="food-kcal">Kcal</label>
+            <input {...campo('kcal')} aria-label="Kcal por 100 g" />
+          </div>
+          <div className="field stepper-field">
+            <label htmlFor="food-protein">Proteína</label>
+            <input {...campo('protein')} aria-label="Proteína por 100 g" />
+          </div>
+        </div>
+        <div className="row">
+          <div className="field stepper-field">
+            <label htmlFor="food-fat">Grasa</label>
+            <input {...campo('fat')} aria-label="Grasa por 100 g" />
+          </div>
+          <div className="field stepper-field">
+            <label htmlFor="food-carbs">Hidratos</label>
+            <input {...campo('carbs')} aria-label="Hidratos por 100 g" />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="food-fiber">Fibra</label>
+          {/* Marcador de posición `—`, no `0`. Un cero ahí es una afirmación:
+              «medido, y no tiene». La raya dice lo que pasa de verdad. */}
+          <input {...campo('fiber')} aria-label="Fibra por 100 g" placeholder="—" />
+        </div>
+
+        <p className="hint">Lo que dejes en blanco queda como desconocido, no como cero.</p>
+
+        {label?.rows?.length > 0 && <Transcripcion rows={label.rows} />}
+
+        <button type="submit" className="primary btn-full" disabled={busy}>
+          {leido ? 'Dar de alta y continuar' : 'Guardar alimento'}
+        </button>
+        <p className="hint food-new-foot">
+          Nada entra en tu catálogo hasta que lo confirmes aquí.
+        </p>
+      </form>
+    </div>
   )
 }
+
+// ¿Sacó la lectura alguna cifra?
+const anyValue = (nutrients) => Object.values(nutrients ?? {}).some((v) => v != null)
