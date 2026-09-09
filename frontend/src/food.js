@@ -153,7 +153,10 @@ export function proteinProgress(eaten, target) {
 export function macroBar(eaten, target) {
   const done = proteinProgress(eaten, target)
   if (done == null) return null
-  return { done, closed: done >= 100 }
+  // `done` va recortado a [0, 100] porque es un ancho, y una barra no se sale de
+  // su caja. `percent` no se recorta porque es una **cifra**: pasarse del
+  // objetivo es un dato del día, y esconderlo tras un 100% sería contarlo mal.
+  return { done, closed: done >= 100, percent: Math.round(((eaten ?? 0) / target) * 100) }
 }
 
 export function unknownNote(unknown = {}) {

@@ -25,6 +25,7 @@ import {
   previewNutrients,
   shiftDay,
   slotLabel,
+  withoutEntry,
   droppedNote,
   unknownNote,
 } from './food.js'
@@ -103,6 +104,10 @@ export default function Comida() {
   // abajo, cerrar y volver a abrir devolvía una cámara que ya sabíamos que iba a
   // contestar lo mismo — y cada intento gasta de lo que ya no hay.
   const [labelBlock, setLabelBlock] = useState(null)
+  // La entrada cuyo borrado se está confirmando. `null` mientras no haya nada
+  // que confirmar — borrar es lo único irreversible de la pantalla.
+  const [confirming, setConfirming] = useState(null)
+  const [summaryOpen, setSummaryOpen] = useState(false)
   // El filtro que abre el chip de nutrientes desconocidos: sólo las entradas
   // a las que les falta algo, para poder corregirlas sin buscarlas a ojo.
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
@@ -174,6 +179,7 @@ export default function Comida() {
   // Borrar ya no vive en el formulario: se desliza la fila, y lo que queda es
   // un «Deshacer» donde estaba la entrada, no un aviso que caduca solo.
   async function handleDeleteEntry(entry) {
+    setConfirming(null)
     try {
       await deleteFoodEntry(entry.id)
     } catch {
@@ -335,7 +341,7 @@ export default function Comida() {
               onUndo={handleUndo}
               onAdd={() => setAdding({ slot: rail.key })}
               onEdit={setEditing}
-              onDelete={handleDeleteEntry}
+              onDelete={setConfirming}
             />
           ))}
           {/* Los vacíos, en fila de dos y en `dashed`: una tarjeta que todavía
@@ -363,7 +369,7 @@ export default function Comida() {
               ))}
             </div>
           )}
-          <ClosingLine day={day} />
+          <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />
         </>
       )}
 
@@ -393,6 +399,29 @@ export default function Comida() {
           onDayChanged={() => load(dayIso)}
           onCancel={closeSheet}
         />
+      )}
+
+      {confirming && (
+        <ConfirmarBorrado
+          entry={confirming}
+          day={day}
+          onConfirm={() => handleDeleteEntry(confirming)}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+
+      {summaryOpen && day && (
+        <div className="sheet-scrim" onClick={() => setSummaryOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Resumen del día"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Resumen day={day} dayIso={dayIso} onClose={() => setSummaryOpen(false)} />
+          </div>
+        </div>
       )}
 
       {!adding && editingEntry && (
@@ -448,6 +477,7 @@ function Objetivos({ initial, busy, onSave, onCancel }) {
         onSave(values)
       }}
     >
+      <Asa />
       <header className="food-detail-head">
         <h2 className="food-detail-name">Objetivos diarios</h2>
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
@@ -504,6 +534,169 @@ function Objetivos({ initial, busy, onSave, onCancel }) {
     </form>
   )
 }
+
+// El asa de una hoja: 38×4 px, centrada, y nada más.
+//
+// Dice dos cosas sin una palabra: que esto es una hoja y no una pantalla, y que
+// se puede echar hacia abajo. Vive aquí y no en `.sheet` a propósito — esa clase
+// la comparten las hojas de Entreno, y cambiarla las tocaría todas sin que nadie
+// lo haya pedido. Si convence, subirla es una línea.
+function Asa() {
+  return <span className="sheet-grip" aria-hidden="true" />
+}
+
+// Confirmar un borrado, diciendo qué se pierde.
+//
+// El único diálogo **centrado** de la pantalla, y a propósito: una hoja se
+// descarta deslizando hacia abajo, y esto no puede descartarse por accidente.
+// Todo lo demás de Comida se edita o se cancela; esto es lo único que no se
+// deshace solo — hay un «Deshacer» detrás, pero vuelve a escribir la entrada,
+// no la recupera, porque `log_entries` congela.
+//
+// Y nunca se borra sin decir qué se pierde. Un «¿seguro?» pide una decisión sin
+// darte con qué tomarla: lo que hay que saber es en qué queda el día.
+function ConfirmarBorrado({ entry, day, onConfirm, onCancel }) {
+  return (
+    <div className="sheet-scrim food-confirm-scrim" onClick={onCancel}>
+      <div
+        className="card food-confirm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={`Borrar ${entry.food_name}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="food-confirm-title">¿Borrar «{entry.food_name}»?</h2>
+        <p className="hint food-confirm-impact" data-testid="food-delete-impact">
+          <Impacto entry={entry} day={day} />
+        </p>
+        <button type="button" className="btn-full food-confirm-go" onClick={onConfirm}>
+          Borrar
+        </button>
+        <button type="button" className="secondary btn-full" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// En qué queda el día si se borra esta entrada.
+//
+// Tres frases, no una con huecos: lo que se puede afirmar cambia según lo que se
+// sepa, y rellenar un hueco con una raya deja una frase que no dice nada («tu
+// día baja a — g»). De más informativa a menos:
+//
+// 1. Con objetivo y total conocidos: a cuánto baja y cuánto queda por debajo.
+// 2. Con el total conocido y sin objetivo: a cuánto baja, sin comparar con nada.
+// 3. Con el total desconocido: lo único que sí se sabe es lo que se va.
+function Impacto({ entry, day }) {
+  const queda = withoutEntry(day?.totals?.protein, entry.protein)
+  if (queda == null) {
+    if (entry.protein == null) return <>Esta entrada no tiene la proteína medida.</>
+    return (
+      <>
+        Se van <strong>{formatMacro(entry.protein)} g</strong> de proteína del día.
+      </>
+    )
+  }
+  const falta = withoutEntry(day?.target_protein, queda)
+  if (falta == null || falta <= 0) {
+    return (
+      <>
+        Tu día baja a <strong>{formatMacro(queda)} g</strong> de proteína.
+      </>
+    )
+  }
+  return (
+    <>
+      Tu día baja a <strong>{formatMacro(queda)} g</strong> de proteína,{' '}
+      <strong>{formatMacro(falta)} g</strong> por debajo del objetivo.
+    </>
+  )
+}
+
+// El resumen del día: cuánto se ha cumplido, y por dónde ha entrado.
+//
+// **Sin juicio moral.** Informa; no felicita ni riñe. Pasarse de grasa se dice
+// con el porcentaje, no con rojo ni con un icono — `--danger` en esta app es
+// para borrar y para error, y comerse un aguacate de más no es ninguna de las
+// dos cosas.
+function Resumen({ day, dayIso, onClose }) {
+  const totals = day.totals ?? {}
+  return (
+    <div className="sheet-body food-summary">
+      <Asa />
+      <header className="food-detail-head">
+        <h2 className="food-detail-name">Resumen del día</h2>
+        <button type="button" className="link-btn" onClick={onClose}>
+          Cerrar
+        </button>
+      </header>
+      <p className="food-detail-per">{formatDayShort(dayIso)}</p>
+
+      <div className="card food-summary-card">
+        {SUMMARY_MACROS.map((macro) => (
+          <SummaryBar
+            key={macro.key}
+            label={macro.label}
+            eaten={totals[macro.key]}
+            target={day[macro.target]}
+            lead={macro.key === 'protein'}
+          />
+        ))}
+      </div>
+
+      <div className="card food-summary-card">
+        <p className="food-summary-head">
+          <span className="card-eyebrow">Reparto por comida</span>
+          <span className="food-summary-kcal">{formatMacro(totals.kcal)} kcal</span>
+        </p>
+        {/* Los subtotales llegan del servidor: una comida vacía suma `null`, no
+            0, y esa regla vive en `sumar_nutrientes` y en ningún otro sitio. */}
+        {(day.by_slot ?? [])
+          .filter((group) => group.slot != null || group.totals?.kcal != null)
+          .map((group) => (
+            <p className="food-summary-slot" key={group.slot ?? 'sin-asignar'}>
+              <span className="food-detail-label">{slotLabel(group.slot)}</span>
+              <span className="food-detail-value">
+                {formatMacro(group.totals?.protein)} P · {formatMacro(group.totals?.kcal)} kcal
+              </span>
+            </p>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+// Una barra de cumplimiento. El ancho se recorta a 100 —una barra no se sale de
+// su caja— y el porcentaje no, porque es una cifra y pasarse es un dato del día.
+function SummaryBar({ label, eaten, target, lead }) {
+  const bar = macroBar(eaten, target)
+  return (
+    <div className={`food-summary-row${lead ? ' is-lead' : ''}`}>
+      <p className="food-macro-line">
+        <span className="food-macro-label">{label}</span>
+        {/* El porcentaje sólo existe si se sabe cuánto llevas. Un «0 %» con el
+            total desconocido afirma que no has comido nada de eso, que es la
+            misma mentira que un 0 en un nutriente sin medir — aquí escondida
+            dentro de un porcentaje, que es donde más fácil se cuela. */}
+        <span className="food-macro-value">
+          {formatMacro(eaten)} / {formatMacro(target)} g
+          {bar && eaten != null ? ` · ${bar.percent} %` : ''}
+        </span>
+      </p>
+      <span className="food-summary-bar" aria-hidden="true">
+        {bar && <span className="food-summary-fill" style={{ width: `${bar.done}%` }} />}
+      </span>
+    </div>
+  )
+}
+
+const SUMMARY_MACROS = [
+  { key: 'protein', label: 'Proteína', target: 'target_protein' },
+  { key: 'carbs', label: 'Hidratos', target: 'target_carbs' },
+  { key: 'fat', label: 'Grasa', target: 'target_fat' },
+]
 
 // La cabecera del día, y la pieza donde vive el contrato de color.
 //
@@ -597,11 +790,15 @@ function MacroCard({ day }) {
         <MacroRow label="Grasa" eaten={totals.fat} target={day.target_fat} />
       </div>
 
+      {/* «Cumplido» era el rótulo de esta fila, y con `985 / 2560` al lado decía
+          justo lo contrario de lo que enseñaba. «Energía» es lo que una etiqueta
+          llama a esto, no afirma nada, y deja la unidad al final como en las
+          filas de macro de arriba. */}
       {day.target_kcal != null && (
         <p className="food-macros-kcal">
-          <span>Cumplido</span>
+          <span>Energía</span>
           <span className="food-macros-kcal-value">
-            kcal {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)}
+            {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)} kcal
           </span>
         </p>
       )}
@@ -707,7 +904,7 @@ function SlotCard({ rail, entries, deleted, undoing, onUndo, onAdd, onEdit, onDe
 // contesta «y entonces qué me falta para terminar».
 //
 // Sin juicio: informa. Ni felicita al cerrar ni riñe por no haber llegado.
-function ClosingLine({ day }) {
+function ClosingLine({ day, onSummary }) {
   if (day.target_protein == null) return null
   const bar = macroBar(day.totals?.protein, day.target_protein)
   return (
@@ -724,6 +921,9 @@ function ClosingLine({ day }) {
           </>
         )}
       </span>
+      <button type="button" className="link-btn" onClick={onSummary}>
+        Resumen
+      </button>
     </p>
   )
 }
@@ -1692,6 +1892,7 @@ function Amount({
 
   return (
     <form className="sheet-body food-detail" onSubmit={submit}>
+      <Asa />
       <header className="food-detail-head">
         <h2 className="food-detail-name">{food.name}</h2>
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>

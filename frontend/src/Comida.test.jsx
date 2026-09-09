@@ -973,6 +973,9 @@ describe('Comida', () => {
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       swipeOpen(row)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Pan de la panadería' }))
+      // Deslizar ya no borra: revela el control que **pide** el borrado, y la
+      // decisión se toma en el diálogo, con el impacto en el día delante.
+      await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
       await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalledWith(10))
       // No es un aviso flotante: se queda en el raíl del que salió la entrada,
       // hasta que se deshaga o se registre otra cosa.
@@ -986,6 +989,7 @@ describe('Comida', () => {
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       swipeOpen(row)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Pan de la panadería' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
       await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalled())
       await userEvent.click(await screen.findByRole('button', { name: /Deshacer el borrado/ }))
       await waitFor(() =>
@@ -1144,6 +1148,151 @@ describe('Comida', () => {
           'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
         ),
       ).toBeInTheDocument()
+    })
+  })
+
+  // ── Confirmar el borrado ──────────────────────────────────────────────
+  //
+  // Nunca borrar sin decir qué se pierde en el día. Es el único destructivo de
+  // la pantalla y el único diálogo centrado: una hoja se descarta deslizando y
+  // esto no se puede descartar por accidente.
+  describe('confirmar el borrado', () => {
+    const CENA = () =>
+      objetivo({
+        entries: [entry({ id: 7, meal_slot: 'cena', food_name: 'Arroz con pollo', protein: 28 })],
+        totals: { kcal: 500, protein: 94, fat: 12, carbs: 60, fiber: 3 },
+        by_slot: slots({ cena: 500 }),
+        remaining_protein: 66,
+      })
+
+    async function pedirBorrado(day_ = CENA()) {
+      api.getFoodDay.mockResolvedValue(day_)
+      render(<Comida />)
+      const fila = await screen.findByRole('button', { name: /Arroz con pollo/ })
+      swipeOpen(fila)
+      await userEvent.click(screen.getByRole('button', { name: 'Borrar Arroz con pollo' }))
+    }
+
+    it('pregunta antes de borrar, y dice en qué queda el día', async () => {
+      await pedirBorrado()
+      expect(await screen.findByText('¿Borrar «Arroz con pollo»?')).toBeInTheDocument()
+      // 94 g menos los 28 de esta entrada son 66, y 160 − 66 son 94 por debajo.
+      const impacto = screen.getByTestId('food-delete-impact')
+      expect(impacto).toHaveTextContent('Tu día baja a 66 g de proteína, 94 g por debajo del objetivo.')
+      // Y no ha borrado nada todavía.
+      expect(api.deleteFoodEntry).not.toHaveBeenCalled()
+    })
+
+    it('sin objetivo dice a cuánto baja, y no inventa una comparación', async () => {
+      await pedirBorrado(
+        day({
+          entries: [entry({ id: 7, food_name: 'Arroz con pollo', protein: 28 })],
+          totals: { kcal: 500, protein: 94, fat: 12, carbs: 60, fiber: 3 },
+        }),
+      )
+      expect(await screen.findByTestId('food-delete-impact')).toHaveTextContent(
+        'Tu día baja a 66 g de proteína.',
+      )
+    })
+
+    it('si el total no se sabe, no se finge que sí', async () => {
+      await pedirBorrado(
+        day({
+          entries: [entry({ id: 7, food_name: 'Arroz con pollo', protein: 28 })],
+          totals: { kcal: 500, protein: null, fat: 12, carbs: 60, fiber: 3 },
+          unknown: { kcal: 0, protein: 1, fat: 0, carbs: 0, fiber: 0 },
+        }),
+      )
+      // «Tu día baja a — g» sería una frase sin contenido. Lo que sí se sabe es
+      // lo que se va, y eso es lo que se dice.
+      expect(await screen.findByTestId('food-delete-impact')).toHaveTextContent(
+        'Se van 28 g de proteína del día.',
+      )
+    })
+
+    it('cancelar no borra nada', async () => {
+      await pedirBorrado()
+      await userEvent.click(await screen.findByRole('button', { name: 'Cancelar' }))
+      expect(api.deleteFoodEntry).not.toHaveBeenCalled()
+      expect(screen.queryByText('¿Borrar «Arroz con pollo»?')).toBeNull()
+    })
+
+    it('confirmar sí borra, y deja el deshacer donde estaba la fila', async () => {
+      api.deleteFoodEntry.mockResolvedValue({})
+      await pedirBorrado()
+      await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
+      await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalledWith(7))
+      // El diálogo confirma; no sustituye al «Deshacer», que sigue viviendo en
+      // la comida donde estaba la entrada.
+      expect(await screen.findByText('Arroz con pollo borrada.')).toBeInTheDocument()
+    })
+  })
+
+  // ── El resumen del día ────────────────────────────────────────────────
+  describe('el resumen del día', () => {
+    async function abrirResumen(day_ = objetivo()) {
+      api.getFoodDay.mockResolvedValue(day_)
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Resumen' }))
+      await screen.findByText('Resumen del día')
+    }
+
+    it('se abre desde la línea de cierre', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      expect(within(hoja).getByText('LUN 31 AGO')).toBeInTheDocument()
+    })
+
+    it('dice el cumplimiento de cada macro con su porcentaje', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      // 6 de 160 es un 4%; 38 de 300 un 13%; 2 de 80 un 3%.
+      expect(within(hoja).getByText('6 / 160 g · 4 %')).toBeInTheDocument()
+      expect(within(hoja).getByText('38 / 300 g · 13 %')).toBeInTheDocument()
+      expect(within(hoja).getByText('2 / 80 g · 3 %')).toBeInTheDocument()
+    })
+
+    it('pasarse no desborda la barra: la llena y lo dice el porcentaje', async () => {
+      await abrirResumen(
+        objetivo({
+          totals: { kcal: 3000, protein: 200, fat: 90, carbs: 320, fiber: 2 },
+        }),
+      )
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      expect(within(hoja).getByText('200 / 160 g · 125 %')).toBeInTheDocument()
+      // Sin juicio: se dice con el número, no con rojo ni con un icono.
+      const barra = hoja.querySelector('.food-summary-fill')
+      expect(barra).toHaveStyle({ width: '100%' })
+      expect(barra.className).not.toContain('danger')
+    })
+
+    it('reparte el día por comida, con las kcal en la cabecera', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      expect(within(hoja).getByText('Reparto por comida')).toBeInTheDocument()
+      // El fixture tiene 200 kcal en desayuno y nada en las demás.
+      expect(within(hoja).getByText('200 kcal')).toBeInTheDocument()
+      const desayuno = within(hoja).getByText('Desayuno').closest('.food-summary-slot')
+      expect(desayuno).toHaveTextContent('— P · 200 kcal')
+    })
+
+    it('un total desconocido no tiene porcentaje, y no lo finge en cero', async () => {
+      await abrirResumen(
+        objetivo({ totals: { kcal: 200, protein: null, fat: 2, carbs: 38, fiber: 2 } }),
+      )
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      // Un «0 %» aquí afirma que no has comido nada de proteína, y lo que pasa
+      // es que no se sabe cuánta llevas. Es la misma distinción de siempre, en
+      // el sitio donde más fácil se pierde: dentro de un porcentaje.
+      expect(within(hoja).getByText('— / 160 g')).toBeInTheDocument()
+      expect(within(hoja).queryByText(/0 %/)).toBeNull()
+    })
+
+    it('una comida vacía suma una raya, no un cero', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      const cena = within(hoja).getByText('Cena').closest('.food-summary-slot')
+      expect(cena).toHaveTextContent('— P · — kcal')
     })
   })
 
@@ -1591,7 +1740,11 @@ describe('Comida', () => {
       expect(within(macros).getByText('Llevas')).toBeInTheDocument()
       expect(within(macros).getByText('6 / 160')).toBeInTheDocument()
       // Y las kcal dejan de ser el héroe: bajan a la fila de cierre.
-      expect(within(macros).getByText('kcal 200 / 2800')).toBeInTheDocument()
+      // «Cumplido» decía lo contrario de lo que enseñaba con `200 / 2800` al
+      // lado. «Energía» no afirma nada, y la unidad va al final como en las
+      // filas de macro.
+      expect(within(macros).getByText('Energía')).toBeInTheDocument()
+      expect(within(macros).getByText('200 / 2800 kcal')).toBeInTheDocument()
     })
 
     // ---------------------------------------------------------------------

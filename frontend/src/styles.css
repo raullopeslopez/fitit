@@ -4239,6 +4239,103 @@ button.set-chip:active:not(:disabled) {
   opacity: 0.55;
 }
 
+/* El asa de una hoja: dice que es una hoja y que se puede echar abajo, sin una
+   palabra. Sólo en las de Comida — `.sheet` la comparten las de Entreno. */
+.sheet-grip {
+  display: block;
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 1rem;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* ------------------------------------------------------------------ *
+ * Confirmar un borrado: el único diálogo centrado de la pantalla.
+ * ------------------------------------------------------------------ */
+.food-confirm-scrim {
+  align-items: center;
+  padding: 1rem;
+}
+.food-confirm {
+  width: 100%;
+  max-width: 318px;
+  margin: 0;
+  background: var(--surface-raised);
+}
+.food-confirm-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+/* El impacto, en tinta y no en `--muted`: es la información con la que se toma
+   la decisión, no una nota al pie. */
+.food-confirm-impact {
+  margin: 0 0 1.2rem;
+  color: var(--text);
+}
+/* `--danger` aquí y en ningún otro sitio de esta pantalla: borrar y error son
+   los dos únicos usos que el contrato de color le deja. */
+.food-confirm-go {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: var(--on-danger);
+  margin-bottom: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * El resumen del día.
+ * ------------------------------------------------------------------ */
+.food-summary-card {
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+.food-summary-row + .food-summary-row {
+  margin-top: 0.8rem;
+}
+.food-summary-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+/* La proteína en acento; hidratos y grasa acompañan al 60%. Misma jerarquía por
+   intensidad que la cabecera del día, y ningún tono nuevo: pasarse del objetivo
+   se cuenta con el porcentaje, no pintando la barra de otro color. */
+.food-summary-fill {
+  display: block;
+  height: 100%;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.food-summary-row.is-lead .food-summary-fill {
+  background: var(--accent);
+}
+.food-summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+}
+.food-summary-kcal {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.food-summary-slot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.food-summary-slot + .food-summary-slot {
+  margin-top: 0.45rem;
+}
+
 /* Los objetivos: gramos arriba, el total derivado abajo y sin marco de campo —
    no es algo que se decida, es lo que sale de lo que se ha decidido. */
 .food-goals-total {
