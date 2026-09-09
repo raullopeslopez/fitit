@@ -20,7 +20,6 @@ import {
   foodDayIso,
   formatAmount,
   formatMacro,
-  inferMealSlot,
   macroBar,
   shiftDay,
   slotLabel,
@@ -94,7 +93,6 @@ export default function Comida() {
   // Lo de siempre: lo que más repites, a un toque. No depende del día que se
   // esté mirando, así que se lee aparte y no se vuelve a pedir al pasar de día.
   const [siempre, setSiempre] = useState([])
-  const [quick, setQuick] = useState(null)
   // El filtro que abre el chip de nutrientes desconocidos: sólo las entradas
   // a las que les falta algo, para poder corregirlas sin buscarlas a ojo.
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
@@ -164,19 +162,6 @@ export default function Comida() {
     setEditing(null)
   }
 
-  // Un toque sobre lo de siempre: la cantidad y la comida que ya usas, sin
-  // buscador y sin formulario. `logFood` fecha con el reloj del móvil, así que
-  // esto sólo se ofrece en el día en curso — ver la condición de la sección.
-  async function quickLog(item) {
-    setQuick(item.food_id)
-    try {
-      await logFood({ foodId: item.food_id, grams: item.grams, mealSlot: item.meal_slot })
-      await afterWrite()
-    } finally {
-      setQuick(null)
-    }
-  }
-
   // Borrar ya no vive en el formulario: se desliza la fila, y lo que queda es
   // un «Deshacer» donde estaba la entrada, no un aviso que caduca solo.
   async function handleDeleteEntry(entry) {
@@ -229,11 +214,6 @@ export default function Comida() {
       setSavingTarget(false)
     }
   }
-
-  // Sólo en hoy. En un día pasado el toque escribiría en el día en curso —
-  // `logged_at` es el reloj del móvil— y la entrada aparecería en una pantalla
-  // que no estás mirando, sin error por ninguna parte.
-  const showSiempre = isToday && siempre.length > 0
 
   return (
     <div className="comida">
@@ -342,39 +322,6 @@ export default function Comida() {
         </button>
       )}
 
-      {/* Lo de siempre, delante de los raíles: es el camino de un toque, y
-          vivía debajo de los cuatro raíles — con un día medio registrado había
-          que desplazar para llegar a él. */}
-      {showSiempre && (
-        <section className="food-group food-siempre">
-          <div className="food-siempre-head">
-            <h3 className="food-group-title">Lo de siempre</h3>
-            {/* El hueco al que iría cada toque ya lo dice cada azulejo — lee
-                `item.meal_slot`, la comida en la que sueles registrar ese
-                alimento, más fiable que una única hora para todo el repertorio.
-                Esto es sólo el contexto: qué hora es ahora mismo. */}
-            <span className="food-siempre-slot">→ {slotLabel(inferMealSlot())} ahora</span>
-          </div>
-          <div className="food-siempre-strip">
-            {siempre.map((item) => (
-              <button
-                type="button"
-                className="food-repeat"
-                key={item.food_id}
-                disabled={quick !== null}
-                onClick={() => quickLog(item)}
-              >
-                <span className="food-repeat-name">{item.name}</span>
-                <span className="food-repeat-meta">
-                  {formatAmount(item.grams)} · {formatMacro(item.kcal)} kcal
-                </span>
-              </button>
-            ))}
-          </div>
-          <p className="hint food-siempre-hint">Un toque lo registra con la cantidad de siempre.</p>
-        </section>
-      )}
-
       {day && (
         <>
           {filled(day).map((rail) => (
@@ -419,31 +366,42 @@ export default function Comida() {
         </>
       )}
 
-      {(adding || editingEntry) && (
+      {/* Añadir ocupa la pantalla entera, no una hoja.
+          Es una tarea con lista larga —el catálogo devuelve hasta treinta
+          filas— y con cámara, y las dos cosas piden alto: una hoja anclada al
+          pie tiene techo (`max-height: 88dvh`) y crece hacia arriba, así que
+          con el teclado subiendo se comía su propia cabecera. La regla de forma
+          del rediseño lo dice sin rodeos: pantalla completa para lo que tiene
+          muchos resultados o necesita cámara, hoja para lo corto.
+
+          Editar una entrada sí se queda en hoja: es un campo y dos botones. */}
+      {adding && (
+        <AddFood
+          slot={adding.slot}
+          dayIso={dayIso}
+          isToday={isToday}
+          entries={day?.entries ?? []}
+          siempre={siempre}
+          labelReading={day?.label_reading ?? false}
+          onDone={afterWrite}
+          // Rehacer el día desde la corrección reescribe entradas que ya están
+          // pintadas, y no cierra la pantalla: estabas registrando algo cuando
+          // te diste cuenta de la errata, y sigues estándolo.
+          onDayChanged={() => load(dayIso)}
+          onCancel={closeSheet}
+        />
+      )}
+
+      {!adding && editingEntry && (
         <div className="sheet-scrim" onClick={closeSheet}>
           <div
             className="sheet"
             role="dialog"
             aria-modal="true"
-            aria-label={adding ? 'Añadir alimento' : 'Editar entrada'}
+            aria-label="Editar entrada"
             onClick={(e) => e.stopPropagation()}
           >
-            {adding && (
-              <AddFood
-                slot={adding.slot}
-                dayIso={dayIso}
-                entries={day?.entries ?? []}
-                onDone={afterWrite}
-                // Rehacer el día desde la corrección reescribe entradas que ya
-                // están pintadas, y no cierra la hoja: estabas registrando algo
-                // cuando te diste cuenta de la errata, y sigues estándolo.
-                onDayChanged={() => load(dayIso)}
-                onCancel={closeSheet}
-              />
-            )}
-            {!adding && editingEntry && (
-              <EntryEditor entry={editingEntry} onDone={afterWrite} onCancel={closeSheet} />
-            )}
+            <EntryEditor entry={editingEntry} onDone={afterWrite} onCancel={closeSheet} />
           </div>
         </div>
       )}
@@ -826,7 +784,17 @@ function EntryEditor({ entry, onDone, onCancel }) {
 //
 // El alta manual es la ÚNICA puerta por la que se escribe en `foods`: nada en
 // este proyecto crea un alimento sin que alguien lo confirme en un formulario.
-function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCancel }) {
+function AddFood({
+  slot = null,
+  dayIso,
+  isToday = true,
+  entries = [],
+  siempre = [],
+  labelReading = false,
+  onDone,
+  onDayChanged,
+  onCancel,
+}) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
@@ -843,17 +811,29 @@ function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCa
   // Lo que devolvió el escáner: o el alimento que ya tenías, o una propuesta de
   // Open Food Facts, o el motivo por el que no hay ninguna de las dos.
   const [scan, setScan] = useState(null)
-  // Cuál de las dos cámaras está leyendo: 'label', 'scan' o ninguna. Un solo
-  // booleano ponía «Leyendo…» en los dos disparadores a la vez, así que la hoja
-  // decía «Leyendo… Leyendo…» — dos veces, una al lado de la otra, y ninguna te
-  // decía cuál era la tuya.
+  // Por qué peldaño va la lectura: 'scan', 'label' o ninguno. Ya no distingue
+  // dos disparadores —hay uno—, sino en qué punto de la escalada estás, que es
+  // lo que la pantalla tendrá que contar cuando escale (paso siguiente).
   const [reading, setReading] = useState(null)
+  // El frecuente que se está registrando, para apagar la fila mientras viaja.
+  const [quick, setQuick] = useState(null)
+  // El peldaño de en medio: el código se leyó, no lo conoce nadie, y hace falta
+  // una segunda foto — de la tabla, que suele estar en otra cara del envase.
+  // Lleva el motivo dentro porque «no está en ninguna base» y «no he podido
+  // preguntar» piden frases distintas.
+  const [escalating, setEscalating] = useState(null)
+  // El código que la foto traía, decodificado y ya descartado como atajo.
+  // Sobrevive a la escalada a propósito: acabes leyendo la tabla o tecleando el
+  // alimento entero, guardarlo con su código es lo que hace que mañana el mismo
+  // envase se resuelva en el peldaño gratis. Sin esto, escalar tiraba el único
+  // dato que la foto sí había dado.
+  const [barcode, setBarcode] = useState(null)
   const latest = useRef(0)
   const field = useRef(null)
 
   // El cursor entra en la búsqueda al abrir: es lo siguiente que ibas a hacer
-  // de todas formas. Ya no hace falta `scrollIntoView` — la hoja llega siempre
-  // entera a la pantalla, sea cual sea el raíl que la abrió.
+  // de todas formas, y es la primera capa de ahorro — la mayoría de las veces
+  // el alimento ya está y no hace falta ni cámara ni formulario.
   useEffect(() => {
     field.current?.focus()
   }, [])
@@ -867,26 +847,101 @@ function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCa
       const found = await searchFoods(term)
       // Una respuesta lenta de una búsqueda anterior no puede pisar la actual.
       if (ticket !== latest.current) return
-      setResults(found)
+      setResults(byOrigin(found))
       setSearching(false)
     }, 180)
     return () => clearTimeout(timer)
   }, [query, chosen, creating])
 
-  // La foto va al servidor y vuelve como propuesta. Un fallo de red no puede
-  // dejarte mirando un botón que no hace nada: se abre el formulario igual, en
-  // blanco, que es donde estabas antes de que existiera la cámara.
-  async function photograph(event) {
-    const file = event.target.files?.[0]
-    // El input se limpia siempre: sin esto, elegir la misma foto dos veces
-    // seguidas no dispara `change` y el botón parece roto la segunda vez.
-    event.target.value = ''
+  // Un frecuente, registrado de un toque con la cantidad de siempre y en la
+  // comida por la que has entrado —no en la que sueles usar para ese alimento:
+  // aquí ya has dicho a dónde va, y contradecirte sería raro.
+  async function quickAdd(item) {
+    setQuick(item.food_id)
+    try {
+      await logFood({ foodId: item.food_id, grams: item.grams, mealSlot: slot })
+      await onDone()
+    } finally {
+      setQuick(null)
+    }
+  }
+
+  // El único disparador de cámara, y la escalada detrás de él.
+  //
+  // El usuario no elige tecnología. Antes había dos botones —«Código de barras»
+  // y «Etiqueta»— que eran dos implementaciones de una sola intención, y la
+  // elección la tenías que hacer tú sin saber cuál de las dos iba a funcionar
+  // con el envase que tenías delante. Ahora se prueba el peldaño gratis y sólo
+  // se sube al caro cuando el gratis ha fallado:
+  //
+  //   1. Código de barras, decodificado **en el móvil**. `BarcodeDetector` es
+  //      nativo, así que no cuesta red, ni clave, ni cuota, ni un byte de
+  //      bundle: la foto no sale de aquí, al servidor sólo viaja el número.
+  //   2. La tabla nutricional leída con el modelo. Con cuota y con espera.
+  //
+  // Un fallo de red no puede dejarte mirando un botón que no hace nada: se
+  // acaba abriendo el formulario, que es donde estabas antes de que el botón
+  // existiera.
+  async function openCamera(event) {
+    const file = take(event)
     if (!file) return
+    setEscalating(null)
+    setBarcode(null)
+
+    // Peldaño 1: el código. Sólo donde el navegador sabe decodificar — en un
+    // Chrome de Android está, en un Safari no —, y si no sabe, la escalada
+    // empieza un peldaño más arriba en vez de ofrecer un botón que no puede
+    // funcionar.
+    if (canScan()) {
+      setReading('scan')
+      setLabel(null)
+      setCreating(false)
+      try {
+        const codes = await detectBarcodes(file)
+        if (codes.length > 0) {
+          setBarcode(codes[0])
+          const found = await scanBarcode(codes[0])
+          setReading(null)
+          // Con ficha utilizable se acabó: ni tabla, ni modelo, ni cuota.
+          if (found?.food || !found?.refusal) {
+            setScan(found)
+            return
+          }
+          // El código se leyó y no sirve. Aquí **no** se lee la tabla de esta
+          // misma foto: el código y la tabla están en caras distintas del
+          // envase, así que esa foto casi nunca tiene tabla que leer y gastar
+          // cuota en ella es pagar por un fallo seguro. Se pide otra, y se dice
+          // por qué — un paso con motivo, no un menú por adelantado.
+          // Tres motivos, tres frases: que nadie lo conozca, que no se haya
+          // podido preguntar y que la ficha exista pero no sirva son cosas
+          // distintas, y la de en medio no se arregla esperando.
+          setEscalating(found.refusal)
+          return
+        }
+      } catch {
+        // Ni red ni decodificador. La foto sigue siendo del envase, así que la
+        // tabla puede estar en ella: se intenta, en vez de pedir otra igual.
+      }
+    }
+
+    // Peldaño 2: la tabla. Se paga aquí, cuando lo gratis ya ha fallado —o
+    // cuando no había peldaño gratis que probar.
+    await readTable(file)
+  }
+
+  // La segunda foto: la de la tabla, ya con el código descartado.
+  function shootTable(event) {
+    const file = take(event)
+    if (file) readTable(file)
+  }
+
+  // La lectura cara. Un fallo aquí no puede dejarte mirando un botón que no
+  // hace nada: se abre el formulario igual, en blanco, que es donde estabas
+  // antes de que la cámara existiera.
+  async function readTable(file) {
     setReading('label')
-    // Una lectura nueva manda sobre lo que dijera el escáner: `scan` se mira
-    // antes que `creating` al pintar, así que dejarlo puesto haría que el
-    // resultado de esta foto —ya pagada— no llegase a la pantalla.
     setScan(null)
+    setEscalating(null)
     try {
       setLabel(await readLabel(file))
     } catch (error) {
@@ -898,38 +953,6 @@ function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCa
     } finally {
       setReading(null)
       setCreating(true)
-    }
-  }
-
-  // Un código de barras, decodificado **en el móvil** y resuelto contra Open
-  // Food Facts. La foto no sale de aquí: `BarcodeDetector` es nativo, así que
-  // decodificar no cuesta red, ni clave, ni cuota, ni un byte de librería. Al
-  // servidor sólo viaja el número.
-  //
-  // Misma interacción que «Leer etiqueta» —una foto— en vez de un vídeo en
-  // directo: es un gesto que ya conoces, no pide permiso de cámara continuo, y
-  // para un código impreso en un envase quieto una foto sobra.
-  async function photographBarcode(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-    setReading('scan')
-    setLabel(null)
-    setCreating(false)
-    try {
-      const codes = await detectBarcodes(file)
-      if (codes.length === 0) {
-        // Sin código no se pregunta a nadie: no hay nada por lo que preguntar,
-        // y decirlo es más útil que un «no encontrado» que suena a que el
-        // producto no existe.
-        setScan({ refusal: 'nocode' })
-        return
-      }
-      setScan(await scanBarcode(codes[0]))
-    } catch {
-      setScan({ refusal: 'offline' })
-    } finally {
-      setReading(null)
     }
   }
 
@@ -954,6 +977,7 @@ function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCa
       <NewFood
         name={scan.name || query.trim()}
         scan={scan}
+        barcode={barcode ?? scan.barcode ?? null}
         onCreated={(food) => {
           setScan(null)
           setChosen(food)
@@ -968,6 +992,7 @@ function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCa
       <NewFood
         name={label?.name || query.trim()}
         label={label}
+        barcode={barcode}
         onCreated={(food) => {
           setCreating(false)
           setLabel(null)
@@ -995,126 +1020,303 @@ function AddFood({ slot = null, dayIso, entries = [], onDone, onDayChanged, onCa
     )
   }
 
+  // El peldaño de en medio ocupa la pantalla: es una pregunta con dos salidas y
+  // nada más que decidir mientras esté abierta.
+  if (escalating) {
+    return (
+      <Escalada
+        reason={escalating}
+        slot={slot}
+        busy={Boolean(reading)}
+        onShoot={shootTable}
+        onType={() => {
+          setEscalating(null)
+          setCreating(true)
+        }}
+        onCancel={onCancel}
+      />
+    )
+  }
+
+  const destino = slotLabel(slot)
+  const term = query.trim()
+  // Lo que repites, con la cantidad de siempre. Sólo en el día en curso:
+  // `logFood` fecha con el reloj del móvil, así que en un día pasado el toque
+  // escribiría en hoy y la entrada aparecería en una pantalla que no estás
+  // mirando, sin error por ninguna parte.
+  const frecuentes = isToday ? siempre : []
+
   return (
-    <div className="card card-compose food-search">
-      <div className="field">
-        <label htmlFor="food-q">Buscar alimento</label>
-        <input
-          id="food-q"
-          ref={field}
-          autoComplete="off"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-      <ul className="food-results">
-        {results.map((food) => (
-          <li key={food.id}>
-            <button type="button" className="link-row food-result" onClick={() => setChosen(food)}>
-              <span className="food-result-name">
-                {food.name}
-                {food.brand && <span className="food-result-brand"> · {food.brand}</span>}
-              </span>
-              <span className="food-result-kcal">
-                {formatMacro(food.kcal_100g)} kcal/100 g
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {/* Los tres estados de una búsqueda son tres frases distintas, y sólo dos
-          de ellas ofrecen crear el alimento. «Todavía no lo sé» no ofrece nada:
-          el catálogo trae 3.185 alimentos y proponer dar de alta uno antes de
-          haberlo mirado es la forma más rápida de duplicarlo. */}
-      {query.trim() && searching && <p className="food-search-note">Buscando…</p>}
-      {query.trim() && !searching && results.length === 0 && (
-        <p className="food-search-note">Ningún alimento se llama «{query.trim()}».</p>
-      )}
-      {query.trim() && !searching && (
-        <button type="button" className="link-btn food-create" onClick={() => setCreating(true)}>
-          Crear «{query.trim()}»
+    <div
+      className="food-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Añadir a ${destino.toLowerCase()}`}
+    >
+      {/* El destino ya viene resuelto por la comida desde la que has entrado,
+          así que la cabecera lo afirma en vez de preguntarlo. */}
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">Añadir a</span>
+          <span className="food-screen-slot">{destino}</span>
+        </p>
+        <button type="button" className="link-btn" onClick={onCancel}>
+          Cancelar
         </button>
-      )}
-      {/* Las dos cámaras, juntas y bajo un rótulo.
-          Sueltas eran dos `link-btn` más, indistinguibles de «Crear …» y de
-          «Cancelar»: cuatro textos en negrita del mismo tamaño y la misma
-          tinta que además fluían en línea y rompían por donde cupieran —
-          medido a 430 px, «Crear «pollo»» y «Leer etiqueta» compartían
-          renglón y «Cancelar» caía debajo y sangrado. Agruparlas dice de
-          golpe las dos cosas que faltaban: que estas dos son hermanas entre
-          sí, y que no son hermanas de las otras.
+      </header>
 
-          Y el rótulo pone el verbo una vez, así que cada botón puede nombrar
-          sólo **a qué le apuntas**. «Escanear código» y «Leer etiqueta» eran
-          verbo + nombre, de la misma longitud —128 y 129 px— y de la misma
-          forma: dos etiquetas que se leen como una. */}
-      <div className="food-cameras">
-        <p className="food-cameras-head">Rellenar con la cámara</p>
-        <div className="food-cameras-row">
-          {/* Un `label` y no un botón porque lo que abre la cámara es el
-              `input`: envolverlo es la única forma de que el disparador tenga
-              el aspecto de un control y siga siendo el control real. `capture`
-              pide la trasera del móvil; en un ordenador el navegador lo ignora
-              y ofrece un fichero, que para probar va igual de bien.
+      <div className="food-screen-body">
+        {/* Sin rótulo a la vista: el cursor ya está dentro y lo que se espera de
+            un campo vacío al abrir esta pantalla no admite duda. El nombre sigue
+            estando para quien navega a ciegas. */}
+        <div className="field food-search-field">
+          <input
+            id="food-q"
+            ref={field}
+            aria-label="Buscar alimento"
+            autoComplete="off"
+            placeholder="Buscar alimento"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
 
-              `aria-disabled` y no sólo el `disabled` del `input`: el atributo
-              vive en algo invisible, así que sin esto la cámara que no puede
-              usarse se pinta idéntica a la que sí. */}
-          {/* Primero el escáner, y no la etiqueta, porque es el que no cuesta
-              nada: sin clave, sin cuota y sin modelo. El orden en que se
-              ofrecen dos puertas es lo que decide por cuál se entra.
+        {(results.length > 0 || term) && (
+          <div className="card food-results-card">
+            <ul className="food-results">
+              {results.map((food) => (
+                <li key={food.id}>
+                  <button
+                    type="button"
+                    className="link-row food-result"
+                    onClick={() => setChosen(food)}
+                  >
+                    <span className="food-result-main">
+                      <span className="food-result-name">{food.name}</span>
+                      {/* La procedencia va en **texto**, no en color. Se evaluó
+                          un segundo tono para marcarla y se descartó: el color
+                          de esta pantalla codifica progreso, y un dato importado
+                          no es un progreso. Además el color solo nunca puede ser
+                          el único canal. */}
+                      <span className="food-result-meta">
+                        {food.brand ? `${food.brand} · ` : ''}
+                        {origen(food)}
+                      </span>
+                    </span>
+                    <span className="food-result-protein">
+                      {formatMacro(food.protein_100g)} P
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {/* Dar de alta lo que no está, dentro de la propia lista y como su
+                  última fila: es el desenlace de esta búsqueda, no una
+                  alternativa a la cámara. Como hermano del disparador se leería
+                  como «o haz una foto, o tecléalo», que es justo la elección de
+                  tecnología que este rediseño quita de en medio. */}
+              {term && !searching && (
+                <li>
+                  <button
+                    type="button"
+                    className="link-row food-result food-create"
+                    /* El nombre calculado arrastraría la submeta —«Crear «pan»
+                       ninguno de éstos es el tuyo»—, que describe la fila y no
+                       lo que el control hace. */
+                    aria-label={`Crear «${term}»`}
+                    onClick={() => setCreating(true)}
+                  >
+                    <span className="food-result-main">
+                      <span className="food-result-name">Crear «{term}»</span>
+                      <span className="food-result-meta">
+                        {results.length === 0
+                          ? 'ningún alimento se llama así'
+                          : 'ninguno de éstos es el tuyo'}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              )}
+            </ul>
+            {term && searching && <p className="hint food-search-note">Buscando…</p>}
+          </div>
+        )}
 
-              Sólo donde el navegador sabe decodificar. En un Chrome de Android
-              está; en un Safari, no — y un botón que no puede funcionar es peor
-              que uno que no está, porque no hay forma de saber por qué falla. */}
-          {canScan() && (
+        {/* Los frecuentes, con la cantidad de siempre dentro del propio chip: un
+            toque registra eso, sin pasar por «cuánto». */}
+        {frecuentes.length > 0 && (
+          <section className="food-frequent">
+            <p className="card-eyebrow">Frecuentes</p>
+            <div className="food-frequent-chips">
+              {frecuentes.map((item) => (
+                <button
+                  type="button"
+                  key={item.food_id}
+                  className="chip food-frequent-chip"
+                  disabled={quick !== null}
+                  onClick={() => quickAdd(item)}
+                >
+                  <span className="food-frequent-name">{item.name}</span>
+                  <span className="food-frequent-grams">{formatAmount(item.grams)}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Una cámara, no dos.
+            Antes había que elegir entre «Código de barras» y «Etiqueta»: dos
+            implementaciones de una sola intención, y la elección la tenías que
+            hacer tú sin saber cuál iba a funcionar. Ahora hay un disparador y el
+            sistema escala solo, del camino gratis al caro, y lo cuenta después.
+
+            No se dibuja si este servidor no sabe leer una etiqueta (`label_reading`,
+            que viene con el día). Un botón que no puede funcionar es peor que uno
+            que no está: al pulsarlo no hay forma de saber por qué ha fallado. */}
+        {labelReading && (
+          <div className="card food-camera-card">
+            <div className="food-camera-head">
+              <p className="food-camera-title">Foto del envase</p>
+              <p className="hint food-camera-sub">
+                Para productos envasados que no tengas todavía.
+              </p>
+            </div>
+            {/* Un `label` y no un botón porque lo que abre la cámara es el
+                `input`: envolverlo es la única forma de que el disparador tenga
+                el aspecto de un control y siga siendo el control real.
+                `capture` pide la trasera del móvil; en un ordenador el navegador
+                lo ignora y ofrece un fichero, que para probar va igual de bien. */}
             <label
-              className={`food-camera food-photo${reading === 'scan' ? ' is-busy' : ''}`}
-              htmlFor="food-scan"
-              aria-disabled={reading === 'label' || undefined}
-              aria-busy={reading === 'scan' || undefined}
+              className={`btn-full food-camera-shoot${reading ? ' is-busy' : ''}`}
+              htmlFor="food-photo"
+              aria-busy={reading ? true : undefined}
             >
-              <Disparador leyendo={reading === 'scan'}>Código de barras</Disparador>
+              <Disparador leyendo={Boolean(reading)}>Abrir la cámara</Disparador>
               {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» mientras
-                  lee, y sin esto el nombre del control se iba con él — quien
-                  navega a ciegas se quedaba con dos disparadores llamados
-                  «Leyendo…» y ninguno con nombre. */}
+                  lee, y sin esto el nombre del control se iría con él. */}
               <input
-                id="food-scan"
+                id="food-photo"
                 type="file"
                 accept="image/*"
                 capture="environment"
-                aria-label="Código de barras"
-                disabled={reading}
-                onChange={photographBarcode}
+                aria-label="Abrir la cámara"
+                disabled={Boolean(reading)}
+                onChange={openCamera}
               />
             </label>
-          )}
-          <label
-            className={`food-camera food-photo${reading === 'label' ? ' is-busy' : ''}`}
-            htmlFor="food-photo"
-            aria-disabled={reading === 'scan' || undefined}
-            aria-busy={reading === 'label' || undefined}
-          >
-            <Disparador leyendo={reading === 'label'}>Etiqueta</Disparador>
-            <input
-              id="food-photo"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              aria-label="Etiqueta"
-              disabled={reading}
-              onChange={photograph}
-            />
-          </label>
-        </div>
-      </div>
+          </div>
+        )}
 
-      <button type="button" className="link-btn food-cancel" onClick={onCancel}>
-        Cancelar
-      </button>
+        <p className="hint food-screen-foot">
+          Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.
+        </p>
+      </div>
     </div>
   )
+}
+
+// La foto de un `input[type=file]`, y el input limpio detrás.
+//
+// Sin limpiarlo, elegir la misma foto dos veces seguidas no dispara `change` y
+// el botón parece roto la segunda vez.
+function take(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  return file ?? null
+}
+
+// El peldaño de en medio de la escalada.
+//
+// Existe por una razón física: el código de barras y la tabla nutricional están
+// en caras distintas del envase, así que la foto que resolvió —o no— el código
+// casi nunca trae tabla que leer. Pedir otra no es un trámite: es lo único que
+// puede contestar la pregunta, y se pide **después** de que lo gratis haya
+// fallado, no en un menú por adelantado.
+//
+// Dos salidas y las dos válidas. «Teclearlo» no es rendirse: para un guiso de
+// casa o una panadería es la vía normal, y aquí además es más rápida que otra
+// foto.
+function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
+  return (
+    <div
+      className="food-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Añadir a ${slotLabel(slot).toLowerCase()}`}
+    >
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">Añadir a</span>
+          <span className="food-screen-slot">{slotLabel(slot)}</span>
+        </p>
+        <button type="button" className="link-btn" onClick={onCancel}>
+          Cancelar
+        </button>
+      </header>
+      <div className="food-screen-body">
+        <div className="card food-escalada">
+          <p className="food-escalada-line">
+            {
+              {
+                offline: 'No he podido preguntar por ese código.',
+                unusable: 'Los datos de ese código no me sirven.',
+              }[reason] ?? 'Ese código no está en ninguna base.'
+            }
+          </p>
+          <p className="food-escalada-line">Acerca la foto a la tabla nutricional y la leo.</p>
+          <div className="food-escalada-actions">
+            <label
+              className={`set-action food-escalada-shoot${busy ? ' is-busy' : ''}`}
+              htmlFor="food-table"
+            >
+              <Disparador leyendo={busy}>Enfocar la tabla</Disparador>
+              <input
+                id="food-table"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                aria-label="Enfocar la tabla"
+                disabled={busy}
+                onChange={onShoot}
+              />
+            </label>
+            <button
+              type="button"
+              className="set-action secondary"
+              onClick={onType}
+              disabled={busy}
+            >
+              Teclearlo
+            </button>
+          </div>
+        </div>
+        <p className="hint food-screen-foot">
+          El paso caro entra aquí, cuando el gratis ya ha fallado.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// De dónde sale un alimento, dicho con palabras.
+//
+// «tu comida» —una receta guardada— todavía no existe: no hay tabla ni endpoint
+// que la sostenga, así que no se nombra. Inventar la etiqueta antes que el dato
+// sería prometer en pantalla algo que no se puede cumplir.
+function origen(food) {
+  return food.is_mine ? 'tuyo' : 'base pública'
+}
+
+// Los resultados, agrupados por procedencia: primero lo tuyo, luego la base
+// pública, y dentro de cada grupo el orden que ya trae el servidor (mejor
+// coincidencia primero, `_rank` en `routers/foods.py`).
+//
+// Se agrupa aquí y no allí porque es una decisión de pantalla, no de búsqueda:
+// el servidor sigue puntuando por lo bien que casa lo que escribiste, que es lo
+// que decide **qué** treinta filas vuelven. Esto sólo decide en qué orden se
+// leen. La consecuencia de esa frontera: un alimento tuyo que case mal puede
+// quedarse fuera del corte del servidor y entonces no hay grupo que lo salve.
+function byOrigin(foods) {
+  return [...foods.filter((f) => f.is_mine), ...foods.filter((f) => !f.is_mine)]
 }
 
 // Cuánto, y a qué comida. La porción por defecto llega ya elegida cuando el
@@ -1748,7 +1950,7 @@ const EDIT_FIELDS = [
 //
 // Sólo el nombre es obligatorio. Un macro que no escribes se manda como `null`,
 // nunca como 0 — nadie lo ha medido, y un cero afirmaría que sí y que no hay.
-function NewFood({ name: initialName, label = null, scan = null, onCreated, onCancel }) {
+function NewFood({ name: initialName, label = null, scan = null, barcode = null, onCreated, onCancel }) {
   const box = useRef(null)
   const [name, setName] = useState(initialName)
   // La marca va aparte del nombre porque es un dato distinto: se pinta aparte
@@ -1792,9 +1994,11 @@ function NewFood({ name: initialName, label = null, scan = null, onCreated, onCa
       // En blanco es `null`, no cadena vacía: no tiene marca, que es distinto
       // de tener una marca que se llama «».
       brand: brand.trim() || null,
-      // El código que trajo el escaneo. Sin guardarlo, escanear el mismo yogur
-      // mañana vuelve a preguntar a Open Food Facts por algo que ya tienes.
-      barcode: scan?.barcode ?? null,
+      // El código que trajo la foto. Sin guardarlo, fotografiar el mismo yogur
+      // mañana vuelve a preguntar por algo que ya tienes — y llega hasta aquí
+      // aunque la escalada haya acabado en un formulario en blanco, porque el
+      // código se leyó igual.
+      barcode,
       kcal_100g: number(values.kcal),
       protein_100g: number(values.protein),
       fat_100g: number(values.fat),

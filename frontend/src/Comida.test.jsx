@@ -57,6 +57,10 @@ function day(overrides = {}) {
     totals: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
     unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 },
     by_slot: slots(),
+    // Este servidor sabe leer una etiqueta. Sin esto la cámara no se dibuja —a
+    // propósito: un disparador que no puede funcionar es peor que uno que no
+    // está— y ninguna prueba de cámara encontraría a qué subir la foto.
+    label_reading: true,
     ...overrides,
   }
 }
@@ -400,7 +404,7 @@ describe('Comida', () => {
         api.logFood.mockResolvedValue(entry())
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Código de barras'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
       }
 
       it('un producto que ya tienes se registra sin pasar por el formulario', async () => {
@@ -426,8 +430,11 @@ describe('Comida', () => {
         expect(api.createFood).not.toHaveBeenCalled()
       })
 
-      it('el código viaja hasta el alta, para no volver a preguntarlo mañana', async () => {
+      it('el código viaja hasta el alta aunque acabes tecleando, para no volver a preguntarlo mañana', async () => {
         await escanear({ barcode: '8410128750121', food: null, refusal: 'unknown' })
+        // La escalada no tira el único dato que la foto sí dio. Se teclea el
+        // alimento entero y el código se guarda con él igual.
+        await userEvent.click(await screen.findByRole('button', { name: 'Teclearlo' }))
         api.createFood.mockResolvedValue({ ...PAN, id: 50 })
         await userEvent.type(await screen.findByLabelText('Nombre'), 'Pan de la panadería')
         await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
@@ -438,39 +445,60 @@ describe('Comida', () => {
         )
       })
 
-      it('un código que nadie conoce lo dice, y te deja tecleando', async () => {
+      // ── El peldaño de en medio ──────────────────────────────────────────
+      //
+      // Un código que no resuelve **no** dispara la lectura cara sobre esa misma
+      // foto: el código y la tabla están en caras distintas del envase, así que
+      // esa foto casi nunca trae tabla y pagarla sería comprar un fallo seguro.
+      // Se pide otra, y se dice por qué.
+      it('un código que nadie conoce pide la tabla, y no gasta la lectura en la foto del código', async () => {
         await escanear({ barcode: '8410128750121', food: null, refusal: 'unknown' })
-        expect(
-          await screen.findByText('Ese código no está en Open Food Facts. Tecléalo.'),
-        ).toBeInTheDocument()
-        expect(screen.getByLabelText('Nombre')).toHaveValue('')
+        expect(await screen.findByText('Ese código no está en ninguna base.')).toBeInTheDocument()
+        expect(screen.getByText('Acerca la foto a la tabla nutricional y la leo.')).toBeInTheDocument()
+        expect(api.readLabel).not.toHaveBeenCalled()
       })
 
-      it('una ficha por ración se rechaza y se explica', async () => {
+      it('las dos salidas del peldaño están, y ninguna es la única', async () => {
+        await escanear({ barcode: '8410128750121', food: null, refusal: 'unknown' })
+        await screen.findByRole('button', { name: 'Teclearlo' })
+        // «Enfocar la tabla» es un `label` sobre un `input[type=file]`: el
+        // disparador de verdad es el input, y es a él a quien se le sube la foto.
+        expect(screen.getByLabelText('Enfocar la tabla')).toBeInTheDocument()
+      })
+
+      it('una ficha que existe pero no sirve también escala, y lo dice distinto', async () => {
         await escanear({
           barcode: '8410128750121',
           food: null,
           refusal: 'unusable',
           refused_reason: 'por ración',
         })
-        expect(
-          await screen.findByText('Los datos de ese código vienen por ración. No me sirven: tecléalo.'),
-        ).toBeInTheDocument()
+        // No es lo mismo que nadie lo conozca: está en la base, y lo que no
+        // vale son sus cifras. La tabla del envase puede estar bien.
+        expect(await screen.findByText('Los datos de ese código no me sirven.')).toBeInTheDocument()
       })
 
       it('sin red lo dice, y no lo hace pasar por un código desconocido', async () => {
         await escanear({ barcode: '8410128750121', food: null, refusal: 'offline' })
         expect(
-          await screen.findByText('No he podido preguntar por ese código. Tecléalo.'),
+          await screen.findByText('No he podido preguntar por ese código.'),
         ).toBeInTheDocument()
       })
 
-      it('si en la foto no hay código, lo dice sin preguntar a nadie', async () => {
+      it('si en la foto no hay código, se lee la tabla de esa misma foto', async () => {
+        api.readLabel.mockResolvedValue({
+          name: 'Yogur natural',
+          brand: 'Hacendado',
+          column_header: 'por 100 g',
+          nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
+          dropped: [],
+          refusal: null,
+        })
         await escanear(null, [])
-        expect(
-          await screen.findByText('No he visto ningún código en la foto.'),
-        ).toBeInTheDocument()
+        // Sin código que probar no hay peldaño gratis que gastar, y la foto es
+        // del envase igual: pedir otra sería pedir la misma.
         expect(api.scanBarcode).not.toHaveBeenCalled()
+        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
       })
     })
 
@@ -480,6 +508,15 @@ describe('Comida', () => {
     describe('leer la etiqueta de una foto', () => {
       const JPEG = () => new File([new Uint8Array([255, 216, 255])], 'etiqueta.jpg', {
         type: 'image/jpeg',
+      })
+
+      // Fuera del cuerpo de la prueba a propósito: dentro, un fallo se salta el
+      // `delete` y `BarcodeDetector` se filtra a las pruebas siguientes, que
+      // entonces escalan cuando no deberían y fallan por un motivo que no es el
+      // suyo. Pasó al montar esta escalada, y cuesta media hora de depuración.
+      afterEach(() => {
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
       })
 
       const LEIDO = {
@@ -497,7 +534,7 @@ describe('Comida', () => {
         api.readLabel.mockResolvedValue(respuesta)
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
       }
 
       it('rellena el formulario con lo que ha leído', async () => {
@@ -567,7 +604,7 @@ describe('Comida', () => {
         api.logFood.mockResolvedValue(entry())
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
         expect(
           await screen.findByText('La lectura de etiquetas no está configurada en el servidor.'),
         ).toBeInTheDocument()
@@ -632,10 +669,14 @@ describe('Comida', () => {
         ).toBeInTheDocument()
       })
 
-      it('y una foto tomada después de escanear no se queda sin pintar', async () => {
-        // `scan` se comprobaba antes que la lectura, así que un escaneo previo
-        // sin limpiar tapaba lo que devolviera la etiqueta: la llamada se
-        // pagaba y su resultado no llegaba a la pantalla.
+      // La escalada entera, de punta a punta: el código se lee, no lo conoce
+      // nadie, se pide la tabla y la segunda foto sí resuelve.
+      //
+      // Hereda un defecto que este flujo ya tuvo: `scan` se miraba antes que la
+      // lectura, así que un escaneo anterior sin limpiar tapaba lo que
+      // devolviera la tabla — la llamada se pagaba y su resultado no llegaba a
+      // la pantalla. Por eso la aserción es sobre los campos rellenos.
+      it('la segunda foto sí lee la tabla, y su resultado llega a la pantalla', async () => {
         api.searchFoods.mockResolvedValue([])
         api.scanBarcode.mockResolvedValue({ barcode: '8410128750121', food: null, refusal: 'unknown' })
         api.readLabel.mockResolvedValue(LEIDO)
@@ -648,75 +689,46 @@ describe('Comida', () => {
         window.createImageBitmap = () => Promise.resolve({})
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Código de barras'), JPEG())
-        await screen.findByText('Ese código no está en Open Food Facts. Tecléalo.')
-        await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+        await screen.findByText('Ese código no está en ninguna base.')
+        expect(api.readLabel).not.toHaveBeenCalled()
+
+        await userEvent.upload(screen.getByLabelText('Enfocar la tabla'), JPEG())
         expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
         expect(screen.getByText('Leído de «por 100 g».')).toBeInTheDocument()
-        delete window.BarcodeDetector
-        delete window.createImageBitmap
+        // Y el código que abrió todo esto sigue vivo: se guardará con el
+        // alimento, que es lo que evita repetir la escalada mañana.
+        api.createFood.mockResolvedValue({ ...PAN, id: 60 })
+        await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+        await waitFor(() =>
+          expect(api.createFood).toHaveBeenCalledWith(
+            expect.objectContaining({ barcode: '8410128750121' }),
+          ),
+        )
       })
 
-      // Los dos disparadores compartían el mismo indicador, así que mientras
-      // uno leía la hoja decía «Leyendo… Leyendo…», dos veces, una al lado de
-      // la otra. Sólo se anuncia el que has pulsado.
-      it('sólo se pone «Leyendo…» el botón que has pulsado', async () => {
-        // Los dos disparadores en pantalla, que es la condición del fallo.
-        window.BarcodeDetector = class {
-          detect() {
-            return Promise.resolve([])
-          }
-        }
-        window.createImageBitmap = () => Promise.resolve({})
+      // Ya no hay dos disparadores que elegir: hay uno, y el sistema escala por
+      // dentro. Lo que queda por fijar no es cuál de los dos se anuncia, sino
+      // que el único diga que está trabajando y no se pueda disparar dos veces.
+      it('el disparador dice que está leyendo, y no se puede disparar otra vez', async () => {
         api.searchFoods.mockResolvedValue([])
         let resolve
         api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
 
         expect(screen.getAllByText('Leyendo…')).toHaveLength(1)
-        expect(screen.getByLabelText('Código de barras')).toBeInTheDocument()
+        // Una lectura a la vez: mientras ésta viaja, el disparador no acepta
+        // otra foto. Y el `disabled` vive en el `input`, que no se ve, así que
+        // el marco que sí se ve también tiene que decirlo.
+        expect(screen.getByLabelText('Abrir la cámara')).toBeDisabled()
+        expect(screen.getByLabelText('Abrir la cámara').closest('label').className).toContain(
+          'is-busy',
+        )
         await act(async () => {
           resolve(LEIDO)
         })
-        delete window.BarcodeDetector
-        delete window.createImageBitmap
-      })
-
-      // El `disabled` vivía en el `input`, que no se ve; lo que se ve es el
-      // `label` que lo envuelve. Así que mientras una cámara leía, la otra
-      // seguía pintada exactamente igual que cuando funciona —misma tinta,
-      // mismo peso, mismo borde— y al tocarla no pasaba nada. Un control que
-      // no responde y no lo dice no se distingue de uno roto.
-      it('la otra cámara se ve apagada mientras una lee', async () => {
-        window.BarcodeDetector = class {
-          detect() {
-            return Promise.resolve([])
-          }
-        }
-        window.createImageBitmap = () => Promise.resolve({})
-        api.searchFoods.mockResolvedValue([])
-        let resolve
-        api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
-        render(<Comida />)
-        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-        await userEvent.upload(screen.getByLabelText('Etiqueta'), JPEG())
-
-        // El `label`, y no el `input` que devuelve `getByLabelText`: el input
-        // está escondido, y lo que el ojo tiene que ver apagado es el marco.
-        const marco = (n) => screen.getByLabelText(n).closest('label')
-        expect(marco('Código de barras')).toHaveAttribute('aria-disabled', 'true')
-        // Y la que está leyendo no se apaga: está trabajando, no bloqueada.
-        expect(marco('Etiqueta')).not.toHaveAttribute('aria-disabled', 'true')
-        expect(marco('Etiqueta').className).toContain('is-busy')
-
-        await act(async () => {
-          resolve(LEIDO)
-        })
-        delete window.BarcodeDetector
-        delete window.createImageBitmap
       })
 
       it('una etiqueta por 100 ml se rellena, y lo dice', async () => {
@@ -829,7 +841,7 @@ describe('Comida', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'huevo')
       expect(
-        await screen.findByText('Ningún alimento se llama «huevo».'),
+        await screen.findByText('ningún alimento se llama así'),
       ).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Crear «huevo»' })).toBeInTheDocument()
     })
@@ -950,61 +962,175 @@ describe('Comida', () => {
       )
     })
 
-    it('el buscador se abre en una hoja, no empujando la lista', async () => {
+    it('el buscador se abre a pantalla completa, con el destino ya resuelto', async () => {
       api.searchFoods.mockResolvedValue([])
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a snack' }))
       const panel = await screen.findByLabelText('Buscar alimento')
-      // Ya no es un panel dentro del raíl que lo abrió: vive en una hoja aparte,
-      // que es lo que le quita el `scrollIntoView` que antes hacía falta.
+      // Ya no es un panel dentro de la tarjeta que lo abrió, ni una hoja anclada
+      // al pie: es una pantalla, porque la lista es larga y hay cámara.
       expect(document.querySelector('.food-blank')?.contains(panel)).toBe(false)
-      expect(screen.getByRole('dialog', { name: 'Añadir alimento' }).contains(panel)).toBe(true)
+      const pantalla = screen.getByRole('dialog', { name: 'Añadir a snack' })
+      expect(pantalla.contains(panel)).toBe(true)
+      // Y la cabecera afirma el destino en vez de preguntarlo: has entrado por
+      // Snack, así que no queda nada que elegir.
+      expect(within(pantalla).getByText('Añadir a')).toBeInTheDocument()
+      expect(within(pantalla).getByText('Snack')).toBeInTheDocument()
     })
   })
 
-  describe('lo de siempre', () => {
+  // ── La pantalla Añadir ────────────────────────────────────────────────
+  describe('la pantalla de añadir', () => {
+    const CIQUAL = {
+      ...PAN,
+      id: 900,
+      name: 'Pan, baguette',
+      brand: null,
+      protein_100g: 7.6,
+      is_mine: false,
+    }
+    const MIO = { ...PAN, id: 901, name: 'Pan de masa madre', brand: 'La Esquina', is_mine: true }
+
+    async function buscar(termino = 'pan') {
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), termino)
+      await screen.findByText(termino === 'pan' ? 'Pan de masa madre' : /./)
+    }
+
+    it('lo tuyo va delante de la base pública, sea cual sea el orden que llegue', async () => {
+      // El servidor puntúa por lo bien que casa lo escrito, que es lo que decide
+      // **qué** filas vuelven. En qué orden se leen lo decide la pantalla, y ahí
+      // manda la procedencia: si tienes tu propio pan, es el que querías.
+      api.searchFoods.mockResolvedValue([CIQUAL, MIO])
+      await buscar()
+      const nombres = [...document.querySelectorAll('.food-result-name')].map((e) => e.textContent)
+      expect(nombres.slice(0, 2)).toEqual(['Pan de masa madre', 'Pan, baguette'])
+    })
+
+    it('la procedencia se dice con palabras, no con un color', async () => {
+      api.searchFoods.mockResolvedValue([MIO, CIQUAL])
+      await buscar()
+      const metas = [...document.querySelectorAll('.food-result-meta')].map((e) => e.textContent)
+      // La marca acompaña donde la hay: de un producto envasado te acuerdas por
+      // el súper antes que por su nombre comercial.
+      expect(metas[0]).toBe('La Esquina · tuyo')
+      expect(metas[1]).toBe('base pública')
+    })
+
+    it('cada resultado lleva su proteína, que es lo que la pantalla persigue', async () => {
+      api.searchFoods.mockResolvedValue([MIO, CIQUAL])
+      await buscar()
+      const p = [...document.querySelectorAll('.food-result-protein')].map((e) => e.textContent)
+      expect(p).toEqual(['8 P', '8 P'])
+    })
+
+    it('hay una sola cámara, y dice a qué le apuntas', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await screen.findByLabelText('Buscar alimento')
+      expect(screen.getByText('Foto del envase')).toBeInTheDocument()
+      expect(screen.getByText('Para productos envasados que no tengas todavía.')).toBeInTheDocument()
+      expect(screen.getByLabelText('Abrir la cámara')).toBeInTheDocument()
+      // Y ninguna de las dos que había antes: elegir entre «código de barras» y
+      // «etiqueta» era elegir tecnología, que es lo que este rediseño quita.
+      expect(screen.queryByLabelText('Código de barras')).toBeNull()
+      expect(screen.queryByLabelText('Etiqueta')).toBeNull()
+    })
+
+    it('la palabra «IA» no aparece por ninguna parte', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await screen.findByLabelText('Buscar alimento')
+      // La lectura de etiqueta es una capacidad, no una función con nombre
+      // propio: lo que el usuario ve es «Foto del envase».
+      expect(document.body.textContent).not.toMatch(/\bIA\b/)
+    })
+
+    it('sin clave en el servidor la cámara no se dibuja', async () => {
+      api.getFoodDay.mockResolvedValue(day({ label_reading: false }))
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await screen.findByLabelText('Buscar alimento')
+      // Un botón que no puede funcionar es peor que uno que no está: al pulsarlo
+      // no hay forma de saber por qué ha fallado. Antes se enteraba uno con un
+      // 503, después de la foto y con el envase ya en la mano.
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+      expect(screen.queryByText('Foto del envase')).toBeNull()
+      // Y el buscador sigue en pie: es la vía normal, no el plan B.
+      expect(screen.getByLabelText('Buscar alimento')).toBeInTheDocument()
+    })
+
+    it('el pie dice qué hacer con lo que no tiene envase', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      expect(
+        await screen.findByText(
+          'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
+        ),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('los frecuentes', () => {
+    // Se mudaron de Comida a Añadir. En Comida competían por sitio con lo que
+    // la pantalla mide de verdad —el objetivo y las comidas— y contestaban a
+    // una pregunta («¿qué registro?») que sólo te haces cuando ya has decidido
+    // registrar algo. Ahora viven donde se hace esa pregunta, y con el destino
+    // ya resuelto: el chip se registra en la comida por la que has entrado.
+    async function abrirAnadir(slot = 'desayuno') {
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: `Añadir a ${slot}` }))
+    }
+
     const SIEMPRE = [
       { food_id: 1, name: 'Pan de la panadería', brand: null, grams: 80, kcal: 200, meal_slot: 'desayuno', times: 7 },
       { food_id: 2, name: 'Huevo cocido', brand: null, grams: 120, kcal: 166, meal_slot: null, times: 4 },
     ]
 
-    it('pone lo que repites a un toque, con su cantidad y sus kcal', async () => {
+    it('pone lo que repites a un toque, con su cantidad dentro del chip', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
-      render(<Comida />)
-      const tile = await screen.findByRole('button', { name: /Pan de la panadería/ })
-      expect(within(tile).getByText('80 g · 200 kcal')).toBeInTheDocument()
+      await abrirAnadir()
+      const chip = await screen.findByRole('button', { name: /Pan de la panadería/ })
+      expect(within(chip).getByText('80 g')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Huevo cocido/ })).toBeInTheDocument()
     })
 
-    it('un toque lo registra con la cantidad y la comida de siempre', async () => {
+    it('un toque lo registra con la cantidad de siempre, en la comida por la que entraste', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       api.logFood.mockResolvedValue({})
-      render(<Comida />)
+      await abrirAnadir('cena')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+      // `meal_slot` del repertorio dice «desayuno», y aquí manda la cena: ya
+      // has dicho a dónde va, y contradecirte sería raro.
       await waitFor(() =>
-        expect(api.logFood).toHaveBeenCalledWith({ foodId: 1, grams: 80, mealSlot: 'desayuno' }),
+        expect(api.logFood).toHaveBeenCalledWith({ foodId: 1, grams: 80, mealSlot: 'cena' }),
       )
     })
 
     it('y vuelve a leer el día y el repertorio, que acaban de cambiar', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       api.logFood.mockResolvedValue({})
-      render(<Comida />)
+      await abrirAnadir()
       await userEvent.click(await screen.findByRole('button', { name: /Huevo cocido/ }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledTimes(2))
       expect(api.frequentFoods).toHaveBeenCalledTimes(2)
     })
 
     it('sin repertorio todavía, la sección no existe', async () => {
-      render(<Comida />)
-      await waitFor(() => expect(slotNames()).toHaveLength(4))
-      expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
+      await abrirAnadir()
+      await screen.findByLabelText('Buscar alimento')
+      expect(screen.queryByText('Frecuentes')).not.toBeInTheDocument()
     })
 
     it('cada comida es su propia puerta, y no hay una CTA global', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       render(<Comida />)
-      await screen.findByRole('button', { name: /Pan de la panadería/ })
+      await waitFor(() => expect(slotNames()).toHaveLength(4))
       // Una puerta por comida y ninguna más. La CTA fija preguntaba a dónde iba
       // lo que ibas a registrar, y entrando por la comida esa pregunta ya está
       // contestada: cuatro controles que dicen a dónde llevan valen más que uno
@@ -1026,10 +1152,15 @@ describe('Comida', () => {
     it('no se ofrece en un día pasado: registraría en hoy sin decirlo', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       render(<Comida />)
-      await screen.findByRole('button', { name: /Pan de la panadería/ })
+      await waitFor(() => expect(slotNames()).toHaveLength(4))
       await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
-      expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
+      // `logFood` fecha con el reloj del móvil, así que en un día pasado el
+      // toque escribiría en hoy: la entrada aparecería en una pantalla que no
+      // estás mirando, sin error por ninguna parte.
+      await userEvent.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+      await screen.findByLabelText('Buscar alimento')
+      expect(screen.queryByText('Frecuentes')).not.toBeInTheDocument()
     })
 
     it('si el repertorio no se puede leer, la pantalla sigue en pie', async () => {
