@@ -4111,6 +4111,34 @@ button.set-chip:active:not(:disabled) {
   opacity: 0.75;
   cursor: default;
 }
+/* La cuenta atrás. En `--muted` y no en acento: el acento dice «púlsame», y
+   esto dice justo lo contrario. Y en mono con `tabular-nums` porque es un
+   número que baja de 60 a 0 — sin cifras de ancho fijo, el renglón entero
+   tiembla en cada tic. */
+/* Los dos avisos que viven dentro de la tarjeta de la cámara, que va sin
+   relleno para que sus filas lleguen al canto. Sin esto el texto nace pegado al
+   borde y el botón de debajo se le echa encima. */
+.food-camera-off,
+.food-camera-wait {
+  margin: 0;
+  padding: 0.85rem 1rem;
+}
+.food-camera-wait {
+  border-top: 1px solid var(--border);
+}
+/* «Dar de alta a mano» es el pie de la tarjeta, no un botón suelto dentro: la
+   regla que lo separa es la misma que separa las filas de una comida. */
+.food-camera-card .secondary.btn-full {
+  border-radius: 0;
+  border-width: 1px 0 0;
+  min-height: 48px;
+}
+
+.food-camera-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
 
 .food-screen-foot {
   margin: 1.2rem 0 0;

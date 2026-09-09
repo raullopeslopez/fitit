@@ -671,8 +671,9 @@ describe('Comida', () => {
         expect(screen.queryByText(/No he podido leer la etiqueta/)).toBeNull()
       })
 
-      it('si no ha podido leerla, te deja tecleando', async () => {
-        await fotografiar({
+      it('si no ha podido leerla, ofrece repetir o teclear —y teclear abre el formulario en blanco', async () => {
+        api.searchFoods.mockResolvedValue([])
+        api.readLabel.mockResolvedValue({
           ...LEIDO,
           name: null,
           brand: null,
@@ -680,8 +681,15 @@ describe('Comida', () => {
           nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
           refusal: 'unreadable',
         })
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+        // Un `unreadable` que llega en un 200 del servidor y uno que llega como
+        // error de red son el mismo callejón, y salen por la misma puerta.
+        expect(await screen.findByText('No he podido leer la etiqueta.')).toBeInTheDocument()
+        await userEvent.click(screen.getByRole('button', { name: 'Teclearlo' }))
         expect(await screen.findByLabelText('Nombre')).toHaveValue('')
-        expect(screen.getByText('No he podido leer la etiqueta. Tecléala.')).toBeInTheDocument()
+        expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('')
       })
 
       it('sin cuota del minuto, dice que esperes, no que la foto esté mal', async () => {
@@ -1136,6 +1144,112 @@ describe('Comida', () => {
           'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
         ),
       ).toBeInTheDocument()
+    })
+  })
+
+  // ── Los cinco rechazos ────────────────────────────────────────────────
+  //
+  // Cinco causas y **cinco salidas distintas**. La única que se arregla
+  // repitiendo la foto es «ilegible», así que es la única que ofrece repetirla:
+  // ofrecer reintento donde no puede funcionar es mandar a alguien a gastar
+  // otra foto contra un fallo seguro.
+  //
+  // Y ninguno reintenta solo. Un rechazo por columna o por ilegible repetido
+  // sin cambiar nada duplica el coste con la misma probabilidad de fallo.
+  describe('los rechazos de la lectura', () => {
+    const JPEG = () => new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' })
+
+    async function fotoQueFalla(respuesta) {
+      api.searchFoods.mockResolvedValue([])
+      if (respuesta instanceof Error) api.readLabel.mockRejectedValue(respuesta)
+      else api.readLabel.mockResolvedValue(respuesta)
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+    }
+
+    it('columna equivocada: formulario en blanco, y no se reescala nada', async () => {
+      await fotoQueFalla({ refusal: 'column', refused_column: 'por ración (125 g)' })
+      expect(
+        await screen.findByText(
+          'Esa columna es «por ración (125 g)», no por 100 g. No me sirve: tecléalo.',
+        ),
+      ).toBeInTheDocument()
+      // El formulario se abre en blanco: reescalar por un factor que nadie
+      // eligió da una cifra creíble y falsa, que es peor que ninguna.
+      expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('')
+      // Y no se ofrece repetir: la foto era legible, la columna era la mala.
+      expect(screen.queryByRole('button', { name: 'Repetir la foto' })).toBeNull()
+    })
+
+    it('ilegible: es el único que ofrece repetir la foto', async () => {
+      await fotoQueFalla(new Error('boom'))
+      expect(await screen.findByText('No he podido leer la etiqueta.')).toBeInTheDocument()
+      expect(screen.getByLabelText('Repetir la foto')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Teclearlo' })).toBeInTheDocument()
+      // No se abre el formulario por su cuenta: la salida la eliges tú.
+      expect(screen.queryByLabelText('Nombre')).toBeNull()
+    })
+
+    it('y no reintenta solo: repetir es un gesto tuyo', async () => {
+      await fotoQueFalla(new Error('boom'))
+      await screen.findByText('No he podido leer la etiqueta.')
+      // Una sola llamada. Reintentar sin que nadie cambie nada duplica el coste
+      // con la misma probabilidad de fallo.
+      expect(api.readLabel).toHaveBeenCalledTimes(1)
+    })
+
+    it('sin cuota del minuto: el disparador se apaga con su cuenta atrás', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'minute' })
+      expect(
+        await screen.findByText('Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'),
+      ).toBeInTheDocument()
+      // No vacía la pantalla: sólo apaga el botón. Esperar un minuto es una
+      // salida real, y quitar la cámara la escondería.
+      expect(screen.getByLabelText('Abrir la cámara')).toBeDisabled()
+      expect(screen.getByText(/Espera .* s/)).toBeInTheDocument()
+      expect(screen.getByLabelText('Buscar alimento')).toBeInTheDocument()
+    })
+
+    it('sin cuota del día: la cámara desaparece, y no hay reintento', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'day' })
+      expect(await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')).toBeInTheDocument()
+      // Hasta mañana no se arregla con nada, así que el botón no se queda
+      // apagado esperando: se va. Un control que no puede funcionar hoy es peor
+      // que uno que no está.
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Dar de alta a mano' })).toBeInTheDocument()
+    })
+
+    it('y la cámara sigue sin estar al volver a entrar en la pantalla', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'day' })
+      await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')
+      await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
+      // La cuota es de la cuenta y del día, no de esta pantalla: cerrarla y
+      // volver a abrirla no la devuelve, y ofrecer la cámara otra vez sería
+      // gastar otra foto para que conteste lo mismo.
+      await screen.findByLabelText('Buscar alimento')
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+    })
+
+    it('no configurada: se dice y la cámara se retira', async () => {
+      const err = new Error('503')
+      err.status = 503
+      await fotoQueFalla(err)
+      expect(
+        await screen.findByText('La lectura de etiquetas no está configurada en el servidor.'),
+      ).toBeInTheDocument()
+      // Ni la foto ni la red: falta la clave, y quien puede arreglarlo es quien
+      // lee esto. Repetir no sirve de nada.
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Repetir la foto' })).toBeNull()
+    })
+
+    it('todos los rechazos se anuncian, no sólo se pintan', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'day' })
+      const aviso = await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')
+      expect(aviso).toHaveAttribute('role', 'alert')
     })
   })
 

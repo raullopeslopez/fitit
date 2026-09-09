@@ -93,6 +93,14 @@ export default function Comida() {
   // Lo de siempre: lo que más repites, a un toque. No depende del día que se
   // esté mirando, así que se lee aparte y no se vuelve a pedir al pasar de día.
   const [siempre, setSiempre] = useState([])
+  // Por qué no se puede leer una etiqueta ahora mismo: `null`, o
+  // `{ kind: 'minute' | 'day' | 'off', until? }`.
+  //
+  // Vive aquí y no dentro de la pantalla de añadir porque no es de la pantalla:
+  // la cuota es de la cuenta y del día, y la clave es del servidor. Guardándolo
+  // abajo, cerrar y volver a abrir devolvía una cámara que ya sabíamos que iba a
+  // contestar lo mismo — y cada intento gasta de lo que ya no hay.
+  const [labelBlock, setLabelBlock] = useState(null)
   // El filtro que abre el chip de nutrientes desconocidos: sólo las entradas
   // a las que les falta algo, para poder corregirlas sin buscarlas a ojo.
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
@@ -383,6 +391,8 @@ export default function Comida() {
           entries={day?.entries ?? []}
           siempre={siempre}
           labelReading={day?.label_reading ?? false}
+          block={labelBlock}
+          onBlocked={setLabelBlock}
           onDone={afterWrite}
           // Rehacer el día desde la corrección reescribe entradas que ya están
           // pintadas, y no cierra la pantalla: estabas registrando algo cuando
@@ -791,6 +801,8 @@ function AddFood({
   entries = [],
   siempre = [],
   labelReading = false,
+  block = null,
+  onBlocked = () => {},
   onDone,
   onDayChanged,
   onCancel,
@@ -832,6 +844,9 @@ function AddFood({
   // `chosen` (lo elegiste en la lista) y de `scan.food` (ya era tuyo) porque la
   // pantalla lo cuenta distinto: éste no estaba y ahora sí.
   const [resolved, setResolved] = useState(null)
+  // La foto no se pudo leer. Es el único rechazo que se arregla repitiéndola, y
+  // por eso es el único que la ofrece.
+  const [unreadable, setUnreadable] = useState(false)
   const latest = useRef(0)
   const field = useRef(null)
 
@@ -969,18 +984,37 @@ function AddFood({
     setReading('label')
     setScan(null)
     setEscalating(null)
+    setUnreadable(false)
+    let read
     try {
-      setLabel(await readLabel(file))
+      read = await readLabel(file)
     } catch (error) {
       // Un 503 es «el servidor no tiene esto configurado», que no es lo mismo
       // que «no he podido leer la etiqueta»: contarlo como lo segundo te deja
       // repitiendo la foto contra algo que no puede funcionar. Pasó de verdad,
       // el 2026-09-04, y costó una sesión de depuración.
-      setLabel({ refusal: error?.status === 503 ? 'off' : 'unreadable' })
+      read = { refusal: error?.status === 503 ? 'off' : 'unreadable' }
     } finally {
       setReading(null)
-      setCreating(true)
     }
+
+    // Cinco causas y cinco salidas. Tres de ellas **no** abren el formulario,
+    // porque el formulario no es su salida: sin cuota o sin clave lo que hay
+    // que hacer es dejar de ofrecer la cámara, y con una foto ilegible lo que
+    // hay que ofrecer es repetirla.
+    const parada = detiene(read)
+    if (parada) {
+      onBlocked(parada)
+      return
+    }
+    if (read.refusal === 'unreadable') {
+      setUnreadable(true)
+      return
+    }
+    // Lo que queda —la columna equivocada, y la lectura que salió bien— sí
+    // acaba en el formulario. Una en blanco, la otra rellena.
+    setLabel(read)
+    setCreating(true)
   }
 
   // Resuelto por el código: ni formulario ni confirmación, derecho a «cuánto».
@@ -1045,15 +1079,16 @@ function AddFood({
 
   // El peldaño de en medio ocupa la pantalla: es una pregunta con dos salidas y
   // nada más que decidir mientras esté abierta.
-  if (escalating) {
+  if (escalating || unreadable) {
     return (
       <Escalada
-        reason={escalating}
+        reason={unreadable ? 'unreadable' : escalating}
         slot={slot}
         busy={Boolean(reading)}
         onShoot={shootTable}
         onType={() => {
           setEscalating(null)
+          setUnreadable(false)
           setCreating(true)
         }}
         onCancel={onCancel}
@@ -1192,42 +1227,16 @@ function AddFood({
             hacer tú sin saber cuál iba a funcionar. Ahora hay un disparador y el
             sistema escala solo, del camino gratis al caro, y lo cuenta después.
 
-            No se dibuja si este servidor no sabe leer una etiqueta (`label_reading`,
-            que viene con el día). Un botón que no puede funcionar es peor que uno
-            que no está: al pulsarlo no hay forma de saber por qué ha fallado. */}
-        {labelReading && (
-          <div className="card food-camera-card">
-            <div className="food-camera-head">
-              <p className="food-camera-title">Foto del envase</p>
-              <p className="hint food-camera-sub">
-                Para productos envasados que no tengas todavía.
-              </p>
-            </div>
-            {/* Un `label` y no un botón porque lo que abre la cámara es el
-                `input`: envolverlo es la única forma de que el disparador tenga
-                el aspecto de un control y siga siendo el control real.
-                `capture` pide la trasera del móvil; en un ordenador el navegador
-                lo ignora y ofrece un fichero, que para probar va igual de bien. */}
-            <label
-              className={`btn-full food-camera-shoot${reading ? ' is-busy' : ''}`}
-              htmlFor="food-photo"
-              aria-busy={reading ? true : undefined}
-            >
-              <Disparador leyendo={Boolean(reading)}>Abrir la cámara</Disparador>
-              {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» mientras
-                  lee, y sin esto el nombre del control se iría con él. */}
-              <input
-                id="food-photo"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                aria-label="Abrir la cámara"
-                disabled={Boolean(reading)}
-                onChange={openCamera}
-              />
-            </label>
-          </div>
-        )}
+            Cambia de forma según lo que la impida: apagada con su cuenta cuando
+            sólo hay que esperar, retirada cuando esperar no arregla nada. */}
+        <Camara
+          available={labelReading}
+          block={block}
+          busy={Boolean(reading)}
+          onShoot={openCamera}
+          onType={() => setCreating(true)}
+          onExpired={() => onBlocked(null)}
+        />
 
         <p className="hint food-screen-foot">
           Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.
@@ -1236,6 +1245,131 @@ function AddFood({
     </div>
   )
 }
+
+// La tarjeta de la cámara, y las tres formas que toma cuando no puede leer.
+//
+// El principio: un control que no puede funcionar es peor que uno que no está,
+// porque al pulsarlo no hay forma de saber por qué no ha pasado nada. De ahí que
+// no haya una sola tarjeta apagada para todo, sino tres respuestas distintas a
+// tres impedimentos distintos:
+//
+// - **Nada que impida** — la tarjeta de siempre.
+// - **La cuota del minuto** — no vacía la pantalla: sólo apaga el botón y pone
+//   la cuenta. Esperar es una salida real, y quitarla la escondería.
+// - **La cuota del día, o la clave que falta** — la cámara se va. Ninguna de las
+//   dos se arregla hoy, así que dejar el botón apagado sería dejar una promesa
+//   que no se puede cumplir en la pantalla todo el día.
+function Camara({ available, block, busy, onShoot, onType, onExpired }) {
+  const left = useCountdown(block?.kind === 'minute' ? block.until : null, onExpired)
+
+  if (!available || block?.kind === 'day' || block?.kind === 'off') {
+    if (!block) return null
+    return (
+      <div className="card food-camera-card">
+        <p className="food-label-warn food-camera-off" role="alert">
+          {block.kind === 'day'
+            ? 'Se han acabado las fotos de hoy. Tecléalo.'
+            : 'La lectura de etiquetas no está configurada en el servidor.'}
+        </p>
+        {/* Sin botón de reintento: no hay nada que reintentar. La única salida
+            que queda es la que siempre estuvo. */}
+        <button type="button" className="secondary btn-full" onClick={onType}>
+          Dar de alta a mano
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card food-camera-card">
+      <div className="food-camera-head">
+        <p className="food-camera-title">Foto del envase</p>
+        <p className="hint food-camera-sub">Para productos envasados que no tengas todavía.</p>
+      </div>
+      {block?.kind === 'minute' && (
+        <p className="food-label-warn food-camera-wait" role="alert">
+          Demasiadas fotos seguidas. Espera un minuto, o tecléalo.
+        </p>
+      )}
+      {/* Un `label` y no un botón porque lo que abre la cámara es el `input`:
+          envolverlo es la única forma de que el disparador tenga el aspecto de un
+          control y siga siendo el control real. `capture` pide la trasera del
+          móvil; en un ordenador el navegador lo ignora y ofrece un fichero, que
+          para probar va igual de bien. */}
+      <label
+        className={`btn-full food-camera-shoot${busy || left ? ' is-busy' : ''}`}
+        htmlFor="food-photo"
+        aria-busy={busy ? true : undefined}
+      >
+        {left ? (
+          <span className="food-camera-count">Espera {left} s</span>
+        ) : (
+          <Disparador leyendo={busy}>Abrir la cámara</Disparador>
+        )}
+        {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» o a la cuenta
+            mientras tanto, y sin esto el nombre del control se iría con él. */}
+        <input
+          id="food-photo"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          aria-label="Abrir la cámara"
+          disabled={busy || Boolean(left)}
+          onChange={onShoot}
+        />
+      </label>
+    </div>
+  )
+}
+
+// Los segundos que quedan de una espera, o `0` si no hay ninguna.
+//
+// Cuenta de verdad, un tick por segundo: un botón apagado sin decir hasta cuándo
+// no se distingue de uno roto, y a los treinta segundos ya nadie sabe si sigue
+// esperando o si la app se ha quedado colgada.
+function useCountdown(until, onExpired) {
+  const [left, setLeft] = useState(() => remaining(until))
+  const done = useRef(onExpired)
+  done.current = onExpired
+
+  useEffect(() => {
+    if (!until) {
+      setLeft(0)
+      return undefined
+    }
+    setLeft(remaining(until))
+    const timer = setInterval(() => {
+      const value = remaining(until)
+      setLeft(value)
+      // Al llegar a cero el bloqueo se levanta solo: la ventana corta se pasa
+      // esperando, así que hacer volver a alguien a por el botón sería cobrarle
+      // el minuto dos veces.
+      if (value === 0) done.current?.()
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [until])
+
+  return left
+}
+
+const remaining = (until) => (until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0)
+
+// ¿Este rechazo deja de ofrecer la cámara, y por cuánto?
+//
+// Los tres que la retiran tienen en común que repetir la foto no los arregla:
+// la del minuto se pasa esperando, la del día no se pasa hasta mañana, y la
+// clave que falta la pone quien administra el servidor. Decirle «inténtalo otra
+// vez» a cualquiera de los tres es mandar a gastar una foto contra un fallo
+// seguro — y en el caso de la cuota, además, gastar de lo que ya no hay.
+function detiene(read) {
+  if (read.refusal === 'off') return { kind: 'off' }
+  if (read.refusal !== 'quota') return null
+  if (read.quota_scope === 'day') return { kind: 'day' }
+  return { kind: 'minute', until: Date.now() + MINUTE }
+}
+
+// Lo que dura la ventana corta de la cuota, del lado del modelo.
+const MINUTE = 60_000
 
 // Una ficha de la base pública, en lo que `POST /foods` espera.
 //
@@ -1278,6 +1412,12 @@ function take(event) {
 // casa o una panadería es la vía normal, y aquí además es más rápida que otra
 // foto.
 function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
+  // Dos motivos para pedir otra foto, y no piden lo mismo. La escalada quiere
+  // una foto **de otra cara del envase**; la lectura ilegible quiere la misma
+  // foto mejor hecha. Un botón que dijera «Repetir» en los dos casos mandaría a
+  // repetir la foto del código de barras, que ya sabemos que no sirve.
+  const ilegible = reason === 'unreadable'
+  const shoot = ilegible ? 'Repetir la foto' : 'Enfocar la tabla'
   return (
     <div
       className="food-screen"
@@ -1296,27 +1436,32 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
       </header>
       <div className="food-screen-body">
         <div className="card food-escalada">
-          <p className="food-escalada-line">
+          <p className="food-escalada-line" role="alert">
             {
               {
                 offline: 'No he podido preguntar por ese código.',
                 unusable: 'Los datos de ese código no me sirven.',
+                unreadable: 'No he podido leer la etiqueta.',
               }[reason] ?? 'Ese código no está en ninguna base.'
             }
           </p>
-          <p className="food-escalada-line">Acerca la foto a la tabla nutricional y la leo.</p>
+          <p className="food-escalada-line">
+            {ilegible
+              ? 'Prueba otra vez, más cerca y con más luz.'
+              : 'Acerca la foto a la tabla nutricional y la leo.'}
+          </p>
           <div className="food-escalada-actions">
             <label
               className={`set-action food-escalada-shoot${busy ? ' is-busy' : ''}`}
               htmlFor="food-table"
             >
-              <Disparador leyendo={busy}>Enfocar la tabla</Disparador>
+              <Disparador leyendo={busy}>{shoot}</Disparador>
               <input
                 id="food-table"
                 type="file"
                 accept="image/*"
                 capture="environment"
-                aria-label="Enfocar la tabla"
+                aria-label={shoot}
                 disabled={busy}
                 onChange={onShoot}
               />
@@ -1332,7 +1477,9 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
           </div>
         </div>
         <p className="hint food-screen-foot">
-          El paso caro entra aquí, cuando el gratis ya ha fallado.
+          {ilegible
+            ? 'Sin reintento automático: repetir una foto igual cuesta lo mismo y falla igual.'
+            : 'El paso caro entra aquí, cuando el gratis ya ha fallado.'}
         </p>
       </div>
     </div>
@@ -1705,29 +1852,12 @@ function LabelNote({ label }) {
       </p>
     )
   }
-  if (label.refusal === 'unreadable') {
-    return <p className="food-label-warn">No he podido leer la etiqueta. Tecléala.</p>
-  }
-  // Ni la foto ni la red: falta la clave en el servidor. Se dice así porque el
-  // que puede arreglarlo es quien lee esto.
-  if (label.refusal === 'off') {
-    return (
-      <p className="food-label-warn">La lectura de etiquetas no está configurada en el servidor.</p>
-    )
-  }
-  // Sin cuota no es lo mismo que ilegible: repetir la foto no lo arregla. Y la
-  // del minuto no es la del día — a una se le espera y a la otra no —, así que
-  // decir «espera un minuto» a quien tiene que volver mañana es mandarlo a
-  // mirar el móvil para nada.
-  if (label.refusal === 'quota') {
-    return (
-      <p className="food-label-warn">
-        {label.quota_scope === 'day'
-          ? 'Se han acabado las fotos de hoy. Tecléalo.'
-          : 'Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'}
-      </p>
-    )
-  }
+  // Aquí ya no llegan ni `unreadable`, ni `off`, ni `quota`. Los tres dejaron de
+  // acabar en un formulario cuando cada rechazo se ganó su propia salida: la
+  // foto ilegible ofrece repetirse, y las otras dos retiran la cámara en vez de
+  // abrir un formulario que nadie ha pedido. Lo que queda aquí es lo que sí es
+  // un alta: la columna equivocada —en blanco— y la lectura que salió bien.
+
   // Una lectura de la que no sale ninguna cifra no es una lectura buena, por
   // mucho que la llamada haya ido bien. Visto en producción el 2026-09-04: el
   // servidor devolvió 200, la pantalla abrió siete campos vacíos y lo único
