@@ -20,9 +20,12 @@ import {
   foodDayIso,
   formatAmount,
   formatMacro,
+  kcalFromMacros,
   macroBar,
+  previewNutrients,
   shiftDay,
   slotLabel,
+  withoutEntry,
   droppedNote,
   unknownNote,
 } from './food.js'
@@ -93,13 +96,24 @@ export default function Comida() {
   // Lo de siempre: lo que más repites, a un toque. No depende del día que se
   // esté mirando, así que se lee aparte y no se vuelve a pedir al pasar de día.
   const [siempre, setSiempre] = useState([])
+  // Por qué no se puede leer una etiqueta ahora mismo: `null`, o
+  // `{ kind: 'minute' | 'day' | 'off', until? }`.
+  //
+  // Vive aquí y no dentro de la pantalla de añadir porque no es de la pantalla:
+  // la cuota es de la cuenta y del día, y la clave es del servidor. Guardándolo
+  // abajo, cerrar y volver a abrir devolvía una cámara que ya sabíamos que iba a
+  // contestar lo mismo — y cada intento gasta de lo que ya no hay.
+  const [labelBlock, setLabelBlock] = useState(null)
+  // La entrada cuyo borrado se está confirmando. `null` mientras no haya nada
+  // que confirmar — borrar es lo único irreversible de la pantalla.
+  const [confirming, setConfirming] = useState(null)
+  const [summaryOpen, setSummaryOpen] = useState(false)
   // El filtro que abre el chip de nutrientes desconocidos: sólo las entradas
   // a las que les falta algo, para poder corregirlas sin buscarlas a ojo.
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
   // El objetivo diario, en su propio cajón — no es del día, es del perfil.
   const [targetOpen, setTargetOpen] = useState(false)
-  const [targetKcal, setTargetKcal] = useState('')
-  const [targetProtein, setTargetProtein] = useState('')
+  const [targets, setTargets_] = useState({ protein: '', carbs: '', fat: '' })
   const [savingTarget, setSavingTarget] = useState(false)
   // La última entrada borrada, con un «Deshacer» que vive donde estaba —no
   // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
@@ -165,6 +179,7 @@ export default function Comida() {
   // Borrar ya no vive en el formulario: se desliza la fila, y lo que queda es
   // un «Deshacer» donde estaba la entrada, no un aviso que caduca solo.
   async function handleDeleteEntry(entry) {
+    setConfirming(null)
     try {
       await deleteFoodEntry(entry.id)
     } catch {
@@ -197,17 +212,25 @@ export default function Comida() {
   }
 
   function openTarget() {
-    setTargetKcal(day?.target_kcal != null ? String(day.target_kcal) : '')
-    setTargetProtein(day?.target_protein != null ? String(day.target_protein) : '')
+    const show = (value) => (value != null ? String(value) : '')
+    setTargets_({
+      protein: show(day?.target_protein),
+      carbs: show(day?.target_carbs),
+      fat: show(day?.target_fat),
+    })
     setTargetOpen(true)
   }
 
-  async function saveTarget(event) {
-    event.preventDefault()
-    const parse = (raw) => (raw.trim() === '' ? null : Number(raw.replace(',', '.')))
+  async function saveTarget(values) {
+    const parse = (raw) => (String(raw).trim() === '' ? null : Number(String(raw).replace(',', '.')))
     setSavingTarget(true)
     try {
-      await setTargets({ kcal: parse(targetKcal), protein: parse(targetProtein) })
+      // Sin kcal: las deriva el servidor del reparto (`atwater_kcal`).
+      await setTargets({
+        protein: parse(values.protein),
+        carbs: parse(values.carbs),
+        fat: parse(values.fat),
+      })
       setTargetOpen(false)
       await load(dayIso)
     } finally {
@@ -251,7 +274,9 @@ export default function Comida() {
       {/* El objetivo es del perfil, no del día: se fija una vez y se corrige
           rara vez, así que vive en un cajón callado como el de las preferencias
           de Entreno (DESIGN.md: «sticky preferences count as rare actions»),
-          no en un control permanente sobre las cifras que sí cambian a diario. */}
+          no en un control permanente sobre las cifras que sí cambian a diario.
+          Lo que abre es una hoja, no un panel en línea: es corto y edita algo
+          concreto, que es la forma que le toca. */}
       <div className="food-target">
         <button
           type="button"
@@ -264,44 +289,26 @@ export default function Comida() {
             {hasTarget ? `${formatMacro(day.target_kcal)} kcal` : 'Sin fijar'}
           </span>
         </button>
-        {targetOpen && (
-          <form className="food-target-panel" onSubmit={saveTarget}>
-            <div className="field">
-              <label htmlFor="target-kcal">Kcal al día</label>
-              <input
-                id="target-kcal"
-                inputMode="decimal"
-                placeholder="p. ej. 2800"
-                value={targetKcal}
-                onChange={(e) => setTargetKcal(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="target-protein">Proteína al día (g)</label>
-              <input
-                id="target-protein"
-                inputMode="decimal"
-                placeholder="p. ej. 160"
-                value={targetProtein}
-                onChange={(e) => setTargetProtein(e.target.value)}
-              />
-            </div>
-            <div className="food-editor-actions">
-              <button type="submit" className="primary" disabled={savingTarget}>
-                Guardar
-              </button>
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => setTargetOpen(false)}
-                disabled={savingTarget}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
       </div>
+
+      {targetOpen && (
+        <div className="sheet-scrim" onClick={() => setTargetOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Objetivos diarios"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Objetivos
+              initial={targets}
+              busy={savingTarget}
+              onSave={saveTarget}
+              onCancel={() => setTargetOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {error && <p className="alert">{error}</p>}
 
@@ -334,7 +341,7 @@ export default function Comida() {
               onUndo={handleUndo}
               onAdd={() => setAdding({ slot: rail.key })}
               onEdit={setEditing}
-              onDelete={handleDeleteEntry}
+              onDelete={setConfirming}
             />
           ))}
           {/* Los vacíos, en fila de dos y en `dashed`: una tarjeta que todavía
@@ -362,7 +369,7 @@ export default function Comida() {
               ))}
             </div>
           )}
-          <ClosingLine day={day} />
+          <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />
         </>
       )}
 
@@ -383,6 +390,8 @@ export default function Comida() {
           entries={day?.entries ?? []}
           siempre={siempre}
           labelReading={day?.label_reading ?? false}
+          block={labelBlock}
+          onBlocked={setLabelBlock}
           onDone={afterWrite}
           // Rehacer el día desde la corrección reescribe entradas que ya están
           // pintadas, y no cierra la pantalla: estabas registrando algo cuando
@@ -390,6 +399,29 @@ export default function Comida() {
           onDayChanged={() => load(dayIso)}
           onCancel={closeSheet}
         />
+      )}
+
+      {confirming && (
+        <ConfirmarBorrado
+          entry={confirming}
+          day={day}
+          onConfirm={() => handleDeleteEntry(confirming)}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+
+      {summaryOpen && day && (
+        <div className="sheet-scrim" onClick={() => setSummaryOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Resumen del día"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Resumen day={day} dayIso={dayIso} onClose={() => setSummaryOpen(false)} />
+          </div>
+        </div>
       )}
 
       {!adding && editingEntry && (
@@ -408,6 +440,263 @@ export default function Comida() {
     </div>
   )
 }
+
+// Los objetivos diarios: gramos por macro, y las kcal como consecuencia.
+//
+// Antes se fijaban las kcal y la proteína, cada una por su lado, y eso dejaba
+// guardar un total que sus propios macros no daban —2.600 kcal con 160 g de
+// proteína, 300 de hidratos y 80 de grasa son 2.560— con las dos cifras en
+// pantalla y nada que dijera cuál mandaba. Ahora se reparte en gramos y el total
+// sale de ahí: una sola cifra que no se puede contradecir.
+//
+// El total se recalcula al teclear, antes de guardar nada, porque el reparto es
+// justo lo que hay que ver mientras se decide. La cuenta es la misma que hace el
+// servidor al guardar (`atwater_kcal`), y hay una prueba que ata las dos.
+function Objetivos({ initial, busy, onSave, onCancel }) {
+  const [values, setValues] = useState(initial)
+  const number = (raw) => {
+    const value = Number(String(raw).replace(',', '.'))
+    return String(raw).trim() === '' || !Number.isFinite(value) ? null : value
+  }
+  const macros = {
+    protein: number(values.protein),
+    carbs: number(values.carbs),
+    fat: number(values.fat),
+  }
+  // Sin un solo macro repartido no hay total, y `null` se imprime `—`. Un 0 aquí
+  // diría «tu objetivo es no comer», que es otra afirmación — y además es la que
+  // el servidor se niega a guardar.
+  const derived = Object.values(macros).some((v) => v != null) ? kcalFromMacros(macros) : null
+  const set = (key) => (e) => setValues({ ...values, [key]: e.target.value })
+
+  return (
+    <form
+      className="sheet-body food-goals"
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSave(values)
+      }}
+    >
+      <Asa />
+      <header className="food-detail-head">
+        <h2 className="food-detail-name">Objetivos diarios</h2>
+        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
+          Cerrar
+        </button>
+      </header>
+
+      <div className="field">
+        <label htmlFor="target-protein">Proteína (g)</label>
+        <input
+          id="target-protein"
+          inputMode="decimal"
+          placeholder="p. ej. 160"
+          value={values.protein}
+          onChange={set('protein')}
+        />
+      </div>
+      <div className="row">
+        <div className="field stepper-field">
+          <label htmlFor="target-carbs">Hidratos (g)</label>
+          <input
+            id="target-carbs"
+            inputMode="numeric"
+            placeholder="300"
+            value={values.carbs}
+            onChange={set('carbs')}
+          />
+        </div>
+        <div className="field stepper-field">
+          <label htmlFor="target-fat">Grasa (g)</label>
+          <input
+            id="target-fat"
+            inputMode="numeric"
+            placeholder="80"
+            value={values.fat}
+            onChange={set('fat')}
+          />
+        </div>
+      </div>
+
+      {/* Sólo lectura, y por eso no es un campo: es lo que sale de lo de arriba,
+          no otra cosa que decidir. */}
+      <p className="card food-goals-total">
+        <span className="food-detail-label">Total derivado</span>
+        <span className="food-detail-value">{formatMacro(derived)} kcal</span>
+      </p>
+
+      <button type="submit" className="primary btn-full" disabled={busy}>
+        Guardar objetivos
+      </button>
+      <p className="hint food-goals-foot">
+        Las kcal no se teclean: salen de repartir los gramos.
+      </p>
+    </form>
+  )
+}
+
+// El asa de una hoja: 38×4 px, centrada, y nada más.
+//
+// Dice dos cosas sin una palabra: que esto es una hoja y no una pantalla, y que
+// se puede echar hacia abajo. Vive aquí y no en `.sheet` a propósito — esa clase
+// la comparten las hojas de Entreno, y cambiarla las tocaría todas sin que nadie
+// lo haya pedido. Si convence, subirla es una línea.
+function Asa() {
+  return <span className="sheet-grip" aria-hidden="true" />
+}
+
+// Confirmar un borrado, diciendo qué se pierde.
+//
+// El único diálogo **centrado** de la pantalla, y a propósito: una hoja se
+// descarta deslizando hacia abajo, y esto no puede descartarse por accidente.
+// Todo lo demás de Comida se edita o se cancela; esto es lo único que no se
+// deshace solo — hay un «Deshacer» detrás, pero vuelve a escribir la entrada,
+// no la recupera, porque `log_entries` congela.
+//
+// Y nunca se borra sin decir qué se pierde. Un «¿seguro?» pide una decisión sin
+// darte con qué tomarla: lo que hay que saber es en qué queda el día.
+function ConfirmarBorrado({ entry, day, onConfirm, onCancel }) {
+  return (
+    <div className="sheet-scrim food-confirm-scrim" onClick={onCancel}>
+      <div
+        className="card food-confirm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={`Borrar ${entry.food_name}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="food-confirm-title">¿Borrar «{entry.food_name}»?</h2>
+        <p className="hint food-confirm-impact" data-testid="food-delete-impact">
+          <Impacto entry={entry} day={day} />
+        </p>
+        <button type="button" className="btn-full food-confirm-go" onClick={onConfirm}>
+          Borrar
+        </button>
+        <button type="button" className="secondary btn-full" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// En qué queda el día si se borra esta entrada.
+//
+// Tres frases, no una con huecos: lo que se puede afirmar cambia según lo que se
+// sepa, y rellenar un hueco con una raya deja una frase que no dice nada («tu
+// día baja a — g»). De más informativa a menos:
+//
+// 1. Con objetivo y total conocidos: a cuánto baja y cuánto queda por debajo.
+// 2. Con el total conocido y sin objetivo: a cuánto baja, sin comparar con nada.
+// 3. Con el total desconocido: lo único que sí se sabe es lo que se va.
+function Impacto({ entry, day }) {
+  const queda = withoutEntry(day?.totals?.protein, entry.protein)
+  if (queda == null) {
+    if (entry.protein == null) return <>Esta entrada no tiene la proteína medida.</>
+    return (
+      <>
+        Se van <strong>{formatMacro(entry.protein)} g</strong> de proteína del día.
+      </>
+    )
+  }
+  const falta = withoutEntry(day?.target_protein, queda)
+  if (falta == null || falta <= 0) {
+    return (
+      <>
+        Tu día baja a <strong>{formatMacro(queda)} g</strong> de proteína.
+      </>
+    )
+  }
+  return (
+    <>
+      Tu día baja a <strong>{formatMacro(queda)} g</strong> de proteína,{' '}
+      <strong>{formatMacro(falta)} g</strong> por debajo del objetivo.
+    </>
+  )
+}
+
+// El resumen del día: cuánto se ha cumplido, y por dónde ha entrado.
+//
+// **Sin juicio moral.** Informa; no felicita ni riñe. Pasarse de grasa se dice
+// con el porcentaje, no con rojo ni con un icono — `--danger` en esta app es
+// para borrar y para error, y comerse un aguacate de más no es ninguna de las
+// dos cosas.
+function Resumen({ day, dayIso, onClose }) {
+  const totals = day.totals ?? {}
+  return (
+    <div className="sheet-body food-summary">
+      <Asa />
+      <header className="food-detail-head">
+        <h2 className="food-detail-name">Resumen del día</h2>
+        <button type="button" className="link-btn" onClick={onClose}>
+          Cerrar
+        </button>
+      </header>
+      <p className="food-detail-per">{formatDayShort(dayIso)}</p>
+
+      <div className="card food-summary-card">
+        {SUMMARY_MACROS.map((macro) => (
+          <SummaryBar
+            key={macro.key}
+            label={macro.label}
+            eaten={totals[macro.key]}
+            target={day[macro.target]}
+            lead={macro.key === 'protein'}
+          />
+        ))}
+      </div>
+
+      <div className="card food-summary-card">
+        <p className="food-summary-head">
+          <span className="card-eyebrow">Reparto por comida</span>
+          <span className="food-summary-kcal">{formatMacro(totals.kcal)} kcal</span>
+        </p>
+        {/* Los subtotales llegan del servidor: una comida vacía suma `null`, no
+            0, y esa regla vive en `sumar_nutrientes` y en ningún otro sitio. */}
+        {(day.by_slot ?? [])
+          .filter((group) => group.slot != null || group.totals?.kcal != null)
+          .map((group) => (
+            <p className="food-summary-slot" key={group.slot ?? 'sin-asignar'}>
+              <span className="food-detail-label">{slotLabel(group.slot)}</span>
+              <span className="food-detail-value">
+                {formatMacro(group.totals?.protein)} P · {formatMacro(group.totals?.kcal)} kcal
+              </span>
+            </p>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+// Una barra de cumplimiento. El ancho se recorta a 100 —una barra no se sale de
+// su caja— y el porcentaje no, porque es una cifra y pasarse es un dato del día.
+function SummaryBar({ label, eaten, target, lead }) {
+  const bar = macroBar(eaten, target)
+  return (
+    <div className={`food-summary-row${lead ? ' is-lead' : ''}`}>
+      <p className="food-macro-line">
+        <span className="food-macro-label">{label}</span>
+        {/* El porcentaje sólo existe si se sabe cuánto llevas. Un «0 %» con el
+            total desconocido afirma que no has comido nada de eso, que es la
+            misma mentira que un 0 en un nutriente sin medir — aquí escondida
+            dentro de un porcentaje, que es donde más fácil se cuela. */}
+        <span className="food-macro-value">
+          {formatMacro(eaten)} / {formatMacro(target)} g
+          {bar && eaten != null ? ` · ${bar.percent} %` : ''}
+        </span>
+      </p>
+      <span className="food-summary-bar" aria-hidden="true">
+        {bar && <span className="food-summary-fill" style={{ width: `${bar.done}%` }} />}
+      </span>
+    </div>
+  )
+}
+
+const SUMMARY_MACROS = [
+  { key: 'protein', label: 'Proteína', target: 'target_protein' },
+  { key: 'carbs', label: 'Hidratos', target: 'target_carbs' },
+  { key: 'fat', label: 'Grasa', target: 'target_fat' },
+]
 
 // La cabecera del día, y la pieza donde vive el contrato de color.
 //
@@ -501,11 +790,15 @@ function MacroCard({ day }) {
         <MacroRow label="Grasa" eaten={totals.fat} target={day.target_fat} />
       </div>
 
+      {/* «Cumplido» era el rótulo de esta fila, y con `985 / 2560` al lado decía
+          justo lo contrario de lo que enseñaba. «Energía» es lo que una etiqueta
+          llama a esto, no afirma nada, y deja la unidad al final como en las
+          filas de macro de arriba. */}
       {day.target_kcal != null && (
         <p className="food-macros-kcal">
-          <span>Cumplido</span>
+          <span>Energía</span>
           <span className="food-macros-kcal-value">
-            kcal {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)}
+            {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)} kcal
           </span>
         </p>
       )}
@@ -611,7 +904,7 @@ function SlotCard({ rail, entries, deleted, undoing, onUndo, onAdd, onEdit, onDe
 // contesta «y entonces qué me falta para terminar».
 //
 // Sin juicio: informa. Ni felicita al cerrar ni riñe por no haber llegado.
-function ClosingLine({ day }) {
+function ClosingLine({ day, onSummary }) {
   if (day.target_protein == null) return null
   const bar = macroBar(day.totals?.protein, day.target_protein)
   return (
@@ -628,6 +921,9 @@ function ClosingLine({ day }) {
           </>
         )}
       </span>
+      <button type="button" className="link-btn" onClick={onSummary}>
+        Resumen
+      </button>
     </p>
   )
 }
@@ -759,7 +1055,7 @@ function EntryEditor({ entry, onDone, onCancel }) {
     <form className="card card-compose food-editor" onSubmit={save}>
       <p className="food-editor-name">{entry.food_name}</p>
       <div className="field">
-        <label htmlFor={`grams-${entry.id}`}>Gramos</label>
+        <label htmlFor={`grams-${entry.id}`}>Cantidad</label>
         <input
           id={`grams-${entry.id}`}
           inputMode="decimal"
@@ -791,6 +1087,8 @@ function AddFood({
   entries = [],
   siempre = [],
   labelReading = false,
+  block = null,
+  onBlocked = () => {},
   onDone,
   onDayChanged,
   onCancel,
@@ -828,6 +1126,13 @@ function AddFood({
   // envase se resuelva en el peldaño gratis. Sin esto, escalar tiraba el único
   // dato que la foto sí había dado.
   const [barcode, setBarcode] = useState(null)
+  // El alimento que la ficha pública acaba de meter en tu catálogo. Distinto de
+  // `chosen` (lo elegiste en la lista) y de `scan.food` (ya era tuyo) porque la
+  // pantalla lo cuenta distinto: éste no estaba y ahora sí.
+  const [resolved, setResolved] = useState(null)
+  // La foto no se pudo leer. Es el único rechazo que se arregla repitiéndola, y
+  // por eso es el único que la ofrece.
+  const [unreadable, setUnreadable] = useState(false)
   const latest = useRef(0)
   const field = useRef(null)
 
@@ -887,6 +1192,7 @@ function AddFood({
     if (!file) return
     setEscalating(null)
     setBarcode(null)
+    setResolved(null)
 
     // Peldaño 1: el código. Sólo donde el navegador sabe decodificar — en un
     // Chrome de Android está, en un Safari no —, y si no sabe, la escalada
@@ -901,12 +1207,34 @@ function AddFood({
         if (codes.length > 0) {
           setBarcode(codes[0])
           const found = await scanBarcode(codes[0])
-          setReading(null)
           // Con ficha utilizable se acabó: ni tabla, ni modelo, ni cuota.
-          if (found?.food || !found?.refusal) {
+          if (found?.food) {
+            setReading(null)
             setScan(found)
             return
           }
+          if (!found?.refusal) {
+            // Y se guarda sin preguntar. Un formulario delante de esto sería
+            // pedir una firma sin lectura: nadie corrige campo por campo una
+            // ficha que no ha medido, y el código identifica el producto mejor
+            // que cualquier nombre que uno teclee. Guardarlo es lo que convierte
+            // «veinte fotos al día» en «veinte productos nuevos al día».
+            //
+            // Sin preguntar no significa inventando: un nutriente que la ficha
+            // no trae viaja `null`, igual que si nadie lo hubiera tecleado.
+            try {
+              setResolved(await createFood(fromScan(found, codes[0])))
+            } catch {
+              // Si el guardado no llega, no se pierde la lectura: el formulario
+              // se abre con lo que la ficha traía y se guarda a mano.
+              setScan(found)
+              setCreating(true)
+            } finally {
+              setReading(null)
+            }
+            return
+          }
+          setReading(null)
           // El código se leyó y no sirve. Aquí **no** se lee la tabla de esta
           // misma foto: el código y la tabla están en caras distintas del
           // envase, así que esa foto casi nunca tiene tabla que leer y gastar
@@ -942,49 +1270,37 @@ function AddFood({
     setReading('label')
     setScan(null)
     setEscalating(null)
+    setUnreadable(false)
+    let read
     try {
-      setLabel(await readLabel(file))
+      read = await readLabel(file)
     } catch (error) {
       // Un 503 es «el servidor no tiene esto configurado», que no es lo mismo
       // que «no he podido leer la etiqueta»: contarlo como lo segundo te deja
       // repitiendo la foto contra algo que no puede funcionar. Pasó de verdad,
       // el 2026-09-04, y costó una sesión de depuración.
-      setLabel({ refusal: error?.status === 503 ? 'off' : 'unreadable' })
+      read = { refusal: error?.status === 503 ? 'off' : 'unreadable' }
     } finally {
       setReading(null)
-      setCreating(true)
     }
-  }
 
-  // Un alimento que ya era tuyo no pasa por el alta: se va derecho a «cuánto»,
-  // que es lo único que faltaba por decidir.
-  if (scan?.food) {
-    return (
-      <Amount
-        food={scan.food}
-        initialSlot={slot}
-        dayIso={dayIso}
-        entries={entries}
-        onDone={onDone}
-        onDayChanged={onDayChanged}
-        onCancel={() => setScan(null)}
-      />
-    )
-  }
-
-  if (scan) {
-    return (
-      <NewFood
-        name={scan.name || query.trim()}
-        scan={scan}
-        barcode={barcode ?? scan.barcode ?? null}
-        onCreated={(food) => {
-          setScan(null)
-          setChosen(food)
-        }}
-        onCancel={() => setScan(null)}
-      />
-    )
+    // Cinco causas y cinco salidas. Tres de ellas **no** abren el formulario,
+    // porque el formulario no es su salida: sin cuota o sin clave lo que hay
+    // que hacer es dejar de ofrecer la cámara, y con una foto ilegible lo que
+    // hay que ofrecer es repetirla.
+    const parada = detiene(read)
+    if (parada) {
+      onBlocked(parada)
+      return
+    }
+    if (read.refusal === 'unreadable') {
+      setUnreadable(true)
+      return
+    }
+    // Lo que queda —la columna equivocada, y la lectura que salió bien— sí
+    // acaba en el formulario. Una en blanco, la otra rellena.
+    setLabel(read)
+    setCreating(true)
   }
 
   if (creating) {
@@ -1006,36 +1322,32 @@ function AddFood({
     )
   }
 
-  if (chosen) {
-    return (
-      <Amount
-        food={chosen}
-        initialSlot={slot}
-        dayIso={dayIso}
-        entries={entries}
-        onDone={onDone}
-        onDayChanged={onDayChanged}
-        onCancel={() => setChosen(null)}
-      />
-    )
-  }
-
   // El peldaño de en medio ocupa la pantalla: es una pregunta con dos salidas y
   // nada más que decidir mientras esté abierta.
-  if (escalating) {
+  if (escalating || unreadable) {
     return (
       <Escalada
-        reason={escalating}
+        reason={unreadable ? 'unreadable' : escalating}
         slot={slot}
         busy={Boolean(reading)}
         onShoot={shootTable}
         onType={() => {
           setEscalating(null)
+          setUnreadable(false)
           setCreating(true)
         }}
         onCancel={onCancel}
       />
     )
+  }
+
+  // Los dos caminos que llegan al detalle sin pasar por un formulario: el que ya
+  // era tuyo y el que la ficha pública acaba de guardar.
+  const conocido = scan?.food ?? resolved
+  const cerrarDetalle = () => {
+    setChosen(null)
+    setScan(null)
+    setResolved(null)
   }
 
   const destino = slotLabel(slot)
@@ -1169,49 +1481,200 @@ function AddFood({
             hacer tú sin saber cuál iba a funcionar. Ahora hay un disparador y el
             sistema escala solo, del camino gratis al caro, y lo cuenta después.
 
-            No se dibuja si este servidor no sabe leer una etiqueta (`label_reading`,
-            que viene con el día). Un botón que no puede funcionar es peor que uno
-            que no está: al pulsarlo no hay forma de saber por qué ha fallado. */}
-        {labelReading && (
-          <div className="card food-camera-card">
-            <div className="food-camera-head">
-              <p className="food-camera-title">Foto del envase</p>
-              <p className="hint food-camera-sub">
-                Para productos envasados que no tengas todavía.
-              </p>
-            </div>
-            {/* Un `label` y no un botón porque lo que abre la cámara es el
-                `input`: envolverlo es la única forma de que el disparador tenga
-                el aspecto de un control y siga siendo el control real.
-                `capture` pide la trasera del móvil; en un ordenador el navegador
-                lo ignora y ofrece un fichero, que para probar va igual de bien. */}
-            <label
-              className={`btn-full food-camera-shoot${reading ? ' is-busy' : ''}`}
-              htmlFor="food-photo"
-              aria-busy={reading ? true : undefined}
-            >
-              <Disparador leyendo={Boolean(reading)}>Abrir la cámara</Disparador>
-              {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» mientras
-                  lee, y sin esto el nombre del control se iría con él. */}
-              <input
-                id="food-photo"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                aria-label="Abrir la cámara"
-                disabled={Boolean(reading)}
-                onChange={openCamera}
-              />
-            </label>
-          </div>
-        )}
+            Cambia de forma según lo que la impida: apagada con su cuenta cuando
+            sólo hay que esperar, retirada cuando esperar no arregla nada. */}
+        <Camara
+          available={labelReading}
+          block={block}
+          busy={Boolean(reading)}
+          onShoot={openCamera}
+          onType={() => setCreating(true)}
+          onExpired={() => onBlocked(null)}
+        />
 
         <p className="hint food-screen-foot">
           Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.
         </p>
       </div>
+
+      {/* El detalle es una **hoja** sobre esta pantalla, no otra pantalla.
+          Es corto —una cantidad, un destino— y edita algo concreto, así que la
+          regla de forma del rediseño lo manda a una hoja; y dejar el buscador
+          detrás es lo que hace que cerrarla te devuelva a la lista en vez de al
+          día, que es donde estabas.
+
+          `conocido` cubre los dos caminos que llegan aquí sin pasar por un
+          formulario: el que ya era tuyo y el que la ficha pública acaba de
+          guardar. Los dos son la misma situación —producto identificado, sólo
+          falta la cantidad—, así que se pintan igual. */}
+      {(chosen || conocido) && (
+        <div className="sheet-scrim" onClick={cerrarDetalle}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detalle del alimento"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Amount
+              food={chosen ?? conocido}
+              initialSlot={slot}
+              dayIso={dayIso}
+              entries={entries}
+              source={chosen ? null : scan?.food ? 'catalogo' : 'codigo'}
+              onDone={onDone}
+              onDayChanged={onDayChanged}
+              onCancel={cerrarDetalle}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+// La tarjeta de la cámara, y las tres formas que toma cuando no puede leer.
+//
+// El principio: un control que no puede funcionar es peor que uno que no está,
+// porque al pulsarlo no hay forma de saber por qué no ha pasado nada. De ahí que
+// no haya una sola tarjeta apagada para todo, sino tres respuestas distintas a
+// tres impedimentos distintos:
+//
+// - **Nada que impida** — la tarjeta de siempre.
+// - **La cuota del minuto** — no vacía la pantalla: sólo apaga el botón y pone
+//   la cuenta. Esperar es una salida real, y quitarla la escondería.
+// - **La cuota del día, o la clave que falta** — la cámara se va. Ninguna de las
+//   dos se arregla hoy, así que dejar el botón apagado sería dejar una promesa
+//   que no se puede cumplir en la pantalla todo el día.
+function Camara({ available, block, busy, onShoot, onType, onExpired }) {
+  const left = useCountdown(block?.kind === 'minute' ? block.until : null, onExpired)
+
+  if (!available || block?.kind === 'day' || block?.kind === 'off') {
+    if (!block) return null
+    return (
+      <div className="card food-camera-card">
+        <p className="food-label-warn food-camera-off" role="alert">
+          {block.kind === 'day'
+            ? 'Se han acabado las fotos de hoy. Tecléalo.'
+            : 'La lectura de etiquetas no está configurada en el servidor.'}
+        </p>
+        {/* Sin botón de reintento: no hay nada que reintentar. La única salida
+            que queda es la que siempre estuvo. */}
+        <button type="button" className="secondary btn-full" onClick={onType}>
+          Dar de alta a mano
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card food-camera-card">
+      <div className="food-camera-head">
+        <p className="food-camera-title">Foto del envase</p>
+        <p className="hint food-camera-sub">Para productos envasados que no tengas todavía.</p>
+      </div>
+      {block?.kind === 'minute' && (
+        <p className="food-label-warn food-camera-wait" role="alert">
+          Demasiadas fotos seguidas. Espera un minuto, o tecléalo.
+        </p>
+      )}
+      {/* Un `label` y no un botón porque lo que abre la cámara es el `input`:
+          envolverlo es la única forma de que el disparador tenga el aspecto de un
+          control y siga siendo el control real. `capture` pide la trasera del
+          móvil; en un ordenador el navegador lo ignora y ofrece un fichero, que
+          para probar va igual de bien. */}
+      <label
+        className={`btn-full food-camera-shoot${busy || left ? ' is-busy' : ''}`}
+        htmlFor="food-photo"
+        aria-busy={busy ? true : undefined}
+      >
+        {left ? (
+          <span className="food-camera-count">Espera {left} s</span>
+        ) : (
+          <Disparador leyendo={busy}>Abrir la cámara</Disparador>
+        )}
+        {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» o a la cuenta
+            mientras tanto, y sin esto el nombre del control se iría con él. */}
+        <input
+          id="food-photo"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          aria-label="Abrir la cámara"
+          disabled={busy || Boolean(left)}
+          onChange={onShoot}
+        />
+      </label>
+    </div>
+  )
+}
+
+// Los segundos que quedan de una espera, o `0` si no hay ninguna.
+//
+// Cuenta de verdad, un tick por segundo: un botón apagado sin decir hasta cuándo
+// no se distingue de uno roto, y a los treinta segundos ya nadie sabe si sigue
+// esperando o si la app se ha quedado colgada.
+function useCountdown(until, onExpired) {
+  const [left, setLeft] = useState(() => remaining(until))
+  const done = useRef(onExpired)
+  done.current = onExpired
+
+  useEffect(() => {
+    if (!until) {
+      setLeft(0)
+      return undefined
+    }
+    setLeft(remaining(until))
+    const timer = setInterval(() => {
+      const value = remaining(until)
+      setLeft(value)
+      // Al llegar a cero el bloqueo se levanta solo: la ventana corta se pasa
+      // esperando, así que hacer volver a alguien a por el botón sería cobrarle
+      // el minuto dos veces.
+      if (value === 0) done.current?.()
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [until])
+
+  return left
+}
+
+const remaining = (until) => (until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0)
+
+// ¿Este rechazo deja de ofrecer la cámara, y por cuánto?
+//
+// Los tres que la retiran tienen en común que repetir la foto no los arregla:
+// la del minuto se pasa esperando, la del día no se pasa hasta mañana, y la
+// clave que falta la pone quien administra el servidor. Decirle «inténtalo otra
+// vez» a cualquiera de los tres es mandar a gastar una foto contra un fallo
+// seguro — y en el caso de la cuota, además, gastar de lo que ya no hay.
+function detiene(read) {
+  if (read.refusal === 'off') return { kind: 'off' }
+  if (read.refusal !== 'quota') return null
+  if (read.quota_scope === 'day') return { kind: 'day' }
+  return { kind: 'minute', until: Date.now() + MINUTE }
+}
+
+// Lo que dura la ventana corta de la cuota, del lado del modelo.
+const MINUTE = 60_000
+
+// Una ficha de la base pública, en lo que `POST /foods` espera.
+//
+// `??` y no `||`: un nutriente que vale 0 en la ficha es una medición —un agua
+// con cero grasa—, y `||` lo convertiría en `null`, que dice lo contrario. Lo
+// que sí sale `null` es lo que la ficha no trae, porque no se sabe.
+function fromScan(found, code) {
+  const n = found.nutrients ?? {}
+  return {
+    name: found.name,
+    brand: found.brand || null,
+    barcode: found.barcode ?? code ?? null,
+    kcal_100g: n.kcal ?? null,
+    protein_100g: n.protein ?? null,
+    fat_100g: n.fat ?? null,
+    carbs_100g: n.carbs ?? null,
+    fiber_100g: n.fiber ?? null,
+  }
 }
 
 // La foto de un `input[type=file]`, y el input limpio detrás.
@@ -1236,6 +1699,12 @@ function take(event) {
 // casa o una panadería es la vía normal, y aquí además es más rápida que otra
 // foto.
 function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
+  // Dos motivos para pedir otra foto, y no piden lo mismo. La escalada quiere
+  // una foto **de otra cara del envase**; la lectura ilegible quiere la misma
+  // foto mejor hecha. Un botón que dijera «Repetir» en los dos casos mandaría a
+  // repetir la foto del código de barras, que ya sabemos que no sirve.
+  const ilegible = reason === 'unreadable'
+  const shoot = ilegible ? 'Repetir la foto' : 'Enfocar la tabla'
   return (
     <div
       className="food-screen"
@@ -1254,27 +1723,32 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
       </header>
       <div className="food-screen-body">
         <div className="card food-escalada">
-          <p className="food-escalada-line">
+          <p className="food-escalada-line" role="alert">
             {
               {
                 offline: 'No he podido preguntar por ese código.',
                 unusable: 'Los datos de ese código no me sirven.',
+                unreadable: 'No he podido leer la etiqueta.',
               }[reason] ?? 'Ese código no está en ninguna base.'
             }
           </p>
-          <p className="food-escalada-line">Acerca la foto a la tabla nutricional y la leo.</p>
+          <p className="food-escalada-line">
+            {ilegible
+              ? 'Prueba otra vez, más cerca y con más luz.'
+              : 'Acerca la foto a la tabla nutricional y la leo.'}
+          </p>
           <div className="food-escalada-actions">
             <label
               className={`set-action food-escalada-shoot${busy ? ' is-busy' : ''}`}
               htmlFor="food-table"
             >
-              <Disparador leyendo={busy}>Enfocar la tabla</Disparador>
+              <Disparador leyendo={busy}>{shoot}</Disparador>
               <input
                 id="food-table"
                 type="file"
                 accept="image/*"
                 capture="environment"
-                aria-label="Enfocar la tabla"
+                aria-label={shoot}
                 disabled={busy}
                 onChange={onShoot}
               />
@@ -1290,7 +1764,9 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
           </div>
         </div>
         <p className="hint food-screen-foot">
-          El paso caro entra aquí, cuando el gratis ya ha fallado.
+          {ilegible
+            ? 'Sin reintento automático: repetir una foto igual cuesta lo mismo y falla igual.'
+            : 'El paso caro entra aquí, cuando el gratis ya ha fallado.'}
         </p>
       </div>
     </div>
@@ -1327,6 +1803,7 @@ function Amount({
   initialSlot = null,
   dayIso,
   entries = [],
+  source = null,
   onDone,
   onDayChanged,
   onCancel,
@@ -1344,19 +1821,43 @@ function Amount({
   // pregunta desaparece, la libertad no.
   const [slot, setSlot] = useState(initialSlot ?? '')
   const [busy, setBusy] = useState(false)
+  const portion = food.portions?.find((p) => p.id === portionId) ?? null
+
+  const number = (raw) => {
+    const value = Number(String(raw).replace(',', '.'))
+    return Number.isFinite(value) ? value : null
+  }
+
+  // El paso del stepper: de diez en diez para gramos, de uno en uno para
+  // raciones. Media rebanada de pan existe; media unidad de «diez gramos» no
+  // significa nada, y diez raciones de golpe tampoco.
+  //
+  // El suelo es lo que hay, no cero: bajar de cinco gramos a menos cinco no es
+  // una cantidad más pequeña, es otra cosa.
+  function step(delta) {
+    if (portionId) {
+      const next = Math.max(1, (number(quantity) ?? 1) + delta)
+      setQuantity(String(next))
+      return
+    }
+    const current = number(grams) ?? 0
+    const next = current + delta * 10
+    if (next <= 0) return
+    setGrams(String(next))
+  }
 
   async function submit(event) {
     event.preventDefault()
-    const amount = Number(String(grams).replace(',', '.'))
-    if (!portionId && (!Number.isFinite(amount) || amount <= 0)) return
+    const written = number(grams)
+    if (!portionId && !(written > 0)) return
     setBusy(true)
     await logFood({
       foodId: food.id,
       // Gramos o porción, nunca las dos: son dos cantidades distintas y
       // adivinar cuál se quiso decir es como un diario se estropea en silencio.
-      grams: portionId ? null : amount,
+      grams: portionId ? null : written,
       portionId,
-      quantity: portionId ? Number(String(quantity).replace(',', '.')) || 1 : 1,
+      quantity: portionId ? number(quantity) || 1 : 1,
       mealSlot: slot || null,
     })
     await onDone()
@@ -1384,50 +1885,94 @@ function Amount({
     )
   }
 
+  // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
+  // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.
+  const amount = number(portionId ? (portion?.grams ?? 0) * (number(quantity) ?? 0) : grams)
+  const preview = previewNutrients(food, amount)
+
   return (
-    <form className="card card-compose food-amount" onSubmit={submit}>
-      <p className="food-amount-name">{food.name}</p>
+    <form className="sheet-body food-detail" onSubmit={submit}>
+      <Asa />
+      <header className="food-detail-head">
+        <h2 className="food-detail-name">{food.name}</h2>
+        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
+          Cerrar
+        </button>
+      </header>
+      {/* Lo que rinde el alimento, antes de que decidas cuánto: es la cifra con
+          la que se compara mentalmente todo lo demás. */}
+      <p className="food-detail-per">
+        {formatMacro(food.protein_100g)} P · {formatMacro(food.kcal_100g)} kcal / 100 g
+      </p>
+      <Procedencia source={source} />
+
+      {/* Las raciones primero: registrar «una rebanada» no puede obligarte a
+          pensar en gramos, y si el alimento trae una por defecto ya viene puesta. */}
       {food.portions?.length > 0 && (
         <div className="food-portions">
-          {food.portions.map((portion) => (
+          {food.portions.map((p) => (
             <button
               type="button"
-              key={portion.id}
-              className={`chip${portionId === portion.id ? ' is-active' : ''}`}
-              aria-pressed={portionId === portion.id}
-              onClick={() => setPortionId(portionId === portion.id ? null : portion.id)}
+              key={p.id}
+              className={`chip${portionId === p.id ? ' is-active' : ''}`}
+              aria-pressed={portionId === p.id}
+              onClick={() => setPortionId(portionId === p.id ? null : p.id)}
             >
-              {portion.label} · {formatAmount(portion.grams)}
+              {p.label} · {formatAmount(p.grams)}
             </button>
           ))}
         </div>
       )}
-      {portionId ? (
-        <div className="field">
-          <label htmlFor="food-qty">Cuántas</label>
+
+      <div className="field">
+        <label htmlFor="food-qty">{portionId ? 'Cuántas' : 'Cantidad'}</label>
+        <div className="stepper">
+          <button
+            type="button"
+            className="stepper-btn"
+            aria-label={portionId ? 'Menos raciones' : 'Menos cantidad'}
+            onClick={() => step(-1)}
+          >
+            −
+          </button>
           <input
             id="food-qty"
+            className="stepper-input"
             inputMode="decimal"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            value={portionId ? quantity : grams}
+            onChange={(e) => (portionId ? setQuantity(e.target.value) : setGrams(e.target.value))}
           />
+          <button
+            type="button"
+            className="stepper-btn"
+            aria-label={portionId ? 'Más raciones' : 'Más cantidad'}
+            onClick={() => step(1)}
+          >
+            +
+          </button>
         </div>
-      ) : (
-        <div className="field">
-          <label htmlFor="food-grams">Gramos</label>
-          <input
-            id="food-grams"
-            inputMode="decimal"
-            value={grams}
-            onChange={(e) => setGrams(e.target.value)}
-          />
-        </div>
-      )}
-      {/* Chips y no un desplegable: la respuesta ya viene puesta desde el raíl,
-          así que esto dejó de ser una pregunta y pasó a ser una corrección — y
-          una corrección de un toque no se merece dos (abrir y elegir). */}
-      <div className="field">
-        <span className="food-slot-label">Comida</span>
+      </div>
+
+      {/* Los macros de **esta** cantidad, no los del alimento. La proteína en
+          acento porque es la que la pantalla persigue; las otras tres en tinta,
+          que el color de esta app codifica progreso y no categoría. */}
+      <div className="card food-detail-macros">
+        {DETAIL_ROWS.map((row) => (
+          <p className={`food-detail-row${row.key === 'protein' ? ' is-lead' : ''}`} key={row.key}>
+            <span className="food-detail-label">{row.label}</span>
+            <span className="food-detail-value">
+              {formatMacro(preview?.[row.key], { decimals: row.decimals })} g
+            </span>
+          </p>
+        ))}
+        <p className="food-detail-row food-detail-total">
+          <span className="food-detail-label">Total</span>
+          <span className="food-detail-value">{formatMacro(preview?.kcal)} kcal</span>
+        </p>
+      </div>
+
+      <div className="food-detail-slot">
+        <span className="hint">Se añade a</span>
         <div className="food-slots">
           {MEAL_SLOTS.map((s) => (
             <button
@@ -1450,28 +1995,61 @@ function Amount({
           </button>
         </div>
       </div>
-      <div className="food-editor-actions">
-        <button type="submit" className="primary" disabled={busy}>
-          Añadir
+
+      {/* La cantidad dentro del botón: sin ella hay que mirar arriba para saber
+          qué se está a punto de hacer, y el pulgar ya está abajo. */}
+      <button type="submit" className="primary btn-full" disabled={busy || !preview}>
+        Añadir {formatAmount(amount)} · {formatMacro(preview?.protein)} P
+      </button>
+
+      {/* Corregir es un acto raro y registrar es el de cada comida, así que no
+          compite con el botón: enlace, al pie, y sólo donde funcionaría — el
+          catálogo compartido no es tuyo para corregirlo. */}
+      {food.is_mine && (
+        <button
+          type="button"
+          className="link-btn food-detail-correct"
+          onClick={() => setCorrecting(true)}
+          disabled={busy}
+        >
+          Corregir este alimento
         </button>
-        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
-          Cancelar
-        </button>
-        {/* Corregir es un acto raro y registrar es el de cada comida, así que
-            no compite con «Añadir»: enlace, al final de la fila, y sólo donde
-            funcionaría — el catálogo compartido no es tuyo para corregirlo. */}
-        {food.is_mine && (
-          <button
-            type="button"
-            className="link-btn food-correct"
-            onClick={() => setCorrecting(true)}
-            disabled={busy}
-          >
-            Corregir
-          </button>
-        )}
-      </div>
+      )}
     </form>
+  )
+}
+
+// Las cuatro filas de macros de la hoja de detalle, en el orden en que se leen.
+const DETAIL_ROWS = [
+  { key: 'protein', label: 'Proteína', decimals: 1 },
+  { key: 'carbs', label: 'Hidratos', decimals: 1 },
+  { key: 'fat', label: 'Grasa', decimals: 1 },
+  { key: 'fiber', label: 'Fibra', decimals: 1 },
+]
+
+// De dónde ha salido este alimento, contado **después** de resolverlo.
+//
+// El orden importa: un menú por adelantado —«¿escaneo o leo la etiqueta?»— te
+// hace elegir una tecnología antes de saber cuál funciona. Contarlo después es
+// una explicación, no una pregunta, y es lo que deja que el peldaño barato pase
+// desapercibido cuando acierta.
+//
+// Sólo aparece cuando la cámara ha hecho algo. Si has elegido el alimento en la
+// lista no hay nada que contar: ya sabes de dónde salió, lo has tocado tú.
+function Procedencia({ source }) {
+  if (source === 'catalogo') {
+    return (
+      <p className="hint food-source">
+        Leído del código de barras. Ya lo tenías en tus alimentos.
+      </p>
+    )
+  }
+  if (source !== 'codigo') return null
+  return (
+    <>
+      <p className="hint food-source">Leído del código de barras. No ha hecho falta la tabla.</p>
+      <p className="hint food-source">Se guarda en tus alimentos, con su código.</p>
+    </>
   )
 }
 
@@ -1514,34 +2092,26 @@ async function detectBarcodes(file) {
 
 // Qué contar del escaneo, encima del formulario.
 //
-// Sin esta línea, un formulario en blanco después de escanear no se distingue
-// de uno abierto a mano, y te quedas sin saber si el código se leyó, si nadie
-// lo conoce o si no había red — tres cosas que piden respuestas distintas.
+// Ya casi nunca se pinta. Los rechazos del código —desconocido, sin red, ficha
+// inservible— dejaron de acabar en un formulario cuando la escalada se llevó
+// esos tres casos a su propio peldaño, que además ofrece volver a intentarlo
+// con una foto de la tabla. Aquí sólo queda el camino que la escalada no
+// cubre: la ficha llegó bien y el guardado automático no pudo escribirla, así
+// que se abre el formulario con lo que traía.
+//
+// Lo que sí sigue haciendo falta decir es de qué unidad salen los números y si
+// no cuadran entre sí, porque eso viaja con la ficha buena.
 function ScanNote({ scan }) {
-  const message = {
-    nocode: 'No he visto ningún código en la foto.',
-    unknown: 'Ese código no está en Open Food Facts. Tecléalo.',
-    offline: 'No he podido preguntar por ese código. Tecléalo.',
-    unusable: {
-      'por ración': 'Los datos de ese código vienen por ración. No me sirven: tecléalo.',
-      'por 100 ml': 'Los datos de ese código vienen por 100 ml, no por 100 g. Tecléalo.',
-      'sin kcal': 'La ficha de ese código no trae kcal. Tecléalo.',
-    }[scan.refused_reason],
-  }[scan.refusal]
-
-  if (!message) {
-    return (
-      <>
-        {scan.per === '100ml' && (
-          <p className="food-label-warn">
-            Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
-          </p>
-        )}
-        <MismatchNote mismatch={scan.mismatch} />
-      </>
-    )
-  }
-  return <p className="food-label-warn">{message}</p>
+  return (
+    <>
+      {scan.per === '100ml' && (
+        <p className="food-label-warn" role="alert">
+          Los números son por 100 ml, no por 100 g. Los guardo tal cual.
+        </p>
+      )}
+      <MismatchNote mismatch={scan.mismatch} />
+    </>
+  )
 }
 
 // Cuando las kcal y los macros de la misma etiqueta no dan lo mismo.
@@ -1581,23 +2151,53 @@ function MismatchNote({ mismatch }) {
 //
 // Plegado, porque cuando la lectura sale bien es ruido: la información que
 // hace falta ya está en los siete campos.
-function ReadRows({ rows }) {
+// Lo que el modelo dice haber transcrito, a un toque.
+//
+// Existe porque un veredicto no contesta a «¿qué ha leído?». Con las filas
+// delante se ve de un vistazo si leyó bien y el backend descartó las cifras, o
+// si leyó mal desde el principio — dos problemas distintos, con dos arreglos
+// distintos, que sin esto se ven exactamente igual.
+//
+// Plegada por defecto: cuando la lectura sale bien es ruido, porque lo que hace
+// falta ya está en los campos. Y cuando sale mal, está a un toque.
+function Transcripcion({ rows }) {
   const [open, setOpen] = useState(false)
-  if (!rows || rows.length === 0) return null
   return (
-    <div className="food-label-rows">
-      <button type="button" className="link-btn" onClick={() => setOpen(!open)}>
-        {open ? 'Ocultar lo leído' : 'Ver lo que he leído'}
-      </button>
+    <section className="food-transcript">
+      <p className="food-transcript-head">
+        <span className="card-eyebrow">Lo que transcribí</span>
+        <button type="button" className="link-btn" onClick={() => setOpen(!open)}>
+          {open ? 'Ocultar' : 'Ver'}
+        </button>
+      </p>
       {open && (
-        <ul>
+        <div className="card food-transcript-rows">
           {rows.map((row, index) => (
-            <li key={index}>{row}</li>
+            <p className={`food-transcript-row${backsAField(row) ? '' : ' is-aside'}`} key={index}>
+              {row}
+            </p>
           ))}
-        </ul>
+        </div>
       )}
-    </div>
+    </section>
   )
+}
+
+// Las palabras con las que el backend reconoce la fila de un nutriente
+// (`ROW_WORDS`, en `app/label.py`). Aquí sólo deciden **opacidad**: una fila que
+// no respalda ningún campo —«de las cuales saturadas»— se lee más apagada para
+// que las que sí sostienen una cifra salten a la vista.
+//
+// Que esta lista se separe de la del backend no rompe nada: allí decide si una
+// cifra se guarda, aquí sólo cuánta tinta lleva un renglón.
+const ROW_WORDS = /kcal|energ|calor|protein|grasa|lipid|hidrato|carbohidrat|glucid|fibra/i
+
+function backsAField(row) {
+  const folded = String(row).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  // «de las cuales …» es siempre un desglose de la fila de arriba, nunca la
+  // fila que respalda un campo.
+  if (/de (las |los )?cual/i.test(folded)) return false
+  return ROW_WORDS.test(folded)
 }
 
 function LabelNote({ label }) {
@@ -1613,29 +2213,12 @@ function LabelNote({ label }) {
       </p>
     )
   }
-  if (label.refusal === 'unreadable') {
-    return <p className="food-label-warn">No he podido leer la etiqueta. Tecléala.</p>
-  }
-  // Ni la foto ni la red: falta la clave en el servidor. Se dice así porque el
-  // que puede arreglarlo es quien lee esto.
-  if (label.refusal === 'off') {
-    return (
-      <p className="food-label-warn">La lectura de etiquetas no está configurada en el servidor.</p>
-    )
-  }
-  // Sin cuota no es lo mismo que ilegible: repetir la foto no lo arregla. Y la
-  // del minuto no es la del día — a una se le espera y a la otra no —, así que
-  // decir «espera un minuto» a quien tiene que volver mañana es mandarlo a
-  // mirar el móvil para nada.
-  if (label.refusal === 'quota') {
-    return (
-      <p className="food-label-warn">
-        {label.quota_scope === 'day'
-          ? 'Se han acabado las fotos de hoy. Tecléalo.'
-          : 'Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'}
-      </p>
-    )
-  }
+  // Aquí ya no llegan ni `unreadable`, ni `off`, ni `quota`. Los tres dejaron de
+  // acabar en un formulario cuando cada rechazo se ganó su propia salida: la
+  // foto ilegible ofrece repetirse, y las otras dos retiran la cámara en vez de
+  // abrir un formulario que nadie ha pedido. Lo que queda aquí es lo que sí es
+  // un alta: la columna equivocada —en blanco— y la lectura que salió bien.
+
   // Una lectura de la que no sale ninguna cifra no es una lectura buena, por
   // mucho que la llamada haya ido bien. Visto en producción el 2026-09-04: el
   // servidor devolvió 200, la pantalla abrió siete campos vacíos y lo único
@@ -1644,35 +2227,49 @@ function LabelNote({ label }) {
   const anyRead = Object.values(label.nutrients ?? {}).some((value) => value != null)
   if (!anyRead) {
     return (
-      <>
-        <p className="food-label-warn">No he sacado ninguna cifra de la foto. Tecléalas.</p>
-        <ReadRows rows={label.rows} />
-      </>
+      <p className="food-label-warn" role="alert">
+        No he sacado ninguna cifra de la foto. Tecléalas.
+      </p>
     )
   }
 
+  // De dónde salen las cifras, en su propio bloque y antes que los campos.
+  //
+  // Una cifra que no dice de dónde viene no se puede confirmar, sólo firmar en
+  // blanco. Así que el bloque contesta a las tres preguntas por orden: **cuántas**
+  // cifras salieron de las cinco, **de qué columna**, y **qué se hizo con ellas**.
+  const kept = Object.values(label.nutrients ?? {}).filter((v) => v != null).length
   const dropped = droppedNote(label.dropped)
   return (
-    <>
+    <div className="card food-origin">
+      <p className="food-origin-head">
+        <span className="card-eyebrow">Procedencia</span>
+        <span className="food-origin-count">{kept} de 5 cifras</span>
+      </p>
       {label.column_header && (
-        <p className="hint food-label-read">Leído de «{label.column_header}».</p>
+        <p className="food-origin-column">Leído de «{label.column_header}»</p>
       )}
-      {/* En tinta, y encima de los campos que describe: los números están en
-          casillas que dicen «por 100 g» y no son gramos. No se convierte nada
-          —eso exigiría una densidad que la etiqueta no trae—, se dice lo que
-          son y decides tú. En un líquido acuoso la diferencia es del 3%. */}
+      {/* «sin conversión» no es un adorno: es la afirmación de que nadie ha
+          multiplicado nada por un factor que no estaba impreso. */}
+      <p className="food-origin-how">
+        columna única · {label.per === '100ml' ? 'por 100 ml' : 'sin conversión'}
+      </p>
+      {/* En tinta y no en `--muted`, y no en `--danger`: no es un error, es lo
+          que pasó. Un hueco sin explicar se lee como «la etiqueta no lo
+          declara», que aquí es justo lo contrario. `role="alert"` porque
+          aparecen al llegar a la pantalla y hay que oírlos, no buscarlos. */}
       {label.per === '100ml' && (
-        <p className="food-label-warn">
-          Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.
+        <p className="food-label-warn" role="alert">
+          Los números son por 100 ml, no por 100 g. Los guardo tal cual.
         </p>
       )}
-      {/* En tinta y no en `--muted`: explica por qué un campo está vacío, y un
-          hueco sin explicar se lee como «la etiqueta no lo declara», que aquí es
-          justo lo contrario de lo que ha pasado. */}
-      {dropped && <p className="food-label-warn">{dropped}</p>}
+      {dropped && (
+        <p className="food-label-warn" role="alert">
+          {dropped}
+        </p>
+      )}
       <MismatchNote mismatch={label.mismatch} />
-      <ReadRows rows={label.rows} />
-    </>
+    </div>
   )
 }
 
@@ -2008,51 +2605,98 @@ function NewFood({ name: initialName, label = null, scan = null, barcode = null,
     onCreated(food)
   }
 
-  const FIELDS = [
-    { key: 'kcal', label: 'Kcal por 100 g' },
-    { key: 'protein', label: 'Proteína por 100 g' },
-    { key: 'fat', label: 'Grasa por 100 g' },
-    { key: 'carbs', label: 'Hidratos por 100 g' },
-    { key: 'fiber', label: 'Fibra por 100 g' },
-  ]
+  // ¿Vino esto de una lectura que sacó cifras, o es un formulario en blanco?
+  // No es lo mismo: uno se **revisa** y el otro se rellena, y la pantalla lo
+  // dice desde el título.
+  const leido = Boolean(label && !label.refusal && anyValue(label.nutrients))
+  const campo = (key) => ({
+    id: `food-${key}`,
+    inputMode: 'decimal',
+    value: values[key],
+    onChange: (e) => setValues({ ...values, [key]: e.target.value }),
+  })
 
   return (
-    <form className="card card-compose food-new" ref={box} onSubmit={submit}>
-      {label && <LabelNote label={label} />}
-      {scan && <ScanNote scan={scan} />}
-      <div className="field">
-        <label htmlFor="food-name">Nombre</label>
-        <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="field">
-        <label htmlFor="food-brand">Marca</label>
-        <input
-          id="food-brand"
-          autoComplete="off"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-        />
-      </div>
-      {FIELDS.map((field) => (
-        <div className="field" key={field.key}>
-          <label htmlFor={`food-${field.key}`}>{field.label}</label>
-          <input
-            id={`food-${field.key}`}
-            inputMode="decimal"
-            value={values[field.key]}
-            onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
-          />
-        </div>
-      ))}
-      <p className="hint">Lo que dejes en blanco queda como desconocido, no como cero.</p>
-      <div className="food-editor-actions">
-        <button type="submit" className="primary" disabled={busy}>
-          Guardar alimento
-        </button>
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Alta de alimento">
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">Alta de alimento</span>
+          <span className="food-screen-slot">{leido ? 'Revisa la lectura' : 'Nuevo alimento'}</span>
+        </p>
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
-      </div>
-    </form>
+      </header>
+
+      <form className="food-screen-body food-new" ref={box} onSubmit={submit}>
+        {label && <LabelNote label={label} />}
+        {scan && <ScanNote scan={scan} />}
+
+        <div className="field">
+          <label htmlFor="food-name">Nombre</label>
+          <input id="food-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="food-brand">Marca</label>
+          <input
+            id="food-brand"
+            autoComplete="off"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+          />
+        </div>
+
+        {/* Los cinco números, en dos filas de dos y uno.
+            Cinco `.field` a lo ancho eran cinco renglones de «… por 100 g»
+            repetido, que es la misma frase cinco veces para distinguir cinco
+            cosas que ya se distinguen por su nombre. La unidad se dice una vez,
+            arriba, y los rótulos se quedan con lo que cambia.
+
+            El `aria-label` sí la conserva entera: quien navega a ciegas oye el
+            campo suelto, sin el encabezado que lo enmarca. Y contiene el rótulo
+            visible, que es lo que WCAG pide de un nombre accesible más largo. */}
+        <p className="card-eyebrow food-new-unit">Por 100 g</p>
+        <div className="row">
+          <div className="field stepper-field">
+            <label htmlFor="food-kcal">Kcal</label>
+            <input {...campo('kcal')} aria-label="Kcal por 100 g" />
+          </div>
+          <div className="field stepper-field">
+            <label htmlFor="food-protein">Proteína</label>
+            <input {...campo('protein')} aria-label="Proteína por 100 g" />
+          </div>
+        </div>
+        <div className="row">
+          <div className="field stepper-field">
+            <label htmlFor="food-fat">Grasa</label>
+            <input {...campo('fat')} aria-label="Grasa por 100 g" />
+          </div>
+          <div className="field stepper-field">
+            <label htmlFor="food-carbs">Hidratos</label>
+            <input {...campo('carbs')} aria-label="Hidratos por 100 g" />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="food-fiber">Fibra</label>
+          {/* Marcador de posición `—`, no `0`. Un cero ahí es una afirmación:
+              «medido, y no tiene». La raya dice lo que pasa de verdad. */}
+          <input {...campo('fiber')} aria-label="Fibra por 100 g" placeholder="—" />
+        </div>
+
+        <p className="hint">Lo que dejes en blanco queda como desconocido, no como cero.</p>
+
+        {label?.rows?.length > 0 && <Transcripcion rows={label.rows} />}
+
+        <button type="submit" className="primary btn-full" disabled={busy}>
+          {leido ? 'Dar de alta y continuar' : 'Guardar alimento'}
+        </button>
+        <p className="hint food-new-foot">
+          Nada entra en tu catálogo hasta que lo confirmes aquí.
+        </p>
+      </form>
+    </div>
   )
 }
+
+// ¿Sacó la lectura alguna cifra?
+const anyValue = (nutrients) => Object.values(nutrients ?? {}).some((v) => v != null)

@@ -27,8 +27,20 @@ Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo 
   su alcance a más de un día es rediscutir esta regla, no un detalle de implementación.
 - **Toda la aritmética nutricional vive en `backend/app/nutrition.py`.** No la dupliques
   y no la muevas al router.
-- **Nada crea alimentos solo.** Ni un import, ni el escáner, ni un parser: `POST /foods`
-  desde un formulario que el usuario rellenó es la única puerta.
+- **`POST /foods` es la única puerta.** Ni un import, ni un parser, ni el servidor al
+  resolver un código: nada escribe en `foods` por otro sitio, y `GET /foods/barcode/{ean}`
+  devuelve una propuesta sin tocar la base — hay escenarios que lo fijan por los dos lados.
+  Lo que cambió (2026-09-09) es **quién** la cruza. La regla decía «desde un formulario que
+  el usuario rellenó», y eso ponía un formulario delante de un dato que nadie iba a
+  corregir: el código de barras identifica el producto mejor que cualquier nombre tecleado,
+  la ficha viene de una base pública, y confirmarla campo por campo era pedir una firma sin
+  lectura. Un producto resuelto por su código **se guarda en tu catálogo sin preguntar**,
+  con su código dentro; es lo que convierte «veinte fotos al día» en «veinte productos
+  nuevos al día», y equivocarse ahí se arregla escribiendo encima con `PATCH /foods/{id}`.
+  La excepción no se extiende a la **lectura de la tabla**: ahí las cifras las ha inventado
+  un modelo mirando una foto, no hay código que las identifique, y la pantalla de «Revisa la
+  lectura» sigue siendo obligatoria. La frontera es esa —dato identificado contra dato
+  interpretado—, no el ahorro.
 - **Los alimentos van en la misma BD que los entrenos.** No propongas separarlos; poder
   cruzarlos es el motivo del proyecto.
 - **Un alimento no se borra: se corrige.** No hay `DELETE /foods/{id}` ni control que lo

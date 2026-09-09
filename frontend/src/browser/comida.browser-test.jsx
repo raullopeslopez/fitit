@@ -263,8 +263,14 @@ describe('Comida', () => {
       return user
     }
 
+    // La acción de la pantalla. Cambia de nombre según de dónde venga el
+    // formulario —«Guardar alimento» a mano, «Dar de alta y continuar» tras una
+    // lectura— porque no es lo mismo rellenar que revisar. Lo que estas pruebas
+    // miden es dónde cae, que es lo mismo en los dos casos.
     const guardar = () =>
-      [...document.querySelectorAll('button')].find((b) => b.textContent === 'Guardar alimento')
+      [...document.querySelectorAll('button')].find((b) =>
+        ['Guardar alimento', 'Dar de alta y continuar'].includes(b.textContent),
+      )
 
     it('«Guardar alimento» se ve sin arrastrar', async () => {
       await abrirAlta()
@@ -351,12 +357,17 @@ describe('Comida', () => {
 
     it('y lo primero que se ve es qué se leyó, no el final del formulario', async () => {
       await fotografiar()
-      // La línea que dice de qué columna salieron las cifras es la que convierte
-      // «confirmar» en algo distinto de «firmar en blanco». Si nace fuera de la
-      // pantalla, no la lee nadie.
-      const nota = paintedRect(document.querySelector('.food-label-read'))
-      expect(nota.top).toBeGreaterThanOrEqual(0)
-      expect(nota.bottom).toBeLessThanOrEqual(window.innerHeight)
+      // El bloque que dice de qué columna salieron las cifras y cuántas
+      // sobrevivieron es el que convierte «confirmar» en algo distinto de
+      // «firmar en blanco». Si nace fuera de la pantalla, no lo lee nadie —y
+      // entonces la revisión es un trámite, que es exactamente lo que no puede
+      // ser.
+      const bloque = paintedRect(document.querySelector('.food-origin'))
+      expect(bloque.top).toBeGreaterThanOrEqual(0)
+      expect(bloque.bottom).toBeLessThanOrEqual(window.innerHeight)
+      // Y entero: con la mitad de arriba fuera se lee «de 5 cifras» sin saber
+      // cuántas.
+      expect(paintedRect(document.querySelector('.food-origin-count')).top).toBeGreaterThanOrEqual(0)
     })
   })
 

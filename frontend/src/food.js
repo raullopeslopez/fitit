@@ -153,7 +153,10 @@ export function proteinProgress(eaten, target) {
 export function macroBar(eaten, target) {
   const done = proteinProgress(eaten, target)
   if (done == null) return null
-  return { done, closed: done >= 100 }
+  // `done` va recortado a [0, 100] porque es un ancho, y una barra no se sale de
+  // su caja. `percent` no se recorta porque es una **cifra**: pasarse del
+  // objetivo es un dato del día, y esconderlo tras un 100% sería contarlo mal.
+  return { done, closed: done >= 100, percent: Math.round(((eaten ?? 0) / target) * 100) }
 }
 
 export function unknownNote(unknown = {}) {
@@ -193,4 +196,69 @@ export function droppedNote(dropped = []) {
     named.length === 1 ? named[0] : `${named.slice(0, -1).join(', ')} y ${named.at(-1)}`
   const verb = named.length === 1 ? 'aparece' : 'aparecen'
   return `Descarté ${list}: no ${verb} en la tabla que leí.`
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Previsualizaciones: la única aritmética nutricional que vive fuera del
+// servidor, y por qué está aquí.
+//
+// La regla del proyecto dice que toda la aritmética nutricional vive en
+// `backend/app/nutrition.py`. Lo que esa regla protege es lo que se **escribe**:
+// que la regla de los nulos y el congelado de `log_entries` tengan una sola
+// implementación, porque una segunda deriva y acaba guardando cifras falsas.
+//
+// Lo de aquí no escribe nada. Son tres cuentas que la pantalla necesita **antes**
+// de que exista nada que guardar, y que no se pueden pedir al servidor porque se
+// recalculan a cada tecla: cuánto suma la cantidad que estás escribiendo, cuántas
+// kcal salen de los objetivos que estás fijando, y en qué queda tu día si borras
+// la fila que estás mirando. Pedirlas por red sería una petición por pulsación.
+//
+// A cambio, las tres tienen una prueba que las ata al servidor por sus números,
+// y las tres respetan la regla que sí importa: `null` sobrevive a la operación.
+// Si alguna de las constantes cambia en `nutrition.py`, esas pruebas fallan aquí.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Dos decimales, los mismos que `_MACRO_PLACES`. Redondear distinto haría que la
+// cifra previa y la guardada no coincidieran en el último dígito, que es la
+// forma más tonta de perder la confianza en un número.
+const round2 = (value) => Math.round(value * 100) / 100
+
+// Lo que aportan `grams` de un alimento, desde sus valores por 100 g. El espejo
+// de `calcular_nutrientes`, con su misma frontera: una cantidad que no es una
+// cantidad no previsualiza nada, igual que allí lanza.
+export function previewNutrients(food, grams) {
+  if (grams == null || !(grams > 0)) return null
+  const factor = grams / 100
+  const scale = (value) => (value == null ? null : round2(value * factor))
+  return {
+    kcal: scale(food.kcal_100g),
+    protein: scale(food.protein_100g),
+    fat: scale(food.fat_100g),
+    carbs: scale(food.carbs_100g),
+    fiber: scale(food.fiber_100g),
+  }
+}
+
+// Las kcal que dan esos macros, por los factores de la UE. El espejo de
+// `atwater_kcal`, incluida su excepción: lo desconocido cuenta como 0 **sólo
+// aquí dentro**, porque esto no es un nutriente que se guarde, es una estimación
+// para enseñarla al lado de otra cifra.
+const KCAL_PER_GRAM = { protein: 4, fat: 9, carbs: 4, fiber: 2 }
+
+export function kcalFromMacros(macros = {}) {
+  return Object.entries(KCAL_PER_GRAM).reduce(
+    (total, [key, factor]) => total + factor * (macros[key] ?? 0),
+    0,
+  )
+}
+
+// En qué queda un total del día si se le quita una entrada.
+//
+// `null` en cualquiera de los dos lados se propaga, y no por simetría: si el
+// total ya era desconocido, quitarle algo no lo averigua; y si lo que se quita
+// es desconocido, el resto tampoco se sabe. Un número aquí sería una promesa
+// —«tu día baja a 66 g»— que nadie ha podido calcular.
+export function withoutEntry(total, value) {
+  if (total == null || value == null) return null
+  return round2(total - value)
 }

@@ -19,16 +19,20 @@ def test_without_a_target_the_day_carries_none(client):
 
 
 def test_the_day_carries_the_target_and_what_remains(client):
-    client.patch("/auth/me", json={"objetivo_kcal": 2800, "objetivo_proteina": 160})
+    # Las kcal del objetivo salen del reparto: 4·160 + 4·300 + 9·80 = 2.560.
+    client.patch(
+        "/auth/me",
+        json={"objetivo_proteina": 160, "objetivo_hidratos": 300, "objetivo_grasa": 80},
+    )
     food = create(client, "Arroz", kcal_100g=130)
     client.post(
         "/food-log",
         json={"food_id": food["id"], "grams": 100, "logged_at": "2026-08-31T14:00:00+02:00"},
     )
     day = client.get("/food-log?date=2026-08-31").json()
-    assert day["target_kcal"] == 2800
+    assert day["target_kcal"] == 2560
     assert day["target_protein"] == 160
-    assert day["remaining_kcal"] == 2670
+    assert day["remaining_kcal"] == 2430
 
 
 def test_totals_add_up_across_entries(client):

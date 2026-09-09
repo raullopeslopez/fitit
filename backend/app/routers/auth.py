@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import create_access_token, get_current_user, hash_password, verify_password
 from ..db import get_session
+from ..nutrition import atwater_kcal
 from ..google import InvalidGoogleToken, verify_id_token
 from ..models import User
 from ..schemas import GoogleCredentialIn, LoginIn, RegisterIn, TokenOut, UserOut, UserTargetsIn
@@ -123,10 +124,22 @@ async def update_targets(
     vive en el perfil, no en el día, así que cambiarlo hoy no reescribe lo que
     la pantalla enseñó ayer."""
     user = await session.get(User, user_id)
-    user.objetivo_kcal = payload.objetivo_kcal
     user.objetivo_proteina = payload.objetivo_proteina
     user.objetivo_grasa = payload.objetivo_grasa
     user.objetivo_hidratos = payload.objetivo_hidratos
+    # Las kcal salen del reparto, no del teclado. Sin un solo macro fijado no hay
+    # reparto y por tanto no hay total: `None`, no cero — cero diría «tu objetivo
+    # es no comer», que es otra afirmación.
+    macros = (payload.objetivo_proteina, payload.objetivo_grasa, payload.objetivo_hidratos)
+    user.objetivo_kcal = (
+        atwater_kcal(
+            protein=payload.objetivo_proteina,
+            fat=payload.objetivo_grasa,
+            carbs=payload.objetivo_hidratos,
+        )
+        if any(m is not None for m in macros)
+        else None
+    )
     await session.commit()
     await session.refresh(user)
     return user

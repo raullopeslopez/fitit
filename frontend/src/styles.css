@@ -4111,9 +4111,338 @@ button.set-chip:active:not(:disabled) {
   opacity: 0.75;
   cursor: default;
 }
+/* La cuenta atrás. En `--muted` y no en acento: el acento dice «púlsame», y
+   esto dice justo lo contrario. Y en mono con `tabular-nums` porque es un
+   número que baja de 60 a 0 — sin cifras de ancho fijo, el renglón entero
+   tiembla en cada tic. */
+/* Los dos avisos que viven dentro de la tarjeta de la cámara, que va sin
+   relleno para que sus filas lleguen al canto. Sin esto el texto nace pegado al
+   borde y el botón de debajo se le echa encima. */
+.food-camera-off,
+.food-camera-wait {
+  margin: 0;
+  padding: 0.85rem 1rem;
+}
+.food-camera-wait {
+  border-top: 1px solid var(--border);
+}
+/* «Dar de alta a mano» es el pie de la tarjeta, no un botón suelto dentro: la
+   regla que lo separa es la misma que separa las filas de una comida. */
+.food-camera-card .secondary.btn-full {
+  border-radius: 0;
+  border-width: 1px 0 0;
+  min-height: 48px;
+}
+
+.food-camera-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
 
 .food-screen-foot {
   margin: 1.2rem 0 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Revisa la lectura: procedencia y transcripción.
+ * ------------------------------------------------------------------ */
+
+/* De dónde salen las cifras, antes que los campos que describe. Una cifra que
+   no dice de dónde viene no se puede confirmar, sólo firmar en blanco. */
+.food-origin {
+  margin-bottom: 1.1rem;
+}
+.food-origin-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+}
+.food-origin-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.food-origin-column {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.food-origin-how {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+/* Los avisos van a sangre, hasta el canto de la tarjeta: son el pie del bloque,
+   no un párrafo más dentro de él. */
+.food-origin .food-label-warn {
+  margin: 0.8rem calc(-1 * var(--card-pad-x)) calc(-1.15rem + 0.8rem);
+  padding: 0.7rem var(--card-pad-x);
+  border-top: 1px solid var(--border);
+}
+.food-origin .food-label-warn:last-child {
+  margin-bottom: -1.15rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* La unidad, dicha una vez encima de los cinco números en lugar de repetida en
+   cada rótulo. */
+.food-new-unit {
+  margin: 1rem 0 0.5rem;
+}
+/* Los cinco números, con el mismo tratamiento que los de `.stepper`: mono,
+   `tabular-nums` y centrados. Un número en la fuente de texto es un bug — es la
+   firma del sistema, y estos son justo los que hay que comparar con lo que pone
+   el bote. Más pequeños que los del stepper (1,3rem) porque aquí van dos por
+   fila y no uno solo. */
+.food-new .field input[inputmode='decimal'] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  text-align: center;
+}
+.food-new-foot {
+  margin: 0.6rem 0 0;
+  text-align: center;
+}
+
+/* La transcripción: plegada, porque cuando la lectura sale bien es ruido. */
+.food-transcript {
+  margin: 1.2rem 0;
+}
+.food-transcript-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+.food-transcript-rows {
+  margin: 0;
+  padding: 0.6rem 1rem;
+}
+.food-transcript-row {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  line-height: 2;
+}
+/* Una fila que no respalda ningún campo —«de las cuales saturadas»— se apaga
+   para que las que sí sostienen una cifra salten a la vista. Opacidad y no un
+   color: sigue siendo la misma tinta, sólo que a media voz. */
+.food-transcript-row.is-aside {
+  opacity: 0.55;
+}
+
+/* El asa de una hoja: dice que es una hoja y que se puede echar abajo, sin una
+   palabra. Sólo en las de Comida — `.sheet` la comparten las de Entreno. */
+.sheet-grip {
+  display: block;
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 1rem;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* ------------------------------------------------------------------ *
+ * Confirmar un borrado: el único diálogo centrado de la pantalla.
+ * ------------------------------------------------------------------ */
+.food-confirm-scrim {
+  align-items: center;
+  padding: 1rem;
+}
+.food-confirm {
+  width: 100%;
+  max-width: 318px;
+  margin: 0;
+  background: var(--surface-raised);
+}
+.food-confirm-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+/* El impacto, en tinta y no en `--muted`: es la información con la que se toma
+   la decisión, no una nota al pie. */
+.food-confirm-impact {
+  margin: 0 0 1.2rem;
+  color: var(--text);
+}
+/* `--danger` aquí y en ningún otro sitio de esta pantalla: borrar y error son
+   los dos únicos usos que el contrato de color le deja. */
+.food-confirm-go {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: var(--on-danger);
+  margin-bottom: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * El resumen del día.
+ * ------------------------------------------------------------------ */
+.food-summary-card {
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+.food-summary-row + .food-summary-row {
+  margin-top: 0.8rem;
+}
+.food-summary-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+/* La proteína en acento; hidratos y grasa acompañan al 60%. Misma jerarquía por
+   intensidad que la cabecera del día, y ningún tono nuevo: pasarse del objetivo
+   se cuenta con el porcentaje, no pintando la barra de otro color. */
+.food-summary-fill {
+  display: block;
+  height: 100%;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.food-summary-row.is-lead .food-summary-fill {
+  background: var(--accent);
+}
+.food-summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+}
+.food-summary-kcal {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.food-summary-slot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.food-summary-slot + .food-summary-slot {
+  margin-top: 0.45rem;
+}
+
+/* Los objetivos: gramos arriba, el total derivado abajo y sin marco de campo —
+   no es algo que se decida, es lo que sale de lo que se ha decidido. */
+.food-goals-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+}
+.food-goals .field input,
+.food-goals-total .food-detail-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.food-goals-total .food-detail-value {
+  font-size: 1.05rem;
+}
+.food-goals-foot {
+  margin: 0.6rem 0 0;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * La hoja de detalle: cuánto, y a qué comida.
+ * ------------------------------------------------------------------ */
+.food-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.2rem;
+}
+.food-detail-name {
+  margin: 0;
+  font-size: 1.05rem;
+}
+/* Lo que rinde el alimento antes de que decidas cuánto: la cifra con la que se
+   compara mentalmente todo lo que viene debajo. */
+.food-detail-per {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.food-detail .stepper-input {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.food-detail-macros {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+}
+.food-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.food-detail-row + .food-detail-row {
+  margin-top: 0.45rem;
+}
+.food-detail-label {
+  color: var(--muted);
+}
+.food-detail-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* La proteína, y sólo ella, en acento: es el macro que la pantalla persigue, y
+   el único dato de esta hoja que lleva color. El resto va en tinta — aquí el
+   color no clasifica, señala a dónde mirar. */
+.food-detail-row.is-lead .food-detail-value {
+  color: var(--accent);
+}
+.food-detail-total {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.food-detail-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.food-detail-correct {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.7rem;
+  color: var(--muted);
+}
+
+/* De dónde salió el alimento. Prosa, encima de «cuánto»: no es un dato del
+   alimento, es una explicación de por qué está aquí sin que hayas tecleado. */
+.food-source {
+  margin: -0.4rem 0 0.6rem;
+}
+.food-source + .food-source {
+  margin-top: -0.4rem;
 }
 
 /* El peldaño de en medio: dos frases y dos salidas. Sin tarjeta de resultados
@@ -4526,10 +4855,6 @@ button.set-chip:active:not(:disabled) {
   .food-entry-swipe > .food-entry {
     transition: transform 0.15s ease;
   }
-}
-
-.food-label-read {
-  margin: 0 0 0.6rem;
 }
 
 /* Tinta, no `--muted`. Dice por qué un campo está en blanco, y un hueco sin

@@ -8,10 +8,13 @@ import {
   formatAmount,
   formatMacro,
   inferMealSlot,
+  kcalFromMacros,
+  previewNutrients,
   proteinProgress,
   shiftDay,
   slotLabel,
   unknownNote,
+  withoutEntry,
 } from './food.js'
 
 describe('el día alimentario', () => {
@@ -182,5 +185,58 @@ describe('la barra de proteína', () => {
 
   it('nunca se sale de la barra al pasarse del objetivo', () => {
     expect(proteinProgress(200, 160)).toBe(100)
+  })
+})
+
+// ── Las tres previsualizaciones ───────────────────────────────────────────
+//
+// Fijan que lo que la pantalla enseña antes de guardar coincide con lo que el
+// servidor va a guardar. Es la única defensa contra la deriva que la frontera
+// de `food.js` admite: dos implementaciones de la misma cuenta, en dos
+// lenguajes, que sólo se pueden mantener juntas comprobando que dan lo mismo.
+describe('las previsualizaciones', () => {
+  const POLLO = { kcal_100g: 165, protein_100g: 31, fat_100g: 3.6, carbs_100g: 0, fiber_100g: null }
+
+  it('escala como `calcular_nutrientes`, con dos decimales', () => {
+    // Los mismos números que da el servidor para 150 g de este pollo.
+    expect(previewNutrients(POLLO, 150)).toEqual({
+      kcal: 247.5,
+      protein: 46.5,
+      fat: 5.4,
+      carbs: 0,
+      fiber: null,
+    })
+  })
+
+  it('un nutriente desconocido sobrevive a la multiplicación', () => {
+    // `null` por 1,5 sigue siendo `null`. Un 0 aquí sería una medición que
+    // nadie hizo, y esta cifra acaba en pantalla al lado de las que sí lo son.
+    expect(previewNutrients(POLLO, 150).fiber).toBeNull()
+  })
+
+  it('una cantidad que no es una cantidad no previsualiza nada', () => {
+    expect(previewNutrients(POLLO, 0)).toBeNull()
+    expect(previewNutrients(POLLO, -5)).toBeNull()
+    expect(previewNutrients(POLLO, null)).toBeNull()
+  })
+
+  it('las kcal salen de los macros por los factores de la UE', () => {
+    // 4·P + 9·G + 4·HC + 2·F, los mismos de `_KCAL_PER_GRAM` en nutrition.py.
+    expect(kcalFromMacros({ protein: 160, fat: 80, carbs: 300 })).toBe(2560)
+    expect(kcalFromMacros({ protein: 10, fat: 0, carbs: 0, fiber: 5 })).toBe(50)
+  })
+
+  it('un macro sin fijar cuenta como cero sólo para esta estimación', () => {
+    // Igual que `atwater_kcal`: esto no se guarda, se compara. La regla de que
+    // `null` no es cero protege lo que se escribe, y esto no escribe nada.
+    expect(kcalFromMacros({ protein: 160, fat: null, carbs: null })).toBe(640)
+  })
+
+  it('quitar una entrada del total propaga lo desconocido', () => {
+    expect(withoutEntry(94, 28)).toBe(66)
+    // Si el total del día ya era desconocido, quitarle algo no lo averigua.
+    expect(withoutEntry(null, 28)).toBeNull()
+    // Y si lo que se quita es desconocido, el resultado tampoco se sabe.
+    expect(withoutEntry(94, null)).toBeNull()
   })
 })

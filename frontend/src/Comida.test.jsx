@@ -300,9 +300,9 @@ describe('Comida', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
-      await userEvent.clear(screen.getByLabelText('Gramos'))
-      await userEvent.type(screen.getByLabelText('Gramos'), '80')
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '80')
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 1, grams: 80, portionId: null }),
@@ -325,7 +325,7 @@ describe('Comida', () => {
         'aria-pressed',
         'true',
       )
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 1, portionId: 7, quantity: 1, grams: null }),
@@ -411,11 +411,23 @@ describe('Comida', () => {
         await escanear({ barcode: '8410128750121', food: { ...PAN, name: 'Yogur natural' } })
         // Va directo a la cantidad: el alimento ya existe, no hay nada que dar
         // de alta.
-        expect(await screen.findByLabelText('Gramos')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Cantidad')).toBeInTheDocument()
         expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
       })
 
-      it('uno que conoce Open Food Facts llega como propuesta, no como alta', async () => {
+      // El ahorro que hace que esto valga la pena.
+      //
+      // Un producto resuelto por su código se guarda sin preguntar: el código lo
+      // identifica mejor que cualquier nombre que yo teclee, la ficha viene de
+      // una base pública, y poner un formulario delante es pedir una firma sin
+      // lectura —nadie corrige campo por campo un dato que no ha medido—. Es lo
+      // que convierte «veinte fotos al día» en «veinte productos nuevos al día».
+      //
+      // La excepción no llega a la lectura de la tabla: allí las cifras las ha
+      // interpretado un modelo mirando una foto y la revisión sigue siendo
+      // obligatoria. La frontera es dato identificado contra dato interpretado.
+      it('uno que conoce Open Food Facts se guarda solo, con su código', async () => {
+        api.createFood.mockResolvedValue({ ...PAN, id: 70, name: 'Yogur natural' })
         await escanear({
           barcode: '8410128750121',
           food: null,
@@ -424,10 +436,58 @@ describe('Comida', () => {
           nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
           refusal: null,
         })
-        expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
-        expect(screen.getByLabelText('Marca')).toHaveValue('Hacendado')
-        expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
-        expect(api.createFood).not.toHaveBeenCalled()
+        await waitFor(() =>
+          expect(api.createFood).toHaveBeenCalledWith(
+            expect.objectContaining({
+              name: 'Yogur natural',
+              brand: 'Hacendado',
+              barcode: '8410128750121',
+              kcal_100g: 61,
+              fiber_100g: 0.3,
+            }),
+          ),
+        )
+        // Y va derecho a «cuánto», que es lo único que faltaba por decidir.
+        expect(await screen.findByLabelText('Cantidad')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
+      })
+
+      it('y dice de dónde salió, y que ya está en tus alimentos', async () => {
+        api.createFood.mockResolvedValue({ ...PAN, id: 70, name: 'Yogur natural' })
+        await escanear({
+          barcode: '8410128750121',
+          food: null,
+          name: 'Yogur natural',
+          brand: 'Hacendado',
+          nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: 0.3 },
+          refusal: null,
+        })
+        // Se cuenta **después**, no antes: el peldaño barato no se anuncia como
+        // una opción que elegir, se usa y se dice que se ha usado.
+        expect(
+          await screen.findByText('Leído del código de barras. No ha hecho falta la tabla.'),
+        ).toBeInTheDocument()
+        expect(screen.getByText('Se guarda en tus alimentos, con su código.')).toBeInTheDocument()
+      })
+
+      it('un nutriente que la ficha no trae se guarda desconocido, no en cero', async () => {
+        api.createFood.mockResolvedValue({ ...PAN, id: 70 })
+        await escanear({
+          barcode: '8410128750121',
+          food: null,
+          name: 'Yogur natural',
+          brand: 'Hacendado',
+          nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5 },
+          refusal: null,
+        })
+        // Guardar sin preguntar no puede convertir un hueco en una medición: la
+        // fibra que la ficha no declara viaja como `null`, igual que si nadie la
+        // hubiera tecleado.
+        await waitFor(() =>
+          expect(api.createFood).toHaveBeenCalledWith(
+            expect.objectContaining({ fiber_100g: null }),
+          ),
+        )
       })
 
       it('el código viaja hasta el alta aunque acabes tecleando, para no volver a preguntarlo mañana', async () => {
@@ -547,7 +607,7 @@ describe('Comida', () => {
 
       it('dice de qué columna salieron los números', async () => {
         await fotografiar(LEIDO)
-        expect(await screen.findByText('Leído de «por 100 g».')).toBeInTheDocument()
+        expect(await screen.findByText('Leído de «por 100 g»')).toBeInTheDocument()
       })
 
       it('deja en blanco lo que descartó, y dice cuál', async () => {
@@ -611,8 +671,9 @@ describe('Comida', () => {
         expect(screen.queryByText(/No he podido leer la etiqueta/)).toBeNull()
       })
 
-      it('si no ha podido leerla, te deja tecleando', async () => {
-        await fotografiar({
+      it('si no ha podido leerla, ofrece repetir o teclear —y teclear abre el formulario en blanco', async () => {
+        api.searchFoods.mockResolvedValue([])
+        api.readLabel.mockResolvedValue({
           ...LEIDO,
           name: null,
           brand: null,
@@ -620,8 +681,15 @@ describe('Comida', () => {
           nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
           refusal: 'unreadable',
         })
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+        await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+        // Un `unreadable` que llega en un 200 del servidor y uno que llega como
+        // error de red son el mismo callejón, y salen por la misma puerta.
+        expect(await screen.findByText('No he podido leer la etiqueta.')).toBeInTheDocument()
+        await userEvent.click(screen.getByRole('button', { name: 'Teclearlo' }))
         expect(await screen.findByLabelText('Nombre')).toHaveValue('')
-        expect(screen.getByText('No he podido leer la etiqueta. Tecléala.')).toBeInTheDocument()
+        expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('')
       })
 
       it('sin cuota del minuto, dice que esperes, no que la foto esté mal', async () => {
@@ -695,11 +763,14 @@ describe('Comida', () => {
 
         await userEvent.upload(screen.getByLabelText('Enfocar la tabla'), JPEG())
         expect(await screen.findByLabelText('Nombre')).toHaveValue('Yogur natural')
-        expect(screen.getByText('Leído de «por 100 g».')).toBeInTheDocument()
+        expect(screen.getByText('Leído de «por 100 g»')).toBeInTheDocument()
         // Y el código que abrió todo esto sigue vivo: se guardará con el
         // alimento, que es lo que evita repetir la escalada mañana.
         api.createFood.mockResolvedValue({ ...PAN, id: 60 })
-        await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+        // La lectura de la tabla **sí** pasa por confirmación: las cifras las ha
+        // interpretado un modelo mirando una foto, y ahí no hay código que las
+        // identifique. Es la frontera de la excepción del escaneo.
+        await userEvent.click(screen.getByRole('button', { name: 'Dar de alta y continuar' }))
         await waitFor(() =>
           expect(api.createFood).toHaveBeenCalledWith(
             expect.objectContaining({ barcode: '8410128750121' }),
@@ -735,7 +806,7 @@ describe('Comida', () => {
         await fotografiar({ ...LEIDO, column_header: 'ø/100 ml', per: '100ml' })
         expect(await screen.findByLabelText('Kcal por 100 g')).toHaveValue('61')
         expect(
-          screen.getByText('Estas cifras son por 100 ml, no por 100 g. Compruébalo antes de guardar.'),
+          screen.getByText('Los números son por 100 ml, no por 100 g. Los guardo tal cual.'),
         ).toBeInTheDocument()
       })
 
@@ -749,7 +820,7 @@ describe('Comida', () => {
         })
         await screen.findByLabelText('Nombre')
         expect(screen.queryByText('Valor energético 61 kcal')).toBeNull()
-        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
         expect(screen.getByText('Valor energético 61 kcal')).toBeInTheDocument()
         expect(screen.getByText('Proteínas 3,8 g')).toBeInTheDocument()
       })
@@ -761,14 +832,14 @@ describe('Comida', () => {
           rows: ['Energia 61 kcal'],
         })
         await screen.findByText('No he sacado ninguna cifra de la foto. Tecléalas.')
-        await userEvent.click(screen.getByRole('button', { name: 'Ver lo que he leído' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
         expect(screen.getByText('Energia 61 kcal')).toBeInTheDocument()
       })
 
       it('sin transcripción no ofrece un desplegable vacío', async () => {
         await fotografiar({ ...LEIDO, rows: [] })
         await screen.findByLabelText('Nombre')
-        expect(screen.queryByRole('button', { name: 'Ver lo que he leído' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Ver' })).toBeNull()
       })
 
       // La única defensa contra un dígito mal leído. Una fila que existe, un
@@ -853,7 +924,7 @@ describe('Comida', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledTimes(2))
     })
   })
@@ -869,7 +940,7 @@ describe('Comida', () => {
       api.correctFoodEntry.mockResolvedValue(entry({ grams: 120 }))
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
-      const field = screen.getByLabelText('Gramos')
+      const field = screen.getByLabelText('Cantidad')
       await userEvent.clear(field)
       await userEvent.type(field, '120')
       await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
@@ -882,7 +953,7 @@ describe('Comida', () => {
       render(<Comida />)
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       await userEvent.click(row)
-      expect(screen.getByLabelText('Gramos')).toBeInTheDocument()
+      expect(screen.getByLabelText('Cantidad')).toBeInTheDocument()
       // Borrar ya no vive en el formulario: sólo quedan gramos y Guardar.
       expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
     })
@@ -902,6 +973,9 @@ describe('Comida', () => {
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       swipeOpen(row)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Pan de la panadería' }))
+      // Deslizar ya no borra: revela el control que **pide** el borrado, y la
+      // decisión se toma en el diálogo, con el impacto en el día delante.
+      await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
       await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalledWith(10))
       // No es un aviso flotante: se queda en el raíl del que salió la entrada,
       // hasta que se deshaga o se registre otra cosa.
@@ -915,6 +989,7 @@ describe('Comida', () => {
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       swipeOpen(row)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Pan de la panadería' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
       await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalled())
       await userEvent.click(await screen.findByRole('button', { name: /Deshacer el borrado/ }))
       await waitFor(() =>
@@ -940,7 +1015,7 @@ describe('Comida', () => {
       // La pregunta «¿a qué comida?» ya viene contestada por el sitio del que
       // vienes; sigue siendo cambiable, pero no hay que contestarla.
       expect(screen.getByRole('button', { name: 'Cena' })).toHaveAttribute('aria-pressed', 'true')
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 1, mealSlot: 'cena' }),
@@ -956,7 +1031,7 @@ describe('Comida', () => {
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
       await userEvent.click(screen.getByRole('button', { name: 'Sin asignar' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(expect.objectContaining({ mealSlot: null })),
       )
@@ -1073,6 +1148,478 @@ describe('Comida', () => {
           'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
         ),
       ).toBeInTheDocument()
+    })
+  })
+
+  // ── Confirmar el borrado ──────────────────────────────────────────────
+  //
+  // Nunca borrar sin decir qué se pierde en el día. Es el único destructivo de
+  // la pantalla y el único diálogo centrado: una hoja se descarta deslizando y
+  // esto no se puede descartar por accidente.
+  describe('confirmar el borrado', () => {
+    const CENA = () =>
+      objetivo({
+        entries: [entry({ id: 7, meal_slot: 'cena', food_name: 'Arroz con pollo', protein: 28 })],
+        totals: { kcal: 500, protein: 94, fat: 12, carbs: 60, fiber: 3 },
+        by_slot: slots({ cena: 500 }),
+        remaining_protein: 66,
+      })
+
+    async function pedirBorrado(day_ = CENA()) {
+      api.getFoodDay.mockResolvedValue(day_)
+      render(<Comida />)
+      const fila = await screen.findByRole('button', { name: /Arroz con pollo/ })
+      swipeOpen(fila)
+      await userEvent.click(screen.getByRole('button', { name: 'Borrar Arroz con pollo' }))
+    }
+
+    it('pregunta antes de borrar, y dice en qué queda el día', async () => {
+      await pedirBorrado()
+      expect(await screen.findByText('¿Borrar «Arroz con pollo»?')).toBeInTheDocument()
+      // 94 g menos los 28 de esta entrada son 66, y 160 − 66 son 94 por debajo.
+      const impacto = screen.getByTestId('food-delete-impact')
+      expect(impacto).toHaveTextContent('Tu día baja a 66 g de proteína, 94 g por debajo del objetivo.')
+      // Y no ha borrado nada todavía.
+      expect(api.deleteFoodEntry).not.toHaveBeenCalled()
+    })
+
+    it('sin objetivo dice a cuánto baja, y no inventa una comparación', async () => {
+      await pedirBorrado(
+        day({
+          entries: [entry({ id: 7, food_name: 'Arroz con pollo', protein: 28 })],
+          totals: { kcal: 500, protein: 94, fat: 12, carbs: 60, fiber: 3 },
+        }),
+      )
+      expect(await screen.findByTestId('food-delete-impact')).toHaveTextContent(
+        'Tu día baja a 66 g de proteína.',
+      )
+    })
+
+    it('si el total no se sabe, no se finge que sí', async () => {
+      await pedirBorrado(
+        day({
+          entries: [entry({ id: 7, food_name: 'Arroz con pollo', protein: 28 })],
+          totals: { kcal: 500, protein: null, fat: 12, carbs: 60, fiber: 3 },
+          unknown: { kcal: 0, protein: 1, fat: 0, carbs: 0, fiber: 0 },
+        }),
+      )
+      // «Tu día baja a — g» sería una frase sin contenido. Lo que sí se sabe es
+      // lo que se va, y eso es lo que se dice.
+      expect(await screen.findByTestId('food-delete-impact')).toHaveTextContent(
+        'Se van 28 g de proteína del día.',
+      )
+    })
+
+    it('cancelar no borra nada', async () => {
+      await pedirBorrado()
+      await userEvent.click(await screen.findByRole('button', { name: 'Cancelar' }))
+      expect(api.deleteFoodEntry).not.toHaveBeenCalled()
+      expect(screen.queryByText('¿Borrar «Arroz con pollo»?')).toBeNull()
+    })
+
+    it('confirmar sí borra, y deja el deshacer donde estaba la fila', async () => {
+      api.deleteFoodEntry.mockResolvedValue({})
+      await pedirBorrado()
+      await userEvent.click(await screen.findByRole('button', { name: 'Borrar' }))
+      await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalledWith(7))
+      // El diálogo confirma; no sustituye al «Deshacer», que sigue viviendo en
+      // la comida donde estaba la entrada.
+      expect(await screen.findByText('Arroz con pollo borrada.')).toBeInTheDocument()
+    })
+  })
+
+  // ── El resumen del día ────────────────────────────────────────────────
+  describe('el resumen del día', () => {
+    async function abrirResumen(day_ = objetivo()) {
+      api.getFoodDay.mockResolvedValue(day_)
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Resumen' }))
+      await screen.findByText('Resumen del día')
+    }
+
+    it('se abre desde la línea de cierre', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      expect(within(hoja).getByText('LUN 31 AGO')).toBeInTheDocument()
+    })
+
+    it('dice el cumplimiento de cada macro con su porcentaje', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      // 6 de 160 es un 4%; 38 de 300 un 13%; 2 de 80 un 3%.
+      expect(within(hoja).getByText('6 / 160 g · 4 %')).toBeInTheDocument()
+      expect(within(hoja).getByText('38 / 300 g · 13 %')).toBeInTheDocument()
+      expect(within(hoja).getByText('2 / 80 g · 3 %')).toBeInTheDocument()
+    })
+
+    it('pasarse no desborda la barra: la llena y lo dice el porcentaje', async () => {
+      await abrirResumen(
+        objetivo({
+          totals: { kcal: 3000, protein: 200, fat: 90, carbs: 320, fiber: 2 },
+        }),
+      )
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      expect(within(hoja).getByText('200 / 160 g · 125 %')).toBeInTheDocument()
+      // Sin juicio: se dice con el número, no con rojo ni con un icono.
+      const barra = hoja.querySelector('.food-summary-fill')
+      expect(barra).toHaveStyle({ width: '100%' })
+      expect(barra.className).not.toContain('danger')
+    })
+
+    it('reparte el día por comida, con las kcal en la cabecera', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      expect(within(hoja).getByText('Reparto por comida')).toBeInTheDocument()
+      // El fixture tiene 200 kcal en desayuno y nada en las demás.
+      expect(within(hoja).getByText('200 kcal')).toBeInTheDocument()
+      const desayuno = within(hoja).getByText('Desayuno').closest('.food-summary-slot')
+      expect(desayuno).toHaveTextContent('— P · 200 kcal')
+    })
+
+    it('un total desconocido no tiene porcentaje, y no lo finge en cero', async () => {
+      await abrirResumen(
+        objetivo({ totals: { kcal: 200, protein: null, fat: 2, carbs: 38, fiber: 2 } }),
+      )
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      // Un «0 %» aquí afirma que no has comido nada de proteína, y lo que pasa
+      // es que no se sabe cuánta llevas. Es la misma distinción de siempre, en
+      // el sitio donde más fácil se pierde: dentro de un porcentaje.
+      expect(within(hoja).getByText('— / 160 g')).toBeInTheDocument()
+      expect(within(hoja).queryByText(/0 %/)).toBeNull()
+    })
+
+    it('una comida vacía suma una raya, no un cero', async () => {
+      await abrirResumen()
+      const hoja = screen.getByRole('dialog', { name: 'Resumen del día' })
+      const cena = within(hoja).getByText('Cena').closest('.food-summary-slot')
+      expect(cena).toHaveTextContent('— P · — kcal')
+    })
+  })
+
+  // ── La hoja de detalle ────────────────────────────────────────────────
+  describe('el detalle de un alimento', () => {
+    const POLLO = {
+      ...PAN,
+      id: 2,
+      name: 'Pechuga de pollo',
+      kcal_100g: 165,
+      protein_100g: 31,
+      fat_100g: 3.6,
+      carbs_100g: 0,
+      fiber_100g: null,
+      is_mine: false,
+    }
+
+    async function abrir(food = POLLO) {
+      api.searchFoods.mockResolvedValue([food])
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pollo')
+      await userEvent.click(await screen.findByRole('button', { name: /Pechuga de pollo/ }))
+      await screen.findByLabelText('Cantidad')
+    }
+
+    // La hoja se pinta **encima** del buscador, que sigue montado detrás: sin
+    // acotar, media consulta encuentra la fila del resultado en vez de la hoja.
+    const hoja = () => screen.getByRole('dialog', { name: 'Detalle del alimento' })
+
+    it('la cabecera dice lo que rinde el alimento por 100 g', async () => {
+      await abrir()
+      expect(within(hoja()).getByText('Pechuga de pollo')).toBeInTheDocument()
+      expect(within(hoja()).getByText('31 P · 165 kcal / 100 g')).toBeInTheDocument()
+    })
+
+    it('los macros se recalculan con la cantidad, sin ir al servidor', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '150')
+      // 165 kcal y 31 g de proteína por 100 g, a 150 g. Las kcal se imprimen sin
+      // decimales, como en el resto de la app.
+      expect(within(hoja()).getByText('46,5 g')).toBeInTheDocument()
+      expect(within(hoja()).getByText('248 kcal')).toBeInTheDocument()
+    })
+
+    it('un nutriente desconocido sigue siendo una raya después de escalar', async () => {
+      await abrir()
+      // La fibra de este pollo no la sabe nadie: 1,5 veces desconocido sigue
+      // siendo desconocido, no cero.
+      const fila = within(hoja()).getByText('Fibra').closest('.food-detail-row')
+      expect(fila).toHaveTextContent('—')
+    })
+
+    it('el botón lleva dentro lo que va a registrar', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '150')
+      // Sin esto hay que mirar arriba para saber qué se está a punto de hacer.
+      expect(screen.getByRole('button', { name: 'Añadir 150 g · 47 P' })).toBeInTheDocument()
+    })
+
+    it('el stepper mueve la cantidad sin teclado', async () => {
+      await abrir()
+      await userEvent.click(screen.getByRole('button', { name: 'Más cantidad' }))
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('110')
+      await userEvent.click(screen.getByRole('button', { name: 'Menos cantidad' }))
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('100')
+    })
+
+    it('la cantidad no baja de cero', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '5')
+      await userEvent.click(screen.getByRole('button', { name: 'Menos cantidad' }))
+      // Cinco gramos menos diez no son menos cinco gramos de pollo.
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('5')
+    })
+
+    it('el destino viene resuelto y se puede corregir', async () => {
+      await abrir()
+      expect(within(hoja()).getByText('Se añade a')).toBeInTheDocument()
+      // Ya contestado por la comida desde la que entraste; la pregunta
+      // desaparece, la libertad no.
+      expect(screen.getByRole('button', { name: 'Cena' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('registra lo que la pantalla estaba enseñando', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '150')
+      await userEvent.click(screen.getByRole('button', { name: 'Añadir 150 g · 47 P' }))
+      await waitFor(() =>
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ foodId: 2, grams: 150, mealSlot: 'cena' }),
+        ),
+      )
+    })
+  })
+
+  // ── Los cinco rechazos ────────────────────────────────────────────────
+  //
+  // Cinco causas y **cinco salidas distintas**. La única que se arregla
+  // repitiendo la foto es «ilegible», así que es la única que ofrece repetirla:
+  // ofrecer reintento donde no puede funcionar es mandar a alguien a gastar
+  // otra foto contra un fallo seguro.
+  //
+  // Y ninguno reintenta solo. Un rechazo por columna o por ilegible repetido
+  // sin cambiar nada duplica el coste con la misma probabilidad de fallo.
+  describe('los rechazos de la lectura', () => {
+    const JPEG = () => new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' })
+
+    async function fotoQueFalla(respuesta) {
+      api.searchFoods.mockResolvedValue([])
+      if (respuesta instanceof Error) api.readLabel.mockRejectedValue(respuesta)
+      else api.readLabel.mockResolvedValue(respuesta)
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+    }
+
+    it('columna equivocada: formulario en blanco, y no se reescala nada', async () => {
+      await fotoQueFalla({ refusal: 'column', refused_column: 'por ración (125 g)' })
+      expect(
+        await screen.findByText(
+          'Esa columna es «por ración (125 g)», no por 100 g. No me sirve: tecléalo.',
+        ),
+      ).toBeInTheDocument()
+      // El formulario se abre en blanco: reescalar por un factor que nadie
+      // eligió da una cifra creíble y falsa, que es peor que ninguna.
+      expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('')
+      // Y no se ofrece repetir: la foto era legible, la columna era la mala.
+      expect(screen.queryByRole('button', { name: 'Repetir la foto' })).toBeNull()
+    })
+
+    it('ilegible: es el único que ofrece repetir la foto', async () => {
+      await fotoQueFalla(new Error('boom'))
+      expect(await screen.findByText('No he podido leer la etiqueta.')).toBeInTheDocument()
+      expect(screen.getByLabelText('Repetir la foto')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Teclearlo' })).toBeInTheDocument()
+      // No se abre el formulario por su cuenta: la salida la eliges tú.
+      expect(screen.queryByLabelText('Nombre')).toBeNull()
+    })
+
+    it('y no reintenta solo: repetir es un gesto tuyo', async () => {
+      await fotoQueFalla(new Error('boom'))
+      await screen.findByText('No he podido leer la etiqueta.')
+      // Una sola llamada. Reintentar sin que nadie cambie nada duplica el coste
+      // con la misma probabilidad de fallo.
+      expect(api.readLabel).toHaveBeenCalledTimes(1)
+    })
+
+    it('sin cuota del minuto: el disparador se apaga con su cuenta atrás', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'minute' })
+      expect(
+        await screen.findByText('Demasiadas fotos seguidas. Espera un minuto, o tecléalo.'),
+      ).toBeInTheDocument()
+      // No vacía la pantalla: sólo apaga el botón. Esperar un minuto es una
+      // salida real, y quitar la cámara la escondería.
+      expect(screen.getByLabelText('Abrir la cámara')).toBeDisabled()
+      expect(screen.getByText(/Espera .* s/)).toBeInTheDocument()
+      expect(screen.getByLabelText('Buscar alimento')).toBeInTheDocument()
+    })
+
+    it('sin cuota del día: la cámara desaparece, y no hay reintento', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'day' })
+      expect(await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')).toBeInTheDocument()
+      // Hasta mañana no se arregla con nada, así que el botón no se queda
+      // apagado esperando: se va. Un control que no puede funcionar hoy es peor
+      // que uno que no está.
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Dar de alta a mano' })).toBeInTheDocument()
+    })
+
+    it('y la cámara sigue sin estar al volver a entrar en la pantalla', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'day' })
+      await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')
+      await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
+      // La cuota es de la cuenta y del día, no de esta pantalla: cerrarla y
+      // volver a abrirla no la devuelve, y ofrecer la cámara otra vez sería
+      // gastar otra foto para que conteste lo mismo.
+      await screen.findByLabelText('Buscar alimento')
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+    })
+
+    it('no configurada: se dice y la cámara se retira', async () => {
+      const err = new Error('503')
+      err.status = 503
+      await fotoQueFalla(err)
+      expect(
+        await screen.findByText('La lectura de etiquetas no está configurada en el servidor.'),
+      ).toBeInTheDocument()
+      // Ni la foto ni la red: falta la clave, y quien puede arreglarlo es quien
+      // lee esto. Repetir no sirve de nada.
+      expect(screen.queryByLabelText('Abrir la cámara')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Repetir la foto' })).toBeNull()
+    })
+
+    it('todos los rechazos se anuncian, no sólo se pintan', async () => {
+      await fotoQueFalla({ refusal: 'quota', quota_scope: 'day' })
+      const aviso = await screen.findByText('Se han acabado las fotos de hoy. Tecléalo.')
+      expect(aviso).toHaveAttribute('role', 'alert')
+    })
+  })
+
+  // ── Revisa la lectura ─────────────────────────────────────────────────
+  describe('revisar la lectura', () => {
+    const JPEG = () => new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' })
+
+    async function leer(respuesta) {
+      api.searchFoods.mockResolvedValue([])
+      api.readLabel.mockResolvedValue(respuesta)
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
+      await screen.findByLabelText('Nombre')
+    }
+
+    const CON_DESCARTE = {
+      name: 'Yogur natural',
+      brand: 'Hacendado',
+      column_header: 'Valores medios por 100 g',
+      per: '100g',
+      nutrients: { kcal: 61, protein: 3.8, fat: 3.2, carbs: 4.5, fiber: null },
+      dropped: ['fiber'],
+      rows: [
+        'Valor energético 61 kcal',
+        'Proteínas 3,8 g',
+        'Grasas 3,2 g',
+        'de las cuales saturadas 2,1 g',
+        'Hidratos de carbono 4,5 g',
+      ],
+      refusal: null,
+    }
+
+    it('la pantalla dice que se revisa, no que se rellena', async () => {
+      await leer(CON_DESCARTE)
+      // Un formulario en blanco se rellena; éste viene lleno y lo que toca es
+      // mirarlo. Decirlo desde el título es la diferencia entre confirmar y
+      // firmar en blanco.
+      expect(screen.getByText('Alta de alimento')).toBeInTheDocument()
+      expect(screen.getByText('Revisa la lectura')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Dar de alta y continuar' })).toBeInTheDocument()
+      expect(
+        screen.getByText('Nada entra en tu catálogo hasta que lo confirmes aquí.'),
+      ).toBeInTheDocument()
+    })
+
+    it('el bloque de procedencia cuenta cuántas cifras salieron y de dónde', async () => {
+      await leer(CON_DESCARTE)
+      expect(screen.getByText('4 de 5 cifras')).toBeInTheDocument()
+      expect(screen.getByText('Leído de «Valores medios por 100 g»')).toBeInTheDocument()
+      // «sin conversión» no es un adorno: afirma que nadie ha multiplicado nada
+      // por un factor que no estaba impreso.
+      expect(screen.getByText('columna única · sin conversión')).toBeInTheDocument()
+    })
+
+    it('el campo descartado queda vacío, y se dice por qué', async () => {
+      await leer(CON_DESCARTE)
+      // Vacío, no en cero: un cero ahí es una afirmación —«medido, y no
+      // tiene»— que nadie va a desmentir después.
+      expect(screen.getByLabelText('Fibra por 100 g')).toHaveValue('')
+      expect(screen.getByLabelText('Fibra por 100 g')).toHaveAttribute('placeholder', '—')
+      // Y el hueco no se queda mudo: sin esta línea se lee como «la etiqueta no
+      // lo declara», que es lo contrario de lo que ha pasado.
+      const nota = screen.getByText('Descarté la fibra: no aparece en la tabla que leí.')
+      expect(nota).toHaveAttribute('role', 'alert')
+    })
+
+    it('la unidad se dice una vez, y el nombre accesible la conserva entera', async () => {
+      await leer(CON_DESCARTE)
+      // Cinco rótulos con «… por 100 g» eran la misma frase cinco veces para
+      // distinguir cinco cosas que ya se distinguen por su nombre.
+      expect(screen.getByText('Por 100 g')).toBeInTheDocument()
+      // Quien navega a ciegas oye el campo suelto, sin el encabezado que lo
+      // enmarca, así que ahí la unidad sigue entera.
+      expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
+      expect(screen.getByLabelText('Hidratos por 100 g')).toHaveValue('4,5')
+    })
+
+    it('la transcripción llega plegada, y se abre a un toque', async () => {
+      await leer(CON_DESCARTE)
+      // Plegada porque cuando la lectura sale bien es ruido: lo que hace falta
+      // ya está en los campos.
+      expect(screen.getByText('Lo que transcribí')).toBeInTheDocument()
+      expect(screen.queryByText('Proteínas 3,8 g')).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
+      expect(screen.getByText('Proteínas 3,8 g')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Ocultar' })).toBeInTheDocument()
+    })
+
+    it('una fila que no respalda ningún campo se lee a media voz', async () => {
+      await leer(CON_DESCARTE)
+      await userEvent.click(screen.getByRole('button', { name: 'Ver' }))
+      // «de las cuales saturadas» es un desglose de la fila de arriba, no la
+      // fila que sostiene la grasa: apagarla deja que salten a la vista las que
+      // sí respaldan una cifra.
+      expect(screen.getByText('de las cuales saturadas 2,1 g')).toHaveClass('is-aside')
+      expect(screen.getByText('Grasas 3,2 g')).not.toHaveClass('is-aside')
+    })
+
+    it('por 100 ml se acepta y se dice, no se convierte', async () => {
+      await leer({ ...CON_DESCARTE, column_header: 'por 100 ml', per: '100ml' })
+      // Convertir exigiría una densidad que la etiqueta no trae. En un líquido
+      // acuoso la diferencia es del 3%: se guardan tal cual y se dice.
+      expect(screen.getByText('columna única · por 100 ml')).toBeInTheDocument()
+      const aviso = screen.getByText('Los números son por 100 ml, no por 100 g. Los guardo tal cual.')
+      expect(aviso).toHaveAttribute('role', 'alert')
+      expect(screen.getByLabelText('Kcal por 100 g')).toHaveValue('61')
+    })
+
+    it('un alta a mano no finge que hay algo que revisar', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'piquillos')
+      await userEvent.click(await screen.findByRole('button', { name: 'Crear «piquillos»' }))
+      await screen.findByLabelText('Nombre')
+      // Sin lectura no hay procedencia que contar ni transcripción que enseñar,
+      // y el título dice otra cosa: esto se rellena, no se revisa.
+      expect(screen.getByText('Nuevo alimento')).toBeInTheDocument()
+      expect(screen.queryByText('Revisa la lectura')).toBeNull()
+      expect(screen.queryByText('Procedencia')).toBeNull()
+      expect(screen.queryByText('Lo que transcribí')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Guardar alimento' })).toBeInTheDocument()
     })
   })
 
@@ -1193,7 +1740,11 @@ describe('Comida', () => {
       expect(within(macros).getByText('Llevas')).toBeInTheDocument()
       expect(within(macros).getByText('6 / 160')).toBeInTheDocument()
       // Y las kcal dejan de ser el héroe: bajan a la fila de cierre.
-      expect(within(macros).getByText('kcal 200 / 2800')).toBeInTheDocument()
+      // «Cumplido» decía lo contrario de lo que enseñaba con `200 / 2800` al
+      // lado. «Energía» no afirma nada, y la unidad va al final como en las
+      // filas de macro.
+      expect(within(macros).getByText('Energía')).toBeInTheDocument()
+      expect(within(macros).getByText('200 / 2800 kcal')).toBeInTheDocument()
     })
 
     // ---------------------------------------------------------------------
@@ -1272,26 +1823,77 @@ describe('Comida', () => {
       expect(close).toHaveTextContent('Te faltan 154 g de proteína para cerrar el día.')
     })
 
-    it('abre con los valores actuales y los guarda', async () => {
-      api.getFoodDay.mockResolvedValue(day({ target_kcal: 2800, target_protein: 160 }))
+    it('los cuatro macros se fijan en gramos, y las kcal salen de ellos', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      expect(screen.getByLabelText('Kcal al día')).toHaveValue('2800')
-      expect(screen.getByLabelText('Proteína al día (g)')).toHaveValue('160')
-      await userEvent.clear(screen.getByLabelText('Kcal al día'))
-      await userEvent.type(screen.getByLabelText('Kcal al día'), '2500')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-      await waitFor(() => expect(api.setTargets).toHaveBeenCalledWith({ kcal: 2500, protein: 160 }))
+      // Las kcal no son una entrada: son la consecuencia de repartir gramos, y
+      // teclearlas aparte permitía fijar un total que sus propios macros no dan.
+      expect(screen.queryByLabelText('Kcal al día')).toBeNull()
+      expect(screen.getByLabelText('Proteína (g)')).toHaveValue('160')
+      expect(screen.getByLabelText('Hidratos (g)')).toHaveValue('300')
+      expect(screen.getByLabelText('Grasa (g)')).toHaveValue('80')
+      // 4·160 + 4·300 + 9·80 = 2.560
+      expect(screen.getByText('2560 kcal')).toBeInTheDocument()
     })
 
-    it('dejar el campo en blanco borra el objetivo', async () => {
-      api.getFoodDay.mockResolvedValue(day({ target_kcal: 2800, target_protein: 160 }))
+    it('el total se recalcula al teclear, antes de guardar nada', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      await userEvent.clear(screen.getByLabelText('Kcal al día'))
-      await userEvent.clear(screen.getByLabelText('Proteína al día (g)'))
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-      await waitFor(() => expect(api.setTargets).toHaveBeenCalledWith({ kcal: null, protein: null }))
+      await userEvent.clear(screen.getByLabelText('Grasa (g)'))
+      await userEvent.type(screen.getByLabelText('Grasa (g)'), '60')
+      // 4·160 + 4·300 + 9·60 = 2.380. Sin esto habría que guardar para saber en
+      // qué te has metido.
+      expect(screen.getByText('2380 kcal')).toBeInTheDocument()
+    })
+
+    it('guarda los tres macros, y no manda unas kcal que no ha fijado nadie', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
+      await userEvent.clear(screen.getByLabelText('Proteína (g)'))
+      await userEvent.type(screen.getByLabelText('Proteína (g)'), '170')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
+      await waitFor(() =>
+        expect(api.setTargets).toHaveBeenCalledWith({ protein: 170, carbs: 300, fat: 80 }),
+      )
+    })
+
+    it('abre con los valores actuales y los guarda', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
+      expect(screen.getByLabelText('Proteína (g)')).toHaveValue('160')
+      await userEvent.clear(screen.getByLabelText('Hidratos (g)'))
+      await userEvent.type(screen.getByLabelText('Hidratos (g)'), '250')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
+      await waitFor(() =>
+        expect(api.setTargets).toHaveBeenCalledWith({ protein: 160, carbs: 250, fat: 80 }),
+      )
+    })
+
+    it('dejar los campos en blanco borra el objetivo', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
+      for (const campo of ['Proteína (g)', 'Hidratos (g)', 'Grasa (g)']) {
+        await userEvent.clear(screen.getByLabelText(campo))
+      }
+      // Sin un solo macro repartido no hay total, y se dice con una raya. Un 0
+      // aquí diría «tu objetivo es no comer», que es otra afirmación — y además
+      // es la que el servidor se niega a guardar.
+      expect(screen.getByText('— kcal')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
+      // Los tres en `null`: aquí vaciar es una instrucción («bórralo»), no «no
+      // lo toques».
+      await waitFor(() =>
+        expect(api.setTargets).toHaveBeenCalledWith({ protein: null, carbs: null, fat: null }),
+      )
     })
   })
 
@@ -1351,13 +1953,13 @@ describe('corregir un alimento', () => {
     // `is_mine` es falso en una fila de CIQUAL, y el servidor la rechazaría con
     // un 403. Un control que no puede funcionar es peor que uno que no está.
     await abrir({ ...PAN, is_mine: false, name: 'Arroz blanco cocido' })
-    expect(screen.queryByRole('button', { name: 'Corregir' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Corregir este alimento' })).not.toBeInTheDocument()
   })
 
   it('corrige las cifras sin tocar lo ya registrado', async () => {
     api.correctFood.mockResolvedValue({ ...PAN, kcal_100g: 265 })
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.clear(screen.getByLabelText('Kcal por 100 g'))
     await userEvent.type(screen.getByLabelText('Kcal por 100 g'), '265')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
@@ -1369,7 +1971,7 @@ describe('corregir un alimento', () => {
   it('un macro que se vacía queda desconocido, no en cero', async () => {
     api.correctFood.mockResolvedValue({ ...PAN, fiber_100g: null })
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.clear(screen.getByLabelText('Fibra por 100 g'))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
     await waitFor(() =>
@@ -1380,7 +1982,7 @@ describe('corregir un alimento', () => {
   it('corrige un código de barras mal tecleado', async () => {
     api.correctFood.mockResolvedValue(PAN)
     await abrir({ ...PAN, barcode: '8410000000009' })
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.clear(screen.getByLabelText('Código de barras'))
     await userEvent.type(screen.getByLabelText('Código de barras'), '8410000000001')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
@@ -1395,7 +1997,7 @@ describe('corregir un alimento', () => {
   it('añade una ración y la deja por defecto', async () => {
     api.correctFood.mockResolvedValue(PAN)
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir ración' }))
     await userEvent.type(screen.getByLabelText('Ración 1'), 'rebanada')
     await userEvent.type(screen.getByLabelText('Gramos de la ración 1'), '30')
@@ -1417,7 +2019,7 @@ describe('corregir un alimento', () => {
       ...PAN,
       portions: [{ id: 7, label: 'rebanada', grams: 30, is_default: true }],
     })
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.click(screen.getByRole('button', { name: 'Quitar la ración 1' }))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
     await waitFor(() =>
@@ -1430,7 +2032,7 @@ describe('corregir un alimento', () => {
     // su fila. Un alimento mal dado de alta se arregla escribiendo encima, que
     // es lo que hace esta misma hoja.
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar alimento' })).toBeInTheDocument()
@@ -1461,7 +2063,7 @@ describe('corregir un alimento y el registro de ese día', () => {
     // `find` y no `get`: la búsqueda rebota 180 ms, y la lista existe vacía
     // desde el primer pintado.
     await userEvent.click(await within(lista).findByRole('button', { name: /Pan de la panadería/ }))
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
   }
 
   beforeEach(() => {
