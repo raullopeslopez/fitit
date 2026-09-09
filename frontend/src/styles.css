@@ -3914,215 +3914,275 @@ button.set-chip:active:not(:disabled) {
   color: var(--danger);
 }
 
-/* Dentro de la hoja, lo único que se desplaza es la lista: el campo de
-   búsqueda se queda arriba —se sigue escribiendo en él mientras se mira— y
-   «Crear …» y «Cancelar» se quedan abajo. Si el que rodara fuera el bloque
-   entero, buscar un segundo término obligaría a subir a buscar el campo.
-   El tope son 46dvh porque es lo que deja sitio, dentro de los 88dvh de la
-   hoja, al campo con su etiqueta y a los dos botones del pie. */
-.food-search {
-  min-height: 0;
+/* ------------------------------------------------------------------ *
+ * Añadir: una pantalla completa, no una hoja.
+ *
+ * Es una tarea con lista larga —el catálogo devuelve hasta treinta filas— y con
+ * cámara, y las dos cosas piden alto. Una hoja anclada al pie tiene techo
+ * (88dvh) y crece hacia arriba, así que con el teclado subiendo se comía su
+ * propia cabecera: el campo de búsqueda acababa por encima del borde, sin
+ * scroll que lo devolviera, y una búsqueda con treinta coincidencias se leía
+ * como una sin ninguna.
+ *
+ * `dvh` y no `vh` porque el teclado sí encoge el viewport de maquetación
+ * (`interactive-widget=resizes-content`, en `index.html`).
+ * ------------------------------------------------------------------ */
+.food-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  max-height: 100dvh;
+  background: var(--bg);
+}
+.food-screen-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(0.9rem + env(safe-area-inset-top)) 1rem 0.85rem;
+}
+.food-screen-title {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.food-screen-slot {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+/* Una sola columna que rueda entera, con el pie dentro. Lo que antes tenía que
+   quedarse quieto —el campo arriba, los botones abajo— era una consecuencia del
+   techo de la hoja; sin techo, la pantalla se comporta como una pantalla. */
+.food-screen-body {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 1rem calc(1.4rem + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.food-search-field {
+  margin-bottom: 0.85rem;
+}
+
+.food-results-card {
+  padding: 0;
+  overflow: hidden;
 }
 .food-results {
   list-style: none;
-  margin: 0.2rem 0 0.6rem;
+  margin: 0;
   padding: 0;
-  max-height: 46dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
 }
-/* Las dos reglas son el canto de la caja que rueda, y sólo se dibujan cuando
-   hay algo que rodar. Sin ellas, la fila que el borde parte por la mitad queda
-   pegada al campo de búsqueda sin nada entre las dos: un nombre cortado en
-   horizontal contra otro control se lee como un fallo de pintado, no como «hay
-   más abajo» (DESIGN.md). Una raya lo convierte en un borde, que es lo que es
-   — y a diferencia de un degradado no miente en los extremos del recorrido,
-   donde no hay nada que desvanecer. */
-.food-results:not(:empty) {
-  padding: 0.15rem 0;
+.food-results > li + li > .food-result {
   border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
 }
-.food-result-brand {
-  font-weight: 400;
-  color: var(--muted);
+.food-result {
+  padding: 0.6rem 1rem;
 }
-.food-result-kcal {
+.food-result-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.food-result-name {
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* La procedencia, en texto y en mono. Se evaluó decirla con un segundo tono y
+   se descartó: el color de esta pantalla codifica progreso, y de dónde sale un
+   dato no es un progreso. El color tampoco puede ser nunca el único canal. */
+.food-result-meta {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.food-result-protein {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.food-create .food-result-name {
+  color: var(--accent);
+}
+.food-search-note {
+  margin: 0;
+  padding: 0.6rem 1rem;
+}
+
+/* Los frecuentes: lo que repites, con su cantidad dentro del propio chip. Un
+   toque registra eso — sin buscador y sin pasar por «cuánto». */
+.food-frequent {
+  margin-top: 1.2rem;
+}
+.food-frequent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.food-frequent-chip {
+  height: auto;
+  min-height: 44px;
+  gap: 0.45rem;
+  max-width: 100%;
+}
+.food-frequent-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.food-frequent-grams {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
   white-space: nowrap;
 }
-/* «Buscando…» y «Ningún alimento se llama …» ocupan el mismo renglón, debajo
-   de la lista y encima de la oferta de crear: es prosa sobre el estado de la
-   búsqueda, no un control, así que va en `--muted` y en cuerpo pequeño. */
-.food-search-note {
-  margin: 0.2rem 0 0.6rem;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.food-portions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 0.9rem;
-}
-/* ── El pie de la hoja de alta ─────────────────────────────────────────────
-   Tres cosas distintas que se pintaban idénticas: crear un alimento, apuntar
-   con la cámara y salir. Los cuatro controles eran `.link-btn` —transparente,
-   sin borde, tinta plena, 600— y además `inline-flex`, así que fluían en la
-   misma línea y rompían por donde cupieran. Medido a 430 px: «Crear «pollo»»
-   en x=36 y «Leer etiqueta» en x=164, hombro con hombro, y «Cancelar» debajo
-   en x=51 por un `margin-left` que no significaba nada en pantalla.
 
-   La jerarquía ahora la dan la forma y el sitio, no el color: las cámaras son
-   lo único enmarcado (son herramientas, y son dos, y van juntas), «Crear …»
-   sigue siendo un enlace porque cuelga de la búsqueda que acaba de fallar, y
-   «Cancelar» baja a `--muted` porque salir no compite con nada. */
-.food-create {
-  display: flex;
-  width: 100%;
+/* La cámara. Una, y con su propia tarjeta: no compite con el buscador porque no
+   hace lo mismo — el buscador es para lo que ya existe y esto para lo que traes
+   en la mano y todavía no tienes. */
+.food-camera-card {
+  padding: 0;
+  overflow: hidden;
+  margin-top: 1.2rem;
 }
-.food-cameras {
-  margin: 0.5rem 0 0.4rem;
+.food-camera-head {
+  padding: 0.9rem 1rem;
 }
-/* Label, no Micro: es prosa, y DESIGN.md reserva Micro para sellos en
-   versales. Muted porque rotula, no manda. */
-.food-cameras-head {
-  margin: 0 0 0.4rem;
-  font-size: 0.8rem;
+.food-camera-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--muted);
 }
-/* `1fr` y no `auto-fit`: con una sola cámara —Safari, sin `BarcodeDetector`—
-   `auto-fit` la estiraría a lo ancho de la hoja y el hueco de la que falta se
-   leería como que la que queda es la principal. Media hoja dice lo que es. */
-.food-cameras-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+.food-camera-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
 }
-.food-camera {
+/* El disparador de verdad es el `input`; el `label` lo envuelve para tener
+   aspecto de control y seguir siendo el control. El input se esconde sin
+   `display:none`, que lo sacaría del árbol de accesibilidad y dejaría a la
+   etiqueta sin nada que etiquetar. */
+.food-camera-shoot {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
   min-height: 48px;
-  padding: 0 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface-raised);
-  color: var(--text);
-  font-weight: 600;
-  text-align: center;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
   cursor: pointer;
-}
-/* Ámbar en el borde de la que está leyendo. Es la única de las dos que está
-   haciendo algo, y ámbar aquí no decora: dice cuál es la tuya. */
-.food-camera.is-busy {
-  border-color: var(--accent);
-}
-/* Y la otra se apaga. Sin esto el `disabled` vivía sólo en el `input`, que no
-   se ve, así que la cámara bloqueada se pintaba idéntica a la que funciona. */
-.food-camera[aria-disabled='true'] {
-  opacity: 0.4;
-  cursor: default;
-  pointer-events: none;
-}
-.food-camera:active:not([aria-disabled='true']) {
-  background: var(--surface);
-}
-@media (hover: hover) {
-  .food-camera:hover:not([aria-disabled='true']) {
-    border-color: var(--accent);
-  }
-}
-.food-cancel {
-  display: flex;
-  width: 100%;
-  margin-top: 0.3rem;
-  color: var(--muted);
-}
-
-/* Lo de siempre: el repertorio, delante de los raíles.
-   Comer es repetirse, y la caja de búsqueda trataba cada día como si fuera el
-   primero: escribir «huevo» para volver a registrar los mismos 120 g de ayer,
-   y de anteayer. La tira pone lo que repites a un toque, con la cantidad y la
-   comida que ya usas.
-
-   Vivía al pie de la pantalla, bajo los cuatro raíles: con un día a medias
-   registrado había que desplazar para llegar al camino de un toque, mientras
-   que el de cinco pasos (+ → buscar → elegir → cantidad → añadir) estaba
-   siempre a la vista. Delante de los raíles y en una tira horizontal, no en
-   una rejilla de dos columnas: aquí compite por sitio con lo que la pantalla
-   mide de verdad —el objetivo y los raíles— así que ocupa una fila, no dos o
-   tres. */
-.food-siempre-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-/* Contexto, no destino: cada azulejo registra en la comida que le es propia
-   (`item.meal_slot`), más fiable para ese alimento que una hora única para
-   todo el repertorio. Esto sólo dice qué hora es ahora. */
-.food-siempre-slot {
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-.food-siempre-strip {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding-bottom: 0.15rem;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-}
-.food-siempre-strip::-webkit-scrollbar {
-  display: none;
-}
-.food-repeat {
-  flex: none;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.2rem;
-  /* Ancho fijo y no el del contenido: un nombre corto no puede hacer más
-     estrecho el azulejo de al lado, o la tira deja de leerse como una fila de
-     targets iguales. */
-  width: 8.5rem;
-  min-height: 44px;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  text-align: left;
-}
-.food-repeat-name {
+  /* Tinta de acento y sin relleno, igual que «+ Añadir a …» al pie de una
+     comida: es la acción de esta tarjeta, no la de la pantalla. La acción de la
+     pantalla es el buscador de arriba —la mayoría de las veces el alimento ya
+     está—, y un botón macizo aquí abajo diría lo contrario. */
   font-weight: 600;
-  line-height: 1.25;
+  color: var(--accent);
 }
-.food-repeat-meta {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+.food-camera-shoot input[type='file'] {
+  height: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+.food-camera-shoot.is-busy {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.food-screen-foot {
+  margin: 1.2rem 0 0;
+}
+
+/* El peldaño de en medio: dos frases y dos salidas. Sin tarjeta de resultados
+   ni buscador detrás — lo que hay que decidir ahora es una cosa y sólo una. */
+.food-escalada-line {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+}
+.food-escalada-line:last-of-type {
   color: var(--muted);
 }
-/* Mismo velo que una fila del diario mientras el dedo está encima: es la misma
-   manipulación directa, no un botón de acento. */
-.food-repeat:active:not(:disabled) {
-  background: color-mix(in srgb, var(--text) 8%, var(--surface));
+.food-escalada-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
 }
-.food-repeat:disabled {
-  opacity: 0.5;
+/* Las dos salidas, con la misma caja escrita a mano.
+   Una es un `button` y la otra un `label` sobre un `input[type=file]`, y cada
+   uno llega con un relleno distinto —`button.secondary` trae el suyo, el
+   `label` no hereda nada de `button {}`—, así que medían 50 y 45 px. `stretch`
+   no lo arregla, y aunque lo hiciera igualaría por accidente: son dos salidas
+   igual de válidas, y que pesen lo mismo es la afirmación, no un efecto
+   secundario del reparto. 48 px por el suelo de 44 de DESIGN.md, con holgura. */
+.food-escalada-actions > .set-action {
+  flex: 1 1 50%;
+  /* Altura fija, y no `min-height`, porque con el mismo relleno, el mismo tipo
+     y el mismo interlineado el `button` sale 4,8 px más alto que el `label` —y
+     `align-items: stretch` tampoco los iguala—. No he encontrado de dónde sale
+     esa diferencia; lo que sí sé es que son las dos únicas salidas de la
+     pantalla, que pesan lo mismo, y que dos cajas casi iguales una al lado de
+     otra se leen como un fallo de pintado. 48 px queda por encima del suelo de
+     44 de DESIGN.md y sobra para las dos etiquetas, que son cortas. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 48px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
 }
-.food-siempre-hint {
-  margin: 0.55rem 0 0;
+/* Es un `label` sobre un `input[type=file]`, no un `button`: el disparador de
+   verdad es el input, y envolverlo es lo que deja que el control tenga aspecto
+   de control y siga siendo el control —sin un `.click()` a mano de por medio—.
+   El precio es que no hereda nada de `button {}`, así que la caja se escribe
+   aquí: los mismos valores, para que las dos salidas del peldaño pesen igual. */
+.food-escalada-shoot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 0.7rem 1rem;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.food-escalada-shoot input[type='file'] {
+  height: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+.food-escalada-shoot.is-busy {
+  opacity: 0.75;
+  cursor: default;
 }
 
 /* El objetivo diario: un cajón callado, como las preferencias fijas de
@@ -4466,17 +4526,6 @@ button.set-chip:active:not(:disabled) {
   .food-entry-swipe > .food-entry {
     transition: transform 0.15s ease;
   }
-}
-
-/* La cámara del alta de alimento. El disparador de verdad es el `input`, así
-   que el `label` lo envuelve y toma el aspecto de los demás enlaces del panel;
-   el input se esconde sin `display:none`, que lo sacaría del árbol de
-   accesibilidad y dejaría la etiqueta sin nada que etiquetar. */
-.food-photo input[type='file'] {
-  height: 0;
-  opacity: 0;
-  position: absolute;
-  width: 0;
 }
 
 .food-label-read {

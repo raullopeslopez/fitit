@@ -180,78 +180,27 @@ describe('Comida', () => {
     expect(document.activeElement).toBe(field)
   })
 
-  it('el panel puede taparle la barra al pulgar, pero nunca al revés', async () => {
-    await mountComida()
+  it('los frecuentes son chips que se tocan, y no desbordan la pantalla', async () => {
+    // Se mudaron de Comida a Añadir: la pregunta «¿qué registro?» sólo te la
+    // haces cuando ya has decidido registrar algo. Y de tira horizontal pasaron
+    // a chips que envuelven, porque aquí no compiten con el objetivo del día —
+    // lo que antes obligaba a caber en una sola fila.
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Añadir a snack' }))
-    await user.type(screen.getByLabelText('Buscar alimento'), 'pan')
-    // El desplegado con resultados es el panel en su tamaño máximo, que es el
-    // único que hace falta medir: si cabe éste, caben todos.
-    //
-    // Se espera a `.food-result`, no a un botón por su nombre: ese alimento
-    // está también en la lista del día, así que buscarlo por nombre lo
-    // encuentra en el diario y sigue adelante con el panel todavía vacío —
-    // midiendo un panel 75 px más corto que el que el usuario ve.
-    await vi.waitFor(() => expect(document.querySelector('.food-result')).not.toBeNull(), {
-      timeout: 5000,
-    })
-    await settle()
-
-    // Ahora el panel es una hoja fija por encima de todo (`z-index` más alto
-    // que el de la barra), no contenido en el flujo del documento por debajo
-    // de ella: puede llegar hasta donde vive la barra sin que eso sea el
-    // defecto que esta prueba nació para cazar —una hoja modal tapando la
-    // navegación mientras está abierta es lo normal, en cualquier app—. Lo
-    // que sigue siendo un defecto es que la barra, con menos `z-index`,
-    // *gane* esa carrera y se coma un control: por eso la prueba no se
-    // conforma con leer el CSS, comprueba con `elementFromPoint` qué hay de
-    // verdad en el punto donde ambas cajas se cruzan.
-    const nav = paintedRect(document.querySelector('nav.bottom-nav'))
-    const controls = [...document.querySelectorAll('.food-search button, .food-search input')]
-    expect(controls.length, 'el panel no trae resultados').toBeGreaterThan(3)
-    for (const control of controls) {
-      const rect = paintedRect(control)
-      const hit = overlap(nav, rect)
-      if (!hit) continue
-      const atPoint = document.elementFromPoint((hit.left + hit.right) / 2, (hit.top + hit.bottom) / 2)
-      expect(
-        control === atPoint || control.contains(atPoint),
-        `la barra (top ${nav.top}) gana sobre «${control.textContent || control.id}» ` +
-          `(${rect.top.toFixed(1)}–${rect.bottom.toFixed(1)}) en vez de quedar detrás`,
-      ).toBe(true)
-    }
-  })
-
-  it('la tira de «lo de siempre» se desplaza en horizontal y se puede tocar', async () => {
     await mountComida()
-    const tiles = [...document.querySelectorAll('.food-repeat')]
-    expect(tiles.length, 'la tira no se está pintando').toBeGreaterThanOrEqual(4)
-
-    const nav = paintedRect(document.querySelector('nav.bottom-nav'))
-    const tops = []
-    for (const tile of tiles) {
-      // La tira desplaza en horizontal: un azulejo que no está en la parte
-      // visible no está «pintado» —`paintedRect` lo recorta a nada—, así que
-      // hay que traerlo antes de medirlo, igual que con cualquier otra lista.
-      // Y se mide en el mismo paso: traer el siguiente azulejo puede volver a
-      // sacar de la vista al anterior.
-      tile.scrollIntoView({ block: 'nearest', inline: 'center' })
+    await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+    await settle()
+    const chips = [...document.querySelectorAll('.food-frequent-chip')]
+    expect(chips.length, 'los frecuentes no se están pintando').toBeGreaterThanOrEqual(4)
+    for (const chip of chips) {
+      chip.scrollIntoView({ block: 'center' })
       await settle()
-      const rect = paintedRect(tile)
-      // Objetivo de dedo, como todo lo que se pulsa en esta app.
-      expect(rect.height, tile.textContent).toBeGreaterThanOrEqual(44)
-      expect(overlap(nav, rect), 'la barra tapa un azulejo').toBeNull()
-      tops.push(rect.top)
+      const rect = paintedRect(chip)
+      // Objetivo de dedo, como todo lo que se pulsa en esta app. Los nombres de
+      // CIQUAL son largos: el chip crece hacia abajo, no hacia fuera.
+      expect(rect.height, chip.textContent).toBeGreaterThanOrEqual(44)
+      expect(rect.right, chip.textContent).toBeLessThanOrEqual(window.innerWidth + 0.5)
     }
-    // Una tira, no una rejilla: todos los azulejos a la misma altura, y la
-    // página en sí nunca desborda en horizontal aunque la tira sí lo haga —
-    // es ella la que se desplaza, no el viewport entero.
-    for (const top of tops) expect(top).toBeCloseTo(tops[0], 0)
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
-    const strip = document.querySelector('.food-siempre-strip')
-    expect(strip.scrollWidth, 'con cuatro azulejos la tira debería desbordar').toBeGreaterThan(
-      strip.clientWidth,
-    )
   })
 
   it('la puerta de cada comida es un objetivo de dedo y no queda bajo la barra', async () => {
@@ -411,71 +360,78 @@ describe('Comida', () => {
     })
   })
 
-  // El pie de la hoja: tres cosas distintas que se pintaban iguales.
+  // ── La pantalla Añadir, medida a 430×932 ────────────────────────────────
   //
-  // Los cuatro controles eran `.link-btn` —transparente, sin borde, tinta
-  // plena, 600— y encima `inline-flex`, así que fluían en la misma línea y
-  // rompían por donde cupieran. Es un defecto que jsdom no puede ver: sin motor
-  // de maquetación no hay línea que compartir ni ancho que desbordar, y las 68
-  // pruebas de `Comida.test.jsx` pasaban con el pie hecho un acordeón.
-  describe('el pie de la hoja de alta', () => {
-    async function abrirBuscando() {
-      // Las dos cámaras en pantalla, que es el caso que se mide: sin
-      // `BarcodeDetector` sólo se pinta una y no hay pareja que comparar.
-      window.BarcodeDetector = class {
-        detect() {
-          return Promise.resolve([])
-        }
-      }
+  // Sustituye a las pruebas del pie de la hoja, que medían una pareja de
+  // cámaras que ya no existe: los dos disparadores eran `.link-btn` sueltos
+  // —transparentes, sin borde, tinta plena— que fluían en la misma línea que
+  // «Crear …» y «Cancelar» y rompían por donde cupieran. Con una sola cámara en
+  // su propia tarjeta y «Crear …» dentro de la lista, ese renglón no existe.
+  //
+  // Lo que queda por medir es lo de siempre: que se toque, que quepa, y que
+  // nada quede debajo de nada.
+  describe('la pantalla de añadir', () => {
+    async function abrirBuscando(termino = 'pollo') {
       const user = userEvent.setup()
       await mountComida()
       await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
       await settle()
-      // Con texto escrito, para que «Crear …» esté puesto: es el control que
-      // compartía renglón con una cámara.
-      await user.type(document.getElementById('food-q'), 'pollo')
-      await vi.waitFor(() => expect(document.querySelector('.food-create')).not.toBeNull())
+      await user.type(document.getElementById('food-q'), termino)
+      await vi.waitFor(() => expect(document.querySelector('.food-create')).not.toBeNull(), {
+        timeout: 5000,
+      })
       await settle()
       return user
     }
 
-    afterEach(() => {
-      delete window.BarcodeDetector
-    })
-
-    const cams = () => [...document.querySelectorAll('.food-camera')]
-
-    it('las dos cámaras van hombro con hombro y caben en 430 px', async () => {
+    it('la cámara es una, se toca y cabe', async () => {
       await abrirBuscando()
-      const [izq, der] = cams().map((el) => el.getBoundingClientRect())
-      expect(cams()).toHaveLength(2)
-      // Misma línea: es lo que dice que son hermanas.
-      expect(Math.round(izq.top)).toBe(Math.round(der.top))
-      expect(izq.right).toBeLessThanOrEqual(der.left)
-      // Y ninguna se sale, ni empuja la página a lo ancho.
-      expect(der.right).toBeLessThanOrEqual(window.innerWidth)
-      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+      const shoot = document.querySelector('.food-camera-shoot')
+      expect(document.querySelectorAll('.food-camera-shoot')).toHaveLength(1)
+      const box = paintedRect(shoot)
       // 44px es el suelo de DESIGN.md para todo lo que se toca.
-      expect(izq.height).toBeGreaterThanOrEqual(44)
-      expect(der.height).toBeGreaterThanOrEqual(44)
+      expect(box.height).toBeGreaterThanOrEqual(44)
+      expect(box.right).toBeLessThanOrEqual(window.innerWidth)
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
     })
 
-    it('«Crear …» y «Cancelar» ya no comparten renglón con una cámara', async () => {
+    it('«Crear …» vive dentro de la lista, no como hermano de la cámara', async () => {
       await abrirBuscando()
-      const crear = document.querySelector('.food-create').getBoundingClientRect()
-      const cancelar = document.querySelector('.food-cancel').getBoundingClientRect()
-      for (const cam of cams().map((el) => el.getBoundingClientRect())) {
-        // Cada uno en su banda vertical: o entero encima, o entero debajo.
-        expect(crear.bottom, 'crear').toBeLessThanOrEqual(cam.top)
-        expect(cancelar.top, 'cancelar').toBeGreaterThanOrEqual(cam.bottom)
-      }
-      // Y los tres arrancan en la misma vertical: el `margin-left` que sangraba
-      // «Cancelar» 15 px respecto de todo lo demás ya no está.
-      expect(Math.round(cancelar.left)).toBe(Math.round(crear.left))
-      expect(Math.round(cancelar.left)).toBe(Math.round(cams()[0].getBoundingClientRect().left))
+      const crear = document.querySelector('.food-create')
+      // Dentro de la tarjeta de resultados: es el desenlace de esta búsqueda,
+      // no una alternativa a la foto. Como hermano del disparador se leería
+      // como «o haces una foto, o lo tecleas», que es justo la elección de
+      // tecnología que este rediseño quita de en medio.
+      expect(document.querySelector('.food-results-card').contains(crear)).toBe(true)
+      const camara = document.querySelector('.food-camera-card')
+      expect(paintedRect(crear).bottom).toBeLessThanOrEqual(paintedRect(camara).top)
     })
 
-    it('mientras una lee, la otra se ve apagada de verdad', async () => {
+    it('la pantalla tapa la barra de pestañas, y no al revés', async () => {
+      await abrirBuscando()
+      const nav = paintedRect(document.querySelector('nav.bottom-nav'))
+      // Añadir es modal y ocupa la pantalla: que cubra la navegación mientras
+      // está abierta es lo normal. Lo que sería un defecto es que la barra, con
+      // menos `z-index`, gane la carrera y se coma un control — por eso esto no
+      // lee el CSS, pregunta con `elementFromPoint` qué hay de verdad ahí.
+      const controls = [...document.querySelectorAll('.food-screen button, .food-screen input')]
+      expect(controls.length, 'la pantalla no trae controles').toBeGreaterThan(3)
+      for (const control of controls) {
+        const rect = paintedRect(control)
+        const hit = overlap(nav, rect)
+        if (!hit) continue
+        const atPoint = document.elementFromPoint(
+          (hit.left + hit.right) / 2,
+          (hit.top + hit.bottom) / 2,
+        )
+        expect(
+          control === atPoint || control.contains(atPoint) || control.parentElement === atPoint,
+          `la barra se come «${control.textContent || control.id}»`,
+        ).toBe(true)
+      }
+    })
+
+    it('mientras lee, el disparador se ve apagado de verdad', async () => {
       const user = await abrirBuscando()
       const real = window.fetch
       // La lectura se queda colgada a propósito: es el estado que dura hasta
@@ -489,27 +445,56 @@ describe('Comida', () => {
           new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' }),
         )
         await settle()
-        const [codigo, etiqueta] = cams()
-        // Apagada quiere decir apagada: pintada a menos tinta y sin recoger el
-        // toque. El `disabled` vivía sólo en el `input`, que no se ve.
-        expect(getComputedStyle(codigo).opacity).toBe('0.4')
-        expect(getComputedStyle(codigo).pointerEvents).toBe('none')
-        // Y la que trabaja no se apaga; se marca. Ámbar es el único color que
-        // esta hoja gasta, y lo gasta en decir cuál de las dos es la tuya.
-        expect(getComputedStyle(etiqueta).opacity).toBe('1')
-        // El token, resuelto por el navegador: leerlo de `--accent` a pelo
-        // devuelve la cadena sin normalizar y no se puede comparar con un rgb.
-        const sonda = document.createElement('span')
-        sonda.style.color = 'var(--accent)'
-        document.body.append(sonda)
-        const ambar = getComputedStyle(sonda).color
-        sonda.remove()
-        expect(getComputedStyle(etiqueta).borderTopColor).toBe(ambar)
-        expect(getComputedStyle(codigo).borderTopColor).not.toBe(ambar)
+        const shoot = document.querySelector('.food-camera-shoot')
+        // Apagado quiere decir apagado, no sólo `disabled` en un input que no
+        // se ve: menos tinta, y el cursor deja de prometer que se puede pulsar.
+        expect(Number(getComputedStyle(shoot).opacity)).toBeLessThan(1)
+        expect(getComputedStyle(shoot).cursor).toBe('default')
         // El punto que late es el mismo de una serie encolada, no uno nuevo.
-        expect(etiqueta.querySelector('.pending-dot')).not.toBeNull()
+        expect(shoot.querySelector('.pending-dot')).not.toBeNull()
       } finally {
         window.fetch = real
+      }
+    })
+
+    it('el peldaño de en medio pone sus dos salidas hombro con hombro', async () => {
+      window.BarcodeDetector = class {
+        detect() {
+          return Promise.resolve([{ rawValue: '8410128750121' }])
+        }
+      }
+      window.createImageBitmap = () => Promise.resolve({})
+      // El código lo contesta el arnés (`/foods/barcode/` → `refusal: unknown`).
+      // Envolver `window.fetch` aquí no serviría: `mountComida` instala el suyo
+      // encima al montar, y el envoltorio se pierde sin decir nada.
+      try {
+        const user = userEvent.setup()
+        await mountComida()
+        await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+        await settle()
+        await user.upload(
+          document.getElementById('food-photo'),
+          new File([new Uint8Array([255, 216, 255])], 'c.jpg', { type: 'image/jpeg' }),
+        )
+        await vi.waitFor(
+          () => expect(document.querySelector('.food-escalada-actions')).not.toBeNull(),
+          { timeout: 5000 },
+        )
+        await settle()
+        const [foto, teclear] = [...document.querySelectorAll('.food-escalada-actions > *')].map(
+          paintedRect,
+        )
+        // Las dos son salidas válidas, así que pesan lo mismo y van a la par:
+        // «Teclearlo» no es rendirse — para un guiso de casa es la vía normal.
+        expect(Math.round(foto.top)).toBe(Math.round(teclear.top))
+        expect(Math.round(foto.height)).toBe(Math.round(teclear.height))
+        expect(foto.height).toBeGreaterThanOrEqual(44)
+        expect(foto.right).toBeLessThanOrEqual(teclear.left + 0.5)
+        expect(Math.abs(foto.width - teclear.width)).toBeLessThanOrEqual(1)
+        expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+      } finally {
+        delete window.BarcodeDetector
+        delete window.createImageBitmap
       }
     })
   })
@@ -636,7 +621,10 @@ describe('Comida', () => {
     await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
     await user.type(screen.getByLabelText('Buscar alimento'), 'huevo')
     await vi.waitFor(
-      () => expect(document.querySelectorAll('.food-result').length).toBe(HUEVOS.length),
+      () =>
+        expect(document.querySelectorAll('.food-result:not(.food-create)').length).toBe(
+          HUEVOS.length,
+        ),
       { timeout: 5000 },
     )
     await settle()
@@ -653,30 +641,39 @@ describe('Comida', () => {
     )
   })
 
-  it('la lista de resultados tiene su propio recorrido', async () => {
+  it('la pantalla rueda entera, y el último de treinta resultados se alcanza', async () => {
     await mountComida({ catalogue: HUEVOS })
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
     await user.type(screen.getByLabelText('Buscar alimento'), 'huevo')
     await vi.waitFor(
-      () => expect(document.querySelectorAll('.food-result').length).toBe(HUEVOS.length),
+      () =>
+        expect(document.querySelectorAll('.food-result:not(.food-create)').length).toBe(
+          HUEVOS.length,
+        ),
       { timeout: 5000 },
     )
     await settle()
 
     // Treinta filas no caben: el desbordamiento tiene que ser *scroll*, no
     // recorte. Sin esto la mitad del catálogo es inalcanzable.
-    const list = document.querySelector('.food-results')
-    expect(list.scrollHeight, 'la lista cabe entera, la prueba no mide nada').toBeGreaterThan(
-      list.clientHeight,
+    //
+    // Lo que rueda ya no es la lista sino la columna entera. Con la hoja hacía
+    // falta que la lista tuviera su propio recorrido, porque el campo de
+    // búsqueda y los botones del pie estaban clavados dentro de un techo de
+    // 88dvh; sin techo, la pantalla se comporta como una pantalla y buscar un
+    // segundo término se resuelve subiendo, como en cualquier lista.
+    const body = document.querySelector('.food-screen-body')
+    expect(body.scrollHeight, 'la columna cabe entera, la prueba no mide nada').toBeGreaterThan(
+      body.clientHeight,
     )
 
-    list.scrollTop = list.scrollHeight
+    body.scrollTop = body.scrollHeight
     await settle()
-    expect(list.scrollTop, 'la lista no se desplaza').toBeGreaterThan(0)
+    expect(body.scrollTop, 'la columna no se desplaza').toBeGreaterThan(0)
 
     // Y al llegar abajo, el último resultado se ve de verdad.
-    const rows = [...document.querySelectorAll('.food-result')]
+    const rows = [...document.querySelectorAll('.food-result:not(.food-create)')]
     const last = paintedRect(rows[rows.length - 1])
     expect(last.bottom).toBeLessThanOrEqual(window.innerHeight + 0.5)
     expect(last.top).toBeGreaterThanOrEqual(0)

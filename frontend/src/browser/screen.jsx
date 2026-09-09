@@ -267,6 +267,12 @@ function stubNetwork(catalogue = FOODS) {
     [/\/food-log$/, FOOD_DAY],
     // Antes que `/foods$`: leído al revés, «frequent» se buscaría como un id.
     [/\/foods\/frequent$/, FREQUENT],
+    // Un código que nadie conoce: es lo que dispara el peldaño de en medio de
+    // la escalada, y por tanto lo único que deja medirlo.
+    [
+      /\/foods\/barcode\//,
+      { barcode: '8410128750121', food: null, refusal: 'unknown' },
+    ],
     // Una etiqueta leída, con las cinco cifras puestas: lo que interesa medir
     // de esto es la **altura** del formulario que sale detrás, que es la misma
     // venga la lectura de donde venga.
