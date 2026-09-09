@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_user
+from ..config import settings
 from ..db import get_session
 from ..models import Food, LogEntry, User, visible_foods
 from ..schemas import MealSlot
@@ -131,7 +132,13 @@ async def get_food_day(
         by_slot=_by_slot(entries),
         target_kcal=user.objetivo_kcal,
         target_protein=user.objetivo_proteina,
+        target_fat=user.objetivo_grasa,
+        target_carbs=user.objetivo_hidratos,
         remaining_kcal=restante(user.objetivo_kcal, totals["kcal"]),
+        remaining_protein=restante(user.objetivo_proteina, totals["protein"]),
+        remaining_fat=restante(user.objetivo_grasa, totals["fat"]),
+        remaining_carbs=restante(user.objetivo_hidratos, totals["carbs"]),
+        label_reading=bool(settings.gemini_api_key.get_secret_value()),
     )
 
 

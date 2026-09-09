@@ -125,6 +125,8 @@ async def update_targets(
     user = await session.get(User, user_id)
     user.objetivo_kcal = payload.objetivo_kcal
     user.objetivo_proteina = payload.objetivo_proteina
+    user.objetivo_grasa = payload.objetivo_grasa
+    user.objetivo_hidratos = payload.objetivo_hidratos
     await session.commit()
     await session.refresh(user)
     return user

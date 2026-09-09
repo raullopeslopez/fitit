@@ -3768,54 +3768,6 @@ button.set-chip:active:not(:disabled) {
   opacity: 0.35;
 }
 
-/* El total del día es el único número grande de la pantalla. Va sobre la
-   superficie hero porque es lo que la pantalla mide, igual que la tarjeta del
-   ejercicio en curso es lo que Entreno mide. */
-.food-sum {
-  text-align: center;
-}
-.food-kcal {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 2.4rem;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.food-kcal-unit {
-  font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--muted);
-}
-.food-macros {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.4rem;
-  margin-top: 0.9rem;
-}
-.food-macro {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-.food-macro-value {
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
-  font-weight: 600;
-  /* La raya tiene que ocupar la altura de una cifra, o una columna sin dato se
-     hunde y la fila deja de leerse como una fila. */
-  line-height: 1.2;
-}
-.food-macro-label {
-  /* Micro: rótulo de columna, mayúscula y letterspaced, sin una sola minúscula
-     — que es la condición que DESIGN.md pone para bajar de Label. */
-  font-size: 0.625rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
 .food-unknown {
   margin-top: 0.7rem;
   text-align: left;
@@ -3824,114 +3776,6 @@ button.set-chip:active:not(:disabled) {
 .food-empty {
   margin: 2rem 0;
   text-align: center;
-}
-
-/* La tira del total, en lugar de la tarjeta hero.
-   Con cuatro raíles debajo, 143 px de tarjeta empujaban el último raíl y la
-   rejilla de «lo de siempre» fuera de la pantalla. La cifra sigue siendo lo más
-   grande que hay aquí —es lo que la pantalla mide— pero deja de necesitar una
-   superficie para decirlo: una regla debajo basta para separarla de la lista. */
-.food-strip {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  padding-bottom: 0.7rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
-}
-.food-strip-kcal {
-  font-family: var(--font-mono);
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.food-strip-unit {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--muted);
-}
-.food-strip-macros {
-  display: flex;
-  gap: 0.55rem;
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-/* El rótulo en `--muted` y la cifra en tinta: la raya de un desconocido tiene
-   que leerse con el mismo peso que un número, aquí igual que en la tarjeta que
-   esta tira sustituye. */
-.food-strip-short {
-  color: var(--muted);
-}
-.food-strip-value {
-  color: var(--text);
-}
-
-/* Los raíles: las cuatro comidas, siempre, con su subtotal y su `+`.
-   Que estén aunque no tengan nada es el cambio: el raíl es la puerta por la que
-   se registra *en* esa comida, así que no puede aparecer sólo cuando ya has
-   comido. Y como se entra por el sitio, el desplegable «Comida» del formulario
-   deja de tener una pregunta que hacer. */
-.food-rail {
-  margin-bottom: 1.1rem;
-}
-.food-rail-head {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  min-height: 44px;
-  margin: 0;
-  padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--border);
-}
-.food-rail-name {
-  flex: 1;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-.food-rail-kcal {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-/* Bajó a control secundario cuando «Añadir alimento» ganó una CTA fija: por
-   color, no por tamaño — DESIGN.md fija 44px como suelo para todo lo que se
-   toca, y éste se sigue tocando cuatro veces al día. En `--muted` sobre una
-   cabecera igual de apagada sigue leyéndose como botón porque el `+` es su
-   único contenido: no hay texto de alrededor con el que confundirlo. */
-.food-rail-add {
-  width: 44px;
-  min-height: 44px;
-  margin-right: -0.6rem;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 1.35rem;
-  line-height: 1;
-  color: var(--muted);
-}
-@media (hover: hover) {
-  .food-rail-add:hover:not(:disabled) {
-    color: var(--accent-ink);
-  }
-}
-.food-rail-add:active:not(:disabled) {
-  background: color-mix(in srgb, var(--text) 8%, transparent);
-  border-radius: var(--radius-control);
-}
-.food-rail-empty {
-  margin: 0.5rem 0 0;
 }
 
 /* Los huecos de comida dentro del formulario. Ver el comentario del JSX: aquí
@@ -3965,15 +3809,34 @@ button.set-chip:active:not(:disabled) {
 
 /* Tocar la fila la edita, sin un `⋯` de por medio: es la regla de manipulación
    directa que ya gobierna las series y el título del entreno. */
-.food-entry-amount,
-.food-entry-kcal {
+/* La fila: nombre y cantidad apilados a la izquierda, proteína a la derecha.
+   Apilarlos deja el borde derecho libre para una sola columna de cifras, que es
+   lo que se puede barrer de un vistazo vertical. */
+.food-entry-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.food-entry-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.food-entry-amount {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
   white-space: nowrap;
 }
-.food-entry-kcal {
+.food-entry-protein {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .food-editor-name,
@@ -4262,29 +4125,6 @@ button.set-chip:active:not(:disabled) {
   margin: 0.55rem 0 0;
 }
 
-/* Fija sobre la barra de pestañas, como la de Días — al alcance del pulgar sea
-   cual sea la posición del scroll (DESIGN.md: la acción principal va abajo,
-   nunca arriba). Antes era una CTA al pie, sin fijar: con un día a medio
-   registrar quedaba bajo la línea de flotación igual que el repertorio, y el
-   único camino siempre a la vista era el `+` de cada raíl. Ahora hay un solo
-   destino para «añadir», y el `+` del raíl baja a control secundario. */
-.food-cta {
-  position: fixed;
-  left: 0;
-  right: 0;
-  /* 3.5rem son los 56px de `.tab`, más el 1px del `border-top` que
-     `.bottom-nav` añade por su cuenta — sin él, la CTA y la barra se solapan
-     un píxel exacto. */
-  bottom: calc(3.5rem + 1px + env(safe-area-inset-bottom));
-  z-index: 11;
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 10px 16px;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
-}
-
 /* El objetivo diario: un cajón callado, como las preferencias fijas de
    Entreno (`.head-menu-pop`/`.menu-pref`) — se fija una vez y se corrige rara
    vez, así que no se queda abierto sobre las cifras que sí cambian a diario. */
@@ -4330,92 +4170,241 @@ button.set-chip:active:not(:disabled) {
   background: var(--surface);
 }
 
-/* La cifra grande deja de ser lo comido y pasa a ser lo que queda del
-   objetivo — la pregunta que se hace a las 20:00. Reemplaza a `.food-strip`
-   cuando hay un objetivo fijado; sin uno, `.food-strip` se queda tal cual. */
-.food-hero {
-  padding-bottom: 0.9rem;
+/* ------------------------------------------------------------------ *
+ * Comida: la tarjeta de macros, y el contrato de color.
+ *
+ * El color codifica **progreso**, no categoría: no hay un tono por macro. Lo
+ * cumplido se desatura, el cromo se reserva a lo que falta, y `--pr` no aparece
+ * hasta que el objetivo se cierra — y entonces ocupa la barra entera.
+ *
+ * Las dos mezclas de abajo son la regla escrita en CSS. Se declaran con
+ * `color-mix` sobre `--accent` y `--muted` y no como literales a propósito: un
+ * literal calibrado en claro se hunde en oscuro, y el modo oscuro es el objetivo
+ * principal del diseño. Al derivarlas de los tokens, las dos siguen al esquema
+ * sin una segunda declaración.
+ * ------------------------------------------------------------------ */
+:root {
+  /* Lo cumplido. Presente, pero apagado: ya no hay nada que hacer con él. */
+  --food-done: color-mix(in srgb, var(--accent) 22%, var(--muted));
+  /* Lo mismo en las barras que acompañan, un paso más atrás todavía. */
+  --food-done-soft: color-mix(in srgb, var(--accent) 18%, var(--muted));
+  /* Lo que falta, en las barras que acompañan: cromo, al 60%. */
+  --food-left-soft: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.food-macros {
+  padding: 1rem 1.1rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
 }
-.food-hero-top {
+.food-macros-top {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
 }
-.food-hero-remaining {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 2.1rem;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
+.food-macros-hero,
+.food-macros-eaten {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
 }
-.food-hero-remaining-unit {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--muted);
+.food-macros-eaten {
+  align-items: flex-end;
+  text-align: right;
 }
-.food-hero-total {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.food-hero-protein {
+.food-macros-figure {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
-  margin-top: 0.7rem;
+  flex-wrap: wrap;
 }
-.food-hero-protein-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-.food-hero-protein-value {
-  margin-left: auto;
+/* El número héroe: lo que **falta**. En cromo porque el cromo es de lo
+   pendiente — la regla 2 del contrato. `--pr` entra sólo al cerrar. */
+.food-macros-number {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-size: 2.6rem;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+.food-macros-number.is-closed {
+  font-size: 1.4rem;
+  color: var(--pr);
+}
+.card-eyebrow.is-closed {
+  color: var(--pr);
+}
+.food-macros-unit {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.food-macros-eaten-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+.food-macros-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.food-macro-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.3rem;
+}
+.food-macro-label {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.food-macro-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* La barra. Dos segmentos y `overflow:hidden`, así que el radio redondea los
+   extremos de los dos sin que ninguno tenga que saberlo. */
+.food-macro-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+/* La proteína manda: el doble de alto y el cromo entero. La jerarquía se dice
+   con intensidad, no con un tono distinto — un segundo color por macro sería
+   redundante con la posición y con la cifra. */
+.food-macro.is-lead .food-macro-bar {
+  height: 10px;
+}
+.food-macro-done {
+  background: var(--food-done-soft);
+}
+.food-macro.is-lead .food-macro-done {
+  background: var(--food-done);
+}
+.food-macro-left {
+  flex: 1;
+  background: var(--food-left-soft);
+}
+.food-macro.is-lead .food-macro-left {
+  background: var(--accent);
+}
+/* Cerrado: `--pr` a todo lo ancho, sin costura. Es el único momento en que el
+   tono profundo ocupa la barra entera — igual que un récord en Entreno. */
+.food-macro-bar.is-closed {
+  background: var(--pr);
+  border-color: var(--pr);
+}
+
+.food-macros-kcal {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.food-macros-kcal-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Comida: una tarjeta por comida.
+ * ------------------------------------------------------------------ */
+.food-slot {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+}
+.food-slot-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+}
+.food-slot-name {
+  font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 600;
 }
-.food-hero-protein-target {
+.food-slot-meta {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* Las filas y el pie se separan con una regla, no con hueco: la tarjeta es una
+   sola superficie y lo que la divide son líneas dentro de ella. */
+.food-slot .food-entry-swipe,
+.food-slot-foot {
+  border-top: 1px solid var(--border);
+}
+.food-slot-foot {
+  margin: 0;
+}
+.food-slot-add {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 1rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+/* Los huecos: dos por fila, en `dashed` y sin sombra. Una tarjeta que todavía
+   no contiene nada no puede pesar lo mismo que una que sí — y sigue siendo
+   objetivo de un toque, que es por donde se registra en esa comida. */
+.food-blanks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+.food-blank {
+  flex: 1 1 40%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-height: 44px;
+  padding: 0.85rem 1rem;
+  border-style: dashed;
+  box-shadow: none;
+  text-align: left;
+}
+.food-blank-add {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: var(--muted);
 }
-/* Una sola barra de acento en toda la pantalla, como manda DESIGN.md: el
-   ámbar señala una cosa, no cuatro — grasa, hidratos y fibra se quedan en
-   mono, sin barra propia. */
-.food-hero-bar {
-  height: 8px;
-  margin-top: 0.4rem;
-  border-radius: 9999px;
-  background: var(--border);
-  overflow: hidden;
-}
-.food-hero-bar > div {
-  height: 100%;
-  background: var(--accent);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .food-hero-bar > div {
-    transition: width 250ms ease;
-  }
-}
-.food-hero-macros {
+
+/* La línea de cierre: el número del héroe dicho en una frase. */
+.food-close {
   display: flex;
-  gap: 0.6rem;
-  margin-top: 0.55rem;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin: 0 0 1rem;
 }
 
 /* El pie que explica una raya, ahora un control: filtra el día a las
@@ -4462,7 +4451,12 @@ button.set-chip:active:not(:disabled) {
 .food-entry-swipe > .food-entry {
   position: relative;
   width: 100%;
-  background: var(--bg);
+  /* Opaca, y del color de la superficie que la contiene: es lo que tapa el
+     «Borrar» que espera detrás mientras la fila no se ha deslizado. Pintaba
+     `--bg` de cuando las filas vivían sueltas sobre la página; dentro de una
+     tarjeta eso las dejaba de otro color que la tarjeta —#f4f2ee sobre #ffffff
+     en claro—, una banda por fila que no separaba nada. */
+  background: var(--surface);
   /* Sigue al dedo mientras se arrastra (JS, en línea) y sólo anima el salto
      final —abrir del todo o volver a cerrar— para que el gesto en curso no se
      sienta pastoso. */

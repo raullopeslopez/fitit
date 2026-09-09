@@ -45,6 +45,14 @@ class User(Base):
     # que un nutriente sin medir en `foods`, la ausencia no es una medida.
     objetivo_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
     objetivo_proteina: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Grasa e hidratos entran por la misma puerta, y por un motivo de pantalla:
+    # la cabecera de Comida pinta lo que **falta** de cada macro, y sin objetivo
+    # no hay nada que faltar. Una barra sin meta no mide nada.
+    #
+    # No hay objetivo de fibra: la cabecera no la pinta, y una columna que nada
+    # lee es una que se acaba llenando de cifras que nadie mira.
+    objetivo_grasa: Mapped[float | None] = mapped_column(Float, nullable=True)
+    objetivo_hidratos: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Exercise(Base):

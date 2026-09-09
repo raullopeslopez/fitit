@@ -177,24 +177,49 @@ export const FOOD_DAY = {
     foodEntry(1, 'desayuno', 'Pan de centeno de la panadería de abajo', 64, 160, 4),
     foodEntry(2, 'desayuno', 'Aceite de oliva virgen extra', 10, 90, 0),
     foodEntry(3, 'comida', 'Pechuga de pollo a la plancha', 180, 297, 0),
-    foodEntry(4, 'comida', 'Arroz blanco cocido', 220, 286, 0.9),
+    // Sin proteína registrada: es la entrada que convierte el total del día en
+    // una raya, y la que deja medir que una raya se pinta con tinta de cifra en
+    // la columna por la que se barre la pantalla.
+    { ...foodEntry(4, 'comida', 'Arroz blanco cocido', 220, 286, 0.9), protein: null },
     // Sin fibra registrada: es la entrada que convierte el total en una raya.
     foodEntry(5, 'cena', 'Piquillos de mi madre', 150, 90, null),
     foodEntry(6, null, 'Café con leche', 200, 62, 0),
   ],
-  totals: { kcal: 985, protein: 49.3, fat: 19.7, carbs: 118.2, fiber: null },
-  unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 1 },
+  // `protein` en `null` porque a una entrada le falta: la regla de los nulos de
+  // `sumar_nutrientes`, tal y como la manda el servidor. No es cero comido — es
+  // un total que todavía no cuadra, y la pantalla tiene que decirlo con una raya.
+  totals: { kcal: 985, protein: null, fat: 19.7, carbs: 118.2, fiber: null },
+  unknown: { kcal: 0, protein: 1, fat: 0, carbs: 0, fiber: 1 },
+  // Los cuatro objetivos fijados, que es lo que pone la tarjeta de macros en su
+  // rama de verdad: sin ellos no hay tramo pendiente, y el contrato de color
+  // —lo cumplido desaturado, el cromo a lo que falta— no tiene dónde pintarse.
+  //
+  // Los `remaining` llegan restados del servidor, igual que en producción.
+  target_kcal: 2600,
+  target_protein: 160,
+  target_fat: 80,
+  target_carbs: 300,
+  remaining_kcal: 1615,
+  // Un total desconocido cuenta como cero comido a este único efecto: lo que la
+  // cifra grande contesta es «cuánto me queda por comer», y ahí la única
+  // respuesta con sentido es el objetivo entero (`restante`, en `nutrition.py`).
+  remaining_protein: 160,
+  remaining_fat: 60.3,
+  remaining_carbs: 181.8,
+  label_reading: true,
   // Los subtotales por raíl, como los manda el servidor: las cinco comidas
   // siempre, y una vacía sumando `null` en vez de 0.
   by_slot: [
-    ['desayuno', 250, 0],
-    ['comida', 583, 0],
-    ['cena', null, 1],
-    ['snack', null, 0],
-    [null, 62, 0],
-  ].map(([slot, kcal, sinFibra]) => ({
+    ['desayuno', 250, 12.5, 0],
+    ['comida', 583, null, 0],
+    // Sin kcal y sin proteína: es la comida que convierte su subtotal en dos
+    // rayas, y la que deja medir que una raya se pinta como una cifra.
+    ['cena', null, null, 1],
+    ['snack', null, null, 0],
+    [null, 62, 3.1, 0],
+  ].map(([slot, kcal, protein, sinFibra]) => ({
     slot,
-    totals: { kcal, protein: null, fat: null, carbs: null, fiber: kcal === null ? null : 0 },
+    totals: { kcal, protein, fat: null, carbs: null, fiber: kcal === null ? null : 0 },
     unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: sinFibra },
   })),
 }
@@ -362,9 +387,9 @@ export async function mountComida({ catalogue = FOODS } = {}) {
   const view = await mountApp({ catalogue })
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
-  // Por el primer raíl, y no por la CTA: los raíles son lo primero que se
-  // dibuja con el día ya cargado, así que esperar a uno de ellos basta.
-  await vi.waitFor(() => expect(document.querySelector('.food-rail')).not.toBeNull(), {
+  // Por la primera tarjeta de comida: es lo primero que se dibuja con el día ya
+  // cargado, así que esperar a una de ellas basta.
+  await vi.waitFor(() => expect(document.querySelector('.food-slot')).not.toBeNull(), {
     timeout: 5000,
   })
   await settle()

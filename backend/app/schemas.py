@@ -293,6 +293,8 @@ class UserOut(BaseModel):
     # `foods.kcal_100g`, aplicada a un objetivo en vez de a una medida.
     objetivo_kcal: float | None = None
     objetivo_proteina: float | None = None
+    objetivo_grasa: float | None = None
+    objetivo_hidratos: float | None = None
 
 
 class UserTargetsIn(BaseModel):
@@ -303,6 +305,8 @@ class UserTargetsIn(BaseModel):
 
     objetivo_kcal: float | None = Field(default=None, gt=0, le=20000)
     objetivo_proteina: float | None = Field(default=None, gt=0, le=1000)
+    objetivo_grasa: float | None = Field(default=None, gt=0, le=1000)
+    objetivo_hidratos: float | None = Field(default=None, gt=0, le=2000)
 
 
 # ---------------------------------------------------------------------------
@@ -570,7 +574,24 @@ class FoodDayOut(BaseModel):
     # de los nulos (`restante`, en `nutrition.py`).
     target_kcal: float | None = None
     target_protein: float | None = None
+    target_fat: float | None = None
+    target_carbs: float | None = None
     remaining_kcal: float | None = None
+    # Lo que falta de cada macro, restado aquí y no en la pantalla. La resta
+    # tiene una regla de nulos (`restante`), la regla vive en `nutrition.py`, y
+    # la cabecera de Comida imprime tres de estos números — el héroe de la
+    # pantalla es lo que falta de proteína. Una segunda implementación de la
+    # regla estaría, precisamente, en la cifra más grande que se lee.
+    remaining_protein: float | None = None
+    remaining_fat: float | None = None
+    remaining_carbs: float | None = None
+    # Si este servidor sabe leer una etiqueta, dicho **antes** de disparar.
+    #
+    # Vive en el día porque es donde la pantalla ya mira, y la cámara que este
+    # booleano apaga vive dentro de esa misma pantalla. Sin él sólo se sabe
+    # disparando —un 503 después de la foto—, que es enterarse de que el botón
+    # no podía funcionar justo cuando ya has apuntado al envase.
+    label_reading: bool = False
 
 
 # Las kilocalorías declaradas y las que salen de los macros, cuando no
