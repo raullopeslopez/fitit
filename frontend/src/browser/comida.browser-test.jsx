@@ -13,6 +13,7 @@
 // que es el defecto que esta suite se creó para cazar en el editor.
 import { afterEach } from 'vitest'
 
+import { page } from '@vitest/browser/context'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
@@ -394,6 +395,58 @@ describe('Comida', () => {
       await settle()
       return user
     }
+
+    // El viewport vuelve a su sitio pase lo que pase. En el cuerpo de la prueba
+    // se lo salta cualquier fallo, y entonces las tres siguientes se miden
+    // contra un teléfono de 600 px de alto y fallan por un motivo que no es el
+    // suyo — la misma fuga que ya costó media hora con `BarcodeDetector`.
+    afterEach(async () => {
+      await page.viewport(430, 932)
+    })
+
+    // ── Con el teclado subido ────────────────────────────────────────────
+    //
+    // `interactive-widget=resizes-content` (en `index.html`) hace que el teclado
+    // de Android **encoja el viewport de maquetación** en vez de dibujarse
+    // encima. Emularlo es exactamente eso: 430×932 pasa a 430×600 con un IME de
+    // ~330 px. Y es el estado normal de esta pantalla, no un caso raro — se abre
+    // con el foco en el buscador, así que el teclado sube solo.
+    //
+    // La hoja de antes se rompía justo aquí: tenía techo (88dvh), crecía hacia
+    // arriba y con el teclado se comía su propia cabecera; la lista quedaba
+    // cortada a media fila y los disparadores apelotonados contra el pie.
+    it('con el teclado subido, el buscador sigue arriba y todo se alcanza', async () => {
+      const user = await abrirBuscando('pan')
+      await page.viewport(430, 600)
+      await settle()
+
+      // El campo, entero y dentro: es donde está el cursor y lo que se está
+      // escribiendo. Si nace por encima del borde, no hay scroll que lo
+      // devuelva —era el defecto de la hoja— y la búsqueda se lee como vacía.
+      const campo = paintedRect(screen.getByLabelText('Buscar alimento'))
+      expect(campo.top, 'el buscador se ha ido por encima del borde').toBeGreaterThanOrEqual(0)
+      expect(campo.bottom).toBeLessThanOrEqual(window.innerHeight)
+      expect(campo.height).toBeGreaterThanOrEqual(44)
+
+      // Lo que no cabe rueda, y rueda **la columna**, no la página: un scroll
+      // horizontal en un teléfono es un fallo por sí solo.
+      const body = document.querySelector('.food-screen-body')
+      expect(body.scrollHeight, 'no hay nada que rodar, la prueba no mide nada').toBeGreaterThan(
+        body.clientHeight,
+      )
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+
+      // Y al fondo del recorrido se llega a la cámara, que es lo último.
+      body.scrollTop = body.scrollHeight
+      await settle()
+      const shoot = paintedRect(document.querySelector('.food-camera-shoot'))
+      expect(shoot.bottom, 'la cámara no se alcanza con el teclado subido').toBeLessThanOrEqual(
+        window.innerHeight + 0.5,
+      )
+      expect(shoot.top).toBeGreaterThanOrEqual(0)
+      expect(shoot.height).toBeGreaterThanOrEqual(44)
+      await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    })
 
     it('la cámara es una, se toca y cabe', async () => {
       await abrirBuscando()
