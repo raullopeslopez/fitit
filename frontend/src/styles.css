@@ -2146,6 +2146,74 @@ button.set-action {
   font-size: 0.9rem;
 }
 
+/* ── La pantalla que sustituye a la pantalla negra ─────────────────────────
+   Hereda de `.alert` porque es la superficie de fallo de la casa y ya está
+   validada en contraste (DESIGN.md, 2026-08-24: `--danger` como tinta sobre
+   superficie da 5,911 en oscuro y 4,891 en claro). Lo que añade es aire: esto
+   no es una línea sobre un formulario que sigue ahí, es lo único que queda en
+   la pantalla, y una caja de 0,6rem flotando arriba del todo se lee como un
+   aviso sobre un contenido que no existe. */
+.app-crash {
+  margin-top: 2rem;
+  padding: 1rem;
+}
+.app-crash-title {
+  /* Al cuerpo de un título de tarjeta: es el encabezado de la pantalla, no el
+     rótulo de una alerta.
+
+     Y en tinta, no en el rojo que `.alert` hereda. Dos razones y las dos son de
+     la casa. DESIGN.md reserva el rojo puro para lo **destructivo**, y que la
+     app se caiga no es un acto destructivo de nadie: no hay nada que se haya
+     borrado ni nada que confirmar. Y medido en Chromium sobre el color
+     realmente pintado, `--danger` a 1,05 rem/600 sobre el velo del 10 % de la
+     propia caja daba **4,18 en tema claro** contra el suelo de 4,5 — el rojo
+     validado en DESIGN.md lo está sobre superficie limpia, no sobre su propio
+     velo. Lo que dice «esto es un aviso» es la caja: el velo y el borde. */
+  margin: 0 0 0.35rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+/* La frase que contesta «¿he perdido la sesión?». En tinta normal y no en el
+   rojo del título: es una tranquilidad, no parte del aviso, y pintarla de rojo
+   la convertiría en una segunda mala noticia. */
+.app-crash-body {
+  margin: 0 0 0.8rem;
+  color: var(--text);
+}
+/* La evidencia. Apagada y en mono —es un dato, no una frase— y con su propio
+   desbordamiento: un mensaje largo se desplaza dentro de esta caja en vez de
+   estirar la página y llevarse `Recargar` fuera del pulgar. */
+.app-crash-detail {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  /* Tinta entera, no `--muted`. Es la misma regla que la app ya aplica a la
+     raya de un nutriente sin medir: «se imprime con la misma tinta que una
+     cifra, nunca en `--muted`». Aquí pesa más, porque este texto es lo único
+     que separa «se puso en negro» de saber qué arreglar. Y no era una
+     preferencia: medido en Chromium sobre el color realmente pintado, con
+     `--muted` sobre el velo del 6 % daba **3,82 en tema claro** contra el suelo
+     de 4,5 — o sea que el único dato accionable de la pantalla suspendía la AA.
+     Lo que la mantiene en segundo plano es el cuerpo y la caja, no el apagado. */
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+/* El único control de la pantalla, así que los 44 px de DESIGN.md sin la
+   excepción que `button.secondary` se permite por ir siempre acompañado. */
+.app-crash button.secondary,
+.app-crash .secondary {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+}
+
 .sets {
   list-style: none;
   padding: 0;

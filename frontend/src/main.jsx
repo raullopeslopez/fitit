@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 
 import App from './App.jsx'
+import ErrorBoundary from './ErrorBoundary.jsx'
 import './styles.css'
 
 // Dev benches, on a query string and nothing else: `volume` is the per-muscle
@@ -39,7 +40,19 @@ async function mount() {
   return <App />
 }
 
-mount().then((tree) => root.render(<React.StrictMode>{tree}</React.StrictMode>))
+// La barrera va **por dentro** de `StrictMode` y por fuera de todo lo demás.
+// Por dentro porque en desarrollo StrictMode monta el árbol dos veces, y una
+// barrera colgada por encima de él se quedaría fuera del segundo montaje — que
+// es justo donde aparecen los fallos de efectos. Por fuera de `App` porque lo
+// que hay que evitar es precisamente que no quede nada: una barrera dentro de
+// una pantalla no cubre a la pantalla que la contiene.
+mount().then((tree) =>
+  root.render(
+    <React.StrictMode>
+      <ErrorBoundary>{tree}</ErrorBoundary>
+    </React.StrictMode>,
+  ),
+)
 
 // Register the service worker so the app is installable and loads its shell offline.
 if ('serviceWorker' in navigator) {
