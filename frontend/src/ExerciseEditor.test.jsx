@@ -1207,3 +1207,65 @@ describe('ExerciseEditor: quién nombra el ejercicio', () => {
     expect(screen.getByText('Editando · Press militar')).toBeInTheDocument()
   })
 })
+
+// ── Lo que no puede costar la app entera ───────────────────────────────────
+//
+// `fit` es la pieza más frágil de este componente y la que corre en el peor
+// sitio: un efecto de **layout**, o sea dentro del commit de React. Mide el
+// documento entero —cada control, cada renglón de prosa, la barra fija, el
+// `visualViewport`— y lo hace en el mismo gesto en el que se abre el panel. Si
+// algo de esa medición revienta, la excepción sale del commit y React desmonta
+// el árbol entero: la pantalla se queda en `<div id="root">` vacío, con el
+// fondo del tema detrás. En oscuro eso es `#0B0C0E` — una pantalla negra.
+//
+// Eso es un reparto absurdo. Lo que `fit` decide es **dónde se posa un panel**;
+// que no pueda decidirlo es un defecto de colocación, no una razón para llevarse
+// por delante la sesión que hay debajo. Así que se degrada: el panel se queda
+// sin recolocar —usable, en su sitio de origen— y el fallo va a la consola.
+//
+// La barrera de `ErrorBoundary.jsx` sigue siendo la red de abajo, para todo lo
+// demás. Ésta es la red de arriba, en el único sitio donde ya sabemos que el
+// coste no se corresponde con la falta.
+describe('ExerciseEditor · la geometría no puede tumbar la app', () => {
+  const romper = () => {
+    const real = Element.prototype.getBoundingClientRect
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      if (this.classList?.contains('editor-inplace')) {
+        throw new TypeError('geometría no disponible')
+      }
+      return real.call(this)
+    })
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('si la medición falla, el panel sigue en pie y se puede escribir en él', () => {
+    const onError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    romper()
+
+    expect(() => editor()).not.toThrow()
+
+    // Lo que importa no es que no se caiga: es que el editor siga sirviendo.
+    // El campo del nombre es lo único que este panel viene a hacer.
+    const field = screen.getByLabelText('Nombre de Press banca')
+    expect(field).toBeInTheDocument()
+    expect(field).toHaveValue('Press banca')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    onError.mockRestore()
+  })
+
+  it('el fallo no se traga en silencio: queda dicho en la consola', () => {
+    const onError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    romper()
+    editor()
+    expect(
+      onError.mock.calls.some((args) =>
+        args.some((a) => String(a).includes('no ha podido colocar')),
+      ),
+    ).toBe(true)
+    onError.mockRestore()
+  })
+})

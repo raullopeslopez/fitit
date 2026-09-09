@@ -602,7 +602,7 @@ export function ExerciseEditor({
       return !found
     }
 
-    const fit = () => {
+    const place = () => {
       // Se mide con el panel en su sitio natural y sin tope de altura, porque
       // las dos cosas que aplicamos —`top` y `max-height`— cambian justo lo que
       // hay que medir.
@@ -902,6 +902,38 @@ export function ExerciseEditor({
       }
       hideCovered(panelRect)
       setNameOnScreen(nameStillReadable(panelRect, usableBottom))
+    }
+
+    // ── La red de arriba ──────────────────────────────────────────────────
+    // `place` mide el documento entero y corre dentro de un efecto de
+    // **layout**, o sea dentro del commit de React. Una excepción ahí no se
+    // queda en el panel: sale del commit, nadie la recoge y React desmonta el
+    // árbol entero. Lo que queda es `<div id="root">` vacío con el fondo del
+    // tema detrás — en oscuro, `#0B0C0E`. Una pantalla negra.
+    //
+    // Y el reparto no se sostiene: lo que `place` decide es dónde se posa un
+    // panel de 130 px. Que no pueda decidirlo es un defecto de colocación, no
+    // una razón para llevarse por delante la sesión que hay debajo. Sin red,
+    // cualquier rareza de un navegador en una de las muchas APIs de geometría
+    // que toca —`getBoundingClientRect`, `visualViewport`, `Range`,
+    // `TreeWalker`, `ResizeObserver`— cuesta la app entera.
+    //
+    // Degradar es barato porque el panel **no depende de esto para servir**:
+    // sin recolocar se queda colgado de su hueco, que es de donde nace, y el
+    // campo del nombre —lo único que este panel viene a hacer— sigue ahí y
+    // sigue enfocado. Se pierde la colocación fina; no se pierde el editor.
+    //
+    // No se traga en silencio: va a la consola con el nombre de la pieza, para
+    // que el siguiente que abra el inspector encuentre la causa y no el
+    // síntoma. `ErrorBoundary.jsx` sigue siendo la red de abajo para todo lo
+    // demás; ésta es la de arriba, en el único sitio donde ya sabemos que el
+    // coste no se corresponde con la falta.
+    const fit = () => {
+      try {
+        place()
+      } catch (err) {
+        console.error('ExerciseEditor: no ha podido colocar el panel', err)
+      }
     }
 
     fit()
