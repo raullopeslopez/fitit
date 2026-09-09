@@ -332,11 +332,19 @@ export function deleteFoodEntry(entryId) {
   return apiFetch(`/food-log/${entryId}`, { method: 'DELETE' })
 }
 
-// El objetivo diario, fijo por usuario. `null` en cualquiera de los dos campos
-// lo borra: manda siempre los dos, nunca sólo el que ha cambiado.
-export function setTargets({ kcal = null, protein = null }) {
+// El objetivo diario, fijo por usuario. `null` en cualquiera de los tres campos
+// lo borra: manda siempre los tres, nunca sólo el que ha cambiado.
+//
+// Las kcal no viajan: son consecuencia del reparto y las deriva el servidor con
+// `atwater_kcal`. Mandarlas dejaba guardar un total que sus propios macros no
+// daban, y dos cifras contradictorias sin nada que dijera cuál manda.
+export function setTargets({ protein = null, carbs = null, fat = null }) {
   return apiFetch('/auth/me', {
     method: 'PATCH',
-    body: JSON.stringify({ objetivo_kcal: kcal, objetivo_proteina: protein }),
+    body: JSON.stringify({
+      objetivo_proteina: protein,
+      objetivo_hidratos: carbs,
+      objetivo_grasa: fat,
+    }),
   })
 }

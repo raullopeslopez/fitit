@@ -4239,6 +4239,106 @@ button.set-chip:active:not(:disabled) {
   opacity: 0.55;
 }
 
+/* Los objetivos: gramos arriba, el total derivado abajo y sin marco de campo —
+   no es algo que se decida, es lo que sale de lo que se ha decidido. */
+.food-goals-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+}
+.food-goals .field input,
+.food-goals-total .food-detail-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.food-goals-total .food-detail-value {
+  font-size: 1.05rem;
+}
+.food-goals-foot {
+  margin: 0.6rem 0 0;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * La hoja de detalle: cuánto, y a qué comida.
+ * ------------------------------------------------------------------ */
+.food-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.2rem;
+}
+.food-detail-name {
+  margin: 0;
+  font-size: 1.05rem;
+}
+/* Lo que rinde el alimento antes de que decidas cuánto: la cifra con la que se
+   compara mentalmente todo lo que viene debajo. */
+.food-detail-per {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.food-detail .stepper-input {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.food-detail-macros {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+}
+.food-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.food-detail-row + .food-detail-row {
+  margin-top: 0.45rem;
+}
+.food-detail-label {
+  color: var(--muted);
+}
+.food-detail-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* La proteína, y sólo ella, en acento: es el macro que la pantalla persigue, y
+   el único dato de esta hoja que lleva color. El resto va en tinta — aquí el
+   color no clasifica, señala a dónde mirar. */
+.food-detail-row.is-lead .food-detail-value {
+  color: var(--accent);
+}
+.food-detail-total {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.food-detail-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.food-detail-correct {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.7rem;
+  color: var(--muted);
+}
+
 /* De dónde salió el alimento. Prosa, encima de «cuánto»: no es un dato del
    alimento, es una explicación de por qué está aquí sin que hayas tecleado. */
 .food-source {

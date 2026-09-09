@@ -20,7 +20,9 @@ import {
   foodDayIso,
   formatAmount,
   formatMacro,
+  kcalFromMacros,
   macroBar,
+  previewNutrients,
   shiftDay,
   slotLabel,
   droppedNote,
@@ -106,8 +108,7 @@ export default function Comida() {
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
   // El objetivo diario, en su propio cajón — no es del día, es del perfil.
   const [targetOpen, setTargetOpen] = useState(false)
-  const [targetKcal, setTargetKcal] = useState('')
-  const [targetProtein, setTargetProtein] = useState('')
+  const [targets, setTargets_] = useState({ protein: '', carbs: '', fat: '' })
   const [savingTarget, setSavingTarget] = useState(false)
   // La última entrada borrada, con un «Deshacer» que vive donde estaba —no
   // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
@@ -205,17 +206,25 @@ export default function Comida() {
   }
 
   function openTarget() {
-    setTargetKcal(day?.target_kcal != null ? String(day.target_kcal) : '')
-    setTargetProtein(day?.target_protein != null ? String(day.target_protein) : '')
+    const show = (value) => (value != null ? String(value) : '')
+    setTargets_({
+      protein: show(day?.target_protein),
+      carbs: show(day?.target_carbs),
+      fat: show(day?.target_fat),
+    })
     setTargetOpen(true)
   }
 
-  async function saveTarget(event) {
-    event.preventDefault()
-    const parse = (raw) => (raw.trim() === '' ? null : Number(raw.replace(',', '.')))
+  async function saveTarget(values) {
+    const parse = (raw) => (String(raw).trim() === '' ? null : Number(String(raw).replace(',', '.')))
     setSavingTarget(true)
     try {
-      await setTargets({ kcal: parse(targetKcal), protein: parse(targetProtein) })
+      // Sin kcal: las deriva el servidor del reparto (`atwater_kcal`).
+      await setTargets({
+        protein: parse(values.protein),
+        carbs: parse(values.carbs),
+        fat: parse(values.fat),
+      })
       setTargetOpen(false)
       await load(dayIso)
     } finally {
@@ -259,7 +268,9 @@ export default function Comida() {
       {/* El objetivo es del perfil, no del día: se fija una vez y se corrige
           rara vez, así que vive en un cajón callado como el de las preferencias
           de Entreno (DESIGN.md: «sticky preferences count as rare actions»),
-          no en un control permanente sobre las cifras que sí cambian a diario. */}
+          no en un control permanente sobre las cifras que sí cambian a diario.
+          Lo que abre es una hoja, no un panel en línea: es corto y edita algo
+          concreto, que es la forma que le toca. */}
       <div className="food-target">
         <button
           type="button"
@@ -272,44 +283,26 @@ export default function Comida() {
             {hasTarget ? `${formatMacro(day.target_kcal)} kcal` : 'Sin fijar'}
           </span>
         </button>
-        {targetOpen && (
-          <form className="food-target-panel" onSubmit={saveTarget}>
-            <div className="field">
-              <label htmlFor="target-kcal">Kcal al día</label>
-              <input
-                id="target-kcal"
-                inputMode="decimal"
-                placeholder="p. ej. 2800"
-                value={targetKcal}
-                onChange={(e) => setTargetKcal(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="target-protein">Proteína al día (g)</label>
-              <input
-                id="target-protein"
-                inputMode="decimal"
-                placeholder="p. ej. 160"
-                value={targetProtein}
-                onChange={(e) => setTargetProtein(e.target.value)}
-              />
-            </div>
-            <div className="food-editor-actions">
-              <button type="submit" className="primary" disabled={savingTarget}>
-                Guardar
-              </button>
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => setTargetOpen(false)}
-                disabled={savingTarget}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
       </div>
+
+      {targetOpen && (
+        <div className="sheet-scrim" onClick={() => setTargetOpen(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Objetivos diarios"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Objetivos
+              initial={targets}
+              busy={savingTarget}
+              onSave={saveTarget}
+              onCancel={() => setTargetOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {error && <p className="alert">{error}</p>}
 
@@ -416,6 +409,99 @@ export default function Comida() {
         </div>
       )}
     </div>
+  )
+}
+
+// Los objetivos diarios: gramos por macro, y las kcal como consecuencia.
+//
+// Antes se fijaban las kcal y la proteína, cada una por su lado, y eso dejaba
+// guardar un total que sus propios macros no daban —2.600 kcal con 160 g de
+// proteína, 300 de hidratos y 80 de grasa son 2.560— con las dos cifras en
+// pantalla y nada que dijera cuál mandaba. Ahora se reparte en gramos y el total
+// sale de ahí: una sola cifra que no se puede contradecir.
+//
+// El total se recalcula al teclear, antes de guardar nada, porque el reparto es
+// justo lo que hay que ver mientras se decide. La cuenta es la misma que hace el
+// servidor al guardar (`atwater_kcal`), y hay una prueba que ata las dos.
+function Objetivos({ initial, busy, onSave, onCancel }) {
+  const [values, setValues] = useState(initial)
+  const number = (raw) => {
+    const value = Number(String(raw).replace(',', '.'))
+    return String(raw).trim() === '' || !Number.isFinite(value) ? null : value
+  }
+  const macros = {
+    protein: number(values.protein),
+    carbs: number(values.carbs),
+    fat: number(values.fat),
+  }
+  // Sin un solo macro repartido no hay total, y `null` se imprime `—`. Un 0 aquí
+  // diría «tu objetivo es no comer», que es otra afirmación — y además es la que
+  // el servidor se niega a guardar.
+  const derived = Object.values(macros).some((v) => v != null) ? kcalFromMacros(macros) : null
+  const set = (key) => (e) => setValues({ ...values, [key]: e.target.value })
+
+  return (
+    <form
+      className="sheet-body food-goals"
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSave(values)
+      }}
+    >
+      <header className="food-detail-head">
+        <h2 className="food-detail-name">Objetivos diarios</h2>
+        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
+          Cerrar
+        </button>
+      </header>
+
+      <div className="field">
+        <label htmlFor="target-protein">Proteína (g)</label>
+        <input
+          id="target-protein"
+          inputMode="decimal"
+          placeholder="p. ej. 160"
+          value={values.protein}
+          onChange={set('protein')}
+        />
+      </div>
+      <div className="row">
+        <div className="field stepper-field">
+          <label htmlFor="target-carbs">Hidratos (g)</label>
+          <input
+            id="target-carbs"
+            inputMode="numeric"
+            placeholder="300"
+            value={values.carbs}
+            onChange={set('carbs')}
+          />
+        </div>
+        <div className="field stepper-field">
+          <label htmlFor="target-fat">Grasa (g)</label>
+          <input
+            id="target-fat"
+            inputMode="numeric"
+            placeholder="80"
+            value={values.fat}
+            onChange={set('fat')}
+          />
+        </div>
+      </div>
+
+      {/* Sólo lectura, y por eso no es un campo: es lo que sale de lo de arriba,
+          no otra cosa que decidir. */}
+      <p className="card food-goals-total">
+        <span className="food-detail-label">Total derivado</span>
+        <span className="food-detail-value">{formatMacro(derived)} kcal</span>
+      </p>
+
+      <button type="submit" className="primary btn-full" disabled={busy}>
+        Guardar objetivos
+      </button>
+      <p className="hint food-goals-foot">
+        Las kcal no se teclean: salen de repartir los gramos.
+      </p>
+    </form>
   )
 }
 
@@ -769,7 +855,7 @@ function EntryEditor({ entry, onDone, onCancel }) {
     <form className="card card-compose food-editor" onSubmit={save}>
       <p className="food-editor-name">{entry.food_name}</p>
       <div className="field">
-        <label htmlFor={`grams-${entry.id}`}>Gramos</label>
+        <label htmlFor={`grams-${entry.id}`}>Cantidad</label>
         <input
           id={`grams-${entry.id}`}
           inputMode="decimal"
@@ -1017,33 +1103,6 @@ function AddFood({
     setCreating(true)
   }
 
-  // Resuelto por el código: ni formulario ni confirmación, derecho a «cuánto».
-  //
-  // `scan.food` es el que ya tenías —segunda vez que fotografías el mismo
-  // yogur—, y `resolved` el que se acaba de guardar desde la ficha pública. Los
-  // dos llegan al mismo sitio porque son la misma situación: el producto está
-  // identificado y lo único que faltaba por decidir es la cantidad.
-  const conocido = scan?.food ?? resolved
-  if (conocido) {
-    return (
-      <Amount
-        food={conocido}
-        initialSlot={slot}
-        dayIso={dayIso}
-        entries={entries}
-        // De dónde salió, contado **después**: el peldaño barato no se anuncia
-        // como una opción que elegir, se usa y luego se dice que se ha usado.
-        source={scan?.food ? 'catalogo' : resolved ? 'codigo' : null}
-        onDone={onDone}
-        onDayChanged={onDayChanged}
-        onCancel={() => {
-          setScan(null)
-          setResolved(null)
-        }}
-      />
-    )
-  }
-
   if (creating) {
     return (
       <NewFood
@@ -1059,20 +1118,6 @@ function AddFood({
           setCreating(false)
           setLabel(null)
         }}
-      />
-    )
-  }
-
-  if (chosen) {
-    return (
-      <Amount
-        food={chosen}
-        initialSlot={slot}
-        dayIso={dayIso}
-        entries={entries}
-        onDone={onDone}
-        onDayChanged={onDayChanged}
-        onCancel={() => setChosen(null)}
       />
     )
   }
@@ -1094,6 +1139,15 @@ function AddFood({
         onCancel={onCancel}
       />
     )
+  }
+
+  // Los dos caminos que llegan al detalle sin pasar por un formulario: el que ya
+  // era tuyo y el que la ficha pública acaba de guardar.
+  const conocido = scan?.food ?? resolved
+  const cerrarDetalle = () => {
+    setChosen(null)
+    setScan(null)
+    setResolved(null)
   }
 
   const destino = slotLabel(slot)
@@ -1242,6 +1296,39 @@ function AddFood({
           Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.
         </p>
       </div>
+
+      {/* El detalle es una **hoja** sobre esta pantalla, no otra pantalla.
+          Es corto —una cantidad, un destino— y edita algo concreto, así que la
+          regla de forma del rediseño lo manda a una hoja; y dejar el buscador
+          detrás es lo que hace que cerrarla te devuelva a la lista en vez de al
+          día, que es donde estabas.
+
+          `conocido` cubre los dos caminos que llegan aquí sin pasar por un
+          formulario: el que ya era tuyo y el que la ficha pública acaba de
+          guardar. Los dos son la misma situación —producto identificado, sólo
+          falta la cantidad—, así que se pintan igual. */}
+      {(chosen || conocido) && (
+        <div className="sheet-scrim" onClick={cerrarDetalle}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detalle del alimento"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Amount
+              food={chosen ?? conocido}
+              initialSlot={slot}
+              dayIso={dayIso}
+              entries={entries}
+              source={chosen ? null : scan?.food ? 'catalogo' : 'codigo'}
+              onDone={onDone}
+              onDayChanged={onDayChanged}
+              onCancel={cerrarDetalle}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1534,19 +1621,43 @@ function Amount({
   // pregunta desaparece, la libertad no.
   const [slot, setSlot] = useState(initialSlot ?? '')
   const [busy, setBusy] = useState(false)
+  const portion = food.portions?.find((p) => p.id === portionId) ?? null
+
+  const number = (raw) => {
+    const value = Number(String(raw).replace(',', '.'))
+    return Number.isFinite(value) ? value : null
+  }
+
+  // El paso del stepper: de diez en diez para gramos, de uno en uno para
+  // raciones. Media rebanada de pan existe; media unidad de «diez gramos» no
+  // significa nada, y diez raciones de golpe tampoco.
+  //
+  // El suelo es lo que hay, no cero: bajar de cinco gramos a menos cinco no es
+  // una cantidad más pequeña, es otra cosa.
+  function step(delta) {
+    if (portionId) {
+      const next = Math.max(1, (number(quantity) ?? 1) + delta)
+      setQuantity(String(next))
+      return
+    }
+    const current = number(grams) ?? 0
+    const next = current + delta * 10
+    if (next <= 0) return
+    setGrams(String(next))
+  }
 
   async function submit(event) {
     event.preventDefault()
-    const amount = Number(String(grams).replace(',', '.'))
-    if (!portionId && (!Number.isFinite(amount) || amount <= 0)) return
+    const written = number(grams)
+    if (!portionId && !(written > 0)) return
     setBusy(true)
     await logFood({
       foodId: food.id,
       // Gramos o porción, nunca las dos: son dos cantidades distintas y
       // adivinar cuál se quiso decir es como un diario se estropea en silencio.
-      grams: portionId ? null : amount,
+      grams: portionId ? null : written,
       portionId,
-      quantity: portionId ? Number(String(quantity).replace(',', '.')) || 1 : 1,
+      quantity: portionId ? number(quantity) || 1 : 1,
       mealSlot: slot || null,
     })
     await onDone()
@@ -1574,51 +1685,93 @@ function Amount({
     )
   }
 
+  // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
+  // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.
+  const amount = number(portionId ? (portion?.grams ?? 0) * (number(quantity) ?? 0) : grams)
+  const preview = previewNutrients(food, amount)
+
   return (
-    <form className="card card-compose food-amount" onSubmit={submit}>
-      <p className="food-amount-name">{food.name}</p>
+    <form className="sheet-body food-detail" onSubmit={submit}>
+      <header className="food-detail-head">
+        <h2 className="food-detail-name">{food.name}</h2>
+        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
+          Cerrar
+        </button>
+      </header>
+      {/* Lo que rinde el alimento, antes de que decidas cuánto: es la cifra con
+          la que se compara mentalmente todo lo demás. */}
+      <p className="food-detail-per">
+        {formatMacro(food.protein_100g)} P · {formatMacro(food.kcal_100g)} kcal / 100 g
+      </p>
       <Procedencia source={source} />
+
+      {/* Las raciones primero: registrar «una rebanada» no puede obligarte a
+          pensar en gramos, y si el alimento trae una por defecto ya viene puesta. */}
       {food.portions?.length > 0 && (
         <div className="food-portions">
-          {food.portions.map((portion) => (
+          {food.portions.map((p) => (
             <button
               type="button"
-              key={portion.id}
-              className={`chip${portionId === portion.id ? ' is-active' : ''}`}
-              aria-pressed={portionId === portion.id}
-              onClick={() => setPortionId(portionId === portion.id ? null : portion.id)}
+              key={p.id}
+              className={`chip${portionId === p.id ? ' is-active' : ''}`}
+              aria-pressed={portionId === p.id}
+              onClick={() => setPortionId(portionId === p.id ? null : p.id)}
             >
-              {portion.label} · {formatAmount(portion.grams)}
+              {p.label} · {formatAmount(p.grams)}
             </button>
           ))}
         </div>
       )}
-      {portionId ? (
-        <div className="field">
-          <label htmlFor="food-qty">Cuántas</label>
+
+      <div className="field">
+        <label htmlFor="food-qty">{portionId ? 'Cuántas' : 'Cantidad'}</label>
+        <div className="stepper">
+          <button
+            type="button"
+            className="stepper-btn"
+            aria-label={portionId ? 'Menos raciones' : 'Menos cantidad'}
+            onClick={() => step(-1)}
+          >
+            −
+          </button>
           <input
             id="food-qty"
+            className="stepper-input"
             inputMode="decimal"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            value={portionId ? quantity : grams}
+            onChange={(e) => (portionId ? setQuantity(e.target.value) : setGrams(e.target.value))}
           />
+          <button
+            type="button"
+            className="stepper-btn"
+            aria-label={portionId ? 'Más raciones' : 'Más cantidad'}
+            onClick={() => step(1)}
+          >
+            +
+          </button>
         </div>
-      ) : (
-        <div className="field">
-          <label htmlFor="food-grams">Gramos</label>
-          <input
-            id="food-grams"
-            inputMode="decimal"
-            value={grams}
-            onChange={(e) => setGrams(e.target.value)}
-          />
-        </div>
-      )}
-      {/* Chips y no un desplegable: la respuesta ya viene puesta desde el raíl,
-          así que esto dejó de ser una pregunta y pasó a ser una corrección — y
-          una corrección de un toque no se merece dos (abrir y elegir). */}
-      <div className="field">
-        <span className="food-slot-label">Comida</span>
+      </div>
+
+      {/* Los macros de **esta** cantidad, no los del alimento. La proteína en
+          acento porque es la que la pantalla persigue; las otras tres en tinta,
+          que el color de esta app codifica progreso y no categoría. */}
+      <div className="card food-detail-macros">
+        {DETAIL_ROWS.map((row) => (
+          <p className={`food-detail-row${row.key === 'protein' ? ' is-lead' : ''}`} key={row.key}>
+            <span className="food-detail-label">{row.label}</span>
+            <span className="food-detail-value">
+              {formatMacro(preview?.[row.key], { decimals: row.decimals })} g
+            </span>
+          </p>
+        ))}
+        <p className="food-detail-row food-detail-total">
+          <span className="food-detail-label">Total</span>
+          <span className="food-detail-value">{formatMacro(preview?.kcal)} kcal</span>
+        </p>
+      </div>
+
+      <div className="food-detail-slot">
+        <span className="hint">Se añade a</span>
         <div className="food-slots">
           {MEAL_SLOTS.map((s) => (
             <button
@@ -1641,30 +1794,37 @@ function Amount({
           </button>
         </div>
       </div>
-      <div className="food-editor-actions">
-        <button type="submit" className="primary" disabled={busy}>
-          Añadir
+
+      {/* La cantidad dentro del botón: sin ella hay que mirar arriba para saber
+          qué se está a punto de hacer, y el pulgar ya está abajo. */}
+      <button type="submit" className="primary btn-full" disabled={busy || !preview}>
+        Añadir {formatAmount(amount)} · {formatMacro(preview?.protein)} P
+      </button>
+
+      {/* Corregir es un acto raro y registrar es el de cada comida, así que no
+          compite con el botón: enlace, al pie, y sólo donde funcionaría — el
+          catálogo compartido no es tuyo para corregirlo. */}
+      {food.is_mine && (
+        <button
+          type="button"
+          className="link-btn food-detail-correct"
+          onClick={() => setCorrecting(true)}
+          disabled={busy}
+        >
+          Corregir este alimento
         </button>
-        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
-          Cancelar
-        </button>
-        {/* Corregir es un acto raro y registrar es el de cada comida, así que
-            no compite con «Añadir»: enlace, al final de la fila, y sólo donde
-            funcionaría — el catálogo compartido no es tuyo para corregirlo. */}
-        {food.is_mine && (
-          <button
-            type="button"
-            className="link-btn food-correct"
-            onClick={() => setCorrecting(true)}
-            disabled={busy}
-          >
-            Corregir
-          </button>
-        )}
-      </div>
+      )}
     </form>
   )
 }
+
+// Las cuatro filas de macros de la hoja de detalle, en el orden en que se leen.
+const DETAIL_ROWS = [
+  { key: 'protein', label: 'Proteína', decimals: 1 },
+  { key: 'carbs', label: 'Hidratos', decimals: 1 },
+  { key: 'fat', label: 'Grasa', decimals: 1 },
+  { key: 'fiber', label: 'Fibra', decimals: 1 },
+]
 
 // De dónde ha salido este alimento, contado **después** de resolverlo.
 //

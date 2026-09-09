@@ -298,12 +298,17 @@ class UserOut(BaseModel):
 
 
 class UserTargetsIn(BaseModel):
-    """El objetivo diario, fijo por usuario. Manda los dos campos siempre —
+    """El objetivo diario, fijo por usuario. Manda los tres campos siempre —
     nunca un PATCH parcial — porque `None` aquí es una instrucción («bórralo»),
     no «no lo toques», y esas dos cosas no se pueden distinguir con un campo
-    opcional que se omite."""
+    opcional que se omite.
 
-    objetivo_kcal: float | None = Field(default=None, gt=0, le=20000)
+    **Las kcal no están aquí a propósito**: son consecuencia del reparto, no una
+    entrada. Fijarlas aparte dejaba guardar un total que sus propios macros no
+    daban —2.600 con 160/300/80, que son 2.560— y dos cifras contradictorias en
+    pantalla sin nada que dijera cuál manda. El servidor las deriva con
+    `atwater_kcal`, los mismos factores con los que comprueba una etiqueta."""
+
     objetivo_proteina: float | None = Field(default=None, gt=0, le=1000)
     objetivo_grasa: float | None = Field(default=None, gt=0, le=1000)
     objetivo_hidratos: float | None = Field(default=None, gt=0, le=2000)

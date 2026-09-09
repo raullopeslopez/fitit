@@ -195,11 +195,14 @@ export const FOOD_DAY = {
   // —lo cumplido desaturado, el cromo a lo que falta— no tiene dónde pintarse.
   //
   // Los `remaining` llegan restados del servidor, igual que en producción.
-  target_kcal: 2600,
+  // 4·160 + 4·300 + 9·80: el total sale del reparto, no de un campo aparte. Con
+  // un número distinto aquí el fixture reproduciría justo la contradicción que
+  // derivarlo quita de en medio.
+  target_kcal: 2560,
   target_protein: 160,
   target_fat: 80,
   target_carbs: 300,
-  remaining_kcal: 1615,
+  remaining_kcal: 1575,
   // Un total desconocido cuenta como cero comido a este único efecto: lo que la
   // cifra grande contesta es «cuánto me queda por comer», y ahí la única
   // respuesta con sentido es el objetivo entero (`restante`, en `nutrition.py`).

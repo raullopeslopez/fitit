@@ -300,9 +300,9 @@ describe('Comida', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
-      await userEvent.clear(screen.getByLabelText('Gramos'))
-      await userEvent.type(screen.getByLabelText('Gramos'), '80')
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '80')
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 1, grams: 80, portionId: null }),
@@ -325,7 +325,7 @@ describe('Comida', () => {
         'aria-pressed',
         'true',
       )
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 1, portionId: 7, quantity: 1, grams: null }),
@@ -411,7 +411,7 @@ describe('Comida', () => {
         await escanear({ barcode: '8410128750121', food: { ...PAN, name: 'Yogur natural' } })
         // Va directo a la cantidad: el alimento ya existe, no hay nada que dar
         // de alta.
-        expect(await screen.findByLabelText('Gramos')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Cantidad')).toBeInTheDocument()
         expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
       })
 
@@ -448,7 +448,7 @@ describe('Comida', () => {
           ),
         )
         // Y va derecho a «cuánto», que es lo único que faltaba por decidir.
-        expect(await screen.findByLabelText('Gramos')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Cantidad')).toBeInTheDocument()
         expect(screen.queryByLabelText('Kcal por 100 g')).toBeNull()
       })
 
@@ -924,7 +924,7 @@ describe('Comida', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledTimes(2))
     })
   })
@@ -940,7 +940,7 @@ describe('Comida', () => {
       api.correctFoodEntry.mockResolvedValue(entry({ grams: 120 }))
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
-      const field = screen.getByLabelText('Gramos')
+      const field = screen.getByLabelText('Cantidad')
       await userEvent.clear(field)
       await userEvent.type(field, '120')
       await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
@@ -953,7 +953,7 @@ describe('Comida', () => {
       render(<Comida />)
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       await userEvent.click(row)
-      expect(screen.getByLabelText('Gramos')).toBeInTheDocument()
+      expect(screen.getByLabelText('Cantidad')).toBeInTheDocument()
       // Borrar ya no vive en el formulario: sólo quedan gramos y Guardar.
       expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
     })
@@ -1011,7 +1011,7 @@ describe('Comida', () => {
       // La pregunta «¿a qué comida?» ya viene contestada por el sitio del que
       // vienes; sigue siendo cambiable, pero no hay que contestarla.
       expect(screen.getByRole('button', { name: 'Cena' })).toHaveAttribute('aria-pressed', 'true')
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 1, mealSlot: 'cena' }),
@@ -1027,7 +1027,7 @@ describe('Comida', () => {
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
       await userEvent.click(screen.getByRole('button', { name: 'Sin asignar' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(expect.objectContaining({ mealSlot: null })),
       )
@@ -1144,6 +1144,104 @@ describe('Comida', () => {
           'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
         ),
       ).toBeInTheDocument()
+    })
+  })
+
+  // ── La hoja de detalle ────────────────────────────────────────────────
+  describe('el detalle de un alimento', () => {
+    const POLLO = {
+      ...PAN,
+      id: 2,
+      name: 'Pechuga de pollo',
+      kcal_100g: 165,
+      protein_100g: 31,
+      fat_100g: 3.6,
+      carbs_100g: 0,
+      fiber_100g: null,
+      is_mine: false,
+    }
+
+    async function abrir(food = POLLO) {
+      api.searchFoods.mockResolvedValue([food])
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pollo')
+      await userEvent.click(await screen.findByRole('button', { name: /Pechuga de pollo/ }))
+      await screen.findByLabelText('Cantidad')
+    }
+
+    // La hoja se pinta **encima** del buscador, que sigue montado detrás: sin
+    // acotar, media consulta encuentra la fila del resultado en vez de la hoja.
+    const hoja = () => screen.getByRole('dialog', { name: 'Detalle del alimento' })
+
+    it('la cabecera dice lo que rinde el alimento por 100 g', async () => {
+      await abrir()
+      expect(within(hoja()).getByText('Pechuga de pollo')).toBeInTheDocument()
+      expect(within(hoja()).getByText('31 P · 165 kcal / 100 g')).toBeInTheDocument()
+    })
+
+    it('los macros se recalculan con la cantidad, sin ir al servidor', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '150')
+      // 165 kcal y 31 g de proteína por 100 g, a 150 g. Las kcal se imprimen sin
+      // decimales, como en el resto de la app.
+      expect(within(hoja()).getByText('46,5 g')).toBeInTheDocument()
+      expect(within(hoja()).getByText('248 kcal')).toBeInTheDocument()
+    })
+
+    it('un nutriente desconocido sigue siendo una raya después de escalar', async () => {
+      await abrir()
+      // La fibra de este pollo no la sabe nadie: 1,5 veces desconocido sigue
+      // siendo desconocido, no cero.
+      const fila = within(hoja()).getByText('Fibra').closest('.food-detail-row')
+      expect(fila).toHaveTextContent('—')
+    })
+
+    it('el botón lleva dentro lo que va a registrar', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '150')
+      // Sin esto hay que mirar arriba para saber qué se está a punto de hacer.
+      expect(screen.getByRole('button', { name: 'Añadir 150 g · 47 P' })).toBeInTheDocument()
+    })
+
+    it('el stepper mueve la cantidad sin teclado', async () => {
+      await abrir()
+      await userEvent.click(screen.getByRole('button', { name: 'Más cantidad' }))
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('110')
+      await userEvent.click(screen.getByRole('button', { name: 'Menos cantidad' }))
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('100')
+    })
+
+    it('la cantidad no baja de cero', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '5')
+      await userEvent.click(screen.getByRole('button', { name: 'Menos cantidad' }))
+      // Cinco gramos menos diez no son menos cinco gramos de pollo.
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('5')
+    })
+
+    it('el destino viene resuelto y se puede corregir', async () => {
+      await abrir()
+      expect(within(hoja()).getByText('Se añade a')).toBeInTheDocument()
+      // Ya contestado por la comida desde la que entraste; la pregunta
+      // desaparece, la libertad no.
+      expect(screen.getByRole('button', { name: 'Cena' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('registra lo que la pantalla estaba enseñando', async () => {
+      await abrir()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '150')
+      await userEvent.click(screen.getByRole('button', { name: 'Añadir 150 g · 47 P' }))
+      await waitFor(() =>
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ foodId: 2, grams: 150, mealSlot: 'cena' }),
+        ),
+      )
     })
   })
 
@@ -1572,26 +1670,77 @@ describe('Comida', () => {
       expect(close).toHaveTextContent('Te faltan 154 g de proteína para cerrar el día.')
     })
 
-    it('abre con los valores actuales y los guarda', async () => {
-      api.getFoodDay.mockResolvedValue(day({ target_kcal: 2800, target_protein: 160 }))
+    it('los cuatro macros se fijan en gramos, y las kcal salen de ellos', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      expect(screen.getByLabelText('Kcal al día')).toHaveValue('2800')
-      expect(screen.getByLabelText('Proteína al día (g)')).toHaveValue('160')
-      await userEvent.clear(screen.getByLabelText('Kcal al día'))
-      await userEvent.type(screen.getByLabelText('Kcal al día'), '2500')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-      await waitFor(() => expect(api.setTargets).toHaveBeenCalledWith({ kcal: 2500, protein: 160 }))
+      // Las kcal no son una entrada: son la consecuencia de repartir gramos, y
+      // teclearlas aparte permitía fijar un total que sus propios macros no dan.
+      expect(screen.queryByLabelText('Kcal al día')).toBeNull()
+      expect(screen.getByLabelText('Proteína (g)')).toHaveValue('160')
+      expect(screen.getByLabelText('Hidratos (g)')).toHaveValue('300')
+      expect(screen.getByLabelText('Grasa (g)')).toHaveValue('80')
+      // 4·160 + 4·300 + 9·80 = 2.560
+      expect(screen.getByText('2560 kcal')).toBeInTheDocument()
     })
 
-    it('dejar el campo en blanco borra el objetivo', async () => {
-      api.getFoodDay.mockResolvedValue(day({ target_kcal: 2800, target_protein: 160 }))
+    it('el total se recalcula al teclear, antes de guardar nada', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      await userEvent.clear(screen.getByLabelText('Kcal al día'))
-      await userEvent.clear(screen.getByLabelText('Proteína al día (g)'))
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-      await waitFor(() => expect(api.setTargets).toHaveBeenCalledWith({ kcal: null, protein: null }))
+      await userEvent.clear(screen.getByLabelText('Grasa (g)'))
+      await userEvent.type(screen.getByLabelText('Grasa (g)'), '60')
+      // 4·160 + 4·300 + 9·60 = 2.380. Sin esto habría que guardar para saber en
+      // qué te has metido.
+      expect(screen.getByText('2380 kcal')).toBeInTheDocument()
+    })
+
+    it('guarda los tres macros, y no manda unas kcal que no ha fijado nadie', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
+      await userEvent.clear(screen.getByLabelText('Proteína (g)'))
+      await userEvent.type(screen.getByLabelText('Proteína (g)'), '170')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
+      await waitFor(() =>
+        expect(api.setTargets).toHaveBeenCalledWith({ protein: 170, carbs: 300, fat: 80 }),
+      )
+    })
+
+    it('abre con los valores actuales y los guarda', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
+      expect(screen.getByLabelText('Proteína (g)')).toHaveValue('160')
+      await userEvent.clear(screen.getByLabelText('Hidratos (g)'))
+      await userEvent.type(screen.getByLabelText('Hidratos (g)'), '250')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
+      await waitFor(() =>
+        expect(api.setTargets).toHaveBeenCalledWith({ protein: 160, carbs: 250, fat: 80 }),
+      )
+    })
+
+    it('dejar los campos en blanco borra el objetivo', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      api.setTargets.mockResolvedValue({})
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
+      for (const campo of ['Proteína (g)', 'Hidratos (g)', 'Grasa (g)']) {
+        await userEvent.clear(screen.getByLabelText(campo))
+      }
+      // Sin un solo macro repartido no hay total, y se dice con una raya. Un 0
+      // aquí diría «tu objetivo es no comer», que es otra afirmación — y además
+      // es la que el servidor se niega a guardar.
+      expect(screen.getByText('— kcal')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
+      // Los tres en `null`: aquí vaciar es una instrucción («bórralo»), no «no
+      // lo toques».
+      await waitFor(() =>
+        expect(api.setTargets).toHaveBeenCalledWith({ protein: null, carbs: null, fat: null }),
+      )
     })
   })
 
@@ -1651,13 +1800,13 @@ describe('corregir un alimento', () => {
     // `is_mine` es falso en una fila de CIQUAL, y el servidor la rechazaría con
     // un 403. Un control que no puede funcionar es peor que uno que no está.
     await abrir({ ...PAN, is_mine: false, name: 'Arroz blanco cocido' })
-    expect(screen.queryByRole('button', { name: 'Corregir' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Corregir este alimento' })).not.toBeInTheDocument()
   })
 
   it('corrige las cifras sin tocar lo ya registrado', async () => {
     api.correctFood.mockResolvedValue({ ...PAN, kcal_100g: 265 })
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.clear(screen.getByLabelText('Kcal por 100 g'))
     await userEvent.type(screen.getByLabelText('Kcal por 100 g'), '265')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
@@ -1669,7 +1818,7 @@ describe('corregir un alimento', () => {
   it('un macro que se vacía queda desconocido, no en cero', async () => {
     api.correctFood.mockResolvedValue({ ...PAN, fiber_100g: null })
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.clear(screen.getByLabelText('Fibra por 100 g'))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
     await waitFor(() =>
@@ -1680,7 +1829,7 @@ describe('corregir un alimento', () => {
   it('corrige un código de barras mal tecleado', async () => {
     api.correctFood.mockResolvedValue(PAN)
     await abrir({ ...PAN, barcode: '8410000000009' })
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.clear(screen.getByLabelText('Código de barras'))
     await userEvent.type(screen.getByLabelText('Código de barras'), '8410000000001')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
@@ -1695,7 +1844,7 @@ describe('corregir un alimento', () => {
   it('añade una ración y la deja por defecto', async () => {
     api.correctFood.mockResolvedValue(PAN)
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir ración' }))
     await userEvent.type(screen.getByLabelText('Ración 1'), 'rebanada')
     await userEvent.type(screen.getByLabelText('Gramos de la ración 1'), '30')
@@ -1717,7 +1866,7 @@ describe('corregir un alimento', () => {
       ...PAN,
       portions: [{ id: 7, label: 'rebanada', grams: 30, is_default: true }],
     })
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     await userEvent.click(screen.getByRole('button', { name: 'Quitar la ración 1' }))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
     await waitFor(() =>
@@ -1730,7 +1879,7 @@ describe('corregir un alimento', () => {
     // su fila. Un alimento mal dado de alta se arregla escribiendo encima, que
     // es lo que hace esta misma hoja.
     await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
     expect(screen.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Archivar' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar alimento' })).toBeInTheDocument()
@@ -1761,7 +1910,7 @@ describe('corregir un alimento y el registro de ese día', () => {
     // `find` y no `get`: la búsqueda rebota 180 ms, y la lista existe vacía
     // desde el primer pintado.
     await userEvent.click(await within(lista).findByRole('button', { name: /Pan de la panadería/ }))
-    await userEvent.click(screen.getByRole('button', { name: 'Corregir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
   }
 
   beforeEach(() => {
