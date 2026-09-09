@@ -279,3 +279,57 @@ def test_recomputing_a_day_with_nothing_of_that_food_changes_nothing(client):
     resp = client.post("/food-log/recompute", json={"food_id": food["id"], "date": "2026-09-08"})
     assert resp.status_code == 200
     assert resp.json()["updated"] == 0
+
+
+# Lo que falta de cada macro, restado en el servidor.
+#
+# Por la misma razón que `remaining_kcal`: la resta tiene una regla de nulos
+# (`restante`) y esa regla vive en `nutrition.py`. Restarla en la pantalla sería
+# una segunda implementación, y la cabecera de Comida imprime tres de estos
+# números —el héroe es lo que falta de proteína—, así que la segunda
+# implementación estaría en la pieza más leída de la pantalla.
+def test_the_day_carries_what_remains_of_every_macro(client):
+    client.patch(
+        "/auth/me",
+        json={
+            "objetivo_kcal": 2600,
+            "objetivo_proteina": 160,
+            "objetivo_grasa": 80,
+            "objetivo_hidratos": 300,
+        },
+    )
+    chicken = create(client, "Pollo", kcal_100g=165, protein_100g=31, fat_100g=3.6, carbs_100g=0)
+    client.post(
+        "/food-log",
+        json={"food_id": chicken["id"], "grams": 200, "logged_at": "2026-08-31T14:00:00+02:00"},
+    )
+    day = client.get("/food-log?date=2026-08-31").json()
+    assert day["target_fat"] == 80
+    assert day["target_carbs"] == 300
+    assert day["remaining_protein"] == 98
+    assert day["remaining_fat"] == 72.8
+    assert day["remaining_carbs"] == 300
+
+
+def test_without_a_macro_target_what_remains_is_unknown(client):
+    """Sin objetivo no hay resta: `None` se propaga y la barra no se dibuja."""
+    day = client.get("/food-log?date=2026-08-31").json()
+    assert day["target_fat"] is None
+    assert day["remaining_protein"] is None
+    assert day["remaining_fat"] is None
+    assert day["remaining_carbs"] is None
+
+
+# Si el servidor puede leer una etiqueta, dicho de antemano.
+#
+# Vive en el día y no en `/auth/me` porque es donde la pantalla ya mira: Comida
+# pide el día al abrirse y al cambiar de fecha, y la cámara que este booleano
+# apaga vive dentro de esa misma pantalla. En el perfil costaría una petición
+# más por apertura para un valor que no cambia entre dos deploys.
+#
+# Sin esto sólo se sabe disparando: un 503 después de la foto, que es enterarse
+# de que el botón no podía funcionar justo cuando ya has apuntado al envase.
+def test_the_day_says_whether_a_label_can_be_read(client):
+    """Sin clave configurada —como en la suite— la lectura está apagada."""
+    day = client.get("/food-log?date=2026-08-31").json()
+    assert day["label_reading"] is False

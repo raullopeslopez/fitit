@@ -142,6 +142,20 @@ export function proteinProgress(eaten, target) {
   return Math.max(0, Math.min(100, Math.round(((eaten ?? 0) / target) * 100)))
 }
 
+// Cuánto de una barra de macro está cumplido, y si el objetivo ya se cerró.
+//
+// Es geometría, no aritmética nutricional: el reparto de un ancho en dos
+// tramos. Lo que se resta —cuánto falta— lo resta el servidor (`restante`, en
+// `nutrition.py`), que es donde vive la regla de los nulos.
+//
+// `null` sin objetivo, por lo mismo que `proteinProgress`: una barra sin meta
+// no mide nada, y pintarla al 0% diría que no has comido.
+export function macroBar(eaten, target) {
+  const done = proteinProgress(eaten, target)
+  if (done == null) return null
+  return { done, closed: done >= 100 }
+}
+
 export function unknownNote(unknown = {}) {
   const missing = Object.keys(UNKNOWN_LABELS).filter((key) => (unknown[key] ?? 0) > 0)
   if (missing.length === 0) return null

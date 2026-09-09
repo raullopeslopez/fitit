@@ -37,7 +37,11 @@ function slots(kcal = {}) {
   }))
 }
 
-const railNames = () => [...document.querySelectorAll('.food-rail-name')].map((e) => e.textContent)
+// Los nombres de comida que hay en pantalla, en el orden en que se pintan:
+// primero las tarjetas con algo dentro, luego los huecos en `dashed`.
+const slotNames = () => [...document.querySelectorAll('.food-slot-name')].map((e) => e.textContent)
+// Los subtotales. Sólo los llevan las comidas con contenido: un hueco no suma.
+const slotMetas = () => [...document.querySelectorAll('.food-slot-meta')].map((e) => e.textContent)
 
 // Arrastra una fila lo bastante a la izquierda como para revelar «Borrar».
 function swipeOpen(row) {
@@ -55,6 +59,26 @@ function day(overrides = {}) {
     by_slot: slots(),
     ...overrides,
   }
+}
+
+// Un día con los cuatro objetivos fijados y algo registrado. Los `remaining`
+// llegan restados del servidor (`restante`, en `nutrition.py`) — restarlos aquí
+// sería una segunda implementación de la regla de los nulos.
+function objetivo(overrides = {}) {
+  return day({
+    entries: [entry()],
+    totals: { kcal: 200, protein: 6, fat: 2, carbs: 38, fiber: 2 },
+    by_slot: slots({ desayuno: 200 }),
+    target_kcal: 2800,
+    target_protein: 160,
+    target_fat: 80,
+    target_carbs: 300,
+    remaining_kcal: 2600,
+    remaining_protein: 154,
+    remaining_fat: 78,
+    remaining_carbs: 262,
+    ...overrides,
+  })
 }
 
 function entry(overrides = {}) {
@@ -97,12 +121,13 @@ describe('Comida', () => {
 
   it('un día vacío lo dice comida por comida, en vez de enseñar ceros', async () => {
     render(<Comida />)
-    // Cuatro raíles, cada uno una sola línea: sin «Nada aún» y sin subtotal en
-    // cero, porque la cabecera con su `+` ya dice que está vacío.
-    await waitFor(() => expect(railNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack']))
+    // Las cuatro comidas en `dashed`, cada una una sola tarjeta: sin «Nada aún»
+    // y sin subtotal en cero, porque el hueco ya dice que está vacío.
+    await waitFor(() => expect(slotNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack']))
+    expect(document.querySelectorAll('.food-blank')).toHaveLength(4)
     expect(screen.queryByText('Nada aún')).not.toBeInTheDocument()
     expect(screen.queryByText('0 kcal')).not.toBeInTheDocument()
-    expect(document.querySelectorAll('.food-rail-kcal')).toHaveLength(0)
+    expect(slotMetas()).toEqual([])
   })
 
   it('se mueve al día anterior y vuelve', async () => {
@@ -137,10 +162,12 @@ describe('Comida', () => {
       }),
     )
     render(<Comida />)
+    // Sin objetivo la cifra grande sigue siendo lo comido: no hay nada que
+    // restar, y un «te falta» sin meta no significa nada.
     expect(await screen.findByText('200')).toBeInTheDocument()
     const macros = screen.getByTestId('food-macros')
-    expect(within(macros).getByText('6')).toBeInTheDocument()
-    expect(within(macros).getByText('2,1')).toBeInTheDocument()
+    expect(within(macros).getByText('6 g')).toBeInTheDocument()
+    expect(within(macros).getByText('2,1 g')).toBeInTheDocument()
   })
 
   it('un total desconocido es una raya, y dice por qué', async () => {
@@ -175,7 +202,11 @@ describe('Comida', () => {
     // Los cuatro raíles están siempre, hayas comido o no: son la puerta por la
     // que se registra en esa comida, y una puerta que aparece y desaparece
     // mueve de sitio el control que ibas a pulsar.
-    expect(railNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack', 'Sin asignar'])
+    // Las que tienen algo van primero y en el orden en que se comen; los huecos
+    // se agrupan detrás. Todas siguen estando: el hueco es la puerta por la que
+    // se registra en esa comida, y una puerta que aparece y desaparece mueve de
+    // sitio el control que ibas a pulsar.
+    expect(slotNames()).toEqual(['Desayuno', 'Cena', 'Sin asignar', 'Comida', 'Snack'])
   })
 
   it('el montón sin asignar no se dibuja si está vacío', async () => {
@@ -190,10 +221,10 @@ describe('Comida', () => {
     await screen.findByText('Pan de la panadería')
     // Nadie quiere *decidir* no decidir: el montón no lleva `+`, así que
     // enseñarlo vacío sería una cabecera sin nada que hacer debajo.
-    expect(railNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack'])
+    expect(slotNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack'])
   })
 
-  it('un raíl con algo lleva su subtotal; uno vacío no lleva ninguno', async () => {
+  it('una comida con algo lleva su subtotal; un hueco no lleva ninguno', async () => {
     api.getFoodDay.mockResolvedValue(
       day({
         entries: [entry()],
@@ -203,14 +234,13 @@ describe('Comida', () => {
     )
     render(<Comida />)
     await screen.findByText('Pan de la panadería')
-    // Sólo el raíl que tiene algo dentro imprime un subtotal — la cabecera de
-    // los otros tres ya dice que están vacíos con su `+`, sin necesitar una
-    // cifra (ni siquiera una raya) al lado.
-    const kcal = [...document.querySelectorAll('.food-rail-kcal')].map((e) => e.textContent)
-    expect(kcal).toEqual(['200 kcal'])
+    // Sólo la comida que tiene algo dentro imprime un subtotal — los tres huecos
+    // ya dicen que están vacíos, sin necesitar una cifra (ni una raya) al lado.
+    // La proteína va delante porque es el macro que la pantalla persigue.
+    expect(slotMetas()).toEqual(['— P · 200 kcal'])
   })
 
-  it('un raíl con algo, pero de total desconocido, sigue llevando su raya', async () => {
+  it('una comida con algo, pero de total desconocido, sigue llevando su raya', async () => {
     api.getFoodDay.mockResolvedValue(
       day({
         entries: [entry({ kcal: null })],
@@ -229,30 +259,33 @@ describe('Comida', () => {
     render(<Comida />)
     await screen.findByText('Pan de la panadería')
     // Aquí sí hay algo —una entrada—, sólo que a su kcal le falta el dato: la
-    // raya sigue siendo la respuesta correcta, distinta de un raíl vacío.
-    expect(document.querySelector('.food-rail-kcal').textContent).toBe('— kcal')
+    // raya sigue siendo la respuesta correcta, distinta de un hueco vacío.
+    expect(slotMetas()).toEqual(['— P · — kcal'])
   })
 
-  it('cada entrada dice cuánto y cuántas kcal', async () => {
+  it('cada entrada dice cuánto y cuánta proteína', async () => {
     api.getFoodDay.mockResolvedValue(
       day({ entries: [entry()], totals: { kcal: 200, protein: 6, fat: 2, carbs: 38, fiber: 2 } }),
     )
     render(<Comida />)
     const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
     expect(row).toHaveTextContent('80 g')
-    expect(row).toHaveTextContent('200 kcal')
+    // La proteína, no las kcal: es el macro que la cabecera persigue, así que es
+    // el que se puede barrer por el borde derecho. Las kcal siguen estando,
+    // sumadas en la cabecera de la comida.
+    expect(row).toHaveTextContent('6 P')
   })
 
-  it('una entrada sin kcal enseña una raya, no un cero', async () => {
+  it('una entrada sin proteína enseña una raya, no un cero', async () => {
     api.getFoodDay.mockResolvedValue(
       day({
-        entries: [entry({ kcal: null })],
-        unknown: { kcal: 1, protein: 0, fat: 0, carbs: 0, fiber: 0 },
+        entries: [entry({ protein: null })],
+        unknown: { kcal: 0, protein: 1, fat: 0, carbs: 0, fiber: 0 },
       }),
     )
     render(<Comida />)
     const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
-    expect(row).toHaveTextContent('— kcal')
+    expect(row).toHaveTextContent('— P')
   })
 
   describe('añadir', () => {
@@ -924,7 +957,7 @@ describe('Comida', () => {
       const panel = await screen.findByLabelText('Buscar alimento')
       // Ya no es un panel dentro del raíl que lo abrió: vive en una hoja aparte,
       // que es lo que le quita el `scrollIntoView` que antes hacía falta.
-      expect(document.querySelector('.food-rail')?.contains(panel)).toBe(false)
+      expect(document.querySelector('.food-blank')?.contains(panel)).toBe(false)
       expect(screen.getByRole('dialog', { name: 'Añadir alimento' }).contains(panel)).toBe(true)
     })
   })
@@ -964,26 +997,27 @@ describe('Comida', () => {
 
     it('sin repertorio todavía, la sección no existe', async () => {
       render(<Comida />)
-      await waitFor(() => expect(railNames()).toHaveLength(4))
+      await waitFor(() => expect(slotNames()).toHaveLength(4))
       expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
     })
 
-    it('hay un solo destino para añadir, y el + del raíl sigue siendo un atajo', async () => {
+    it('cada comida es su propia puerta, y no hay una CTA global', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       render(<Comida />)
       await screen.findByRole('button', { name: /Pan de la panadería/ })
-      // La CTA fija es el destino principal…
-      expect(screen.getByRole('button', { name: 'Añadir alimento' })).toBeInTheDocument()
-      // …y el `+` de cada raíl sigue ahí como atajo con la comida ya puesta.
+      // Una puerta por comida y ninguna más. La CTA fija preguntaba a dónde iba
+      // lo que ibas a registrar, y entrando por la comida esa pregunta ya está
+      // contestada: cuatro controles que dicen a dónde llevan valen más que uno
+      // que no lo dice y hay que corregir después.
+      expect(screen.queryByRole('button', { name: 'Añadir alimento' })).not.toBeInTheDocument()
       expect(screen.getAllByRole('button', { name: /^Añadir a / })).toHaveLength(4)
     })
 
-    it('la CTA fija abre el buscador con la comida inferida por la hora', async () => {
-      vi.setSystemTime(new Date(2026, 7, 31, 21, 0)) // 21:00 → cena
+    it('entrar por una comida deja ese destino ya puesto', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
       render(<Comida />)
-      await userEvent.click(await screen.findByRole('button', { name: 'Añadir alimento' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
       expect(screen.getByRole('button', { name: 'Cena' })).toHaveAttribute('aria-pressed', 'true')
@@ -1001,7 +1035,7 @@ describe('Comida', () => {
     it('si el repertorio no se puede leer, la pantalla sigue en pie', async () => {
       api.frequentFoods.mockRejectedValue(new Error('offline'))
       render(<Comida />)
-      await waitFor(() => expect(railNames()).toHaveLength(4))
+      await waitFor(() => expect(slotNames()).toHaveLength(4))
       expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
     })
   })
@@ -1009,30 +1043,102 @@ describe('Comida', () => {
   describe('el objetivo diario', () => {
     it('sin objetivo, la cifra grande sigue siendo lo comido', async () => {
       render(<Comida />)
-      await waitFor(() => expect(document.querySelector('.food-strip')).not.toBeNull())
-      expect(document.querySelector('.food-hero')).toBeNull()
+      const macros = await screen.findByTestId('food-macros')
+      expect(within(macros).getByText('Llevas')).toBeInTheDocument()
+      expect(within(macros).queryByText('Te falta')).not.toBeInTheDocument()
       expect(screen.getByText('Sin fijar')).toBeInTheDocument()
     })
 
-    it('con objetivo, la cifra grande pasa a ser lo que queda', async () => {
+    it('con objetivo, la cifra grande pasa a ser lo que falta de proteína', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      render(<Comida />)
+      const macros = await screen.findByTestId('food-macros')
+      // El héroe es lo que **falta**, y de proteína: es la pregunta que se hace
+      // a las 20:00. Contestarla con lo comido obliga a restar de cabeza.
+      expect(within(macros).getByText('Te falta')).toBeInTheDocument()
+      expect(within(macros).getByText('154')).toBeInTheDocument()
+      expect(within(macros).getByText('g de proteína')).toBeInTheDocument()
+      // Lo comido no desaparece: baja a la derecha, pequeño y apagado.
+      expect(within(macros).getByText('Llevas')).toBeInTheDocument()
+      expect(within(macros).getByText('6 / 160')).toBeInTheDocument()
+      // Y las kcal dejan de ser el héroe: bajan a la fila de cierre.
+      expect(within(macros).getByText('kcal 200 / 2800')).toBeInTheDocument()
+    })
+
+    // ---------------------------------------------------------------------
+    // El contrato de color: el color codifica **progreso**, no categoría.
+    //
+    // Estas cuatro pruebas son el contrato escrito. Se fija con clases y no con
+    // colores calculados a propósito: en jsdom no hay motor de maquetación y
+    // `getComputedStyle` no resuelve `color-mix`, así que lo que se puede
+    // afirmar aquí es qué pieza lleva cada papel. El color realmente pintado se
+    // mide en `src/browser/`, en Chromium.
+    // ---------------------------------------------------------------------
+    it('cada barra parte lo cumplido de lo que falta, y sólo la proteína manda', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      render(<Comida />)
+      const macros = await screen.findByTestId('food-macros')
+      // Tres barras: proteína, hidratos y grasa. La fibra no tiene objetivo, así
+      // que no tiene barra — una barra sin meta no mide nada.
+      expect(macros.querySelectorAll('.food-macro-bar')).toHaveLength(3)
+      // Una sola manda, y se dice con intensidad (10px frente a 6px), no con un
+      // tono distinto: un color por macro sería redundante con la posición.
+      expect(macros.querySelectorAll('.food-macro.is-lead')).toHaveLength(1)
+      // Los dos tramos: lo cumplido, desaturado y con su ancho; lo que falta,
+      // en cromo y ocupando el resto.
+      const done = macros.querySelector('.food-macro.is-lead .food-macro-done')
+      expect(done).toHaveStyle({ width: '4%' })
+      expect(macros.querySelector('.food-macro.is-lead .food-macro-left')).not.toBeNull()
+    })
+
+    it('al cerrar el objetivo la barra pasa a --pr entera, sin costura', async () => {
       api.getFoodDay.mockResolvedValue(
-        day({
-          entries: [entry()],
-          totals: { kcal: 200, protein: 6, fat: 2, carbs: 38, fiber: 2 },
-          by_slot: slots({ desayuno: 200 }),
-          target_kcal: 2800,
-          target_protein: 160,
-          remaining_kcal: 2600,
+        objetivo({
+          totals: { kcal: 2800, protein: 160, fat: 80, carbs: 300, fiber: 2 },
+          remaining_protein: 0,
         }),
       )
       render(<Comida />)
-      await waitFor(() => expect(document.querySelector('.food-hero')).not.toBeNull())
-      expect(document.querySelector('.food-strip')).toBeNull()
-      expect(screen.getByText('2600')).toBeInTheDocument()
-      expect(screen.getByText('kcal por comer')).toBeInTheDocument()
-      // Cuatro cifras van sin separador de millar en es-ES (1841, no 1.841).
-      expect(document.querySelector('.food-hero-total').textContent).toBe('200 / 2800')
-      expect(screen.getByText('2800 kcal')).toBeInTheDocument() // el resumen del cajón
+      const macros = await screen.findByTestId('food-macros')
+      // El único momento en que el tono profundo ocupa la barra entera. Partirla
+      // en «cumplido» y «pendiente» cuando no queda pendiente dibujaría una
+      // costura donde ya no hay dos cosas.
+      const bar = macros.querySelector('.food-macro.is-lead .food-macro-bar')
+      expect(bar).toHaveClass('is-closed')
+      expect(bar.querySelector('.food-macro-done')).toBeNull()
+      expect(bar.querySelector('.food-macro-left')).toBeNull()
+      // Y el número deja de ser una resta y pasa a ser el marcador: un «te falta
+      // 0» sería la misma cifra diciendo lo contrario de lo que ha pasado.
+      expect(within(macros).getByText('Cerrado')).toBeInTheDocument()
+      expect(within(macros).getByText('160 / 160')).toBeInTheDocument()
+      expect(within(macros).queryByText('Te falta')).not.toBeInTheDocument()
+    })
+
+    it('un día vacío con objetivo enseña el objetivo entero como lo que falta', async () => {
+      api.getFoodDay.mockResolvedValue(
+        objetivo({
+          entries: [],
+          totals: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          by_slot: slots(),
+          remaining_protein: 160,
+        }),
+      )
+      render(<Comida />)
+      const macros = await screen.findByTestId('food-macros')
+      expect(within(macros).getByText('160')).toBeInTheDocument()
+      // Nada comido no es cero comido: la cifra de la izquierda es una raya.
+      expect(within(macros).getByText('— / 160')).toBeInTheDocument()
+    })
+
+    it('la línea de cierre dice lo que falta para cerrar el día', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      render(<Comida />)
+      const close = await waitFor(() => {
+        const el = document.querySelector('.food-close')
+        expect(el).not.toBeNull()
+        return el
+      })
+      expect(close).toHaveTextContent('Te faltan 154 g de proteína para cerrar el día.')
     })
 
     it('abre con los valores actuales y los guarda', async () => {

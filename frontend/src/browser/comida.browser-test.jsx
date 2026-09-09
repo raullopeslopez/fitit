@@ -30,9 +30,12 @@ import {
 
 afterEach(() => clearForcedTheme())
 
-// El total del día pasó de tarjeta hero a tira fina: mismos cuatro valores,
-// misma regla de la raya, otra caja.
-const macroCells = () => [...document.querySelectorAll('.food-strip-macro')]
+// Los macros de la cabecera: proteína, hidratos y grasa, cada uno con su fila y
+// su barra. La fibra no está — no tiene objetivo, y una barra sin meta no mide
+// nada.
+const macroRows = () => [...document.querySelectorAll('.food-macro')]
+// Las cabeceras de comida con su subtotal. Un hueco no lleva ninguna.
+const slotMetas = () => [...document.querySelectorAll('.food-slot-meta')]
 
 // Lo que devuelve de verdad una búsqueda de «huevo» contra el catálogo CIQUAL:
 // treinta filas, que es el tope del servidor (`SEARCH_LIMIT`). El tamaño es el
@@ -55,8 +58,8 @@ const HUEVOS = Array.from({ length: 30 }, (_, i) => ({
 describe('Comida', () => {
   it('llega con el día pintado', async () => {
     await mountComida()
-    expect(document.querySelector('.food-strip')).not.toBeNull()
-    expect(macroCells()).toHaveLength(4)
+    expect(document.querySelector('.food-macros')).not.toBeNull()
+    expect(macroRows()).toHaveLength(3)
   })
 
   it('la fecha y sus dos pasos van en un solo renglón', async () => {
@@ -91,10 +94,14 @@ describe('Comida', () => {
 
   it('la raya de un dato desconocido se pinta como una cifra, no como un hueco', async () => {
     await mountComida()
-    const values = macroCells().map((cell) => cell.querySelector('.food-strip-value'))
-    const dash = values.find((el) => el.textContent === '—')
-    const number = values.find((el) => el.textContent !== '—')
-    expect(dash).toBeDefined()
+    // La columna de cifras de la pantalla es ahora la proteína de cada entrada,
+    // por el borde derecho. Ahí es donde una raya tiene que seguir leyéndose
+    // como un valor: hay un dato y no lo sabemos, que no es lo mismo que un
+    // hueco. El fixture trae una entrada sin proteína a propósito.
+    const values = [...document.querySelectorAll('.food-entry-protein')]
+    const dash = values.find((el) => el.textContent.startsWith('—'))
+    const number = values.find((el) => !el.textContent.startsWith('—'))
+    expect(dash, 'ninguna entrada sin proteína en el fixture').toBeDefined()
 
     // Misma tinta. Si la raya se pintara en `--muted` se leería como "aquí no
     // hay nada", que es justo lo contrario de lo que dice: hay un dato y no lo
@@ -109,7 +116,7 @@ describe('Comida', () => {
   it('el pie explica la raya, se lee y ahora se toca', async () => {
     await mountComida()
     const note = document.querySelector('.food-unknown-chip')
-    expect(note.textContent).toBe('— no es cero: 1 entrada sin fibra.')
+    expect(note.textContent).toBe('— no es cero: 1 entrada sin proteína, 1 sin fibra.')
     expect(note.tagName).toBe('BUTTON')
     for (const theme of ['light', 'dark']) {
       forceTheme(theme)
@@ -123,13 +130,13 @@ describe('Comida', () => {
     }
   })
 
-  it('las cuatro macros caben en 430 px sin desbordar', async () => {
+  it('la cabecera de macros cabe en 430 px sin desbordar', async () => {
     await mountComida()
-    const card = document.querySelector('.food-strip')
+    const card = document.querySelector('.food-macros')
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth)
-    // Y ninguna celda se sale de la tarjeta que las contiene.
+    // Y ninguna fila se sale de la tarjeta que las contiene.
     const box = paintedRect(card)
-    for (const cell of macroCells()) {
+    for (const cell of macroRows()) {
       const rect = paintedRect(cell)
       expect(rect.left).toBeGreaterThanOrEqual(box.left - 0.5)
       expect(rect.right).toBeLessThanOrEqual(box.right + 0.5)
@@ -144,8 +151,8 @@ describe('Comida', () => {
       el.textContent.includes('Pan de centeno'),
     )
     const rowBox = paintedRect(row)
-    const kcal = row.querySelector('.food-entry-kcal')
-    expect(paintedRect(kcal).right).toBeLessThanOrEqual(rowBox.right + 0.5)
+    const protein = row.querySelector('.food-entry-protein')
+    expect(paintedRect(protein).right).toBeLessThanOrEqual(rowBox.right + 0.5)
   })
 
   it('abrir la CTA trae el buscador a la pantalla', async () => {
@@ -247,11 +254,13 @@ describe('Comida', () => {
     )
   })
 
-  it('el + de cada raíl es un objetivo de dedo y no queda bajo la barra', async () => {
+  it('la puerta de cada comida es un objetivo de dedo y no queda bajo la barra', async () => {
     await mountComida()
     const nav = document.querySelector('nav.bottom-nav')
-    const adds = [...document.querySelectorAll('.food-rail-add')]
-    // Cuatro: uno por comida. El montón sin asignar no lleva, a propósito.
+    // Una por comida, venga en una tarjeta con contenido o en un hueco `dashed`:
+    // es el mismo control, cambia sólo qué tarjeta lo aloja. El montón sin
+    // asignar no lleva, a propósito.
+    const adds = screen.getAllByRole('button', { name: /^Añadir a / })
     expect(adds).toHaveLength(4)
     for (const add of adds) {
       add.scrollIntoView({ block: 'center' })
@@ -265,25 +274,28 @@ describe('Comida', () => {
     }
   })
 
-  it('un raíl vacío no lleva subtotal', async () => {
+  it('una comida vacía es un hueco en dashed, sin subtotal', async () => {
     await mountComida()
-    // Snack es el único raíl sin entradas en el fixture: su cabecera con el
-    // `+` ya dice que está vacío, así que no imprime ni una raya.
-    const rails = [...document.querySelectorAll('.food-rail')]
-    const snack = rails.find((r) => r.querySelector('.food-rail-name')?.textContent === 'Snack')
-    expect(snack.querySelector('.food-rail-kcal')).toBeNull()
+    // Snack es la única comida sin entradas en el fixture: se pinta como hueco,
+    // no como tarjeta, y no imprime ni una raya. Un hueco no suma nada.
+    const blanks = [...document.querySelectorAll('.food-blank')]
+    expect(blanks).toHaveLength(1)
+    expect(blanks[0]).toHaveTextContent('Snack')
+    expect(blanks[0].querySelector('.food-slot-meta')).toBeNull()
+    // Y el borde es de verdad discontinuo, que es lo que lo separa de una
+    // tarjeta con contenido sin gastar un color.
+    expect(getComputedStyle(blanks[0]).borderTopStyle).toBe('dashed')
+    expect(getComputedStyle(blanks[0]).boxShadow).toBe('none')
   })
 
-  it('un raíl con algo dentro, pero de total desconocido, sigue llevando una raya con tinta de cifra', async () => {
+  it('una comida con algo dentro, pero de total desconocido, sigue llevando su raya', async () => {
     await mountComida()
-    const kcal = [...document.querySelectorAll('.food-rail-kcal')]
-    const raya = kcal.find((e) => e.textContent.startsWith('—'))
-    const cifra = kcal.find((e) => !e.textContent.startsWith('—'))
-    expect(raya, 'ningún raíl con total desconocido en el fixture').toBeDefined()
-    // Misma razón que en el total del día: en `--muted` la raya se leería como
-    // «aquí no hay nada», y lo que dice es «este total no cuadra todavía».
-    expect(getComputedStyle(raya).color).toBe(getComputedStyle(cifra).color)
-    expect(paintedRect(raya).height).toBeCloseTo(paintedRect(cifra).height, 0)
+    const metas = slotMetas()
+    const raya = metas.find((e) => e.textContent.includes('— kcal'))
+    expect(raya, 'ninguna comida con total desconocido en el fixture').toBeDefined()
+    // Cena tiene una entrada dentro y aun así no puede sumar: la raya dice
+    // «este total no cuadra todavía», que es distinto de una comida vacía.
+    expect(raya.textContent).toBe('— P · — kcal')
   })
 
   // El alta manual creció a siete campos —Marca entró con el lector de
@@ -502,25 +514,109 @@ describe('Comida', () => {
     })
   })
 
-  it('la CTA fija no tapa la barra de pestañas, y el hueco al pie basta para el último raíl', async () => {
-    await mountComida()
-    const cta = document.querySelector('.food-cta')
-    const nav = paintedRect(document.querySelector('nav.bottom-nav'))
-    expect(overlap(nav, paintedRect(cta)), 'la barra de pestañas tapa la CTA').toBeNull()
+  // ── El contrato de color, medido sobre el color realmente pintado ────────
+  //
+  // Aquí es donde el contrato se puede afirmar de verdad: en jsdom no hay motor
+  // de maquetación y `getComputedStyle` no resuelve `color-mix`, así que la
+  // suite de siempre sólo puede decir qué pieza lleva cada papel. Esto lee el
+  // color que sale por el píxel, en los dos esquemas.
+  describe('el contrato de color', () => {
+    // El valor de un token, resuelto por el propio navegador.
+    //
+    // `getPropertyValue('--accent')` devuelve la cadena tal cual está escrita
+    // —`#e4571b`, o un `color-mix(...)` sin evaluar—, que no se puede comparar
+    // con un `backgroundColor` ya calculado. Pintarlo en un elemento de mentira
+    // y leerlo de vuelta lo normaliza, que es la única forma de comparar un
+    // token con un píxel sin reimplementar `color-mix` aquí.
+    const token = (name) => {
+      const probe = document.createElement('span')
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(name)
+      document.body.appendChild(probe)
+      const value = parseColor(getComputedStyle(probe).color)
+      probe.remove()
+      return value
+    }
+    const rgb = ([r, g, b]) => [r, g, b].map((n) => Math.round(n))
+    // Cuánto color tiene un color: la distancia entre su canal más alto y su más
+    // bajo. Un gris da 0. Es la forma de medir «desaturado» sin salir de sRGB.
+    const chroma = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b)
+    const bg = (el) => parseColor(getComputedStyle(el).backgroundColor)
 
-    // Al final de verdad del scroll —no `scrollIntoView({block:'end'})`, que
-    // alinea el raíl con el borde del viewport ignorando el hueco que
-    // `.comida` deja para la CTA a propósito—: `document.scrollingElement` a
-    // su `scrollHeight` es donde el usuario llega al tirar hasta el fondo.
+    it('lo cumplido se desatura y el cromo se queda en lo que falta', async () => {
+      await mountComida()
+      const lead = document.querySelector('.food-macro.is-lead')
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        const done = bg(lead.querySelector('.food-macro-done'))
+        const left = bg(lead.querySelector('.food-macro-left'))
+        const accent = token('--accent')
+        // Lo que falta va en el acento entero: es la regla 2 del contrato.
+        expect(rgb(left), theme).toEqual(rgb(accent))
+        // Y lo cumplido, más apagado que él. «Desaturar» se mide como distancia
+        // al gris: el tramo consumido tiene que tener menos color que el acento,
+        // o el contrato dice una cosa y la pantalla pinta otra.
+        expect(
+          chroma(done),
+          `${theme}: cumplido ${chroma(done).toFixed(0)} vs acento ${chroma(accent).toFixed(0)}`,
+        ).toBeLessThan(chroma(accent))
+      }
+    })
+
+    it('sin cerrar el objetivo, --pr no aparece en ninguna barra', async () => {
+      await mountComida()
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        const pr = rgb(token('--pr'))
+        // El tono profundo es el momento ganado. Con los 160 g de proteína
+        // enteros por comer no hay momento ganado: `--pr` no puede aparecer.
+        for (const part of document.querySelectorAll(
+          '.food-macro-bar, .food-macro-done, .food-macro-left',
+        )) {
+          expect(rgb(bg(part)), `${theme}: ${part.className}`).not.toEqual(pr)
+        }
+      }
+    })
+
+    it('la jerarquía se dice con altura, no con un tono nuevo', async () => {
+      await mountComida()
+      const [lead, ...rest] = macroRows()
+      // Proteína manda: 10px. Hidratos y grasa acompañan: 6px. Un color por
+      // macro sería redundante con la posición y con la cifra.
+      expect(lead).toHaveClass('is-lead')
+      const height = (row) => paintedRect(row.querySelector('.food-macro-bar')).height
+      expect(height(lead)).toBeCloseTo(10, 0)
+      for (const row of rest) expect(height(row)).toBeCloseTo(6, 0)
+    })
+
+    it('el número héroe se lee sobre el fondo en los dos esquemas', async () => {
+      await mountComida()
+      const hero = document.querySelector('.food-macros-number')
+      expect(hero.textContent).toBe('160')
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        const ratio = contrastRatio(parseColor(getComputedStyle(hero).color), backdropOf(hero))
+        // 3.0 es el suelo de AA para texto grande (2,6rem lo es de sobra). El
+        // acento sobre papel no llega a 4.5 y no tiene por qué: es un número de
+        // 42 px, no prosa.
+        expect(ratio, `${theme}: ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(3)
+      }
+    })
+  })
+
+  it('al llegar al fondo, la última comida no queda bajo la barra de pestañas', async () => {
+    await mountComida()
+    const nav = paintedRect(document.querySelector('nav.bottom-nav'))
     const scroller = document.scrollingElement
     scroller.scrollTop = scroller.scrollHeight
     await settle()
-    const rails = [...document.querySelectorAll('.food-rail')]
-    const last = rails[rails.length - 1]
-    expect(
-      overlap(paintedRect(cta), paintedRect(last)),
-      'la CTA tapa el último raíl al llegar al fondo de verdad',
-    ).toBeNull()
+    // La línea de cierre es lo último de la pantalla: si ella se ve, todo lo de
+    // encima se ve. Antes había una CTA fija ocupando este hueco; ahora el
+    // hueco es sólo hueco, y sigue teniendo que bastar.
+    const close = document.querySelector('.food-close')
+    expect(overlap(nav, paintedRect(close)), 'la barra tapa la línea de cierre').toBeNull()
   })
 
   // ── La hoja del buscador con una búsqueda de verdad ─────────────────────
@@ -537,7 +633,7 @@ describe('Comida', () => {
   it('treinta resultados no empujan el buscador fuera de la pantalla', async () => {
     await mountComida({ catalogue: HUEVOS })
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Añadir alimento' }))
+    await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
     await user.type(screen.getByLabelText('Buscar alimento'), 'huevo')
     await vi.waitFor(
       () => expect(document.querySelectorAll('.food-result').length).toBe(HUEVOS.length),
@@ -560,7 +656,7 @@ describe('Comida', () => {
   it('la lista de resultados tiene su propio recorrido', async () => {
     await mountComida({ catalogue: HUEVOS })
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Añadir alimento' }))
+    await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
     await user.type(screen.getByLabelText('Buscar alimento'), 'huevo')
     await vi.waitFor(
       () => expect(document.querySelectorAll('.food-result').length).toBe(HUEVOS.length),

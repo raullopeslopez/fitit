@@ -21,7 +21,7 @@ import {
   formatAmount,
   formatMacro,
   inferMealSlot,
-  proteinProgress,
+  macroBar,
   shiftDay,
   slotLabel,
   droppedNote,
@@ -54,6 +54,24 @@ function rails(day) {
       }
     })
     .filter((rail) => rail.key !== null || rail.entries.length > 0)
+}
+
+// Las comidas que ya tienen algo dentro, en el orden en que se comen. Cada una
+// se dibuja como una tarjeta con su subtotal, sus filas y su propio
+// «+ Añadir a …»: entrar por el slot es lo que deja el destino ya resuelto,
+// así que la pantalla de Añadir no tiene que preguntarlo.
+function filled(day) {
+  return rails(day).filter((rail) => rail.entries.length > 0)
+}
+
+// Las que están vacías. Van juntas al final y en `dashed`, no intercaladas: un
+// hueco no compite por la atención con una comida registrada, y agrupándolos
+// caben dos por fila en vez de ocupar cuatro tarjetas de alto.
+//
+// El montón sin asignar no aparece aquí — no tiene `+`, porque nadie quiere
+// *decidir* no decidir, así que sólo existe cuando ya hay algo en él.
+function empty(day) {
+  return rails(day).filter((rail) => rail.key !== null && rail.entries.length === 0)
 }
 
 // Una entrada está completa cuando ninguno de sus nutrientes es `null`. Sirve
@@ -307,62 +325,7 @@ export default function Comida() {
 
       {error && <p className="alert">{error}</p>}
 
-      {/* Con objetivo fijado, la cifra grande deja de ser lo comido y pasa a
-          ser lo que queda (`objetivo − comido`, calculado en el servidor,
-          igual que los subtotales): es la pregunta que se hace a las 20:00.
-          Lo comido sigue ahí, pequeño y a la derecha. */}
-      {day && hasTarget && (
-        <div className="food-hero" data-testid="food-macros">
-          <div className="food-hero-top">
-            <span className="food-hero-remaining">{formatMacro(day.remaining_kcal)}</span>
-            <span className="food-hero-remaining-unit">kcal por comer</span>
-            <span className="food-hero-total">
-              {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)}
-            </span>
-          </div>
-          <div className="food-hero-protein">
-            <span className="food-hero-protein-label">Proteína</span>
-            <span className="food-hero-protein-value">{formatMacro(totals.protein)}</span>
-            {day.target_protein != null && (
-              <span className="food-hero-protein-target">/ {formatMacro(day.target_protein)} g</span>
-            )}
-          </div>
-          {day.target_protein != null && (
-            <div className="food-hero-bar">
-              <div style={{ width: `${proteinProgress(totals.protein, day.target_protein) ?? 0}%` }} />
-            </div>
-          )}
-          <div className="food-hero-macros">
-            {MACROS.filter((macro) => macro.key !== 'protein').map((macro) => (
-              <span className="food-hero-macro" key={macro.key}>
-                <span className="food-strip-short">{macro.short}</span>{' '}
-                <span className="food-strip-value">
-                  {formatMacro(totals[macro.key], { decimals: macro.decimals })}
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sin objetivo, la tira de siempre: el total del día y sus cuatro
-          macros, sin nada que restar todavía. */}
-      {day && !hasTarget && (
-        <div className="food-strip" data-testid="food-macros">
-          <span className="food-strip-kcal">{formatMacro(totals.kcal)}</span>
-          <span className="food-strip-unit">kcal</span>
-          <span className="food-strip-macros">
-            {MACROS.map((macro) => (
-              <span className="food-strip-macro" key={macro.key}>
-                <span className="food-strip-short">{macro.short}</span>{' '}
-                <span className="food-strip-value">
-                  {formatMacro(totals[macro.key], { decimals: macro.decimals })}
-                </span>
-              </span>
-            ))}
-          </span>
-        </div>
-      )}
+      {day && <MacroCard day={day} />}
 
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
           contrario de lo que dice. Así que se explica en voz alta — y ahora se
@@ -412,75 +375,49 @@ export default function Comida() {
         </section>
       )}
 
-      {day &&
-        rails(day).map((rail) => {
-          const visible = onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries
-          const undoHere = deleted && (deleted.meal_slot ?? null) === rail.key
-          return (
-            <section className="food-rail" key={rail.key ?? 'sin-asignar'}>
-              <h3 className="food-rail-head">
-                <span className="food-rail-name">{slotLabel(rail.key)}</span>
-                {/* Un raíl vacío es una línea: sin «Nada aún» y sin subtotal en
-                    cero, porque la cabecera con su `+` ya dice que está vacío. */}
-                {rail.entries.length > 0 && (
-                  <span className="food-rail-kcal">{formatMacro(rail.totals.kcal)} kcal</span>
-                )}
-                {/* Entrar por el raíl es lo que jubila el desplegable «Comida»:
-                    la respuesta la da el sitio por el que has pulsado. Baja a
-                    control secundario —color, no tamaño: DESIGN.md fija 44px
-                    como suelo para todo lo que se toca, y éste se toca cuatro
-                    veces al día— porque «Añadir alimento» abajo es ahora el
-                    destino principal. */}
-                {rail.key !== null && (
-                  <button
-                    type="button"
-                    className="food-rail-add"
-                    aria-label={`Añadir a ${slotLabel(rail.key).toLowerCase()}`}
-                    onClick={() => setAdding({ slot: rail.key })}
-                  >
-                    +
-                  </button>
-                )}
-              </h3>
-              {visible.map((entry) => (
-                <EntryRow
-                  key={entry.id}
-                  entry={entry}
-                  onEdit={() => setEditing(entry.id)}
-                  onDelete={handleDeleteEntry}
-                />
+      {day && (
+        <>
+          {filled(day).map((rail) => (
+            <SlotCard
+              key={rail.key ?? 'sin-asignar'}
+              rail={rail}
+              entries={onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries}
+              deleted={deleted && (deleted.meal_slot ?? null) === rail.key ? deleted : null}
+              undoing={undoing}
+              onUndo={handleUndo}
+              onAdd={() => setAdding({ slot: rail.key })}
+              onEdit={setEditing}
+              onDelete={handleDeleteEntry}
+            />
+          ))}
+          {/* Los vacíos, en fila de dos y en `dashed`: una tarjeta que todavía
+              no contiene nada no puede pesar lo mismo que una que sí. Siguen
+              siendo objetivo de un toque —es por donde se entra a registrar en
+              esa comida— y por eso son `button` y no `div` con un enlace
+              dentro: el área que se toca es la tarjeta entera. */}
+          {empty(day).length > 0 && (
+            <div className="food-blanks">
+              {empty(day).map((rail) => (
+                <button
+                  type="button"
+                  key={rail.key}
+                  className="card food-blank"
+                  /* El nombre calculado de la tarjeta sería «Desayuno + añadir»,
+                     que describe lo que se ve y no lo que hace. Explícito, y el
+                     mismo que lleva el pie de una comida con contenido: es el
+                     mismo control, cambia sólo qué tarjeta lo aloja. */
+                  aria-label={`Añadir a ${slotLabel(rail.key).toLowerCase()}`}
+                  onClick={() => setAdding({ slot: rail.key })}
+                >
+                  <span className="food-slot-name">{slotLabel(rail.key)}</span>
+                  <span className="food-blank-add">+ añadir</span>
+                </button>
               ))}
-              {undoHere && (
-                <p className="retag-undo">
-                  <span>{deleted.food_name} borrada.</span>
-                  <button
-                    type="button"
-                    className="retag-undo-action"
-                    aria-label={`Deshacer el borrado de ${deleted.food_name}`}
-                    onClick={handleUndo}
-                    disabled={undoing}
-                  >
-                    Deshacer
-                  </button>
-                </p>
-              )}
-            </section>
-          )
-        })}
-
-      {/* Un solo destino para «añadir», al alcance del pulgar — el mismo sitio
-          en el que Días fija su CTA (DESIGN.md: la acción principal va abajo,
-          nunca arriba). El buscador y la cantidad se abren en una hoja que
-          llega sobre el teclado en vez de empujar la lista. */}
-      <div className="food-cta">
-        <button
-          type="button"
-          className="primary btn-full"
-          onClick={() => setAdding({ slot: inferMealSlot() })}
-        >
-          Añadir alimento
-        </button>
-      </div>
+            </div>
+          )}
+          <ClosingLine day={day} />
+        </>
+      )}
 
       {(adding || editingEntry) && (
         <div className="sheet-scrim" onClick={closeSheet}>
@@ -511,6 +448,229 @@ export default function Comida() {
         </div>
       )}
     </div>
+  )
+}
+
+// La cabecera del día, y la pieza donde vive el contrato de color.
+//
+// **El color codifica progreso, no categoría.** No hay un tono por macro: los
+// macros ya se distinguen por posición y por número, y pintarlos sería
+// redundante. Lo que el color dice es en qué punto del día estás:
+//
+// 1. Lo cumplido se desatura — el tramo consumido va en una mezcla de acento
+//    con gris: presente, pero apagado. Ya no hay nada que hacer con él.
+// 2. El cromo se reserva a lo que falta, y el número grande es **lo que falta**,
+//    no lo que llevas. Es la pregunta que se hace a las 20:00, y contestarla con
+//    lo comido obliga a restar de cabeza delante de la nevera.
+// 3. `--pr` es el momento ganado: no aparece hasta que el objetivo se cierra, y
+//    entonces ocupa la barra entera. Igual que un récord en Entreno.
+//
+// Jerarquía por intensidad y no por tono: la proteína manda (10px, cromo lleno)
+// y los otros dos acompañan (6px, cromo al 60%). Un solo color en toda la app.
+function MacroCard({ day }) {
+  const totals = day.totals ?? {}
+  const target = day.target_protein
+  const bar = macroBar(totals.protein, target)
+  const closed = bar?.closed ?? false
+
+  // Sin objetivo de proteína no hay nada que restar, y una cifra grande de «te
+  // falta» sin meta no significa nada. La tarjeta cae a enseñar lo comido.
+  if (target == null) {
+    return (
+      <div className="card food-macros" data-testid="food-macros">
+        <div className="food-macros-top">
+          <p className="food-macros-hero">
+            <span className="card-eyebrow">Llevas</span>
+            <span className="food-macros-figure">
+              <span className="food-macros-number">{formatMacro(totals.kcal)}</span>
+              <span className="food-macros-unit">kcal</span>
+            </span>
+          </p>
+        </div>
+        <div className="food-macros-rows">
+          {MACROS.map((macro) => (
+            <MacroRow
+              key={macro.key}
+              label={macro.label}
+              eaten={totals[macro.key]}
+              decimals={macro.decimals}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card food-macros" data-testid="food-macros">
+      <div className="food-macros-top">
+        <p className="food-macros-hero">
+          <span className={`card-eyebrow${closed ? ' is-closed' : ''}`}>
+            {closed ? 'Cerrado' : 'Te falta'}
+          </span>
+          <span className="food-macros-figure">
+            {/* Cerrado, el número deja de ser una resta y pasa a ser el marcador:
+                «160 / 160». Un «te falta 0» sería la misma cifra diciendo lo
+                contrario de lo que ha pasado. */}
+            <span className={`food-macros-number${closed ? ' is-closed' : ''}`}>
+              {closed
+                ? `${formatMacro(totals.protein)} / ${formatMacro(target)}`
+                : formatMacro(day.remaining_protein)}
+            </span>
+            <span className="food-macros-unit">g de proteína</span>
+          </span>
+        </p>
+        {/* Lo comido no desaparece: baja a la derecha, pequeño y en `--muted`.
+            Se sigue pudiendo consultar, pero ya no es lo que se lee primero. */}
+        {!closed && (
+          <p className="food-macros-eaten">
+            <span className="card-eyebrow">Llevas</span>
+            <span className="food-macros-eaten-value">
+              {formatMacro(totals.protein)} / {formatMacro(target)}
+            </span>
+          </p>
+        )}
+      </div>
+
+      <div className="food-macros-rows">
+        <MacroRow
+          label="Proteína"
+          eaten={totals.protein}
+          target={target}
+          lead
+        />
+        <MacroRow label="Hidratos" eaten={totals.carbs} target={day.target_carbs} />
+        <MacroRow label="Grasa" eaten={totals.fat} target={day.target_fat} />
+      </div>
+
+      {day.target_kcal != null && (
+        <p className="food-macros-kcal">
+          <span>Cumplido</span>
+          <span className="food-macros-kcal-value">
+            kcal {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)}
+          </span>
+        </p>
+      )}
+    </div>
+  )
+}
+
+// Un macro: su nombre, su cifra y su barra.
+//
+// La barra sólo se dibuja si hay objetivo — es lo que la hace medir algo. Sin él
+// queda la línea de texto, que es toda la información que existe.
+//
+// `lead` es la proteína: misma estructura, el doble de alto y el cromo entero.
+// La diferencia entre mandar y acompañar se dice con intensidad, no con un tono
+// distinto.
+function MacroRow({ label, eaten, target = null, decimals = 0, lead = false }) {
+  const bar = macroBar(eaten, target)
+  return (
+    <div className={`food-macro${lead ? ' is-lead' : ''}`}>
+      <p className="food-macro-line">
+        <span className="food-macro-label">{label}</span>
+        {/* Con objetivo, «118 / 160 g». Sin objetivo, sólo lo comido. Y si no
+            se sabe, la raya sola: «— g» pega una unidad a un valor que no
+            existe, y una raya no se mide en gramos. */}
+        <span className="food-macro-value">
+          {target != null
+            ? `${formatMacro(eaten, { decimals })} / ${formatMacro(target, { decimals })} g`
+            : eaten == null
+              ? '—'
+              : `${formatMacro(eaten, { decimals })} g`}
+        </span>
+      </p>
+      {bar && (
+        <span className={`food-macro-bar${bar.closed ? ' is-closed' : ''}`} aria-hidden="true">
+          {/* Cerrado no lleva segmentos: la barra entera pasa a `--pr`. Partirla
+              en «cumplido» y «pendiente» cuando no queda pendiente dibujaría una
+              costura donde ya no hay dos cosas. */}
+          {!bar.closed && (
+            <>
+              <span className="food-macro-done" style={{ width: `${bar.done}%` }} />
+              <span className="food-macro-left" />
+            </>
+          )}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Una comida con algo dentro: subtotal, filas, y su propia puerta de entrada.
+function SlotCard({ rail, entries, deleted, undoing, onUndo, onAdd, onEdit, onDelete }) {
+  const label = slotLabel(rail.key)
+  return (
+    <section className="card food-slot">
+      <h3 className="food-slot-head">
+        <span className="food-slot-name">{label}</span>
+        <span className="food-slot-meta">
+          {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
+        </span>
+      </h3>
+      {entries.map((entry) => (
+        <EntryRow
+          key={entry.id}
+          entry={entry}
+          onEdit={() => onEdit(entry.id)}
+          onDelete={onDelete}
+        />
+      ))}
+      {deleted && (
+        <p className="retag-undo">
+          <span>{deleted.food_name} borrada.</span>
+          <button
+            type="button"
+            className="retag-undo-action"
+            aria-label={`Deshacer el borrado de ${deleted.food_name}`}
+            onClick={onUndo}
+            disabled={undoing}
+          >
+            Deshacer
+          </button>
+        </p>
+      )}
+      {/* El montón sin asignar no tiene puerta: no se registra «en sin asignar»,
+          se acaba ahí por no haber dicho nada. */}
+      {rail.key !== null && (
+        <p className="food-slot-foot">
+          <button
+            type="button"
+            className="link-btn food-slot-add"
+            aria-label={`Añadir a ${label.toLowerCase()}`}
+            onClick={onAdd}
+          >
+            + Añadir a {label.toLowerCase()}
+          </button>
+        </p>
+      )}
+    </section>
+  )
+}
+
+// La línea de cierre del día. Dice lo que queda para cerrar la proteína, que es
+// el mismo número del héroe dicho en una frase — arriba contesta «cuánto», aquí
+// contesta «y entonces qué me falta para terminar».
+//
+// Sin juicio: informa. Ni felicita al cerrar ni riñe por no haber llegado.
+function ClosingLine({ day }) {
+  if (day.target_protein == null) return null
+  const bar = macroBar(day.totals?.protein, day.target_protein)
+  return (
+    <p className="hint food-close">
+      <span>
+        {bar?.closed ? (
+          <>
+            Proteína cerrada: <strong>{formatMacro(day.target_protein)} g</strong>.
+          </>
+        ) : (
+          <>
+            Te faltan <strong>{formatMacro(day.remaining_protein)} g</strong> de proteína para
+            cerrar el día.
+          </>
+        )}
+      </span>
+    </p>
   )
 }
 
@@ -569,21 +729,32 @@ function EntryRow({ entry, onEdit, onDelete }) {
 
   return (
     <div className="food-entry-swipe">
-      <div className="food-entry-swipe-actions">
-        <button
-          type="button"
-          className="food-entry-delete"
-          aria-label={`Borrar ${entry.food_name}`}
-          aria-hidden={!open}
-          tabIndex={open ? 0 : -1}
-          onClick={() => {
-            setDrag(0)
-            onDelete(entry)
-          }}
-        >
-          Borrar
-        </button>
-      </div>
+      {/* «Borrar» sólo existe mientras la fila está abierta o en movimiento.
+          No es una decisión de accesibilidad —lo era: vivía siempre con
+          `aria-hidden` y `tabIndex={-1}`— sino de pintado. La fila lleva un
+          `transform` en línea para seguir al dedo, y eso la sube a su propia
+          capa de composición: con alturas fraccionarias (60,95 px) el canto de
+          esa capa deja pasar una costura de sub-píxel, y por debajo de cada
+          fila asomaba una raya de `--danger` de 76 px. Con la fila dentro de una
+          tarjeta se ve; suelta sobre el fondo también estaba, y no se veía.
+
+          El botón nace en el primer `pointermove`, que es cuando `dragX` deja
+          de ser 0 — antes de que haya nada revelado que pulsar. */}
+      {open && (
+        <div className="food-entry-swipe-actions">
+          <button
+            type="button"
+            className="food-entry-delete"
+            aria-label={`Borrar ${entry.food_name}`}
+            onClick={() => {
+              setDrag(0)
+              onDelete(entry)
+            }}
+          >
+            Borrar
+          </button>
+        </div>
+      )}
       <button
         type="button"
         className="link-row food-entry"
@@ -594,9 +765,16 @@ function EntryRow({ entry, onEdit, onDelete }) {
         onPointerCancel={endDrag}
         onClick={onRowClick}
       >
-        <span className="food-entry-name">{entry.food_name}</span>
-        <span className="food-entry-amount">{formatAmount(entry.grams)}</span>
-        <span className="food-entry-kcal">{formatMacro(entry.kcal)} kcal</span>
+        {/* El nombre y la cantidad apilados, y la proteína a la derecha: es el
+            macro que la pantalla persigue, así que es el que se lee de un
+            barrido vertical por el borde. Las kcal siguen estando, sumadas en la
+            cabecera del slot — en cada fila eran una cuarta cifra que nadie
+            compara una con otra. */}
+        <span className="food-entry-main">
+          <span className="food-entry-name">{entry.food_name}</span>
+          <span className="food-entry-amount">{formatAmount(entry.grams)}</span>
+        </span>
+        <span className="food-entry-protein">{formatMacro(entry.protein)} P</span>
       </button>
     </div>
   )
