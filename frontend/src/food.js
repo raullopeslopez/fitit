@@ -49,6 +49,26 @@ export function foodMomentIso(moment = new Date()) {
   return `${iso(moment)}T${clock}${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
 }
 
+// El sello con el que viaja lo que registras **en el día que tienes delante**.
+//
+// Existe porque `foodMomentIso()` sólo sabe contestar «ahora», y la pantalla no
+// siempre está en hoy: se puede retroceder de día, y el raíl de cada comida
+// sigue abriendo su «+ Añadir». Sellando con el reloj del móvil, lo que
+// apuntabas en el martes se guardaba en el miércoles — sin error en ninguna
+// parte, sólo unas kcal que faltaban en un día y sobraban en otro. Es el fallo
+// que más se nota con lo que se apunta tarde, que es justo lo que se pica entre
+// horas (2026-09-14).
+//
+// En un día pasado sella **mediodía** de ese día: cae a ocho horas del corte de
+// las 04:00 por los dos lados, así que ningún offset ni ningún cambio de hora
+// puede empujarlo al día de al lado — el mismo motivo por el que `shiftDay`
+// construye sus fechas a las 12:00.
+export function momentForDay(dayIso, now = new Date()) {
+  if (dayIso === foodDayIso(now)) return foodMomentIso(now)
+  const [y, m, d] = dayIso.split('-').map(Number)
+  return foodMomentIso(new Date(y, m - 1, d, 12))
+}
+
 // El día anterior o el siguiente. Construido sobre `Date` y no sobre aritmética
 // de cadenas para que los meses y los años se ocupen de sí mismos; a mediodía
 // para que ningún cambio de hora se lleve el día por delante.

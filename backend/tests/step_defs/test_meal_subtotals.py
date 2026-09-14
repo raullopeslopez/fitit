@@ -67,3 +67,8 @@ def then_slot_missing_nothing(client, slot):
 @then(parsers.parse("{slot:w} is missing {count:d} entry's kcal"))
 def then_slot_missing(client, slot, count):
     assert _slot(client, slot)["unknown"]["kcal"] == count
+
+
+@then(parsers.parse("the day totals {kcal:g} kcal"))
+def then_day_totals(client, kcal):
+    assert client.get("/food-log").json()["totals"]["kcal"] == kcal

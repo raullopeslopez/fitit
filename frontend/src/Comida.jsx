@@ -18,10 +18,12 @@ import {
   MACROS,
   MEAL_SLOTS,
   foodDayIso,
+  foodMomentIso,
   formatAmount,
   formatMacro,
   kcalFromMacros,
   macroBar,
+  momentForDay,
   previewNutrients,
   shiftDay,
   slotLabel,
@@ -201,7 +203,12 @@ export default function Comida() {
         foodId: deleted.food_id,
         grams: deleted.grams,
         mealSlot: deleted.meal_slot,
-        loggedAt: deleted.logged_at,
+        // El sello vuelve a salir con el reloj de pared del móvil. El servidor
+        // devuelve el instante en UTC, y mandárselo tal cual lo fechaba por un
+        // reloj que no era el tuyo: entre las 04:00 y las 04:00 más tu offset,
+        // deshacer un borrado movía la entrada al día anterior. Misma regla que
+        // al escribirla por primera vez (`foodMomentIso`).
+        loggedAt: foodMomentIso(new Date(deleted.logged_at)),
       })
       await afterWrite()
     } catch {
@@ -1164,7 +1171,13 @@ function AddFood({
   async function quickAdd(item) {
     setQuick(item.food_id)
     try {
-      await logFood({ foodId: item.food_id, grams: item.grams, mealSlot: slot })
+      await logFood({
+        foodId: item.food_id,
+        grams: item.grams,
+        mealSlot: slot,
+        // El día que la pantalla tiene en la cabecera, no el reloj del móvil.
+        loggedAt: momentForDay(dayIso),
+      })
       await onDone()
     } finally {
       setQuick(null)
@@ -1352,10 +1365,14 @@ function AddFood({
 
   const destino = slotLabel(slot)
   const term = query.trim()
-  // Lo que repites, con la cantidad de siempre. Sólo en el día en curso:
-  // `logFood` fecha con el reloj del móvil, así que en un día pasado el toque
-  // escribiría en hoy y la entrada aparecería en una pantalla que no estás
-  // mirando, sin error por ninguna parte.
+  // Lo que repites, con la cantidad de siempre. Sólo en el día en curso.
+  //
+  // El motivo original ya no existe: el toque fechaba con el reloj del móvil y
+  // en un día pasado escribía en hoy, y eso lo arregla `momentForDay` — un
+  // frecuente se fecharía ahora en el día que tienes en la cabecera, igual que
+  // cualquier otra escritura. Lo que queda es una decisión de producto: si los
+  // frecuentes deben aparecer también al rellenar un día pasado. Se mantiene
+  // fuera hasta que se decida, no porque registraría mal.
   const frecuentes = isToday ? siempre : []
 
   return (
@@ -1859,6 +1876,10 @@ function Amount({
       portionId,
       quantity: portionId ? number(quantity) || 1 : 1,
       mealSlot: slot || null,
+      // El día que estás mirando, no el que marca el móvil. Sin esto, lo que
+      // apuntabas en un día pasado se guardaba en hoy: las kcal faltaban en la
+      // pantalla que tenías delante y sobraban en otra que no.
+      loggedAt: momentForDay(dayIso),
     })
     await onDone()
   }
