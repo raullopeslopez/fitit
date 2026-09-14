@@ -8,6 +8,7 @@ import {
   formatAmount,
   formatMacro,
   inferMealSlot,
+  momentForDay,
   kcalFromMacros,
   previewNutrients,
   proteinProgress,
@@ -58,6 +59,39 @@ describe('el sello que viaja con una entrada', () => {
       const moment = new Date(2026, 8, 8, hour, 0)
       expect(backendFoodDay(foodMomentIso(moment))).toBe(foodDayIso(moment))
     }
+  })
+})
+
+describe('el sello de lo que registras en el día que estás mirando', () => {
+  // Lo mismo que hace el servidor con el sello: se queda con el reloj de pared
+  // que trae y le resta las 4 h del corte.
+  const backendFoodDay = (stamp) => {
+    const [y, m, d, hh, mm] = stamp.match(/\d+/g).map(Number)
+    return foodDayIso(new Date(y, m - 1, d, hh, mm))
+  }
+
+  it('en hoy sella ahora mismo', () => {
+    const now = new Date(2026, 8, 14, 18, 30)
+    expect(momentForDay(foodDayIso(now), now)).toBe(foodMomentIso(now))
+  })
+
+  it('en un día pasado sella ese día, no el de hoy', () => {
+    // El fallo que arregla: `logFood` sellaba siempre con el reloj del móvil,
+    // así que un snack que te acordabas de apuntar al día siguiente se iba a
+    // hoy. No fallaba nada: las kcal aparecían en un día y faltaban en el otro.
+    const now = new Date(2026, 8, 14, 10, 0)
+    expect(backendFoodDay(momentForDay('2026-09-13', now))).toBe('2026-09-13')
+  })
+
+  it('cae a mediodía, lejos del corte de las 04:00 por los dos lados', () => {
+    const now = new Date(2026, 8, 14, 10, 0)
+    expect(momentForDay('2026-09-13', now).slice(0, 16)).toBe('2026-09-13T12:00')
+  })
+
+  it('lleva offset, como cualquier otro sello', () => {
+    expect(momentForDay('2026-09-13', new Date(2026, 8, 14, 10, 0))).toMatch(
+      /[+-]\d{2}:\d{2}$/,
+    )
   })
 })
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 
 import Comida from './Comida.jsx'
 import * as api from './api.js'
+import { foodDayIso } from './food.js'
 
 vi.mock('./api.js')
 
@@ -993,13 +994,19 @@ describe('Comida', () => {
       await waitFor(() => expect(api.deleteFoodEntry).toHaveBeenCalled())
       await userEvent.click(await screen.findByRole('button', { name: /Deshacer el borrado/ }))
       await waitFor(() =>
-        expect(api.logFood).toHaveBeenCalledWith({
-          foodId: 1,
-          grams: 80,
-          mealSlot: 'desayuno',
-          loggedAt: '2026-08-31T07:00:00Z',
-        }),
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ foodId: 1, grams: 80, mealSlot: 'desayuno' }),
+        ),
       )
+      // La hora original, pero contada por el reloj de pared del móvil y no en
+      // UTC: mandar el instante tal cual volvía a fechar por un reloj que no
+      // era el tuyo, y entre las 04:00 y las 04:00 más tu offset eso movía la
+      // entrada al día anterior. Se comprueba por el instante y por el día, que
+      // es lo que el servidor deriva del sello.
+      const { loggedAt } = api.logFood.mock.calls[0][0]
+      expect(loggedAt).toMatch(/[+-]\d{2}:\d{2}$/)
+      expect(new Date(loggedAt).toISOString()).toBe('2026-08-31T07:00:00.000Z')
+      expect(foodDayIso(new Date(loggedAt))).toBe('2026-08-31')
       // Y el «Deshacer» se retira: ya se deshizo.
       await waitFor(() => expect(screen.queryByText('Pan de la panadería borrada.')).not.toBeInTheDocument())
     })
@@ -1021,6 +1028,30 @@ describe('Comida', () => {
           expect.objectContaining({ foodId: 1, mealSlot: 'cena' }),
         ),
       )
+    })
+
+    it('en un día pasado se fecha en ese día, no en el de hoy', async () => {
+      // El fallo: `logFood` sellaba con el reloj del móvil y nada más, así que
+      // un snack que te acordabas de apuntar al día siguiente se guardaba en
+      // hoy. Ni un error: las kcal faltaban en el día que mirabas y sobraban en
+      // el otro. La pantalla promete un día — el que tiene en la cabecera — y
+      // es ese el que tiene que viajar con la entrada.
+      api.searchFoods.mockResolvedValue([PAN])
+      api.logFood.mockResolvedValue(entry())
+      render(<Comida />)
+      await waitFor(() => expect(slotNames()).toHaveLength(4))
+      await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
+      await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
+      await userEvent.click(screen.getByRole('button', { name: 'Añadir a snack' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
+      await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
+      await waitFor(() => expect(api.logFood).toHaveBeenCalled())
+      const { mealSlot, loggedAt } = api.logFood.mock.calls[0][0]
+      expect(mealSlot).toBe('snack')
+      // Se comprueba por la regla, no por la hora exacta: lo que importa es en
+      // qué día alimentario cae el sello, que es lo que el servidor deriva.
+      expect(foodDayIso(new Date(loggedAt))).toBe('2026-08-30')
     })
 
     it('y se puede corregir a otra comida, o a ninguna', async () => {
@@ -1655,8 +1686,14 @@ describe('Comida', () => {
       // `meal_slot` del repertorio dice «desayuno», y aquí manda la cena: ya
       // has dicho a dónde va, y contradecirte sería raro.
       await waitFor(() =>
-        expect(api.logFood).toHaveBeenCalledWith({ foodId: 1, grams: 80, mealSlot: 'cena' }),
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ foodId: 1, grams: 80, mealSlot: 'cena' }),
+        ),
       )
+      // Y con el día que la pantalla tiene delante, igual que el resto de
+      // escrituras: el sello no lo pone el reloj del móvil por su cuenta.
+      const { loggedAt } = api.logFood.mock.calls[0][0]
+      expect(foodDayIso(new Date(loggedAt))).toBe('2026-08-31')
     })
 
     it('y vuelve a leer el día y el repertorio, que acaban de cambiar', async () => {
@@ -1696,15 +1733,15 @@ describe('Comida', () => {
       expect(screen.getByRole('button', { name: 'Cena' })).toHaveAttribute('aria-pressed', 'true')
     })
 
-    it('no se ofrece en un día pasado: registraría en hoy sin decirlo', async () => {
+    it('no se ofrece en un día pasado', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       render(<Comida />)
       await waitFor(() => expect(slotNames()).toHaveLength(4))
       await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
-      // `logFood` fecha con el reloj del móvil, así que en un día pasado el
-      // toque escribiría en hoy: la entrada aparecería en una pantalla que no
-      // estás mirando, sin error por ninguna parte.
+      // Ya no es por el fechado —`momentForDay` sella con el día que hay en la
+      // cabecera, también en el toque de un frecuente—: es que todavía no está
+      // decidido si el repertorio tiene sentido rellenando un día pasado.
       await userEvent.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
       await screen.findByLabelText('Buscar alimento')
       expect(screen.queryByText('Frecuentes')).not.toBeInTheDocument()

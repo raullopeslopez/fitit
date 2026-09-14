@@ -30,3 +30,13 @@ Feature: Each meal adds up on its own
     When I log 100 g of "Huevo cocido" at no meal in particular
     Then the unassigned pile totals 150 kcal
     And desayuno's kcal are unknown, not zero
+
+  Scenario: What is picked at between meals adds up like any other meal
+    Given a food "Almendras" with 600 kcal per 100 g
+    When I log 30 g of "Almendras" at snack
+    And I log 100 g of "Almendras" at comida
+    Then snack totals 180 kcal
+    And comida totals 600 kcal
+    # Lo que el diario contesta a "¿cuánto llevo hoy?": el picoteo cuenta
+    # entero, no es un apunte aparte del día.
+    And the day totals 780 kcal
