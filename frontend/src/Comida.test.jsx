@@ -229,6 +229,47 @@ describe('Comida', () => {
     expect(slotNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack'])
   })
 
+  // El tono de cada comida se cablea aquí y se pinta en `styles.css`. Lo que
+  // esta prueba fija es sólo lo que jsdom puede ver: qué tarjeta lleva qué
+  // marca. Que el color resultante se distinga del papel, y que no le quite el
+  // sitio al ámbar, lo mide `comida.browser-test.jsx` sobre el color pintado —
+  // aquí no hay pintado que medir.
+  it('cada comida se marca con su tono, y el montón sin asignar no', async () => {
+    api.getFoodDay.mockResolvedValue(
+      day({
+        entries: [
+          entry({ id: 1, meal_slot: 'desayuno', food_name: 'Pan' }),
+          entry({ id: 2, meal_slot: 'cena', food_name: 'Tortilla' }),
+          entry({ id: 3, meal_slot: null, food_name: 'Café' }),
+        ],
+        totals: { kcal: 600, protein: 20, fat: 10, carbs: 80, fiber: 6 },
+        by_slot: slots({ desayuno: 200, cena: 340, sin: 60 }),
+      }),
+    )
+    render(<Comida />)
+    await screen.findByText('Tortilla')
+
+    const tarjeta = (nombre) =>
+      [...document.querySelectorAll('.food-slot, .food-blank')].find(
+        (el) => el.querySelector('.food-slot-name').textContent === nombre,
+      )
+
+    // Las que tienen algo dentro.
+    expect(tarjeta('Desayuno').dataset.slot).toBe('desayuno')
+    expect(tarjeta('Cena').dataset.slot).toBe('cena')
+    // Y los huecos: el tono llega antes que el contenido, así que Comida y
+    // Snack ya se reconocen cuando todavía no tienen nada.
+    expect(tarjeta('Comida').dataset.slot).toBe('comida')
+    expect(tarjeta('Snack').dataset.slot).toBe('snack')
+
+    // El montón sin asignar no es una comida que elegiste — es lo que se quedó
+    // sin elegir. Darle un tono propio lo pondría a competir con las cuatro que
+    // sí decidiste, y encima con un color que no significa nada. Sin atributo,
+    // no sólo con otro valor: así `[data-slot]` en la hoja de estilos significa
+    // «esta tarjeta tiene tono» y no hay que listar las cuatro en cada regla.
+    expect(tarjeta('Sin asignar').hasAttribute('data-slot')).toBe(false)
+  })
+
   it('una comida con algo lleva su subtotal; un hueco no lleva ninguno', async () => {
     api.getFoodDay.mockResolvedValue(
       day({

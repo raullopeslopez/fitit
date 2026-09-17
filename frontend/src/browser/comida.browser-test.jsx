@@ -238,6 +238,44 @@ describe('Comida', () => {
     expect(getComputedStyle(blanks[0]).boxShadow).toBe('none')
   })
 
+  it('dentro de una tarjeta de comida hay un solo borde izquierdo', async () => {
+    await mountComida()
+    // La fila de un alimento heredaba el `padding: .55rem .2rem` de `.link-row`,
+    // de cuando las filas vivían sueltas sobre la página. Dentro de una tarjeta
+    // eso dejaba tres sangrías en el mismo bloque —cabecera y «+ Añadir» a 1rem
+    // del canto, el nombre del alimento a 0,2rem— y la que se quedaba fuera era
+    // justo la columna que se barre. En jsdom no se ve: toda caja mide cero.
+    const card = [...document.querySelectorAll('.food-slot')].find((c) =>
+      c.querySelector('.food-entry-name'),
+    )
+    card.scrollIntoView({ block: 'center' })
+    await settle()
+
+    const izquierda = paintedRect(card.querySelector('.food-slot-name')).left
+    const add = card.querySelector('.food-slot-add')
+    // El borde del *contenido* del enlace, no el de su caja: lleva su propio
+    // relleno de 1rem, así que su caja empieza antes que su texto.
+    expect(
+      paintedRect(add).left + parseFloat(getComputedStyle(add).paddingLeft),
+      '«+ Añadir» no cae donde la cabecera',
+    ).toBeCloseTo(izquierda, 0)
+    for (const name of card.querySelectorAll('.food-entry-name')) {
+      expect(paintedRect(name).left, name.textContent).toBeCloseTo(izquierda, 0)
+    }
+
+    // Y la derecha por lo mismo. Se mide la caja de la fila y no la cifra de
+    // proteína, porque después de la cifra va el `›` de `.link-row::after` —un
+    // pseudo-elemento, o sea un ítem flex más que `querySelector` no alcanza—.
+    // Lo que tiene que coincidir es el canto del contenido, que es lo que fija
+    // dónde acaba la fila; que la cifra quede 20 px por dentro es el sitio que
+    // ocupa el chevrón, y ése es otro asunto.
+    const derecha = paintedRect(card.querySelector('.food-slot-meta')).right
+    for (const row of card.querySelectorAll('.food-entry')) {
+      const fin = paintedRect(row).right - parseFloat(getComputedStyle(row).paddingRight)
+      expect(fin, row.textContent).toBeCloseTo(derecha, 0)
+    }
+  })
+
   it('una comida con algo dentro, pero de total desconocido, sigue llevando su raya', async () => {
     await mountComida()
     const metas = slotMetas()
@@ -625,6 +663,106 @@ describe('Comida', () => {
         )) {
           expect(rgb(bg(part)), `${theme}: ${part.className}`).not.toEqual(pr)
         }
+      }
+    })
+
+    // ── El tono de cada comida ────────────────────────────────────────────
+    //
+    // Es la excepción a «el color codifica progreso, no categoría», y sólo se
+    // sostiene mientras se cumplan estas tres cosas a la vez: que el velo se
+    // vea, que no le quite el sitio al ámbar, y que el texto de encima siga
+    // pasando AA. Las tres se miden sobre el color realmente pintado, que es
+    // lo único que jsdom no puede contestar.
+    const tarjeta = (nombre) =>
+      [...document.querySelectorAll('.food-slot, .food-blank')].find(
+        (el) => el.querySelector('.food-slot-name').textContent === nombre,
+      )
+    const CON_TONO = ['Desayuno', 'Comida', 'Cena']
+
+    it('cada comida tiñe su cabecera lo justo para verse', async () => {
+      await mountComida()
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        // La superficie de referencia: el cuerpo de la tarjeta, donde van las
+        // filas. Es contra eso contra lo que la banda tiene que destacar.
+        const superficie = backdropOf(tarjeta('Desayuno').querySelector('.food-entry'))
+        for (const nombre of CON_TONO) {
+          const banda = backdropOf(tarjeta(nombre).querySelector('.food-slot-head'))
+          // A 12 % de velo la banda medía 1,14 contra la tarjeta y no se veía;
+          // a 20 % mide 1,25–1,30. El suelo va por debajo de lo medido para
+          // que un ajuste de token no rompa la prueba por un céntimo.
+          expect(contrastRatio(banda, superficie), `${nombre} · ${theme}`).toBeGreaterThan(1.18)
+          // Y no tanto como para leerse como otra superficie: esto es un velo,
+          // no una tarjeta de otro color.
+          expect(contrastRatio(banda, superficie), `${nombre} · ${theme}`).toBeLessThan(1.6)
+        }
+      }
+    })
+
+    it('el tono nunca le quita el sitio al ámbar', async () => {
+      await mountComida()
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        const superficie = backdropOf(tarjeta('Desayuno').querySelector('.food-entry'))
+        // El ámbar del sistema, no el que pinte un control concreto: `--accent-ink`
+        // es el ámbar-como-tinta de cada tema (`--accent` en oscuro, más hondo en
+        // claro para pasar AA sobre papel, DESIGN.md «Amber as text»).
+        //
+        // Medirlo contra el «+ Añadir» de al lado parecía más honesto y no lo es:
+        // ese control pinta `var(--accent)` donde le tocaba `var(--accent-ink)`,
+        // así que en claro se queda en 3,70 —por debajo del suelo de 4,5— y
+        // atarse a él dejaría el techo de esta prueba amarrado a un defecto.
+        const ambar = token('--accent-ink')
+        for (const nombre of CON_TONO) {
+          // El tono puro, leído del punto que va antes del nombre.
+          const punto = parseColor(
+            getComputedStyle(tarjeta(nombre).querySelector('.food-slot-name'), '::before')
+              .backgroundColor,
+          )
+          // Se ve: 3:1 es el suelo de un elemento no textual, que es lo que el
+          // punto y el filete son. No 4,5 — el tono no pinta ni una cifra.
+          expect(contrastRatio(punto, superficie), `${nombre} · ${theme}`).toBeGreaterThanOrEqual(3)
+          // Y no grita más que el acento. Es la línea que separa «marca de
+          // categoría» de «segundo acento», y sin ella la pantalla tendría dos
+          // colores peleándose por decir qué es importante.
+          expect(
+            contrastRatio(punto, superficie),
+            `${nombre} grita más que el ámbar · ${theme}`,
+          ).toBeLessThan(contrastRatio(ambar, superficie))
+        }
+      }
+    })
+
+    it('el nombre de la comida sigue pasando AA sobre su propio velo', async () => {
+      await mountComida()
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        for (const nombre of CON_TONO) {
+          const rotulo = tarjeta(nombre).querySelector('.food-slot-name')
+          const tinta = parseColor(getComputedStyle(rotulo).color)
+          expect(
+            contrastRatio(tinta, backdropOf(rotulo)),
+            `${nombre} · ${theme}`,
+          ).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+    })
+
+    it('el montón sin asignar se queda sin tono', async () => {
+      await mountComida()
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        const sin = tarjeta('Sin asignar')
+        // Ni atributo ni velo: su cabecera se pinta con la superficie de la
+        // tarjeta, igual que antes de que existiera el color por comida.
+        expect(sin.hasAttribute('data-slot')).toBe(false)
+        const banda = backdropOf(sin.querySelector('.food-slot-head'))
+        const superficie = backdropOf(sin.querySelector('.food-entry'))
+        expect(contrastRatio(banda, superficie), theme).toBeLessThan(1.02)
       }
     })
 
