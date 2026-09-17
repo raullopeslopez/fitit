@@ -202,6 +202,57 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   floor by a wide margin (lowest spread 131, `#008300`). Grey is the band's
   vocabulary and colour is the muscle's, and neither may borrow from the other.
 
+### Color por comida (categorical — segunda excepción deliberada)
+Segunda excepción aprobada a «one accent only», y a la regla propia de Comida de
+que **el color codifica progreso, no categoría**: las cuatro comidas del día
+llevan tono propio para poder barrer el scroll sin leer. Igual que la paleta de
+músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
+
+- **El tono es marca, nunca dato.** Tiñe la banda del nombre de la tarjeta al
+  20 %, pinta el punto de 7 px que va antes del nombre y el filete que cierra la
+  banda. **No toca una cifra, no toca una barra, no toca el héroe.** El contrato
+  de color de la cabecera de macros —lo cumplido desaturado, el cromo a lo que
+  falta, `--pr` al cerrar— se queda exactamente como estaba.
+- **El suelo es 3:1, no 4,5.** Es el de un elemento no textual, que es lo único
+  que el tono pinta. No es una rebaja: es la consecuencia de la regla anterior.
+  Si el tono tiñera el subtotal habría que subirlo hasta pasar AA como texto
+  sobre las dos superficies, y **no existe ninguna luminosidad que haga eso y
+  siga por debajo del ámbar** — medido barriendo L y C en los dos temas. O el
+  tono se calla, o hay dos colores peleándose por decir qué importa.
+- **El ámbar sigue mandando.** Ningún tono llega al contraste de `--accent-ink`
+  contra su superficie. Es la línea que separa «marca de categoría» de «segundo
+  acento», y `comida.browser-test.jsx` la mide en los dos temas.
+- **El montón «Sin asignar» no lleva tono.** No es una comida que elegiste, es lo
+  que se quedó sin elegir; darle color lo pondría a competir con las cuatro que
+  sí decidiste. En el DOM se marca por ausencia: las cuatro llevan `data-slot`,
+  ese montón no lleva el atributo.
+- **Un hueco no pesa más que lo registrado.** La tarjeta vacía se tiñe al 10 %,
+  la mitad que una con contenido. Al 20 % la tarjeta entera pesaba más que una
+  comida con tres cosas dentro.
+
+  | Comida | token | valor | oklch |
+  |--------|-------|-------|-------|
+  | Desayuno | `--slot-desayuno` | `#4e925e` | `oklch(0.60 0.105 150)` |
+  | Comida | `--slot-comida` | `#3c88b8` | `oklch(0.60 0.105 240)` |
+  | Cena | `--slot-cena` | `#8573b8` | `oklch(0.60 0.105 295)` |
+  | Snack | `--slot-snack` | `#aa6694` | `oklch(0.60 0.105 340)` |
+
+  Misma luminosidad y misma croma; sólo cambia el matiz. **Un único juego para
+  los dos temas**, que no lo tiene ningún otro color de esta hoja, y sale porque
+  la banda entera cabe bajo el ámbar por los dos lados: 4,31–5,22 contra la
+  tarjeta oscura (acento 6,29) y 3,36–4,17 contra la clara (`--accent-ink` 5,09).
+
+  **Esta paleta no pasa la validación de daltonismo, y es a propósito.** Con
+  deuteranopia, Comida y Cena caen a 0,01 de distancia en oklab: el mismo color.
+  Es el precio de la misma luminosidad, y es el precio correcto porque **aquí el
+  color no identifica** — el nombre de la comida está escrito en la tarjeta, en
+  Space Grotesk a 15 px, y el tono sólo sirve para barrer. Es justo al revés que
+  «Color por músculo», donde el dot acompaña al nombre pero también viaja solo, y
+  por eso aquella sí va escalonada en luminosidad y ésta no. Escalonar ésta
+  arreglaría el daltonismo y costaría que las cuatro dejasen de leerse como una
+  familia; además, en tema claro no existe un juego escalonado que además esquive
+  el ámbar, `--pr` y `--danger` —se buscó y no hay ninguno—.
+
 ## Spacing
 - **Base unit:** 4px.
 - **Density:** comfortable-compact — data rows tighter, cards breathe.
@@ -428,6 +479,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-17 | Color por comida, y un solo borde izquierdo por tarjeta | **Segunda excepción categórica**, aprobada por el usuario: las cuatro comidas llevan tono propio (`--slot-*`, cuatro matices en oklch a igual L y C) para poder barrer la lista sin leerla. La frontera es que el tono sea **marca y nunca dato** —velo de la banda del nombre al 20 %, punto de 7 px y filete; ni una cifra, ni una barra, ni el héroe—, y de ahí sale que su suelo de contraste sea 3:1 y no 4,5. No es una rebaja: se barrió L y C en los dos temas y **no hay ninguna luminosidad que pase AA como texto y siga por debajo del ámbar**, así que teñir el subtotal habría costado un segundo acento. La paleta suspende a propósito la validación de daltonismo —Comida y Cena son el mismo color con deuteranopia— porque el nombre va escrito al lado y el tono no identifica; es la diferencia con «Color por músculo», cuyos dots sí viajan solos y por eso van escalonados. El montón «Sin asignar» se queda sin tono y sin `data-slot`: no es una comida que elegiste. **Y el alineamiento:** la fila de un alimento heredaba el `padding: .55rem .2rem` de `.link-row`, de cuando vivía suelta sobre la página, así que dentro de una tarjeta había tres sangrías —cabecera y «+ Añadir» a 1rem del canto, el nombre del alimento a 0,2rem— y la que se quedaba fuera era justo la columna que se barre. `padding-inline: 1rem` y las tres coinciden; el vertical no se toca, que lo gobierna el objetivo de 44 px. `comida.browser-test.jsx` mide las dos cosas sobre el color realmente pintado y sobre la caja realmente maquetada: que el velo se ve (>1,18 contra el cuerpo de la tarjeta) sin leerse como otra superficie (<1,6), que el punto pasa 3:1 y se queda por debajo de `--accent-ink`, que el rótulo sigue pasando AA sobre su propio velo, y que la tarjeta tiene un solo borde izquierdo. |
 | 2026-08-31 | Tercera pestaña: `Comida`, y una raya que no es un cero | La app pasa de dos pantallas a tres. `Comida` entra en la barra inferior con caption a Label como las otras dos (56px de `min-height`, la barra no crece) y el isotipo `◒` en mono — se probó `◗`, que a 1rem se pinta como una astilla y no se ve. La pantalla es un instrumento como Progreso: total del día en display mono sobre la superficie *hero* (es lo que la pantalla mide), cuatro macros en rejilla con rótulo Micro, y sello de fecha mono entre dos pasos de día. **La decisión propia de esta pantalla es la raya.** Un nutriente que nadie ha medido vale `null`, no `0`, y en pantalla se imprime `—` **con la tinta de una cifra, no con `--muted`**: en muted se lee como «aquí no hay nada», que es lo contrario de lo que dice. Y como una raya sola sigue siendo ambigua, la tarjeta lleva pie: `— no es cero: 1 entrada sin fibra.` — que además señala cuántas entradas hay que corregir para que aparezca el número. `comida.browser-test.jsx` mide las dos mitades que jsdom no puede: que la raya se pinta con el mismo color y la misma altura de línea que la cifra de al lado, y que el pie pasa AA (4,5) en los dos temas sobre el color realmente pintado. La CTA `Añadir alimento` va al pie de la lista y **no** fija como la de Días: allí es `Continuar entreno` y la quieres a mano a mitad de sesión; aquí registras al terminar de comer, y una barra fija gasta 60px permanentes por un gesto que no interrumpe nada. Y `.comida` reserva 7rem de pie sobre las 4,5rem de `.container`: los paneles se abren al final de la lista, así que sin ese recorrido «Crear …» y «Cancelar» quedaban 24px debajo de la barra justo cuando hacen falta — medido, no estimado. |
 | 2026-07-18 | Initial design system created | /design-consultation, from design knowledge (no competitor research). Formalizes the implicit styles.css system and gives Fitit an identity. |
 | 2026-07-18 | Amber accent replaces health-green | Every lifting app is red/green/blue; amber = effort/heat, differentiates and makes PRs feel earned. Green demoted to quiet success semantic. |

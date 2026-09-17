@@ -4855,6 +4855,81 @@ button.set-chip:active:not(:disabled) {
   color: var(--muted);
 }
 
+/* ── El tono de cada comida ────────────────────────────────────────────────
+ *
+ * Cuatro tonos en oklch con la misma luminosidad (0,60) y la misma croma
+ * (0,105): lo único que cambia es el matiz, 150/240/295/340. Un solo juego
+ * para los dos temas, que en esta hoja no lo tiene nadie más — sale porque la
+ * banda entera cabe por debajo del ámbar en oscuro (los tonos van de 4,31 a
+ * 5,22 contra la tarjeta, el acento está en 6,29) y por debajo de
+ * `--accent-ink` en claro (3,36–4,17 contra 5,09).
+ *
+ * **Es la excepción a «el color codifica progreso, no categoría»**, y vive
+ * dentro de una frontera: el tono es MARCA, nunca DATO. Tiñe la banda del
+ * nombre, pinta el punto y el filete que la cierra, y nada más. No toca una
+ * cifra, no toca una barra, no toca el héroe. Por eso su suelo de contraste es
+ * 3:1 —el de un elemento no textual— y no 4,5: si tiñera el subtotal habría
+ * que subirlo hasta pasar por encima del acento, y entonces habría dos colores
+ * peleándose por decir qué importa. Razonado en DESIGN.md.
+ *
+ * Y no identifica: con deuteranopia, Comida y Cena son el mismo color. Es el
+ * precio de la misma luminosidad y es el correcto, porque el nombre está
+ * escrito en la tarjeta. El tono sirve para barrer el scroll, no para saber
+ * qué comida es. Los chips de músculo de Progreso son el caso contrario —van
+ * solos, sin palabra al lado— y por eso su paleta sí va escalonada. */
+:root {
+  --slot-desayuno: #4e925e;
+  --slot-comida: #3c88b8;
+  --slot-cena: #8573b8;
+  --slot-snack: #aa6694;
+}
+[data-slot='desayuno'] {
+  --slot: var(--slot-desayuno);
+}
+[data-slot='comida'] {
+  --slot: var(--slot-comida);
+}
+[data-slot='cena'] {
+  --slot: var(--slot-cena);
+}
+[data-slot='snack'] {
+  --slot: var(--slot-snack);
+}
+
+/* El velo, al 20 %. A 12 % la banda medía 1,14 de contraste contra el cuerpo de
+   la tarjeta y sencillamente no se veía; a 20 % mide 1,25–1,30 y el rótulo de
+   encima sigue a 12,5. Lo mide `comida.browser-test.jsx` por los dos lados. */
+.food-slot[data-slot] .food-slot-head {
+  background: color-mix(in srgb, var(--slot) 20%, var(--surface));
+}
+/* El filete que cierra la banda es el borde superior de lo que viene debajo, no
+   un `border-bottom` de la cabecera: puestos los dos, se suman y la raya mide
+   2 px donde las demás miden 1. Debajo hay una fila, o el pie cuando el filtro
+   de «sin fibra» deja la comida sin ninguna. */
+.food-slot[data-slot] .food-slot-head + .food-entry-swipe,
+.food-slot[data-slot] .food-slot-head + .food-slot-foot {
+  border-top-color: color-mix(in srgb, var(--slot) 45%, var(--border));
+}
+/* La vacía se tiñe a la mitad. Al 20 % la tarjeta entera pesaba más que una
+   comida con tres cosas dentro, que es justo al revés de lo que dice la
+   pantalla: un hueco no compite con lo registrado. */
+.food-blank[data-slot] {
+  background: color-mix(in srgb, var(--slot) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--slot) 40%, var(--border));
+}
+/* El punto. Es lo que hace que el tono se lea como una marca deliberada y no
+   como una tarjeta que se ha manchado. */
+[data-slot] .food-slot-name::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--slot);
+  margin-right: 0.5rem;
+  vertical-align: 0.08em;
+}
+
 /* La línea de cierre: el número del héroe dicho en una frase. */
 .food-close {
   display: flex;
@@ -4918,6 +4993,18 @@ button.set-chip:active:not(:disabled) {
      final —abrir del todo o volver a cerrar— para que el gesto en curso no se
      sienta pastoso. */
   touch-action: pan-y;
+  /* Un solo borde izquierdo por tarjeta. La fila heredaba el
+     `padding: .55rem .2rem` de `.link-row`, de cuando vivía suelta sobre la
+     página; dentro de una tarjeta eso dejaba tres sangrías en el mismo bloque
+     —la cabecera y «+ Añadir» a 1rem del canto, el nombre del alimento a
+     0,2rem— y la que se quedaba fuera era justo la columna que se barre. De
+     paso cuadra la derecha: la proteína de cada fila colgaba 12,8 px por fuera
+     del subtotal de su propia cabecera.
+
+     Sólo el horizontal: el vertical lo gobierna el objetivo de 44 px. Y el
+     deslizamiento no se entera — el `transform` mueve la fila entera y el
+     relleno va por dentro. */
+  padding-inline: 1rem;
 }
 @media (prefers-reduced-motion: no-preference) {
   .food-entry-swipe > .food-entry {

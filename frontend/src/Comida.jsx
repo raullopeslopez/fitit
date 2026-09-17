@@ -363,6 +363,9 @@ export default function Comida() {
                   type="button"
                   key={rail.key}
                   className="card food-blank"
+                  // El tono llega antes que el contenido: Cena y Snack ya se
+                  // reconocen cuando todavía no tienen nada dentro.
+                  data-slot={rail.key}
                   /* El nombre calculado de la tarjeta sería «Desayuno + añadir»,
                      que describe lo que se ve y no lo que hace. Explícito, y el
                      mismo que lleva el pie de una comida con contenido: es el
@@ -859,7 +862,12 @@ function MacroRow({ label, eaten, target = null, decimals = 0, lead = false }) {
 function SlotCard({ rail, entries, deleted, undoing, onUndo, onAdd, onEdit, onDelete }) {
   const label = slotLabel(rail.key)
   return (
-    <section className="card food-slot">
+    // `data-slot` y no una clase: la hoja de estilos escribe `[data-slot]` para
+    // «esta tarjeta tiene tono» y `[data-slot='cena']` para cuál, en vez de
+    // repetir las cuatro clases en cada regla. El montón sin asignar se queda
+    // sin atributo —no es una comida que elegiste— y por eso `?? undefined`:
+    // React omite el atributo entero, que es lo que `[data-slot]` comprueba.
+    <section className="card food-slot" data-slot={rail.key ?? undefined}>
       <h3 className="food-slot-head">
         <span className="food-slot-name">{label}</span>
         <span className="food-slot-meta">
