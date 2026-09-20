@@ -72,3 +72,32 @@ def test_rejects_an_unknown_group(client):
 def test_patch_missing_exercise_is_404(client):
     r = client.patch("/exercises/9999", json={"muscle_group": "Core"})
     assert r.status_code == 404, r.text
+
+
+def test_create_rejects_an_unknown_group(client):
+    """`PATCH` validated the group against the canonical nine and `POST` did
+    not, so the one door that creates an exercise outright would take anything
+    sixty characters long. Nothing in the UI sends it — exercises are born from
+    logging a set, which goes through the classifier — but the hole was real
+    from the API, and `frontend/src/muscles.js` leans on it being closed: the
+    `Sin grupo` sentinel is documented as safe *because* no exercise can hold
+    it as an actual group."""
+    r = client.post("/exercises", json={"name": "Invento", "muscle_group": "Antebrazo"})
+    assert r.status_code == 422, r.text
+
+
+def test_create_rejects_the_ungrouped_sentinel(client):
+    r = client.post("/exercises", json={"name": "Invento", "muscle_group": "Sin grupo"})
+    assert r.status_code == 422, r.text
+
+
+def test_create_still_takes_a_real_group(client):
+    r = client.post("/exercises", json={"name": "Invento", "muscle_group": "Core"})
+    assert r.status_code == 201, r.text
+    assert r.json()["muscle_group"] == "Core"
+
+
+def test_create_without_a_group_still_auto_classifies(client):
+    r = client.post("/exercises", json={"name": "Press banca"})
+    assert r.status_code == 201, r.text
+    assert r.json()["muscle_group"] == "Pecho"

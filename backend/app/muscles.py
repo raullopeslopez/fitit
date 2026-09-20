@@ -54,16 +54,39 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         # First, or the leg groups below would swallow it: "elevación de piernas"
         # is an ab move that happens to contain "pierna". Leg extensions say
         # "extensión", never "elevación", so nothing legitimate is caught here.
+        # "Encogimiento" is written below as a shrug, so an *abdominal* crunch
+        # spelled that way was counting as Espalda. Same shape of fix: the
+        # qualified name is rescued here, the bare word keeps its meaning.
         CORE,
-        ("elevacion de pierna", "elevaciones de pierna", "elevacion de las pierna"),
+        (
+            "elevacion de pierna", "elevaciones de pierna", "elevacion de las pierna",
+            "encogimiento abdominal", "encogimientos abdominales",
+            "encogimiento de abdomen",
+        ),
     ),
     (
-        # Ahead of ESPALDA, whose bare "back" keyword matches inside "kickback"
-        # and files a triceps kickback under Espalda. Only the qualified names
-        # are rescued: a bare "Kickback" is genuinely ambiguous (triceps or
-        # glute) and is left to the user to tag.
+        # Only the qualified names are rescued: a bare "Kickback" is genuinely
+        # ambiguous (triceps or glute) and is left to the user to tag. That used
+        # not to be true — ESPALDA carried a bare "back" keyword that matched
+        # inside *kick·back* and filed the lot under Espalda. The keyword is
+        # gone (nothing legitimate needed it; "back extension" is a hinge and is
+        # claimed by FEMORAL below), so the promise this comment makes is now
+        # one the code keeps. Spec: test_a_bare_kickback_is_left_for_the_user_to_tag.
         TRICEPS,
         ("kickback de triceps", "triceps kickback", "patada de triceps"),
+    ),
+    (
+        # Ahead of ESPALDA and PECHO, which would otherwise take these on a
+        # fragment of the name: "remo" makes an upright row a back lift, and
+        # "apertura" makes a rear-delt fly a chest lift. Both are shoulder work
+        # — HOMBRO already had "remo al menton" written into it further down,
+        # where it could never be reached.
+        HOMBRO,
+        (
+            "remo al menton", "upright row", "apertura posterior",
+            "aperturas posteriores", "apertura invertida", "reverse fly",
+            "reverse pec deck",
+        ),
     ),
     (
         # Calves before the rest of the leg: "gemelo en prensa" is a calf raise.
@@ -77,14 +100,39 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         # Hip hinge and knee flexion. Glutes live here: the RDLs and hip thrusts
         # that train them train the hamstrings in the same set, and a separate
         # glute colour was the tenth in a palette that stops being readable at
-        # nine. Adductor/abductor machines are hip work with nowhere better.
+        # nine.
+        #
+        # The adductor belongs here on biomechanics, not for want of a better
+        # shelf: the adductor magnus is a hip extensor — musculoskeletal
+        # modelling puts half or more of the squat's hip-extension torque
+        # through it, and Kubo et al. 2019 measured +6.2% adductor volume from
+        # full squats alone, more than the quadriceps gained. It is family.
+        #
+        # The *abductor* is not, and used to sit on this same line. Abduction is
+        # not hip extension and no hinge trains it: Plotkin et al. 2023 found
+        # little to no gluteus medius/minimus growth after nine weeks of *either*
+        # squats or hip thrusts. It has no honest home among the nine and no
+        # published volume landmark of its own, so it gets no guess at all.
+        #
+        # Back extensions are hinges too, which is the least obvious entry here.
+        # Without pelvic fixation the glutes and hamstrings de-rotate the pelvis
+        # and the lumbar extensors barely work (Graves et al. 1994): Mayer et
+        # al. 2003 loaded a 45° Roman chair progressively for 12 weeks and
+        # isometric lumbar torque did not move, and Fisher et al. 2013 put 16%
+        # on a Romanian deadlift 1RM without shifting that torque at any of
+        # seven angles. So the bench trains hip extensors, and is counted with
+        # them. Isolated lumbar extension — the pelvis-restrained machine, the
+        # one exercise that does train the erectors — is deliberately absent:
+        # see test_isolated_lumbar_extension_is_not_filed_as_a_hinge.
         FEMORAL,
         (
             "peso muerto rumano", "rumano", "romanian", "rdl", "hip thrust",
             "empuje de cadera", "gluteo", "glute", "femoral", "isquios",
             "isquiotibial", "hamstring", "curl de pierna", "leg curl", "nordic",
             "buenos dias", "good morning", "patada de gluteo", "puente de gluteo",
-            "rear kick", "aductor", "abductor",
+            "rear kick", "aductor",
+            "hiperextension", "banco romano", "roman chair", "back extension",
+            "extension de espalda", "reverse hyper",
         ),
     ),
     (
@@ -100,8 +148,8 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         ESPALDA,
         (
             "dominada", "pull up", "pull-up", "pullup", "jalon", "pulldown",
-            "remo", "row", "pullover", "peso muerto", "deadlift", "encogimiento",
-            "shrug", "trapecio", "espalda", "back", "dorsal", "lat ",
+            "remo", "row", "pullover", "pull over", "peso muerto", "deadlift",
+            "encogimiento", "shrug", "trapecio", "espalda", "dorsal", "lat ",
         ),
     ),
     (
@@ -109,7 +157,7 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         (
             "press banca", "banca", "bench", "press inclinado", "press declinado",
             "incline press", "press de pecho", "pecho", "chest", "apertura",
-            "apertura", "fly", "pec deck", "contractora", "peck deck", "fondos",
+            "fly", "pec deck", "contractora", "peck deck", "fondos",
             "dips",
         ),
     ),
@@ -118,8 +166,8 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         (
             "press militar", "militar", "overhead press", "ohp", "hombro",
             "shoulder", "deltoide", "elevacion lateral", "elevaciones laterales",
-            "lateral raise", "elevacion frontal", "frontal raise", "pajaro",
-            "arnold", "face pull", "remo al menton", "upright row", "posterior",
+            "lateral raise", "elevacion frontal", "frontal raise", "front raise",
+            "pajaro", "arnold", "face pull", "posterior",
         ),
     ),
     (
@@ -127,7 +175,10 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         (
             "triceps", "extension de triceps", "patada", "press frances", "frances",
             "jalon de triceps", "polea triceps", "close grip", "press cerrado",
-            "rompecraneos", "skullcrusher", "copa", "kickback",
+            # No bare "kickback": qualified forms are rescued at the top of
+            # `_RULES`, and the word alone is a triceps move or a glute move
+            # with nothing in the name to say which.
+            "rompecraneos", "skullcrusher", "copa",
         ),
     ),
     (
