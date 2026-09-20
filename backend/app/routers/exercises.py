@@ -83,6 +83,19 @@ async def _find_name_clash(
     return next((e for e in candidates if fold_exercise_name(e.name) == key), None)
 
 
+def _reject_unknown_group(group: str | None) -> None:
+    """Every door that writes `muscle_group` goes through here.
+
+    `None` is legal and means "no override, use the classifier"; anything else
+    has to be one of the canonical nine. This lived inline in `PATCH` only,
+    which left `POST` taking any string the column would fit — and the frontend
+    documents its `Sin grupo` sentinel as safe precisely because the backend
+    refuses it.
+    """
+    if group is not None and group not in MUSCLE_GROUPS:
+        raise HTTPException(status_code=422, detail="unknown muscle group")
+
+
 @router.get("/muscle-groups", response_model=list[str])
 async def list_muscle_groups() -> list[str]:
     """The canonical muscle groups, in display order — powers the group picker."""
@@ -127,6 +140,7 @@ async def create_exercise(
     beside "Press banca", each holding half the sets and half the records, and
     the name-based lookups everywhere else picking between them arbitrarily.
     """
+    _reject_unknown_group(payload.muscle_group)
     existing = await find_exercise(session, user_id, payload.name)
     if existing is not None:
         return _to_exercise_out(existing, await _count_sets(session, existing.id))
@@ -163,12 +177,8 @@ async def update_exercise(
     reverting to the auto-classifier.
     """
     fields = payload.model_fields_set
-    if (
-        "muscle_group" in fields
-        and payload.muscle_group is not None
-        and payload.muscle_group not in MUSCLE_GROUPS
-    ):
-        raise HTTPException(status_code=422, detail="unknown muscle group")
+    if "muscle_group" in fields:
+        _reject_unknown_group(payload.muscle_group)
     exercise = await session.get(Exercise, exercise_id)
     if exercise is None or exercise.user_id != user_id:
         raise HTTPException(status_code=404, detail="exercise not found")

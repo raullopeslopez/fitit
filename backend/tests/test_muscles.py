@@ -158,3 +158,99 @@ def test_cardio_is_never_auto_classified():
 
 def test_strength_still_gets_the_name_based_guess():
     assert group_for("Press banca", "strength") == PECHO
+
+
+# ── Movimientos que el orden de reglas mandaba al músculo equivocado ──────────
+#
+# Todos estos fallaban por precedencia, no por falta de keyword: la regla de un
+# grupo anterior casaba con un trozo del nombre y se lo quedaba. Se arreglan
+# como ya se arregló "elevación de piernas" — con un rescate específico por
+# delante — y no aflojando la regla que los capturaba, que sigue siendo correcta
+# para el resto de su familia.
+
+
+def test_an_upright_row_is_a_shoulder_lift():
+    """ESPALDA veía "remo" y se lo llevaba, así que la keyword "remo al menton"
+    que HOMBRO ya tenía escrita no se alcanzaba nunca: era código muerto."""
+    assert classify("Remo al mentón") == HOMBRO
+    assert classify("Upright row") == HOMBRO
+    # Y el remo de espalda de toda la vida no se mueve.
+    assert classify("Remo con barra") == ESPALDA
+
+
+def test_a_rear_delt_fly_is_a_shoulder_lift():
+    """PECHO veía "apertura" y contaba un deltoide posterior como pecho."""
+    assert classify("Aperturas posteriores") == HOMBRO
+    assert classify("Apertura invertida en máquina") == HOMBRO
+    assert classify("Pájaro con mancuernas") == HOMBRO
+    # La apertura de pecho sigue siendo de pecho.
+    assert classify("Aperturas con polea") == PECHO
+
+
+def test_an_ab_crunch_is_not_a_shrug():
+    """"Encogimiento" estaba escrito como shrug, así que un encogimiento
+    abdominal contaba como espalda."""
+    assert classify("Encogimiento abdominal") == CORE
+    # Los encogimientos de hombros siguen siendo trapecio, y el trapecio espalda.
+    assert classify("Encogimientos de hombros") == ESPALDA
+
+
+def test_a_bare_kickback_is_left_for_the_user_to_tag():
+    """Un "Kickback" pelado es ambiguo —tríceps o glúteo— y el comentario de
+    `_RULES` decía que se dejaba sin clasificar. No se dejaba: la keyword "back"
+    de ESPALDA casa dentro de *kick·back*, y lo archivaba en Espalda."""
+    assert classify("Kickback") is None
+    # Cualificado sí se clasifica, por los dos lados.
+    assert classify("Kickback de tríceps") == TRICEPS
+    assert classify("Rear Kick Máq") == FEMORAL
+
+
+def test_vocabulary_holes():
+    """Dos nombres corrientes que no casaban con nada por cómo estaban escritas
+    las keywords: "pullover" sin espacio, y "frontal raise", que no es inglés."""
+    assert classify("Pull over con mancuerna") == ESPALDA
+    assert classify("Pullover") == ESPALDA
+    assert classify("Front raise") == HOMBRO
+    assert classify("Elevación frontal") == HOMBRO
+
+
+# ── Lo que la literatura corrige ─────────────────────────────────────────────
+
+
+def test_a_back_extension_is_a_hip_exercise():
+    """El banco romano no entrena el extensor lumbar en ningún sentido medible:
+    sin fijación pélvica son el glúteo y los isquios los que "des-rotan" la
+    pelvis (Graves et al. 1994). Mayer et al. 2003 lo cargó progresivamente 12
+    semanas y el torque lumbar no se movió; Fisher et al. 2013 subió un 16% el
+    1RM de peso muerto rumano sin mover ese torque en ninguno de 7 ángulos.
+
+    Así que es trabajo de extensores de cadera, y va con los demás hinges — no
+    en Espalda, que es donde lo pondría la intuición."""
+    assert classify("Hiperextensiones") == FEMORAL
+    assert classify("Hiperextensión en banco") == FEMORAL
+    assert classify("Banco romano") == FEMORAL
+    assert classify("Back extension") == FEMORAL
+
+
+def test_isolated_lumbar_extension_is_not_filed_as_a_hinge():
+    """La excepción del test anterior: la extensión lumbar *con fijación
+    pélvica* sí entrena el erector, y es el único ejercicio que lo hace. No hay
+    grupo para ella —su MEV directo no tiene banda publicada— así que se queda
+    sin clasificar y la etiquetas tú, en vez de mentir metiéndola en Femoral."""
+    assert classify("Extensión lumbar") is None
+    assert classify("Extensión lumbar en máquina") is None
+
+
+def test_the_abductor_machine_is_not_posterior_chain():
+    """El aductor se queda en Femoral y el abductor sale.
+
+    No es simetría: el aductor mayor es un extensor de cadera —aporta la mitad
+    o más del par de extensión en sentadilla, y Kubo et al. 2019 midió +6,2% de
+    volumen sólo sentadillando—, así que pertenece a la familia del hinge. La
+    abducción no es extensión de cadera y ningún hinge la entrena: Plotkin et
+    al. 2023 no halló crecimiento del glúteo medio/menor ni con sentadilla ni
+    con hip thrust. Sin grupo honesto donde ponerlo, lo etiqueta el usuario."""
+    assert classify("Aductores en máquina") == FEMORAL
+    assert classify("Copenhagen") is None  # tampoco se inventa uno
+    assert classify("Abductores en máquina") is None
+    assert classify("Abductor") is None
