@@ -963,6 +963,54 @@ Puede ser exactamente lo que quieres. Pero si al ver la primera semana te chirr�
 
 ---
 
+## 38. El papel de la IA, contado desde la pantalla
+
+La Parte III explicaba dónde encaja la IA en la arquitectura. Esto es lo mismo
+desde el otro lado: **qué gana el que usa la app**, con las decisiones ya
+tomadas (12, 13, 14, 15 y el matiz de la 20), que cambiaron bastante el reparto
+original.
+
+Cinco momentos, en el orden en que te los encuentras:
+
+| Cuándo | Qué hace | Qué te ahorra |
+|---|---|---|
+| El primer día | Propone platos desde tu despensa y tus aparatos | **Empiezas tachando, no tecleando** |
+| Te falta un ingrediente | Propone el cambio; la aritmética lo valida | El plan sobrevive a tu nevera real |
+| Descubres una regla nueva | La traduce a un tipo del catálogo **y te enseña el diff** | Mover tu dieta sin tocar código |
+| Pides lo imposible | Dice **cuál aflojar**, en castellano | Un muro con salida |
+| Al mes de usarla | Propone según tu historial y tus puntuaciones | Lo único que mejora solo con el uso |
+
+El primero es el que justifica los otros cuatro. Sin él, antes de que la app
+haga nada hay que teclear quince platos con sus ingredientes: es una tarde
+entera, y es exactamente donde estas apps se abandonan.
+
+### Y lo que no hace nunca, que es donde está el beneficio
+
+- **No calcula ni un número.** Los macros salen de `nutrition.py` sobre fichas
+  reales. El modelo propone *qué combinar*, nunca *cuánto suma*. Por eso los
+  platos pueden entrar sin aprobarse uno a uno (decisión 13): no hay ninguna
+  cifra inventada que pueda colarse.
+- **No monta la semana.** Rotación y ajuste, deterministas. Para el usuario eso
+  se traduce en algo muy concreto: **el plan es el mismo el martes que el
+  jueves**. Si lo compusiera el modelo, cada apertura daría otra semana.
+- **No decide la dieta.** Objetivo y reglas son del usuario; la IA sólo rellena
+  el catálogo de posibilidades dentro de lo que él ha puesto.
+
+De ahí sale lo más práctico de todo: **una vez generada, la semana no necesita
+red**. Sólo el momento de montar el repertorio la necesita.
+
+### El precio de haberla metido en la v1
+
+El primer arranque depende de la red y de la cuota de Gemini, y el 429 diario ya
+mordió una vez en la lectura de etiquetas. Con la cuota agotada no te quedas sin
+plan —ese va solo— pero sí sin ampliar repertorio hasta el día siguiente.
+
+Y como los platos entran solos, alguna vez aparecerá uno que no quieres. Se
+corrige escribiendo encima, igual que un alimento mal dado de alta. Es el
+cambio aceptado: velocidad a cambio de una puerta.
+
+---
+
 ## Apéndice: de dónde sale lo que dice este documento
 
 | Afirmación | Fuente | Confianza |
