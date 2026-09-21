@@ -429,7 +429,132 @@ explica en una frase: «hoy más arroz, que has entrenado».
   en el catálogo, `POST /foods` deja de ser la puerta que es y la búsqueda se
   llena de cosas que no son alimentos.
 
-## 17. Decisiones: lo que ya has contestado y lo que falta
+---
+
+# Parte III — ¿Y si metemos IA?
+
+Tercera vuelta (21 de septiembre). La pregunta es buena y llega en el momento
+justo: **la Parte II deja dos agujeros que la aritmética no sabe tapar** — de
+dónde salen las elaboraciones, y cómo se decide qué pega con qué. Los dos son
+exactamente donde un modelo es bueno.
+
+## 17. Ya hay IA dentro, y ya decidiste cómo se usa
+
+Esto no es empezar de cero. Fitit corre sobre **Gemini** (`gemini-3.8-flash`),
+y hay dos módulos que valen como doctrina:
+
+- **`gemini.py`** — cliente async, reintentos, y algo que ya te costó aprender:
+  distingue el 429 de **cuota del día** del de **cuota del minuto**
+  (`_quota_scope`). Eso se reusa tal cual; no se vuelve a escribir.
+- **`label.py`** — el importante, porque no es plomería, es criterio. Su tipo de
+  salida se documenta solo: `LabelRead`, *«Una propuesta para el formulario.
+  **Ni un alimento, ni una entrada**»*. Y alrededor, tres defensas:
+  `_sane()` comprueba que la cifra esté en un rango creíble,
+  `_backed_by_a_row()` exige que el modelo **haya transcrito la fila** que dice
+  estar leyendo, y `ColumnRefused` **se niega** en vez de adivinar cuando la
+  lectura no venía por 100 g.
+
+Ahí está el patrón de la casa, y yo no lo tocaría: **el modelo propone, algo
+determinista valida, y tú confirmas.** La salida del modelo es un tipo aparte
+que no puede entrar en el dominio sin pasar por esas tres puertas. Cualquier IA
+nueva de esta feature debería tener su propio `label.py`.
+
+## 18. El reparto: el modelo NO hace cuentas
+
+La tentación obvia es «que el modelo monte la semana». No lo haría, y el motivo
+no es ideológico:
+
+- **Un LLM es malo en la aritmética que esto necesita.** No fallar en una suma:
+  cerrar 160 g de proteína ±5 % a lo largo de 35 comidas, con gramos que tienen
+  que cuadrar contra una tabla. Te va a dar números **plausibles que no suman**,
+  que es la peor clase de error porque se lee bien.
+- **Y ya tienes la aritmética exacta**, y además es regla permanente tuya: *toda
+  la aritmética nutricional vive en `nutrition.py`*. Un modelo calculando
+  totales rompe esa regla, no la extiende.
+- **Al revés, es bueno justo donde el solver es inútil.** «¿Qué se puede hacer
+  con pollo, arroz, pimentón y una air fryer en 15 minutos?» no tiene solución
+  algorítmica: es cultura de cocina. Y es *exactamente* lo que le falta al
+  optimizador para no darte la dieta de Stigler (§11).
+
+De ahí sale el reparto, y encaja con la arquitectura C sin forzar nada:
+
+> **La IA escribe el recetario. La aritmética planifica la semana.**
+
+El modelo puebla el repertorio de elaboraciones; la rotación elige y el ajuste
+de gramos cierra los números. Cada uno haciendo lo que sabe.
+
+## 19. Dónde metería IA, por valor
+
+1. **Poblar el repertorio desde tu despensa.** ← la de más valor, con diferencia.
+   Es la que mata el arranque en frío: en la arquitectura A o C, el repertorio
+   es lo que te cuesta una tarde de teclear, y sin él no hay nada que barajar.
+   «Tengo estos 40 alimentos y una air fryer, dame 15 platos de menos de 15
+   minutos» y tú tachas los que no te gustan. **Se hace una vez, se revisa, y
+   se queda como datos.**
+2. **Leer el plan del nutricionista** de una foto o un PDF (Parte I §2). Es
+   extracción, la misma forma que `read_label`, y el `label.py` de esto es casi
+   un calco. Revisión obligatoria, sin excepción.
+3. **Macros de un plato casero.** «Lentejas de mi madre» no está en CIQUAL y
+   nunca lo estará. El modelo propone una ficha, tú la corriges. Es dato
+   interpretado, así que por tu propia regla: pantalla de revisión, y entra por
+   `POST /foods` como todo lo demás.
+4. **Sustituciones en lenguaje natural.** «No tengo merluza, ¿qué pongo?» — el
+   modelo propone, y **la aritmética comprueba** que el cambio cabe en la banda
+   (§4). Híbrido limpio: idea del modelo, veredicto de `nutrition.py`.
+5. **Explicar por qué no se puede.** Cuando los requisitos son imposibles (§11),
+   que en vez de «sin solución» diga en castellano cuál aflojar. Barato y es de
+   lo que más separa una herramienta de un juguete.
+
+## 20. Dónde no la metería
+
+- **Que el modelo componga la semana y diga los gramos** (§18).
+- **Que calcule totales o adherencia.** Eso es `nutrition.py`, y punto.
+- **Que prescriba la dieta.** Sigue fuera por lo mismo que en la Parte I: el
+  criterio nutricional es tuyo, no de la app.
+- **Chatear con el plan** («¿por qué me has puesto tanto arroz el martes?»).
+  Suena moderno, cuesta una conversación entera por respuesta, y lo contesta
+  mejor una línea de texto fija junto al ingrediente de ajuste.
+
+## 21. El principio que ordena todo lo anterior
+
+> **IA en el momento de montar, no en el momento de usar.**
+
+Tres razones, y ninguna es teórica:
+
+- **Determinismo.** Un plan que sale distinto cada vez que lo abres no es un
+  plan. La semana tiene que ser la misma el martes que el jueves.
+- **Sin red no hay plan.** La app es PWA instalable y tiene `offline.js`. Un
+  plan que necesita llamar a Google para existir es un plan que **no está en el
+  supermercado**, que es justo donde lo necesitas.
+- **La cuota ya te ha mordido.** El 429 de la lectura de etiquetas es real, y el
+  contador «4 hoy» no se pudo construir precisamente porque la cuota es de
+  Google y compartida (`comida-pendiente.md`). Generar semanas a demanda
+  multiplica llamadas sobre un recurso que ya sabes que se agota.
+
+La consecuencia es cómoda: **la IA produce datos que tú revisas y se guardan.**
+A partir de ahí la semana se genera con aritmética, es reproducible, es
+instantánea y funciona en el metro.
+
+## 22. Lo que habría que decidir de esto
+
+12. **¿Entra la IA en la v1, o primero el repertorio a mano?** Se puede construir
+    todo esto sin una sola llamada y añadirla después: la IA rellena una tabla
+    que ya existiría igualmente. **Esa es su gracia y también el argumento para
+    dejarla para después.**
+13. **¿Cuántos platos de golpe, y quién los aprueba?** Mi respuesta: en tandas,
+    y ninguno entra sin que lo hayas visto — igual que la lectura de etiqueta.
+14. **¿Qué se le enseña al modelo?** ¿Sólo la despensa, o también lo que ya has
+    comido y puntuado? Lo segundo es mejor y abre la puerta a «me gusta / no me
+    gusta», que es una feature entera.
+15. **¿El modelo propone alimentos que no tienes?** Si le dejas salir de la
+    despensa te propone mejor comida y te rompe la lista de la compra. Yo lo
+    ataría a la despensa, con un «sugerencias fuera de la lista» aparte.
+
+Y una que no es de producto y por eso no va numerada: **con qué modelo**. Hoy
+todo es Gemini y lo razonable es seguir, aunque sea otra tarea (generar, no
+leer). Eso se mira en la fase técnica, no ahora.
+
+## 23. Decisiones: lo que ya has contestado y lo que falta
 
 De las seis de la primera vuelta, **la segunda vuelta contesta cuatro**:
 
@@ -460,6 +585,10 @@ resuelta, hace que todo lo demás cuadre sobre el papel y no en la báscula.
     semana, bandejas de air fryer, días que comes fuera. Sin esa lista, el
     generador optimiza a ciegas — y ahí es donde sale la dieta de Stigler.
 
+Y la Parte III añade cuatro más, desarrolladas en **§22**: si la IA entra en la
+v1 o después (12), quién aprueba los platos (13), qué se le enseña al modelo
+(14) y si puede salirse de la despensa (15).
+
 ---
 
 ## Apéndice: de dónde sale lo que dice este documento
@@ -480,3 +609,7 @@ resuelta, hace que todo lo demás cuadre sobre el papel y no en la báscula.
 | La carne pierde ~1/4 de peso al cocinarse | De memoria; orden de magnitud, no cifra | **Media-baja** |
 | Air fryer ≈ horno sin aceite añadido | Hipótesis mía, sin verificar | **Baja** |
 | La dieta de Stigler y su moraleja | De memoria, no consultado en esta sesión | **Media** |
+| El proyecto corre sobre Gemini (`gemini-3.8-flash`) | `backend/app/config.py` | **Alta** (verificado) |
+| `gemini.py` ya distingue cuota de día y de minuto | `_quota_scope`, leído | **Alta** (verificado) |
+| `label.py` trata la salida del modelo como propuesta | `LabelRead`, `_sane`, `_backed_by_a_row`, `ColumnRefused` | **Alta** (verificado) |
+| Que un LLM falle cerrando macros a ±5 % en 35 comidas | Criterio propio, no medido contra este modelo | **Media** |
