@@ -750,7 +750,7 @@ Desmontada en reglas, con su dureza:
 
 | Lo que dijiste | Tipo (§26) | Dureza |
 |---|---|---|
-| «Todas las comidas tengan verdura» | Presencia por grupo | **Dura** |
+| Verdura en la comida (§37) | Presencia por grupo, por hueco | **Dura** |
 | «Importante llegar a las proteínas» | Rango relativo | **Dura** |
 | «Que prime la air fryer, también sartenes» | Preferencia de método | Blanda + lista permitida |
 | «Los días que entrene coma más hidratos, dentro de las kcal» | **Condicionada al tipo de día** | **Dura** |
@@ -902,9 +902,10 @@ dos números por poner, que no bloquean.
 
 Sexta vuelta, misma fase. Las tres ambigüedades de §32 quedan cerradas:
 
-1. **Verdura en todas las tomas — menos la cena.** En la cena, sólo algunos días.
-   Son **dos reglas**, no una: una presencia obligatoria en tres huecos, y una
-   frecuencia en el cuarto.
+1. **Verdura en la comida, siempre. En la cena, algunos días. En el desayuno,
+   no.** Son **dos reglas**, no una: una presencia obligatoria en un hueco, y
+   una frecuencia en otro. Los huecos que no las nombran no tienen regla de
+   verdura — no es que la prohíban, es que no dicen nada.
 2. **«Pesadas», no «pensadas».** La cena lleva un **tope**. Sigue planificada,
    sólo que ligera.
 3. **Cuatro tomas.** Y aquí no hay nada que modelar: **el backend ya define
@@ -922,7 +923,7 @@ obliga a una pieza que la taxonomía de §26 no tenía. Una regla necesita
 |---|---|---|
 | Proteína 1,5–2 g/kg | Día | — |
 | Más hidratos, misma kcal | Día | **Día de entreno** |
-| Verdura obligatoria | **Hueco** (desayuno, comida, snack) | — |
+| Verdura obligatoria | **Hueco** (comida) | — |
 | Verdura en la cena, algunos días | **Hueco** + semana | — |
 | Cena no pesada | **Hueco** (cena) | — |
 | Desayuno igual todos los días | **Hueco** (desayuno) | — |
@@ -946,6 +947,12 @@ Júntalas: cena con tope, **sin verdura la mayoría de días**, cuatro tomas y l
 proteína como regla dura. La cena queda como **proteína y poco más**, y las
 otras tres cargan con el resto del día — incluidos los hidratos extra de los
 días de entreno, que no van a caber en la cena.
+
+Y con la verdura obligatoria sólo en la comida, **toda la verdura del día
+depende de un único hueco**. Un día que comas fuera y te saltes esa regla, el
+día entero se queda sin verdura y nada avisa. Si eso te importa, la regla que
+falta no es de hueco sino de día: un mínimo diario de verdura, con la comida
+como sitio por defecto para ponerla.
 
 Puede ser exactamente lo que quieres. Pero si al ver la primera semana te chirría,
 **la pieza que hay que aflojar es el tope de la cena**, no la proteína.
