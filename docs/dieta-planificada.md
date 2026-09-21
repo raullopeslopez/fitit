@@ -736,6 +736,11 @@ código. Lo que se vuelve libre es todo lo demás, que es el 90 % de las veces.
 
 ## 32. Decisiones: lo que ya has contestado y lo que falta
 
+> Hay un cuestionario para contestarlas, con cada decisión ya marcada con la
+> recomendación de este documento:
+> <https://claude.ai/artifact/H5WH3X2TtT3WL2e3Zv1prG>. Las respuestas se guardan
+> en el propio cuestionario; cuando estén, se vuelcan aquí.
+
 De las seis de la primera vuelta, **la segunda vuelta contesta cuatro**:
 
 | # | Pregunta | Respuesta |
