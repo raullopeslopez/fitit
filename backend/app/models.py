@@ -325,3 +325,33 @@ class LogEntry(Base):
         default=lambda: datetime.now(UTC),
         server_default=func.now(),
     )
+
+
+class BodyWeight(Base):
+    """Lo que pesas un día, y sólo eso.
+
+    Una fila por día y por usuario: la báscula no acumula, mide. Pesarte dos
+    veces el mismo día reescribe la cifra del día en vez de añadir una segunda,
+    porque las dos son medidas del mismo hecho y la buena es la última.
+
+    `measured_on` es una fecha civil, no un instante, y **no pasa por
+    `food_log_date()`**: el corte de las 04:00 es del diario de comida, donde
+    una cena de la 01:00 pertenece al día anterior. Aplicarlo aquí haría que
+    pesarte de madrugada contara para ayer, que no significa nada — una pesada
+    no tiene hora útil.
+
+    No hay columna nullable que valga: si no te pesaste, no hay fila. La
+    ausencia es ausencia, y quien la lea tiene que tratarla como desconocida y
+    no como un cero (ver `app/weight.py`).
+    """
+
+    __tablename__ = "body_weights"
+    __table_args__ = (
+        UniqueConstraint("user_id", "measured_on", name="uq_body_weights_user_day"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    measured_on: Mapped[date] = mapped_column(Date, index=True)
+    kg: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

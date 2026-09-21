@@ -22,7 +22,7 @@ construido la mitad de algo.
 
 | # | Entrega | Útil sola porque… | Depende de | Tamaño |
 |---|---|---|---|---|
-| 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña |
+| 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
@@ -39,6 +39,17 @@ hacerla pronto aunque no luzca.
 ---
 
 ## 2. Fase 1 — Peso corporal
+
+> **Backend terminado el 21-09.** Tabla, migración, `app/weight.py`, los tres
+> endpoints y 22 tests en verde. **Falta la pantalla**, que es lo que hace que
+> la fase sea «til sola»; hasta entonces esto sólo existe para la API.
+>
+> Un cambio sobre lo escrito abajo: la ventana de la tendencia **cuelga de la
+> pesada más reciente, no del reloj**. Con pesadas esporádicas (decisión 16),
+> una ventana anclada a hoy dejaría la tendencia en blanco justo cuando más
+> falta hace. Lo que sí se devuelve es `up_to`, para que la pantalla pueda
+> decir que es de hace un mes: decidir si eso es demasiado viejo es de quien lo
+> pinta, no de la función.
 
 ### Tabla
 
@@ -319,10 +330,35 @@ regla nueva y comparar.
 Tres cosas que el brainstorming dejó marcadas como no verificadas y que cambian
 el tamaño de una fase si salen mal:
 
-1. **¿El `.xls` de CIQUAL trae columnas de grupo?** De ello depende que la
-   decisión 19 sea «leer dos columnas más y migrar» o «etiquetar 3.185 filas».
-   Se comprueba bajando el fichero con `--download` y mirando la cabecera.
-   Cinco minutos, y bloquea la fase 4.
+1. ~~¿El `.xls` de CIQUAL trae columnas de grupo?~~ **Comprobado el 21-09: sí.**
+   Son las **seis primeras columnas de la hoja `compo`**, en tres niveles:
+   `alim_grp_code` / `alim_ssgrp_code` / `alim_ssssgrp_code` y sus tres nombres
+   en francés. El import las está leyendo y tirándolas.
+
+   Y la taxonomía **distingue lo que hace falta**, en el nivel 2:
+
+   | Grupo (nivel 2) | Alimentos |
+   |---|---|
+   | `légumes` | 303 |
+   | `pommes de terre et autres tubercules` | 51 |
+   | `légumineuses` | 38 |
+   | `salades composées et crudités` | 21 |
+
+   Nivel 1 son once grupos grandes (`fruits, légumes, légumineuses et
+   oléagineux`, `viandes, œufs, poissons et assimilés`…), demasiado gruesos
+   para una regla; el útil es el 2.
+
+   Dos consecuencias de diseño:
+
+   - **Se guardan los códigos, no los nombres.** `alim_grp_code` y
+     `alim_ssgrp_code` son estables y no hablan ningún idioma; los nombres
+     franceses habría que traducirlos y mantenerlos. El mapa código → nombre en
+     español vive en un módulo, junto a las reglas que lo usan.
+   - **45 filas no tienen grupo** (los «aliment moyen», con código `00` y nombre
+     vacío). Eso es `NULL`, no cadena vacía, y una regla de «verdura» tiene que
+     contarlas como **sin clasificar**, nunca como «no es verdura».
+
+   La decisión 19 queda, por tanto, en **dos columnas y un reimport**. Barata.
 2. **¿Hay fila *cocida* para los alimentos de tu despensa?** La decisión 7 pide
    que cada plato diga su base; convertir entre las dos necesita o la fila
    pareja de CIQUAL o un factor de merma. Si falta, hay que decidir de dónde
