@@ -899,6 +899,9 @@ y no bloquean: van con una propuesta cada uno.
 **No queda nada bloqueando.** La fase de brainstorming está lista para cerrarse;
 lo siguiente es el análisis de requisitos técnicos.
 
+*(§39 añade tres más, 21–23, salidas de la pregunta por la creatividad. Tampoco
+bloquean: las tres van con recomendación.)*
+
 ---
 
 ## 37. Las tres frases, resueltas
@@ -1008,6 +1011,73 @@ plan —ese va solo— pero sí sin ampliar repertorio hasta el día siguiente.
 Y como los platos entran solos, alguna vez aparecerá uno que no quieres. Se
 corrige escribiendo encima, igual que un alimento mal dado de alta. Es el
 cambio aceptado: velocidad a cambio de una puerta.
+
+---
+
+## 39. La creatividad de los platos
+
+Pregunta de Raúl antes de cerrar, y merece respuesta honesta: **el diseño que
+hemos cerrado aprieta la creatividad por tres sitios**, y el tercero no se ve.
+
+- **Las reglas duras.** Verdura en la comida, proteína alta, cuatro tomas, cena
+  con tope, air fryer preferente. Cada una recorta el espacio de platos, y **lo
+  primero que se cae es lo raro**: justo lo que no encaja limpio.
+- **La despensa cerrada.** Con cuarenta alimentos hay un número finito de
+  combinaciones interesantes. El cajón de sugerencias (decisión 15) es la
+  válvula, y de momento está de adorno.
+- **La arquitectura C empuja al plato deconstruido.** Para que el ajuste
+  funcione, un plato necesita proteína fija, hidrato que escala, grasa que
+  escala. Eso lo cumple «pechuga + arroz + verdura». **No lo cumple un guiso**:
+  unas lentejas con chorizo y patata son una composición fija a la que no puedes
+  subirle el arroz. Exigir que todo plato sea ajustable manda al generador hacia
+  platos de báscula, y se come semanas enteras de comida separada en el plato.
+
+### El arreglo: el ajuste vive en el día, no en cada plato
+
+Un guiso entra en el repertorio como **bloque fijo** —es lo que es, 450 kcal y
+punto— y el día cierra los números moviendo los *otros* huecos. Basta con que
+haya un ingrediente de ajuste **en algún sitio del día**.
+
+Cambia poco en el motor y mucho en la mesa: con esto caben las lentejas de tu
+madre, la paella del domingo y cualquier cosa que no se deje desmontar. Es una
+precisión sobre la decisión 8, no una vuelta atrás.
+
+### Cuatro palancas baratas
+
+- **El modo de cocinado** (§13c). Mismo pollo, air fryer con pimentón el martes y
+  plancha con limón el jueves: dos platos, misma compra, mismos macros. Es la
+  variedad más barata que existe, y ahora se sabe para qué sirve.
+- **El cajón de sugerencias, con ritmo.** Una vez por semana, algo que necesite
+  un ingrediente que no tienes. Deja de ser un rincón muerto.
+- **Creatividad por día.** Un plan es un compromiso adquirido por adelantado, y
+  cuanto más aventurado el plato, menos apetece un martes. Aburrido entre
+  semana, ambicioso el fin de semana — la misma intuición que el desayuno fijo.
+- **Meter platos a mano, fácil.** Lo que comiste en casa de alguien, lo que viste
+  en un vídeo. Si el repertorio sólo crece por generación, el techo es lo que el
+  modelo sepa hacer con esos cuarenta alimentos.
+
+### La trampa de la decisión 14
+
+Que el modelo vea las puntuaciones le hace converger en lo que gusta, **y
+converger es lo contrario de variar**. Un modelo que sólo propone lo puntuado
+alto deja el repertorio en cinco platos en dos meses. Hace falta una **cuota de
+exploración**: una parte de las propuestas que a propósito no sea de la zona de
+confort. Sin ella, la puntuación se come la variedad que la rotación intenta dar.
+
+### El techo, dicho claro
+
+El modelo es bueno contestando «qué se puede hacer con esto»; no es un cocinero.
+Propondrá platos competentes y convencionales y **sorprenderá poco**. La
+creatividad seguirá viniendo del usuario: lo que la app puede hacer es que
+meterla cueste dos toques y que no se olvide lo que ya funcionaba.
+
+### Lo que esto añade a decidir
+
+21. **¿El ajuste es por plato o por día?** (arriba) *Mi recomendación: por día,
+    y que un plato pueda declararse bloque fijo.*
+22. **¿Cuota de exploración en las propuestas?** *Mi recomendación: sí, pequeña
+    y visible — «prueba algo distinto» como etiqueta, no como sorpresa.*
+23. **¿La ambición del plato depende del día de la semana?** Puro gusto.
 
 ---
 
