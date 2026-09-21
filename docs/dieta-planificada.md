@@ -902,10 +902,11 @@ dos números por poner, que no bloquean.
 
 Sexta vuelta, misma fase. Las tres ambigüedades de §32 quedan cerradas:
 
-1. **Verdura en la comida, siempre. En la cena, algunos días. En el desayuno,
-   no.** Son **dos reglas**, no una: una presencia obligatoria en un hueco, y
-   una frecuencia en otro. Los huecos que no las nombran no tienen regla de
-   verdura — no es que la prohíban, es que no dicen nada.
+1. **Verdura en la comida, siempre. En la cena, algunos días. En el desayuno y
+   en el snack, ninguna regla.** Son **dos reglas**, no una: una presencia
+   obligatoria en un hueco, y una frecuencia en otro. Los otros dos huecos no
+   la prohíben: simplemente no la exigen, y el generador no la va a poner ahí
+   por su cuenta.
 2. **«Pesadas», no «pensadas».** La cena lleva un **tope**. Sigue planificada,
    sólo que ligera.
 3. **Cuatro tomas.** Y aquí no hay nada que modelar: **el backend ya define
