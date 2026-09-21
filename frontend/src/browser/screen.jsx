@@ -251,6 +251,10 @@ export const FREQUENT = [
 function stubNetwork(catalogue = FOODS) {
   const routes = [
     [/\/health$/, { ok: true }],
+    // La tarjeta de peso de Progreso. Sin esta ruta el stub devuelve `[]` y la
+    // tarjeta cae —correctamente— en «todavía no te has pesado», que es un
+    // estado real pero no el que se quiere medir aquí.
+    [/\/body-weight\/trend$/, { kg: 78.6, weigh_ins: 3, up_to: '2026-09-18' }],
     [/\/workouts\/1$/, OPEN_WORKOUT],
     [/\/days$/, DAYS],
     [/\/exercises\/recently-trained/, []],

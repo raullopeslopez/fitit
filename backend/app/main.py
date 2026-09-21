@@ -4,7 +4,7 @@ import sys
 from fastapi import Depends, FastAPI
 
 from .auth import get_current_user
-from .routers import auth, days, exercises, food_log, foods, workouts
+from .routers import auth, body_weight, days, exercises, food_log, foods, workouts
 
 
 def _configure_logging() -> None:
@@ -50,3 +50,4 @@ app.include_router(workouts.router, dependencies=[Depends(get_current_user)])
 app.include_router(exercises.router, dependencies=[Depends(get_current_user)])
 app.include_router(foods.router, dependencies=[Depends(get_current_user)])
 app.include_router(food_log.router, dependencies=[Depends(get_current_user)])
+app.include_router(body_weight.router, dependencies=[Depends(get_current_user)])

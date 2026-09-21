@@ -677,3 +677,43 @@ class BarcodeLookupOut(BaseModel):
     # Por qué no servía: 'por ración', 'por 100 ml', 'sin kcal'. A la pantalla,
     # porque «no me vale» sin motivo se lee como un fallo de la app.
     refused_reason: str | None = None
+
+
+# --- Peso corporal -----------------------------------------------------------
+# Una pesada creíble. El suelo y el techo no son paranoia: son la misma postura
+# que `_sane()` en `label.py` — una cifra imposible es un error de tecleo, y
+# guardarla la convierte en un dato que después hay que desmentir.
+MIN_KG = 20.0
+MAX_KG = 400.0
+
+
+class BodyWeightIn(BaseModel):
+    measured_on: Date
+    kg: float = Field(gt=MIN_KG - 1e-9, le=MAX_KG)
+
+    @field_validator("kg")
+    @classmethod
+    def creible(cls, value: float) -> float:
+        if not MIN_KG <= value <= MAX_KG:
+            raise ValueError(f"un peso corporal está entre {MIN_KG:g} y {MAX_KG:g} kg")
+        return value
+
+
+class BodyWeightOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    measured_on: Date
+    kg: float
+
+
+class WeightTrendOut(BaseModel):
+    """La media reciente. `kg` es `None` cuando todavía no hay tendencia, y eso
+    es una respuesta: la pantalla imprime `—`, no la última pesada."""
+
+    kg: float | None = None
+    # Cuántas pesadas la sostienen. Una tendencia sobre dos y una sobre veinte
+    # no valen lo mismo, y quien la pinta tiene derecho a saberlo.
+    weigh_ins: int = 0
+    # Hasta cuándo está medida. Si es de hace un mes, que lo diga la pantalla.
+    up_to: Date | None = None
