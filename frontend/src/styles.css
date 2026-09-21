@@ -5036,3 +5036,69 @@ button.set-chip:active:not(:disabled) {
   font-size: 0.8rem;
   line-height: 1.5;
 }
+
+/* --- Peso corporal (Progreso) ---------------------------------------------
+   La cifra grande es la **tendencia**, nunca la última pesada: el peso oscila
+   más de un kilo por agua, y pintar la última invita a leer como un cambio lo
+   que fue una cena. Mono tabular, como todo número de esta app.
+
+   El guion del desconocido va en `--text`, no en `--muted`: es la misma regla
+   que en Comida — lo que nadie ha medido se imprime con la misma tinta que una
+   cifra, porque es un dato y no un hueco decorativo. Lo muted es la frase que
+   lo explica, que sí es prosa de apoyo. */
+.weight-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0 0 0.25rem;
+}
+.weight-kg {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.weight-unit {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--muted);
+}
+/* Micro: mayúsculas espaciadas que anotan una cifra, no una frase que se lee.
+   Dice cuántas pesadas la sostienen —dos y veinte no valen lo mismo— y hasta
+   cuándo está medida, para que una tendencia de hace un mes lo diga. */
+.weight-stamp {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.9rem;
+}
+/* Prosa, así que no baja de la escala legible: «una pesada» y «ninguna» son
+   fallos distintos y cada uno se nombra por su nombre. */
+.weight-empty {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 0.9rem;
+  max-width: 34ch;
+}
+.weight-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.weight-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.weight-save {
+  flex: none;
+}
+.weight-error {
+  font-size: 0.85rem;
+  color: var(--danger);
+  margin: 0.5rem 0 0;
+}

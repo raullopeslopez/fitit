@@ -16,6 +16,7 @@ import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
+import Weight from './Weight.jsx'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
@@ -1637,6 +1638,19 @@ export default function Progress() {
           </>
         )}
       </div>
+
+      {/* Pesarse es una acción rara —de vez en cuando, no cada sesión— y
+          DESIGN.md manda esas a Progreso, que es la pantalla que visitas a
+          propósito, en vez de a un control fijo en Días.
+
+          Debajo de Evolución y no encima: el resumen, el ritmo y la gráfica son
+          una sola historia —cuánto entrenas y cómo va— y meter el peso en medio
+          la parte en dos. Encima, además, la tarjeta empujaba el aparato de
+          Evolución 300 px hacia abajo y movía el disparador del editor, que es
+          justo lo que `editor-exit.browser-test.jsx` mide: abrir el panel no
+          debe mover la página. El peso va después de la historia del entreno y
+          antes de exportar, que es lo verdaderamente raro. */}
+      <Weight />
 
       {confirmingDelete && current && (
         <DeleteConfirm

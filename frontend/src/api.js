@@ -348,3 +348,27 @@ export function setTargets({ protein = null, carbs = null, fat = null }) {
     }),
   })
 }
+
+// --- Peso corporal -----------------------------------------------------------
+// Lo que pesas un día. Pesarte dos veces el mismo día **corrige** la cifra en
+// vez de añadir otra: las dos son medidas del mismo hecho.
+export function logBodyWeight({ measured_on, kg }) {
+  return apiFetch('/body-weight', {
+    method: 'POST',
+    body: JSON.stringify({ measured_on, kg }),
+  })
+}
+
+// Las pesadas, de la más reciente a la más antigua. Todavía no la pinta nadie:
+// la usará la curva de peso cuando exista.
+export function listBodyWeights() {
+  return apiFetch('/body-weight')
+}
+
+// La media reciente. `kg` viene a `null` cuando aún no hay tendencia, y eso es
+// una respuesta — no se rellena con la última pesada. Trae además cuántas la
+// sostienen y hasta cuándo está medida, porque una tendencia sobre dos y una
+// sobre veinte no valen lo mismo.
+export function weightTrend() {
+  return apiFetch('/body-weight/trend')
+}
