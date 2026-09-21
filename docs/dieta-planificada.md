@@ -554,7 +554,187 @@ Y una que no es de producto y por eso no va numerada: **con qué modelo**. Hoy
 todo es Gemini y lo razonable es seguir, aunque sea otra tarea (generar, no
 leer). Eso se mira en la fase técnica, no ahora.
 
-## 23. Decisiones: lo que ya has contestado y lo que falta
+---
+
+# Parte IV — Los objetivos dejan de teclearse
+
+Cuarta vuelta (21 de septiembre). Raúl: *«hay una funcionalidad que setea
+calorías y esto no es realista»*. Lo que quiere en Ajustes es **el objetivo**, y
+que las calorías salgan de ahí; y luego **preferencias sobre cómo llegar** —
+proteína de 1,5 a 2 g/kg, verdura y tubérculos, legumbres— con la puerta abierta
+a **meter una regla nueva que haya descubierto** y que el menú la recoja.
+
+Es la misma ingeniería inversa de la Parte II, pero aplicada un piso más arriba:
+allí el menú era la salida, aquí **el número también lo es**.
+
+## 23. Lo que hay hoy, y por qué tiene razón
+
+Cuatro columnas en `users`: `objetivo_kcal`, `objetivo_proteina`,
+`objetivo_grasa`, `objetivo_hidratos`. Fijas por usuario, tecleadas a mano. Tres
+cosas fallan, y las tres las nombra él con una palabra:
+
+1. **Es un número que te inventas.** Nadie sabe sus kcal de mantenimiento a ojo,
+   y equivocarse en 300 es trivial y lo cambia todo.
+2. **No se mueve.** Tu cuerpo cambia y la cifra sigue donde la dejaste. Un
+   objetivo fijo es exacto el primer día y mentira al segundo mes.
+3. **No dice nada de *cómo* llegar.** 2.400 kcal se alcanzan con legumbres y
+   verdura o con bollería. El número no distingue, y es justo lo que te importa.
+
+## 24. Tres capas, y la de en medio es nueva
+
+> **Objetivo** (qué quieres que le pase a tu cuerpo)
+> → **Derivación** (cuántas kcal tocan)
+> → **Reglas** (cómo se reparten)
+
+El cambio de fondo: **las cifras dejan de ser entrada y pasan a ser salida**.
+`objetivo_kcal` deja de ser algo que tecleas y pasa a ser algo que la app
+calcula y te enseña. Las cuatro columnas no desaparecen necesariamente, pero
+cambian de naturaleza: pasan de *lo que dijiste* a *lo que sale*, que es un
+cambio de modelo, no de pantalla.
+
+## 25. La derivación: fórmula para arrancar, tu propio historial después
+
+Hay dos formas y la diferencia entre ellas es enorme:
+
+- **Por fórmula** (Mifflin-St Jeor y un factor de actividad). Necesita peso,
+  altura, edad, sexo y una estimación de lo que te mueves. Da un número con
+  pinta de exacto y un error de un par de cientos de kcal con facilidad — el
+  factor de actividad es un dedo al viento con decimales.
+- **Midiéndolo en tus datos.** Tu mantenimiento real es lo que comiste de media
+  durante unas semanas, corregido por lo que se movió tu peso. Es mucho más
+  fiable que cualquier fórmula, y **sólo lo puede hacer una app que tenga las
+  dos cosas**. Fitit tendría el diario; le falta el peso.
+
+Lo razonable es tener las dos: **la fórmula arranca, la medición manda en
+cuanto hay datos.** Y que la pantalla diga cuál está usando, porque presentar
+una estimación con la misma tinta que una medición es la clase de mentira
+tranquila que esta app evita en todo lo demás.
+
+### El bloqueo, y está verificado
+
+**No hay peso corporal en el modelo.** `users` tiene usuario, contraseña,
+correo, `google_sub` y los cuatro objetivos: ni peso, ni altura, ni edad, ni
+sexo. Y el `weight` que sí existe es el de `sets` — el hierro que levantas;
+`bodyweight_set.feature` va justo de series **sin** peso.
+
+Consecuencia directa: **sin kilos no hay g/kg, y sin histórico de kilos no hay
+medición**. Registrar el peso a lo largo del tiempo no es un campo en Ajustes,
+es una feature con lo suyo: el peso diario oscila más de un kilo por agua, así
+que hace falta media o tendencia, o el objetivo se pondrá a temblar solo.
+
+La contrapartida: ese mismo dato es el que cierra el círculo de la Parte I §7
+—adherencia contra resultado—, así que no es un peaje, es la pieza que faltaba.
+
+## 26. Las reglas: lo que de verdad has pedido
+
+«1,5 a 2 g/kg de proteína» **no es un número**, y por eso no cabe en la pantalla
+de hoy. Tiene tres propiedades que una casilla no puede expresar:
+
+- Es un **rango**, no un punto.
+- Es **relativa a algo que cambia** (tu peso).
+- Está en **otra unidad** que la que consume el motor (g/kg, no g).
+
+Y «verdura, tubérculos, legumbres» es de otra especie todavía: no habla de
+macros, habla de **qué hay en el plato y cada cuánto**. Una taxonomía de salida:
+
+| Tipo de regla | Ejemplo |
+|---|---|
+| Rango relativo | proteína 1,5–2 g/kg de peso |
+| Reparto del total | grasa entre el 25 % y el 35 % de las kcal |
+| Presencia | verdura en comida y en cena |
+| Frecuencia semanal | legumbres ≥ 3, pescado ≥ 2 |
+| Tope | menos de X de azúcar añadido |
+| Práctica | las de §11: tiempo, bandejas, días fuera |
+
+Fíjate en lo que pasa con esto: **los cuatro `objetivo_*` de hoy son un caso
+particular** de la primera fila, con el rango colapsado a un punto y sin nada
+relativo. La pantalla nueva no añade opciones a la vieja: la contiene.
+
+## 27. Duras y blandas (o el generador no encuentra nada)
+
+Si todas las reglas son obligatorias, la respuesta va a ser «no hay solución»
+casi siempre — mete siete restricciones sobre cuarenta alimentos y el espacio se
+queda vacío. Así que cada regla necesita **dureza**:
+
+- **Dura**: la proteína. Si no se cumple, el plan no vale.
+- **Blanda**: legumbres tres veces. Si salen dos, es peor pero es un plan.
+
+El generador cumple todas las duras y **maximiza las blandas**. Y el mensaje de
+fallo deja de ser un muro: «he podido meter legumbres 2 veces, no 3» en vez de
+«sin solución», que es exactamente lo que pedía §11.
+
+## 28. El agujero de los grupos, y también está verificado
+
+Para que «verdura y tubérculos» signifique algo, la app tiene que saber a qué
+grupo pertenece cada alimento. **No lo sabe.** El import de CIQUAL escribe once
+campos —nombre, plegado, origen, referencia, convención de hidratos, los cinco
+macros y el JSON de nutrientes— y **ninguno es el grupo**; `ciqual_es.json` es
+sólo traducciones y alias.
+
+La buena noticia es que CIQUAL sí clasifica sus alimentos en origen, así que lo
+más probable es que baste con **leer esas columnas del `.xls` y una migración**,
+no con etiquetar 3.185 filas a mano. Hay que confirmarlo contra el fichero
+antes de prometerlo.
+
+Y una trampa que es tuya de siempre: **los alimentos que das de alta tú no
+tendrán grupo**. Una regla de «legumbres 3 veces» no puede tratar en silencio lo
+no etiquetado como «no es legumbre». Es `NULL` otra vez: *desconocido*, no cero.
+O se pide el grupo al crear un alimento, o la regla dice en voz alta cuántas
+cosas no pudo clasificar.
+
+## 29. «Un objetivo nuevo que haya descubierto»
+
+Esta es la petición con más consecuencias de las cuatro, porque lo que pide es
+**añadir una regla sin tocar código**. Tres formas:
+
+- **A. Catálogo cerrado de tipos, con parámetros.** La app conoce los seis tipos
+  de la tabla de §26 y tú los instancias con tus números. Acotado, comprobable
+  con tests, y añadir una regla *nueva de un tipo que ya existe* es gratis.
+- **B. Texto libre que interpreta el modelo.** «He leído que conviene llegar a
+  30 g de fibra» → el modelo lo convierte en restricción. Flexible del todo, y
+  con el riesgo de una regla que no puedes auditar.
+- **C. Un mini-lenguaje propio.** Para una app personal, no.
+
+**A como motor, B como puerta.** El motor sólo ejecuta reglas tipadas y
+validadas; el modelo únicamente **traduce** lo que leíste a uno de esos tipos y
+tú lo confirmas. Es literalmente la doctrina de `label.py` otra vez: propuesta →
+validación → confirmación → dato. Y cuando lo que has leído no encaja en ningún
+tipo, que **lo diga** en vez de inventarse una regla — que es `ColumnRefused`
+otra vez.
+
+Lo honesto del trade-off: con esto, añadir un *tipo* nuevo sigue siendo tocar
+código. Lo que se vuelve libre es todo lo demás, que es el 90 % de las veces.
+
+## 30. Lo que se mueve cuando el objetivo se mueve
+
+- **Congelar el objetivo por día pasa de opcional a obligatorio.** En
+  `comida-pendiente.md` ya estaba el aviso: el objetivo es del perfil, no del
+  día, y cambiarlo reescribe la racha del pasado. Con un objetivo *derivado*,
+  que cambia solo, eso deja de ser una molestia y pasa a garantizar un pasado
+  falso. Hay que guardar qué tocaba cada día.
+- **El objetivo no puede perseguir el ruido.** Si las kcal se recalculan a
+  diario desde un peso que oscila un kilo por agua, el número tiembla y dejas de
+  creértelo. Tendencia, y recálculo cada semana, no continuo.
+- **¿Y si meto una regla a media semana?** Misma respuesta que en §16: nada se
+  regenera solo. Un «aplicar al resto de la semana» que pulsas tú.
+- **Las reglas también tienen historia.** «Desde octubre subí la proteína» es
+  una frase que la app tendrá que poder contestar.
+
+## 31. Lo que habría que decidir de esto
+
+16. **¿Se registra el peso, y cada cuánto?** Es el prerrequisito duro: sin él no
+    hay g/kg ni derivación. *Mi recomendación: pesarse cuando quieras, y que la
+    app use la tendencia, no la última cifra.*
+17. **¿Fórmula, medición, o las dos?** *Mi recomendación: fórmula para las
+    primeras semanas, medición en cuanto haya historial, y decir cuál se usa.*
+18. **¿El objetivo se recalcula solo o te lo propone?** *Mi voto: te lo propone
+    y lo aceptas. Un número que cambia sin avisar no se obedece, se desconfía.*
+19. **¿Se reimportan los grupos de CIQUAL, y qué pasa con tus alimentos?**
+    (§28) La segunda mitad es la que duele.
+20. **¿Catálogo cerrado de tipos de regla?** (§29) *Mi voto: sí, con el modelo
+    sólo traduciendo.*
+
+## 32. Decisiones: lo que ya has contestado y lo que falta
 
 De las seis de la primera vuelta, **la segunda vuelta contesta cuatro**:
 
@@ -589,6 +769,13 @@ Y la Parte III añade cuatro más, desarrolladas en **§22**: si la IA entra en 
 v1 o después (12), quién aprueba los platos (13), qué se le enseña al modelo
 (14) y si puede salirse de la despensa (15).
 
+Y la Parte IV añade cinco, desarrolladas en **§31**: si se registra el peso (16),
+fórmula o medición (17), si el objetivo se recalcula solo (18), los grupos de
+alimento (19) y si el catálogo de tipos de regla es cerrado (20).
+
+**La 16 sube al primer grupo**: no es una preferencia, es un prerrequisito — sin
+peso no hay g/kg, y sin g/kg la mitad de esta vuelta no existe.
+
 ---
 
 ## Apéndice: de dónde sale lo que dice este documento
@@ -613,3 +800,8 @@ v1 o después (12), quién aprueba los platos (13), qué se le enseña al modelo
 | `gemini.py` ya distingue cuota de día y de minuto | `_quota_scope`, leído | **Alta** (verificado) |
 | `label.py` trata la salida del modelo como propuesta | `LabelRead`, `_sane`, `_backed_by_a_row`, `ColumnRefused` | **Alta** (verificado) |
 | Que un LLM falle cerrando macros a ±5 % en 35 comidas | Criterio propio, no medido contra este modelo | **Media** |
+| No hay peso corporal en el modelo | `users` leído entero; `sets.weight` es la carga | **Alta** (verificado) |
+| El import de CIQUAL no guarda el grupo | Los 11 campos de `load()`, leídos | **Alta** (verificado) |
+| CIQUAL sí clasifica por grupos en origen | De memoria, **sin comprobar contra el `.xls`** | **Media** |
+| El error típico de Mifflin-St Jeor y el factor de actividad | De memoria, orden de magnitud | **Media-baja** |
+| El peso corporal oscila ~1 kg por agua | De memoria, orden de magnitud | **Media** |
