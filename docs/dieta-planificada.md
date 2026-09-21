@@ -1,10 +1,17 @@
 # Dieta planificada: brainstorming
 
 Fase 1 de la idea «en lugar de registrar lo que comí, parto de una dieta ya
-planificada». Fecha: septiembre 2026. **No implementa nada y no decide nada**:
-recoge ideas, las ordena, y separa lo que es criterio de producto de lo que es
-consecuencia técnica. Se cierra cuando Raúl diga que se cierra; después viene el
-análisis de requisitos técnicos, y sólo después la implementación.
+planificada». Fecha: septiembre 2026. **No implementa nada**: recoge ideas, las
+ordena, y separa lo que es criterio de producto de lo que es consecuencia
+técnica.
+
+> **CERRADO el 21-09-2026.** Diecinueve decisiones tomadas; las que quedan van
+> con su default y ninguna bloquea. Lo que sigue está en
+> [`dieta-planificada-requisitos.md`](dieta-planificada-requisitos.md), que
+> traduce todo esto a tablas, endpoints y escenarios.
+>
+> Este documento **ya no se edita para cambiar de opinión**: es el registro de
+> cómo se llegó aquí. Una decisión que se mueva se mueve en el de requisitos.
 
 ---
 
