@@ -872,6 +872,7 @@ aunque no las tocara en el cuestionario; el resto vienen revisadas.
 | 5 | Adherencia **sólo nutricional** |
 | 6 | Las elaboraciones van primero *(conversación)* |
 | 7 | **Cada elaboración dice** si habla en crudo o en cocinado |
+| 8 | **Arquitectura C**: rotación de platos, y los gramos se ajustan después |
 | 9 | Desayuno fijo; el resto varía |
 | 10 | Air fryer ≈ horno menos el aceite que no se echa |
 | 11 | Sus requisitos prácticos: ver §32 |
@@ -882,19 +883,21 @@ aunque no las tocara en el cuestionario; el resto vienen revisadas.
 | 16 | El peso lo actualiza él de vez en cuando |
 | 20 | Catálogo cerrado de tipos, el modelo traduce — **y previsualiza** (§34) |
 
-**Abiertas — cinco**, todas en mi recomendación por no haberlas tocado:
+**Abiertas — cuatro**, todas en mi recomendación por no haberlas tocado, y
+**ninguna bloquea**:
 
-- **8 · arquitectura A/B/C.** La única que sigue bloqueando. §33 la deja casi
-  resuelta a favor de C, pero *casi* no es una decisión.
-- **17 · fórmula o medición.** Tiene un roce con la 16 (§35), así que conviene
-  contestarla mirando esa.
+- **17 · fórmula o medición.** Tiene un roce con la 16 (§35): con pesadas
+  esporádicas, el arma de medir es más lenta y más floja. Conviene contestarla
+  mirando esa, pero el default aguanta.
 - **4 · dónde vive el plan**, **18 · el objetivo se propone**, **19 · grupos de
   CIQUAL.** Sin riesgo: los defaults aguantan hasta que estorben.
 
 **Nuevas — tres**, las frases de dictado de §32: **resueltas en §37**. Quedan
-dos números por poner, que no bloquean.
+dos números por poner — cuántos días lleva verdura la cena, y qué es «pesada»—
+y no bloquean: van con una propuesta cada uno.
 
-**Bloquea una sola cosa: la decisión 8.**
+**No queda nada bloqueando.** La fase de brainstorming está lista para cerrarse;
+lo siguiente es el análisis de requisitos técnicos.
 
 ---
 
