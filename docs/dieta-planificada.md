@@ -891,8 +891,64 @@ aunque no las tocara en el cuestionario; el resto vienen revisadas.
 - **4 · dónde vive el plan**, **18 · el objetivo se propone**, **19 · grupos de
   CIQUAL.** Sin riesgo: los defaults aguantan hasta que estorben.
 
-**Nuevas — tres**, y son de dictado, no de producto: las tres frases de §32 que
-no interpreto por mi cuenta. Son las que bloquean ahora, junto con la 8.
+**Nuevas — tres**, las frases de dictado de §32: **resueltas en §37**. Quedan
+dos números por poner, que no bloquean.
+
+**Bloquea una sola cosa: la decisión 8.**
+
+---
+
+## 37. Las tres frases, resueltas
+
+Sexta vuelta, misma fase. Las tres ambigüedades de §32 quedan cerradas:
+
+1. **Verdura en todas las tomas — menos la cena.** En la cena, sólo algunos días.
+   Son **dos reglas**, no una: una presencia obligatoria en tres huecos, y una
+   frecuencia en el cuarto.
+2. **«Pesadas», no «pensadas».** La cena lleva un **tope**. Sigue planificada,
+   sólo que ligera.
+3. **Cuatro tomas.** Y aquí no hay nada que modelar: **el backend ya define
+   exactamente cuatro** — `MealSlot = Literal["desayuno", "comida", "cena",
+   "snack"]`, en `schemas.py`. Tus cuatro comidas caen sobre los huecos que la
+   app ya tiene.
+
+### Lo que esto le cambia al modelo de reglas
+
+Las dos primeras no hablan del día: hablan de **un hueco concreto**. Y eso
+obliga a una pieza que la taxonomía de §26 no tenía. Una regla necesita
+**ámbito**, y a veces **condición**:
+
+| Regla | Ámbito | Condición |
+|---|---|---|
+| Proteína 1,5–2 g/kg | Día | — |
+| Más hidratos, misma kcal | Día | **Día de entreno** |
+| Verdura obligatoria | **Hueco** (desayuno, comida, snack) | — |
+| Verdura en la cena, algunos días | **Hueco** + semana | — |
+| Cena no pesada | **Hueco** (cena) | — |
+| Desayuno igual todos los días | **Hueco** (desayuno) | — |
+| Air fryer al menos N veces | Semana | — |
+| Legumbres ≥ 3 | Semana | — |
+
+Tres ámbitos —**día, semana, hueco**— y una condición opcional por tipo de día.
+Con eso se expresan las ocho, y es lo que hay que poder guardar.
+
+### Dos números que faltan, y no bloquean
+
+- **¿Cuántos días es «algunos»** para la verdura en la cena? Propongo **2 de 7**
+  y que sea **blanda**, para que no tumbe la semana entera por un día.
+- **¿Qué es «pesada»?** Propongo un **tope de kcal de la cena como parte del
+  día** — en torno al **25 %** — porque es lo que la palabra significa de forma
+  más directa. La grasa es el otro candidato, y se puede poner tope a las dos.
+
+### Una consecuencia que conviene ver antes de construirla
+
+Júntalas: cena con tope, **sin verdura la mayoría de días**, cuatro tomas y la
+proteína como regla dura. La cena queda como **proteína y poco más**, y las
+otras tres cargan con el resto del día — incluidos los hidratos extra de los
+días de entreno, que no van a caber en la cena.
+
+Puede ser exactamente lo que quieres. Pero si al ver la primera semana te chirría,
+**la pieza que hay que aflojar es el tope de la cena**, no la proteína.
 
 ---
 
@@ -920,7 +976,9 @@ no interpreto por mi cuenta. Son las que bloquean ahora, junto con la 8.
 | Que un LLM falle cerrando macros a ±5 % en 35 comidas | Criterio propio, no medido contra este modelo | **Media** |
 | Las respuestas de la Parte V | Cuestionario contestado por Raúl, 21-09 | **Alta** |
 | Que la grasa sea lo que cede al subir hidratos | Aritmética, dadas kcal fijas y proteína dura | **Alta** |
-| Qué quiso decir en las tres frases de §32 | **Sin resolver**: tres lecturas, ninguna elegida | — |
+| Qué quiso decir en las tres frases de §32 | Contestadas por él, 21-09 (§37) | **Alta** |
+| La app ya define cuatro huecos de comida | `MealSlot` en `backend/app/schemas.py` | **Alta** (verificado) |
+| Que «pesada» sea un tope de kcal al 25 % | Propuesta mía para que la discuta | **Baja** |
 | No hay peso corporal en el modelo | `users` leído entero; `sets.weight` es la carga | **Alta** (verificado) |
 | El import de CIQUAL no guarda el grupo | Los 11 campos de `load()`, leídos | **Alta** (verificado) |
 | CIQUAL sí clasifica por grupos en origen | De memoria, **sin comprobar contra el `.xls`** | **Media** |
