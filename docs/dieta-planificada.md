@@ -734,52 +734,165 @@ código. Lo que se vuelve libre es todo lo demás, que es el 90 % de las veces.
 20. **¿Catálogo cerrado de tipos de regla?** (§29) *Mi voto: sí, con el modelo
     sólo traduciendo.*
 
-## 32. Decisiones: lo que ya has contestado y lo que falta
+---
 
-> Hay un cuestionario para contestarlas, con cada decisión ya marcada con la
-> recomendación de este documento:
-> <https://claude.ai/artifact/H5WH3X2TtT3WL2e3Zv1prG>. Las respuestas se guardan
-> en el propio cuestionario; cuando estén, se vuelcan aquí.
+# Parte V — Contestado
 
-De las seis de la primera vuelta, **la segunda vuelta contesta cuatro**:
+Quinta vuelta (21 de septiembre). Raúl contesta el cuestionario: **once de
+veintiuna revisadas**, seis de ellas apartándose de lo que yo recomendaba. Esta
+parte recoge lo que queda fijado, lo que sale de su texto libre, y las tres
+frases que no me atrevo a interpretar por mi cuenta.
 
-| # | Pregunta | Respuesta |
+## 32. Las reglas que salen de tu texto libre
+
+La respuesta larga (decisión 11) es la más densa de todo el cuestionario.
+Desmontada en reglas, con su dureza:
+
+| Lo que dijiste | Tipo (§26) | Dureza |
 |---|---|---|
-| 1 | ¿Menú o marco? | **Menú** — combinaciones concretas, no cuotas de macro |
-| 2 | ¿De dónde sale? | **Generado** desde tu lista de alimentos |
-| 3 | ¿Cuál es la unidad? | **La semana**, y una semana no repite a la anterior |
-| 6 | ¿Hace falta la comida guardada? | **Sí**: las elaboraciones son eso, y van primero |
+| «Todas las comidas tengan verdura» | Presencia por grupo | **Dura** |
+| «Importante llegar a las proteínas» | Rango relativo | **Dura** |
+| «Que prime la air fryer, también sartenes» | Preferencia de método | Blanda + lista permitida |
+| «Los días que entrene coma más hidratos, dentro de las kcal» | **Condicionada al tipo de día** | **Dura** |
+| «Las tomas serán 4» | Estructura del día | **Dura** |
+| Desayuno igual todos los días (decisión 9) | Estructura del día | **Dura** |
 
-Siguen abiertas las dos de entonces:
+Dos cosas que esto cambia del documento:
 
-4. **¿El plan manda o acompaña?** ¿La pantalla Comida se abre en el plan, o el
-   plan es una pestaña y el diario sigue siendo la casa?
-5. **¿Adherencia literal o nutricional?** (§5) — o las dos, y cuál se enseña.
+- **Aparece un tipo de regla que no estaba en la tabla de §26**: la
+  **condicionada al tipo de día**. Y es la que convierte el cruce con `days` de
+  «estaría bien algún día» en «sin esto tu plan no es tu plan».
+- **«Que prime» no es «que use».** Una preferencia de método con una lista de lo
+  permitido detrás: air fryer primero, sartén válida, lo demás no. Eso es una
+  regla blanda *y* un filtro duro a la vez, y conviene no colapsarlas.
 
-Y la Parte II añade cinco nuevas. La primera es la urgente: es la que, mal
-resuelta, hace que todo lo demás cuadre sobre el papel y no en la báscula.
+### Tres frases del dictado que no interpreto por mi cuenta
 
-7. **¿Se pesa en crudo o en cocinado?** (§13a) No hay opción de no decidirlo.
-8. **¿Arquitectura A, B o C?** (§15) Rotación barata, solver caro, o rotación con
-   ingrediente de ajuste — yo voto C.
-9. **¿Qué huecos quieres fijos y cuáles variados?** (§14) Lo más probable:
-   desayuno fijo, cena variada. Dilo tú, que es puro gusto.
-10. **¿Te vale «air fryer = horno sin el aceite»?** (§13a) Es una hipótesis mía
-    sin verificar, y es la cifra sobre la que se apoyará media semana tuya.
-11. **¿Cuántos requisitos prácticos tienes de verdad?** (§11) Tiempo entre
-    semana, bandejas de air fryer, días que comes fuera. Sin esa lista, el
-    generador optimiza a ciegas — y ahí es donde sale la dieta de Stigler.
+Prefiero preguntar a acertar, porque las tres acaban en una regla que se ejecuta
+todos los días:
 
-Y la Parte III añade cuatro más, desarrolladas en **§22**: si la IA entra en la
-v1 o después (12), quién aprueba los platos (13), qué se le enseña al modelo
-(14) y si puede salirse de la despensa (15).
+1. **«Todas las comidas tengan verdura **y las cenas de vez en cuando**».** La
+   segunda mitad contradice a la primera si «de vez en cuando» se refiere a la
+   verdura. ¿Es otro grupo el que va de vez en cuando en las cenas —legumbre,
+   tubérculo, pescado—, o es que la verdura en la cena es opcional?
+2. **«No quiero cenas pensadas».** Tres lecturas y llevan a reglas distintas:
+   *pesadas* (tope de kcal o grasa en la cena), *sencillas* (tope de esfuerzo o
+   de ingredientes), o *sin planificar* (la cena se queda fuera del plan).
+3. **«Las tomas entre serán 4».** Cuento cuatro comidas al día — pero el
+   cuestionario ofrecía cinco huecos. ¿Cuáles son las cuatro?
 
-Y la Parte IV añade cinco, desarrolladas en **§31**: si se registra el peso (16),
-fórmula o medición (17), si el objetivo se recalcula solo (18), los grupos de
-alimento (19) y si el catálogo de tipos de regla es cerrado (20).
+## 33. El ciclado de hidratos necesita dos mandos, no uno
 
-**La 16 sube al primer grupo**: no es una preferencia, es un prerrequisito — sin
-peso no hay g/kg, y sin g/kg la mitad de esta vuelta no existe.
+«Más hidratos los días que entrene, **siempre dentro de las kcal**» tiene una
+consecuencia aritmética que conviene decir en voz alta: si las kcal no se mueven
+y los hidratos suben, **algo tiene que bajar**. Con la proteína como regla dura,
+lo que cede es **la grasa**.
+
+Eso toca la arquitectura C directamente. Yo había propuesto que cada elaboración
+declarase **un** ingrediente de ajuste; esto pide **dos**: uno de hidratos que
+sube los días de entreno y otro de grasa que baja para compensar. El aceite y el
+arroz moviéndose en direcciones opuestas.
+
+Y al revés, la mejor noticia del cuestionario: **tu requisito práctico es el
+mejor argumento para la arquitectura C**. «Hoy más arroz, que has entrenado» era
+mi frase para explicar el ingrediente de ajuste antes de saber que ibas a pedir
+exactamente eso. Decisión 8 sigue sin tocar, pero ya no está tan abierta.
+
+## 34. Ver la regla antes de aceptarla
+
+Tu matiz de la decisión 20 —*«la IA debería darme el ajuste de cómo podría
+quedar con el cambio nuevo, o qué cambios podría meter»*— es una idea que no
+estaba en el documento, y generaliza mejor de lo que parece.
+
+Lo que pides es **previsualizar el efecto de una regla antes de que exista**: la
+app regenera la semana con la regla nueva y te enseña **el diff** — estos tres
+platos se caen, la cena del jueves cambia, la grasa baja un 8 %. Aceptas o no
+con eso delante.
+
+Y resuelve dos cosas más que estaban sueltas:
+
+- **§16 preguntaba qué pasa si metes una regla a media semana.** La respuesta es
+  esta: nada automático, un diff y un botón.
+- **La decisión 18** («el objetivo me lo propone y yo lo acepto») quiere el mismo
+  mecanismo. Proponer un objetivo nuevo sin enseñar cómo queda la semana es
+  pedir una firma sin lectura — que es, literalmente, el argumento que ya está
+  escrito en `CLAUDE.md` para otra cosa.
+
+Es decir: **una sola pieza** —regenerar y diffear— sirve para las reglas, para
+el objetivo y para el «aplicar al resto de la semana». Vale la pena construirla
+bien una vez.
+
+## 35. Dónde te apartas de lo que yo recomendaba
+
+Seis, y ninguna es un error. Lo que sigue es lo que cuesta cada una, para que
+esté escrito:
+
+- **Crudo o cocinado (7) → «que cada elaboración lo diga».** Más flexible y más
+  caro: cada elaboración carga en qué base habla, y la aritmética tiene que
+  saber convertir. Cuando una diga «cocinado» hará falta la fila *cocida* del
+  catálogo (CIQUAL las tiene) o un factor de merma; cuando no exista ninguna de
+  las dos, hay que negarse en vez de estimar.
+- **Peso (16) → «lo actualizo de vez en cuando».** Legítimo, pero **choca con la
+  17**, que dejaste en «medida con mis datos en cuanto haya»: medir tu gasto real
+  exige pesadas repartidas en el tiempo. Con pesadas esporádicas se puede, pero
+  la ventana tiene que ser más larga y el número será más flojo. No es
+  incompatible: es más lento y hay que decirlo en pantalla.
+- **Adherencia (5) → «sólo el nutricional».** Aceptado, y lo que se pierde es
+  concreto: sin la métrica literal no hay «la cena es donde se te rompe el plan»
+  ni «llevas tres semanas saltándote el pescado, el plan está mal». Se puede
+  añadir después sin rehacer nada, pero no sale gratis del otro número.
+- **IA en la v1 (12).** No rompe el principio de §21 —poblar el repertorio *es*
+  montar, no usar—, pero sí significa que el arranque en frío depende de la red y
+  de la cuota de Gemini. El plan generado sigue funcionando sin red; conseguir
+  el repertorio la primera vez, no.
+- **Los platos entran solos (13).** **Y es seguro, por un motivo que merece
+  quedar escrito**: un plato generado no trae cifras del modelo. El modelo
+  propone *una combinación de alimentos que ya tienen ficha*, y los macros los
+  calcula `nutrition.py`. No hay dato interpretado, así que la pantalla de
+  revisión no aplica — igual que un código de barras identifica mejor que un
+  nombre tecleado. La frontera de `CLAUDE.md` se respeta sola **mientras el
+  modelo no invente ni un número**. En cuanto lo haga, vuelve la revisión.
+- **Sugerencias fuera de la despensa (15).** Y aquí es justo donde reaparece: un
+  alimento que no tienes no tiene ficha, y si la ficha la escribe el modelo, eso
+  **sí** es dato interpretado. El cajón de «sugerencias» es, exactamente, donde
+  vive la pantalla de revisión.
+- **Puntuar platos (14).** Me gusta / no me gusta es una feature con su tabla,
+  su pantalla y su efecto en el generador. Pequeña, pero no es un campo.
+
+## 36. Estado de las decisiones
+
+**Cerradas — quince.** Las cuatro primeras las dio por buenas en conversación
+aunque no las tocara en el cuestionario; el resto vienen revisadas.
+
+| # | Qué queda decidido |
+|---|---|
+| 1 | Menú de platos concretos, no cuotas de macro *(conversación)* |
+| 2 | Lo genera la app desde sus alimentos *(conversación)* |
+| 3 | La unidad es la semana, y no repite a la anterior *(conversación)* |
+| 5 | Adherencia **sólo nutricional** |
+| 6 | Las elaboraciones van primero *(conversación)* |
+| 7 | **Cada elaboración dice** si habla en crudo o en cocinado |
+| 9 | Desayuno fijo; el resto varía |
+| 10 | Air fryer ≈ horno menos el aceite que no se echa |
+| 11 | Sus requisitos prácticos: ver §32 |
+| 12 | La IA entra **en la v1** |
+| 13 | Los platos generados **entran solos**, se corrigen después |
+| 14 | El modelo ve despensa, historial y puntuaciones |
+| 15 | Puede sugerir fuera de la despensa, en un cajón aparte |
+| 16 | El peso lo actualiza él de vez en cuando |
+| 20 | Catálogo cerrado de tipos, el modelo traduce — **y previsualiza** (§34) |
+
+**Abiertas — cinco**, todas en mi recomendación por no haberlas tocado:
+
+- **8 · arquitectura A/B/C.** La única que sigue bloqueando. §33 la deja casi
+  resuelta a favor de C, pero *casi* no es una decisión.
+- **17 · fórmula o medición.** Tiene un roce con la 16 (§35), así que conviene
+  contestarla mirando esa.
+- **4 · dónde vive el plan**, **18 · el objetivo se propone**, **19 · grupos de
+  CIQUAL.** Sin riesgo: los defaults aguantan hasta que estorben.
+
+**Nuevas — tres**, y son de dictado, no de producto: las tres frases de §32 que
+no interpreto por mi cuenta. Son las que bloquean ahora, junto con la 8.
 
 ---
 
@@ -805,6 +918,9 @@ peso no hay g/kg, y sin g/kg la mitad de esta vuelta no existe.
 | `gemini.py` ya distingue cuota de día y de minuto | `_quota_scope`, leído | **Alta** (verificado) |
 | `label.py` trata la salida del modelo como propuesta | `LabelRead`, `_sane`, `_backed_by_a_row`, `ColumnRefused` | **Alta** (verificado) |
 | Que un LLM falle cerrando macros a ±5 % en 35 comidas | Criterio propio, no medido contra este modelo | **Media** |
+| Las respuestas de la Parte V | Cuestionario contestado por Raúl, 21-09 | **Alta** |
+| Que la grasa sea lo que cede al subir hidratos | Aritmética, dadas kcal fijas y proteína dura | **Alta** |
+| Qué quiso decir en las tres frases de §32 | **Sin resolver**: tres lecturas, ninguna elegida | — |
 | No hay peso corporal en el modelo | `users` leído entero; `sets.weight` es la carga | **Alta** (verificado) |
 | El import de CIQUAL no guarda el grupo | Los 11 campos de `load()`, leídos | **Alta** (verificado) |
 | CIQUAL sí clasifica por grupos en origen | De memoria, **sin comprobar contra el `.xls`** | **Media** |
