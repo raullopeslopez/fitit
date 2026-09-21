@@ -65,9 +65,12 @@ Cinco entradas posibles. Ordenadas por lo que cuesta construirlas:
   y **no admite excepción**: cifras interpretadas por un modelo ⇒ pantalla de
   «Revisa la lectura» obligatoria. Un plan mal leído no se equivoca una vez, se
   equivoca todos los días hasta que lo corrijas.
-- **Generado por la app desde los objetivos.** Esto es *prescribir una dieta*.
-  Lo dejaría fuera, y no por lo técnico: no es lo que has pedido —tú tienes tu
-  criterio, la app no— y me parece el tipo de función que te acaba peleando.
+- **Generado por la app, combinando tus alimentos.** Es por donde Raúl ha
+  seguido, y tiene su propia parte: **ver la Parte II**. Ojo a la distinción,
+  porque yo había descartado «generar la dieta» y esto no es lo mismo: que la
+  app *prescriba* qué debes comer lo sigo dejando fuera; que **tú pongas la
+  despensa y los requisitos y la app haga la combinatoria** es otra cosa, y el
+  criterio sigue siendo tuyo.
 
 ## 3. La pantalla del día, con plan
 
@@ -197,7 +200,7 @@ puede ni plantearse:
 
 ## 9. Lo que yo dejaría fuera, para que puedas discrepar
 
-- **Generar la dieta automáticamente** desde los objetivos (§2, última entrada).
+- ~~Generar la dieta automáticamente~~ — **retirado**: era otra cosa (§2, Parte II).
 - **Compartir el plan con un nutricionista**, o cualquier cosa multiusuario. La
   app es personal y esto le cambiaría la forma entera.
 - **Sustitutos calculados** desde el catálogo (§4): suena mejor de lo que funciona.
@@ -218,20 +221,244 @@ siguiente-siguiente**. No lo doy por hecho —un plan de alimentos sueltos es
 perfectamente construible y quizá te vale— pero es la primera pregunta que hay
 que contestar, porque cambia el tamaño del proyecto entero.
 
-## 11. Decisiones que necesito de ti para cerrar la fase
+---
 
-Ninguna es técnica. Todas son criterio de producto, y las seis cambian el
-análisis de requisitos:
+# Parte II — El plan no se teclea: se genera
 
-1. **¿Menú o marco?** ¿El plan dice «120 g de pollo» (nivel 3) o «40 g de
-   proteína en la comida» (nivel 2)?
-2. **¿De dónde sale tu plan en la v1?** A mano, desde lo que ya comes, o de una
-   foto del papel del nutricionista.
-3. **¿Cuál es la unidad?** ¿Un día que se repite, una semana, un ciclo A/B?
+Segunda vuelta (21 de septiembre). Raúl reencuadra la idea: no se trata de
+copiar un plan escrito, sino de **ir del alimento al plan** — listar lo que
+comes, poner los requisitos, y que la app haga las combinaciones. Con tres
+añadidos: elaboraciones, modo de cocinado, y que la semana no se repita.
+
+Esto no es un matiz de la Parte I: es otra feature. Lo que allí era «de dónde
+sacas el plan» aquí es **el plan es una salida, no una entrada**.
+
+## 11. La ingeniería inversa
+
+Tres piezas, y la app ya tiene media primera:
+
+- **La despensa.** El universo cerrado de lo que comes. No son los 3.185 de
+  CIQUAL: son cuarenta o sesenta cosas. Y Fitit ya sabe cuáles —
+  `frequent_foods` contesta literalmente «lo que repites, en qué cantidad y en
+  qué comida». La despensa se siembra sola.
+- **Los requisitos.** Aquí está el trabajo de verdad, porque no son sólo macros.
+  Al menos cinco familias, y las cuatro últimas son las que hacen que el
+  resultado se pueda comer:
+
+  | Familia | Ejemplos |
+  |---|---|
+  | Nutricional | kcal ±5 %, proteína ≥ 160 g, grasa entre 60 y 80 g |
+  | Estructural | 5 comidas, proteína en todas, el desayuno lleva fruta |
+  | Práctica | máximo 2 elaboraciones por comida, nada de +15 min entre semana |
+  | Preferencia | pescado 2 veces por semana, arroz como mucho 3 |
+  | Inventario | usar lo que hay, comprar en formatos que existen |
+
+- **Las combinaciones.** La salida.
+
+### El aviso que hay que tener delante todo el rato
+
+Esto es el *problema de la dieta* clásico (Stigler, años 40): el primer problema
+que se resolvió con programación lineal. Y su respuesta famosa fue una dieta
+nutricionalmente perfecta, baratísima y **absolutamente incomible** — harina,
+col y alubias secas, todos los días del año.
+
+La moraleja aplica entera: **el optimizador no falla, acierta en lo que le
+pides**. Si sólo le pides macros, te da macros. Todo lo que hace que un plan se
+siga —variedad, esfuerzo, que te apetezca— tiene que estar *escrito como
+requisito*, o no existe. Por eso la tabla de arriba tiene cuatro filas que no
+son nutricionales y sólo una que lo es.
+
+### Resolver no, proponer
+
+Dos productos muy distintos:
+
+- **Solver que emite «el» plan.** Una respuesta, opaca. Si no te gusta, vuelves
+  a generar y sale otra cosa distinta en todo.
+- **Generador con fijar y volver a tirar.** Te propone, tú **fijas** las filas
+  que te valen y **cambias** sólo la que no. «La comida me vale, cámbiame la
+  cena.»
+
+La segunda, sin dudarlo. Es más útil, es más explicable, y sobre todo degrada
+bien: cuando los requisitos son imposibles, un solver dice «no hay solución» y
+un generador te enseña lo que sí ha podido montar.
+
+Y un caso que no es un error, es la mitad del producto: **pedir lo imposible**.
+160 g de proteína de una despensa de arroz, aceite y manzanas no tiene solución.
+La app tiene que decir **qué requisito es el que no cabe** y ofrecer aflojarlo.
+Un «no se puede» a secas convierte la herramienta en un juguete.
+
+## 12. Elaboraciones: lo que de verdad se combina
+
+Distinción que conviene fijar en el vocabulario desde hoy:
+
+- **Alimento**: lo que existe y tiene ficha. `Pollo, pechuga, cruda`.
+- **Elaboración**: lo que te comes. `Pechuga a la air fryer con pimentón`.
+
+Una elaboración es **ingredientes + modo + (opcional) raciones**.
+
+**Y la recomendación fuerte: el generador combina elaboraciones, no alimentos.**
+Combinar alimentos sueltos da «180 g de pollo + 60 g de arroz + 15 g de aceite»,
+que no es una comida: es un tique de la compra. Combinar elaboraciones da un
+plato que ya sabes hacer. Es la diferencia entre un plan que se lee y un plan
+que se cocina.
+
+Consecuencia directa, y es la cara: **esto confirma el §10 de la Parte I**. Las
+elaboraciones *son* la comida guardada que `comida-pendiente.md` dejó fuera. Ya
+no es «puede que haga falta antes»: es que sin ella no hay nada que combinar.
+
+Dos cosas que el esquema ya tiene y conviene no redescubrir:
+
+- **`foods.is_recipe`** existe como columna… y **no la usa nadie**: aparece una
+  sola vez en todo el repo, en su propia definición. Es exactamente el caso de
+  `archived` — una columna de una fase que no se construyó. Cuando se diseñe
+  esto hay que decidir si se hereda o se ignora, pero no descubrirla a medias.
+- **La tabla `Portion`** (`label`, `grams`, `is_default`) sí está en uso, en
+  routers y en pantalla. Es «1 huevo = 60 g», y es justo el idioma en el que un
+  plan tiene que hablar: **«2 huevos», no «120 g»**. Un plan generado en gramos
+  exactos se lee como una receta de laboratorio.
+
+## 13. El modo de elaboración (la air fryer no es un detalle)
+
+Es la aportación más técnica de esta vuelta, y hace **tres cosas distintas** que
+se confunden con facilidad. Separarlas es medio diseño.
+
+### a) Cambia los nutrientes, y no poco
+
+- **La grasa añadida.** Es el motivo de la air fryer: el mismo pollo con una
+  cucharadita en vez de un dedo de aceite. 10 g de aceite son ~90 kcal. Sin
+  modelarlo, un plan se equivoca en cientos de kcal al día — más que cualquier
+  error de pesada.
+- **El agua.** Este es el traicionero. Un filete pierde en torno a un cuarto de
+  su peso al cocinarse; el arroz lo multiplica. Si el plan dice 150 g y tú pesas
+  el plato hecho, no estás cometiendo un error pequeño: estás en otra cifra.
+
+  **De aquí sale la pregunta que hay que contestar sí o sí: ¿se pesa en crudo o
+  en cocinado?** Las dos son legítimas y mezclarlas en silencio es cómo un plan
+  miente sin dar ningún error. Cada elaboración tiene que decir en cuál de las
+  dos habla.
+
+  Y la buena noticia, **verificada en el catálogo que ya tienes cargado**: CIQUAL
+  distingue las dos y además trae el modo como filas separadas —
+  `Pollo, pechuga, carne y piel, cruda`, `…, asada al horno`,
+  `Pollo, pechuga, sin piel, a la plancha o salteada`. El eje que te importa ya
+  está en los datos; lo que falta es que el modelo sepa leerlo.
+- **Lo que dejaría fuera:** pérdida de vitaminas por cocinado y acrilamida.
+  CIQUAL no lo sostiene por método de forma fiable, y prometerlo sería inventar.
+
+**El agujero: la air fryer no está en CIQUAL.** Lógico — es una tabla francesa
+de alimentos, no un catálogo de electrodomésticos; lo único que aparece con
+«freidora» son patatas congeladas. Así que hay que decidir a qué se parece. Mi
+hipótesis: **air fryer ≈ «al horno», menos el aceite que no le has echado**
+(aire seco y caliente, misma física). Es razonable y **no está verificada**;
+si el plan se apoya en ella, que sea diciéndolo.
+
+### b) Es una restricción práctica — y esto es lo que te importa ahora
+
+La air fryer no es sólo un dato nutricional: es una **capacidad y una
+preferencia**. Te la has comprado y la quieres usar. Eso entra en los requisitos:
+
+- «Usa la air fryer al menos 4 veces por semana.»
+- «En la air fryer cabe **una bandeja**»: no puedes hacer tres cosas a la vez
+  para la misma comida. Es una restricción física de verdad, y es de las que
+  separan un plan que se ejecuta de uno que se admira.
+- «Entre semana, nada que pase de 15 minutos.»
+- El modo decide también el **batch**: el horno y la olla cocinan para cuatro
+  días, la air fryer es de ración. Cambia la lista de la compra y el domingo.
+
+### c) Es variedad gratis
+
+Mismo pollo y mismo arroz, pero hoy a la plancha y el jueves a la air fryer con
+pimentón, y son dos comidas distintas. **La variedad por modo no cambia la
+compra, no cambia los macros, y sí cambia que te aburras.** Es la variedad más
+barata que existe, y conecta directamente con lo siguiente.
+
+## 14. Que la semana no se repita
+
+«Variedad» hay que definirla o no se puede programar. Ejes, y no valen lo mismo:
+
+- **Repetición de elaboración**, no de alimento. Comer pollo cuatro veces por
+  semana preparado de cuatro formas no es monotonía; es como come todo el mundo.
+  **Lo que cansa es el plato, no el ingrediente** — así que la variedad se mide
+  sobre elaboraciones (y §13c la abarata).
+- **Distancia, mejor que tope.** «No dos días seguidos» es más útil y más fácil
+  de entender que «como mucho 3 por semana». Un enfriamiento por plato.
+- **Memoria entre semanas.** Es tu requisito explícito y es el que obliga al
+  generador a **mirar hacia atrás**: sin recordar la semana pasada, puede
+  cumplir «no repetir dentro de la semana» y devolverte la misma semana otra vez.
+- **Variedad ≠ caos, y es configurable por comida.** Mucha gente quiere —yo
+  diría que tú también— el **desayuno igual todos los días** y variedad en la
+  cena. Un plan que te reinventa el desayuno cada mañana se abandona en cuatro
+  días. La variedad tiene que poder ser distinta en cada hueco.
+
+## 15. Dos arquitecturas, y una tercera que creo mejor
+
+Aquí está la decisión cara, y las tres llegan a sitios distintos:
+
+**A. Rotación.** Tú apruebas un repertorio de elaboraciones por hueco (5 de
+desayuno, 12 de comida…) y la app las baraja respetando el enfriamiento. Los
+macros **se informan**, no se garantizan. Barata, predecible, sin solver, y
+probablemente te da el 80 % del valor.
+
+**B. Solver.** Requisitos dentro, plan fuera, macros garantizados dentro de una
+banda. Cara, y sólo sirve si explica bien lo que no puede hacer (§11).
+
+**C. Rotación que ajusta cantidades.** ← la que recomiendo.
+Los platos salen por rotación (A), y **luego se escalan las cantidades** para
+cerrar los números. Cada elaboración declara qué ingrediente es **fijo** y cuál
+es **de ajuste**: «Pechuga a la air fryer con arroz» → 200 g de pechuga fijos,
+el arroz se mueve entre 40 y 120 g.
+
+Por qué es mejor de lo que parece: convierte un problema combinatorio feo en
+**un mando de una sola dimensión por comida**. Elegido el plato, sólo queda
+resolver gramos, que es aritmética de la que ya vive en `nutrition.py`. Y se
+explica en una frase: «hoy más arroz, que has entrenado».
+
+## 16. Lo que se rompe cuando el plan se genera
+
+- **¿Y si no lo cumplo?** Si el martes te saltas la cena, ¿se recalcula el resto
+  de la semana? Es tentador y es una trampa: **un plan que se mueve solo deja de
+  ser un plan**. Yo no regeneraría nada automáticamente, y pondría un
+  «recalcular lo que queda» explícito, que pulsas tú.
+- **La lista de la compra deja de ser un extra y pasa a ser la salida natural**:
+  si la semana la ha generado la app, la compra ya está calculada.
+- **Los formatos existen.** El pollo se vende en bandejas de 1 kg, no en 940 g.
+  Un plan que deja 60 g huérfanos cada semana es un plan que tira comida. No lo
+  metería en la v1, pero es lo que separa un plan de una semana real.
+- **Una elaboración no es una fila de `foods`.** Sus macros se calculan desde los
+  ingredientes en `nutrition.py`; no se guardan como alimento. Si colamos platos
+  en el catálogo, `POST /foods` deja de ser la puerta que es y la búsqueda se
+  llena de cosas que no son alimentos.
+
+## 17. Decisiones: lo que ya has contestado y lo que falta
+
+De las seis de la primera vuelta, **la segunda vuelta contesta cuatro**:
+
+| # | Pregunta | Respuesta |
+|---|---|---|
+| 1 | ¿Menú o marco? | **Menú** — combinaciones concretas, no cuotas de macro |
+| 2 | ¿De dónde sale? | **Generado** desde tu lista de alimentos |
+| 3 | ¿Cuál es la unidad? | **La semana**, y una semana no repite a la anterior |
+| 6 | ¿Hace falta la comida guardada? | **Sí**: las elaboraciones son eso, y van primero |
+
+Siguen abiertas las dos de entonces:
+
 4. **¿El plan manda o acompaña?** ¿La pantalla Comida se abre en el plan, o el
    plan es una pestaña y el diario sigue siendo la casa?
 5. **¿Adherencia literal o nutricional?** (§5) — o las dos, y cuál se enseña.
-6. **¿Hace falta la comida guardada antes?** (§10) La más cara de las seis.
+
+Y la Parte II añade cinco nuevas. La primera es la urgente: es la que, mal
+resuelta, hace que todo lo demás cuadre sobre el papel y no en la báscula.
+
+7. **¿Se pesa en crudo o en cocinado?** (§13a) No hay opción de no decidirlo.
+8. **¿Arquitectura A, B o C?** (§15) Rotación barata, solver caro, o rotación con
+   ingrediente de ajuste — yo voto C.
+9. **¿Qué huecos quieres fijos y cuáles variados?** (§14) Lo más probable:
+   desayuno fijo, cena variada. Dilo tú, que es puro gusto.
+10. **¿Te vale «air fryer = horno sin el aceite»?** (§13a) Es una hipótesis mía
+    sin verificar, y es la cifra sobre la que se apoyará media semana tuya.
+11. **¿Cuántos requisitos prácticos tienes de verdad?** (§11) Tiempo entre
+    semana, bandejas de air fryer, días que comes fuera. Sin esa lista, el
+    generador optimiza a ciegas — y ahí es donde sale la dieta de Stigler.
 
 ---
 
@@ -246,3 +473,10 @@ análisis de requisitos:
 | Camino de foto → modelo → revisión obligatoria | `tests/features/read_label.feature`, `CLAUDE.md` | **Alta** |
 | Cómo es «un plan de nutricionista real» | Criterio propio, sin verificar contra planes tuyos | **Media** |
 | Que la tolerancia deba ser ±10 % | Invención mía, puesta para que la discutas | **Baja** |
+| CIQUAL trae el modo de cocinado como filas aparte | `grep` sobre `backend/data/ciqual_es.json` | **Alta** (verificado) |
+| No hay air fryer en CIQUAL | mismo `grep`: sólo patatas de freidora | **Alta** (verificado) |
+| `foods.is_recipe` existe y no lo usa nadie | `grep -rn is_recipe`: 1 sola aparición | **Alta** (verificado) |
+| `Portion` existe y está en uso | routers, schemas y pantalla | **Alta** (verificado) |
+| La carne pierde ~1/4 de peso al cocinarse | De memoria; orden de magnitud, no cifra | **Media-baja** |
+| Air fryer ≈ horno sin aceite añadido | Hipótesis mía, sin verificar | **Baja** |
+| La dieta de Stigler y su moraleja | De memoria, no consultado en esta sesión | **Media** |
