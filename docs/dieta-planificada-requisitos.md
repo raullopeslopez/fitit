@@ -23,7 +23,7 @@ construido la mitad de algo.
 | # | Entrega | Útil sola porque… | Depende de | Tamaño |
 |---|---|---|---|---|
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
-| 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **backend hecho** |
+| 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
@@ -109,9 +109,10 @@ pantalla tiene que poder decirlo.
 
 ## 3. Fase 2 — Elaboraciones
 
-> **Backend terminado el 22-09.** `dishes`, `dish_ingredients`,
-> `log_entries.dish_id`, la aritmética en `nutrition.py`, cinco endpoints y 29
-> tests en verde. **Falta la pantalla.**
+> **Terminada el 22-09.** Backend —`dishes`, `dish_ingredients`,
+> `log_entries.dish_id`, la aritmética en `nutrition.py`, cinco endpoints— y
+> pantalla: chips de «Tus platos» en Añadir, alta a pantalla completa, y el
+> diario agrupando las filas de un mismo plato bajo su nombre.
 >
 > **Dos apartes de alcance sobre lo escrito abajo, los dos a la baja:**
 >
