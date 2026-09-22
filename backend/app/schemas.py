@@ -785,3 +785,48 @@ class DishLogIn(BaseModel):
     servings: float = Field(default=1, gt=0)
     meal_slot: str | None = None
     logged_at: datetime | None = None
+
+
+class DishGenerateIn(BaseModel):
+    """Qué pedirle al modelo. Todo opcional: sin nada, la despensa es lo que has
+    registrado alguna vez y las condiciones las pone el prompt."""
+
+    methods: list[DishMethod] = Field(default_factory=list)
+    minutes: int | None = Field(default=None, gt=0, le=240)
+    n: int = Field(default=6, ge=1, le=12)
+
+
+class DishSuggestionOut(BaseModel):
+    """Una propuesta que **no** se ha guardado, y por qué.
+
+    Vive aquí y no en `dishes` porque nombra un alimento que no tienes: darla
+    de alta exigiría escribir su ficha, y escribirla desde lo que dijo un modelo
+    sí sería dato interpretado. Esto es el cajón donde espera hasta que alguien
+    mire.
+    """
+
+    name: str
+    method: DishMethod | None = None
+    basis: DishBasis = "raw"
+    servings: float = 1
+    ingredients: list[dict] = Field(default_factory=list)
+    # Lo que te falta para poder guardarla, por su nombre.
+    missing: list[str] = Field(default_factory=list)
+
+
+class DishGenerateOut(BaseModel):
+    """Lo que salió de pedir platos.
+
+    Siempre 200: las cuatro formas de no haber podido —apagado, despensa vacía,
+    sin cuota, respuesta ilegible— acaban en la misma pantalla y sólo cambia qué
+    se le dice a quien está delante. Un 500 por una cuota agotada convertiría
+    «vuelve mañana» en «algo se ha roto».
+    """
+
+    created: list[DishOut] = Field(default_factory=list)
+    suggestions: list[DishSuggestionOut] = Field(default_factory=list)
+    # 'off' | 'empty_pantry' | 'quota' | 'unavailable' | 'unusable'
+    refusal: str | None = None
+    # 'minute' | 'day' cuando `refusal` es 'quota': esperar un minuto y esperar
+    # a mañana no se le dicen igual a nadie.
+    quota_scope: str | None = None

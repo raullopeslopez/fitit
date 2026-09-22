@@ -24,7 +24,7 @@ construido la mitad de algo.
 |---|---|---|---|---|
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
-| 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana |
+| 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **backend hecho** |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
@@ -234,6 +234,30 @@ los gramos escalados por raciones, los macros congelados en ese momento y el
 ---
 
 ## 4. Fase 3 — La IA puebla el repertorio
+
+> **Backend terminado el 22-09.** `app/repertoire.py`, el transporte de
+> `gemini.py` extraído y reusado, `POST /dishes/generate` y 21 tests en verde.
+> **Falta la pantalla.**
+>
+> **Tres apartes sobre lo escrito abajo:**
+>
+> 1. **El endpoint se llama `/dishes/generate`, no `/dishes/propose`.** Por la
+>    decisión 13 no sólo propone: **guarda** los platos que se sostienen solos,
+>    y un nombre que dice «proponer» sobre algo que escribe es un nombre que
+>    miente. Devuelve `created` y `suggestions` por separado.
+> 2. **La despensa no es el catálogo entero.** CIQUAL son 3.185 alimentos y
+>    mandárselos haría proponer con cosas que no has comprado en tu vida. Es lo
+>    que has dado de alta más lo que has registrado alguna vez, hasta 60.
+> 3. **Sin cuota de exploración todavía** (decisión 22). Explorar se define
+>    contra una zona de confort, y la zona de confort la darían las
+>    puntuaciones — que son la columna `rating` que la fase 2 dejó sin crear por
+>    no tener lector. Hoy **todas** las propuestas son exploración, así que la
+>    cuota no distinguiría nada. Entra cuando entren las puntuaciones.
+>
+> Y un cambio de orden que es de producto: se comprueba **la despensa antes que
+> el modelo**. No tener nada registrado es un hecho sobre ti que no cambia
+> porque la función esté encendida, y es el único de los dos que puedes
+> arreglar tú.
 
 Sin tablas nuevas. Decisión 13: los platos propuestos **entran solos**, así que
 no hay tabla de propuestas pendientes — se crean como `dishes` y se corrigen.
