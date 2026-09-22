@@ -49,4 +49,5 @@ def to_entry_out(entry: LogEntry) -> LogEntryOut:
         carbs=entry.carbs,
         fiber=entry.fiber,
         entry_source=entry.entry_source,
+        dish_id=entry.dish_id,
     )

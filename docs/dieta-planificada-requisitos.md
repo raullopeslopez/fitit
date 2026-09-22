@@ -23,7 +23,7 @@ construido la mitad de algo.
 | # | Entrega | Útil sola porque… | Depende de | Tamaño |
 |---|---|---|---|---|
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
-| 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande |
+| 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **backend hecho** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
@@ -108,6 +108,24 @@ pantalla tiene que poder decirlo.
 ---
 
 ## 3. Fase 2 — Elaboraciones
+
+> **Backend terminado el 22-09.** `dishes`, `dish_ingredients`,
+> `log_entries.dish_id`, la aritmética en `nutrition.py`, cinco endpoints y 29
+> tests en verde. **Falta la pantalla.**
+>
+> **Dos apartes de alcance sobre lo escrito abajo, los dos a la baja:**
+>
+> 1. **No se crean `role`, `min_grams`, `max_grams`, `is_block` ni `rating`.**
+>    Son de las fases 3 y 5 y hoy no las leería nadie. Este repo ya arrastra dos
+>    columnas muertas —`archived` e `is_recipe`— y añadir cinco más por
+>    adelantado es repetir el error con mejor letra. Entran con la fase que las
+>    use; en Alembic una columna nueva es barata.
+> 2. **No se escribe `convertir_base()`.** Dentro de esta fase nada convierte:
+>    `basis` dice cómo pesas el plato y sus ingredientes tienen que ser filas
+>    medidas así — CIQUAL trae las dos. Escribirla ahora significaría inventarse
+>    factores de merma sin fuente, que es justo lo que §7 dice que hay que
+>    verificar antes. La conversión la pedirá el generador (fase 5), y para
+>    entonces habrá que traer el factor de algún sitio.
 
 La pieza que `comida-pendiente.md` dejó pendiente por no tener dónde apoyarse.
 Aquí se apoya.

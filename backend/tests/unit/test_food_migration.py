@@ -42,6 +42,10 @@ COLUMN_MIGRATIONS = (
     "a3e91d5c7b40_add_food_tracking.py",
     "c1e7b04a9d33_foods_brand_folded.py",
     "d2a8f31c6740_foods_barcode.py",
+    # Añade `log_entries.dish_id`. Está aquí porque toca una columna de estas
+    # tablas, que es el criterio de la lista — aunque lo que la migración
+    # *crea* (platos) se comprueba aparte, en `test_dish_migration.py`.
+    "c4e8b21d7f09_add_dishes.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

@@ -124,6 +124,29 @@ def sumar_nutrientes(entries) -> tuple[dict, dict]:
     return totals, unknown
 
 
+def macros_de_plato(ingredientes) -> tuple[dict, dict]:
+    """Lo que suma un plato entero, y qué nutrientes no ha podido sumar.
+
+    `ingredientes` son pares `(alimento, gramos)`. Devuelve `(totales, unknown)`
+    con la misma regla que un día del diario: si a un ingrediente le falta la
+    fibra, la fibra del plato es **desconocida**, no la suma de los demás. Un
+    plato que declarase 12 g de fibra contando como cero lo que nadie midió
+    mentiría exactamente en lo que no se midió.
+    """
+    return sumar_nutrientes([calcular_nutrientes(food, grams) for food, grams in ingredientes])
+
+
+def macros_por_racion(totales: dict, servings: float) -> dict:
+    """Los totales del plato entre sus raciones, que es la cifra que se come.
+
+    Lo desconocido sigue desconocido: dividir `None` entre cuatro no lo
+    convierte en un número.
+    """
+    if not servings or servings <= 0:
+        raise ValueError("servings must be greater than zero")
+    return {field: _scale(totales.get(field), 1.0 / servings, _MACRO_PLACES) for field in NUTRIENTS}
+
+
 def restante(target: float | None, eaten: float | None) -> float | None:
     """Lo que queda de un objetivo diario: `target - eaten`.
 
