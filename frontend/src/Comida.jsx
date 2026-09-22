@@ -6,6 +6,7 @@ import {
   createFood,
   deleteFoodEntry,
   frequentFoods,
+  listDishes,
   getFoodDay,
   logFood,
   readLabel,
@@ -14,12 +15,14 @@ import {
   searchFoods,
   setTargets,
 } from './api.js'
+import { DishChips, NewDish } from './Dish.jsx'
 import {
   MACROS,
   MEAL_SLOTS,
   foodDayIso,
   foodMomentIso,
   formatAmount,
+  agruparPorPlato,
   formatMacro,
   kcalFromMacros,
   macroBar,
@@ -98,6 +101,13 @@ export default function Comida() {
   // Lo de siempre: lo que más repites, a un toque. No depende del día que se
   // esté mirando, así que se lee aparte y no se vuelve a pedir al pasar de día.
   const [siempre, setSiempre] = useState([])
+  // Tus platos. Se cargan con los frecuentes y por lo mismo: los dos son
+  // atajos para no volver a teclear lo que ya has tecleado una vez.
+  const [platos, setPlatos] = useState([])
+  // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
+  // El nombre no está congelado en la entrada a propósito: es una etiqueta de
+  // agrupación, no un dato del día, así que renombrar el plato retitula bien.
+  const dishNames = Object.fromEntries(platos.map((d) => [d.id, d.name]))
   // Por qué no se puede leer una etiqueta ahora mismo: `null`, o
   // `{ kind: 'minute' | 'day' | 'off', until? }`.
   //
@@ -140,6 +150,11 @@ export default function Comida() {
       setSiempre((await frequentFoods()) ?? [])
     } catch {
       setSiempre([])
+    }
+    try {
+      setPlatos((await listDishes()) ?? [])
+    } catch {
+      setPlatos([])
     }
   }, [])
 
@@ -343,6 +358,7 @@ export default function Comida() {
               key={rail.key ?? 'sin-asignar'}
               rail={rail}
               entries={onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries}
+              dishNames={dishNames}
               deleted={deleted && (deleted.meal_slot ?? null) === rail.key ? deleted : null}
               undoing={undoing}
               onUndo={handleUndo}
@@ -399,6 +415,7 @@ export default function Comida() {
           isToday={isToday}
           entries={day?.entries ?? []}
           siempre={siempre}
+          platos={platos}
           labelReading={day?.label_reading ?? false}
           block={labelBlock}
           onBlocked={setLabelBlock}
@@ -859,7 +876,17 @@ function MacroRow({ label, eaten, target = null, decimals = 0, lead = false }) {
 }
 
 // Una comida con algo dentro: subtotal, filas, y su propia puerta de entrada.
-function SlotCard({ rail, entries, deleted, undoing, onUndo, onAdd, onEdit, onDelete }) {
+function SlotCard({
+  rail,
+  entries,
+  dishNames = {},
+  deleted,
+  undoing,
+  onUndo,
+  onAdd,
+  onEdit,
+  onDelete,
+}) {
   const label = slotLabel(rail.key)
   return (
     // `data-slot` y no una clase: la hoja de estilos escribe `[data-slot]` para
@@ -874,13 +901,25 @@ function SlotCard({ rail, entries, deleted, undoing, onUndo, onAdd, onEdit, onDe
           {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
         </span>
       </h3>
-      {entries.map((entry) => (
-        <EntryRow
-          key={entry.id}
-          entry={entry}
-          onEdit={() => onEdit(entry.id)}
-          onDelete={onDelete}
-        />
+      {/* Un plato registrado son varias filas de alimento —es lo que mantiene
+          vivos repesar y corregir un ingrediente—, así que se agrupan bajo su
+          nombre. Sin esto, unas lentejas se leen como cinco alimentos sueltos
+          que no recuerdas haber registrado. */}
+      {agruparPorPlato(entries, dishNames).map((grupo) => (
+        <div
+          key={grupo.entries[0].id}
+          className={grupo.name ? 'food-dish-group' : undefined}
+        >
+          {grupo.name && <p className="food-dish-name">{grupo.name}</p>}
+          {grupo.entries.map((entry) => (
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              onEdit={() => onEdit(entry.id)}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
       ))}
       {deleted && (
         <p className="retag-undo">
@@ -1101,6 +1140,7 @@ function AddFood({
   isToday = true,
   entries = [],
   siempre = [],
+  platos = [],
   labelReading = false,
   block = null,
   onBlocked = () => {},
@@ -1130,6 +1170,10 @@ function AddFood({
   const [reading, setReading] = useState(null)
   // El frecuente que se está registrando, para apagar la fila mientras viaja.
   const [quick, setQuick] = useState(null)
+  // Si estás dando de alta un plato. Ocupa la pantalla entera: un plato tiene
+  // nombre, raciones, cómo se pesa y una lista de ingredientes, y eso no cabe
+  // en el hueco de un formulario de alimento.
+  const [newDish, setNewDish] = useState(false)
   // El peldaño de en medio: el código se leyó, no lo conoce nadie, y hace falta
   // una segunda foto — de la tabla, que suele estar en otra cara del envase.
   // Lleva el motivo dentro porque «no está en ninguna base» y «no he podido
@@ -1324,6 +1368,23 @@ function AddFood({
     setCreating(true)
   }
 
+  // Dar de alta un plato ocupa la pantalla entera, igual que dar de alta un
+  // alimento: nombre, raciones, cómo se pesa y una lista de ingredientes no
+  // caben en un hueco. Al guardar, el plato se registra en la comida por la
+  // que entraste — que es a lo que habías venido.
+  if (newDish) {
+    return (
+      <NewDish
+        slot={slot}
+        onCreated={async () => {
+          setNewDish(false)
+          await onDone()
+        }}
+        onCancel={() => setNewDish(false)}
+      />
+    )
+  }
+
   if (creating) {
     return (
       <NewFood
@@ -1499,6 +1560,28 @@ function AddFood({
             </div>
           </section>
         )}
+
+        {/* Tus platos, al lado de los frecuentes porque son el mismo gesto: un
+            chip que registra de un toque. Gateados en `isToday` por lo mismo
+            que los frecuentes — el registro va al reloj de ahora, y ofrecer en
+            un día pasado un atajo que escribe en hoy es ofrecer un error. */}
+        <DishChips dishes={isToday ? platos : []} slot={slot} onLogged={onDone} />
+
+        {/* Dar de alta un plato es raro —una vez por plato, no una vez por
+            comida— y DESIGN.md manda las acciones raras a un control sin peso
+            de contenido. Una línea, no un botón de relleno.
+
+            Y se llama «Nuevo plato», no «Crear un plato»: en esta misma
+            pantalla vive «Crear «piquillos»», que da de alta un **alimento**.
+            Dos controles adyacentes empezando por la misma palabra se leen como
+            variantes de lo mismo — y son dos objetos distintos. El nombre
+            coincide además con la cabecera de la pantalla que abre, así que el
+            destino confirma lo que prometía el control. */}
+        <p className="dish-new-line">
+          <button type="button" className="dish-new" onClick={() => setNewDish(true)}>
+            Nuevo plato
+          </button>
+        </p>
 
         {/* Una cámara, no dos.
             Antes había que elegir entre «Código de barras» y «Etiqueta»: dos

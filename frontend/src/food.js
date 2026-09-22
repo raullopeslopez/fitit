@@ -282,3 +282,34 @@ export function withoutEntry(total, value) {
   if (total == null || value == null) return null
   return round2(total - value)
 }
+
+// Las entradas de un mismo plato, juntas.
+//
+// Registrar unas lentejas escribe **una entrada por ingrediente** —es lo que
+// mantiene vivos repesar, corregir un ingrediente y el subtotal por comida—,
+// y sin agrupar eso se lee como cinco alimentos sueltos que no recuerdas haber
+// registrado. Agrupa sólo entradas **consecutivas**: el diario tiene un orden
+// y reordenarlo para juntar dos raciones de la misma comida movería filas bajo
+// el pulgar.
+//
+// Una entrada suelta sale en su propio grupo con `dish_id` a `null`, para que
+// quien lo pinte no tenga que distinguir dos formas.
+export function agruparPorPlato(entries, dishNames = {}) {
+  const grupos = []
+  for (const entry of entries) {
+    const id = entry.dish_id ?? null
+    const ultimo = grupos[grupos.length - 1]
+    if (id !== null && ultimo && ultimo.dish_id === id) {
+      ultimo.entries.push(entry)
+      continue
+    }
+    grupos.push({
+      dish_id: id,
+      // `null` cuando el plato todavía no ha cargado: sin nombre no se pinta
+      // cabecera, que es mejor que pintar una vacía.
+      name: id === null ? null : (dishNames[id] ?? null),
+      entries: [entry],
+    })
+  }
+  return grupos
+}

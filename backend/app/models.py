@@ -316,7 +316,14 @@ class LogEntry(Base):
     carbs: Mapped[float | None] = mapped_column(Float, nullable=True)
     fiber: Mapped[float | None] = mapped_column(Float, nullable=True)
     nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # 'manual' | 'barcode' | 'template' | 'repeat' | 'voice' — kept from day one
+    # De qué plato salió esta entrada, cuando salió de uno. No cascadea y no
+    # manda: los macros ya están congelados arriba y la fila se lee igual sin
+    # él. Sirve para una sola cosa, que es agrupar en pantalla las cinco filas
+    # de unas lentejas bajo el nombre del plato.
+    dish_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dishes.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    # 'manual' | 'barcode' | 'template' | 'repeat' | 'voice' | 'dish' — kept from day one
     # so that, a month in, "how much do I actually use the voice parser?" is a
     # query rather than a guess.
     entry_source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")
@@ -355,3 +362,73 @@ class BodyWeight(Base):
     measured_on: Mapped[date] = mapped_column(Date, index=True)
     kg: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Dish(Base):
+    """Un plato: lo que de verdad te comes.
+
+    Un plato **no es un alimento** y no vive en `foods`. La diferencia no es de
+    forma —los dos tienen nombre y macros— sino de procedencia: un alimento es
+    una medida (CIQUAL, una etiqueta, un código de barras) y un plato es una
+    combinación tuya de medidas. Colarlos en el catálogo llenaría la búsqueda de
+    cosas que no son alimentos y dejaría a `POST /foods` de ser la única puerta
+    que es.
+
+    `basis` dice **cómo lo pesas**, que es la decisión que sin tomar hace mentir
+    a un plan entero: un filete pierde en torno a un cuarto de su peso al
+    cocinarse. No hay conversión automática entre las dos bases y es a
+    propósito: si el plato habla en cocinado, sus ingredientes tienen que ser
+    filas de catálogo medidas en cocinado — CIQUAL trae las dos. Convertir sin
+    un factor de merma con fuente sería inventarse la cifra.
+
+    Un plato no se borra: se corrige. Igual que un alimento, y por lo mismo —
+    hay entradas congeladas apuntándolo, y las habrá de planes.
+    """
+
+    __tablename__ = "dishes"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name_folded", name="uq_dishes_user_name"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # NOT NULL, al revés que en `foods`: no hay catálogo compartido de platos.
+    # Una receta es de quien la cocina.
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    # Plegado con `fold_exercise_name()`, igual que alimentos y ejercicios.
+    # Nada de FTS5: no existe ni en Postgres ni en el SQLite de los tests.
+    name_folded: Mapped[str] = mapped_column(String(160), index=True)
+    # 'air_fryer' | 'plancha' | 'horno' | 'sarten' | 'cocido' | 'crudo'. Nullable
+    # porque hay platos que no se cocinan.
+    method: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    # 'raw' | 'cooked'. NOT NULL: un plato que no dice cómo se pesa es un plato
+    # que miente a medias.
+    basis: Mapped[str] = mapped_column(String(8), default="raw", server_default="raw")
+    servings: Mapped[float] = mapped_column(Float, default=1, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    ingredients: Mapped[list["DishIngredient"]] = relationship(
+        back_populates="dish",
+        cascade="all, delete-orphan",
+        order_by="DishIngredient.id",
+    )
+
+
+class DishIngredient(Base):
+    """Un alimento dentro de un plato, en gramos.
+
+    Los gramos son los del plato entero, no los de una ración: dividir por
+    raciones es cosa de `nutrition.py`, que es donde vive toda la aritmética.
+    """
+
+    __tablename__ = "dish_ingredients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dish_id: Mapped[int] = mapped_column(ForeignKey("dishes.id", ondelete="CASCADE"), index=True)
+    # Sin `ondelete`: un alimento no se borra en esta app, así que no hay
+    # huérfanos que planear. Si algún día los hubiera, el plato tendría que
+    # decirlo en vez de quedarse callado sumando de menos.
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), index=True)
+    grams: Mapped[float] = mapped_column(Float)
+
+    dish: Mapped["Dish"] = relationship(back_populates="ingredients")

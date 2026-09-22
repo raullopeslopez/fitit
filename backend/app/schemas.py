@@ -538,6 +538,9 @@ class LogEntryOut(BaseModel):
     carbs: float | None = None
     fiber: float | None = None
     entry_source: str = "manual"
+    # De qué plato salió, cuando salió de uno. La fila se lee igual sin él; esto
+    # es lo que deja a la pantalla agrupar.
+    dish_id: int | None = None
 
 
 class SlotTotalsOut(BaseModel):
@@ -717,3 +720,68 @@ class WeightTrendOut(BaseModel):
     weigh_ins: int = 0
     # Hasta cuándo está medida. Si es de hace un mes, que lo diga la pantalla.
     up_to: Date | None = None
+
+
+# --- Platos ------------------------------------------------------------------
+# Cómo se pesa el plato. Sin conversión automática entre las dos: si un plato
+# habla en cocinado, sus ingredientes tienen que ser filas medidas en cocinado
+# —CIQUAL trae las dos—, porque convertir sin un factor de merma con fuente
+# sería inventarse la cifra.
+DishBasis = Literal["raw", "cooked"]
+# Lo que se puede hacer con ello. La air fryer no está en CIQUAL (es una tabla
+# francesa de alimentos), así que el modo es del plato y no del alimento.
+DishMethod = Literal["air_fryer", "plancha", "horno", "sarten", "cocido", "crudo"]
+
+
+class DishIngredientIn(BaseModel):
+    food_id: int
+    grams: float = Field(gt=0)
+
+
+class DishIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    servings: float = Field(default=1, gt=0)
+    basis: DishBasis = "raw"
+    method: DishMethod | None = None
+    # Un plato sin ingredientes no es un plato: es un nombre.
+    ingredients: list[DishIngredientIn] = Field(min_length=1)
+
+
+class DishPatch(BaseModel):
+    """Corregir. Es la única forma de arreglar un plato: no se borran."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    servings: float | None = Field(default=None, gt=0)
+    basis: DishBasis | None = None
+    method: DishMethod | None = None
+    # Si vienen, sustituyen a los de antes enteros. Una lista de ingredientes a
+    # medias no tiene forma de expresar «quita éste».
+    ingredients: list[DishIngredientIn] | None = Field(default=None, min_length=1)
+
+
+class DishIngredientOut(BaseModel):
+    id: int
+    food_id: int
+    food_name: str
+    grams: float
+
+
+class DishOut(BaseModel):
+    id: int
+    name: str
+    servings: float
+    basis: DishBasis
+    method: DishMethod | None = None
+    ingredients: list[DishIngredientOut] = Field(default_factory=list)
+    # Lo que se come de una vez, que es el número que acaba en el diario.
+    # `None` en un nutriente significa que algún ingrediente no lo tenía medido.
+    per_serving: dict[str, float | None] = Field(default_factory=dict)
+    # Cuántos ingredientes no pudieron aportar a cada nutriente, para que la
+    # pantalla diga *por qué* no hay número en vez de dejar un hueco.
+    unknown: dict[str, int] = Field(default_factory=dict)
+
+
+class DishLogIn(BaseModel):
+    servings: float = Field(default=1, gt=0)
+    meal_slot: str | None = None
+    logged_at: datetime | None = None

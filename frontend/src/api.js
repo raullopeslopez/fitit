@@ -372,3 +372,30 @@ export function listBodyWeights() {
 export function weightTrend() {
   return apiFetch('/body-weight/trend')
 }
+
+// --- Platos ------------------------------------------------------------------
+// Tus platos. Un plato **no es un alimento**: no sale en `searchFoods` y no se
+// da de alta por `createFood`. Un alimento es una medida; un plato es una
+// combinación tuya de medidas.
+export function listDishes(q = '') {
+  const query = q ? `?q=${encodeURIComponent(q)}` : ''
+  return apiFetch(`/dishes${query}`)
+}
+
+export function createDish(dish) {
+  return apiFetch('/dishes', { method: 'POST', body: JSON.stringify(dish) })
+}
+
+export function correctDish(dishId, fields) {
+  return apiFetch(`/dishes/${dishId}`, { method: 'PATCH', body: JSON.stringify(fields) })
+}
+
+// Registra N raciones: el servidor congela **una entrada por ingrediente**, no
+// una suma, así que esto devuelve una lista. El diario sigue siendo filas de
+// alimento; el plato es de dónde salieron.
+export function logDish(dishId, { servings = 1, meal_slot = null } = {}) {
+  return apiFetch(`/dishes/${dishId}/log`, {
+    method: 'POST',
+    body: JSON.stringify({ servings, meal_slot }),
+  })
+}
