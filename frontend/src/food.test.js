@@ -274,3 +274,35 @@ describe('las previsualizaciones', () => {
     expect(withoutEntry(94, null)).toBeNull()
   })
 })
+
+describe('agruparPorPlato', () => {
+  const suelta = (id) => ({ id, dish_id: null, food_name: `Suelto ${id}` })
+  const dePlato = (id, dish) => ({ id, dish_id: dish, food_name: `Ingrediente ${id}` })
+
+  it('deja cada entrada suelta en su propio grupo', async () => {
+    const { agruparPorPlato } = await import('./food.js')
+    const grupos = agruparPorPlato([suelta(1), suelta(2)])
+    expect(grupos).toHaveLength(2)
+    expect(grupos.every((g) => g.dish_id === null)).toBe(true)
+  })
+
+  it('junta las entradas consecutivas del mismo plato bajo su nombre', async () => {
+    const { agruparPorPlato } = await import('./food.js')
+    const grupos = agruparPorPlato([dePlato(1, 3), dePlato(2, 3)], { 3: 'Lentejas de mi madre' })
+    expect(grupos).toHaveLength(1)
+    expect(grupos[0].name).toBe('Lentejas de mi madre')
+    expect(grupos[0].entries).toHaveLength(2)
+  })
+
+  it('no reordena el diario para juntar dos raciones separadas', async () => {
+    const { agruparPorPlato } = await import('./food.js')
+    const grupos = agruparPorPlato([dePlato(1, 3), suelta(2), dePlato(3, 3)], { 3: 'Lentejas' })
+    expect(grupos.map((g) => g.dish_id)).toEqual([3, null, 3])
+  })
+
+  it('no pinta cabecera de un plato que todavía no ha cargado', async () => {
+    const { agruparPorPlato } = await import('./food.js')
+    const [grupo] = agruparPorPlato([dePlato(1, 99)], {})
+    expect(grupo.name).toBeNull()
+  })
+})

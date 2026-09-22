@@ -5102,3 +5102,84 @@ button.set-chip:active:not(:disabled) {
   color: var(--danger);
   margin: 0.5rem 0 0;
 }
+
+/* --- Platos ----------------------------------------------------------------
+   Un plato registrado son varias filas de alimento. El grupo las recoge bajo
+   su nombre con un filete izquierdo, que es lo que dice «esto es una cosa» sin
+   gastar un borde entero ni una tarjeta dentro de otra. */
+.food-dish-group {
+  border-left: 2px solid color-mix(in srgb, var(--text) 17%, transparent);
+  padding-left: 0.6rem;
+  margin: 0.35rem 0;
+}
+/* Micro: mayúsculas espaciadas que titulan un bloque, no una frase que se lee. */
+.food-dish-name {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.15rem;
+}
+
+/* Crear un plato es raro —una vez por plato, no una por comida—, así que es una
+   línea y no un botón de relleno (DESIGN.md: las acciones raras no se llevan
+   controles con peso de contenido). */
+.dish-new-line {
+  margin: 0.75rem 0 0;
+}
+.dish-new {
+  padding: 0.7rem 0;
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.new-dish .dish-row {
+  display: flex;
+  gap: 0.6rem;
+}
+.new-dish .dish-row .field {
+  flex: 1;
+}
+.dish-ingredients {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.dish-ingredient {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.dish-ingredient-name {
+  flex: 1;
+  font-size: 0.92rem;
+}
+.dish-ingredient-grams {
+  width: 5.5rem;
+  flex: none;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.dish-ingredient-drop {
+  flex: none;
+  min-width: 44px;
+  color: var(--muted);
+}
+.dish-error {
+  font-size: 0.85rem;
+  color: var(--danger);
+  margin: 0.6rem 0 0;
+}
+.dish-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
