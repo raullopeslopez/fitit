@@ -15,7 +15,7 @@ import {
   searchFoods,
   setTargets,
 } from './api.js'
-import { DishChips, NewDish } from './Dish.jsx'
+import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import {
   MACROS,
   MEAL_SLOTS,
@@ -416,6 +416,7 @@ export default function Comida() {
           entries={day?.entries ?? []}
           siempre={siempre}
           platos={platos}
+          onDishesChanged={loadSiempre}
           labelReading={day?.label_reading ?? false}
           block={labelBlock}
           onBlocked={setLabelBlock}
@@ -1141,6 +1142,7 @@ function AddFood({
   entries = [],
   siempre = [],
   platos = [],
+  onDishesChanged = () => {},
   labelReading = false,
   block = null,
   onBlocked = () => {},
@@ -1378,6 +1380,9 @@ function AddFood({
         slot={slot}
         onCreated={async () => {
           setNewDish(false)
+          // Los dos: el día, porque puede haber cambiado, y la lista de platos,
+          // para que el recién creado esté ya entre los chips al volver.
+          await onDishesChanged()
           await onDone()
         }}
         onCancel={() => setNewDish(false)}
@@ -1582,6 +1587,12 @@ function AddFood({
             Nuevo plato
           </button>
         </p>
+
+        {/* El arranque en frío: sin repertorio los chips de arriba están
+            vacíos, y teclear quince platos con sus ingredientes es la tarde en
+            la que esta clase de app se abandona. Debajo de «Nuevo plato»
+            porque es la otra forma de llenar la misma lista — y la barata. */}
+        <ProposeDishes onCreated={onDishesChanged} />
 
         {/* Una cámara, no dos.
             Antes había que elegir entre «Código de barras» y «Etiqueta»: dos

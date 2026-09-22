@@ -24,7 +24,7 @@ construido la mitad de algo.
 |---|---|---|---|---|
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
-| 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **backend hecho** |
+| 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
@@ -235,9 +235,13 @@ los gramos escalados por raciones, los macros congelados en ese momento y el
 
 ## 4. Fase 3 — La IA puebla el repertorio
 
-> **Backend terminado el 22-09.** `app/repertoire.py`, el transporte de
-> `gemini.py` extraído y reusado, `POST /dishes/generate` y 21 tests en verde.
-> **Falta la pantalla.**
+> **Terminada el 22-09.** Backend —`app/repertoire.py`, el transporte de
+> `gemini.py` extraído y reusado, `POST /dishes/generate`— y pantalla:
+> «Proponme platos» en Añadir, la tanda que llega ya guardada, y el cajón de
+> sugerencias diciendo qué alimento falta.
+>
+> Lo que **no** hace la pantalla: resolver una sugerencia de un toque. Dar de
+> alta el alimento que falta y volver a pedir son hoy dos gestos separados.
 >
 > **Tres apartes sobre lo escrito abajo:**
 >
