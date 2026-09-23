@@ -15,6 +15,7 @@ Two rules govern everything here, and they are the same rule read twice:
 """
 
 import json
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 # The nutrients that get their own column, on `foods` (as `<name>_100g`) and on
@@ -274,3 +275,126 @@ def kcal_disagreement(
     if abs(computed - kcal) <= allowed:
         return None
     return (kcal, round(computed, 1))
+
+
+# --- El ajuste de gramos ------------------------------------------------------
+#
+# Paso 3 del generador (§39 del brainstorming): **el ajuste vive en el día, no
+# en cada plato**. Un guiso es lo que es —450 kcal y punto— y el día cierra sus
+# números moviendo los *otros* huecos. Esto es lo que permite que las lentejas
+# de tu madre entren en un plan sin desmontarlas.
+#
+# Está aquí y no en el planificador porque es aritmética de nutrientes, y de esa
+# sólo puede haber una en la app.
+
+# Pasadas de descenso por coordenadas. Cada ingrediente se coloca en su óptimo
+# dado el resto, y se repite: con tres o cuatro ya no se mueve nada, seis deja
+# margen sin que cueste nada medible.
+_AJUSTE_PASOS = 6
+
+
+@dataclass(frozen=True)
+class Ajustable:
+    """Un ingrediente que el día puede mover, con su banda.
+
+    `minimo` y `maximo` no son un detalle de implementación: son lo que separa
+    un plan de la solución de una ecuación. Sin ellos el ajuste contestaría
+    «900 g de arroz» con toda la razón matemática del mundo.
+    """
+
+    por_100g: dict
+    gramos: float
+    minimo: float
+    maximo: float
+
+
+def _fijo_del_dia(fijo: dict) -> dict:
+    """Lo que el día ya trae puesto, con la distinción que importa.
+
+    Una clave **ausente** es que no hay nada fijo aportando ese nutriente, y eso
+    sí es cero. Un `None` **escrito** es que algo lo aporta y nadie lo midió, y
+    eso no puede convertirse en cero ni aquí ni en ningún sitio.
+    """
+    return {field: fijo.get(field, 0.0) for field in NUTRIENTS}
+
+
+def _dirigen(fijo: dict, objetivo: dict) -> tuple[str, ...]:
+    """Los macros que de verdad tiran del ajuste.
+
+    Un macro sin objetivo no dirige: `None` es «no lo he dicho», y perseguirlo
+    como si fuera 0 recortaría el aceite al mínimo sin que nadie lo haya pedido.
+    Un macro cuyo total fijo es desconocido tampoco: perseguir 70 g de grasa
+    contando como 0 la del guiso que no la midió pondría de más exactamente lo
+    que falta saber.
+    """
+    return tuple(
+        field
+        for field in NUTRIENTS
+        if field != "fiber" and objetivo.get(field) is not None and fijo.get(field) is not None
+    )
+
+
+def ajustar_gramos(
+    fijo: dict,
+    ajustables,
+    objetivo: dict,
+    *,
+    pasos: int = _AJUSTE_PASOS,
+) -> tuple[tuple[float, ...], dict]:
+    """Los gramos que dejan el día lo más cerca posible de su objetivo.
+
+    `fijo` son los macros que el día ya trae puestos (platos bloque, y todo
+    ingrediente sin banda). `ajustables` son los que se dejan mover, cada uno
+    con la suya. Devuelve `(gramos, totales)`.
+
+    Determinista: los mismos argumentos dan los mismos gramos, que es lo que
+    hace que el plan sea el mismo el martes que el jueves (§22).
+
+    Los gramos salen **enteros**: un plan se lee con una báscula de cocina, y
+    «163,47 g» no es más preciso, es sólo menos legible.
+    """
+    piezas = list(ajustables)
+    base = _fijo_del_dia(fijo)
+    dirigen = _dirigen(base, objetivo)
+
+    for pieza in piezas:
+        for field in dirigen:
+            if pieza.por_100g.get(field) is None:
+                raise ValueError(
+                    f"no se puede ajustar sobre {field}: nadie lo midió en un ingrediente"
+                )
+
+    gramos = [float(pieza.gramos) for pieza in piezas]
+
+    def aporta(indice: int, field: str) -> float:
+        return gramos[indice] * (piezas[indice].por_100g.get(field) or 0.0) / 100.0
+
+    for _ in range(pasos):
+        for i, pieza in enumerate(piezas):
+            numerador = 0.0
+            denominador = 0.0
+            for field in dirigen:
+                meta = objetivo[field]
+                # Normalizado por el propio objetivo, o 2.400 kcal pesarían
+                # doscientas veces más que 165 g de proteína sin que nadie lo
+                # haya decidido.
+                peso = 1.0 / (abs(meta) or 1.0) ** 2
+                por_gramo = (pieza.por_100g.get(field) or 0.0) / 100.0
+                resto = base[field] + sum(aporta(j, field) for j in range(len(piezas)) if j != i)
+                numerador += peso * por_gramo * (meta - resto)
+                denominador += peso * por_gramo * por_gramo
+            if denominador <= 0:
+                # Este ingrediente no lleva nada de lo que se persigue. Se queda
+                # donde estaba en vez de irse al mínimo por no estorbar.
+                continue
+            gramos[i] = min(max(float(round(numerador / denominador)), pieza.minimo), pieza.maximo)
+
+    filas = [base] + [
+        {
+            field: _scale(pieza.por_100g.get(field), gramos[i] / 100.0, _MACRO_PLACES)
+            for field in NUTRIENTS
+        }
+        for i, pieza in enumerate(piezas)
+    ]
+    totales, _ = sumar_nutrientes(filas)
+    return tuple(gramos), totales
