@@ -19,12 +19,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_user
+from ..config import settings
 from ..db import get_session
+from ..gemini import ModelUnavailable, suggest_dishes
 from ..models import Dish, DishIngredient, Food, LogEntry, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
 from ..nutrition import macros_por_racion
-from ..schemas import DishIn, DishLogIn, DishOut, DishPatch, LogEntryOut
+from ..repertoire import ProposalRefused, read_proposals
+from ..schemas import (
+    DishGenerateIn,
+    DishGenerateOut,
+    DishIn,
+    DishLogIn,
+    DishOut,
+    DishPatch,
+    DishSuggestionOut,
+    LogEntryOut,
+)
 from ..serialization import to_entry_out
 
 router = APIRouter(prefix="/dishes", tags=["dishes"])
@@ -218,3 +230,156 @@ async def log_dish(
     for entry in entries:
         await session.refresh(entry)
     return [to_entry_out(entry) for entry in entries]
+
+
+async def get_dish_proposer():
+    """Quien propone platos, o `None` si la feature está apagada.
+
+    Dependencia y no llamada directa por lo mismo que `get_label_reader`: la
+    suite no llama a Gemini —no hay red, ni clave, ni cuota que gastar en CI— y
+    lo que se comprueba es qué hace el backend con lo que el modelo conteste,
+    que es donde está el riesgo.
+    """
+    key = settings.gemini_api_key.get_secret_value()
+    if not key:
+        return None
+
+    async def proposer(**kwargs) -> dict:
+        return await suggest_dishes(**kwargs, api_key=key, model=settings.gemini_model)
+
+    return proposer
+
+
+# Cuántos nombres se le mandan como despensa. Más que esto no afina la
+# propuesta: alarga el prompt y le da sitio para irse por las ramas.
+PANTRY_LIMIT = 60
+
+
+async def _despensa(session: AsyncSession, user_id: int) -> list[Food]:
+    """Lo que tienes: lo que has dado de alta y lo que has registrado alguna vez.
+
+    No es «todo el catálogo»: CIQUAL son 3.185 alimentos y mandárselos enteros
+    haría que propusiera con cosas que no has comprado en tu vida. La despensa
+    es la huella de lo que de verdad pasa por tu cocina.
+    """
+    propios = select(Food).where(Food.user_id == user_id)
+    registrados = select(Food).where(
+        Food.id.in_(select(LogEntry.food_id).where(LogEntry.user_id == user_id))
+    )
+    rows = (
+        await session.execute(propios.union(registrados).limit(PANTRY_LIMIT))
+    ).all()
+    ids = [row[0] for row in rows]
+    if not ids:
+        return []
+    foods = (await session.execute(select(Food).where(Food.id.in_(ids)))).scalars().all()
+    return list(foods)
+
+
+@router.post("/generate", response_model=DishGenerateOut)
+async def generate_dishes(
+    payload: DishGenerateIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+    proposer=Depends(get_dish_proposer),
+) -> DishGenerateOut:
+    """Pide platos con lo que tienes y guarda los que se sostienen solos.
+
+    **Guarda sin preguntar**, y es seguro por una razón concreta: el modelo
+    propone *qué combinar* y nunca *cuánto suma*. Los macros los calcula
+    `nutrition.py` sobre fichas reales, así que no hay ninguna cifra inventada
+    que pueda colarse. La frontera de la casa —dato identificado contra dato
+    interpretado— se respeta sola mientras eso siga siendo verdad.
+
+    Lo que no se sostiene solo es lo que nombra un alimento que no tienes: ahí
+    sí habría que escribir una ficha, y escribirla desde lo que dijo un modelo
+    sería dato interpretado. Eso se aparta al cajón de sugerencias.
+    """
+    # La despensa se mira **antes** que el modelo, y no es indiferente: no tener
+    # nada registrado es un hecho sobre ti que no cambia porque la función esté
+    # encendida o apagada, y es el único de los dos que puedes arreglar tú.
+    # Contestar «la función está apagada» a quien además no ha registrado nada
+    # le manda a buscar una clave de API cuando lo que necesita es apuntar una
+    # comida.
+    despensa = await _despensa(session, user_id)
+    if not despensa:
+        return DishGenerateOut(refusal="empty_pantry")
+
+    if proposer is None:
+        return DishGenerateOut(refusal="off")
+
+    try:
+        raw = await proposer(
+            foods=[food.name for food in despensa],
+            methods=list(payload.methods),
+            minutes=payload.minutes,
+            n=payload.n,
+        )
+    except ModelUnavailable as exc:
+        # Nunca un 500: las cuatro formas de no haber podido acaban en la misma
+        # pantalla, y «vuelve mañana» no es «algo se ha roto».
+        return DishGenerateOut(
+            refusal="quota" if exc.quota else "unavailable", quota_scope=exc.quota
+        )
+
+    por_nombre = {food.name.strip().lower(): food for food in despensa}
+    try:
+        propuestas = read_proposals(raw, resolve=lambda n: getattr(por_nombre.get(n.strip().lower()), "id", None))
+    except ProposalRefused:
+        return DishGenerateOut(refusal="unusable")
+
+    tomados = {
+        row[0]
+        for row in (
+            await session.execute(select(Dish.name_folded).where(Dish.user_id == user_id))
+        ).all()
+    }
+
+    creados: list[Dish] = []
+    sugerencias: list[DishSuggestionOut] = []
+    for propuesta in propuestas:
+        if not propuesta.usable:
+            sugerencias.append(
+                DishSuggestionOut(
+                    name=propuesta.name,
+                    method=propuesta.method,
+                    basis=propuesta.basis,
+                    servings=propuesta.servings,
+                    ingredients=[
+                        {"food_name": i.food_name, "grams": i.grams} for i in propuesta.ingredients
+                    ],
+                    missing=propuesta.unknown,
+                )
+            )
+            continue
+
+        folded = fold(propuesta.name)
+        # Un plato que ya tienes no se duplica ni se pisa: lo tuyo manda sobre
+        # lo propuesto, que es lo mismo que hace el import de CIQUAL.
+        if folded in tomados:
+            continue
+        tomados.add(folded)
+
+        dish = Dish(
+            user_id=user_id,
+            name=propuesta.name,
+            name_folded=folded,
+            method=propuesta.method,
+            basis=propuesta.basis,
+            servings=propuesta.servings,
+            ingredients=[
+                DishIngredient(food_id=i.food_id, grams=i.grams) for i in propuesta.ingredients
+            ],
+        )
+        session.add(dish)
+        creados.append(dish)
+
+    if creados:
+        await session.commit()
+        for dish in creados:
+            await session.refresh(dish, ["ingredients"])
+
+    return DishGenerateOut(
+        created=[await _out(session, dish, user_id) for dish in creados],
+        suggestions=sugerencias,
+    )

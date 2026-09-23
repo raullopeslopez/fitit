@@ -24,8 +24,8 @@ construido la mitad de algo.
 |---|---|---|---|---|
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
-| 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana |
-| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
+| 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
+| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **objetivo hecho** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
@@ -235,6 +235,34 @@ los gramos escalados por raciones, los macros congelados en ese momento y el
 
 ## 4. Fase 3 — La IA puebla el repertorio
 
+> **Terminada el 22-09.** Backend —`app/repertoire.py`, el transporte de
+> `gemini.py` extraído y reusado, `POST /dishes/generate`— y pantalla:
+> «Proponme platos» en Añadir, la tanda que llega ya guardada, y el cajón de
+> sugerencias diciendo qué alimento falta.
+>
+> Lo que **no** hace la pantalla: resolver una sugerencia de un toque. Dar de
+> alta el alimento que falta y volver a pedir son hoy dos gestos separados.
+>
+> **Tres apartes sobre lo escrito abajo:**
+>
+> 1. **El endpoint se llama `/dishes/generate`, no `/dishes/propose`.** Por la
+>    decisión 13 no sólo propone: **guarda** los platos que se sostienen solos,
+>    y un nombre que dice «proponer» sobre algo que escribe es un nombre que
+>    miente. Devuelve `created` y `suggestions` por separado.
+> 2. **La despensa no es el catálogo entero.** CIQUAL son 3.185 alimentos y
+>    mandárselos haría proponer con cosas que no has comprado en tu vida. Es lo
+>    que has dado de alta más lo que has registrado alguna vez, hasta 60.
+> 3. **Sin cuota de exploración todavía** (decisión 22). Explorar se define
+>    contra una zona de confort, y la zona de confort la darían las
+>    puntuaciones — que son la columna `rating` que la fase 2 dejó sin crear por
+>    no tener lector. Hoy **todas** las propuestas son exploración, así que la
+>    cuota no distinguiría nada. Entra cuando entren las puntuaciones.
+>
+> Y un cambio de orden que es de producto: se comprueba **la despensa antes que
+> el modelo**. No tener nada registrado es un hecho sobre ti que no cambia
+> porque la función esté encendida, y es el único de los dos que puedes
+> arreglar tú.
+
 Sin tablas nuevas. Decisión 13: los platos propuestos **entran solos**, así que
 no hay tabla de propuestas pendientes — se crean como `dishes` y se corrigen.
 
@@ -289,6 +317,47 @@ prueba, no una sorpresa.
 ---
 
 ## 5. Fase 4 — Objetivos y reglas (esbozo)
+
+> **La mitad del objetivo, terminada el 23-09 (backend).** `users.goal`,
+> `goal_rate` y los datos del cuerpo; `daily_targets` congelando el objetivo del
+> día la primera vez que se lee; `app/targets.py` con la fórmula y la medición;
+> `GET /targets/proposal`, `POST /targets/accept`. 25 tests.
+>
+> **Se parte en dos y el corte es el del brainstorming:** el objetivo da
+> **kcal**, y el reparto en macros es de **las reglas**. Una cosa es cuánto
+> comes y otra cómo lo repartes; mezclarlas aquí habría hecho que el objetivo
+> tuviera que saber de proteína por kilo, que es una regla.
+>
+> Lo que quedó decidido al construirlo:
+>
+> - **El factor de actividad sale de los días que entrenas**, que la app ya
+>   sabe, en vez de un «nivel de actividad» que rellena el usuario. Sigue siendo
+>   estimación —por eso la medición la sustituye—, pero no se la inventa nadie.
+> - **La medición manda en cuanto hay con qué** (14 días de registro y dos
+>   tendencias de peso), y la respuesta dice de cuál de las dos salió.
+> - **Suelo de 1.200 kcal, y se dice cuando toca.** No es prescribir: es negarse
+>   a pintar una cifra que sale de multiplicar mal un ritmo de bajada.
+> - **Los días anteriores a esto no reciben fila** en `daily_targets`. No había
+>   objetivo congelado, y escribirlo hacia atrás sería inventarse lo que aquel
+>   día decía la pantalla.
+>
+> **Los grupos de alimento, hechos el 23-09.** `foods.group_code` y
+> `subgroup_code`, el import de CIQUAL escribiéndolos —**ya los leía y los
+> tiraba**—, y `app/food_groups.py` con el vocabulario que hablarán las reglas:
+> verdura, tubérculo, legumbre, fruta, frutos secos, cereal, carne, pescado,
+> huevo y lácteo, sobre el nivel 2 de CIQUAL. El nivel 1 no sirve para reglas:
+> frutas, verduras, legumbres y frutos secos caen todos en el mismo cajón.
+>
+> Se guardan **los códigos**, no los nombres franceses, que habría que traducir
+> y mantener traducidos. Y sin clasificar es `None`, nunca «no es verdura»: 45
+> filas de CIQUAL no tienen grupo y ninguno de tus alimentos a mano lo trae, así
+> que una regla que cuente verduras tendrá que contarlos aparte.
+>
+> **Ojo al desplegar:** los alimentos ya cargados se quedan sin código hasta que
+> se vuelva a pasar `scripts/import_ciqual.py`, que es idempotente.
+>
+> **Falta:** las reglas (tabla, catálogo de tipos, ámbito y condición) y la
+> pantalla de todo esto.
 
 ```
 users        + goal VARCHAR(12) NULL, goal_rate FLOAT NULL

@@ -53,6 +53,18 @@ class User(Base):
     # lee es una que se acaba llenando de cifras que nadie mira.
     objetivo_grasa: Mapped[float | None] = mapped_column(Float, nullable=True)
     objetivo_hidratos: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Lo que hace falta para que las kcal dejen de teclearse: qué quieres que le
+    # pase a tu cuerpo, y lo mínimo sobre él para poder estimar el gasto
+    # mientras no haya historial con el que medirlo.
+    #
+    # Todo nullable, y no es pereza: una app que no sabe tu altura no debe
+    # inventarse una media. Sin estos datos `targets.py` dice qué le falta en
+    # vez de estimar a ciegas.
+    goal: Mapped[str | None] = mapped_column(String(12), nullable=True)  # cut|maintain|gain
+    goal_rate: Mapped[float | None] = mapped_column(Float, nullable=True)  # kg por semana
+    height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sex: Mapped[str | None] = mapped_column(String(8), nullable=True)  # male|female
 
 
 class Exercise(Base):
@@ -223,6 +235,13 @@ class Food(Base):
     fiber_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Everything CIQUAL carries beyond the five macros, as a JSON object.
     nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # La clasificación de CIQUAL, en códigos. `0201` es verdura, `0203`
+    # legumbre, `0202` tubérculo — el mapa a familias vive en
+    # `app/food_groups.py`. Nullable porque hay 45 filas de CIQUAL sin grupo y
+    # porque ningún alimento que des de alta a mano lo trae: eso es **sin
+    # clasificar**, nunca «no es verdura».
+    group_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    subgroup_code: Mapped[str | None] = mapped_column(String(8), index=True, nullable=True)
     is_recipe: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # Hidden from search without breaking the entries that point at it.
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
@@ -432,3 +451,35 @@ class DishIngredient(Base):
     grams: Mapped[float] = mapped_column(Float)
 
     dish: Mapped["Dish"] = relationship(back_populates="ingredients")
+
+
+class DailyTarget(Base):
+    """Lo que tocaba comer **ese día**, congelado.
+
+    En cuanto el objetivo se deriva, congelarlo por día deja de ser opcional.
+    `comida-pendiente.md` ya avisaba de que un objetivo del perfil reescribe el
+    pasado al cambiarlo; con un número que se mueve solo —porque bajas de peso,
+    porque hay más historial— eso pasa de molestia a garantizar un pasado falso:
+    la racha de septiembre medida contra el objetivo de diciembre.
+
+    Se escribe una fila por día **la primera vez que ese día se lee**, y nunca
+    se reescribe sola. Los días anteriores a esta feature no tienen fila y no se
+    les inventa una: no había objetivo congelado, y rellenarlo hacia atrás sería
+    exactamente la mentira que esto viene a evitar.
+
+    Sólo kcal. El reparto en macros es de las reglas — otra capa y otra fase.
+    """
+
+    __tablename__ = "daily_targets"
+    __table_args__ = (
+        UniqueConstraint("user_id", "log_date", name="uq_daily_targets_user_day"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    log_date: Mapped[date] = mapped_column(Date, index=True)
+    kcal: Mapped[float] = mapped_column(Float)
+    # 'formula' | 'measured' | 'manual'. Lo que la pantalla necesita para no
+    # pintar una estimación con la misma tinta que una medición.
+    source: Mapped[str] = mapped_column(String(10), default="manual", server_default="manual")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

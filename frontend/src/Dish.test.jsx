@@ -1,8 +1,8 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { DishChips, NewDish } from './Dish.jsx'
-import { createDish, logDish, searchFoods } from './api.js'
+import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
+import { createDish, generateDishes, logDish, searchFoods } from './api.js'
 
 vi.mock('./api.js')
 
@@ -94,5 +94,50 @@ describe('NewDish', () => {
     expect(basis).toHaveValue('raw')
     await userEvent.selectOptions(basis, 'cooked')
     expect(basis).toHaveValue('cooked')
+  })
+})
+
+describe('ProposeDishes', () => {
+  it('asks for dishes and says how many arrived', async () => {
+    generateDishes.mockResolvedValue({
+      created: [LENTEJAS, { ...LENTEJAS, id: 4, name: 'Pechuga a la air fryer' }],
+      suggestions: [],
+    })
+    const onCreated = vi.fn()
+    render(<ProposeDishes onCreated={onCreated} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Proponme platos' }))
+    expect(await screen.findByText(/2 platos nuevos/)).toBeInTheDocument()
+    expect(screen.getByText('Pechuga a la air fryer')).toBeInTheDocument()
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+  })
+
+  // «Un resultado vacío tiene que nombrar el fallo correcto»: esperar un minuto
+  // y esperar a mañana no se le dicen igual a nadie.
+  it('tells the day quota apart from the minute one', async () => {
+    generateDishes.mockResolvedValue({ created: [], suggestions: [], refusal: 'quota', quota_scope: 'day' })
+    render(<ProposeDishes onCreated={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Proponme platos' }))
+    expect(await screen.findByText(/mañana/i)).toBeInTheDocument()
+  })
+
+  it('and sends you to log something when the pantry is empty', async () => {
+    generateDishes.mockResolvedValue({ created: [], suggestions: [], refusal: 'empty_pantry' })
+    render(<ProposeDishes onCreated={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Proponme platos' }))
+    expect(await screen.findByText(/no has registrado nada/i)).toBeInTheDocument()
+  })
+
+  it('shows what a suggestion is missing instead of saving it half-done', async () => {
+    generateDishes.mockResolvedValue({
+      created: [],
+      suggestions: [
+        { name: 'Tofu salteado', basis: 'raw', servings: 1, ingredients: [], missing: ['Tofu ahumado'] },
+      ],
+    })
+    render(<ProposeDishes onCreated={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Proponme platos' }))
+    expect(await screen.findByText('Tofu salteado')).toBeInTheDocument()
+    expect(screen.getByText(/Tofu ahumado/)).toBeInTheDocument()
   })
 })

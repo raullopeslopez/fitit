@@ -5183,3 +5183,38 @@ button.set-chip:active:not(:disabled) {
   justify-content: flex-end;
   margin-top: 1rem;
 }
+
+/* --- Proponer platos ------------------------------------------------------- */
+.propose {
+  margin-top: 0.35rem;
+}
+.propose-created,
+.propose-drawer {
+  margin-top: 0.75rem;
+}
+.propose-list {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+.propose-suggestion {
+  display: block;
+}
+/* Lo que falta va en mono: es un dato que se coteja con el catálogo, no prosa. */
+.propose-missing {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.propose-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+  max-width: 40ch;
+}

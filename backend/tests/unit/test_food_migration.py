@@ -46,6 +46,9 @@ COLUMN_MIGRATIONS = (
     # tablas, que es el criterio de la lista — aunque lo que la migración
     # *crea* (platos) se comprueba aparte, en `test_dish_migration.py`.
     "c4e8b21d7f09_add_dishes.py",
+    # Añade los códigos de grupo a `foods`, que es lo que deja a una regla
+    # nombrar «verdura» o «legumbre».
+    "e7b3c02a91d8_add_food_groups.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

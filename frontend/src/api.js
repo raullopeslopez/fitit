@@ -399,3 +399,16 @@ export function logDish(dishId, { servings = 1, meal_slot = null } = {}) {
     body: JSON.stringify({ servings, meal_slot }),
   })
 }
+
+// Pide platos con lo que tienes. Los que se sostienen solos **ya están
+// guardados** cuando esto contesta: el modelo propone qué combinar y nunca
+// cuánto suma, así que no hay ninguna cifra inventada que revisar.
+//
+// Nunca falla por una cuota agotada: las cuatro formas de no haber podido
+// vienen en `refusal`, porque «vuelve mañana» no es «algo se ha roto».
+export function generateDishes({ methods = [], minutes = null, n = 6 } = {}) {
+  return apiFetch('/dishes/generate', {
+    method: 'POST',
+    body: JSON.stringify({ methods, minutes, n }),
+  })
+}

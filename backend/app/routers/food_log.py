@@ -35,6 +35,7 @@ from ..schemas import (
     RecomputeOut,
     SlotTotalsOut,
 )
+from ..routers.targets import frozen_target
 from ..serialization import to_entry_out
 
 router = APIRouter(prefix="/food-log", tags=["food-log"])
@@ -124,17 +125,21 @@ async def get_food_day(
     )
     totals, unknown = sumar_nutrientes(entries)
     user = await session.get(User, user_id)
+    kcal_del_dia = await frozen_target(session, user_id, log_date, user.objetivo_kcal)
     return FoodDayOut(
         date=log_date,
         entries=[to_entry_out(e) for e in entries],
         totals=totals,
         unknown=unknown,
         by_slot=_by_slot(entries),
-        target_kcal=user.objetivo_kcal,
+        # El objetivo del día, congelado la primera vez que el día se lee. En
+        # cuanto la cifra se deriva —y se mueve sola porque bajas de peso o
+        # porque hay más historial—, leerla del perfil reescribiría el pasado.
+        target_kcal=kcal_del_dia,
         target_protein=user.objetivo_proteina,
         target_fat=user.objetivo_grasa,
         target_carbs=user.objetivo_hidratos,
-        remaining_kcal=restante(user.objetivo_kcal, totals["kcal"]),
+        remaining_kcal=restante(kcal_del_dia, totals["kcal"]),
         remaining_protein=restante(user.objetivo_proteina, totals["protein"]),
         remaining_fat=restante(user.objetivo_grasa, totals["fat"]),
         remaining_carbs=restante(user.objetivo_hidratos, totals["carbs"]),

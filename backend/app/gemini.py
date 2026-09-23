@@ -58,7 +58,21 @@ REGLAS:
 """
 
 
-class LabelUnreadable(Exception):
+class ModelUnavailable(Exception):
+    """El modelo no ha contestado algo utilizable. Sin red, saturado, o sin cuota.
+
+    Es del **transporte**, no de lo que se le pedía: la comparte quien lee una
+    etiqueta y quien pide platos, porque las dos fallan igual y por lo mismo.
+    `quota` es `None | 'minute' | 'day'`, y la distinción no es cosmética — una
+    cuota por minuto se pasa esperando y la del día no se pasa hasta mañana.
+    """
+
+    def __init__(self, message: str, *, quota: str | None = None):
+        self.quota = quota
+        super().__init__(message)
+
+
+class LabelUnreadable(ModelUnavailable):
     """No hay lectura utilizable. Sin red, saturado, una respuesta rara.
 
     Casi siempre da igual por qué: acabe como acabe, se termina tecleando. La
@@ -70,13 +84,6 @@ class LabelUnreadable(Exception):
     una foto que ya no puede salir.
     """
 
-    def __init__(self, message: str, *, quota: str | None = None):
-        # None | 'minute' | 'day'. La diferencia no es cosmética: una cuota por
-        # minuto se pasa esperando y la del día no se pasa hasta mañana, y
-        # decirle «espera un minuto» a la segunda es mandarte a mirar el móvil
-        # sesenta segundos para nada.
-        self.quota = quota
-        super().__init__(message)
 
 
 # Cuántas veces se pregunta cuando el que falla es el servidor, y cuánto se
@@ -136,33 +143,28 @@ def _quota_scope(response: httpx.Response) -> str:
     return "day" if any(marker in body for marker in DAY_MARKERS) else "minute"
 
 
-async def read_label(
-    image: bytes,
+async def _ask(
+    parts: list[dict],
     *,
     api_key: str,
     model: str,
-    mime_type: str = "image/jpeg",
+    temperature: float,
     timeout: float = TIMEOUT,
     backoff: float = BACKOFF,
 ) -> dict:
-    """Manda la foto y devuelve el JSON del modelo, sin juzgarlo."""
+    """Manda las partes, devuelve el JSON del modelo y no lo juzga.
+
+    Extraído de `read_label` cuando apareció el segundo uso —pedir platos—,
+    porque lo que se reusa es el transporte: los reintentos medidos contra la
+    API, el 429 con su alcance, y el timeout pensado para alguien esperando.
+    Lo que cambia entre los dos usos es qué se manda y con cuánta temperatura.
+    """
     body = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "inline_data": {
-                            "mime_type": mime_type,
-                            "data": base64.b64encode(image).decode(),
-                        }
-                    },
-                    {"text": PROMPT},
-                ]
-            }
-        ],
-        # `temperature: 0` porque esto es una transcripción: dos lecturas de la
-        # misma foto deberían dar lo mismo, y aquí la creatividad es el fallo.
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0},
+        "contents": [{"parts": parts}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": temperature,
+        },
     }
     last: Exception | None = None
     for attempt in range(ATTEMPTS):
@@ -185,7 +187,7 @@ async def read_label(
                 # Ni se reintenta ni se disfraza: cada intento gastaría de lo
                 # que ya no hay, y quien está delante necesita saber que no es
                 # cuestión de repetir la foto.
-                raise LabelUnreadable(str(exc), quota=_quota_scope(exc.response)) from exc
+                raise ModelUnavailable(str(exc), quota=_quota_scope(exc.response)) from exc
             if exc.response.status_code not in RETRIABLE:
                 break
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
@@ -199,4 +201,121 @@ async def read_label(
     # El mensaje se queda aquí. Río arriba sólo se sabe que no hubo lectura: lo
     # que cuenta un error de la API no le dice nada a quien está delante de la
     # cámara, y puede llevar dentro trozos de la petición.
-    raise LabelUnreadable(str(last)) from last
+    raise ModelUnavailable(str(last)) from last
+
+
+async def read_label(
+    image: bytes,
+    *,
+    api_key: str,
+    model: str,
+    mime_type: str = "image/jpeg",
+    timeout: float = TIMEOUT,
+    backoff: float = BACKOFF,
+) -> dict:
+    """Manda la foto y devuelve el JSON del modelo, sin juzgarlo.
+
+    `temperature: 0` porque esto es una transcripción: dos lecturas de la misma
+    foto deberían dar lo mismo, y aquí la creatividad es el fallo.
+    """
+    parts = [
+        {"inline_data": {"mime_type": mime_type, "data": base64.b64encode(image).decode()}},
+        {"text": PROMPT},
+    ]
+    try:
+        return await _ask(
+            parts,
+            api_key=api_key,
+            model=model,
+            temperature=0,
+            timeout=timeout,
+            backoff=backoff,
+        )
+    except ModelUnavailable as exc:
+        # Se traduce al error del camino de la etiqueta: río arriba, `foods.py`
+        # distingue «sin cuota» de «no se lee» y eso no cambia.
+        raise LabelUnreadable(str(exc), quota=exc.quota) from exc
+
+
+# Lo que se le pide para llenar el repertorio, y por qué así.
+#
+# La diferencia de fondo con `PROMPT`: allí se transcribe y aquí se propone. El
+# modelo es malo en la aritmética que esto necesitaría y bueno en lo que el
+# optimizador no sabe —qué pega con qué—, así que se le pide **sólo la
+# combinación**. Ni una cifra de nutriente: los macros salen de `nutrition.py`
+# sobre fichas reales del catálogo, y es eso lo que hace seguro que un plato
+# propuesto entre sin pasar por una pantalla de revisión.
+#
+# Los nombres tienen que venir copiados de la lista. Un nombre inventado no es
+# un fallo que se corrija: es un alimento que no existe, y `repertoire.py` lo
+# aparta al cajón de sugerencias en vez de dejarlo entrar a medias.
+DISHES_PROMPT = """Eres quien propone platos con lo que hay en casa.
+
+Te doy una lista de alimentos disponibles y unas condiciones. Devuelve SOLO un
+objeto JSON. Sin markdown, sin explicación:
+
+{
+  "dishes": [
+    {
+      "name": "<nombre del plato, en español>",
+      "method": "<air_fryer|plancha|sarten|horno|cocido|crudo>",
+      "basis": "<raw|cooked>",
+      "servings": <número de raciones que salen>,
+      "minutes": <minutos de preparación>,
+      "ingredients": [{"food": "<nombre EXACTO de la lista>", "grams": <gramos>}]
+    }
+  ]
+}
+
+REGLAS:
+- Los `food` salen **copiados literalmente** de la lista de alimentos. No los
+  traduzcas, no los abrevies y no inventes ninguno.
+- **No devuelvas calorías ni macros.** Se calculan aquí a partir del catálogo;
+  cualquier cifra nutricional que mandes se ignora.
+- `basis` dice cómo se pesan los ingredientes: `raw` si los gramos son del
+  alimento crudo, `cooked` si son del plato ya hecho. Usa el que corresponda a
+  los nombres de la lista que estés usando.
+- Platos que alguien cocinaría de verdad, no combinaciones aritméticas.
+- Varía el modo de cocinado entre unos platos y otros.
+"""
+
+
+async def suggest_dishes(
+    *,
+    foods: list[str],
+    methods: list[str] | None = None,
+    minutes: int | None = None,
+    n: int = 6,
+    api_key: str,
+    model: str,
+    timeout: float = TIMEOUT,
+    backoff: float = BACKOFF,
+) -> dict:
+    """Pide `n` platos con los alimentos dados. Devuelve el JSON tal cual.
+
+    `temperature` alta al revés que en la etiqueta, y es la misma razón mirada
+    del otro lado: allí dos lecturas iguales de la misma foto son lo correcto;
+    aquí dos tandas idénticas de la misma despensa serían el fallo — lo que se
+    pide es variedad.
+    """
+    condiciones = [f"Propón exactamente {n} platos distintos."]
+    if methods:
+        condiciones.append("Prioriza estos modos de cocinado: " + ", ".join(methods) + ".")
+    if minutes:
+        condiciones.append(f"Ninguno debe pasar de {minutes} minutos de preparación.")
+
+    texto = (
+        DISHES_PROMPT
+        + "\nCONDICIONES:\n- "
+        + "\n- ".join(condiciones)
+        + "\n\nALIMENTOS DISPONIBLES:\n- "
+        + "\n- ".join(foods)
+    )
+    return await _ask(
+        [{"text": texto}],
+        api_key=api_key,
+        model=model,
+        temperature=0.9,
+        timeout=timeout,
+        backoff=backoff,
+    )

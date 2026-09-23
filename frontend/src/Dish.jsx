@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { createDish, logDish, searchFoods } from './api.js'
+import { createDish, generateDishes, logDish, searchFoods } from './api.js'
 import { formatMacro } from './food.js'
 
 // Lo que se puede hacer con un plato. La air fryer no está en CIQUAL —es una
@@ -286,5 +286,109 @@ export function NewDish({ slot = null, onCreated, onCancel }) {
       </div>
       </form>
     </div>
+  )
+}
+
+// Por qué no ha podido, dicho para quien está delante y no para el log.
+//
+// «Un resultado vacío tiene que nombrar el fallo correcto» (DESIGN.md): las
+// cinco formas de volver con las manos vacías piden cosas distintas, y una sola
+// frase para todas manda a repetir lo que no se arregla repitiéndolo.
+const MOTIVOS = {
+  empty_pantry:
+    'Todavía no has registrado nada. Apunta alguna comida y te propongo platos con ella.',
+  off: 'Esta función no está disponible ahora mismo.',
+  unavailable: 'No he podido preguntar. Inténtalo otra vez.',
+  unusable: 'La respuesta no se ha podido leer. Inténtalo otra vez.',
+}
+
+function motivo(refusal, scope) {
+  if (refusal !== 'quota') return MOTIVOS[refusal] ?? 'No ha salido nada esta vez.'
+  // Una cuota por minuto se pasa esperando; la del día no se pasa hasta mañana.
+  // Decirle «espera un minuto» a la segunda es mandarte a mirar el móvil para
+  // nada, y es el mismo reparto que ya hace la lectura de etiquetas.
+  return scope === 'day'
+    ? 'Se ha agotado la cuota de hoy. Vuelve mañana.'
+    : 'Demasiadas peticiones seguidas. Prueba dentro de un minuto.'
+}
+
+/**
+ * Pedir platos con lo que tienes.
+ *
+ * Es el arranque en frío de todo esto: sin repertorio no hay nada que barajar,
+ * y teclear quince platos con sus ingredientes es la tarde en la que esta clase
+ * de app se abandona. Aquí se empieza tachando en vez de tecleando.
+ *
+ * Lo que vuelve **ya está guardado**. No hay pantalla de revisión y no es un
+ * atajo: el modelo propone qué combinar y nunca cuánto suma, así que no hay
+ * ninguna cifra inventada que mirar. Lo que sí la necesitaría —un plato que
+ * nombra un alimento que no tienes— no entra: espera abajo, diciendo qué falta.
+ */
+export function ProposeDishes({ onCreated }) {
+  const [pidiendo, setPidiendo] = useState(false)
+  const [resultado, setResultado] = useState(null)
+
+  async function pedir() {
+    setPidiendo(true)
+    setResultado(null)
+    try {
+      const out = await generateDishes({ n: 6 })
+      setResultado(out)
+      if (out.created?.length) await onCreated(out.created)
+    } catch {
+      setResultado({ created: [], suggestions: [], refusal: 'unavailable' })
+    } finally {
+      setPidiendo(false)
+    }
+  }
+
+  const creados = resultado?.created ?? []
+  const sugerencias = resultado?.suggestions ?? []
+  const sinNada = resultado && creados.length === 0 && sugerencias.length === 0
+
+  return (
+    <section className="propose">
+      <button type="button" className="dish-new" disabled={pidiendo} onClick={pedir}>
+        {pidiendo ? 'Pensando…' : 'Proponme platos'}
+      </button>
+
+      {creados.length > 0 && (
+        <div className="propose-created">
+          <p className="card-eyebrow">
+            {creados.length === 1 ? '1 plato nuevo' : `${creados.length} platos nuevos`}
+          </p>
+          <ul className="propose-list">
+            {creados.map((dish) => (
+              <li key={dish.id}>{dish.name}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {sugerencias.length > 0 && (
+        <div className="propose-drawer">
+          <p className="card-eyebrow">Te faltan ingredientes</p>
+          <ul className="propose-list">
+            {sugerencias.map((s) => (
+              <li key={s.name}>
+                <span className="propose-suggestion">{s.name}</span>
+                <span className="propose-missing">Falta: {s.missing.join(', ')}</span>
+              </li>
+            ))}
+          </ul>
+          {/* Dicho aquí y no en un aviso aparte: es la única acción que
+              desbloquea esto, y sin ella la lista es un reproche. */}
+          <p className="propose-note">
+            Dalos de alta y vuelve a pedir, y estos platos se podrán guardar.
+          </p>
+        </div>
+      )}
+
+      {sinNada && (
+        <p role="status" className="propose-note">
+          {motivo(resultado.refusal, resultado.quota_scope)}
+        </p>
+      )}
+    </section>
   )
 }
