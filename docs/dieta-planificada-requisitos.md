@@ -25,7 +25,7 @@ construido la mitad de algo.
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
-| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande |
+| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **objetivo hecho** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
@@ -317,6 +317,32 @@ prueba, no una sorpresa.
 ---
 
 ## 5. Fase 4 — Objetivos y reglas (esbozo)
+
+> **La mitad del objetivo, terminada el 23-09 (backend).** `users.goal`,
+> `goal_rate` y los datos del cuerpo; `daily_targets` congelando el objetivo del
+> día la primera vez que se lee; `app/targets.py` con la fórmula y la medición;
+> `GET /targets/proposal`, `POST /targets/accept`. 25 tests.
+>
+> **Se parte en dos y el corte es el del brainstorming:** el objetivo da
+> **kcal**, y el reparto en macros es de **las reglas**. Una cosa es cuánto
+> comes y otra cómo lo repartes; mezclarlas aquí habría hecho que el objetivo
+> tuviera que saber de proteína por kilo, que es una regla.
+>
+> Lo que quedó decidido al construirlo:
+>
+> - **El factor de actividad sale de los días que entrenas**, que la app ya
+>   sabe, en vez de un «nivel de actividad» que rellena el usuario. Sigue siendo
+>   estimación —por eso la medición la sustituye—, pero no se la inventa nadie.
+> - **La medición manda en cuanto hay con qué** (14 días de registro y dos
+>   tendencias de peso), y la respuesta dice de cuál de las dos salió.
+> - **Suelo de 1.200 kcal, y se dice cuando toca.** No es prescribir: es negarse
+>   a pintar una cifra que sale de multiplicar mal un ritmo de bajada.
+> - **Los días anteriores a esto no reciben fila** en `daily_targets`. No había
+>   objetivo congelado, y escribirlo hacia atrás sería inventarse lo que aquel
+>   día decía la pantalla.
+>
+> **Falta:** las reglas (tabla, catálogo de tipos, ámbito y condición), los
+> grupos de alimento, y la pantalla de todo esto.
 
 ```
 users        + goal VARCHAR(12) NULL, goal_rate FLOAT NULL

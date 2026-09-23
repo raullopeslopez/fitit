@@ -830,3 +830,57 @@ class DishGenerateOut(BaseModel):
     # 'minute' | 'day' cuando `refusal` es 'quota': esperar un minuto y esperar
     # a mañana no se le dicen igual a nadie.
     quota_scope: str | None = None
+
+
+# --- Objetivo derivado --------------------------------------------------------
+Goal = Literal["cut", "maintain", "gain"]
+Sex = Literal["male", "female"]
+
+
+class TargetProfileIn(BaseModel):
+    """Qué quieres que pase, y lo mínimo sobre tu cuerpo para poder estimarlo.
+
+    Todo opcional: se rellena a trozos. Lo que falte lo dirá la propuesta por su
+    nombre en vez de estimarlo a ciegas.
+    """
+
+    goal: Goal | None = None
+    goal_rate: float | None = Field(default=None, ge=0, le=2)
+    height_cm: float | None = Field(default=None, gt=80, le=260)
+    birth_year: int | None = Field(default=None, ge=1900, le=2030)
+    sex: Sex | None = None
+
+
+class TargetProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    goal: Goal | None = None
+    goal_rate: float | None = None
+    height_cm: float | None = None
+    birth_year: int | None = None
+    sex: Sex | None = None
+    # Lo que hay fijado ahora mismo, que puede no ser lo que se propone.
+    objetivo_kcal: float | None = None
+
+
+class TargetProposalOut(BaseModel):
+    """Lo que la app propone. **Todavía no es tu objetivo** (decisión 18).
+
+    Un número que cambia sin avisar no se obedece, se desconfía. Así que esto se
+    mira, y se acepta aparte.
+    """
+
+    kcal: float | None = None
+    # 'measured' | 'formula' | None. La pantalla tiene que poder decir cuál, y
+    # no pintar una estimación con la misma tinta que una medición.
+    source: str | None = None
+    # Sobre cuántos días de registro se midió. 0 en la fórmula.
+    days: int = 0
+    # Qué falta para poder proponer nada, por su nombre.
+    missing: list[str] = Field(default_factory=list)
+    # Si la cifra tocó suelo. Recortar en silencio sería devolver otra cosa.
+    floored: bool = False
+
+
+class TargetAcceptIn(BaseModel):
+    kcal: float = Field(gt=0, le=10000)
