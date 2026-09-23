@@ -22,10 +22,10 @@ construido la mitad de algo.
 
 | # | Entrega | Útil sola porque… | Depende de | Tamaño |
 |---|---|---|---|---|
-| 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
+| 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **hecha** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
-| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **objetivo hecho** |
+| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **objetivo y grupos hechos; faltan las reglas y la pantalla** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
@@ -40,9 +40,9 @@ hacerla pronto aunque no luzca.
 
 ## 2. Fase 1 — Peso corporal
 
-> **Backend terminado el 21-09.** Tabla, migración, `app/weight.py`, los tres
-> endpoints y 22 tests en verde. **Falta la pantalla**, que es lo que hace que
-> la fase sea «til sola»; hasta entonces esto sólo existe para la API.
+> **Terminada el 21-09.** Tabla, migración, `app/weight.py`, los tres endpoints
+> y la tarjeta `Peso` al pie de Progreso, con la tendencia en mono y el guion de
+> lo desconocido en la tinta de una cifra. 22 tests + 2 de navegador.
 >
 > Un cambio sobre lo escrito abajo: la ventana de la tendencia **cuelga de la
 > pesada más reciente, no del reloj**. Con pesadas esporádicas (decisión 16),
