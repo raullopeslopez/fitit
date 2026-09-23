@@ -25,7 +25,7 @@ construido la mitad de algo.
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **hecha** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
-| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **backend hecho; falta la pantalla** |
+| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **hecha** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
@@ -380,7 +380,34 @@ prueba, no una sorpresa.
 >   mitad de la decisión 19. Se pide la familia y no el código porque es lo que
 >   alguien sabe de un brócoli.
 >
-> **Falta:** la pantalla de los objetivos y de las reglas.
+> **La pantalla, hecha el 23-09.** Dos superficies nuevas, las dos colgando de
+> la hoja de objetivos de Comida (el lápiz de la tarjeta de macros):
+>
+> - **`Objetivo.jsx`** abre la hoja con de dónde salen tus calorías: la cifra
+>   propuesta, si está **medida con tus datos** (y cuántos días) o **estimada
+>   con una fórmula**, qué falta para poder medirla, y el perfil (qué quieres,
+>   kg por semana, altura, año de nacimiento, sexo). «Aceptar» copia la cifra
+>   al objetivo del día; el reparto en macros sigue debajo, porque es de las
+>   reglas.
+> - **`Reglas.jsx`** es pantalla completa: tus reglas **en castellano**
+>   («Proteína entre 1,5 y 2 g por kilo, los días que entreno»), con su dureza
+>   y un «Retirar» que pone `active_to`; y el alta, que enseña sólo los campos
+>   del tipo elegido. El catálogo cerrado del backend se ve aquí como seis
+>   recetas, no como un formulario genérico.
+> - **`Veredictos`** vive en el día de Comida, bajo las macros, y **sólo pinta
+>   lo que no está bien**: lo roto y lo que no se puede saber. Una regla
+>   cumplida no ocupa sitio, que es lo contrario de un checklist.
+>
+> Dos defectos que ni jsdom ni la suite de geometría podían ver, y que salieron
+> de abrir la app en Chromium:
+>
+> - El **asa** de la hoja se había quedado a media altura, porque la sección
+>   nueva se insertó por encima del formulario que la tenía dentro. Se sacó de
+>   `Objetivos` y se pinta arriba de la hoja.
+> - **Dos cifras decían ser el objetivo del día** —la propuesta (2.600) y el
+>   total derivado del reparto (2.330)— sin nada que dijera cuál manda. Se
+>   añadió una línea bajo el total: «Tu objetivo son 2.400 kcal: te faltan 70
+>   por repartir».
 
 ```
 users        + goal VARCHAR(12) NULL, goal_rate FLOAT NULL

@@ -5218,3 +5218,143 @@ button.set-chip:active:not(:disabled) {
   margin: 0.5rem 0 0;
   max-width: 40ch;
 }
+
+/* --- Objetivo derivado ------------------------------------------------------
+   La cifra grande es una propuesta, no tu objetivo: se mira y se acepta aparte.
+   Mono tabular, como todo número de esta app. */
+.objetivo {
+  margin-bottom: 1.1rem;
+}
+.objetivo-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0.1rem;
+}
+.objetivo-kcal {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.objetivo-unit {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--muted);
+}
+/* De dónde salió. Una estimación y una medición no se dicen igual. */
+.objetivo-fuente {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.objetivo-falta {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 0.7rem;
+  max-width: 40ch;
+}
+.objetivo-row {
+  display: flex;
+  gap: 0.6rem;
+}
+.objetivo-row .field {
+  flex: 1;
+}
+.objetivo-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin: 0.4rem 0 0.2rem;
+}
+.reglas-puerta {
+  margin: 0 0 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.6rem;
+}
+
+/* --- Reglas ---------------------------------------------------------------- */
+.reglas-lista {
+  list-style: none;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.regla {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.6rem;
+  align-items: baseline;
+}
+.regla-frase {
+  font-size: 0.95rem;
+}
+.regla-dureza {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  grid-column: 1;
+}
+.regla-retirar {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 0.5rem 0 0.5rem 0.5rem;
+}
+.regla-vacio {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.reglas-nueva {
+  margin-top: 0.4rem;
+}
+
+/* --- Veredictos del día -----------------------------------------------------
+   Sólo lo que pide algo. Y `no puedo saberlo` no se pinta como `incumples`:
+   uno es la ausencia de un juicio y el otro es un juicio. */
+.veredictos {
+  list-style: none;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.veredicto {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  border-left: 2px solid var(--border);
+  padding-left: 0.6rem;
+}
+.veredicto.is-broken {
+  border-left-color: var(--accent);
+}
+.veredicto-regla {
+  color: var(--text);
+}
+.veredicto-estado {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* Lo que falta por repartir para llegar al objetivo aceptado. Va pegado al
+   total que comenta, no como un aviso aparte. */
+.food-goals-gap {
+  margin-top: -0.4rem;
+}

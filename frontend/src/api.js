@@ -412,3 +412,46 @@ export function generateDishes({ methods = [], minutes = null, n = 6 } = {}) {
     body: JSON.stringify({ methods, minutes, n }),
   })
 }
+
+// --- Objetivo derivado --------------------------------------------------------
+// Tu perfil: qué quieres que le pase a tu cuerpo y lo mínimo sobre él para
+// poder estimar el gasto mientras no haya historial con el que medirlo.
+export function getTargetProfile() {
+  return apiFetch('/targets')
+}
+
+export function saveTargetProfile(fields) {
+  return apiFetch('/targets', { method: 'PATCH', body: JSON.stringify(fields) })
+}
+
+// Lo que la app propone. **No lo fija**: un número que cambia sin avisar no se
+// obedece, se desconfía. `source` dice si salió de la fórmula o de tus datos.
+export function getTargetProposal() {
+  return apiFetch('/targets/proposal')
+}
+
+export function acceptTarget(kcal) {
+  return apiFetch('/targets/accept', { method: 'POST', body: JSON.stringify({ kcal }) })
+}
+
+// --- Reglas -------------------------------------------------------------------
+export function listRules() {
+  return apiFetch('/rules')
+}
+
+export function createRule(rule) {
+  return apiFetch('/rules', { method: 'POST', body: JSON.stringify(rule) })
+}
+
+// Retirar, no borrar: se le pone fecha de fin, para que el pasado siga juzgado
+// como se juzgó.
+export function retireRule(ruleId, on) {
+  return apiFetch(`/rules/${ruleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ active_to: on }),
+  })
+}
+
+export function dayVerdicts(day = null) {
+  return apiFetch(`/rules/verdicts${day ? `?day=${day}` : ''}`)
+}
