@@ -26,7 +26,7 @@ construido la mitad de algo.
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **hecha** |
-| 5 | **El generador** | existe la semana | 2, 4 | grande |
+| 5 | **El generador** | existe la semana | 2, 4 | grande · **hecha (backend)** |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
 La decisión 12 («la IA entra en la v1») se cumple: la fase 3 aterriza mucho
@@ -433,7 +433,43 @@ rules          user_id, type, scope ('day'|'week'|'slot'), slot NULL,
 
 ---
 
-## 6. Fase 5 — El generador (esbozo)
+## 6. Fase 5 — El generador
+
+> **Terminada el 23-09 (backend).** `nutrition.ajustar_gramos`, `app/planner.py`,
+> las tablas `plans`/`plan_entries`, la banda y los huecos en el repertorio, y
+> `POST /plans` + `GET /plans/{week_start}`. 47 tests. **Falta la pantalla**,
+> que es la fase 6.
+>
+> Cinco decisiones tomadas al construirlo, todas sobre lo escrito abajo:
+>
+> - **El ajuste vive en `nutrition.py`, no en el planificador.** Es aritmética
+>   de nutrientes, y de ésa sólo puede haber una en la app. La banda
+>   `[min_grams, max_grams]` es lo que separa un plan de la solución de una
+>   ecuación: sin ella, cerrar el día contesta «900 g de arroz» con toda la
+>   razón matemática del mundo.
+> - **Las reglas duras de hueco filtran preguntándole al motor de reglas**, con
+>   un día de un solo hueco, en vez de reimplementar el juicio. Un `unknown` no
+>   descarta: no saber no es incumplir, y descartaría todo plato sin clasificar.
+> - **El enfriamiento y la memoria de la semana pasada ceden antes que el
+>   plan.** Preferir una semana con repeticiones a no dar semana es la misma
+>   decisión que tomó `repertoire.py`. Lo que no cede es el mismo plato dos
+>   veces el mismo día.
+> - **Un ingrediente sin el macro que se persigue se queda quieto**, no revienta
+>   la generación. Es la regla del `NULL` leída desde el generador.
+> - **`dishes.slots` es nuevo y no estaba en el esbozo.** Sin él, unas lentejas
+>   pueden caer en el desayuno: el hueco de un plato es conocimiento del usuario
+>   y ninguna regla lo sustituye. `NULL` es «no lo has dicho» y vale para
+>   cualquier hueco, para no dejar fuera el repertorio que ya existe.
+>
+> **Lo que es una predicción y conviene saber:** qué días entrenas la semana que
+> viene se deduce del día de la semana en el último mes (al menos 2 de 4). Los
+> días ya pasados no se predicen, se saben. Sin esa deducción, «más hidratos los
+> días que entreno» no podría aplicarse nunca a una semana futura.
+>
+> **Lo que no se construyó:** la puntuación por plato de la decisión 14 (no hay
+> «me gusta» todavía, así que todos pesan igual), y `plan_entries.status`, que
+> existe en la tabla y nadie escribe — es de la fase 6.
+
 
 ```
 plans         user_id, week_start, seed, created_at

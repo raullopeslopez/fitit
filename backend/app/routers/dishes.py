@@ -81,12 +81,16 @@ def _to_out(dish: Dish, foods: dict[int, Food]) -> DishOut:
         servings=dish.servings,
         basis=dish.basis,
         method=dish.method,
+        slots=dish.slots.split(",") if dish.slots else None,
+        is_block=dish.is_block,
         ingredients=[
             {
                 "id": i.id,
                 "food_id": i.food_id,
                 "food_name": foods[i.food_id].name,
                 "grams": i.grams,
+                "min_grams": i.min_grams,
+                "max_grams": i.max_grams,
             }
             for i in dish.ingredients
         ],
@@ -124,8 +128,16 @@ async def create_dish(
         basis=payload.basis,
         method=payload.method,
         servings=payload.servings,
+        slots=",".join(payload.slots) if payload.slots else None,
+        is_block=payload.is_block,
         ingredients=[
-            DishIngredient(food_id=i.food_id, grams=i.grams) for i in payload.ingredients
+            DishIngredient(
+                food_id=i.food_id,
+                grams=i.grams,
+                min_grams=i.min_grams,
+                max_grams=i.max_grams,
+            )
+            for i in payload.ingredients
         ],
     )
     session.add(dish)
@@ -174,13 +186,21 @@ async def correct_dish(
     if "name" in fields:
         dish.name = fields["name"]
         dish.name_folded = fold(fields["name"])
-    for key in ("servings", "basis", "method"):
+    for key in ("servings", "basis", "method", "is_block"):
         if key in fields:
             setattr(dish, key, fields[key])
+    if "slots" in fields:
+        dish.slots = ",".join(fields["slots"]) if fields["slots"] else None
     if payload.ingredients is not None:
         await _foods(session, user_id, [i.food_id for i in payload.ingredients])
         dish.ingredients = [
-            DishIngredient(food_id=i.food_id, grams=i.grams) for i in payload.ingredients
+            DishIngredient(
+                food_id=i.food_id,
+                grams=i.grams,
+                min_grams=i.min_grams,
+                max_grams=i.max_grams,
+            )
+            for i in payload.ingredients
         ]
 
     await session.commit()

@@ -16,7 +16,7 @@ from ..auth import get_current_user
 from ..db import get_session
 from ..food_groups import familia
 from ..models import BodyWeight, Day, Dish, Food, LogEntry, Rule
-from ..rules import Comida, Contexto, Dia, RuleRefused, aceptable, evaluar, validar
+from ..rules import Comida, Contexto, Dia, RuleRefused, aceptable, desde_fila, evaluar, validar
 from ..schemas import DayVerdictsOut, RuleIn, RuleOut, RulePatch, VerdictOut
 from ..weight import tendencia
 
@@ -38,17 +38,7 @@ def _to_out(row: Rule) -> RuleOut:
 
 
 def _as_dict(row: Rule) -> dict:
-    return {
-        "id": row.id,
-        "type": row.type,
-        "scope": row.scope,
-        "slot": row.slot,
-        "day_condition": row.day_condition,
-        "hardness": row.hardness,
-        "params": json.loads(row.params_json),
-        "active_from": row.active_from,
-        "active_to": row.active_to,
-    }
+    return desde_fila(row)
 
 
 @router.post("", response_model=RuleOut, status_code=status.HTTP_201_CREATED)

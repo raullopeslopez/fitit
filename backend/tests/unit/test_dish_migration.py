@@ -27,13 +27,23 @@ BACKEND = Path(__file__).resolve().parents[2]
 VERSIONS = BACKEND / "alembic" / "versions"
 
 MIGRATION = "c4e8b21d7f09_add_dishes.py"
+# Las que tocan después una columna de estas tablas, en orden. Mismo criterio
+# que `COLUMN_MIGRATIONS` en `test_food_migration.py`: sin ellas la paridad se
+# compara contra unos modelos que ya no son los que la cadena construye.
+POSTERIORES = (
+    # `dishes.slots` / `is_block` y la banda de `dish_ingredients`, que es lo
+    # que el generador necesita para saber qué se deja mover.
+    "a9e4f27b0c15_add_plans.py",
+)
 TABLES = ("dishes", "dish_ingredients")
 
 
 def _migrated():
-    spec = importlib.util.spec_from_file_location("migration_dishes", VERSIONS / MIGRATION)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    def _cargar(filename):
+        spec = importlib.util.spec_from_file_location(f"migration_{filename}", VERSIONS / filename)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
     engine = create_engine("sqlite://")
     with engine.begin() as conn:
@@ -43,7 +53,8 @@ def _migrated():
         conn.execute(text("CREATE TABLE log_entries (id INTEGER PRIMARY KEY)"))
         context = MigrationContext.configure(conn)
         with Operations.context(context):
-            module.upgrade()
+            for filename in (MIGRATION, *POSTERIORES):
+                _cargar(filename).upgrade()
         inspector = inspect(conn)
         schema = {
             table: {c["name"]: c["nullable"] for c in inspector.get_columns(table)}
