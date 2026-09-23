@@ -19,6 +19,7 @@ from sqlalchemy.orm import defer, selectinload
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
+from ..food_groups import FAMILIAS
 from ..gemini import LabelUnreadable, read_label
 from ..label import ColumnRefused, read_from_payload
 from ..openfoodfacts import (
@@ -80,6 +81,21 @@ async def get_barcode_lookup():
     qué hacemos con lo que conteste — que es donde está todo el riesgo.
     """
     return fetch
+
+
+# De la familia que eliges al código que se guarda.
+#
+# Se pide la **familia** y no el código porque es lo que alguien sabe de un
+# brócoli, y porque es el vocabulario que hablan las reglas. Se guarda el primer
+# subgrupo de esa familia: `familia()` lo vuelve a leer como la misma familia,
+# que es lo único que se consulta. La distinción que se pierde —pescado crudo
+# contra cocinado— no la pregunta ninguna regla.
+def _codigos_de_familia(nombre: str | None) -> tuple[str | None, str | None]:
+    codes = FAMILIAS.get(nombre or "")
+    if not codes:
+        return None, None
+    subgroup = codes[0]
+    return subgroup[:2], subgroup
 
 
 async def get_label_reader():
@@ -253,6 +269,7 @@ async def create_food(
         fat_100g=payload.fat_100g,
         carbs_100g=payload.carbs_100g,
         fiber_100g=payload.fiber_100g,
+        **dict(zip(("group_code", "subgroup_code"), _codigos_de_familia(payload.familia), strict=True)),
     )
     session.add(food)
     await session.flush()

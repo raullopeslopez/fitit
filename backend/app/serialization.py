@@ -8,6 +8,7 @@ needs to know about the diary).
 from datetime import UTC
 
 from .models import Food, LogEntry
+from .food_groups import familia
 from .schemas import FoodOut, LogEntryOut, PortionOut
 
 
@@ -23,6 +24,7 @@ def to_food_out(food: Food, user_id: int) -> FoodOut:
         fat_100g=food.fat_100g,
         carbs_100g=food.carbs_100g,
         fiber_100g=food.fiber_100g,
+        familia=familia(food.subgroup_code),
         barcode=food.barcode,
         portions=[PortionOut.model_validate(p) for p in food.portions],
         is_mine=food.user_id == user_id,

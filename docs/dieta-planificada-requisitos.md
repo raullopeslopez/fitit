@@ -25,7 +25,7 @@ construido la mitad de algo.
 | 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **hecha** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
-| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **objetivo y grupos hechos; faltan las reglas y la pantalla** |
+| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **backend hecho; falta la pantalla** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
@@ -356,8 +356,31 @@ prueba, no una sorpresa.
 > **Ojo al desplegar:** los alimentos ya cargados se quedan sin código hasta que
 > se vuelva a pasar `scripts/import_ciqual.py`, que es idempotente.
 >
-> **Falta:** las reglas (tabla, catálogo de tipos, ámbito y condición) y la
-> pantalla de todo esto.
+> **Las reglas, hechas el 23-09 (backend).** Tabla `rules` con **ámbito**
+> (`day`, `week`, `slot`), **condición** (`training`, `rest`, ninguna) y
+> **dureza** (`hard`, `soft`); `app/rules.py` con el catálogo cerrado de seis
+> tipos y sus evaluadores; `POST/GET/PATCH /rules` y `GET /rules/verdicts`.
+> Con esto se expresan las ocho reglas de §32 del brainstorming.
+>
+> Decisiones tomadas al construirlo:
+>
+> - **`params_json` y no columnas.** Los seis tipos piden cosas distintas y
+>   seis juegos de columnas mayormente nulas describirían peor lo que hay. La
+>   garantía la dan el validador y los tests, no el esquema.
+> - **Una regla se retira, no se borra.** No hay `DELETE`: se le pone
+>   `active_to`. Cambiar de opinión en octubre no puede reescribir cómo se
+>   juzgó septiembre.
+> - **Retirada y callada no son lo mismo.** Una condicionada al tipo de día
+>   sigue siendo tuya y sale como `n_a`; una retirada no sale, porque
+>   enseñarla cada día como «no aplica» sería ruido para siempre.
+> - **`unknown` no es `broken`.** Sin tendencia de peso, o con un alimento sin
+>   clasificar, la regla dice que no puede saber y cuenta cuántos no pudo
+>   clasificar. No saber no estropea el día.
+> - **Al dar de alta un alimento se puede decir su familia**, que es la otra
+>   mitad de la decisión 19. Se pide la familia y no el código porque es lo que
+>   alguien sabe de un brócoli.
+>
+> **Falta:** la pantalla de los objetivos y de las reglas.
 
 ```
 users        + goal VARCHAR(12) NULL, goal_rate FLOAT NULL

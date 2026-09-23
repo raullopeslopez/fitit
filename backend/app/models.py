@@ -483,3 +483,41 @@ class DailyTarget(Base):
     # pintar una estimación con la misma tinta que una medición.
     source: Mapped[str] = mapped_column(String(10), default="manual", server_default="manual")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Rule(Base):
+    """Una regla que sigues al comer.
+
+    Tres cosas la describen y las tres hacen falta: **ámbito** (`day`, `week`,
+    `slot`), **condición** (`training`, `rest`, o ninguna) y **dureza** (`hard`,
+    `soft`). Sin ámbito, «verdura» no dice dónde; sin condición, «más hidratos
+    los días que entreno» no se puede expresar; y sin dureza, un día normal
+    incumpliría siempre y el número dejaría de mirarse.
+
+    `params_json` y no columnas: los seis tipos piden cosas distintas —una banda
+    por kilo, un porcentaje, una familia, un modo de cocinado— y seis juegos de
+    columnas mayormente nulas describen peor lo que hay. **La garantía la dan
+    el validador y los tests, no el esquema**: `app/rules.py` tiene el catálogo
+    cerrado y nada llega aquí sin pasar por él.
+
+    **Una regla no se borra: se retira**, poniéndole `active_to`. Cambiar de
+    opinión en octubre no puede reescribir cómo se juzgó septiembre — la misma
+    razón por la que las entradas del diario congelan sus macros.
+    """
+
+    __tablename__ = "rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    type: Mapped[str] = mapped_column(String(24))
+    scope: Mapped[str] = mapped_column(String(8))
+    # Sólo cuando `scope` es 'slot': desayuno | comida | cena | snack.
+    slot: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # 'training' | 'rest' | NULL. NULL es «todos los días», no «ninguno».
+    day_condition: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    hardness: Mapped[str] = mapped_column(String(4), default="soft", server_default="soft")
+    params_json: Mapped[str] = mapped_column(Text)
+    active_from: Mapped[date] = mapped_column(Date)
+    # NULL es «sigue vigente». Retirarla es ponerle fecha, no borrar la fila.
+    active_to: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
