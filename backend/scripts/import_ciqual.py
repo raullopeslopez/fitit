@@ -92,6 +92,8 @@ async def load(session: AsyncSession, foods: list[dict]) -> tuple[int, int]:
             "source": "ciqual",
             "source_ref": row["source_ref"],
             "carb_convention": row["carb_convention"],
+            "group_code": row["group_code"],
+            "subgroup_code": row["subgroup_code"],
             "kcal_100g": row["kcal_100g"],
             "protein_100g": row["protein_100g"],
             "fat_100g": row["fat_100g"],

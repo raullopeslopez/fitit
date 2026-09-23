@@ -341,8 +341,23 @@ prueba, no una sorpresa.
 >   objetivo congelado, y escribirlo hacia atrás sería inventarse lo que aquel
 >   día decía la pantalla.
 >
-> **Falta:** las reglas (tabla, catálogo de tipos, ámbito y condición), los
-> grupos de alimento, y la pantalla de todo esto.
+> **Los grupos de alimento, hechos el 23-09.** `foods.group_code` y
+> `subgroup_code`, el import de CIQUAL escribiéndolos —**ya los leía y los
+> tiraba**—, y `app/food_groups.py` con el vocabulario que hablarán las reglas:
+> verdura, tubérculo, legumbre, fruta, frutos secos, cereal, carne, pescado,
+> huevo y lácteo, sobre el nivel 2 de CIQUAL. El nivel 1 no sirve para reglas:
+> frutas, verduras, legumbres y frutos secos caen todos en el mismo cajón.
+>
+> Se guardan **los códigos**, no los nombres franceses, que habría que traducir
+> y mantener traducidos. Y sin clasificar es `None`, nunca «no es verdura»: 45
+> filas de CIQUAL no tienen grupo y ninguno de tus alimentos a mano lo trae, así
+> que una regla que cuente verduras tendrá que contarlos aparte.
+>
+> **Ojo al desplegar:** los alimentos ya cargados se quedan sin código hasta que
+> se vuelva a pasar `scripts/import_ciqual.py`, que es idempotente.
+>
+> **Falta:** las reglas (tabla, catálogo de tipos, ámbito y condición) y la
+> pantalla de todo esto.
 
 ```
 users        + goal VARCHAR(12) NULL, goal_rate FLOAT NULL

@@ -235,6 +235,13 @@ class Food(Base):
     fiber_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Everything CIQUAL carries beyond the five macros, as a JSON object.
     nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # La clasificación de CIQUAL, en códigos. `0201` es verdura, `0203`
+    # legumbre, `0202` tubérculo — el mapa a familias vive en
+    # `app/food_groups.py`. Nullable porque hay 45 filas de CIQUAL sin grupo y
+    # porque ningún alimento que des de alta a mano lo trae: eso es **sin
+    # clasificar**, nunca «no es verdura».
+    group_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    subgroup_code: Mapped[str | None] = mapped_column(String(8), index=True, nullable=True)
     is_recipe: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # Hidden from search without breaking the entries that point at it.
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())

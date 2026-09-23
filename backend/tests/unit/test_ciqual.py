@@ -85,7 +85,8 @@ class TestRowToFood:
         base = {
             "alim_code": 9621.0,
             "alim_nom_fr": "Son de blé",
-            "alim_grp_nom_fr": "produits céréaliers",
+            "alim_grp_code": "03",
+            "alim_ssgrp_code": "0301",
             "Energie, Règlement UE N° 1169/2011 (kcal/100 g)": "279",
             "Protéines, N x facteur de Jones (g/100 g)": "15,4",
             "Lipides (g/100 g)": "< 0,3",
@@ -95,6 +96,19 @@ class TestRowToFood:
         }
         base.update(overrides)
         return base
+
+    def test_los_codigos_de_grupo_pasan_a_la_fila(self):
+        """Lo que deja a una regla decir «verdura» o «legumbre»."""
+        food = row_to_food(self.row())
+        assert food["group_code"] == "03"
+        assert food["subgroup_code"] == "0301"
+
+    def test_un_alimento_sin_grupo_queda_sin_clasificar_y_no_en_ninguno(self):
+        """Los 45 «aliment moyen» de CIQUAL. `None` es «no se sabe», y una regla
+        de verduras tiene que contarlos aparte en vez de darlos por no-verdura."""
+        food = row_to_food(self.row(alim_grp_code="", alim_ssgrp_code=""))
+        assert food["group_code"] is None
+        assert food["subgroup_code"] is None
 
     def test_macros_a_columna_propia(self):
         food = row_to_food(self.row())

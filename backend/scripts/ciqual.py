@@ -34,7 +34,11 @@ MACRO_COLUMNS = {
 
 NAME_COLUMN = "alim_nom_fr"
 CODE_COLUMN = "alim_code"
-GROUP_COLUMN = "alim_grp_nom_fr"
+# Los códigos y no los nombres: `0201` es estable y no habla ningún idioma,
+# mientras que `légumes` habría que traducirlo y mantenerlo traducido. El mapa
+# a español vive en `app/food_groups.py`, junto a las reglas que lo usan.
+GROUP_CODE_COLUMN = "alim_grp_code"
+SUBGROUP_CODE_COLUMN = "alim_ssgrp_code"
 
 # Las columnas descriptivas: ni son nutrientes ni van a `nutrients_json`.
 NON_NUTRIENT_COLUMNS = {
@@ -187,7 +191,10 @@ def row_to_food(row: dict) -> dict:
         "source_ref": code,
         # La convención europea: la fibra no está dentro de los glúcidos.
         "carb_convention": "available",
-        "group": str(row.get(GROUP_COLUMN, "")).strip() or None,
+        # Vacío es **sin clasificar**, no «ninguno»: 45 filas de CIQUAL no
+        # tienen grupo, y una regla de verduras tiene que contarlas aparte.
+        "group_code": str(row.get(GROUP_CODE_COLUMN, "")).strip() or None,
+        "subgroup_code": str(row.get(SUBGROUP_CODE_COLUMN, "")).strip() or None,
         "nutrients": nutrients,
         **macros,
     }
