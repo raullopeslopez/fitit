@@ -369,6 +369,12 @@ class FoodIn(BaseModel):
     # preguntarle a nadie. Sólo llega desde un formulario que alguien confirmó:
     # escanear no da de alta nada por su cuenta.
     barcode: str | None = Field(default=None, max_length=14)
+    # A qué familia pertenece: verdura, legumbre, tubérculo… Se pide aquí
+    # porque un alimento que das de alta no trae la clasificación de CIQUAL, y
+    # sin ella una regla de «verdura en la comida» no puede contarlo. Opcional:
+    # no saberlo es **sin clasificar**, que la regla dirá aparte, y es mejor que
+    # obligar a elegir una familia al azar con tal de rellenar el hueco.
+    familia: str | None = Field(default=None, max_length=16)
 
     @field_validator("brand")
     @classmethod
@@ -443,6 +449,8 @@ class FoodOut(BaseModel):
     fat_100g: float | None = None
     carbs_100g: float | None = None
     fiber_100g: float | None = None
+    # La familia, derivada del código de grupo. `None` es sin clasificar.
+    familia: str | None = None
     # El código del envase, cuando lo tiene. Sin él la pantalla no puede
     # enseñarlo, ni dejar corregirlo, ni distinguir un alimento escaneado de
     # uno tecleado a mano.
@@ -884,3 +892,72 @@ class TargetProposalOut(BaseModel):
 
 class TargetAcceptIn(BaseModel):
     kcal: float = Field(gt=0, le=10000)
+
+
+# --- Reglas -------------------------------------------------------------------
+RuleScope = Literal["day", "week", "slot"]
+RuleCondition = Literal["training", "rest"]
+RuleHardness = Literal["hard", "soft"]
+
+
+class RuleIn(BaseModel):
+    """Una regla. El tipo y sus parámetros los valida `app/rules.py`, que tiene
+    el catálogo cerrado — aquí sólo se comprueba la forma."""
+
+    type: str = Field(min_length=1, max_length=24)
+    scope: RuleScope
+    slot: MealSlot | None = None
+    day_condition: RuleCondition | None = None
+    hardness: RuleHardness = "soft"
+    params: dict = Field(default_factory=dict)
+
+
+class RulePatch(BaseModel):
+    """Corregir o **retirar**. Retirar es ponerle `active_to`, no borrar la
+    fila: cambiar de opinión en octubre no puede reescribir cómo se juzgó
+    septiembre."""
+
+    hardness: RuleHardness | None = None
+    params: dict | None = None
+    active_to: Date | None = None
+
+
+class RuleOut(BaseModel):
+    id: int
+    type: str
+    scope: RuleScope
+    slot: MealSlot | None = None
+    day_condition: RuleCondition | None = None
+    hardness: RuleHardness
+    params: dict = Field(default_factory=dict)
+    active_from: Date
+    active_to: Date | None = None
+
+
+class VerdictOut(BaseModel):
+    """Qué dice una regla de un día.
+
+    `state` distingue cuatro cosas que no son la misma: `met`, `broken`,
+    `unknown` —falta un dato, que **no es incumplir**— y `n_a`, que es «hoy no
+    aplica».
+    """
+
+    rule_id: int | None = None
+    type: str
+    hardness: RuleHardness
+    state: Literal["met", "broken", "unknown", "n_a"]
+    # Por cuánto se incumple, en la unidad de la regla (gramos, puntos de
+    # porcentaje, días). Negativo cuando lo que sobra es de más.
+    short_by: float | None = None
+    # Cuántos alimentos no se pudieron clasificar. Sin esto, un `unknown` no
+    # sabría decir por qué.
+    unclassified: int = 0
+    detail: str = ""
+
+
+class DayVerdictsOut(BaseModel):
+    date: Date
+    verdicts: list[VerdictOut] = Field(default_factory=list)
+    # Si el día vale. Lo estropea una regla **dura** rota; una blanda lo
+    # empeora, y un `unknown` no lo juzga.
+    acceptable: bool = True

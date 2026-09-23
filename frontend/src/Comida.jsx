@@ -5,8 +5,10 @@ import {
   correctFoodEntry,
   createFood,
   deleteFoodEntry,
+  dayVerdicts,
   frequentFoods,
   listDishes,
+  listRules,
   getFoodDay,
   logFood,
   readLabel,
@@ -16,6 +18,8 @@ import {
   setTargets,
 } from './api.js'
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
+import Objetivo from './Objetivo.jsx'
+import Reglas, { Veredictos } from './Reglas.jsx'
 import {
   MACROS,
   MEAL_SLOTS,
@@ -104,6 +108,13 @@ export default function Comida() {
   // Tus platos. Se cargan con los frecuentes y por lo mismo: los dos son
   // atajos para no volver a teclear lo que ya has tecleado una vez.
   const [platos, setPlatos] = useState([])
+  // Lo que tus reglas dicen de hoy, y las reglas mismas para poder nombrarlas.
+  // Van juntas porque un veredicto sin su regla es un id y un estado.
+  const [reglas, setReglas] = useState([])
+  const [veredictos, setVeredictos] = useState([])
+  // La pantalla de reglas, que ocupa la pantalla entera: leerlas, añadir y
+  // retirar no cabe en el hueco de una hoja.
+  const [reglasOpen, setReglasOpen] = useState(false)
   // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
   // El nombre no está congelado en la entrada a propósito: es una etiqueta de
   // agrupación, no un dato del día, así que renombrar el plato retitula bien.
@@ -139,6 +150,13 @@ export default function Comida() {
     } catch {
       setError('No se ha podido cargar el día.')
     }
+    // Aparte y sin tumbar el día: un veredicto que no llega deja la lista
+    // intacta. Lo que las reglas digan es información sobre el día, no el día.
+    try {
+      setVeredictos((await dayVerdicts(iso))?.verdicts ?? [])
+    } catch {
+      setVeredictos([])
+    }
   }, [])
 
   // Un repertorio que no llega no es un error de la pantalla: la lista del día
@@ -155,6 +173,11 @@ export default function Comida() {
       setPlatos((await listDishes()) ?? [])
     } catch {
       setPlatos([])
+    }
+    try {
+      setReglas((await listRules()) ?? [])
+    } catch {
+      setReglas([])
     }
   }, [])
 
@@ -322,8 +345,27 @@ export default function Comida() {
             aria-label="Objetivos diarios"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* El asa va aquí, arriba del todo: vivía dentro del formulario de
+                reparto y, al entrar una sección por encima, quedaba en mitad de
+                la hoja — que es donde un asa deja de leerse como un asa. */}
+            <Asa />
+            {/* De dónde salen las kcal, encima del reparto: el objetivo da el
+                total y las reglas lo reparten — son dos capas y se leen en ese
+                orden. */}
+            <Objetivo
+              onAccepted={async () => {
+                await load(dayIso)
+                setTargetOpen(false)
+              }}
+            />
+            <p className="reglas-puerta">
+              <button type="button" className="dish-new" onClick={() => setReglasOpen(true)}>
+                Tus reglas
+              </button>
+            </p>
             <Objetivos
               initial={targets}
+              objetivo={day?.target_kcal ?? null}
               busy={savingTarget}
               onSave={saveTarget}
               onCancel={() => setTargetOpen(false)}
@@ -332,9 +374,23 @@ export default function Comida() {
         </div>
       )}
 
+      {reglasOpen && (
+        <Reglas
+          onChanged={async () => {
+            await loadSiempre()
+            await load(dayIso)
+          }}
+          onClose={() => setReglasOpen(false)}
+        />
+      )}
+
       {error && <p className="alert">{error}</p>}
 
       {day && <MacroCard day={day} />}
+
+      {/* Sólo se pinta lo que pide algo: una regla cumplida no necesita
+          decirse, y una que hoy no aplica menos todavía. */}
+      <Veredictos verdicts={veredictos} rules={reglas} />
 
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
           contrario de lo que dice. Así que se explica en voz alta — y ahora se
@@ -480,7 +536,7 @@ export default function Comida() {
 // El total se recalcula al teclear, antes de guardar nada, porque el reparto es
 // justo lo que hay que ver mientras se decide. La cuenta es la misma que hace el
 // servidor al guardar (`atwater_kcal`), y hay una prueba que ata las dos.
-function Objetivos({ initial, busy, onSave, onCancel }) {
+function Objetivos({ initial, objetivo = null, busy, onSave, onCancel }) {
   const [values, setValues] = useState(initial)
   const number = (raw) => {
     const value = Number(String(raw).replace(',', '.'))
@@ -505,7 +561,6 @@ function Objetivos({ initial, busy, onSave, onCancel }) {
         onSave(values)
       }}
     >
-      <Asa />
       <header className="food-detail-head">
         <h2 className="food-detail-name">Objetivos diarios</h2>
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
@@ -552,6 +607,19 @@ function Objetivos({ initial, busy, onSave, onCancel }) {
         <span className="food-detail-label">Total derivado</span>
         <span className="food-detail-value">{formatMacro(derived)} kcal</span>
       </p>
+
+      {/* Dos cifras diciendo ser tu objetivo —la aceptada arriba y la que sale
+          de repartir aquí— y nada que dijera cuál manda. Manda la de arriba: el
+          objetivo da el total y esto lo reparte. Así que aquí se dice cuánto
+          falta por repartir, que convierte la contradicción en una cuenta. */}
+      {objetivo != null && derived != null && Math.abs(objetivo - derived) > 1 && (
+        <p className="hint food-goals-gap">
+          Tu objetivo son {formatMacro(objetivo)} kcal:{' '}
+          {derived < objetivo
+            ? `te faltan ${formatMacro(objetivo - derived)} por repartir.`
+            : `te sobran ${formatMacro(derived - objetivo)}.`}
+        </p>
+      )}
 
       <button type="submit" className="primary btn-full" disabled={busy}>
         Guardar objetivos

@@ -22,10 +22,10 @@ construido la mitad de algo.
 
 | # | Entrega | Útil sola porque… | Depende de | Tamaño |
 |---|---|---|---|---|
-| 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **backend hecho** |
+| 1 | **Peso corporal** | ves tu peso y su tendencia | — | pequeña · **hecha** |
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
-| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **objetivo hecho** |
+| 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **hecha** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande |
 | 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
 
@@ -40,9 +40,9 @@ hacerla pronto aunque no luzca.
 
 ## 2. Fase 1 — Peso corporal
 
-> **Backend terminado el 21-09.** Tabla, migración, `app/weight.py`, los tres
-> endpoints y 22 tests en verde. **Falta la pantalla**, que es lo que hace que
-> la fase sea «til sola»; hasta entonces esto sólo existe para la API.
+> **Terminada el 21-09.** Tabla, migración, `app/weight.py`, los tres endpoints
+> y la tarjeta `Peso` al pie de Progreso, con la tendencia en mono y el guion de
+> lo desconocido en la tinta de una cifra. 22 tests + 2 de navegador.
 >
 > Un cambio sobre lo escrito abajo: la ventana de la tendencia **cuelga de la
 > pesada más reciente, no del reloj**. Con pesadas esporádicas (decisión 16),
@@ -356,8 +356,58 @@ prueba, no una sorpresa.
 > **Ojo al desplegar:** los alimentos ya cargados se quedan sin código hasta que
 > se vuelva a pasar `scripts/import_ciqual.py`, que es idempotente.
 >
-> **Falta:** las reglas (tabla, catálogo de tipos, ámbito y condición) y la
-> pantalla de todo esto.
+> **Las reglas, hechas el 23-09 (backend).** Tabla `rules` con **ámbito**
+> (`day`, `week`, `slot`), **condición** (`training`, `rest`, ninguna) y
+> **dureza** (`hard`, `soft`); `app/rules.py` con el catálogo cerrado de seis
+> tipos y sus evaluadores; `POST/GET/PATCH /rules` y `GET /rules/verdicts`.
+> Con esto se expresan las ocho reglas de §32 del brainstorming.
+>
+> Decisiones tomadas al construirlo:
+>
+> - **`params_json` y no columnas.** Los seis tipos piden cosas distintas y
+>   seis juegos de columnas mayormente nulas describirían peor lo que hay. La
+>   garantía la dan el validador y los tests, no el esquema.
+> - **Una regla se retira, no se borra.** No hay `DELETE`: se le pone
+>   `active_to`. Cambiar de opinión en octubre no puede reescribir cómo se
+>   juzgó septiembre.
+> - **Retirada y callada no son lo mismo.** Una condicionada al tipo de día
+>   sigue siendo tuya y sale como `n_a`; una retirada no sale, porque
+>   enseñarla cada día como «no aplica» sería ruido para siempre.
+> - **`unknown` no es `broken`.** Sin tendencia de peso, o con un alimento sin
+>   clasificar, la regla dice que no puede saber y cuenta cuántos no pudo
+>   clasificar. No saber no estropea el día.
+> - **Al dar de alta un alimento se puede decir su familia**, que es la otra
+>   mitad de la decisión 19. Se pide la familia y no el código porque es lo que
+>   alguien sabe de un brócoli.
+>
+> **La pantalla, hecha el 23-09.** Dos superficies nuevas, las dos colgando de
+> la hoja de objetivos de Comida (el lápiz de la tarjeta de macros):
+>
+> - **`Objetivo.jsx`** abre la hoja con de dónde salen tus calorías: la cifra
+>   propuesta, si está **medida con tus datos** (y cuántos días) o **estimada
+>   con una fórmula**, qué falta para poder medirla, y el perfil (qué quieres,
+>   kg por semana, altura, año de nacimiento, sexo). «Aceptar» copia la cifra
+>   al objetivo del día; el reparto en macros sigue debajo, porque es de las
+>   reglas.
+> - **`Reglas.jsx`** es pantalla completa: tus reglas **en castellano**
+>   («Proteína entre 1,5 y 2 g por kilo, los días que entreno»), con su dureza
+>   y un «Retirar» que pone `active_to`; y el alta, que enseña sólo los campos
+>   del tipo elegido. El catálogo cerrado del backend se ve aquí como seis
+>   recetas, no como un formulario genérico.
+> - **`Veredictos`** vive en el día de Comida, bajo las macros, y **sólo pinta
+>   lo que no está bien**: lo roto y lo que no se puede saber. Una regla
+>   cumplida no ocupa sitio, que es lo contrario de un checklist.
+>
+> Dos defectos que ni jsdom ni la suite de geometría podían ver, y que salieron
+> de abrir la app en Chromium:
+>
+> - El **asa** de la hoja se había quedado a media altura, porque la sección
+>   nueva se insertó por encima del formulario que la tenía dentro. Se sacó de
+>   `Objetivos` y se pinta arriba de la hoja.
+> - **Dos cifras decían ser el objetivo del día** —la propuesta (2.600) y el
+>   total derivado del reparto (2.330)— sin nada que dijera cuál manda. Se
+>   añadió una línea bajo el total: «Tu objetivo son 2.400 kcal: te faltan 70
+>   por repartir».
 
 ```
 users        + goal VARCHAR(12) NULL, goal_rate FLOAT NULL

@@ -112,6 +112,14 @@ describe('Comida', () => {
     api.getFoodDay.mockResolvedValue(day())
     api.searchFoods.mockResolvedValue([])
     api.frequentFoods.mockResolvedValue([])
+    // Lo que la pantalla pide además del día: los platos, las reglas y su
+    // veredicto. Vacíos por defecto — lo que se mide aquí es el diario, y una
+    // sección sin nada dentro no se dibuja.
+    api.listDishes.mockResolvedValue([])
+    api.listRules.mockResolvedValue([])
+    api.dayVerdicts.mockResolvedValue({ date: '2026-08-31', verdicts: [], acceptable: true })
+    api.getTargetProfile.mockResolvedValue({})
+    api.getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: [] })
   })
 
   afterEach(() => {

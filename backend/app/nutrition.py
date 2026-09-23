@@ -222,6 +222,20 @@ _TOLERANCE_KCAL = 8.0
 _TOLERANCE_SHARE = 0.15
 
 
+def kcal_de_macro(macro: str, grams: float | None) -> float | None:
+    """Las kcal que aportan `grams` de un macro. `None` sigue siendo `None`.
+
+    Aquí y no en quien lo use: convertir gramos en energía es aritmética
+    nutricional, y toda vive en este módulo. Los factores son los mismos que
+    usa `atwater_kcal()` — una segunda tabla de factores sería una segunda
+    verdad sobre cuánto engorda un gramo de grasa.
+    """
+    factor = _KCAL_PER_GRAM.get(macro)
+    if grams is None or factor is None:
+        return None
+    return _round(grams * factor, _MACRO_PLACES)
+
+
 def atwater_kcal(
     protein: float | None = None,
     fat: float | None = None,
