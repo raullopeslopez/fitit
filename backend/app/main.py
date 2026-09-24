@@ -12,6 +12,7 @@ from .routers import (
     exercises,
     food_log,
     foods,
+    ideas,
     plans,
     rules,
     targets,
@@ -67,3 +68,4 @@ app.include_router(dishes.router, dependencies=[Depends(get_current_user)])
 app.include_router(targets.router, dependencies=[Depends(get_current_user)])
 app.include_router(rules.router, dependencies=[Depends(get_current_user)])
 app.include_router(plans.router, dependencies=[Depends(get_current_user)])
+app.include_router(ideas.router, dependencies=[Depends(get_current_user)])

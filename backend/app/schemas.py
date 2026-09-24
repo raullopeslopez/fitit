@@ -608,6 +608,8 @@ class FoodDayOut(BaseModel):
     # disparando —un 503 después de la foto—, que es enterarse de que el botón
     # no podía funcionar justo cuando ya has apuntado al envase.
     label_reading: bool = False
+    # Lo mismo para «Ideas con …»: si no se puede buscar, la línea no se enseña.
+    dish_ideas: bool = False
 
 
 # Las kilocalorías declaradas y las que salen de los macros, cuando no
@@ -1078,3 +1080,41 @@ class AdherenceOut(BaseModel):
     # un solo fallo no es un patrón.
     weakest_slot: MealSlot | None = None
     weakest_missed: int = 0
+
+
+class DishIdeasIn(BaseModel):
+    """Para qué alimento, y si hay que buscar otra vez aunque haya guardadas."""
+
+    food_id: int
+    # «Otras ideas»: la única forma de volver a gastar cuota con algo guardado.
+    more: bool = False
+
+
+class DishIdeaOut(BaseModel):
+    """Una receta de la web. **No es un plato**: no tiene ingredientes ni cifras."""
+
+    id: int
+    name: str
+    url: str
+    method: str | None = None
+    minutes: int | None = None
+    created_at: datetime | None = None
+    # Encontrada en esta misma petición. Sólo puede serlo con `more`.
+    new: bool = False
+
+
+class DishIdeasOut(BaseModel):
+    """Lo guardado para ese alimento, lo más nuevo primero, y cómo fue buscar.
+
+    Siempre 200, igual que `DishGenerateOut`: sin cuota lo guardado se sigue
+    viendo —es para lo que se guardó— y sólo cambia qué se dice debajo.
+    """
+
+    ideas: list[DishIdeaOut] = Field(default_factory=list)
+    new_count: int = 0
+    # 'off' | 'quota' | 'unavailable' | 'unusable'
+    refusal: str | None = None
+    # 'minute' | 'day' cuando `refusal` es 'quota'.
+    quota_scope: str | None = None
+    # Cuándo se guardó la búsqueda más reciente. `None` si no hay nada guardado.
+    stored_at: datetime | None = None
