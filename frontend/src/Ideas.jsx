@@ -4,6 +4,7 @@ import { dishIdeas } from './api.js'
 import { motivo } from './Dish.jsx'
 import { formatDayMonth } from './format.js'
 import { IdeaDraft } from './IdeaDraft.jsx'
+import PonerEnPlan from './PonerEnPlan.jsx'
 
 // «Acelga, cruda» -> «acelga». Los nombres de CIQUAL llevan el estado detrás de
 // la primera coma, y «Ideas con acelga, cruda» suena a ficha, no a pregunta.
@@ -42,15 +43,26 @@ function statusLine(result, pidioMas) {
 // en plato va al lado, en su propia columna: un botón dentro de un enlace no es
 // HTML válido y el toque no sabría cuál de los dos es. Callado —muted, sin
 // relleno—: es una vez por receta, no lo que se viene a hacer aquí.
-function ToDish({ idea, onDraft }) {
+//
+// Ya guardada, la misma columna dice «✓ Guardado» y es la puerta de «Ponerlo en
+// el plan» con **tu** plato: igual de callada, porque sigue sin ser lo que se
+// viene a hacer a esta pantalla.
+function ToDish({ idea, onDraft, onPlan }) {
   if (idea.dish_id != null) {
+    // Sin `dish_name` (un servidor anterior) el mejor nombre es el de la idea.
+    const dish = { id: idea.dish_id, name: idea.dish_name ?? idea.name }
     return (
-      <span className="idea-to-dish idea-saved">
+      <button
+        type="button"
+        className="idea-to-dish idea-saved"
+        aria-label={`Ponerlo en el plan: ${dish.name}`}
+        onClick={() => onPlan(dish)}
+      >
         <span className="idea-saved-tick" aria-hidden="true">
           ✓
         </span>
         Guardado
-      </span>
+      </button>
     )
   }
   return (
@@ -66,7 +78,7 @@ function ToDish({ idea, onDraft }) {
   )
 }
 
-function IdeaRow({ idea, marcar, onDraft }) {
+function IdeaRow({ idea, marcar, onDraft, onPlan }) {
   return (
     <li className="idea-item">
       <a className="idea" href={idea.url} target="_blank" rel="noopener noreferrer">
@@ -88,7 +100,7 @@ function IdeaRow({ idea, marcar, onDraft }) {
           {idea.method && <span className="idea-method">{idea.method}</span>}
         </span>
       </a>
-      {onDraft && <ToDish idea={idea} onDraft={onDraft} />}
+      {onDraft && <ToDish idea={idea} onDraft={onDraft} onPlan={onPlan} />}
     </li>
   )
 }
@@ -114,22 +126,29 @@ function SkeletonRow() {
  * abrir esto otra vez es instantáneo y no gasta nada. Sólo «Otras ideas» vuelve
  * a buscar, y lo que encuentra se pone arriba, marcado.
  */
-export function IdeasScreen({ food, onClose }) {
+export function IdeasScreen({ food, onClose, onPlanChanged = null }) {
   const [result, setResult] = useState(null)
   const [busy, setBusy] = useState(true)
   const [pidioMas, setPidioMas] = useState(false)
   // La idea abierta como plato, o `null`.
   const [borrador, setBorrador] = useState(null)
+  // Tu plato de una idea ya guardada, camino del plan, o `null`.
+  const [alPlan, setAlPlan] = useState(null)
   const vivo = useRef(true)
 
-  // Guardada: su fila pasa a decir «Guardado» sin volver a pedir la lista.
+  // Guardada: su fila pasa a decir «Guardado» sin volver a pedir la lista. El
+  // borrador no se cierra aquí: se queda ofreciendo ponerlo en el plan.
   const guardada = (idea, dish) => {
     setResult((prev) =>
       prev
-        ? { ...prev, ideas: prev.ideas.map((i) => (i.id === idea.id ? { ...i, dish_id: dish.id } : i)) }
+        ? {
+            ...prev,
+            ideas: prev.ideas.map((i) =>
+              i.id === idea.id ? { ...i, dish_id: dish.id, dish_name: dish.name ?? null } : i,
+            ),
+          }
         : prev,
     )
-    setBorrador(null)
   }
   const corto = shortFoodName(food.name)
 
@@ -187,7 +206,13 @@ export function IdeasScreen({ food, onClose }) {
               {primeraVez
                 ? [0, 1, 2].map((n) => <SkeletonRow key={n} />)
                 : ideas.map((idea) => (
-                    <IdeaRow key={idea.id} idea={idea} marcar={pidioMas} onDraft={setBorrador} />
+                    <IdeaRow
+                      key={idea.id}
+                      idea={idea}
+                      marcar={pidioMas}
+                      onDraft={setBorrador}
+                      onPlan={setAlPlan}
+                    />
                   ))}
             </ul>
           </div>
@@ -220,7 +245,11 @@ export function IdeasScreen({ food, onClose }) {
           idea={borrador}
           onSaved={(dish) => guardada(borrador, dish)}
           onCancel={() => setBorrador(null)}
+          onPuesto={() => onPlanChanged?.()}
         />
+      )}
+      {alPlan && (
+        <PonerEnPlan dish={alPlan} onClose={() => setAlPlan(null)} onPuesto={() => onPlanChanged?.()} />
       )}
     </div>
   )

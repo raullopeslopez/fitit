@@ -2121,7 +2121,10 @@ function Amount({
 
   // Las ideas tapan la hoja entera y, al cerrarlas, la hoja sigue como estaba:
   // la cantidad y la comida que habías elegido no se pierden por mirar recetas.
-  if (ideas) return <IdeasScreen food={food} onClose={() => setIdeas(false)} />
+  // Poner un plato en el plan desde aquí cambia el plan que la pantalla enseña.
+  if (ideas) {
+    return <IdeasScreen food={food} onClose={() => setIdeas(false)} onPlanChanged={onDayChanged} />
+  }
 
   // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
   // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.

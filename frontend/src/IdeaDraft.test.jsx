@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { IdeaDraft, motivoBloqueo } from './IdeaDraft.jsx'
-import { createDish, ideaDraft, previewDish, searchFoods } from './api.js'
+import { createDish, getPlanAhead, ideaDraft, previewDish, replanEntry, searchFoods } from './api.js'
 
 vi.mock('./api.js')
 
@@ -244,6 +244,68 @@ describe('IdeaDraft', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar plato' }))
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith({ id: 9 }))
     expect(createDish.mock.calls[0][0]).toMatchObject({ name: IDEA.name, idea_id: IDEA.id })
+    // Por aquí también se llega al plato guardado, con su «Ponerlo en el plan».
+    expect(await screen.findByText('Guardado en tus platos.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ponerlo en el plan' })).toBeInTheDocument()
+  })
+})
+
+// Un jueves y un viernes que nunca serán «hoy», para que la frase no dependa
+// del día en que corre la suite.
+const AHEAD = {
+  week_start: '2098-12-29',
+  has_plan: true,
+  entries: [
+    { id: 7, log_date: '2099-01-01', slot: 'comida', dish_id: 3, dish_name: 'Lentejas estofadas' },
+    { id: 8, log_date: '2099-01-02', slot: 'cena', dish_id: 4, dish_name: 'Merluza' },
+  ],
+}
+
+describe('IdeaDraft · guardado', () => {
+  async function guardarPlato(props = {}) {
+    ideaDraft.mockResolvedValue(
+      draft({ servings: 2, servings_published: true, lines: [line({ grams: 250 })] }),
+    )
+    previewDish.mockResolvedValue({ per_serving: { kcal: 50 } })
+    createDish.mockResolvedValue({ id: 42, name: 'Acelgas de la abuela' })
+    const all = { onSaved: vi.fn(), onCancel: vi.fn(), onPuesto: vi.fn(), ...props }
+    render(<IdeaDraft idea={IDEA} {...all} />)
+    await waitFor(() => expect(save()).toBeEnabled())
+    await userEvent.click(save())
+    await screen.findByText('Guardado en tus platos.')
+    return all
+  }
+
+  it('al guardar no se cierra: dice que está guardado y ofrece ponerlo en el plan', async () => {
+    const { onSaved, onCancel } = await guardarPlato()
+    expect(onSaved).toHaveBeenCalledWith({ id: 42, name: 'Acelgas de la abuela' })
+    // El nombre con el que se guardó, no el de la receta.
+    expect(screen.getByRole('heading', { name: 'Acelgas de la abuela' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar en mis platos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(onCancel).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hecho' }))
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('«Ponerlo en el plan» abre la hoja con el plato guardado y al elegir avisa', async () => {
+    getPlanAhead.mockResolvedValue(AHEAD)
+    replanEntry.mockResolvedValue({ id: 7 })
+    const { onPuesto } = await guardarPlato()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ponerlo en el plan' }))
+    const hoja = await screen.findByRole('dialog', { name: 'Acelgas de la abuela' })
+    await userEvent.click(await within(hoja).findByRole('button', { name: /JUE · Comida/ }))
+
+    expect(replanEntry).toHaveBeenCalledWith(7, 42, expect.any(String))
+    expect(await within(hoja).findByText('Puesto el jueves, en la comida.')).toBeInTheDocument()
+    expect(onPuesto).toHaveBeenCalledTimes(1)
+
+    // Al cerrar la hoja, la pantalla del plato guardado se acuerda de dónde fue.
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog', { name: 'Acelgas de la abuela' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Puesto el jueves, en la comida.')
   })
 })
 

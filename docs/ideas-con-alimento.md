@@ -70,9 +70,16 @@ Spec: `backend/tests/features/dish_from_idea.feature`.
 
 Spec: `backend/tests/features/idea_to_plan.feature`.
 
-- Desde el plato recién guardado (y desde la fila «Guardado» de la idea): «Ponerlo en
-  el plan» → eliges uno de los huecos de esta semana → se cambia por este plato con el
-  `PATCH /plans/entries/{id}` que ya existe (`status: swapped`).
+- Dos puertas a la misma hoja (`PonerEnPlan.jsx`): el plato recién guardado (el
+  borrador no se cierra al guardar: dice «Guardado en tus platos.» y ofrece «Ponerlo en
+  el plan», con «Hecho» donde estaba «Cancelar») y la columna «✓ Guardado» de la fila de
+  la idea, que pasa a ser botón. `POST /dish-ideas` devuelve `dish_name` junto a
+  `dish_id` para titular la hoja con tu plato y no con la receta.
+- La hoja lista los huecos de esta semana que no han pasado ni tienen respuesta
+  (`GET /plans/entries/ahead`) y el elegido se **sobrescribe** con
+  `PUT /plans/entries/{id}/dish` (plato y gramos; el anterior no se recuerda). No es el
+  `swapped` de `PATCH`: no escribe el diario y la fila sigue por confirmar.
+- Al ponerlo, Comida vuelve a pedir el plan de la semana que enseña.
 - Sin plan esta semana: se dice, y el plato queda guardado igual; entrará en el
   generador la próxima vez.
 

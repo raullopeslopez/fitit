@@ -35,6 +35,13 @@ function diaSemana(iso) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
 }
 
+// «Puesto el jueves, en la comida.» / «Puesto hoy, en la cena.» Fuera del
+// componente porque la pantalla que abrió la hoja lo repite al cerrarla.
+export function frasePuesto(fila, dayIso = foodDayIso()) {
+  const cuando = fila.log_date === dayIso ? 'hoy' : `el ${DIA_LARGO[diaSemana(fila.log_date)]}`
+  return `Puesto ${cuando}, ${EN_EL[fila.slot] ?? fila.slot}.`
+}
+
 function Asa() {
   return <span className="sheet-grip" aria-hidden="true" />
 }
@@ -99,9 +106,7 @@ export default function PonerEnPlan({
 
           {puesto ? (
             <p className="poner-hecho" role="status">
-              Puesto{' '}
-              {puesto.log_date === dayIso ? 'hoy' : `el ${DIA_LARGO[diaSemana(puesto.log_date)]}`},{' '}
-              {EN_EL[puesto.slot] ?? puesto.slot}.
+              {frasePuesto(puesto, dayIso)}
             </p>
           ) : huecos === null ? (
             !error && <p className="hint">Cargando el plan…</p>

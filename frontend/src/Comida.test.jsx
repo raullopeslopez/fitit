@@ -2281,4 +2281,30 @@ describe('ideas con un alimento', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(screen.getByRole('button', { name: 'Ideas con acelga' })).toBeInTheDocument()
   })
+  it('poner en el plan una idea guardada vuelve a pedir el plan de la semana', async () => {
+    api.dishIdeas.mockResolvedValue({
+      ideas: [
+        { id: 1, name: 'Acelgas esparragadas', url: 'https://www.directoalpaladar.com/x', method: 'sartén', minutes: 30, new: false, dish_id: 42, dish_name: 'Acelgas esparragadas' },
+      ],
+      new_count: 0,
+      refusal: null,
+      quota_scope: null,
+      stored_at: '2026-09-12T10:00:00Z',
+    })
+    api.getPlanAhead.mockResolvedValue({
+      week_start: '2098-12-29',
+      has_plan: true,
+      entries: [{ id: 7, log_date: '2099-01-01', slot: 'comida', dish_id: 3, dish_name: 'Lentejas' }],
+    })
+    api.replanEntry.mockResolvedValue({ id: 7 })
+    await abrir()
+    const antes = api.getPlan.mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: 'Ideas con acelga' }))
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Ponerlo en el plan: Acelgas esparragadas' }),
+    )
+    await userEvent.click(await screen.findByRole('button', { name: /JUE · Comida/ }))
+    expect(await screen.findByText('Puesto el jueves, en la comida.')).toBeInTheDocument()
+    await waitFor(() => expect(api.getPlan.mock.calls.length).toBeGreaterThan(antes))
+  })
 })

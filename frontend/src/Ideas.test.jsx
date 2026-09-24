@@ -1,8 +1,8 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
-import { createDish, dishIdeas, ideaDraft, previewDish } from './api.js'
+import { createDish, dishIdeas, getPlanAhead, ideaDraft, previewDish, replanEntry } from './api.js'
 
 vi.mock('./api.js')
 
@@ -230,11 +230,56 @@ describe('IdeasScreen → convertir en plato', () => {
     await waitFor(() => expect(guardar).toBeEnabled())
     await userEvent.click(guardar)
 
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Convertir en plato' })).not.toBeInTheDocument(),
-    )
+    // Guardar no cierra: queda la pantalla del plato guardado, y «Hecho» vuelve.
+    expect(await screen.findByRole('dialog', { name: 'Plato guardado' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Hecho' }))
+    expect(screen.queryByRole('dialog', { name: 'Plato guardado' })).not.toBeInTheDocument()
     const link = screen.getByRole('link', { name: /Acelgas esparragadas/ })
     expect(link.closest('li')).toHaveTextContent('Guardado')
     expect(dishIdeas).toHaveBeenCalledTimes(1)
+  })
+
+  const AHEAD = {
+    week_start: '2098-12-29',
+    has_plan: true,
+    entries: [
+      { id: 7, log_date: '2099-01-01', slot: 'comida', dish_id: 3, dish_name: 'Lentejas estofadas' },
+    ],
+  }
+
+  it('«Guardado» abre «Ponerlo en el plan» con tu plato, y la fila sigue siendo el enlace', async () => {
+    dishIdeas.mockResolvedValue(
+      answer({ ideas: [idea({ dish_id: 42, dish_name: 'Acelgas de la abuela' })] }),
+    )
+    getPlanAhead.mockResolvedValue(AHEAD)
+    replanEntry.mockResolvedValue({ id: 7 })
+    const onPlanChanged = vi.fn()
+    render(<IdeasScreen food={FOOD} onClose={() => {}} onPlanChanged={onPlanChanged} />)
+
+    const link = await screen.findByRole('link', { name: /Acelgas esparragadas/ })
+    expect(link).toHaveAttribute('href', idea().url)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ponerlo en el plan: Acelgas de la abuela' }),
+    )
+    // La hoja lleva el nombre de tu plato, no el de la receta.
+    const hoja = await screen.findByRole('dialog', { name: 'Acelgas de la abuela' })
+    await userEvent.click(await within(hoja).findByRole('button', { name: /JUE · Comida/ }))
+
+    expect(replanEntry).toHaveBeenCalledWith(7, 42, expect.any(String))
+    expect(await within(hoja).findByText('Puesto el jueves, en la comida.')).toBeInTheDocument()
+    // La pantalla de Comida vuelve a pedir el plan que enseña.
+    expect(onPlanChanged).toHaveBeenCalledTimes(1)
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog', { name: 'Acelgas de la abuela' })).not.toBeInTheDocument()
+  })
+
+  it('una idea guardada por un servidor sin `dish_name` titula la hoja con la idea', async () => {
+    dishIdeas.mockResolvedValue(answer({ ideas: [idea({ dish_id: 42 })] }))
+    getPlanAhead.mockResolvedValue(AHEAD)
+    render(<IdeasScreen food={FOOD} onClose={() => {}} />)
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Ponerlo en el plan: Acelgas esparragadas' }),
+    )
+    expect(await screen.findByRole('dialog', { name: 'Acelgas esparragadas' })).toBeInTheDocument()
   })
 })

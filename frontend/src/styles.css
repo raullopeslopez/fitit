@@ -4712,7 +4712,10 @@ button.ideas-more {
 }
 .ideas-status {
   margin: 0.5rem 0 0;
-  min-height: 1.2em;
+  /* La altura de una línea llena, no menos: con 1.2em la barra subía 4px en
+     cuanto la línea pasaba de vacía a «Puesto el viernes, en la comida.». */
+  line-height: 1.5;
+  min-height: 1.5em;
   text-align: center;
   font-size: 0.8rem;
   color: var(--muted);
@@ -4724,6 +4727,28 @@ button.ideas-more {
  * ------------------------------------------------------------------ */
 .draft-body {
   padding-bottom: 1.75rem;
+}
+/* El plato recién guardado: una línea con el tick y su nombre debajo, en
+   tinta. Nada de ámbar — lo que se venía a hacer ya está hecho; lo que queda
+   («Ponerlo en el plan») va en gris en la barra. */
+.draft-saved {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.draft-saved-tick {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+}
+.draft-saved-name {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--text);
 }
 .draft-hint {
   margin: 0.35rem 0 0;

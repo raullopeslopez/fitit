@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createDish, ideaDraft, previewDish } from './api.js'
 import { NewDish } from './Dish.jsx'
 import { formatMacro } from './food.js'
+import PonerEnPlan, { frasePuesto } from './PonerEnPlan.jsx'
 
 // Lo que le dice la pantalla a quien está delante cuando la página no sirve.
 // «Un resultado vacío tiene que nombrar el fallo correcto» (DESIGN.md): una
@@ -126,7 +127,7 @@ function Linea({ line, onPick, onGrams, onDrop }) {
  * (`gramos_por_racion`) y las macros también (`POST /dishes/preview`).
  * Guardar va por `POST /dishes`, la puerta de siempre, con la idea anotada.
  */
-export function IdeaDraft({ idea, onSaved, onCancel }) {
+export function IdeaDraft({ idea, onSaved, onCancel, onPuesto = null }) {
   const [draft, setDraft] = useState(null)
   const [name, setName] = useState(idea.name)
   const [servings, setServings] = useState('')
@@ -134,7 +135,16 @@ export function IdeaDraft({ idea, onSaved, onCancel }) {
   const [preview, setPreview] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  // El plato ya guardado. A partir de aquí la pantalla deja de ser un borrador.
+  const [guardado, setGuardado] = useState(null)
   const vivo = useRef(true)
+
+  // Guardar no cierra: quien llamó se entera (la fila pasa a «Guardado») y la
+  // pantalla se queda para ofrecer lo siguiente, que es ponerlo en el plan.
+  const alGuardar = (dish) => {
+    setGuardado(dish)
+    onSaved(dish)
+  }
 
   useEffect(() => {
     vivo.current = true
@@ -201,6 +211,10 @@ export function IdeaDraft({ idea, onSaved, onCancel }) {
     return () => clearTimeout(t)
   }, [clave])
 
+  if (guardado) {
+    return <Guardado dish={guardado} onDone={onCancel} onPuesto={onPuesto} />
+  }
+
   if (draft?.refusal) {
     return (
       <NewDish
@@ -208,7 +222,7 @@ export function IdeaDraft({ idea, onSaved, onCancel }) {
         recipeUrl={idea.url}
         ideaId={idea.id}
         notice={AVISOS[draft.refusal] ?? AVISOS.unreachable}
-        onCreated={onSaved}
+        onCreated={alGuardar}
         onCancel={onCancel}
       />
     )
@@ -231,7 +245,7 @@ export function IdeaDraft({ idea, onSaved, onCancel }) {
         idea_id: idea.id,
         ingredients: lines.map((l) => ({ food_id: l.food.id, grams: numero(l.grams) })),
       })
-      onSaved(dish)
+      alGuardar(dish)
     } catch (err) {
       setError(
         err?.status === 409 && typeof err.detail === 'string'
@@ -336,6 +350,63 @@ export function IdeaDraft({ idea, onSaved, onCancel }) {
           </p>
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * El plato recién guardado. Terminar es «Hecho», donde estaba «Cancelar»; lo
+ * que se ofrece es ponerlo ya en un hueco de esta semana, en gris y no en ámbar:
+ * el plato está guardado y el trabajo de esta pantalla, hecho — el plan es un
+ * paso de más que no todos los platos necesitan hoy.
+ */
+function Guardado({ dish, onDone, onPuesto }) {
+  const [hoja, setHoja] = useState(false)
+  const [puesto, setPuesto] = useState(null)
+
+  return (
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Plato guardado">
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">Alta de plato</span>
+          <span className="food-screen-slot">De una receta</span>
+        </p>
+        <button type="button" className="link-btn" onClick={onDone}>
+          Hecho
+        </button>
+      </header>
+
+      <div className="food-screen-body draft-body">
+        <p className="draft-saved">
+          <span className="draft-saved-tick" aria-hidden="true">
+            ✓
+          </span>
+          Guardado en tus platos.
+        </p>
+        <h2 className="draft-saved-name">{dish.name}</h2>
+      </div>
+
+      <div className="ideas-bar">
+        <div className="ideas-bar-inner">
+          <button type="button" className="secondary btn-full ideas-more" onClick={() => setHoja(true)}>
+            Ponerlo en el plan
+          </button>
+          <p className="ideas-status" role="status">
+            {puesto ? frasePuesto(puesto) : ''}
+          </p>
+        </div>
+      </div>
+
+      {hoja && (
+        <PonerEnPlan
+          dish={dish}
+          onClose={() => setHoja(false)}
+          onPuesto={(fila) => {
+            setPuesto(fila)
+            onPuesto?.(fila)
+          }}
+        />
+      )}
     </div>
   )
 }
