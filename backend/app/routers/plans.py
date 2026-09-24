@@ -13,7 +13,8 @@ sólo habría una semana nueva sin nada con que medirla.
 
 import json
 from collections import Counter
-from datetime import date, timedelta
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -24,10 +25,11 @@ from ..auth import get_current_user
 from ..db import get_session
 from ..food_groups import familia
 from ..models import BodyWeight, DailyTarget, Day, Dish, Food, Plan, PlanEntry, Rule, User
-from ..nutrition import NUTRIENTS, Ajustable, macros_de_plato
+from ..nutrition import NUTRIENTS, Ajustable, food_log_date, macros_de_plato
 from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar
+from .dishes import registrar_plato
 from ..rules import desde_fila
-from ..schemas import PlanEntryOut, PlanIn, PlanOut, VerdictOut
+from ..schemas import PlanEntryOut, PlanEntryPatch, PlanIn, PlanOut, VerdictOut
 from ..weight import tendencia
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -48,7 +50,28 @@ def _semana(inicio: date) -> list[date]:
     return [inicio + timedelta(days=i) for i in range(DIAS)]
 
 
-async def _candidatos(session: AsyncSession, user_id: int) -> list[PlatoCandidato]:
+@dataclass(frozen=True)
+class Repertorio:
+    """Los platos como los ve el generador, y con qué volver a la receta.
+
+    `base` son los gramos por ración de **cada** ingrediente, en orden, y
+    `movibles` dice cuáles de ellos llevan banda. Con las dos, los gramos que el
+    generador resolvió se vuelven a poner en su sitio dentro de la receta — que
+    es lo que hay que congelar, no sólo la parte que se movió.
+    """
+
+    candidatos: list[PlatoCandidato]
+    base: dict[int, list[float]]
+    movibles: dict[int, list[int]]
+
+    def completos(self, dish_id: int, resueltos) -> list[float]:
+        gramos = list(self.base.get(dish_id, []))
+        for posicion, g in zip(self.movibles.get(dish_id, []), resueltos):
+            gramos[posicion] = g
+        return gramos
+
+
+async def _candidatos(session: AsyncSession, user_id: int) -> Repertorio:
     """Los platos, vistos como el generador los necesita.
 
     Todo se expresa **por ración**: los gramos de la receta y su banda se
@@ -77,11 +100,15 @@ async def _candidatos(session: AsyncSession, user_id: int) -> list[PlatoCandidat
         }
 
     candidatos = []
+    base: dict[int, list[float]] = {}
+    movibles: dict[int, list[int]] = {}
     for dish in dishes:
         raciones = dish.servings or 1
         fijos: list[tuple[Food, float]] = []
         ajustables: list[Ajustable] = []
         familias: list[str | None] = []
+        base[dish.id] = []
+        movibles[dish.id] = []
         for ing in dish.ingredients:
             food = foods.get(ing.food_id)
             if food is None:
@@ -90,11 +117,13 @@ async def _candidatos(session: AsyncSession, user_id: int) -> list[PlatoCandidat
             gramos = ing.grams / raciones
             if gramos <= 0:
                 continue
+            base[dish.id].append(gramos)
             if ing.min_grams is None and ing.max_grams is None:
                 # Sin banda no es «desconocido»: es que nadie ha dicho que se
                 # pueda tocar, y se queda donde la receta lo puso.
                 fijos.append((food, gramos))
                 continue
+            movibles[dish.id].append(len(base[dish.id]) - 1)
             ajustables.append(
                 Ajustable(
                     por_100g={campo: getattr(food, f"{campo}_100g", None) for campo in NUTRIENTS},
@@ -119,7 +148,7 @@ async def _candidatos(session: AsyncSession, user_id: int) -> list[PlatoCandidat
                 ajustables=tuple(ajustables),
             )
         )
-    return candidatos
+    return Repertorio(candidatos=candidatos, base=base, movibles=movibles)
 
 
 async def _objetivos(session: AsyncSession, user_id: int, dias) -> dict[date, dict]:
@@ -232,7 +261,54 @@ async def _peso(session: AsyncSession, user_id: int) -> float | None:
     return tendencia([(d, kg) for d, kg in pesadas]).kg
 
 
-def _to_out(plan: Plan, nombres: dict[int, str], veredictos, score: float) -> PlanOut:
+async def _kcal_congeladas(session: AsyncSession, plan: Plan) -> dict[int, float | None]:
+    """Lo que suma cada fila del plan, con los gramos que congeló.
+
+    Se recalcula desde los gramos guardados y no desde la receta: es la misma
+    distinción que en el diario — lo que el plan dijo no se vuelve a derivar de
+    un plato que puede haber cambiado desde entonces.
+    """
+    ids = {fila.dish_id for fila in plan.entries}
+    if not ids:
+        return {}
+    dishes = {
+        dish.id: dish
+        for dish in (
+            await session.execute(
+                select(Dish).options(selectinload(Dish.ingredients)).where(Dish.id.in_(ids))
+            )
+        ).scalars().all()
+    }
+    food_ids = {i.food_id for dish in dishes.values() for i in dish.ingredients}
+    foods = {
+        food.id: food
+        for food in (
+            await session.execute(select(Food).where(Food.id.in_(food_ids)))
+        ).scalars().all()
+    }
+    kcal: dict[int, float | None] = {}
+    for fila in plan.entries:
+        dish = dishes.get(fila.dish_id)
+        gramos = json.loads(fila.grams_json) if fila.grams_json else []
+        if dish is None or not gramos:
+            kcal[fila.id] = None
+            continue
+        pares = [
+            (foods[i.food_id], g)
+            for i, g in zip(dish.ingredients, gramos)
+            if i.food_id in foods and g > 0
+        ]
+        kcal[fila.id] = macros_de_plato(pares)[0].get("kcal") if pares else None
+    return kcal
+
+
+def _to_out(
+    plan: Plan,
+    nombres: dict[int, str],
+    veredictos,
+    score: float,
+    kcal: dict[int, float | None] | None = None,
+) -> PlanOut:
     return PlanOut(
         id=plan.id,
         week_start=plan.week_start,
@@ -245,7 +321,7 @@ def _to_out(plan: Plan, nombres: dict[int, str], veredictos, score: float) -> Pl
                 dish_id=fila.dish_id,
                 dish_name=nombres.get(fila.dish_id, ""),
                 grams=json.loads(fila.grams_json) if fila.grams_json else [],
-                kcal=None,
+                kcal=(kcal or {}).get(fila.id),
                 status=fila.status,
                 log_entry_id=fila.log_entry_id,
             )
@@ -269,8 +345,8 @@ async def generate_plan(
     criterio. Lo que sí se conserva es la semilla, que es lo que permite volver.
     """
     dias = _semana(payload.week_start)
-    candidatos = await _candidatos(session, user_id)
-    if not candidatos:
+    repertorio = await _candidatos(session, user_id)
+    if not repertorio.candidatos:
         raise HTTPException(
             status_code=422,
             detail={"slot": None, "motivo": "no hay platos en el repertorio"},
@@ -280,7 +356,7 @@ async def generate_plan(
     try:
         propuesta = generar(
             dias=dias,
-            candidatos=candidatos,
+            candidatos=repertorio.candidatos,
             objetivos=await _objetivos(session, user_id, dias),
             reglas=await _reglas(session, user_id, dias),
             entrenos=await _entrenos(session, user_id, dias),
@@ -313,7 +389,11 @@ async def generate_plan(
                 log_date=entrada.fecha,
                 slot=entrada.slot,
                 dish_id=entrada.dish_id,
-                grams_json=json.dumps(list(entrada.gramos)) if entrada.gramos else None,
+                # Los gramos de **todos** los ingredientes, no sólo de los que
+                # se movieron: el plan congela lo que dijo, y reconstruirlo
+                # mañana desde la receta daría otra cifra porque el objetivo
+                # se mueve con el peso.
+                grams_json=json.dumps(repertorio.completos(entrada.dish_id, entrada.gramos)),
             )
             for entrada in propuesta.entradas
         ],
@@ -322,8 +402,14 @@ async def generate_plan(
     await session.commit()
     await session.refresh(plan, ["entries"])
 
-    nombres = {plato.id: plato.nombre for plato in candidatos}
-    return _to_out(plan, nombres, propuesta.veredictos, propuesta.puntuacion)
+    nombres = {plato.id: plato.nombre for plato in repertorio.candidatos}
+    return _to_out(
+        plan,
+        nombres,
+        propuesta.veredictos,
+        propuesta.puntuacion,
+        await _kcal_congeladas(session, plan),
+    )
 
 
 @router.get("/{week_start}", response_model=PlanOut)
@@ -355,7 +441,94 @@ async def read_plan(
         nombres = dict(
             (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
         )
-    return _to_out(plan, nombres, (), 0.0)
+    return _to_out(plan, nombres, (), 0.0, await _kcal_congeladas(session, plan))
 
 
 __all__ = ["HUECOS", "router"]
+
+
+@router.patch("/entries/{entry_id}", response_model=PlanEntryOut)
+async def correct_entry(
+    entry_id: int,
+    payload: PlanEntryPatch,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PlanEntryOut:
+    """Confirmar, saltar o cambiar una comida del plan.
+
+    Confirmar **escribe el diario con los gramos que el plan congeló**, no con
+    los de la receta: entre que se generó la semana y hoy, el objetivo ha podido
+    moverse, y recalcularlos aquí haría que comieras una cifra distinta de la
+    que el plan te enseñó.
+
+    Confirmar dos veces no escribe dos veces. Y sólo se confirma **el día que
+    estás viviendo**: una entrada del diario se fecha por el instante en que la
+    escribes (la regla de las 04:00), así que dar por comida la cena del viernes
+    un lunes pondría comida del viernes en el lunes.
+    """
+    fila = (
+        await session.execute(
+            select(PlanEntry)
+            .join(Plan, Plan.id == PlanEntry.plan_id)
+            .where(PlanEntry.id == entry_id, Plan.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if fila is None:
+        raise HTTPException(status_code=404, detail="plan entry not found")
+
+    if payload.status == "done" and fila.log_entry_id is None:
+        moment = payload.logged_at or datetime.now(UTC)
+        if food_log_date(moment) != fila.log_date:
+            raise HTTPException(
+                status_code=422,
+                detail={"motivo": "sólo se confirma el día de hoy", "log_date": str(fila.log_date)},
+            )
+        dish = (
+            await session.execute(
+                select(Dish)
+                .options(selectinload(Dish.ingredients))
+                .where(Dish.id == fila.dish_id, Dish.user_id == user_id)
+            )
+        ).scalar_one_or_none()
+        if dish is None:
+            raise HTTPException(status_code=404, detail="dish not found")
+        ids = [i.food_id for i in dish.ingredients]
+        foods = {
+            food.id: food
+            for food in (
+                await session.execute(select(Food).where(Food.id.in_(ids)))
+            ).scalars().all()
+        }
+        gramos = json.loads(fila.grams_json) if fila.grams_json else []
+        entries = await registrar_plato(
+            session,
+            dish=dish,
+            foods=foods,
+            user_id=user_id,
+            moment=moment,
+            meal_slot=fila.slot,
+            gramos=gramos,
+        )
+        await session.flush()
+        # La primera de las filas que escribió esta confirmación. Es el asa de
+        # lo registrado: el grupo entero se reconoce por `dish_id` y el día,
+        # igual que el diario ya agrupa un plato en pantalla.
+        fila.log_entry_id = entries[0].id if entries else None
+
+    fila.status = payload.status
+    await session.commit()
+    await session.refresh(fila)
+
+    nombre = (
+        await session.execute(select(Dish.name).where(Dish.id == fila.dish_id))
+    ).scalar_one_or_none()
+    return PlanEntryOut(
+        id=fila.id,
+        log_date=fila.log_date,
+        slot=fila.slot,
+        dish_id=fila.dish_id,
+        dish_name=nombre or "",
+        grams=json.loads(fila.grams_json) if fila.grams_json else [],
+        status=fila.status,
+        log_entry_id=fila.log_entry_id,
+    )

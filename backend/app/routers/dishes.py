@@ -222,22 +222,55 @@ async def log_dish(
     """
     dish = await _load(session, dish_id, user_id)
     foods = await _foods(session, user_id, [i.food_id for i in dish.ingredients])
-
-    moment = payload.logged_at or datetime.now(UTC)
     factor = payload.servings / dish.servings
+    entries = await registrar_plato(
+        session,
+        dish=dish,
+        foods=foods,
+        user_id=user_id,
+        moment=payload.logged_at or datetime.now(UTC),
+        meal_slot=payload.meal_slot,
+        gramos=[ingredient.grams * factor for ingredient in dish.ingredients],
+    )
+    await session.commit()
+    for entry in entries:
+        await session.refresh(entry)
+    return [to_entry_out(entry) for entry in entries]
+
+
+async def registrar_plato(
+    session: AsyncSession,
+    *,
+    dish: Dish,
+    foods: dict[int, Food],
+    user_id: int,
+    moment: datetime,
+    meal_slot: str | None,
+    gramos: list[float],
+) -> list[LogEntry]:
+    """Congela una entrada por ingrediente. **No hace commit**: lo hace quien llama.
+
+    Está aquí y no duplicada en el plan porque escribir el diario desde un plato
+    es una sola cosa, y dos copias acabarían congelando cifras distintas. Lo
+    único que cambia entre los dos usos son los gramos: los de la receta
+    escalados por las raciones cuando lo registras a mano, y los que el
+    generador resolvió cuando confirmas un plan.
+    """
     entries = []
-    for ingredient in dish.ingredients:
+    for ingredient, peso in zip(dish.ingredients, gramos):
         food = foods[ingredient.food_id]
-        grams = round(ingredient.grams * factor, 2)
-        computed = calcular_nutrientes(food, grams)
+        peso = round(peso, 2)
+        if peso <= 0:
+            continue
+        computed = calcular_nutrientes(food, peso)
         entry = LogEntry(
             user_id=user_id,
             logged_at=moment.astimezone(UTC) if moment.tzinfo else moment.replace(tzinfo=UTC),
             log_date=food_log_date(moment),
-            meal_slot=payload.meal_slot,
+            meal_slot=meal_slot,
             food_id=food.id,
             food_name_snapshot=food.name,
-            grams=grams,
+            grams=peso,
             nutrients_json=dump_nutrients(computed.pop("nutrients")),
             entry_source="dish",
             dish_id=dish.id,
@@ -245,11 +278,7 @@ async def log_dish(
         )
         session.add(entry)
         entries.append(entry)
-
-    await session.commit()
-    for entry in entries:
-        await session.refresh(entry)
-    return [to_entry_out(entry) for entry in entries]
+    return entries
 
 
 async def get_dish_proposer():

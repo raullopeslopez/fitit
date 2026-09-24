@@ -1017,3 +1017,17 @@ class PlanOut(BaseModel):
     # Un coste: cuanto más bajo, mejor la semana. No es una nota para enseñar,
     # es con lo que el generador compara sus reinicios.
     score: float = 0.0
+
+
+class PlanEntryPatch(BaseModel):
+    """Lo que dices de una fila del plan.
+
+    `done` escribe el diario con los gramos que el plan congeló; `skipped` y
+    `swapped` no escriben nada. **No hay forma de volver a «no dicho»**: lo que
+    ya se registró se corrige en el diario, que es donde está.
+    """
+
+    status: Literal["done", "skipped", "swapped"]
+    # El instante con el offset del móvil, igual que al registrar a mano: es lo
+    # que decide en qué día alimentario cae. Ausente significa ahora.
+    logged_at: datetime | None = None

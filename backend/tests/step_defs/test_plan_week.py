@@ -174,3 +174,109 @@ def then_reports(respuesta):
 @then("there is no plan")
 def then_no_plan(leido):
     assert leido.status_code == 404
+
+
+# --- confirmar ---------------------------------------------------------------
+def _lunes():
+    from datetime import date, timedelta
+
+    hoy = date.today()
+    return hoy - timedelta(days=hoy.weekday())
+
+
+def _hoy():
+    from datetime import date
+
+    return date.today().isoformat()
+
+
+def _entrada(plan, fecha, slot):
+    return next(e for e in plan["entries"] if e["log_date"] == fecha and e["slot"] == slot)
+
+
+@when("I generate this week", target_fixture="respuesta")
+def when_generate_this_week(client):
+    resp = client.post("/plans", json={"week_start": _lunes().isoformat()})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+@when(parsers.parse("I confirm the {slot:w} of today"), target_fixture="confirmada")
+def when_confirm(client, respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(f"/plans/entries/{entrada['id']}", json={"status": "done"})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse("I confirm the {slot:w} of today again"))
+def when_confirm_again(client, respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(f"/plans/entries/{entrada['id']}", json={"status": "done"})
+    assert resp.status_code == 200, resp.text
+
+
+@when(parsers.parse("I skip the {slot:w} of today"), target_fixture="confirmada")
+def when_skip(client, respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(f"/plans/entries/{entrada['id']}", json={"status": "skipped"})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(
+    parsers.parse("I try to confirm the {slot:w} of the last day of the week"),
+    target_fixture="negativa",
+)
+def when_confirm_other_day(client, respuesta, slot):
+    from datetime import timedelta
+
+    otro = (_lunes() + timedelta(days=6)).isoformat()
+    entrada = _entrada(respuesta, otro, slot)
+    resp = client.patch(f"/plans/entries/{entrada['id']}", json={"status": "done"})
+    assert resp.status_code == 422, resp.text
+    return resp.json()["detail"]
+
+
+def _diario(client):
+    return client.get(f"/food-log?date={_hoy()}").json()
+
+
+@then("the diary of today has that meal")
+def then_diary_has(client, confirmada):
+    dish_id = confirmada["dish_id"]
+    assert [e for e in _diario(client)["entries"] if e["dish_id"] == dish_id]
+
+
+@then("the diary of today has that meal only once")
+def then_diary_once(client, respuesta):
+    entrada = _entrada(respuesta, _hoy(), "comida")
+    filas = [e for e in _diario(client)["entries"] if e["dish_id"] == entrada["dish_id"]]
+    assert len(filas) == 1
+
+
+@then("the diary of today is empty")
+def then_diary_empty(client):
+    assert _diario(client)["entries"] == []
+
+
+@then(parsers.parse("the plan says that meal is {estado:w}"))
+def then_status(confirmada, estado):
+    assert confirmada["status"] == estado
+
+
+@then(parsers.parse("the {slot:w} of today says nothing yet"))
+def then_says_nothing(respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    assert entrada["status"] is None
+    assert entrada["log_entry_id"] is None
+
+
+@then("it says that is not today")
+def then_not_today(negativa):
+    assert "hoy" in negativa["motivo"]
+
+
+@then("every meal says its kcal")
+def then_kcal(respuesta):
+    assert all(e["kcal"] is not None and e["kcal"] > 0 for e in respuesta["entries"])

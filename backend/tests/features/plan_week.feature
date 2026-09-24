@@ -49,3 +49,43 @@ Feature: The week, generated
   Scenario: A week I never generated is not invented
     When I ask for the plan of 2026-10-05
     Then there is no plan
+
+  # El plan propone; confirmar es lo que escribe en el diario.
+  Scenario: Confirming a planned meal writes it in the diary
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I confirm the comida of today
+    Then the diary of today has that meal
+    And the plan says that meal is done
+
+  Scenario: Confirming twice does not write it twice
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I confirm the comida of today
+    And I confirm the comida of today again
+    Then the diary of today has that meal only once
+
+  Scenario: Skipping a meal writes nothing
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I skip the comida of today
+    Then the diary of today is empty
+    And the plan says that meal is skipped
+
+  # La regla del `NULL`, en el dominio nuevo: un plan que no confirmaste no es
+  # un plan incumplido.
+  Scenario: A meal I said nothing about is not skipped
+    Given a repertoire of 12 dishes
+    When I generate this week
+    Then the comida of today says nothing yet
+
+  Scenario: A day that is not the one I am living is not confirmed
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I try to confirm the comida of the last day of the week
+    Then it says that is not today
+
+  Scenario: Every meal of the plan says what it adds up to
+    Given a repertoire of 12 dishes
+    When I generate the week of 2026-09-21
+    Then every meal says its kcal
