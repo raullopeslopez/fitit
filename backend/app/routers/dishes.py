@@ -22,7 +22,7 @@ from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
 from ..gemini import ModelUnavailable, suggest_dishes
-from ..models import Dish, DishIngredient, Food, LogEntry, visible_foods
+from ..models import Dish, DishIdea, DishIngredient, Food, LogEntry, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
 from ..nutrition import macros_por_racion
@@ -34,6 +34,8 @@ from ..schemas import (
     DishLogIn,
     DishOut,
     DishPatch,
+    DishPreviewIn,
+    DishPreviewOut,
     DishSuggestionOut,
     LogEntryOut,
 )
@@ -110,8 +112,22 @@ async def create_dish(
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> DishOut:
-    """Da de alta un plato. **No escribe en `foods`**: un plato no es un alimento."""
+    """Da de alta un plato. **No escribe en `foods`**: un plato no es un alimento.
+
+    Es también la puerta de una idea convertida en plato (`idea_id`): el mismo
+    alta, con la idea anotada, en una sola petición. Nada más crea platos.
+    """
     await _foods(session, user_id, [i.food_id for i in payload.ingredients])
+    if payload.idea_id is not None:
+        idea = (
+            await session.execute(
+                select(DishIdea.id)
+                .join(Food, Food.id == DishIdea.food_id)
+                .where(DishIdea.id == payload.idea_id, visible_foods(user_id))
+            )
+        ).scalar_one_or_none()
+        if idea is None:
+            raise HTTPException(status_code=404, detail="idea not found")
     folded = fold(payload.name)
     clash = (
         await session.execute(
@@ -130,6 +146,7 @@ async def create_dish(
         servings=payload.servings,
         slots=",".join(payload.slots) if payload.slots else None,
         is_block=payload.is_block,
+        idea_id=payload.idea_id,
         ingredients=[
             DishIngredient(
                 food_id=i.food_id,
@@ -144,6 +161,25 @@ async def create_dish(
     await session.commit()
     await session.refresh(dish, ["ingredients"])
     return await _out(session, dish, user_id)
+
+
+@router.post("/preview", response_model=DishPreviewOut)
+async def preview_dish(
+    payload: DishPreviewIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> DishPreviewOut:
+    """Lo que costaría una ración, **sin guardar nada**.
+
+    Para el borrador de una idea: la pantalla enseña las macros por ración
+    mientras se decide, y no las calcula ella — la aritmética es la misma que
+    la del plato guardado (`macros_de_plato`, `macros_por_racion`).
+    """
+    foods = await _foods(session, user_id, [i.food_id for i in payload.ingredients])
+    totales, unknown = macros_de_plato([(foods[i.food_id], i.grams) for i in payload.ingredients])
+    return DishPreviewOut(
+        per_serving=macros_por_racion(totales, payload.servings), unknown=unknown
+    )
 
 
 @router.get("", response_model=list[DishOut])

@@ -432,6 +432,11 @@ class Dish(Base):
     # resto del día compensa. Sin esto, exigir que todo plato sea ajustable
     # manda al generador hacia platos de báscula.
     is_block: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # La idea de la que salió, si salió de una. En el plato y no en la idea: la
+    # idea es de todos y el plato es tuyo, así que «Guardado» se lee por usuario.
+    idea_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dish_ideas.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     ingredients: Mapped[list["DishIngredient"]] = relationship(
@@ -618,4 +623,8 @@ class DishIdea(Base):
     method: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # NULL si la receta no lo dice. Nunca 0: cero minutos no es «no lo sé».
     minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Lo que publica la página (JSON: `found`, `ingredients`, `servings`,
+    # `fetched_at`), leído una vez. NULL = todavía no se ha leído; una página
+    # sin receta se guarda con `found: false`, que no es lo mismo.
+    recipe_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

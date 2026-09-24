@@ -34,6 +34,8 @@ POSTERIORES = (
     # `dishes.slots` / `is_block` y la banda de `dish_ingredients`, que es lo
     # que el generador necesita para saber qué se deja mover.
     "a9e4f27b0c15_add_plans.py",
+    # `dishes.idea_id`: de qué idea salió el plato.
+    "d6a2f84c19e3_dish_from_idea.py",
 )
 TABLES = ("dishes", "dish_ingredients")
 
@@ -51,6 +53,7 @@ def _migrated():
         conn.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE foods (id INTEGER PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE log_entries (id INTEGER PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE dish_ideas (id INTEGER PRIMARY KEY)"))
         context = MigrationContext.configure(conn)
         with Operations.context(context):
             for filename in (MIGRATION, *POSTERIORES):

@@ -11,7 +11,13 @@ from pathlib import Path
 
 import pytest
 
-from app.ingredient_match import FoodCandidate, IngredientMatch, match_ingredient
+from app.ingredient_match import (
+    FoodCandidate,
+    IngredientMatch,
+    match_ingredient,
+    prefilter_words,
+)
+from app.naming import fold_exercise_name
 
 CIQUAL_ES = Path(__file__).resolve().parents[2] / "data" / "ciqual_es.json"
 
@@ -207,3 +213,52 @@ def test_real_okdiario_lines(line_name, status, food):
     assert match.status == status
     if food:
         assert _name(match.food_id, foods) == food
+
+
+# --- La consulta previa ---------------------------------------------------------
+
+
+def _prefiltered(words, foods):
+    """Lo que devuelve la consulta del router: nombre o alias plegado que
+    **contiene** alguna de las palabras (`LIKE '%w%'`)."""
+    return [
+        f
+        for f in foods
+        if any(
+            w in fold_exercise_name(text) for w in words for text in (f.name, *f.aliases)
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "line_name",
+    [
+        "acelgas",
+        "patatas",
+        "huevos",
+        "diente de ajo",
+        "sal",
+        "piñones tostados",
+        "Queso parmesano",
+        "Aceite de oliva virgen extra",
+        "cebolla",
+        "atún al natural",
+        "crema de leche",
+        "harina",
+        "Sal y pimienta",
+        "tahini",
+        "polvo de unicornio",
+    ],
+)
+def test_the_prefilter_loses_nothing_the_match_would_find(line_name):
+    """Pedir a la base sólo lo que contiene alguna palabra no cambia la
+    respuesta: la misma que contra las 3.185 filas de CIQUAL."""
+    foods = _ciqual()
+    subset = _prefiltered(prefilter_words([line_name]), foods)
+    assert len(subset) < len(foods)
+    assert match_ingredient(line_name, subset) == match_ingredient(line_name, foods)
+
+
+def test_prefilter_words_keep_three_letter_ingredients_and_drop_stopwords():
+    assert prefilter_words(["1 diente de ajo", "Sal al gusto"]) >= {"ajo", "sal", "diente"}
+    assert not {"de", "al"} & prefilter_words(["1 diente de ajo", "Sal al gusto"])

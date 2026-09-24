@@ -765,6 +765,21 @@ class DishIn(BaseModel):
     is_block: bool = False
     # Un plato sin ingredientes no es un plato: es un nombre.
     ingredients: list[DishIngredientIn] = Field(min_length=1)
+    # La idea de la que sale, si sale de una. Así la idea dice «Guardado» sin
+    # una segunda petición: guardar sigue siendo esta puerta y ninguna otra.
+    idea_id: int | None = None
+
+
+class DishPreviewIn(BaseModel):
+    """Lo que costaría una ración, sin guardar nada: el borrador que se mira."""
+
+    servings: float = Field(default=1, gt=0)
+    ingredients: list[DishIngredientIn] = Field(min_length=1)
+
+
+class DishPreviewOut(BaseModel):
+    per_serving: dict[str, float | None] = Field(default_factory=dict)
+    unknown: dict[str, int] = Field(default_factory=dict)
 
 
 class DishPatch(BaseModel):
@@ -1101,6 +1116,9 @@ class DishIdeaOut(BaseModel):
     created_at: datetime | None = None
     # Encontrada en esta misma petición. Sólo puede serlo con `more`.
     new: bool = False
+    # Tu plato hecho con ella, si la has guardado. Por persona: la idea es de
+    # todos, el plato no.
+    dish_id: int | None = None
 
 
 class DishIdeasOut(BaseModel):
@@ -1118,3 +1136,55 @@ class DishIdeasOut(BaseModel):
     quota_scope: str | None = None
     # Cuándo se guardó la búsqueda más reciente. `None` si no hay nada guardado.
     stored_at: datetime | None = None
+
+
+class DraftFoodOut(BaseModel):
+    id: int
+    name: str
+
+
+class DraftLineOut(BaseModel):
+    """Una línea de la receta tal como la publica la página, y con qué casa.
+
+    Nada se decide aquí por la persona: «chosen» es una propuesta que se puede
+    cambiar, «ambiguous» pregunta y «missing» lo dice. Ningún alimento se da
+    de alta desde una línea.
+    """
+
+    # Lo que dice la página, sin tocar.
+    text: str
+    quantity: float | None = None
+    unit: str | None = None
+    # Gramos de la receta entera, si la línea los da («500 gr»). `None` en «2
+    # huevos»: tiene cantidad y no tiene peso. NULL no es 0.
+    recipe_grams: float | None = None
+    # Gramos en **una** ración (`gramos_por_racion`). `None` si faltan los
+    # gramos de la línea o las raciones de la receta.
+    grams: float | None = None
+    status: Literal["chosen", "ambiguous", "missing"]
+    food: DraftFoodOut | None = None
+    # Hasta tres, del más probable al menos. Vacía con «missing».
+    candidates: list[DraftFoodOut] = Field(default_factory=list)
+
+
+class DishDraftOut(BaseModel):
+    """Una idea abierta como plato, sin guardar.
+
+    Siempre 200, como las ideas: una página sin receta o que no contesta es
+    algo que se le dice a quien está delante, no un error del servidor.
+    """
+
+    idea_id: int
+    name: str
+    url: str
+    # El modo de la idea, si es uno de los del repertorio.
+    method: DishMethod | None = None
+    # Las raciones con las que están calculados los gramos: las pedidas, o las
+    # que publica la página. `None` = nadie lo ha dicho, y se pregunta.
+    servings: float | None = None
+    servings_published: bool = False
+    lines: list[DraftLineOut] = Field(default_factory=list)
+    # 'no_recipe_data' | 'unreachable'
+    refusal: str | None = None
+    # Tu plato hecho con esta idea, si ya la guardaste.
+    dish_id: int | None = None

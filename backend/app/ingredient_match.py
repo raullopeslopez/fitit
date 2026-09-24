@@ -258,6 +258,22 @@ def _resolve(hits: list[_Hit], may_choose: bool) -> IngredientMatch:
     return IngredientMatch("ambiguous", None, [h.food.id for h in ordered[:MAX_CANDIDATES]])
 
 
+MIN_PREFILTER_WORD = 3
+
+
+def prefilter_words(names: Iterable[str]) -> set[str]:
+    """Con qué palabras pedirle a la base los alimentos que pueden casar.
+
+    Las mismas con las que compara `match_ingredient` (plegadas, sin vacías, en
+    singular), para que la consulta no deje fuera nada que luego casaría: un
+    alimento cuyo nombre o alias no **contiene** ninguna no puede coincidir en
+    nada. Desde tres letras y no desde cuatro: «ajo» y «sal» son ingredientes.
+    """
+    return {
+        word for name in names for word in _tokens(name) if len(word) >= MIN_PREFILTER_WORD
+    }
+
+
 def _alias_text(alias) -> str:
     return alias if isinstance(alias, str) else getattr(alias, "alias", "")
 
