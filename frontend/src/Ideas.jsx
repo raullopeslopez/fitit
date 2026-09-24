@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { dishIdeas } from './api.js'
 import { motivo } from './Dish.jsx'
 import { formatDayMonth } from './format.js'
+import { IdeaDraft } from './IdeaDraft.jsx'
 
 // «Acelga, cruda» -> «acelga». Los nombres de CIQUAL llevan el estado detrás de
 // la primera coma, y «Ideas con acelga, cruda» suena a ficha, no a pregunta.
@@ -37,9 +38,37 @@ function statusLine(result, pidioMas) {
   return `Guardadas el ${formatDayMonth(result.stored_at)} · «Otras ideas» busca más`
 }
 
-function IdeaRow({ idea, marcar }) {
+// La fila sigue siendo el enlace a la receta, tal como se aprobó. Convertirla
+// en plato va al lado, en su propia columna: un botón dentro de un enlace no es
+// HTML válido y el toque no sabría cuál de los dos es. Callado —muted, sin
+// relleno—: es una vez por receta, no lo que se viene a hacer aquí.
+function ToDish({ idea, onDraft }) {
+  if (idea.dish_id != null) {
+    return (
+      <span className="idea-to-dish idea-saved">
+        <span className="idea-saved-tick" aria-hidden="true">
+          ✓
+        </span>
+        Guardado
+      </span>
+    )
+  }
   return (
-    <li>
+    <button
+      type="button"
+      className="idea-to-dish"
+      aria-label={`Convertir en plato: ${idea.name}`}
+      onClick={() => onDraft(idea)}
+    >
+      <span aria-hidden="true">+</span>
+      Plato
+    </button>
+  )
+}
+
+function IdeaRow({ idea, marcar, onDraft }) {
+  return (
+    <li className="idea-item">
       <a className="idea" href={idea.url} target="_blank" rel="noopener noreferrer">
         <span className="idea-main">
           <span className="idea-name">
@@ -59,6 +88,7 @@ function IdeaRow({ idea, marcar }) {
           {idea.method && <span className="idea-method">{idea.method}</span>}
         </span>
       </a>
+      {onDraft && <ToDish idea={idea} onDraft={onDraft} />}
     </li>
   )
 }
@@ -88,7 +118,19 @@ export function IdeasScreen({ food, onClose }) {
   const [result, setResult] = useState(null)
   const [busy, setBusy] = useState(true)
   const [pidioMas, setPidioMas] = useState(false)
+  // La idea abierta como plato, o `null`.
+  const [borrador, setBorrador] = useState(null)
   const vivo = useRef(true)
+
+  // Guardada: su fila pasa a decir «Guardado» sin volver a pedir la lista.
+  const guardada = (idea, dish) => {
+    setResult((prev) =>
+      prev
+        ? { ...prev, ideas: prev.ideas.map((i) => (i.id === idea.id ? { ...i, dish_id: dish.id } : i)) }
+        : prev,
+    )
+    setBorrador(null)
+  }
   const corto = shortFoodName(food.name)
 
   const pedir = async (more) => {
@@ -144,7 +186,9 @@ export function IdeasScreen({ food, onClose }) {
             <ul className="ideas-list">
               {primeraVez
                 ? [0, 1, 2].map((n) => <SkeletonRow key={n} />)
-                : ideas.map((idea) => <IdeaRow key={idea.id} idea={idea} marcar={pidioMas} />)}
+                : ideas.map((idea) => (
+                    <IdeaRow key={idea.id} idea={idea} marcar={pidioMas} onDraft={setBorrador} />
+                  ))}
             </ul>
           </div>
         )}
@@ -168,6 +212,16 @@ export function IdeasScreen({ food, onClose }) {
           </p>
         </div>
       </div>
+
+      {/* Encima de las ideas, a pantalla completa como el alta de plato. Al
+          cerrar se vuelve a la lista tal como estaba. */}
+      {borrador && (
+        <IdeaDraft
+          idea={borrador}
+          onSaved={(dish) => guardada(borrador, dish)}
+          onCancel={() => setBorrador(null)}
+        />
+      )}
     </div>
   )
 }

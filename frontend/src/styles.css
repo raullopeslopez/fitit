@@ -4524,8 +4524,59 @@ button.set-chip:active:not(:disabled) {
   margin: 0;
   padding: 0;
 }
-.ideas-list > li + li > .idea {
+/* El filete va en el `li` y no en el enlace: la fila tiene dos columnas (la
+   receta y «+ Plato») y la raya cruza las dos. */
+.ideas-list > li + li {
   border-top: 1px solid var(--border);
+}
+.idea-item {
+  display: flex;
+  align-items: stretch;
+}
+.idea-item > .idea {
+  flex: 1;
+  min-width: 0;
+}
+/* Convertir en plato: su propia columna, al lado del enlace y no dentro. Muted y
+   sin relleno — es una vez por receta (DESIGN.md: las acciones raras no se
+   llevan controles con peso de contenido). 44px de ancho y la fila de alto. */
+.idea-to-dish {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  /* Ancho fijo, el de «GUARDADO»: si cada fila midiese lo suyo, la columna de
+     minutos bailaría de una fila a otra en cuanto guardas una. */
+  width: 5.5rem;
+  min-height: 44px;
+  padding: 0 0.4rem;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+button.idea-to-dish > span {
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1;
+}
+@media (hover: hover) {
+  button.idea-to-dish:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    color: var(--text);
+  }
+}
+.idea-saved-tick {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 .idea {
   display: flex;
@@ -4665,6 +4716,134 @@ button.ideas-more {
   text-align: center;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+ * Una idea abierta como plato. La misma pantalla que el alta de plato, con
+ * las líneas de la receta ya puestas y la barra de Ideas abajo.
+ * ------------------------------------------------------------------ */
+.draft-body {
+  padding-bottom: 1.75rem;
+}
+.draft-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.draft-eyebrow {
+  margin: 0.4rem 0 0.2rem;
+}
+.draft-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+.draft-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.draft-line-food {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+/* Lo que dice la receta, debajo: la procedencia en mono, como en las ideas. */
+.draft-line-text {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.draft-line-grams {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.draft-line-grams input {
+  width: 4.75rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* `—` es una cifra desconocida, no una pista: tinta, nunca muted (CLAUDE.md). */
+.draft-line-grams input::placeholder {
+  color: var(--text);
+  opacity: 1;
+}
+.draft-line-choices {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+button.draft-choice {
+  min-height: 44px;
+  text-align: left;
+}
+.draft-macros {
+  margin-top: 1.1rem;
+}
+.draft-macro-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+.draft-macro dt {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.draft-macro dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.draft-source,
+.new-dish-origin {
+  margin: 0.9rem 0 0;
+}
+.draft-source a,
+.new-dish-origin a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-ink);
+  text-underline-offset: 3px;
+}
+.new-dish-origin {
+  margin: 0 0 0.6rem;
+}
+.new-dish-notice {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+button.draft-save {
+  min-height: 44px;
+  font-weight: 600;
+}
+.ideas-status.draft-error {
+  color: var(--danger);
 }
 
 /* De dónde salió el alimento. Prosa, encima de «cuánto»: no es un dato del
