@@ -81,7 +81,9 @@ def test_a_top_level_list_of_objects():
 
 
 def test_graph_inside_a_list():
-    html = _page([{"@graph": [{"@type": "WebPage"}, {"@type": "Recipe", "recipeIngredient": ["a"]}]}])
+    html = _page(
+        [{"@graph": [{"@type": "WebPage"}, {"@type": "Recipe", "recipeIngredient": ["a"]}]}]
+    )
     assert read_recipe(html).ingredients == ["a"]
 
 
@@ -104,7 +106,9 @@ def test_blank_and_non_string_lines_are_dropped_and_whitespace_collapsed():
 
 
 def test_html_entities_are_decoded():
-    html = _page({"@type": "Recipe", "recipeIngredient": ["Sal &amp; pimienta", "&frac12; cebolla"]})
+    html = _page(
+        {"@type": "Recipe", "recipeIngredient": ["Sal &amp; pimienta", "&frac12; cebolla"]}
+    )
     assert read_recipe(html).ingredients == ["Sal & pimienta", "½ cebolla"]
 
 
@@ -120,7 +124,7 @@ def test_the_recipe_with_ingredients_wins_over_an_empty_one():
 
 
 def test_script_type_attribute_is_case_and_quote_tolerant():
-    html = "<script type='application/LD+JSON' id=x>{\"@type\":\"Recipe\",\"recipeIngredient\":[\"a\"]}</script>"
+    html = '<script type=\'application/LD+JSON\' id=x>{"@type":"Recipe","recipeIngredient":["a"]}</script>'
     assert read_recipe(html).ingredients == ["a"]
 
 
@@ -168,7 +172,10 @@ async def test_fetch_returns_the_text_and_sends_a_browser_user_agent():
         seen["ua"] = request.headers["user-agent"]
         return httpx.Response(200, text="<html>ok</html>")
 
-    assert await fetch_page("https://example.com/r", transport=_transport(handler)) == "<html>ok</html>"
+    assert (
+        await fetch_page("https://example.com/r", transport=_transport(handler))
+        == "<html>ok</html>"
+    )
     assert "Mozilla/5.0" in seen["ua"]
 
 
@@ -193,7 +200,9 @@ async def test_fetch_refuses_a_page_larger_than_the_cap():
 
 async def test_fetch_error_status_is_unreachable():
     with pytest.raises(PageUnreachable):
-        await fetch_page("https://example.com/404", transport=_transport(lambda r: httpx.Response(404)))
+        await fetch_page(
+            "https://example.com/404", transport=_transport(lambda r: httpx.Response(404))
+        )
 
 
 async def test_fetch_network_error_is_unreachable():

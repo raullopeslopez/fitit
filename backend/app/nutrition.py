@@ -148,6 +148,23 @@ def macros_por_racion(totales: dict, servings: float) -> dict:
     return {field: _scale(totales.get(field), 1.0 / servings, _MACRO_PLACES) for field in NUTRIENTS}
 
 
+def gramos_por_racion(grams: float | None, servings: float | None) -> float | None:
+    """Los gramos de un ingrediente de receta que caen en una ración.
+
+    Una receta publica «500 gr de acelgas» para 2; el plato guarda lo que se
+    come, 250 g. Dos desconocidos que siguen siéndolo:
+
+    - `grams` `None` («2 huevos»): no hay nada que dividir.
+    - `servings` `None` (la página no publica `recipeYield`): dividir entre 1
+      sería decir que la receta entera es una ración, y eso nadie lo ha dicho.
+    """
+    if servings is not None and servings <= 0:
+        raise ValueError("servings must be greater than zero")
+    if grams is None or servings is None:
+        return None
+    return _scale(grams, 1.0 / servings, _MACRO_PLACES)
+
+
 def restante(target: float | None, eaten: float | None) -> float | None:
     """Lo que queda de un objetivo diario: `target - eaten`.
 

@@ -188,7 +188,11 @@ def test_real_made_up_food_is_missing():
     ("line_name", "status", "food"),
     [
         # El resto de la receta de okdiario, tal como la parte `parse_line`.
-        ("crema de leche", "chosen", "Nata o especialidad a base de nata ligera, contenido en grasa desconocido (alimento medio)"),
+        (
+            "crema de leche",
+            "chosen",
+            "Nata o especialidad a base de nata ligera, contenido en grasa desconocido (alimento medio)",
+        ),
         ("cebolla", "chosen", "Cebolla, cruda"),
         ("atún al natural", "chosen", "Atún, al natural, en conserva, escurrido"),
         ("Queso parmesano", "chosen", "Parmesano"),

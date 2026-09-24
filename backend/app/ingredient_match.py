@@ -49,7 +49,26 @@ from app.naming import fold_exercise_name
 MAX_CANDIDATES = 3
 
 _STOPWORDS = frozenset(
-    {"de", "del", "la", "el", "los", "las", "lo", "con", "en", "y", "e", "al", "a", "o", "u", "para", "un", "una"}
+    {
+        "de",
+        "del",
+        "la",
+        "el",
+        "los",
+        "las",
+        "lo",
+        "con",
+        "en",
+        "y",
+        "e",
+        "al",
+        "a",
+        "o",
+        "u",
+        "para",
+        "un",
+        "una",
+    }
 )
 
 # Lo que se puede quitar de un nombre y sigue siendo el mismo alimento. Plegado
@@ -58,13 +77,53 @@ _STOPWORDS = frozenset(
 # ajo» es ajo.
 _DESCRIPTIVE = frozenset(
     {
-        "tostado", "tostada", "picado", "picada", "rallado", "rallada", "troceado",
-        "troceada", "cortado", "cortada", "pelado", "pelada", "limpio", "limpia",
-        "fresco", "fresca", "maduro", "madura", "grande", "pequeno", "pequena",
-        "mediano", "mediana", "entero", "entera", "laminado", "laminada", "molido",
-        "molida", "triturado", "triturada", "fino", "fina", "finamente", "dado",
-        "juliana", "rodaja", "tira", "hoja", "rama", "diente", "queso", "virgen",
-        "extra", "bueno", "buena", "calidad",
+        "tostado",
+        "tostada",
+        "picado",
+        "picada",
+        "rallado",
+        "rallada",
+        "troceado",
+        "troceada",
+        "cortado",
+        "cortada",
+        "pelado",
+        "pelada",
+        "limpio",
+        "limpia",
+        "fresco",
+        "fresca",
+        "maduro",
+        "madura",
+        "grande",
+        "pequeno",
+        "pequena",
+        "mediano",
+        "mediana",
+        "entero",
+        "entera",
+        "laminado",
+        "laminada",
+        "molido",
+        "molida",
+        "triturado",
+        "triturada",
+        "fino",
+        "fina",
+        "finamente",
+        "dado",
+        "juliana",
+        "rodaja",
+        "tira",
+        "hoja",
+        "rama",
+        "diente",
+        "queso",
+        "virgen",
+        "extra",
+        "bueno",
+        "buena",
+        "calidad",
     }
 )
 
@@ -146,7 +205,9 @@ class _Indexed:
     def of(cls, food) -> _Indexed:
         name = food.name
         aliases = frozenset(
-            tokens for tokens in (_tokens(_alias_text(a)) for a in getattr(food, "aliases", ()) or ()) if tokens
+            tokens
+            for tokens in (_tokens(_alias_text(a)) for a in getattr(food, "aliases", ()) or ())
+            if tokens
         )
         name_words = _tokens(name)
         head = _tokens(_PARENS.sub(" ", name).split(",", 1)[0])

@@ -55,7 +55,9 @@ def read_recipe(html: str) -> RecipeData | None:
     ninguno los trae, el primero. Un bloque JSON-LD roto se salta: una página
     real puede tener uno mal escrito y otro bueno.
     """
-    recipes = [node for block in _json_ld_blocks(html) for node in _nodes(block) if _is_recipe(node)]
+    recipes = [
+        node for block in _json_ld_blocks(html) for node in _nodes(block) if _is_recipe(node)
+    ]
     if not recipes:
         return None
     chosen = next((r for r in recipes if _ingredients(r)), recipes[0])
