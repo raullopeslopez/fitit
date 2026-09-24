@@ -19,6 +19,7 @@ import {
   setTargets,
 } from './api.js'
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
+import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import Objetivo from './Objetivo.jsx'
 import Reglas, { Veredictos } from './Reglas.jsx'
 import PlanDelDia, { Semana, lunesDe } from './Plan.jsx'
@@ -511,6 +512,7 @@ export default function Comida() {
           platos={platos}
           onDishesChanged={loadSiempre}
           labelReading={day?.label_reading ?? false}
+          dishIdeas={day?.dish_ideas ?? false}
           block={labelBlock}
           onBlocked={setLabelBlock}
           onDone={afterWrite}
@@ -1249,6 +1251,7 @@ function AddFood({
   platos = [],
   onDishesChanged = () => {},
   labelReading = false,
+  dishIdeas = false,
   block = null,
   onBlocked = () => {},
   onDone,
@@ -1746,6 +1749,7 @@ function AddFood({
               dayIso={dayIso}
               entries={entries}
               source={chosen ? null : scan?.food ? 'catalogo' : 'codigo'}
+              ideasAvailable={dishIdeas}
               onDone={onDone}
               onDayChanged={onDayChanged}
               onCancel={cerrarDetalle}
@@ -2028,6 +2032,7 @@ function Amount({
   dayIso,
   entries = [],
   source = null,
+  ideasAvailable = false,
   onDone,
   onDayChanged,
   onCancel,
@@ -2037,6 +2042,7 @@ function Amount({
   // estabas haciendo cuando te diste cuenta de que estaban mal.
   const [food, setFood] = useState(initialFood)
   const [correcting, setCorrecting] = useState(false)
+  const [ideas, setIdeas] = useState(false)
   const preset = food.portions?.find((p) => p.is_default) ?? null
   const [portionId, setPortionId] = useState(preset?.id ?? null)
   const [quantity, setQuantity] = useState('1')
@@ -2112,6 +2118,10 @@ function Amount({
       />
     )
   }
+
+  // Las ideas tapan la hoja entera y, al cerrarlas, la hoja sigue como estaba:
+  // la cantidad y la comida que habías elegido no se pierden por mirar recetas.
+  if (ideas) return <IdeasScreen food={food} onClose={() => setIdeas(false)} />
 
   // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
   // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.
@@ -2241,6 +2251,22 @@ function Amount({
           disabled={busy}
         >
           Corregir este alimento
+        </button>
+      )}
+
+      {/* Mismo peso que «Corregir»: es un desvío, no lo que se viene a hacer
+          aquí. Vale para cualquier alimento —una receta de acelgas no depende
+          de quién dio de alta la acelga— y no está si el servidor no puede
+          buscar, que un enlace que sólo lleva a «no disponible» es peor que
+          ninguno. */}
+      {ideasAvailable && (
+        <button
+          type="button"
+          className="link-btn food-detail-correct"
+          onClick={() => setIdeas(true)}
+          disabled={busy}
+        >
+          Ideas con {shortFoodName(food.name)}
         </button>
       )}
     </form>

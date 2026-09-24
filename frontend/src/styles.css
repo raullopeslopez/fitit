@@ -4504,6 +4504,169 @@ button.set-chip:active:not(:disabled) {
   color: var(--muted);
 }
 
+/* Dos enlaces al pie de la hoja («Corregir» e «Ideas con …»): el segundo pega
+   al primero, que ya trae su margen. */
+.food-detail-correct + .food-detail-correct {
+  margin-top: 0.1rem;
+}
+
+/* ------------------------------------------------------------------
+ * Ideas con un alimento. Una idea es una fila de libro de registro, no una
+ * tarjeta: la lista entera es una tarjeta y cada idea una línea con filete,
+ * como los resultados de búsqueda. La fila entera es el enlace.
+ * ------------------------------------------------------------------ */
+.ideas-card {
+  padding: 0;
+  overflow: hidden;
+}
+.ideas-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ideas-list > li + li > .idea {
+  border-top: 1px solid var(--border);
+}
+.idea {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+.idea-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.idea-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+/* De dónde sale, en mono y en muted, como la procedencia de un alimento. */
+.idea-source {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Minutos y método a la derecha, como una hoja de especificaciones. */
+.idea-spec {
+  flex: none;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.idea-min {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.idea-min small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-left: 0.2em;
+}
+.idea-method {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Lo recién encontrado: un sello, no un color. El ámbar es de la acción. */
+.idea-new {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0 0.4rem;
+  margin-left: 0.4rem;
+  vertical-align: 2px;
+}
+.idea-skeleton .idea-main {
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+.ideas-bone {
+  display: block;
+  height: 0.9rem;
+  border-radius: 4px;
+  background: var(--border);
+}
+.ideas-bone-thin {
+  height: 0.7rem;
+}
+.ideas-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* La lista termina donde empieza el fundido, no debajo de la barra. */
+.ideas-body {
+  padding-bottom: 1.75rem;
+}
+/* Fija abajo por ser el último hijo de `.food-screen` (columna flex a pantalla
+   completa): la lista rueda encima y la barra no se mueve. */
+.ideas-bar {
+  flex: none;
+  position: relative;
+  background: var(--bg);
+  padding: 0.6rem 1rem calc(0.9rem + env(safe-area-inset-bottom));
+}
+/* La regla de Días: una barra fija sobre una lista que rueda le debe un
+   fundido. 28px del color de la página, colgando fuera de su caja, para que
+   nada de dentro se mueva y el fundido nunca se coma un toque. */
+.ideas-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--bg),
+    color-mix(in srgb, var(--bg) 55%, transparent) 55%,
+    color-mix(in srgb, var(--bg) 0%, transparent)
+  );
+}
+.ideas-bar-inner {
+  max-width: 480px;
+  margin: 0 auto;
+}
+/* `button.` delante porque `button.secondary` fija 36px y gana a una clase sola. */
+button.ideas-more {
+  min-height: 44px;
+  font-weight: 600;
+}
+.ideas-status {
+  margin: 0.5rem 0 0;
+  min-height: 1.2em;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 /* De dónde salió el alimento. Prosa, encima de «cuánto»: no es un dato del
    alimento, es una explicación de por qué está aquí sin que hayas tecleado. */
 .food-source {

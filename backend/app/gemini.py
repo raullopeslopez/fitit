@@ -151,21 +151,26 @@ async def _ask(
     temperature: float,
     timeout: float = TIMEOUT,
     backoff: float = BACKOFF,
-) -> dict:
+    tools: list[dict] | None = None,
+    as_text: bool = False,
+) -> dict | str:
     """Manda las partes, devuelve el JSON del modelo y no lo juzga.
+
+    Con `as_text` no se fuerza JSON y se devuelve el texto tal cual, unido si
+    viene en varias partes: es lo que hace falta cuando va una herramienta
+    (`google_search`) que no está comprobado que conviva con `responseMimeType`.
 
     Extraído de `read_label` cuando apareció el segundo uso —pedir platos—,
     porque lo que se reusa es el transporte: los reintentos medidos contra la
     API, el 429 con su alcance, y el timeout pensado para alguien esperando.
     Lo que cambia entre los dos usos es qué se manda y con cuánta temperatura.
     """
-    body = {
-        "contents": [{"parts": parts}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": temperature,
-        },
-    }
+    config: dict = {"temperature": temperature}
+    if not as_text:
+        config["responseMimeType"] = "application/json"
+    body: dict = {"contents": [{"parts": parts}], "generationConfig": config}
+    if tools:
+        body["tools"] = tools
     last: Exception | None = None
     for attempt in range(ATTEMPTS):
         try:
@@ -179,6 +184,9 @@ async def _ask(
                 )
                 response.raise_for_status()
                 payload = response.json()
+            if as_text:
+                partes = payload["candidates"][0]["content"]["parts"]
+                return "".join(p.get("text", "") for p in partes)
             text = payload["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(text)
         except httpx.HTTPStatusError as exc:
@@ -318,4 +326,71 @@ async def suggest_dishes(
         temperature=0.9,
         timeout=timeout,
         backoff=backoff,
+    )
+
+
+# Lo que se le pide para traer ideas con un alimento, y por qué así.
+#
+# Aquí el modelo no inventa: **busca**. Va con la herramienta `google_search` y
+# se le pide que cada idea salga de una página que ha encontrado, con su enlace.
+# Una idea sin enlace no se guarda (`app/ideas.py`), así que pedirlo no es
+# cortesía: es la condición para que la respuesta sirva.
+#
+# Ni ingredientes ni cifras. Lo que se cocina de verdad sale de leer la página
+# de la receta, y eso es la fase 2.
+IDEAS_PROMPT = """Buscas en la web recetas reales en español construidas alrededor de un alimento.
+
+Usa la búsqueda. Cada receta tiene que salir de una página que hayas encontrado,
+y su `url` es la dirección de esa página, completa, empezando por https://. No
+inventes recetas ni direcciones: si no la has encontrado, no la pongas.
+
+Devuelve SOLO un objeto JSON. Sin markdown, sin explicación:
+
+{
+  "ideas": [
+    {
+      "name": "<nombre de la receta, como lo pone la página>",
+      "url": "<dirección de la página de la receta>",
+      "method": "<cómo se cocina, en una palabra: sartén, horno, olla, plancha, crudo, freidora de aire…>",
+      "minutes": <minutos totales que dice la receta; omítelo si no lo dice>
+    }
+  ]
+}
+
+REGLAS:
+- Recetas de páginas distintas, y platos distintos entre sí.
+- El alimento es el protagonista del plato, no un acompañamiento.
+- **Sin ingredientes, sin cantidades, sin calorías.** Sólo lo de arriba.
+"""
+
+
+async def find_ideas(
+    *,
+    food: str,
+    avoid: list[str] | None = None,
+    n: int = 5,
+    api_key: str,
+    model: str,
+    timeout: float = 30.0,
+    backoff: float = BACKOFF,
+) -> str:
+    """Busca `n` recetas con `food` y devuelve el texto del modelo, sin juzgarlo.
+
+    Texto y no JSON: el JSON se pide en el prompt y lo lee `app/ideas.py`, que
+    sabe quitarle las vallas. El timeout es más largo que el de la etiqueta
+    porque aquí el modelo busca antes de contestar, y nadie tiene un yogur en la
+    mano esperando.
+    """
+    texto = IDEAS_PROMPT + f"\nALIMENTO: {food}\nTrae {n} recetas."
+    if avoid:
+        texto += "\n\nYA LAS TENGO, trae otras distintas:\n- " + "\n- ".join(avoid)
+    return await _ask(
+        [{"text": texto}],
+        api_key=api_key,
+        model=model,
+        temperature=0.7,
+        timeout=timeout,
+        backoff=backoff,
+        tools=[{"google_search": {}}],
+        as_text=True,
     )
