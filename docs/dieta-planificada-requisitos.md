@@ -522,11 +522,34 @@ regla nueva y comparar.
 >   usa el plan: escribir el diario desde un plato es una sola cosa, y dos
 >   copias acabarían congelando cifras distintas.
 >
-> **Lo que no entra, y es de propósito:** las sustituciones de §4 (un plan de
-> papel dice «150 g de pollo **o** 180 de pavo», y esto todavía no), las dos
-> métricas de adherencia de §5, y la cabecera que en vez de «cuánto falta de
-> cada macro» diga «qué te queda por comer» (§3). Las tres se apoyan en lo que
-> esta fase deja puesto.
+> **Rematada el 24-09** con las tres piezas que quedaban:
+>
+> - **Qué te queda por comer** (§3). Encima de las filas, una frase: «Te quedan
+>   la comida y la cena: 1260 kcal.» Es una lista de platos y no un número de
+>   macros — accionable sin traducir nada. Con todas dichas: «Nada más por hoy.»
+>   Sólo en el día que estás viviendo: en otro, «te quedan» no significa nada.
+> - **Cambiar** (§4). Tercera acción de la fila, «Lo cambié», que abre los
+>   platos **tuyos** que caben en ese hueco. Del repertorio y no calculados
+>   desde CIQUAL: «te propongo 210 g de tofu» suena brillante y falla en la
+>   cocina, donde no hay tofu. Escribe el diario con la receta del sustituto,
+>   una ración, y **no reescribe lo que el plan dijo**: el plan congela, y lo
+>   que comiste vive en el diario.
+> - **Adherencia** (§5), arriba de «Tu semana», en las dos métricas. La
+>   nutricional sólo mira los días cerrados —a media mañana diría 15 % y sería
+>   la hora, no la semana—; la literal mira la semana entera y es la que dice
+>   dónde se cae el plan, a partir de dos fallos en el mismo hueco. Lo que no
+>   confirmaste se cuenta **aparte**, callado, no como incumplido. Banda del
+>   10 %: sin ella, 150 g planificados y 165 comidos se pintan como fallo.
+>
+> Tres cosas de copy que salieron de mirarlo en el navegador: «Otras 1 pasaron»
+> no es castellano, el veredicto de haberse pasado estaba en `--muted` cuando es
+> la respuesta a «¿diste los números?», y «Cancelar» al lado del último
+> sustituto se leía como un sustituto más.
+>
+> **Lo que sigue sin construirse:** los grupos de equivalencias escritos por ti
+> en la propia fila («150 g de pollo **o** 180 de pavo»), que necesitan dónde
+> escribirlos y son una pantalla aparte; y la puntuación por plato de la
+> decisión 14, que espera a que exista «me gusta».
 
 ---
 

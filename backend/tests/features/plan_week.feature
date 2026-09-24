@@ -89,3 +89,47 @@ Feature: The week, generated
     Given a repertoire of 12 dishes
     When I generate the week of 2026-09-21
     Then every meal says its kcal
+
+  # §4: cambiar no es lo mismo que saltárselo. Lo que de verdad comiste entra
+  # en el diario; lo que el plan dijo se queda como lo dijo.
+  Scenario: Swapping a meal logs what I really ate
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I swap the comida of today for another dish
+    Then the diary of today has the dish I swapped to
+    And the plan still says the dish it planned
+    And the plan says that meal is swapped
+
+  Scenario: I cannot swap for somebody else's dish
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I try to swap the comida of today for a dish that is not mine
+    Then there is no such dish
+
+  # §5: son dos preguntas distintas y ninguna sola sirve.
+  Scenario: Adherence compares what I ate with what was planned
+    Given a repertoire of 12 dishes
+    And a week planned for 2026-09-14
+    And I ate 1200 kcal on 2026-09-15
+    When I ask how the week of 2026-09-14 went
+    Then it covers 7 closed days
+    And it says what I ate and what was planned
+
+  # La regla del `NULL` otra vez: a las 10:00 la cena no está incumplida.
+  Scenario: What has not happened yet does not count against me
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I ask how this week went
+    Then nothing counts as followed or missed yet
+    And it says how many meals are still to come
+
+  Scenario: It says which meal is where the plan falls
+    Given a repertoire of 12 dishes
+    And a week planned for 2026-09-14
+    And I skipped the cena on 4 days of that week
+    When I ask how the week of 2026-09-14 went
+    Then it says the cena is where the plan falls, 4 days
+
+  Scenario: A week I never planned has nothing to measure
+    When I ask how the week of 2026-10-12 went
+    Then there is no plan

@@ -121,6 +121,7 @@ describe('Comida', () => {
     api.getTargetProfile.mockResolvedValue({})
     // Sin plan para la semana: la tarjeta ofrece generarlo y no estorba al resto.
     api.getPlan.mockResolvedValue(null)
+    api.getAdherence.mockResolvedValue(null)
     api.getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: [] })
   })
 

@@ -24,12 +24,31 @@ from sqlalchemy.orm import selectinload
 from ..auth import get_current_user
 from ..db import get_session
 from ..food_groups import familia
-from ..models import BodyWeight, DailyTarget, Day, Dish, Food, Plan, PlanEntry, Rule, User
+from ..models import (
+    BodyWeight,
+    DailyTarget,
+    Day,
+    Dish,
+    Food,
+    LogEntry,
+    Plan,
+    PlanEntry,
+    Rule,
+    User,
+)
 from ..nutrition import NUTRIENTS, Ajustable, food_log_date, macros_de_plato
 from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar
 from .dishes import registrar_plato
 from ..rules import desde_fila
-from ..schemas import PlanEntryOut, PlanEntryPatch, PlanIn, PlanOut, VerdictOut
+from ..schemas import (
+    AdherenceOut,
+    PlanEntryOut,
+    PlanEntryPatch,
+    PlanIn,
+    PlanOut,
+    SlotAdherenceOut,
+    VerdictOut,
+)
 from ..weight import tendencia
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -476,18 +495,22 @@ async def correct_entry(
     if fila is None:
         raise HTTPException(status_code=404, detail="plan entry not found")
 
-    if payload.status == "done" and fila.log_entry_id is None:
+    # Confirmar y cambiar escriben las dos en el diario; lo que cambia es **qué**
+    # plato y con qué gramos. Saltárselo no escribe nada.
+    escribe = payload.status == "done" or (payload.status == "swapped" and payload.dish_id)
+    if escribe and fila.log_entry_id is None:
         moment = payload.logged_at or datetime.now(UTC)
         if food_log_date(moment) != fila.log_date:
             raise HTTPException(
                 status_code=422,
                 detail={"motivo": "sólo se confirma el día de hoy", "log_date": str(fila.log_date)},
             )
+        cual = payload.dish_id or fila.dish_id
         dish = (
             await session.execute(
                 select(Dish)
                 .options(selectinload(Dish.ingredients))
-                .where(Dish.id == fila.dish_id, Dish.user_id == user_id)
+                .where(Dish.id == cual, Dish.user_id == user_id)
             )
         ).scalar_one_or_none()
         if dish is None:
@@ -499,7 +522,13 @@ async def correct_entry(
                 await session.execute(select(Food).where(Food.id.in_(ids)))
             ).scalars().all()
         }
-        gramos = json.loads(fila.grams_json) if fila.grams_json else []
+        if payload.dish_id:
+            # Lo que comiste no es lo que el plan pesó: los gramos congelados
+            # son de **otro plato**. Se usa la receta del sustituto, una ración.
+            raciones = dish.servings or 1
+            gramos = [i.grams / raciones for i in dish.ingredients]
+        else:
+            gramos = json.loads(fila.grams_json) if fila.grams_json else []
         entries = await registrar_plato(
             session,
             dish=dish,
@@ -531,4 +560,106 @@ async def correct_entry(
         grams=json.loads(fila.grams_json) if fila.grams_json else [],
         status=fila.status,
         log_entry_id=fila.log_entry_id,
+    )
+
+
+# La banda dentro de la que comer no es fallar. Sin ella, 150 g planificados y
+# 165 comidos se pintan como incumplimiento y la métrica deja de mirarse.
+TOLERANCIA = 0.10
+
+# Cuántas veces hay que caerse en el mismo hueco para llamarlo patrón. Una vez
+# es un martes; dos ya es dónde se te rompe el plan.
+MINIMO_PATRON = 2
+
+
+@router.get("/{week_start}/adherence", response_model=AdherenceOut)
+async def adherence(
+    week_start: date,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> AdherenceOut:
+    """Cómo fue la semana, en las dos métricas que hacen falta.
+
+    **La nutricional** —lo comido contra lo planificado— sólo mira los días
+    **cerrados**: a media mañana diría 15 % y eso no sería cómo va la semana,
+    sería la hora que es.
+
+    **La literal** —filas confirmadas sobre filas de las que dijiste algo— mira
+    la semana entera, y es la que permite decir dónde se cae el plan. Lo que no
+    confirmaste **no cuenta como incumplido**: se cuenta aparte, callado, porque
+    un plan que no confirmaste no es un plan roto.
+    """
+    plan = (
+        await session.execute(
+            select(Plan)
+            .options(selectinload(Plan.entries))
+            .where(Plan.user_id == user_id, Plan.week_start == week_start)
+        )
+    ).scalar_one_or_none()
+    if plan is None:
+        raise HTTPException(status_code=404, detail="plan not found")
+
+    hoy = food_log_date(datetime.now(UTC))
+    cerrados = [dia for dia in _semana(week_start) if dia < hoy]
+
+    seguidas = sum(1 for f in plan.entries if f.status == "done")
+    dichas = sum(1 for f in plan.entries if f.status)
+    calladas = sum(1 for f in plan.entries if not f.status and f.log_date < hoy)
+    por_venir = sum(1 for f in plan.entries if not f.status and f.log_date >= hoy)
+
+    por_hueco: dict[str, dict[str, int]] = {}
+    for fila in plan.entries:
+        cuenta = por_hueco.setdefault(fila.slot, {"followed": 0, "decided": 0})
+        if fila.status:
+            cuenta["decided"] += 1
+        if fila.status == "done":
+            cuenta["followed"] += 1
+
+    flojo = None
+    fallos = 0
+    for slot in HUECOS:
+        cuenta = por_hueco.get(slot)
+        if not cuenta:
+            continue
+        perdidas = cuenta["decided"] - cuenta["followed"]
+        if perdidas >= MINIMO_PATRON and perdidas > fallos:
+            flojo, fallos = slot, perdidas
+
+    planificadas = None
+    comidas = None
+    dentro = None
+    if cerrados:
+        kcal = await _kcal_congeladas(session, plan)
+        valores = [kcal.get(f.id) for f in plan.entries if f.log_date in cerrados]
+        # Un `None` deja la suma desconocida, igual que en el diario: un total
+        # parcial pintado como total mentiría del tamaño de lo que falta.
+        planificadas = None if any(v is None for v in valores) else round(sum(valores), 2)
+
+        filas = (
+            await session.execute(
+                select(LogEntry.kcal).where(
+                    LogEntry.user_id == user_id, LogEntry.log_date.in_(cerrados)
+                )
+            )
+        ).scalars().all()
+        comidas = None if any(v is None for v in filas) else round(sum(filas), 2)
+
+        if planificadas and comidas is not None:
+            dentro = abs(comidas - planificadas) <= planificadas * TOLERANCIA
+
+    return AdherenceOut(
+        week_start=week_start,
+        days=len(cerrados),
+        eaten_kcal=comidas,
+        planned_kcal=planificadas,
+        within_tolerance=dentro,
+        followed=seguidas,
+        decided=dichas,
+        silent=calladas,
+        pending=por_venir,
+        by_slot=[
+            SlotAdherenceOut(slot=slot, **por_hueco[slot]) for slot in HUECOS if slot in por_hueco
+        ],
+        weakest_slot=flojo,
+        weakest_missed=fallos,
     )

@@ -1028,6 +1028,53 @@ class PlanEntryPatch(BaseModel):
     """
 
     status: Literal["done", "skipped", "swapped"]
+    # Con qué lo cambiaste, cuando `status` es `swapped`. Otro plato **tuyo**, y
+    # no algo calculado desde el catálogo: «te propongo 210 g de tofu» suena
+    # brillante y falla en la cocina, donde no hay tofu. Ausente es «lo cambié
+    # por algo que no voy a decir», que también es una respuesta.
+    dish_id: int | None = None
     # El instante con el offset del móvil, igual que al registrar a mano: es lo
     # que decide en qué día alimentario cae. Ausente significa ahora.
     logged_at: datetime | None = None
+
+
+class SlotAdherenceOut(BaseModel):
+    slot: MealSlot
+    followed: int = 0
+    decided: int = 0
+
+
+class AdherenceOut(BaseModel):
+    """Cómo fue la semana, en **dos** métricas, porque ninguna sola sirve.
+
+    Cambiar pollo por pavo es 100 % en la nutricional y 0 % en la literal;
+    comerte el plan entero más media tarta es 100 % en la literal y un desastre
+    en la nutricional. La que se enseña es la nutricional; la literal es para
+    diagnosticar **qué comida se te rompe**.
+
+    Y una tercera cosa que no es una métrica: lo que todavía no ha pasado. A las
+    10:00 la cena no está incumplida, está por llegar — así que ni cuenta a
+    favor ni en contra, igual que un nutriente que nadie midió no es un cero.
+    """
+
+    week_start: Date
+    # Nutricional, sobre los días **cerrados** de la semana. Medir a media
+    # mañana diría 15 % y no sería verdad: sería la hora que es.
+    days: int = 0
+    eaten_kcal: float | None = None
+    planned_kcal: float | None = None
+    # Si lo comido cae dentro de la banda de lo planificado. `None` cuando no
+    # hay con qué compararlo.
+    within_tolerance: bool | None = None
+    # Literal, sobre la semana entera.
+    followed: int = 0
+    decided: int = 0
+    # Días que pasaron sin que dijeras nada. No son incumplidos: son callados,
+    # y se cuentan aparte para que la cifra de arriba no mienta por omisión.
+    silent: int = 0
+    pending: int = 0
+    by_slot: list[SlotAdherenceOut] = Field(default_factory=list)
+    # Dónde se cae el plan. `None` mientras no haya bastante como para decirlo:
+    # un solo fallo no es un patrón.
+    weakest_slot: MealSlot | None = None
+    weakest_missed: int = 0

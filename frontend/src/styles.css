@@ -5471,3 +5471,55 @@ button.set-chip:active:not(:disabled) {
   margin-top: 0.6rem;
   min-height: 44px;
 }
+
+/* --- Lo que queda, el cambio y cómo fue la semana --------------------------- */
+/* La frase de lo que queda va con la tinta de una cifra, no en `--muted`: es lo
+   que hay que hacer ahora, no una nota al pie. */
+.plan-queda {
+  margin: 0;
+  font-size: 0.92rem;
+}
+.plan-cambiar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.plan-cambiar .card-eyebrow {
+  width: 100%;
+  margin: 0;
+}
+.plan-sustituto {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 44px;
+}
+.plan-sustituto-kcal {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.plan-adherencia {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.4rem;
+}
+.plan-adh-linea {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* En su propia línea y en voz baja: al lado del último sustituto se leía como
+   una opción más, y en negrita competía con ellos. */
+.plan-cancelar {
+  width: 100%;
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.85rem;
+  min-height: 44px;
+}

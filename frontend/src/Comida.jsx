@@ -426,6 +426,7 @@ export default function Comida() {
         isToday={isToday}
         onChanged={() => load(dayIso)}
         onVerSemana={plan ? () => setSemanaOpen(true) : null}
+        platos={platos}
       />
 
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo

@@ -261,8 +261,15 @@ def then_diary_empty(client):
 
 
 @then(parsers.parse("the plan says that meal is {estado:w}"))
-def then_status(confirmada, estado):
-    assert confirmada["status"] == estado
+def then_status(request, estado):
+    # Confirmar, saltar y cambiar dejan la fila patched en sitios distintos;
+    # lo que se comprueba es el mismo estado.
+    fila = (
+        request.getfixturevalue("cambio")["fila"]
+        if "cambio" in request.fixturenames
+        else request.getfixturevalue("confirmada")
+    )
+    assert fila["status"] == estado
 
 
 @then(parsers.parse("the {slot:w} of today says nothing yet"))
@@ -280,3 +287,122 @@ def then_not_today(negativa):
 @then("every meal says its kcal")
 def then_kcal(respuesta):
     assert all(e["kcal"] is not None and e["kcal"] > 0 for e in respuesta["entries"])
+
+
+# --- cambiar y adherencia -----------------------------------------------------
+@given(parsers.parse("a week planned for {inicio}"), target_fixture="respuesta")
+def given_past_week(client, repertorio, inicio):
+    resp = client.post("/plans", json={"week_start": inicio})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+@given(parsers.parse("I ate {kcal:d} kcal on {dia}"))
+def given_ate(client, kcal):
+    food = _food(client, "Tarta de la abuela", kcal_100g=400)
+    resp = client.post(
+        "/food-log",
+        json={"food_id": food, "grams": 300, "logged_at": "2026-09-15T14:00:00+02:00"},
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@given(parsers.parse("I skipped the {slot:w} on {cuantos:d} days of that week"))
+def given_skipped_days(client, respuesta, slot, cuantos):
+    filas = [e for e in respuesta["entries"] if e["slot"] == slot][:cuantos]
+    for fila in filas:
+        resp = client.patch(f"/plans/entries/{fila['id']}", json={"status": "skipped"})
+        assert resp.status_code == 200, resp.text
+
+
+def _otro_plato(client, dish_id):
+    return next(d for d in client.get("/dishes").json() if d["id"] != dish_id)
+
+
+@when(parsers.parse("I swap the {slot:w} of today for another dish"), target_fixture="cambio")
+def when_swap(client, respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    otro = _otro_plato(client, entrada["dish_id"])
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}", json={"status": "swapped", "dish_id": otro["id"]}
+    )
+    assert resp.status_code == 200, resp.text
+    return {"fila": resp.json(), "planeado": entrada["dish_id"], "comido": otro["id"]}
+
+
+@when(
+    parsers.parse("I try to swap the {slot:w} of today for a dish that is not mine"),
+    target_fixture="leido",
+)
+def when_swap_foreign(client, respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    return client.patch(
+        f"/plans/entries/{entrada['id']}", json={"status": "swapped", "dish_id": 99999}
+    )
+
+
+@when(parsers.parse("I ask how the week of {inicio} went"), target_fixture="informe")
+def when_adherence(client, inicio):
+    return client.get(f"/plans/{inicio}/adherence")
+
+
+@when("I ask how this week went", target_fixture="informe")
+def when_adherence_this_week(client):
+    return client.get(f"/plans/{_lunes().isoformat()}/adherence")
+
+
+@then("the diary of today has the dish I swapped to")
+def then_diary_has_swap(client, cambio):
+    assert [e for e in _diario(client)["entries"] if e["dish_id"] == cambio["comido"]]
+
+
+@then("the plan still says the dish it planned")
+def then_plan_unchanged(cambio):
+    # El plan congela lo que dijo. Lo que comiste vive en el diario, que es
+    # donde vive lo que comes.
+    assert cambio["fila"]["dish_id"] == cambio["planeado"]
+
+
+@then("there is no such dish")
+def then_no_dish(leido):
+    assert leido.status_code == 404
+
+
+@then(parsers.parse("it covers {dias:d} closed days"))
+def then_closed_days(informe, dias):
+    assert informe.status_code == 200, informe.text
+    assert informe.json()["days"] == dias
+
+
+@then("it says what I ate and what was planned")
+def then_eaten_vs_planned(informe):
+    cuerpo = informe.json()
+    assert cuerpo["eaten_kcal"] == 1200
+    assert cuerpo["planned_kcal"] > 0
+
+
+@then("nothing counts as followed or missed yet")
+def then_nothing_counted(informe):
+    cuerpo = informe.json()
+    assert cuerpo["followed"] == 0
+    assert cuerpo["decided"] == 0
+    assert cuerpo["weakest_slot"] is None
+
+
+@then("it says how many meals are still to come")
+def then_pending(informe):
+    assert informe.json()["pending"] > 0
+
+
+@then(parsers.parse("it says the {slot:w} is where the plan falls, {dias:d} days"))
+def then_weakest(informe, slot, dias):
+    cuerpo = informe.json()
+    assert cuerpo["weakest_slot"] == slot
+    assert cuerpo["weakest_missed"] == dias
+
+
+@then("there is no plan")
+def then_no_plan_informe(request):
+    # Vale para las dos formas de preguntar: leyendo el plan y pidiendo el informe.
+    resp = request.getfixturevalue("informe" if "informe" in request.fixturenames else "leido")
+    assert resp.status_code == 404
