@@ -5523,3 +5523,72 @@ button.set-chip:active:not(:disabled) {
   font-size: 0.85rem;
   min-height: 44px;
 }
+
+/* ------------------------------------------------------------------ *
+ * «Ponerlo en el plan»: en qué hueco de esta semana va un plato.
+ * Cada fila es el control entero (44 px, a una mano), y se lee como una
+ * línea de libro: sello del día en mono, la comida en tinta, y lo que había
+ * en muted, porque es lo que se va a perder y no lo que se elige.
+ * ------------------------------------------------------------------ */
+.poner-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.poner-lista li + li {
+  border-top: 1px solid var(--border);
+}
+.poner-fila {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.7rem 0.2rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.poner-fila:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.poner-dia {
+  flex: none;
+  width: 2.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.poner-slot {
+  flex: none;
+  font-weight: 600;
+  color: var(--text);
+}
+.poner-sep {
+  flex: none;
+  color: var(--muted);
+}
+.poner-actual {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.poner-vacio,
+.poner-hecho {
+  margin: 0.2rem 0 0.4rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.poner-error {
+  margin: 0.6rem 0 0;
+  color: var(--danger);
+}

@@ -490,6 +490,23 @@ export function setPlanEntry(entryId, status, dishId = null) {
   })
 }
 
+// Los huecos de esta semana a los que todavía se puede llevar un plato: desde
+// el día que tienes delante y sin decir. Sin plan llega `has_plan: false`, que
+// no es un fallo: es lo que la hoja tiene que contar.
+export function getPlanAhead(dayIso) {
+  return apiFetch(`/plans/entries/ahead?date=${dayIso}`)
+}
+
+// Poner otro plato en un hueco que no ha pasado. **No es `swapped`**: aquel es
+// «hoy comí otra cosa» y escribe el diario; esto cambia lo que el plan dice que
+// vas a comer y la fila sigue por confirmar.
+export function replanEntry(entryId, dishId, dayIso) {
+  return apiFetch(`/plans/entries/${entryId}/dish`, {
+    method: 'PUT',
+    body: JSON.stringify({ dish_id: dishId, date: dayIso }),
+  })
+}
+
 // Cómo fue la semana, en las dos métricas. Un 404 es «esa semana no se
 // planificó», que no es un fallo: es que no hay nada que medir.
 export async function getAdherence(weekStart) {
