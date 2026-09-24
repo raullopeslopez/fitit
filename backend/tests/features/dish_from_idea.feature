@@ -74,6 +74,36 @@ Feature: Turning an idea into a dish
     When I save the draft
     Then "Acelgas a la crema con huevo al horno" has the kcal of 200 g of "Acelga, cruda" per serving
 
+  # okdiario no publica recipeYield. Dividir entre 1 sería decir que la receta
+  # entera es una ración, y eso no lo ha dicho nadie: se pregunta.
+  Scenario: A recipe that does not say its servings asks for them
+    Given its page publishes no servings with "500 gr de acelgas"
+    When I open the idea as a dish
+    Then the draft asks how many servings it is for
+    And the line "500 gr de acelgas" is matched to "Acelga, cruda"
+    And its grams are unknown
+
+  Scenario: Saying the servings scales the draft
+    Given its page publishes no servings with "500 gr de acelgas"
+    When I open the idea as a dish for 4 servings
+    Then the draft has 125 g of "Acelga, cruda"
+
+  # La cifra por ración la calcula el servidor, antes de guardar y con la
+  # misma aritmética que después: la pantalla no suma.
+  Scenario: The draft shows its macros per serving before it is saved
+    Given its page publishes 2 servings with "500 gr de acelgas"
+    And I have opened the idea as a dish
+    When I preview the draft
+    Then the preview has the kcal of 250 g of "Acelga, cruda" per serving
+    And "Acelgas a la crema con huevo al horno" is not in my dishes
+
+  # La idea es de todos; el plato, tuyo. «Guardado» se lee por persona.
+  Scenario: Someone else saving the idea does not mark it saved for me
+    Given its page publishes 2 servings with "500 gr de acelgas"
+    And another user has saved the idea as a dish
+    When I look at the ideas with "Acelga, cruda"
+    Then the idea is not saved
+
   # Mismo principio que las ideas: lo leído se guarda y no se vuelve a pedir.
   Scenario: The page is read once
     Given its page publishes 2 servings with "500 gr de acelgas"
@@ -92,4 +122,12 @@ Feature: Turning an idea into a dish
   Scenario: Only a stored idea's page is ever fetched
     When I open as a dish an idea that does not exist
     Then the answer is not found
+    And no page was fetched
+
+  # SSRF: aunque el enlace esté guardado, lo escribió un modelo leyendo la web.
+  # Lo que cuenta es adónde lleva de verdad, no cómo se llama.
+  Scenario: A link that leads inside the server's network is not opened
+    Given an idea "Acelgas del metadata" for "Acelga, cruda" whose link resolves to "169.254.169.254"
+    When I open "Acelgas del metadata" as a dish
+    Then it says the recipe page could not be opened
     And no page was fetched

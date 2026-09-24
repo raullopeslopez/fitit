@@ -413,6 +413,33 @@ export function generateDishes({ methods = [], minutes = null, n = 6 } = {}) {
   })
 }
 
+// Ideas con un alimento: recetas de la web, guardadas por alimento. Sin `more`
+// contesta con lo guardado y sólo busca si no hay nada; con `more` («Otras
+// ideas») vuelve a buscar y suma. Siempre 200: el motivo viaja en `refusal`.
+export function dishIdeas(foodId, { more = false } = {}) {
+  return apiFetch('/dish-ideas', {
+    method: 'POST',
+    body: JSON.stringify({ food_id: foodId, more }),
+  })
+}
+
+// Una idea abierta como plato, sin guardar: las líneas de su receta y con qué
+// casan. `servings` son las raciones que dice la persona; sin ellas, las que
+// publica la página, y si tampoco, `null` — el servidor no divide entre uno.
+// Siempre 200 para una idea que existe: el motivo viaja en `refusal`.
+export function ideaDraft(ideaId, { servings = null } = {}) {
+  const query = servings != null ? `?servings=${encodeURIComponent(servings)}` : ''
+  return apiFetch(`/dish-ideas/${ideaId}/draft${query}`)
+}
+
+// Las macros de una ración, sin guardar nada. La pantalla no suma.
+export function previewDish({ servings = 1, ingredients }) {
+  return apiFetch('/dishes/preview', {
+    method: 'POST',
+    body: JSON.stringify({ servings, ingredients }),
+  })
+}
+
 // --- Objetivo derivado --------------------------------------------------------
 // Tu perfil: qué quieres que le pase a tu cuerpo y lo mínimo sobre él para
 // poder estimar el gasto mientras no haya historial con el que medirlo.

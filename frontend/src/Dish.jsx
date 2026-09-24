@@ -76,8 +76,19 @@ export function DishChips({ dishes, slot = null, onLogged }) {
  * mienta —un filete pierde en torno a un cuarto de su peso al cocinarse—, y por
  * eso no tiene opción vacía.
  */
-export function NewDish({ slot = null, onCreated, onCancel }) {
-  const [name, setName] = useState('')
+export function NewDish({
+  slot = null,
+  onCreated,
+  onCancel,
+  // Desde una idea cuya página no publica ingredientes: el nombre ya puesto,
+  // el enlace a la receta a la vista, por qué hay que teclearlos, y la idea
+  // anotada en el plato para que su fila diga «Guardado».
+  initialName = '',
+  recipeUrl = null,
+  ideaId = null,
+  notice = null,
+}) {
+  const [name, setName] = useState(initialName)
   const [servings, setServings] = useState('1')
   const [basis, setBasis] = useState('raw')
   const [method, setMethod] = useState('')
@@ -152,6 +163,7 @@ export function NewDish({ slot = null, onCreated, onCancel }) {
         basis,
         method: method || null,
         ingredients: pesados,
+        ...(ideaId != null ? { idea_id: ideaId } : {}),
       })
       onCreated(dish)
     } catch (err) {
@@ -178,6 +190,17 @@ export function NewDish({ slot = null, onCreated, onCancel }) {
       </header>
 
       <form className="food-screen-body new-dish" onSubmit={guardar}>
+
+      {(notice || recipeUrl) && (
+        <div className="new-dish-origin">
+          {notice && <p className="new-dish-notice">{notice}</p>}
+          {recipeUrl && (
+            <a href={recipeUrl} target="_blank" rel="noopener noreferrer">
+              Ver receta original ↗
+            </a>
+          )}
+        </div>
+      )}
 
       <div className="field">
         <label htmlFor="dish-name">Nombre</label>
@@ -302,7 +325,7 @@ const MOTIVOS = {
   unusable: 'La respuesta no se ha podido leer. Inténtalo otra vez.',
 }
 
-function motivo(refusal, scope) {
+export function motivo(refusal, scope) {
   if (refusal !== 'quota') return MOTIVOS[refusal] ?? 'No ha salido nada esta vez.'
   // Una cuota por minuto se pasa esperando; la del día no se pasa hasta mañana.
   // Decirle «espera un minuto» a la segunda es mandarte a mirar el móvil para

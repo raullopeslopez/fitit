@@ -9,6 +9,7 @@ from app.nutrition import (
     calcular_nutrientes,
     escalar_nutrientes,
     food_log_date,
+    gramos_por_racion,
     restante,
     sumar_nutrientes,
 )
@@ -171,3 +172,27 @@ def test_por_racion_se_niega_a_dividir_entre_cero():
 
     with _pytest.raises(ValueError):
         macros_por_racion({"kcal": 100}, 0)
+
+
+# --- Gramos por ración (convertir una idea en plato) --------------------------
+
+
+def test_gramos_por_racion_divides_the_recipe_by_its_servings():
+    assert gramos_por_racion(500, 2) == 250
+    assert gramos_por_racion(500, 3) == 166.67
+
+
+def test_gramos_por_racion_keeps_unknown_grams_unknown():
+    """«2 huevos» no tiene gramos: entre dos raciones sigue sin tenerlos."""
+    assert gramos_por_racion(None, 2) is None
+
+
+def test_gramos_por_racion_with_unknown_servings_is_unknown():
+    """Una página sin `recipeYield` no es una receta para uno: no se divide entre 1."""
+    assert gramos_por_racion(500, None) is None
+
+
+@pytest.mark.parametrize("servings", [0, -2])
+def test_gramos_por_racion_refuses_nonsense_servings(servings):
+    with pytest.raises(ValueError):
+        gramos_por_racion(500, servings)

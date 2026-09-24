@@ -25,6 +25,12 @@ export function estimatedOneRm(weight, reps) {
 const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
+// A moment, as the day and month it fell on in local time: "12 sep".
+export function formatDayMonth(value) {
+  const d = new Date(value)
+  return `${d.getDate()} ${MESES[d.getMonth()]}`
+}
+
 // "2026-07-16" -> "jue, 16 jul 2026". Built from parts (not new Date(iso)) so
 // the date doesn't shift a day across timezones, and with fixed Spanish labels
 // so it's deterministic regardless of the runtime locale.

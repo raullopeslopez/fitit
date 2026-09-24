@@ -432,6 +432,11 @@ class Dish(Base):
     # resto del día compensa. Sin esto, exigir que todo plato sea ajustable
     # manda al generador hacia platos de báscula.
     is_block: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # La idea de la que salió, si salió de una. En el plato y no en la idea: la
+    # idea es de todos y el plato es tuyo, así que «Guardado» se lee por usuario.
+    idea_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dish_ideas.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     ingredients: Mapped[list["DishIngredient"]] = relationship(
@@ -590,3 +595,36 @@ class PlanEntry(Base):
     )
 
     plan: Mapped["Plan"] = relationship(back_populates="entries")
+
+
+class DishIdea(Base):
+    """Una receta de la web con un alimento dentro. **No es un plato.**
+
+    Es un escaparate: nombre, cómo se hace, cuánto tarda y el enlace a la
+    original. Nada de ingredientes ni de cifras — lo que se cocina de verdad
+    entra en `dishes` cuando alguien lo guarda, y eso es la fase 2.
+
+    **Se guarda por alimento y sin `user_id`.** Una receta de acelgas no es un
+    dato tuyo: lo que buscó otra persona sirve igual, y es cuota que nadie
+    vuelve a gastar. Por lo mismo lo que la identifica es el enlace, no cómo la
+    llamó el modelo esa vez: la misma receta encontrada dos veces es una idea.
+    """
+
+    __tablename__ = "dish_ideas"
+    __table_args__ = (UniqueConstraint("food_id", "url", name="uq_dish_ideas_food_url"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Sin `ondelete`: un alimento no se borra en esta app, se corrige.
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    url: Mapped[str] = mapped_column(String(1000))
+    # Texto libre y corto («sartén», «olla», «horno»): es lo que dice la receta,
+    # no un modo del repertorio. NULL si no lo dijo.
+    method: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # NULL si la receta no lo dice. Nunca 0: cero minutos no es «no lo sé».
+    minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Lo que publica la página (JSON: `found`, `ingredients`, `servings`,
+    # `fetched_at`), leído una vez. NULL = todavía no se ha leído; una página
+    # sin receta se guarda con `found: false`, que no es lo mismo.
+    recipe_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

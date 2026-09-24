@@ -53,8 +53,18 @@ Spec: `backend/tests/features/dish_from_idea.feature`.
   plato no se guarda hasta que los pongas. `NULL` no es `0`.
 - Sin JSON-LD en la página: no se inventa nada; se abre «Nuevo plato» con el nombre ya
   puesto y el enlace a la receta.
-- Guardar va por `POST /dishes` (la puerta de siempre) y la idea recuerda su plato
-  (`dish_id`): la fila pasa a decir «Guardado».
+- Sin `recipeYield` (okdiario no lo publica) no se divide entre uno: el borrador
+  pregunta «¿Para cuántas raciones es?», vacío, y no guarda hasta que se diga.
+- Guardar va por `POST /dishes` (la puerta de siempre) con `idea_id`, en una sola
+  petición, y la fila pasa a decir «Guardado». Lo que recuerda es **el plato**
+  (`dishes.idea_id`), no la idea: la idea es de todos —se guarda por alimento y sin
+  usuario— y el plato es tuyo, así que un `dish_id` en la idea marcaría «Guardado» en
+  la pantalla de otra persona.
+- Las macros por ración del borrador las calcula el servidor (`POST /dishes/preview`),
+  con la misma aritmética que el plato guardado.
+- SSRF: el servidor sólo abre el enlace guardado en la idea, y `fetch_page` resuelve el
+  nombre, rechaza cualquier dirección que no sea de internet, conecta a la IP
+  comprobada y vuelve a comprobar en cada redirección.
 
 ## Fase 3 — Llevarlo al plan · PR 3 (sobre la 2)
 

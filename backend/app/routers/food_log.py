@@ -37,6 +37,7 @@ from ..schemas import (
 )
 from ..routers.targets import frozen_target
 from ..serialization import to_entry_out
+from .ideas import ideas_available
 
 router = APIRouter(prefix="/food-log", tags=["food-log"])
 
@@ -144,6 +145,7 @@ async def get_food_day(
         remaining_fat=restante(user.objetivo_grasa, totals["fat"]),
         remaining_carbs=restante(user.objetivo_hidratos, totals["carbs"]),
         label_reading=bool(settings.gemini_api_key.get_secret_value()),
+        dish_ideas=ideas_available(),
     )
 
 

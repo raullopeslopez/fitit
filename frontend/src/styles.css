@@ -4504,6 +4504,348 @@ button.set-chip:active:not(:disabled) {
   color: var(--muted);
 }
 
+/* Dos enlaces al pie de la hoja («Corregir» e «Ideas con …»): el segundo pega
+   al primero, que ya trae su margen. */
+.food-detail-correct + .food-detail-correct {
+  margin-top: 0.1rem;
+}
+
+/* ------------------------------------------------------------------
+ * Ideas con un alimento. Una idea es una fila de libro de registro, no una
+ * tarjeta: la lista entera es una tarjeta y cada idea una línea con filete,
+ * como los resultados de búsqueda. La fila entera es el enlace.
+ * ------------------------------------------------------------------ */
+.ideas-card {
+  padding: 0;
+  overflow: hidden;
+}
+.ideas-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* El filete va en el `li` y no en el enlace: la fila tiene dos columnas (la
+   receta y «+ Plato») y la raya cruza las dos. */
+.ideas-list > li + li {
+  border-top: 1px solid var(--border);
+}
+.idea-item {
+  display: flex;
+  align-items: stretch;
+}
+.idea-item > .idea {
+  flex: 1;
+  min-width: 0;
+}
+/* Convertir en plato: su propia columna, al lado del enlace y no dentro. Muted y
+   sin relleno — es una vez por receta (DESIGN.md: las acciones raras no se
+   llevan controles con peso de contenido). 44px de ancho y la fila de alto. */
+.idea-to-dish {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  /* Ancho fijo, el de «GUARDADO»: si cada fila midiese lo suyo, la columna de
+     minutos bailaría de una fila a otra en cuanto guardas una. */
+  width: 5.5rem;
+  min-height: 44px;
+  padding: 0 0.4rem;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+button.idea-to-dish > span {
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1;
+}
+@media (hover: hover) {
+  button.idea-to-dish:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    color: var(--text);
+  }
+}
+.idea-saved-tick {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.idea {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+.idea-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.idea-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+/* De dónde sale, en mono y en muted, como la procedencia de un alimento. */
+.idea-source {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Minutos y método a la derecha, como una hoja de especificaciones. */
+.idea-spec {
+  flex: none;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.idea-min {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.idea-min small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-left: 0.2em;
+}
+.idea-method {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Lo recién encontrado: un sello, no un color. El ámbar es de la acción. */
+.idea-new {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0 0.4rem;
+  margin-left: 0.4rem;
+  vertical-align: 2px;
+}
+.idea-skeleton .idea-main {
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+.ideas-bone {
+  display: block;
+  height: 0.9rem;
+  border-radius: 4px;
+  background: var(--border);
+}
+.ideas-bone-thin {
+  height: 0.7rem;
+}
+.ideas-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* La lista termina donde empieza el fundido, no debajo de la barra. */
+.ideas-body {
+  padding-bottom: 1.75rem;
+}
+/* Fija abajo por ser el último hijo de `.food-screen` (columna flex a pantalla
+   completa): la lista rueda encima y la barra no se mueve. */
+.ideas-bar {
+  flex: none;
+  position: relative;
+  background: var(--bg);
+  padding: 0.6rem 1rem calc(0.9rem + env(safe-area-inset-bottom));
+}
+/* La regla de Días: una barra fija sobre una lista que rueda le debe un
+   fundido. 28px del color de la página, colgando fuera de su caja, para que
+   nada de dentro se mueva y el fundido nunca se coma un toque. */
+.ideas-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--bg),
+    color-mix(in srgb, var(--bg) 55%, transparent) 55%,
+    color-mix(in srgb, var(--bg) 0%, transparent)
+  );
+}
+.ideas-bar-inner {
+  max-width: 480px;
+  margin: 0 auto;
+}
+/* `button.` delante porque `button.secondary` fija 36px y gana a una clase sola. */
+button.ideas-more {
+  min-height: 44px;
+  font-weight: 600;
+}
+.ideas-status {
+  margin: 0.5rem 0 0;
+  min-height: 1.2em;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+ * Una idea abierta como plato. La misma pantalla que el alta de plato, con
+ * las líneas de la receta ya puestas y la barra de Ideas abajo.
+ * ------------------------------------------------------------------ */
+.draft-body {
+  padding-bottom: 1.75rem;
+}
+.draft-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.draft-eyebrow {
+  margin: 0.4rem 0 0.2rem;
+}
+.draft-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+.draft-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.draft-line-food {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+/* Lo que dice la receta, debajo: la procedencia en mono, como en las ideas. */
+.draft-line-text {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.draft-line-grams {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.draft-line-grams input {
+  width: 4.75rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* `—` es una cifra desconocida, no una pista: tinta, nunca muted (CLAUDE.md). */
+.draft-line-grams input::placeholder {
+  color: var(--text);
+  opacity: 1;
+}
+.draft-line-choices {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+button.draft-choice {
+  min-height: 44px;
+  text-align: left;
+}
+.draft-macros {
+  margin-top: 1.1rem;
+}
+.draft-macro-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+.draft-macro dt {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.draft-macro dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.draft-source,
+.new-dish-origin {
+  margin: 0.9rem 0 0;
+}
+.draft-source a,
+.new-dish-origin a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-ink);
+  text-underline-offset: 3px;
+}
+.new-dish-origin {
+  margin: 0 0 0.6rem;
+}
+.new-dish-notice {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+button.draft-save {
+  min-height: 44px;
+  font-weight: 600;
+}
+.ideas-status.draft-error {
+  color: var(--danger);
+}
+
 /* De dónde salió el alimento. Prosa, encima de «cuánto»: no es un dato del
    alimento, es una explicación de por qué está aquí sin que hayas tecleado. */
 .food-source {
