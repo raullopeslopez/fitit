@@ -302,7 +302,7 @@ const MOTIVOS = {
   unusable: 'La respuesta no se ha podido leer. Inténtalo otra vez.',
 }
 
-function motivo(refusal, scope) {
+export function motivo(refusal, scope) {
   if (refusal !== 'quota') return MOTIVOS[refusal] ?? 'No ha salido nada esta vez.'
   // Una cuota por minuto se pasa esperando; la del día no se pasa hasta mañana.
   // Decirle «espera un minuto» a la segunda es mandarte a mirar el móvil para

@@ -413,6 +413,16 @@ export function generateDishes({ methods = [], minutes = null, n = 6 } = {}) {
   })
 }
 
+// Ideas con un alimento: recetas de la web, guardadas por alimento. Sin `more`
+// contesta con lo guardado y sólo busca si no hay nada; con `more` («Otras
+// ideas») vuelve a buscar y suma. Siempre 200: el motivo viaja en `refusal`.
+export function dishIdeas(foodId, { more = false } = {}) {
+  return apiFetch('/dish-ideas', {
+    method: 'POST',
+    body: JSON.stringify({ food_id: foodId, more }),
+  })
+}
+
 // --- Objetivo derivado --------------------------------------------------------
 // Tu perfil: qué quieres que le pase a tu cuerpo y lo mínimo sobre él para
 // poder estimar el gasto mientras no haya historial con el que medirlo.

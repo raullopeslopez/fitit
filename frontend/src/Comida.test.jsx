@@ -2227,3 +2227,58 @@ describe('corregir un alimento y el registro de ese día', () => {
   })
 
 })
+
+// «Ideas con …»: la puerta a las recetas de la web, al pie de la hoja del
+// alimento. Gris y pequeña, como «Corregir»: es un desvío, no lo que se viene a
+// hacer aquí.
+describe('ideas con un alimento', () => {
+  const ACELGA = { ...PAN, id: 7, name: 'Acelga, cruda', is_mine: false }
+  const abrir = async (food = ACELGA, dia = {}) => {
+    api.getFoodDay.mockResolvedValue(day({ dish_ideas: true, ...dia }))
+    api.searchFoods.mockResolvedValue([food])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'acel')
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    api.frequentFoods.mockResolvedValue([])
+  })
+
+  it('se ofrece con el nombre corto, también para el catálogo compartido', async () => {
+    await abrir()
+    expect(screen.getByRole('button', { name: 'Ideas con acelga' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Corregir este alimento' })).not.toBeInTheDocument()
+  })
+
+  it('convive con «Corregir» en un alimento tuyo', async () => {
+    await abrir({ ...PAN, name: 'Pan de la panadería' })
+    expect(screen.getByRole('button', { name: 'Ideas con pan de la panadería' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Corregir este alimento' })).toBeInTheDocument()
+  })
+
+  it('no está si el servidor no puede buscar', async () => {
+    await abrir(ACELGA, { dish_ideas: false })
+    expect(screen.queryByRole('button', { name: /Ideas con/ })).not.toBeInTheDocument()
+  })
+
+  it('abre la pantalla de ideas y vuelve a la hoja al cerrarla', async () => {
+    api.dishIdeas.mockResolvedValue({
+      ideas: [
+        { id: 1, name: 'Acelgas esparragadas', url: 'https://www.directoalpaladar.com/x', method: 'sartén', minutes: 30, new: false },
+      ],
+      new_count: 0,
+      refusal: null,
+      quota_scope: null,
+      stored_at: '2026-09-12T10:00:00Z',
+    })
+    await abrir()
+    await userEvent.click(screen.getByRole('button', { name: 'Ideas con acelga' }))
+    expect(await screen.findByRole('link', { name: /Acelgas esparragadas/ })).toBeInTheDocument()
+    expect(api.dishIdeas).toHaveBeenCalledWith(7, { more: false })
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(screen.getByRole('button', { name: 'Ideas con acelga' })).toBeInTheDocument()
+  })
+})
