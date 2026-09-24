@@ -26,11 +26,46 @@ from app.routers.foods import _rank, search_stmt
 ESPERADO_ALIMENTOS = 3185
 ESPERADO_ALIAS = 5962
 
+# Y desde `e7b3c02a91d8`, con código de grupo. Las 3.185 filas de CIQUAL traen
+# uno: las 45 que la hoja deja en blanco son los *nombres* (`alim_grp_nom_fr`),
+# no los códigos — 44 de esas 45 llevan igualmente ('03', '0305'), y la
+# restante el centinela ('00', '0000'). Así que aquí no se tolera ninguna sin
+# clasificar: un solo NULL significa que el import no ha vuelto a pasar, y una
+# regla de dieta que cuente verduras contestará «no puedo saberlo».
+ESPERADO_SIN_GRUPO = 0
+
 # Cuatro búsquedas que sólo funcionan si la traducción se aplicó entera: ninguna
 # de las cuatro palabras aparece en el nombre del alimento que tiene que salir.
 # `verdel` llega a la caballa, `aove` al aceite de oliva, `quark` al queso
 # batido y `chicharro` al jurel — todas por alias. Si salen, están puestos.
 SONDAS = ("pollo", "arroz", "verdel", "aove", "quark", "chicharro")
+
+
+async def contar_grupos(session) -> tuple[int, int]:
+    """(alimentos de catálogo, cuántos de ellos sin `subgroup_code`).
+
+    Mira sólo las filas de CIQUAL. Un alimento que diste de alta a mano no trae
+    código de grupo y no tiene por qué: nadie le ha preguntado de qué familia es.
+    """
+    total = (
+        await session.execute(select(func.count(Food.id)).where(Food.source == "ciqual"))
+    ).scalar()
+    sin_codigo = (
+        await session.execute(
+            select(func.count(Food.id)).where(Food.source == "ciqual", Food.subgroup_code.is_(None))
+        )
+    ).scalar()
+    return total, sin_codigo
+
+
+def linea_grupos(total: int, sin_codigo: int) -> tuple[bool, str]:
+    """El veredicto y su línea, en el mismo formato que las demás."""
+    ok = sin_codigo == ESPERADO_SIN_GRUPO
+    marca = "ok" if ok else "!!"
+    linea = f"[{marca}] códigos de grupo:      {total - sin_codigo} de {total} clasificados"
+    if not ok:
+        linea += f" — {sin_codigo} sin clasificar"
+    return ok, linea
 
 
 async def revisar(database_url: str | None) -> bool:
@@ -49,6 +84,11 @@ async def revisar(database_url: str | None) -> bool:
         marca = "ok" if alias == ESPERADO_ALIAS else "!!"
         print(f"[{marca}] alias:                 {alias} (esperado {ESPERADO_ALIAS})")
         ok = alimentos == ESPERADO_ALIMENTOS and alias == ESPERADO_ALIAS
+
+        total_grupos, sin_grupo = await contar_grupos(session)
+        ok_grupos, linea = linea_grupos(total_grupos, sin_grupo)
+        print(linea)
+        ok = ok and ok_grupos
 
         print("\nbúsquedas:")
         for consulta in SONDAS:
