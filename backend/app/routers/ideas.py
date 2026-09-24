@@ -87,16 +87,22 @@ def _utc(moment: datetime | None) -> datetime | None:
     return moment
 
 
-async def _saved(session: AsyncSession, user_id: int, idea_ids: list[int]) -> dict[int, int]:
-    """idea → **tu** plato hecho con ella. El más reciente si hay varios."""
+async def _saved(
+    session: AsyncSession, user_id: int, idea_ids: list[int]
+) -> dict[int, tuple[int, str]]:
+    """idea → **tu** plato hecho con ella, `(id, nombre)`. El más reciente si hay varios.
+
+    El nombre va porque puede no ser el de la idea (se cambia en el borrador), y
+    «Ponerlo en el plan» desde la fila titula la hoja con el plato.
+    """
     if not idea_ids:
         return {}
     rows = await session.execute(
-        select(Dish.idea_id, Dish.id)
+        select(Dish.idea_id, Dish.id, Dish.name)
         .where(Dish.user_id == user_id, Dish.idea_id.in_(idea_ids))
         .order_by(Dish.id)
     )
-    return {idea_id: dish_id for idea_id, dish_id in rows.all()}
+    return {idea_id: (dish_id, name) for idea_id, dish_id, name in rows.all()}
 
 
 async def _out(
@@ -119,7 +125,8 @@ async def _out(
                 minutes=i.minutes,
                 created_at=_utc(i.created_at),
                 new=i.id in new_ids,
-                dish_id=saved.get(i.id),
+                dish_id=saved[i.id][0] if i.id in saved else None,
+                dish_name=saved[i.id][1] if i.id in saved else None,
             )
             for i in ideas
         ],
@@ -248,7 +255,7 @@ async def idea_draft(
         name=idea.name,
         url=idea.url,
         method=dish_method(idea.method),
-        dish_id=saved.get(idea.id),
+        dish_id=saved[idea.id][0] if idea.id in saved else None,
     )
 
     if idea.recipe_json is None:

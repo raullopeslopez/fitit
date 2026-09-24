@@ -352,6 +352,9 @@ def then_idea_saved(client, foods, ideas, response):
     answer = client.post("/dish-ideas", json={"food_id": foods["Acelga, cruda"]}).json()
     idea = next(i for i in answer["ideas"] if i["id"] == ideas["_current"])
     assert idea["dish_id"] == dish_id
+    # Con su nombre, que puede no ser el de la idea: «Ponerlo en el plan» desde
+    # la fila titula la hoja con el plato, no con la receta.
+    assert idea["dish_name"] == response.json()["name"]
     # Y el borrador también lo sabe: volver a abrirla dice que ya está guardada.
     assert client.get(f"/dish-ideas/{ideas['_current']}/draft").json()["dish_id"] == dish_id
 

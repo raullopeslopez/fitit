@@ -1152,6 +1152,8 @@ class DishIdeaOut(BaseModel):
     # Tu plato hecho con ella, si la has guardado. Por persona: la idea es de
     # todos, el plato no.
     dish_id: int | None = None
+    # Su nombre, que puede no ser el de la idea. `None` si no la has guardado.
+    dish_name: str | None = None
 
 
 class DishIdeasOut(BaseModel):
