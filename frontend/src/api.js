@@ -483,9 +483,20 @@ export function generatePlan(weekStart, seed = null) {
 // Confirmar, saltar o cambiar una comida del plan. `done` escribe el diario con
 // los gramos que el plan congeló. El sello va con el offset del móvil, igual
 // que al registrar a mano: es lo que decide en qué día alimentario cae.
-export function setPlanEntry(entryId, status) {
+export function setPlanEntry(entryId, status, dishId = null) {
   return apiFetch(`/plans/entries/${entryId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, logged_at: foodMomentIso() }),
+    body: JSON.stringify({ status, dish_id: dishId, logged_at: foodMomentIso() }),
   })
+}
+
+// Cómo fue la semana, en las dos métricas. Un 404 es «esa semana no se
+// planificó», que no es un fallo: es que no hay nada que medir.
+export async function getAdherence(weekStart) {
+  try {
+    return await apiFetch(`/plans/${weekStart}/adherence`)
+  } catch (err) {
+    if (err?.status === 404) return null
+    throw err
+  }
 }
