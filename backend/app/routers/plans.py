@@ -16,7 +16,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -43,9 +43,12 @@ from ..rules import desde_fila
 from ..schemas import (
     AdherenceOut,
     PlanEntryOut,
+    PlanAheadOut,
     PlanEntryPatch,
+    PlanEntryReplan,
     PlanIn,
     PlanOut,
+    PlanSlotAheadOut,
     SlotAdherenceOut,
     VerdictOut,
 )
@@ -558,6 +561,128 @@ async def correct_entry(
         dish_id=fila.dish_id,
         dish_name=nombre or "",
         grams=json.loads(fila.grams_json) if fila.grams_json else [],
+        status=fila.status,
+        log_entry_id=fila.log_entry_id,
+    )
+
+
+@router.get("/entries/ahead", response_model=PlanAheadOut)
+async def entries_ahead(
+    date_: date | None = Query(default=None, alias="date"),
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PlanAheadOut:
+    """Los huecos de esta semana a los que todavía se puede llevar un plato.
+
+    «Todavía» es **desde hoy** y **sin decir**: el pasado no se replanifica
+    —cambiarlo reescribiría lo que el plan decía que ibas a comer— y una fila
+    ya confirmada, saltada o cambiada ya tiene respuesta. Hoy entra entero: la
+    cena de hoy aún no ha pasado a mediodía.
+
+    `date` es el día alimentario del móvil (`foodDayIso()`), igual que en
+    `GET /food-log`: es el móvil el que sabe en qué lado de las 04:00 está.
+    """
+    hoy = date_ or food_log_date(datetime.now(UTC))
+    lunes = hoy - timedelta(days=hoy.weekday())
+    plan = (
+        await session.execute(
+            select(Plan)
+            .options(selectinload(Plan.entries))
+            .where(Plan.user_id == user_id, Plan.week_start == lunes)
+        )
+    ).scalar_one_or_none()
+    if plan is None:
+        return PlanAheadOut(week_start=lunes, has_plan=False)
+
+    filas = sorted(
+        (f for f in plan.entries if f.status is None and f.log_date >= hoy),
+        key=lambda f: (f.log_date, HUECOS.index(f.slot) if f.slot in HUECOS else len(HUECOS)),
+    )
+    ids = {f.dish_id for f in filas}
+    nombres = {}
+    if ids:
+        nombres = dict(
+            (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
+        )
+    return PlanAheadOut(
+        week_start=lunes,
+        has_plan=True,
+        entries=[
+            PlanSlotAheadOut(
+                id=f.id,
+                log_date=f.log_date,
+                slot=f.slot,
+                dish_id=f.dish_id,
+                dish_name=nombres.get(f.dish_id, ""),
+            )
+            for f in filas
+        ],
+    )
+
+
+@router.put("/entries/{entry_id}/dish", response_model=PlanEntryOut)
+async def replan_entry(
+    entry_id: int,
+    payload: PlanEntryReplan,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PlanEntryOut:
+    """Poner otro plato en un hueco que todavía no ha pasado.
+
+    **No es `swapped`.** Aquel es «hoy comí otra cosa»: escribe el diario y sólo
+    vale para el día que estás viviendo. Esto cambia lo que el plan dice que vas
+    a comer, así que no escribe nada y la fila sigue **por confirmar**: el día
+    que toque se confirma o se salta como cualquier otra.
+
+    Los gramos que se congelan son los de la receta, una ración — los mismos que
+    usa `swapped` con un sustituto. Los que el generador había resuelto eran de
+    **otro plato** y no significan nada para éste.
+    """
+    fila = (
+        await session.execute(
+            select(PlanEntry)
+            .join(Plan, Plan.id == PlanEntry.plan_id)
+            .where(PlanEntry.id == entry_id, Plan.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if fila is None:
+        raise HTTPException(status_code=404, detail="plan entry not found")
+
+    hoy = payload.date or food_log_date(datetime.now(UTC))
+    if fila.log_date < hoy:
+        raise HTTPException(
+            status_code=422,
+            detail={"motivo": "ese día ya pasó", "log_date": str(fila.log_date)},
+        )
+    if fila.status is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"motivo": "esa comida ya tiene respuesta", "status": fila.status},
+        )
+
+    dish = (
+        await session.execute(
+            select(Dish)
+            .options(selectinload(Dish.ingredients))
+            .where(Dish.id == payload.dish_id, Dish.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if dish is None:
+        raise HTTPException(status_code=404, detail="dish not found")
+
+    raciones = dish.servings or 1
+    fila.dish_id = dish.id
+    fila.grams_json = json.dumps([round(i.grams / raciones, 2) for i in dish.ingredients])
+    await session.commit()
+    await session.refresh(fila)
+
+    return PlanEntryOut(
+        id=fila.id,
+        log_date=fila.log_date,
+        slot=fila.slot,
+        dish_id=fila.dish_id,
+        dish_name=dish.name,
+        grams=json.loads(fila.grams_json),
         status=fila.status,
         log_entry_id=fila.log_entry_id,
     )

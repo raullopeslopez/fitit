@@ -1038,6 +1038,39 @@ class PlanEntryPatch(BaseModel):
     logged_at: datetime | None = None
 
 
+class PlanEntryReplan(BaseModel):
+    """Cambiar lo que el plan dice que vas a comer en un hueco que no ha pasado.
+
+    No es `swapped`: ese es «hoy comí otra cosa» y escribe el diario. Esto no
+    escribe nada; la fila sigue por confirmar, ahora con otro plato.
+    """
+
+    dish_id: int
+    # El día alimentario del móvil (`foodDayIso()`), igual que `GET /food-log`.
+    # Ausente significa el de ahora en el servidor.
+    date: Date | None = None
+
+
+class PlanSlotAheadOut(BaseModel):
+    id: int
+    log_date: Date
+    slot: MealSlot
+    dish_id: int
+    dish_name: str
+
+
+class PlanAheadOut(BaseModel):
+    """Los huecos de esta semana a los que todavía se puede llevar un plato.
+
+    Sin plan, `has_plan` es falso y `entries` va vacía: no es un error, es lo
+    que hay que decir («esta semana no tiene plan»).
+    """
+
+    week_start: Date
+    has_plan: bool
+    entries: list[PlanSlotAheadOut] = Field(default_factory=list)
+
+
 class SlotAdherenceOut(BaseModel):
     slot: MealSlot
     followed: int = 0
