@@ -10,18 +10,22 @@ Dos mitades separadas a propósito:
 
 - `read_recipe(html)` es pura: un `str` entra, un `RecipeData` sale. Sin red.
 - `fetch_page(url)` es la única que sale a internet, y los tests le inyectan un
-  `transport` falso. Sólo la llama el servidor sobre un enlace que él mismo
+  `transport` y un `resolve` (DNS) falsos. Sólo la llama el servidor sobre un enlace que él mismo
   guardó en una idea (SSRF: nunca sobre una URL que llega en la petición).
 """
 
 from __future__ import annotations
 
+import asyncio
 import html as html_lib
 import ipaddress
 import json
 import re
+import socket
+import urllib.request
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
@@ -158,9 +162,14 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 )
 
+# host, puerto → direcciones IP en texto. Inyectable por lo mismo que el
+# `transport`: ningún test resuelve DNS de verdad.
+Resolver = Callable[[str, int], Awaitable[list[str]]]
+
 
 class PageUnreachable(Exception):
-    """No se pudo leer la página: esquema no permitido, red, estado, tamaño."""
+    """No se pudo leer la página: esquema no permitido, dirección interna, red,
+    estado, tamaño."""
 
 
 async def fetch_page(
@@ -168,53 +177,157 @@ async def fetch_page(
     *,
     transport: httpx.AsyncBaseTransport | None = None,
     timeout: float = TIMEOUT_SECONDS,
+    resolve: Resolver | None = None,
 ) -> str:
     """El HTML de `url`, o `PageUnreachable`.
 
-    `transport` existe para los tests (`httpx.MockTransport`): ningún test
-    sale a la red.
+    SSRF. Quien llama sólo pasa enlaces guardados en una idea, pero el enlace
+    lo escribió un modelo leyendo la web, así que aquí se comprueba adónde
+    lleva **de verdad**:
+
+    - el nombre se resuelve y **todas** sus direcciones tienen que ser de
+      internet (`is_global`); una sola interna y no se abre;
+    - se conecta a la IP que se comprobó, con el nombre en `Host` y en el SNI
+      (que es contra lo que se valida el certificado). Si se dejase resolver
+      otra vez al cliente, un DNS que cambia de respuesta entre las dos
+      preguntas pasaría el control con una IP y conectaría a otra;
+    - las redirecciones se siguen a mano, y cada salto pasa el mismo control
+      **antes** de pedirse.
+
+    `transport` y `resolve` existen para los tests: ninguno sale a la red.
     """
-    _check_url(url)
+    resolve = resolve or _resolve
+    current = url
     try:
         async with httpx.AsyncClient(
             transport=transport,
             timeout=timeout,
-            follow_redirects=True,
-            max_redirects=MAX_REDIRECTS,
+            follow_redirects=False,
             headers={
                 "User-Agent": USER_AGENT,
                 "Accept": "text/html,application/xhtml+xml",
                 "Accept-Language": "es-ES,es;q=0.9",
             },
         ) as client:
-            async with client.stream("GET", url) as response:
-                # Una redirección también puede llevar a un sitio interno.
-                _check_url(str(response.url))
-                if response.status_code != 200:
-                    raise PageUnreachable(f"HTTP {response.status_code}")
-                declared = response.headers.get("content-length")
-                if declared and declared.isdigit() and int(declared) > MAX_BYTES:
-                    raise PageUnreachable("page too large")
-                body = bytearray()
-                async for chunk in response.aiter_bytes():
-                    body.extend(chunk)
-                    if len(body) > MAX_BYTES:
-                        raise PageUnreachable("page too large")
-                encoding = response.charset_encoding or "utf-8"
+            for _hop in range(MAX_REDIRECTS + 1):
+                request = await _pinned_request(client, current, resolve)
+                response = await client.send(request, stream=True)
+                try:
+                    if response.is_redirect:
+                        location = response.headers.get("location")
+                        if not location:
+                            raise PageUnreachable("redirect without location")
+                        current = urljoin(current, location)
+                        continue
+                    if response.status_code != 200:
+                        raise PageUnreachable(f"HTTP {response.status_code}")
+                    return await _read_body(response)
+                finally:
+                    await response.aclose()
     except httpx.HTTPError as exc:
         raise PageUnreachable(str(exc)) from exc
+    raise PageUnreachable("too many redirects")
+
+
+async def _read_body(response: httpx.Response) -> str:
+    declared = response.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_BYTES:
+        raise PageUnreachable("page too large")
+    body = bytearray()
+    async for chunk in response.aiter_bytes():
+        body.extend(chunk)
+        if len(body) > MAX_BYTES:
+            raise PageUnreachable("page too large")
+    encoding = response.charset_encoding or "utf-8"
     return bytes(body).decode(encoding, errors="replace")
 
 
-def _check_url(url: str) -> None:
-    """Sólo http(s), y nunca un host que sea obviamente esta misma red.
+async def _pinned_request(client: httpx.AsyncClient, url: str, resolve: Resolver) -> httpx.Request:
+    """La petición a `url`, dirigida a una IP ya comprobada.
 
-    No resuelve DNS: un nombre público que apunte a una IP privada pasa. La
-    defensa de verdad es que sólo se abren enlaces guardados en una idea; esto
-    es el cinturón además de los tirantes.
+    Detrás de un proxy (`HTTPS_PROXY`) no se fija la IP: quien resuelve es el
+    proxy, y httpx no pasa el SNI por el túnel, así que el certificado se
+    validaría contra la IP y fallaría siempre. La comprobación del DNS se hace
+    igual; lo que se pierde ahí es sólo la defensa contra el rebinding. En
+    Render no hay proxy.
+    """
+    host, port = _check_url(url)
+    address = await _checked_address(host, port, resolve)
+    parsed = httpx.URL(url)
+    if _behind_proxy(url):
+        return client.build_request("GET", parsed)
+    extensions = {"sni_hostname": host} if parsed.scheme == "https" else {}
+    return client.build_request(
+        "GET",
+        parsed.copy_with(host=address),
+        # `netloc` y no `host`: si el enlace llevaba puerto, el `Host` también.
+        headers={"Host": parsed.netloc.decode("ascii")},
+        extensions=extensions,
+    )
+
+
+async def _checked_address(host: str, port: int, resolve: Resolver) -> str:
+    """Una IP de `host` si **todas** son de internet; si no, `PageUnreachable`."""
+    literal = _ip(host)
+    if literal is not None:
+        addresses = [host]
+    else:
+        try:
+            addresses = await resolve(host, port)
+        except OSError as exc:
+            raise PageUnreachable("name does not resolve") from exc
+    if not addresses:
+        raise PageUnreachable("name does not resolve")
+    for address in addresses:
+        ip = _ip(address)
+        if ip is None or not ip.is_global:
+            raise PageUnreachable("internal host")
+    return addresses[0].split("%", 1)[0]
+
+
+def _ip(text: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """`text` como IP, o `None` si es un nombre.
+
+    Una IPv4 dentro de una IPv6 (`::ffff:10.0.0.1`) se juzga como la IPv4 que
+    es: el sistema la conecta a esa dirección.
+    """
+    try:
+        ip = ipaddress.ip_address(text.split("%", 1)[0])
+    except ValueError:
+        return None
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        return ip.ipv4_mapped
+    # Una IPv6 con zona («fe80::1%eth0») es de enlace local por definición.
+    if "%" in text:
+        return ipaddress.ip_address("fe80::1")
+    return ip
+
+
+def _behind_proxy(url: str) -> bool:
+    """Si httpx mandaría `url` por un proxy del entorno (lo mismo que lee él)."""
+    parts = urlsplit(url)
+    proxies = urllib.request.getproxies()
+    if not (proxies.get(parts.scheme) or proxies.get("all")):
+        return False
+    return not urllib.request.proxy_bypass(parts.hostname or "")
+
+
+async def _resolve(host: str, port: int) -> list[str]:
+    loop = asyncio.get_running_loop()
+    infos = await loop.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    # Sin repetir y en el orden del sistema, que es el que usaría un cliente.
+    return list(dict.fromkeys(info[4][0] for info in infos))
+
+
+def _check_url(url: str) -> tuple[str, int]:
+    """Sólo http(s) con host. Devuelve host y puerto.
+
+    Los nombres obviamente locales se rechazan sin preguntar al DNS; el resto
+    lo decide lo que el DNS conteste (`_checked_address`).
     """
     try:
         parts = urlsplit(url)
+        port = parts.port
     except ValueError as exc:
         raise PageUnreachable("bad url") from exc
     if parts.scheme not in ("http", "https") or not parts.hostname:
@@ -222,9 +335,4 @@ def _check_url(url: str) -> None:
     host = parts.hostname.lower()
     if host == "localhost" or host.endswith(".localhost") or host.endswith(".internal"):
         raise PageUnreachable("internal host")
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        return
-    if not ip.is_global:
-        raise PageUnreachable("internal host")
+    return host, port or (443 if parts.scheme == "https" else 80)

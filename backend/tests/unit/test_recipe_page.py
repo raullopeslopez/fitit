@@ -158,11 +158,47 @@ def test_parse_servings(raw, servings):
     assert parse_servings(raw) == servings
 
 
+
+
 # --- La descarga --------------------------------------------------------------
+#
+# Ningún test resuelve DNS de verdad: `resolve` se inyecta igual que el
+# `transport`. `_public` hace de DNS que contesta con una dirección de internet.
+
+PUBLIC_IP = "93.184.216.34"
+_PROXY_VARS = ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy")
+
+
+@pytest.fixture(autouse=True)
+def _sin_proxy(monkeypatch):
+    """Como en Render: sin proxy. Donde corre la suite puede haber uno."""
+    for var in _PROXY_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+
+async def _public(host, port):
+    return [PUBLIC_IP]
+
+
+def _dns(table):
+    """Un DNS de mentira: host → direcciones."""
+
+    async def resolve(host, port):
+        return list(table[host])
+
+    return resolve
 
 
 def _transport(handler):
     return httpx.MockTransport(handler)
+
+
+def _never(request):  # pragma: no cover - no debe llegar
+    raise AssertionError(f"fetched {request.url}")
+
+
+async def _fetch(url, handler, resolve=_public):
+    return await fetch_page(url, transport=_transport(handler), resolve=resolve)
 
 
 async def test_fetch_returns_the_text_and_sends_a_browser_user_agent():
@@ -172,22 +208,33 @@ async def test_fetch_returns_the_text_and_sends_a_browser_user_agent():
         seen["ua"] = request.headers["user-agent"]
         return httpx.Response(200, text="<html>ok</html>")
 
-    assert (
-        await fetch_page("https://example.com/r", transport=_transport(handler))
-        == "<html>ok</html>"
-    )
+    assert await _fetch("https://example.com/r", handler) == "<html>ok</html>"
     assert "Mozilla/5.0" in seen["ua"]
+
+
+async def test_fetch_connects_to_the_address_it_checked_and_keeps_the_name():
+    """Se conecta a la IP que se comprobó, no a la que devuelva un segundo DNS:
+    si no, un nombre que cambia de respuesta entre las dos (DNS rebinding)
+    pasaría el control con una IP pública y conectaría a una interna. El
+    nombre viaja en `Host` y en el SNI, que es lo que valida el certificado."""
+    seen = {}
+
+    def handler(request):
+        seen["host"] = request.url.host
+        seen["header"] = request.headers["host"]
+        seen["sni"] = request.extensions.get("sni_hostname")
+        return httpx.Response(200, text="ok")
+
+    await _fetch("https://example.com/r", handler)
+    assert seen == {"host": PUBLIC_IP, "header": "example.com", "sni": "example.com"}
 
 
 @pytest.mark.parametrize(
     "url", ["file:///etc/passwd", "ftp://example.com/x", "javascript:alert(1)", "example.com", ""]
 )
 async def test_fetch_only_opens_http_and_https(url):
-    def handler(request):  # pragma: no cover - no debe llegar
-        raise AssertionError("fetched")
-
     with pytest.raises(PageUnreachable):
-        await fetch_page(url, transport=_transport(handler))
+        await _fetch(url, _never)
 
 
 async def test_fetch_refuses_a_page_larger_than_the_cap():
@@ -195,14 +242,12 @@ async def test_fetch_refuses_a_page_larger_than_the_cap():
         return httpx.Response(200, content=b"x" * (MAX_BYTES + 1))
 
     with pytest.raises(PageUnreachable):
-        await fetch_page("https://example.com/big", transport=_transport(handler))
+        await _fetch("https://example.com/big", handler)
 
 
 async def test_fetch_error_status_is_unreachable():
     with pytest.raises(PageUnreachable):
-        await fetch_page(
-            "https://example.com/404", transport=_transport(lambda r: httpx.Response(404))
-        )
+        await _fetch("https://example.com/404", lambda r: httpx.Response(404))
 
 
 async def test_fetch_network_error_is_unreachable():
@@ -210,7 +255,7 @@ async def test_fetch_network_error_is_unreachable():
         raise httpx.ConnectError("boom", request=request)
 
     with pytest.raises(PageUnreachable):
-        await fetch_page("https://example.com/", transport=_transport(handler))
+        await _fetch("https://example.com/", handler)
 
 
 async def test_fetch_follows_redirects_but_not_off_http():
@@ -219,7 +264,24 @@ async def test_fetch_follows_redirects_but_not_off_http():
             return httpx.Response(302, headers={"location": "https://example.com/b"})
         return httpx.Response(200, text="final")
 
-    assert await fetch_page("https://example.com/a", transport=_transport(handler)) == "final"
+    assert await _fetch("https://example.com/a", handler) == "final"
+
+
+async def test_fetch_follows_a_relative_redirect():
+    def handler(request):
+        if request.url.path == "/a":
+            return httpx.Response(301, headers={"location": "/b"})
+        return httpx.Response(200, text="final")
+
+    assert await _fetch("https://example.com/a", handler) == "final"
+
+
+async def test_fetch_gives_up_after_too_many_redirects():
+    def handler(request):
+        return httpx.Response(302, headers={"location": "https://example.com/loop"})
+
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://example.com/loop", handler)
 
 
 @pytest.mark.parametrize(
@@ -231,11 +293,88 @@ async def test_fetch_follows_redirects_but_not_off_http():
         "http://192.168.1.1/",
         "http://169.254.169.254/latest/meta-data/",
         "http://[::1]/",
+        "http://[::ffff:10.0.0.1]/",
     ],
 )
 async def test_fetch_refuses_obvious_internal_hosts(url):
-    def handler(request):  # pragma: no cover - no debe llegar
-        raise AssertionError("fetched")
+    with pytest.raises(PageUnreachable):
+        await _fetch(url, _never)
+
+
+# --- SSRF: lo que dice el DNS, no lo que parece el nombre ----------------------
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["10.0.0.5", "127.0.0.1", "169.254.169.254", "172.16.3.4", "100.64.0.1", "::1", "fd00::1",
+     "fe80::1%eth0", "::ffff:192.168.0.1", "0.0.0.0"],
+)
+async def test_fetch_refuses_a_public_looking_name_that_resolves_inside(address):
+    """`recetas.example` parece de internet; lo que cuenta es adónde lleva."""
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://recetas.example/r", _never, _dns({"recetas.example": [address]}))
+
+
+async def test_fetch_refuses_when_any_address_is_internal():
+    """Con varias direcciones, el cliente puede acabar en cualquiera."""
+    resolve = _dns({"recetas.example": [PUBLIC_IP, "10.0.0.5"]})
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://recetas.example/r", _never, resolve)
+
+
+async def test_fetch_refuses_a_redirect_to_a_name_that_resolves_inside():
+    """La redirección se comprueba **antes** de seguirla: la petición al sitio
+    interno no llega a salir."""
+    asked = []
+
+    def handler(request):
+        asked.append(request.headers["host"])
+        return httpx.Response(302, headers={"location": "http://interno.example/admin"})
+
+    resolve = _dns({"recetas.example": [PUBLIC_IP], "interno.example": ["10.1.2.3"]})
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://recetas.example/r", handler, resolve)
+    assert asked == ["recetas.example"]
+
+
+async def test_fetch_refuses_a_redirect_to_a_literal_internal_address():
+    asked = []
+
+    def handler(request):
+        asked.append(str(request.url))
+        return httpx.Response(302, headers={"location": "http://169.254.169.254/latest/"})
 
     with pytest.raises(PageUnreachable):
-        await fetch_page(url, transport=_transport(handler))
+        await _fetch("https://example.com/r", handler)
+    assert len(asked) == 1
+
+
+async def test_fetch_a_name_that_does_not_resolve_is_unreachable():
+    async def resolve(host, port):
+        raise OSError("Name or service not known")
+
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://no-existe.example/", _never, resolve)
+
+
+async def test_fetch_a_name_with_no_addresses_is_unreachable():
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://vacio.example/", _never, _dns({"vacio.example": []}))
+
+
+async def test_behind_a_proxy_the_address_is_still_checked_but_not_pinned(monkeypatch):
+    """Detrás de un proxy resuelve el proxy: fijar la IP rompería el TLS (httpx
+    no pasa el SNI por el túnel). El DNS se comprueba igual."""
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:3128")
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+    seen = {}
+
+    def handler(request):
+        seen["host"] = request.url.host
+        return httpx.Response(200, text="ok")
+
+    await _fetch("https://example.com/r", handler)
+    assert seen["host"] == "example.com"
+    with pytest.raises(PageUnreachable):
+        await _fetch("https://recetas.example/r", _never, _dns({"recetas.example": ["10.0.0.5"]}))
