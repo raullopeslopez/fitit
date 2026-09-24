@@ -455,3 +455,37 @@ export function retireRule(ruleId, on) {
 export function dayVerdicts(day = null) {
   return apiFetch(`/rules/verdicts${day ? `?day=${day}` : ''}`)
 }
+
+// --- el plan de la semana ----------------------------------------------------
+
+// El plan guardado de esa semana, o `null` si no hay ninguno. Un 404 aquí no es
+// un fallo: es «esa semana todavía no se ha generado», y la pantalla tiene algo
+// que decir al respecto.
+export async function getPlan(weekStart) {
+  try {
+    return await apiFetch(`/plans/${weekStart}`)
+  } catch (err) {
+    if (err?.status === 404) return null
+    throw err
+  }
+}
+
+// Genera la semana y la guarda, pisando la que hubiera. Sin `seed` el servidor
+// usa una derivada de la semana, para que pedir el mismo lunes dos veces no dé
+// dos semanas distintas; mandarla es lo que permite «dame otra».
+export function generatePlan(weekStart, seed = null) {
+  return apiFetch('/plans', {
+    method: 'POST',
+    body: JSON.stringify(seed === null ? { week_start: weekStart } : { week_start: weekStart, seed }),
+  })
+}
+
+// Confirmar, saltar o cambiar una comida del plan. `done` escribe el diario con
+// los gramos que el plan congeló. El sello va con el offset del móvil, igual
+// que al registrar a mano: es lo que decide en qué día alimentario cae.
+export function setPlanEntry(entryId, status) {
+  return apiFetch(`/plans/entries/${entryId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, logged_at: foodMomentIso() }),
+  })
+}

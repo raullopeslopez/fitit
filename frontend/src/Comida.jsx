@@ -6,6 +6,7 @@ import {
   createFood,
   deleteFoodEntry,
   dayVerdicts,
+  getPlan,
   frequentFoods,
   listDishes,
   listRules,
@@ -20,6 +21,7 @@ import {
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import Objetivo from './Objetivo.jsx'
 import Reglas, { Veredictos } from './Reglas.jsx'
+import PlanDelDia, { Semana, lunesDe } from './Plan.jsx'
 import {
   MACROS,
   MEAL_SLOTS,
@@ -115,6 +117,13 @@ export default function Comida() {
   // La pantalla de reglas, que ocupa la pantalla entera: leerlas, añadir y
   // retirar no cabe en el hueco de una hoja.
   const [reglasOpen, setReglasOpen] = useState(false)
+  // El plan de la semana a la que pertenece el día que se está mirando. `null`
+  // es «esa semana no se ha generado», que no es lo mismo que «no ha llegado»:
+  // la pantalla ofrece generarla.
+  const [plan, setPlan] = useState(null)
+  // La semana entera, a pantalla completa: siete días por cuatro huecos no
+  // caben debajo del día que estás mirando.
+  const [semanaOpen, setSemanaOpen] = useState(false)
   // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
   // El nombre no está congelado en la entrada a propósito: es una etiqueta de
   // agrupación, no un dato del día, así que renombrar el plato retitula bien.
@@ -156,6 +165,13 @@ export default function Comida() {
       setVeredictos((await dayVerdicts(iso))?.verdicts ?? [])
     } catch {
       setVeredictos([])
+    }
+    // Y el plan igual, por lo mismo: un plan que no llega no puede dejarte sin
+    // diario. `getPlan` ya distingue «no hay plan» de «no se ha podido».
+    try {
+      setPlan(await getPlan(lunesDe(iso)))
+    } catch {
+      setPlan(null)
     }
   }, [])
 
@@ -384,6 +400,15 @@ export default function Comida() {
         />
       )}
 
+      {semanaOpen && plan && (
+        <Semana
+          plan={plan}
+          weekStart={lunesDe(dayIso)}
+          onChanged={() => load(dayIso)}
+          onClose={() => setSemanaOpen(false)}
+        />
+      )}
+
       {error && <p className="alert">{error}</p>}
 
       {day && <MacroCard day={day} />}
@@ -391,6 +416,17 @@ export default function Comida() {
       {/* Sólo se pinta lo que pide algo: una regla cumplida no necesita
           decirse, y una que hoy no aplica menos todavía. */}
       <Veredictos verdicts={veredictos} rules={reglas} />
+
+      {/* Lo que toca, antes que lo que ya has comido. El plan propone; el
+          diario de abajo sigue siendo el registro, y sigue abierto a lo que
+          comas y no estuviera planificado. */}
+      <PlanDelDia
+        plan={plan}
+        dayIso={dayIso}
+        isToday={isToday}
+        onChanged={() => load(dayIso)}
+        onVerSemana={plan ? () => setSemanaOpen(true) : null}
+      />
 
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
           contrario de lo que dice. Así que se explica en voz alta — y ahora se

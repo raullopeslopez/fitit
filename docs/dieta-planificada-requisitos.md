@@ -27,7 +27,7 @@ construido la mitad de algo.
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **hecha** |
 | 5 | **El generador** | existe la semana | 2, 4 | grande · **hecha (backend)** |
-| 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
+| 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana · **hecha** |
 
 La decisión 12 («la IA entra en la v1») se cumple: la fase 3 aterriza mucho
 antes de que exista un plan que seguir.
@@ -499,7 +499,38 @@ regla nueva y comparar.
 
 ---
 
-## 7. Lo que hay que verificar antes de empezar
+## 7. Fase 6 — El plan en pantalla
+
+> **Terminada el 24-09.** `PATCH /plans/entries/{id}`, `src/Plan.jsx` y la
+> tarjeta del plan dentro de Comida. 20 tests (6 escenarios + 14 de componente).
+>
+> - **Confirmar escribe el diario con los gramos que el plan congeló**, no con
+>   los de la receta. Entre que se generó la semana y hoy el objetivo ha podido
+>   moverse, y recalcular al confirmar haría que comieras una cifra distinta de
+>   la que el plan te enseñó. Por eso `grams_json` guarda los gramos de todos
+>   los ingredientes y no sólo de los que se movieron.
+> - **Sólo se confirma el día que estás viviendo.** Una entrada del diario se
+>   fecha por el instante en que la escribes (la regla de las 04:00), así que
+>   dar por comida la cena del viernes un lunes pondría comida del viernes en el
+>   lunes. Los otros días enseñan el plan sin botones.
+> - **Volver a «no dicho» no existe.** Lo que no confirmaste no está incumplido;
+>   lo que ya se registró se corrige en el diario, que es donde está.
+> - **El estado se dice distinto de la acción.** «Me lo salté» es lo que pulsas;
+>   «Saltado» es lo que quedó. Con las mismas palabras para las dos cosas, la
+>   fila parecía ofrecer lo que ya había hecho.
+> - **`registrar_plato` sale del endpoint de platos** a una función que también
+>   usa el plan: escribir el diario desde un plato es una sola cosa, y dos
+>   copias acabarían congelando cifras distintas.
+>
+> **Lo que no entra, y es de propósito:** las sustituciones de §4 (un plan de
+> papel dice «150 g de pollo **o** 180 de pavo», y esto todavía no), las dos
+> métricas de adherencia de §5, y la cabecera que en vez de «cuánto falta de
+> cada macro» diga «qué te queda por comer» (§3). Las tres se apoyan en lo que
+> esta fase deja puesto.
+
+---
+
+## 8. Lo que hay que verificar antes de empezar
 
 Tres cosas que el brainstorming dejó marcadas como no verificadas y que cambian
 el tamaño de una fase si salen mal:
@@ -542,7 +573,7 @@ el tamaño de una fase si salen mal:
 
 ---
 
-## 8. Lo que no se construye
+## 9. Lo que no se construye
 
 Dicho para que nadie lo eche de menos a mitad:
 
@@ -556,7 +587,7 @@ Dicho para que nadie lo eche de menos a mitad:
 
 ---
 
-## 9. Lo que sigue abierto (no bloquea)
+## 10. Lo que sigue abierto (no bloquea)
 
 Cuatro decisiones del brainstorming siguen en su default —4, 17, 18, 19— y tres
 nacieron con §39 —21, 22, 23—. Ninguna impide empezar por las fases 1 y 2, que
