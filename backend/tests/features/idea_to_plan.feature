@@ -4,13 +4,9 @@ Feature: Putting a dish from an idea into this week's plan
   arriving there from the idea instead of from the plan: choosing one of the
   week's slots that have not happened yet and putting the dish in it.
 
-  # Las ideas (fases 1 y 2) todavía no existen en esta rama: el Background usa
-  # un plato guardado corriente, que es exactamente lo que una idea deja al
-  # guardarse. Cuando las fases 1–2 lleguen, este paso pasa a ser «an idea …
-  # saved as a dish …» y los escenarios no cambian.
   Background:
     Given the catalogue has "Acelga, cruda"
-    And a dish "Acelgas esparragadas" with 250 g of "Acelga, cruda"
+    And an idea "Acelgas esparragadas" for "Acelga, cruda" saved as a dish with 250 g of "Acelga, cruda"
 
   # No es el `swapped` del plan: ese dice «hoy comí otra cosa» y escribe el
   # diario, y sólo vale para el día que estás viviendo. Esto es cambiar lo que

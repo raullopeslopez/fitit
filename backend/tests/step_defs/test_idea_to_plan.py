@@ -10,7 +10,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from app.auth import get_current_user
 from app.db import get_session
 from app.main import app
-from app.models import Food, Plan, PlanEntry
+from app.models import Dish, DishIdea, Food, Plan, PlanEntry
 from app.naming import fold_exercise_name
 
 scenarios("../features/idea_to_plan.feature")
@@ -74,18 +74,49 @@ def given_catalogue(client, ctx, name):
     ctx.setdefault("foods", {})[name] = _en_la_bd(_alta)
 
 
-@given(parsers.parse('a dish "{name}" with {grams:d} g of "{food}"'))
-def given_dish(client, ctx, name, grams, food):
+@given(
+    parsers.parse(
+        'an idea "{name}" for "{food}" saved as a dish with {grams:d} g of "{ingredient}"'
+    )
+)
+def given_idea_saved(client, ctx, name, food, grams, ingredient):
+    """La idea de verdad (fase 1) guardada como plato por su puerta (fase 2).
+
+    La idea se da de alta en la BD porque buscarla es trabajo de un modelo en la
+    red; el plato, en cambio, entra por `POST /dishes` con su `idea_id`, igual
+    que desde la pantalla del borrador.
+    """
+
+    async def _alta(session, _user_id):
+        idea = DishIdea(
+            food_id=ctx["foods"][food],
+            name=name,
+            url="https://recetas.example/acelgas-esparragadas",
+            method="sartén",
+            minutes=20,
+        )
+        session.add(idea)
+        await session.flush()
+        return idea.id
+
+    idea_id = _en_la_bd(_alta)
     resp = client.post(
         "/dishes",
         json={
             "name": name,
             "servings": 1,
-            "ingredients": [{"food_id": ctx["foods"][food], "grams": grams}],
+            "idea_id": idea_id,
+            "ingredients": [{"food_id": ctx["foods"][ingredient], "grams": grams}],
         },
     )
     assert resp.status_code == 201, resp.text
     ctx["dish"] = resp.json()
+
+    # Que de verdad sea el plato de esa idea, no uno corriente con su nombre.
+    async def _su_idea(session, _user_id):
+        return (await session.get(Dish, ctx["dish"]["id"])).idea_id
+
+    assert _en_la_bd(_su_idea) == idea_id
 
 
 def _plan_con(client, ctx, huecos):
