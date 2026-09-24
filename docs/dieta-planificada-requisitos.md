@@ -26,8 +26,8 @@ construido la mitad de algo.
 | 2 | **Elaboraciones** | registras «lentejas de mamá» de un toque | — | grande · **hecha** |
 | 3 | **La IA puebla el repertorio** | llenas la fase 2 sin teclear | 2 | mediana · **hecha** |
 | 4 | **Objetivos y reglas** | tus objetivos dejan de ser inventados | 1 | grande · **hecha** |
-| 5 | **El generador** | existe la semana | 2, 4 | grande |
-| 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana |
+| 5 | **El generador** | existe la semana | 2, 4 | grande · **hecha (backend)** |
+| 6 | **El plan en pantalla** | confirmas en vez de teclear | 5 | mediana · **hecha** |
 
 La decisión 12 («la IA entra en la v1») se cumple: la fase 3 aterriza mucho
 antes de que exista un plan que seguir.
@@ -433,7 +433,43 @@ rules          user_id, type, scope ('day'|'week'|'slot'), slot NULL,
 
 ---
 
-## 6. Fase 5 — El generador (esbozo)
+## 6. Fase 5 — El generador
+
+> **Terminada el 23-09 (backend).** `nutrition.ajustar_gramos`, `app/planner.py`,
+> las tablas `plans`/`plan_entries`, la banda y los huecos en el repertorio, y
+> `POST /plans` + `GET /plans/{week_start}`. 47 tests. **Falta la pantalla**,
+> que es la fase 6.
+>
+> Cinco decisiones tomadas al construirlo, todas sobre lo escrito abajo:
+>
+> - **El ajuste vive en `nutrition.py`, no en el planificador.** Es aritmética
+>   de nutrientes, y de ésa sólo puede haber una en la app. La banda
+>   `[min_grams, max_grams]` es lo que separa un plan de la solución de una
+>   ecuación: sin ella, cerrar el día contesta «900 g de arroz» con toda la
+>   razón matemática del mundo.
+> - **Las reglas duras de hueco filtran preguntándole al motor de reglas**, con
+>   un día de un solo hueco, en vez de reimplementar el juicio. Un `unknown` no
+>   descarta: no saber no es incumplir, y descartaría todo plato sin clasificar.
+> - **El enfriamiento y la memoria de la semana pasada ceden antes que el
+>   plan.** Preferir una semana con repeticiones a no dar semana es la misma
+>   decisión que tomó `repertoire.py`. Lo que no cede es el mismo plato dos
+>   veces el mismo día.
+> - **Un ingrediente sin el macro que se persigue se queda quieto**, no revienta
+>   la generación. Es la regla del `NULL` leída desde el generador.
+> - **`dishes.slots` es nuevo y no estaba en el esbozo.** Sin él, unas lentejas
+>   pueden caer en el desayuno: el hueco de un plato es conocimiento del usuario
+>   y ninguna regla lo sustituye. `NULL` es «no lo has dicho» y vale para
+>   cualquier hueco, para no dejar fuera el repertorio que ya existe.
+>
+> **Lo que es una predicción y conviene saber:** qué días entrenas la semana que
+> viene se deduce del día de la semana en el último mes (al menos 2 de 4). Los
+> días ya pasados no se predicen, se saben. Sin esa deducción, «más hidratos los
+> días que entreno» no podría aplicarse nunca a una semana futura.
+>
+> **Lo que no se construyó:** la puntuación por plato de la decisión 14 (no hay
+> «me gusta» todavía, así que todos pesan igual), y `plan_entries.status`, que
+> existe en la tabla y nadie escribe — es de la fase 6.
+
 
 ```
 plans         user_id, week_start, seed, created_at
@@ -463,7 +499,38 @@ regla nueva y comparar.
 
 ---
 
-## 7. Lo que hay que verificar antes de empezar
+## 7. Fase 6 — El plan en pantalla
+
+> **Terminada el 24-09.** `PATCH /plans/entries/{id}`, `src/Plan.jsx` y la
+> tarjeta del plan dentro de Comida. 20 tests (6 escenarios + 14 de componente).
+>
+> - **Confirmar escribe el diario con los gramos que el plan congeló**, no con
+>   los de la receta. Entre que se generó la semana y hoy el objetivo ha podido
+>   moverse, y recalcular al confirmar haría que comieras una cifra distinta de
+>   la que el plan te enseñó. Por eso `grams_json` guarda los gramos de todos
+>   los ingredientes y no sólo de los que se movieron.
+> - **Sólo se confirma el día que estás viviendo.** Una entrada del diario se
+>   fecha por el instante en que la escribes (la regla de las 04:00), así que
+>   dar por comida la cena del viernes un lunes pondría comida del viernes en el
+>   lunes. Los otros días enseñan el plan sin botones.
+> - **Volver a «no dicho» no existe.** Lo que no confirmaste no está incumplido;
+>   lo que ya se registró se corrige en el diario, que es donde está.
+> - **El estado se dice distinto de la acción.** «Me lo salté» es lo que pulsas;
+>   «Saltado» es lo que quedó. Con las mismas palabras para las dos cosas, la
+>   fila parecía ofrecer lo que ya había hecho.
+> - **`registrar_plato` sale del endpoint de platos** a una función que también
+>   usa el plan: escribir el diario desde un plato es una sola cosa, y dos
+>   copias acabarían congelando cifras distintas.
+>
+> **Lo que no entra, y es de propósito:** las sustituciones de §4 (un plan de
+> papel dice «150 g de pollo **o** 180 de pavo», y esto todavía no), las dos
+> métricas de adherencia de §5, y la cabecera que en vez de «cuánto falta de
+> cada macro» diga «qué te queda por comer» (§3). Las tres se apoyan en lo que
+> esta fase deja puesto.
+
+---
+
+## 8. Lo que hay que verificar antes de empezar
 
 Tres cosas que el brainstorming dejó marcadas como no verificadas y que cambian
 el tamaño de una fase si salen mal:
@@ -506,7 +573,7 @@ el tamaño de una fase si salen mal:
 
 ---
 
-## 8. Lo que no se construye
+## 9. Lo que no se construye
 
 Dicho para que nadie lo eche de menos a mitad:
 
@@ -520,7 +587,7 @@ Dicho para que nadie lo eche de menos a mitad:
 
 ---
 
-## 9. Lo que sigue abierto (no bloquea)
+## 10. Lo que sigue abierto (no bloquea)
 
 Cuatro decisiones del brainstorming siguen en su default —4, 17, 18, 19— y tres
 nacieron con §39 —21, 22, 23—. Ninguna impide empezar por las fases 1 y 2, que

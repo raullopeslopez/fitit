@@ -744,6 +744,11 @@ DishMethod = Literal["air_fryer", "plancha", "horno", "sarten", "cocido", "crudo
 class DishIngredientIn(BaseModel):
     food_id: int
     grams: float = Field(gt=0)
+    # La banda que el generador puede mover. Las dos `None` significan que este
+    # ingrediente **no se ajusta**: no es un número desconocido, es que nadie ha
+    # dicho que se pueda tocar.
+    min_grams: float | None = Field(default=None, ge=0)
+    max_grams: float | None = Field(default=None, gt=0)
 
 
 class DishIn(BaseModel):
@@ -751,6 +756,11 @@ class DishIn(BaseModel):
     servings: float = Field(default=1, gt=0)
     basis: DishBasis = "raw"
     method: DishMethod | None = None
+    # En qué huecos sirve. `None` es «no lo has dicho», y se lee como «vale para
+    # cualquiera»: negárselo lo dejaría fuera del plan entero.
+    slots: list[MealSlot] | None = None
+    # Un guiso es lo que es y no aporta ajuste; el resto del día compensa.
+    is_block: bool = False
     # Un plato sin ingredientes no es un plato: es un nombre.
     ingredients: list[DishIngredientIn] = Field(min_length=1)
 
@@ -762,6 +772,8 @@ class DishPatch(BaseModel):
     servings: float | None = Field(default=None, gt=0)
     basis: DishBasis | None = None
     method: DishMethod | None = None
+    slots: list[MealSlot] | None = None
+    is_block: bool | None = None
     # Si vienen, sustituyen a los de antes enteros. Una lista de ingredientes a
     # medias no tiene forma de expresar «quita éste».
     ingredients: list[DishIngredientIn] | None = Field(default=None, min_length=1)
@@ -772,6 +784,8 @@ class DishIngredientOut(BaseModel):
     food_id: int
     food_name: str
     grams: float
+    min_grams: float | None = None
+    max_grams: float | None = None
 
 
 class DishOut(BaseModel):
@@ -780,6 +794,8 @@ class DishOut(BaseModel):
     servings: float
     basis: DishBasis
     method: DishMethod | None = None
+    slots: list[MealSlot] | None = None
+    is_block: bool = False
     ingredients: list[DishIngredientOut] = Field(default_factory=list)
     # Lo que se come de una vez, que es el número que acaba en el diario.
     # `None` en un nutriente significa que algún ingrediente no lo tenía medido.
@@ -961,3 +977,57 @@ class DayVerdictsOut(BaseModel):
     # Si el día vale. Lo estropea una regla **dura** rota; una blanda lo
     # empeora, y un `unknown` no lo juzga.
     acceptable: bool = True
+
+
+class PlanIn(BaseModel):
+    """Qué semana generar.
+
+    `seed` opcional: sin ella se usa una derivada de la semana, para que pedir
+    el plan del lunes dos veces no dé dos semanas distintas. Mandarla es lo que
+    permite «dame otra», y guardarla es lo que permite volver a esta.
+    """
+
+    week_start: Date
+    seed: int | None = None
+
+
+class PlanEntryOut(BaseModel):
+    id: int
+    log_date: Date
+    slot: MealSlot
+    dish_id: int
+    dish_name: str
+    # Los gramos resueltos de lo ajustable, en el orden de los ingredientes del
+    # plato. Vacío si el plato no tenía nada que mover.
+    grams: list[float] = Field(default_factory=list)
+    kcal: float | None = None
+    # `None` es «no dicho», **nunca «saltado»**.
+    status: str | None = None
+    log_entry_id: int | None = None
+
+
+class PlanOut(BaseModel):
+    id: int
+    week_start: Date
+    seed: int
+    entries: list[PlanEntryOut] = Field(default_factory=list)
+    # El porqué: qué dicen tus reglas de esta semana. Se devuelven todas, no
+    # sólo las rotas — enseñar sólo lo roto deja sin saber si lo demás se miró.
+    verdicts: list[VerdictOut] = Field(default_factory=list)
+    # Un coste: cuanto más bajo, mejor la semana. No es una nota para enseñar,
+    # es con lo que el generador compara sus reinicios.
+    score: float = 0.0
+
+
+class PlanEntryPatch(BaseModel):
+    """Lo que dices de una fila del plan.
+
+    `done` escribe el diario con los gramos que el plan congeló; `skipped` y
+    `swapped` no escriben nada. **No hay forma de volver a «no dicho»**: lo que
+    ya se registró se corrige en el diario, que es donde está.
+    """
+
+    status: Literal["done", "skipped", "swapped"]
+    # El instante con el offset del móvil, igual que al registrar a mano: es lo
+    # que decide en qué día alimentario cae. Ausente significa ahora.
+    logged_at: datetime | None = None

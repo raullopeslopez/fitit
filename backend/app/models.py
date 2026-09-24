@@ -424,6 +424,14 @@ class Dish(Base):
     # que miente a medias.
     basis: Mapped[str] = mapped_column(String(8), default="raw", server_default="raw")
     servings: Mapped[float] = mapped_column(Float, default=1, server_default="1")
+    # Huecos en los que sirve, separados por comas. NULL es «no lo has dicho»,
+    # y se lee como «vale para cualquiera»: el repertorio que ya existe no lo
+    # declaró, y negárselo lo dejaría fuera del plan entero.
+    slots: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Un guiso es lo que es —450 kcal y punto— y no aporta ajuste (§39). El
+    # resto del día compensa. Sin esto, exigir que todo plato sea ajustable
+    # manda al generador hacia platos de báscula.
+    is_block: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     ingredients: Mapped[list["DishIngredient"]] = relationship(
@@ -449,6 +457,11 @@ class DishIngredient(Base):
     # decirlo en vez de quedarse callado sumando de menos.
     food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), index=True)
     grams: Mapped[float] = mapped_column(Float)
+    # La banda de lo que el generador puede mover. NULL **no** es un número
+    # desconocido: es que nadie ha dicho que este ingrediente se pueda tocar, y
+    # sin banda se queda donde la receta lo puso.
+    min_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     dish: Mapped["Dish"] = relationship(back_populates="ingredients")
 
@@ -521,3 +534,59 @@ class Rule(Base):
     # NULL es «sigue vigente». Retirarla es ponerle fecha, no borrar la fila.
     active_to: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Plan(Base):
+    """Una semana generada.
+
+    Se guarda **la semilla**, no sólo el resultado: sin ella el plan no se puede
+    volver a obtener, y entonces «regenerar con una regla nueva y comparar las
+    dos semanas» no existe — sólo habría una semana nueva sin nada con que
+    medirla.
+    """
+
+    __tablename__ = "plans"
+    __table_args__ = (UniqueConstraint("user_id", "week_start", name="uq_plans_user_week"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    week_start: Mapped[date] = mapped_column(Date)
+    seed: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    entries: Mapped[list["PlanEntry"]] = relationship(
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        order_by="PlanEntry.id",
+    )
+
+
+class PlanEntry(Base):
+    """Un hueco del plan: qué plato, qué día, y con cuántos gramos.
+
+    `grams_json` **congela** los gramos que el generador resolvió. Volver a
+    resolverlos mañana daría otra cifra —el objetivo se mueve con el peso— y
+    habrías comido la de hoy: es la misma razón por la que `log_entries` no se
+    recalcula desde `foods`.
+
+    `status` es nullable y **NULL es «no dicho», no «saltado»**. Un plan que
+    diera por incumplido lo que todavía no ha pasado contaría mal la adherencia
+    desde el lunes por la mañana.
+    """
+
+    __tablename__ = "plan_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id", ondelete="CASCADE"), index=True)
+    log_date: Mapped[date] = mapped_column(Date)
+    slot: Mapped[str] = mapped_column(String(16))
+    # Sin `ondelete`: un plato no se borra en esta app, se corrige.
+    dish_id: Mapped[int] = mapped_column(ForeignKey("dishes.id"))
+    grams_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 'done' | 'swapped' | 'skipped' | NULL.
+    status: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    log_entry_id: Mapped[int | None] = mapped_column(
+        ForeignKey("log_entries.id", ondelete="SET NULL"), nullable=True
+    )
+
+    plan: Mapped["Plan"] = relationship(back_populates="entries")

@@ -5358,3 +5358,116 @@ button.set-chip:active:not(:disabled) {
 .food-goals-gap {
   margin-top: -0.4rem;
 }
+
+/* --- El plan de la semana (fase 6) -----------------------------------------
+   La tarjeta del día va antes del diario: lo que toca, antes de lo que ya
+   pasó. Una fila del plan tiene tres estados y el cuarto es su ausencia, así
+   que lo que se pinta distinto es lo dicho, no lo pendiente. */
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.plan-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.plan-fila {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.6rem;
+  align-items: baseline;
+}
+.plan-slot {
+  grid-column: 1;
+}
+.plan-plato {
+  grid-column: 1;
+  font-size: 0.95rem;
+}
+.plan-kcal {
+  grid-column: 2;
+  grid-row: 2;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* Lo dicho se dice con la tinta de una cifra, no en `--muted`: es un dato del
+   día, no una nota al pie. */
+.plan-estado {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.plan-fila.is-done .plan-estado {
+  color: var(--accent-ink);
+}
+.plan-fila.is-skipped .plan-plato,
+.plan-fila.is-skipped .plan-kcal {
+  color: var(--muted);
+}
+.plan-acciones {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.35rem;
+}
+.plan-comer {
+  /* 44px de alto: es un botón que se pulsa con el pulgar y en mitad de otra
+     cosa — con la comida delante, no con la pantalla delante. */
+  min-height: 44px;
+  padding-inline: 1.1rem;
+}
+/* Una raya entre comidas: sin ella el nombre de un plato y el sello del hueco
+   siguiente se leen como una sola línea. */
+.plan-fila + .plan-fila {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+.plan-saltar {
+  color: var(--muted);
+  font-size: 0.85rem;
+  min-height: 44px;
+}
+.plan-ver {
+  align-self: flex-start;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.plan-dia {
+  margin-bottom: 1.4rem;
+}
+/* El día es el nivel de agrupación, y tiene que leerse por encima del sello
+   del hueco. En mono y mayúsculas los dos, el ojo no distinguía cuál mandaba. */
+.plan-dia-nombre {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.6rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.plan-dia-hoy {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.plan-otra {
+  margin-top: 0.6rem;
+  min-height: 44px;
+}

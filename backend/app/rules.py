@@ -27,6 +27,8 @@ incumplido lo que no sabe.
 
 from __future__ import annotations
 
+import json
+
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -281,6 +283,26 @@ def validar(regla: dict) -> dict:
     except RuleRefused:
         raise
     return params
+
+
+def desde_fila(row) -> dict:
+    """Una fila de `rules` como la ve este módulo.
+
+    Está aquí y no en un router porque hay dos sitios que la necesitan —el
+    veredicto del día y el generador de la semana— y dos traducciones de la
+    misma fila acabarían diciendo cosas distintas.
+    """
+    return {
+        "id": row.id,
+        "type": row.type,
+        "scope": row.scope,
+        "slot": row.slot,
+        "day_condition": row.day_condition,
+        "hardness": row.hardness,
+        "params": json.loads(row.params_json),
+        "active_from": row.active_from,
+        "active_to": row.active_to,
+    }
 
 
 def aplica(regla: dict, dia: Dia, *, hoy: date | None = None) -> bool:

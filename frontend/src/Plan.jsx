@@ -1,0 +1,252 @@
+import { useState } from 'react'
+
+import { generatePlan, setPlanEntry } from './api.js'
+import { foodDayIso, formatMacro } from './food.js'
+
+// Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
+// aquí está para que la lista no dependa de cómo vinieran las filas.
+const HUECOS = ['desayuno', 'comida', 'cena', 'snack']
+
+const NOMBRE = {
+  desayuno: 'Desayuno',
+  comida: 'Comida',
+  cena: 'Cena',
+  snack: 'Snack',
+}
+
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+// Lunes de la semana a la que pertenece un día. El plan se guarda por semana y
+// la pantalla se mueve por días, así que alguien tiene que hacer esta cuenta.
+// En ISO y sin `Date` local: construir un `Date` de un `YYYY-MM-DD` lo lee como
+// medianoche UTC y en Madrid eso es el día anterior.
+export function lunesDe(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const fecha = new Date(Date.UTC(y, m - 1, d))
+  // `getUTCDay()` da 0 para el domingo; la semana empieza en lunes.
+  const desde = (fecha.getUTCDay() + 6) % 7
+  fecha.setUTCDate(fecha.getUTCDate() - desde)
+  return fecha.toISOString().slice(0, 10)
+}
+
+function diasDe(weekStart) {
+  const [y, m, d] = weekStart.split('-').map(Number)
+  return Array.from({ length: 7 }, (_, i) => {
+    const fecha = new Date(Date.UTC(y, m - 1, d + i))
+    return fecha.toISOString().slice(0, 10)
+  })
+}
+
+function delDia(plan, iso) {
+  // `Array.isArray` y no `?? []`: si lo que llega es una lista, `plan.entries`
+  // es el iterador de `Array.prototype` —una función— y el `??` lo da por
+  // bueno. Un cuerpo con otra forma de la esperada tiene que leerse como «no
+  // hay plan», no reventar la pantalla del diario entera.
+  const todas = Array.isArray(plan?.entries) ? plan.entries : []
+  const filas = todas.filter((e) => e.log_date === iso)
+  return HUECOS.map((slot) => filas.find((e) => e.slot === slot)).filter(Boolean)
+}
+
+// Por qué no se ha podido generar. Cada forma de no haber podido se nombra por
+// separado: una despensa vacía manda a dar de alta platos, y un hueco sin
+// candidatos manda a mirar ese hueco. «No se ha podido» no dice qué hacer.
+function motivo(err) {
+  const detalle = err?.detail
+  if (detalle?.slot) {
+    return `No hay platos que puedan ir en la ${NOMBRE[detalle.slot]?.toLowerCase() ?? detalle.slot}.`
+  }
+  if (detalle?.motivo) {
+    return 'Necesitas platos en tu repertorio antes de que haya semana que generar.'
+  }
+  return 'No se ha podido generar la semana.'
+}
+
+function Fila({ entrada, puedeConfirmar, busy, onMarcar }) {
+  const hecho = entrada.status === 'done'
+  const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
+  return (
+    <li className={`plan-fila${hecho ? ' is-done' : ''}${saltado ? ' is-skipped' : ''}`}>
+      <span className="card-eyebrow plan-slot">{NOMBRE[entrada.slot] ?? entrada.slot}</span>
+      <span className="plan-plato">{entrada.dish_name}</span>
+      {entrada.kcal != null && (
+        <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
+      )}
+      {/* El estado se dice distinto de la acción: «Me lo salté» es lo que
+          pulsas, «Saltado» es lo que quedó. Las mismas palabras para las dos
+          cosas hacen que la fila parezca ofrecer lo que ya hizo. */}
+      {hecho && <span className="plan-estado">Comido</span>}
+      {saltado && (
+        <span className="plan-estado">
+          {entrada.status === 'swapped' ? 'Cambiado' : 'Saltado'}
+        </span>
+      )}
+      {/* Ni comido ni saltado es **no dicho**, no incumplido: sigue ofreciendo
+          las dos cosas hasta que alguien diga una. */}
+      {!hecho && !saltado && puedeConfirmar && (
+        <span className="plan-acciones">
+          <button
+            type="button"
+            className="primary plan-comer"
+            disabled={busy}
+            onClick={() => onMarcar(entrada, 'done')}
+          >
+            Lo comí
+          </button>
+          <button
+            type="button"
+            className="link-btn plan-saltar"
+            disabled={busy}
+            onClick={() => onMarcar(entrada, 'skipped')}
+          >
+            Me lo salté
+          </button>
+        </span>
+      )}
+    </li>
+  )
+}
+
+export default function PlanDelDia({
+  plan,
+  dayIso,
+  isToday,
+  onChanged,
+  onVerSemana = null,
+  // Inyectables para que los tests no tengan que interceptar el módulo de red.
+  generar = generatePlan,
+  setEntry = setPlanEntry,
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const filas = delDia(plan, dayIso)
+
+  async function marcar(entrada, status) {
+    setBusy(true)
+    setError(null)
+    try {
+      await setEntry(entrada.id, status)
+      await onChanged()
+    } catch (err) {
+      setError(err?.detail?.motivo ?? 'No se ha podido guardar.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function generarSemana() {
+    setBusy(true)
+    setError(null)
+    try {
+      await generar(lunesDe(dayIso), null)
+      await onChanged()
+    } catch (err) {
+      setError(motivo(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!plan) {
+    return (
+      <section className="card plan-card">
+        <p className="card-eyebrow">Tu plan</p>
+        <p className="hint">Todavía no hay plan para esta semana.</p>
+        {error && <p className="alert">{error}</p>}
+        <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
+          Generar la semana
+        </button>
+      </section>
+    )
+  }
+
+  if (filas.length === 0) return null
+
+  return (
+    <section className="card plan-card">
+      <p className="card-eyebrow">Tu plan</p>
+      <ul className="plan-lista">
+        {filas.map((entrada) => (
+          <Fila
+            key={entrada.id}
+            entrada={entrada}
+            puedeConfirmar={isToday}
+            busy={busy}
+            onMarcar={marcar}
+          />
+        ))}
+      </ul>
+      {/* El día que tienes delante no es el que estás viviendo: una entrada del
+          diario se fecha por el instante en que la escribes. */}
+      {!isToday && <p className="hint">Sólo se confirma el día de hoy.</p>}
+      {error && <p className="alert">{error}</p>}
+      {onVerSemana && (
+        <button type="button" className="link-btn plan-ver" onClick={onVerSemana}>
+          Ver la semana
+        </button>
+      )}
+    </section>
+  )
+}
+
+export function Semana({ plan, weekStart, onClose, onChanged, generar = generatePlan, hoy = foodDayIso() }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function otra() {
+    setBusy(true)
+    setError(null)
+    try {
+      // Otra semilla, o el generador es determinista y saldría exactamente la
+      // misma semana: es la propiedad que hace útil la semilla, mirada del
+      // otro lado.
+      await generar(weekStart, Math.floor(Math.random() * 100000) + 1)
+      await onChanged()
+    } catch (err) {
+      setError(motivo(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Tu semana">
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">Lo que toca</span>
+          <span className="food-screen-slot">Tu semana</span>
+        </p>
+        <button type="button" className="link-btn" onClick={onClose}>
+          Cerrar
+        </button>
+      </header>
+
+      <div className="food-screen-body">
+        {diasDe(weekStart).map((iso, i) => {
+          const filas = delDia(plan, iso)
+          return (
+            <section key={iso} className="plan-dia">
+              <h3 className="plan-dia-nombre">
+                {DIAS[i]}
+                {iso === hoy && <span className="plan-dia-hoy">Hoy</span>}
+              </h3>
+              {filas.length === 0 ? (
+                <p className="hint">Sin comidas planificadas.</p>
+              ) : (
+                <ul className="plan-lista">
+                  {filas.map((entrada) => (
+                    <Fila key={entrada.id} entrada={entrada} puedeConfirmar={false} />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )
+        })}
+
+        {error && <p className="alert">{error}</p>}
+        <button type="button" className="primary plan-otra" disabled={busy} onClick={otra}>
+          Generar otra
+        </button>
+      </div>
+    </div>
+  )
+}
