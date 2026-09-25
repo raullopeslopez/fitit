@@ -109,9 +109,8 @@ ese, y un cliente creado allí da `[28444] Developer console is not set up corre
 No hay que copiar el ID nuevo en ningún sitio: la app sigue pidiendo el token con
 el ID web, y el cliente Android sólo le dice a Google que este APK es de confianza.
 
-**Lo que en el APK todavía no hay** (vuelve en la fase 2): el aviso de la pantalla
-de bloqueo con «+1 serie», que en la PWA hace el service worker. La barra de
-descanso en pantalla funciona igual. El lector de códigos de barras depende de que
+**El aviso de la pantalla de bloqueo** con «+1 serie», que en la PWA hace el service
+worker, en el APK lo hacen notificaciones locales de Android (fase 2, abajo). El lector de códigos de barras depende de que
 el WebView del teléfono traiga `BarcodeDetector`; si no, el botón no aparece y se
 teclea o se lee la tabla, como en un iPhone.
 
@@ -132,6 +131,15 @@ teclea o se lee la tabla, como en un iPhone.
   para ML Kit. La web sigue con el `<input capture>`.
 - `@capacitor/local-notifications` + `haptics`: el fin del descanso avisa y vibra con la
   pantalla bloqueada o la app en segundo plano.
+  **Hecho (notificaciones):** `platform/notifyNative.js`, detrás de la misma API de
+  `notify.js`. Dos canales de Android: «Sesión en curso» (el aviso con «+1 serie» y
+  «Otra serie») y «Fin del descanso» (programado con alarma a la hora del fin; suena y
+  vibra aunque la app esté cerrada). Un toque en un botón **abre la app** —el plugin
+  sólo sabe lanzar la actividad; bloqueado, Android pide desbloquear— y la serie entra
+  en la cola de la página por `claimLockScreenSets`, como las del service worker. Con la
+  app cerrada, el toque la arranca y la serie llega igual (viaja en la notificación).
+  Para que el fin sea puntual se pide «Alarmas y recordatorios» en el mismo toque que el
+  permiso; sin él, Android puede retrasarlo. `haptics` no se usa: el canal ya vibra.
 - Opcional: `document-scanner` para la tabla (sólo Android si no se confirma iOS).
 - **Qué notarás:** en Comida, escanear pasa a ser apuntar con la cámara sin hacer
   foto; el aviso del descanso llega siempre.

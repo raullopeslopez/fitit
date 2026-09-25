@@ -28,7 +28,6 @@ import { SocialLogin } from '@capgo/capacitor-social-login'
 import GoogleSignIn from '../GoogleSignIn.jsx'
 import { handleBackButton } from './backButton.js'
 import { showGoogleSignIn } from './googleIdentity.js'
-import { notificationState, startRestNotice } from './notify.js'
 import { registerServiceWorker } from './serviceWorker.js'
 import { holdScreenAwake } from './wakelock.js'
 
@@ -51,16 +50,6 @@ describe('platform/ dentro del APK', () => {
     const on = vi.spyOn(window, 'addEventListener')
     registerServiceWorker()
     expect(on).not.toHaveBeenCalledWith('load', expect.any(Function))
-    delete navigator.serviceWorker
-  })
-
-  it('el aviso de pantalla de bloqueo no existe todavía, y no se queda esperando', async () => {
-    Object.defineProperty(navigator, 'serviceWorker', {
-      value: { ready: new Promise(() => {}) },
-      configurable: true,
-    })
-    expect(notificationState()).toBe('unsupported')
-    await expect(startRestNotice({})).resolves.toMatchObject({ ok: false })
     delete navigator.serviceWorker
   })
 

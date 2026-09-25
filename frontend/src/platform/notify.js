@@ -11,18 +11,34 @@
 // to — the rest bar on screen keeps working exactly as before.
 
 import { isNative } from './native.js'
+import {
+  announceNatively,
+  askNatively,
+  claimNatively,
+  initNative,
+  listenNatively,
+  nativeNotificationState,
+  startNatively,
+  stopNatively,
+} from './notifyNative.js'
 
-// Dentro del APK no hay service worker, así que el aviso de la pantalla de
-// bloqueo no existe todavía: la fase 2 lo rehace con notificaciones nativas
-// (docs/app-nativa.md). Hasta entonces, «no disponible», que es un estado que la
-// sesión ya sabe llevar: la barra de descanso en pantalla sigue funcionando.
-// En el APK el WebView puede anunciar `navigator.serviceWorker` sin que haya
-// ninguno registrado, y `ready` no se resolvería nunca.
+// Dentro del APK no hay service worker: cada función pasa a notifyNative.js,
+// que hace lo mismo con notificaciones locales de Android y contesta con las
+// mismas formas. `hasWorker` sigue mirando `isNative` porque en el APK el
+// WebView puede anunciar `navigator.serviceWorker` sin que haya ninguno
+// registrado, y `ready` no se resolvería nunca.
 function hasWorker() {
   return !isNative() && 'serviceWorker' in navigator
 }
 
+// Al arrancar la app (main.jsx). En el navegador no hace nada; en el APK deja
+// escuchando los toques en «+1 serie», también el que arrancó la app.
+export function initNotifications() {
+  if (isNative()) initNative()
+}
+
 export function notificationState() {
+  if (isNative()) return nativeNotificationState()
   if (typeof Notification === 'undefined' || !hasWorker()) return 'unsupported'
   return Notification.permission
 }
@@ -30,6 +46,7 @@ export function notificationState() {
 // Asked from a tap, never on load: a permission prompt that appears by itself
 // is the one people dismiss without reading, and the browser only offers it once.
 export async function askForNotifications() {
+  if (isNative()) return askNatively()
   if (notificationState() === 'unsupported') return false
   try {
     return (await Notification.requestPermission()) === 'granted'
@@ -86,6 +103,7 @@ async function askWorker(message, timeoutMs = 3000) {
 // admits to holding afterwards. Zero with `ok: true` is the interesting case:
 // the worker did everything right and Android threw it away anyway.
 export function startRestNotice(rest) {
+  if (isNative()) return startNatively(rest)
   return askWorker({ type: 'rest-start', rest })
 }
 
@@ -93,10 +111,12 @@ export function startRestNotice(rest) {
 // make the notification *arrive* again, because Android draws on a locked screen
 // what arrives while locked, not what was already sitting in the shade.
 export function announceRestNotice() {
+  if (isNative()) return announceNatively()
   return tellWorker({ type: 'rest-announce' })
 }
 
 export function stopRestNotice() {
+  if (isNative()) return stopNatively()
   return tellWorker({ type: 'rest-stop' })
 }
 
@@ -105,6 +125,7 @@ export function stopRestNotice() {
 // drain — and `sent` counts the ones that already reached the server, so the
 // page knows the session on screen is out of date.
 export async function claimLockScreenSets(timeoutMs = 2000) {
+  if (isNative()) return claimNatively()
   const nothing = { queued: [], sent: 0 }
   if (!hasWorker()) return nothing
   try {
@@ -130,6 +151,7 @@ export async function claimLockScreenSets(timeoutMs = 2000) {
 // The worker shouting that a set was logged while the app was up (you tapped
 // the notification from the notification shade rather than the lock screen).
 export function onLockScreenSets(handler) {
+  if (isNative()) return listenNatively(handler)
   if (!hasWorker()) return () => {}
   const listener = (event) => {
     if (event.data?.type === 'sets-logged') handler(event.data)
