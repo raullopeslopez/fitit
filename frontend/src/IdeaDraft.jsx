@@ -57,6 +57,24 @@ const MACROS = [
   ['fat', 'grasa'],
 ]
 
+// La misma fila en el borrador y en el plato guardado: `—` en tinta donde un
+// nutriente no está medido (`formatMacro`), nunca un 0.
+function PorRacion({ macros }) {
+  return (
+    <div className="draft-macros" aria-label="Por ración">
+      <p className="card-eyebrow">Por ración</p>
+      <dl className="draft-macro-row">
+        {MACROS.map(([key, label]) => (
+          <div key={key} className="draft-macro">
+            <dt>{label}</dt>
+            <dd>{formatMacro(macros?.[key])}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
+}
+
 function Linea({ line, onPick, onGrams, onDrop }) {
   const sinAlimento = !line.food
   return (
@@ -312,17 +330,7 @@ export function IdeaDraft({ idea, onSaved, onCancel, onPuesto = null }) {
               ))}
             </ul>
 
-            <div className="draft-macros" aria-label="Por ración">
-              <p className="card-eyebrow">Por ración</p>
-              <dl className="draft-macro-row">
-                {MACROS.map(([key, label]) => (
-                  <div key={key} className="draft-macro">
-                    <dt>{label}</dt>
-                    <dd>{formatMacro(preview?.per_serving?.[key])}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+            <PorRacion macros={preview?.per_serving} />
 
             <p className="draft-source">
               <a href={idea.url} target="_blank" rel="noopener noreferrer">
@@ -384,6 +392,8 @@ function Guardado({ dish, onDone, onPuesto }) {
           Guardado en tus platos.
         </p>
         <h2 className="draft-saved-name">{dish.name}</h2>
+        {/* Las cifras del plato ya guardado, que son las que te llevas al plan. */}
+        <PorRacion macros={dish.per_serving} />
       </div>
 
       <div className="ideas-bar">

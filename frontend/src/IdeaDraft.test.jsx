@@ -274,7 +274,11 @@ describe('IdeaDraft · guardado', () => {
       draft({ servings: 2, servings_published: true, lines: [line({ grams: 250 })] }),
     )
     previewDish.mockResolvedValue({ per_serving: { kcal: 50 } })
-    createDish.mockResolvedValue({ id: 42, name: 'Acelgas de la abuela' })
+    createDish.mockResolvedValue({
+      id: 42,
+      name: 'Acelgas de la abuela',
+      per_serving: { kcal: 212, protein: 9.5, carbs: 18, fat: null },
+    })
     const all = { onSaved: vi.fn(), onCancel: vi.fn(), onPuesto: vi.fn(), ...props }
     render(<IdeaDraft idea={IDEA} {...all} />)
     await waitFor(() => expect(save()).toBeEnabled())
@@ -285,7 +289,12 @@ describe('IdeaDraft · guardado', () => {
 
   it('al guardar no se cierra: dice que está guardado y ofrece ponerlo en el plan', async () => {
     const { onSaved, onCancel } = await guardarPlato()
-    expect(onSaved).toHaveBeenCalledWith({ id: 42, name: 'Acelgas de la abuela' })
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 42, name: 'Acelgas de la abuela' }))
+    // Lo que te llevas al plan, con las cifras del plato ya guardado: las mismas
+    // del borrador, y `—` donde un nutriente no está medido, nunca un 0.
+    const macros = screen.getByLabelText('Por ración')
+    expect(within(macros).getByText('212')).toBeInTheDocument()
+    expect(within(macros).getByText('—')).toBeInTheDocument()
     // El nombre con el que se guardó, no el de la receta.
     expect(screen.getByRole('heading', { name: 'Acelgas de la abuela' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar en mis platos' })).not.toBeInTheDocument()
