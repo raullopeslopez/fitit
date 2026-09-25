@@ -110,9 +110,8 @@ No hay que copiar el ID nuevo en ningún sitio: la app sigue pidiendo el token c
 el ID web, y el cliente Android sólo le dice a Google que este APK es de confianza.
 
 **El aviso de la pantalla de bloqueo** con «+1 serie», que en la PWA hace el service
-worker, en el APK lo hacen notificaciones locales de Android (fase 2, abajo). El lector de códigos de barras depende de que
-el WebView del teléfono traiga `BarcodeDetector`; si no, el botón no aparece y se
-teclea o se lee la tabla, como en un iPhone.
+worker, y el lector de códigos, que en la PWA es `BarcodeDetector`, en el APK son
+nativos desde la fase 2 (abajo).
 
 ### Fase 2 — Lo que la web no daba
 - `@capacitor-mlkit/barcode-scanning`: escaneo en vivo del código de barras.
@@ -138,8 +137,11 @@ teclea o se lee la tabla, como en un iPhone.
   sólo sabe lanzar la actividad; bloqueado, Android pide desbloquear— y la serie entra
   en la cola de la página por `claimLockScreenSets`, como las del service worker. Con la
   app cerrada, el toque la arranca y la serie llega igual (viaja en la notificación).
-  Para que el fin sea puntual se pide «Alarmas y recordatorios» en el mismo toque que el
-  permiso; sin él, Android puede retrasarlo. `haptics` no se usa: el canal ya vibra.
+  Para que el fin sea puntual el manifiesto declara `USE_EXACT_ALARM`, que Android 13+
+  concede al instalar (en 12 ya venía concedido): no se abre la pantalla «Alarmas y
+  recordatorios». Una tienda lo rechazaría fuera de apps de alarma; para instalar a
+  mano no importa. Icono propio en la barra de estado (`ic_stat_fitit`, la retícula
+  en una tinta). `haptics` no se usa: el canal ya vibra.
 - Opcional: `document-scanner` para la tabla (sólo Android si no se confirma iOS).
 - **Qué notarás:** en Comida, escanear pasa a ser apuntar con la cámara sin hacer
   foto; el aviso del descanso llega siempre.

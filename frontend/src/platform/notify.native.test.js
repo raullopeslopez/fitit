@@ -32,6 +32,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import {
   announceRestNotice,
   askForNotifications,
+  blockedNotice,
   claimLockScreenSets,
   initNotifications,
   notificationState,
@@ -83,6 +84,12 @@ beforeEach(() => {
   localStorage.clear()
 })
 afterEach(() => vi.useRealTimers())
+
+describe('permiso quitado en el APK', () => {
+  it('dice dónde devolverlo: en los ajustes de Android, no en un navegador', () => {
+    expect(blockedNotice()).toBe('Bloqueado en los ajustes de Android.')
+  })
+})
 
 describe('aviso del descanso en el APK', () => {
   it('al arrancar prepara los dos canales y el botón «+1 serie»', async () => {

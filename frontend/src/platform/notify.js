@@ -159,3 +159,9 @@ export function onLockScreenSets(handler) {
   navigator.serviceWorker.addEventListener('message', listener)
   return () => navigator.serviceWorker.removeEventListener('message', listener)
 }
+
+// Dónde se quitó el permiso, para decir dónde devolverlo: en la PWA lo guarda el
+// navegador; en el APK, los ajustes de la app en Android.
+export function blockedNotice() {
+  return isNative() ? 'Bloqueado en los ajustes de Android.' : 'Bloqueado en el navegador.'
+}

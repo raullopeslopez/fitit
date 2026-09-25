@@ -7,7 +7,16 @@
   },
   "plugins": {
     "SocialLogin": {
-      "providers": { "google": true, "facebook": false, "apple": false, "twitter": false }
+      "providers": {
+        "google": true,
+        "facebook": false,
+        "apple": false,
+        "twitter": false
+      }
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_fitit",
+      "iconColor": "#E4571B"
     }
   }
 }

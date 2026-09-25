@@ -3284,6 +3284,8 @@ describe('Workout', () => {
 
     it('offers nothing to tap when the browser has already said no', async () => {
       notify.notificationState.mockReturnValue('denied')
+      // El texto lo da platform/notify.js: el navegador en la web, Android en el APK.
+      notify.blockedNotice.mockReturnValue('Bloqueado en el navegador.')
       renderWorkout()
       await screen.findByLabelText('Ejercicio')
 
