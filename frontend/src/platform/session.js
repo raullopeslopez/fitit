@@ -40,8 +40,16 @@ export const session = {
     run(() => FititSession.setSession({ token, apiBase, clientVersion })),
   clearToken: () => run(() => FititSession.clearToken()),
 
-  // Un envío terminó: `{ queue, sent, rejected, workout }`. Devuelve cómo
-  // dejar de escuchar.
+  // El control del entreno (fase 2): lo que enseña la notificación en curso.
+  publish: (control) => run(() => FititSession.publish({ control })),
+  end: () => run(() => FititSession.end()),
+  skipRest: () => run(() => FititSession.skipRest()),
+  // Android 13+ lo pregunta una vez; contesta `{ granted }`.
+  ensureNotifications: () => run(() => FititSession.ensureNotifications()),
+
+  // Un envío terminó (`{ queue, sent, rejected, workout, control }`) o algo
+  // cambió desde la notificación (`{ queue, control }`). Devuelve cómo dejar de
+  // escuchar.
   onChanged(listener) {
     if (!isNative()) return () => {}
     const handle = FititSession.addListener('changed', listener)

@@ -897,6 +897,16 @@ describe('Workout', () => {
     expect(screen.queryByRole('button', { name: /saltar/i })).not.toBeInTheDocument()
   })
 
+  it('offers no «Terminar entreno» on the web, where there is no notification to end', async () => {
+    // The APK side is in Workout.native.test.jsx.
+    renderWorkout()
+    await screen.findByLabelText('Ejercicio')
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+
+    expect(screen.getByRole('button', { name: /borrar entreno/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /terminar entreno/i })).not.toBeInTheDocument()
+  })
+
   it('resumes a countdown that was still running when the view remounted', async () => {
     // Absolute deadline, not a decrementing counter — leaving Entreno for Días
     // and coming back mid-rest must not restart or lose the clock.

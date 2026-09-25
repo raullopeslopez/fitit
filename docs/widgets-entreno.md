@@ -353,10 +353,38 @@ cierre automático a las dos horas.
 - **Qué se ve:** desde la primera serie de fuerza, la notificación de la spec en la
   bandeja y en la pantalla de bloqueo. En Entreno → menú, `Terminar entreno`.
 - **Comprobar:** con el teléfono bloqueado, `+1 serie` registra sin desbloquear y el
-  contador sube en la tarjeta; `Otra serie` con `35x10` registra eso, y `32,5x8` también se entiende; y el siguiente
-  `+1 serie` repite 35×10; `Saltar` quita el reloj; convive con YouTube Music; el reloj
-  llega a cero y pasa a `Descanso terminado` sin sonar; `Terminar entreno` la quita;
-  matar la app y la tarjeta sigue con sus botones funcionando.
+  contador sube en la tarjeta; `Otra serie` con `35x10` registra eso y el siguiente
+  `+1 serie` repite 35×10; `32,5x8` (con coma) también se entiende; `Saltar` quita el
+  reloj; convive con YouTube Music; el reloj llega a cero y pasa a `Descanso terminado`
+  sin sonar; `Terminar entreno` la quita; matar la app y la tarjeta sigue con sus botones
+  funcionando.
+
+**Hecho (2026-09-25).** `SessionControl` (qué registra un toque, cómo se lee «Otra
+serie», qué texto se enseña), `SessionNotification`, `SessionAlarms`,
+`SessionController` y `SessionActionReceiver`, con 38 tests nativos más. Lo que se decidió
+al construirlo, y que hay que mirar en el teléfono:
+
+- **La notificación usa la fuente del sistema.** La plantilla estándar de Android no
+  admite fuente propia, y un layout propio es justo lo que la capa de Xiaomi puede pintar
+  peor en el bloqueo (el riesgo que ya nombraba «Cómo se construye»). Geist Mono y Space
+  Grotesk quedan para el widget (fase 3). **Se aparta de la decisión sobre la maqueta**:
+  si se quieren también en la notificación, es un layout propio y hay que probarlo en el
+  Xiaomi.
+- **Copia que la spec no fijaba:** en un ejercicio sin peso la línea es
+  `8 reps · 4 series`; el campo de «Otra serie» dice `Peso x reps, como 32,5x12`; un
+  número solo en «Otra serie» son las reps y conserva el peso.
+- **Deslizar sí la quita en Android 14+ con el teléfono desbloqueado.** Android 14 dejó
+  de respetar «en curso» para las notificaciones normales; en el bloqueo sigue fija. Vuelve
+  con la siguiente serie. Hacerla indeslizable exige un servicio en primer plano, que es
+  otra cosa (y otro permiso).
+- **Tocar el cuerpo abre la app**, que vuelve a Entreno si el entreno sigue abierto (la
+  misma regla de siempre para reabrir); no fuerza Entreno si ya se había salido.
+- **El permiso se pide en la primera serie de cada visita a Entreno** hasta que se
+  conteste; Android deja de preguntar tras el segundo no. Sin permiso el control se
+  guarda igual (lo usará el widget) y no se enseña nada.
+- **Los canales del aviso antiguo** (`fitit-sesion`, `fitit-fin-descanso`) se borran al
+  publicar: Android los conservaba en Ajustes aunque el código se hubiera ido.
+- **Saltar el descanso en la app lo quita también de la notificación, y al revés.**
 
 ### Fase 3 · Widget 4×1 (APK 0.7.0) · un día
 

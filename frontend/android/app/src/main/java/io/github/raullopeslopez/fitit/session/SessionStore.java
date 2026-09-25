@@ -31,6 +31,7 @@ public final class SessionStore {
     private static final String API_BASE = "api_base";
     private static final String CLIENT_VERSION = "client_version";
     private static final String REJECTED = "rejected";
+    private static final String CONTROL = "control";
 
     private final SharedPreferences prefs;
     private final TokenCipher cipher;
@@ -158,9 +159,34 @@ public final class SessionStore {
         return prefs.getString(CLIENT_VERSION, null);
     }
 
-    /** Cerrar sesión: el token se va, las series no (igual que en la web). */
+    /**
+     * Cerrar sesión: el token se va, y el control con él (no puede quedar una
+     * notificación de alguien que ya no está). Las series no, igual que en la web.
+     */
     public synchronized void clearToken() {
-        prefs.edit().remove(TOKEN).apply();
+        prefs.edit().remove(TOKEN).remove(CONTROL).apply();
+    }
+
+    // --- El control del entreno (fase 2) -----------------------------------
+
+    /** El control tal como lo dejó la última serie; ver {@link SessionControl}. */
+    public synchronized void saveControl(JSONObject control) {
+        prefs.edit().putString(CONTROL, control.toString()).apply();
+    }
+
+    /** El control en curso, o null si no hay entreno que controlar. */
+    public synchronized JSONObject control() {
+        String stored = prefs.getString(CONTROL, null);
+        if (stored == null) return null;
+        try {
+            return new JSONObject(stored);
+        } catch (JSONException e) {
+            return null;
+        }
+    }
+
+    public synchronized void clearControl() {
+        prefs.edit().remove(CONTROL).apply();
     }
 
     // --- Series rechazadas -------------------------------------------------

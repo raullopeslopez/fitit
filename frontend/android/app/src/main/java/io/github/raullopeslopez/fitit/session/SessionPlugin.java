@@ -1,11 +1,17 @@
 package io.github.raullopeslopez.fitit.session;
 
+import android.Manifest;
+import android.os.Build;
+import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,9 +25,25 @@ import org.json.JSONObject;
  * página recibe la cola tal como la tiene el nativo, para pintar las filas «sin
  * enviar». Spec: docs/widgets-entreno.md, fase 1.
  */
-@CapacitorPlugin(name = "FititSession")
+@CapacitorPlugin(
+        name = "FititSession",
+        permissions = {
+            @Permission(alias = "notifications", strings = {Manifest.permission.POST_NOTIFICATIONS})
+        })
 public class SessionPlugin extends Plugin {
-    private final SessionEvents.Listener listener = this::onSent;
+    private final SessionEvents.Listener listener = new SessionEvents.Listener() {
+        @Override
+        public void onSent(QueueDrainer.Outcome outcome) {
+            SessionPlugin.this.onSent(outcome);
+        }
+
+        @Override
+        public void onChanged() {
+            // Algo entró o cambió desde la notificación: la página pinta la
+            // serie nueva (pendiente) y sigue el descanso que empezó.
+            notifyListeners("changed", withControl(queueOnly()));
+        }
+    };
 
     private SessionStore store() {
         return Session.store(getContext());
@@ -39,7 +61,7 @@ public class SessionPlugin extends Plugin {
 
     /** Un envío terminó: la cola que queda, lo que contestó el servidor y lo rechazado. */
     private void onSent(QueueDrainer.Outcome outcome) {
-        JSObject data = withRejected(queueOnly());
+        JSObject data = withControl(withRejected(queueOnly()));
         data.put("sent", outcome.sent);
         if (outcome.lastWorkout != null) {
             try {
@@ -67,6 +89,17 @@ public class SessionPlugin extends Plugin {
      */
     private JSObject withRejected(JSObject data) {
         data.put("rejected", store().takeRejected());
+        return data;
+    }
+
+    /** Y el control en curso, o null: la página sigue su descanso. */
+    private JSObject withControl(JSObject data) {
+        JSONObject control = store().control();
+        try {
+            data.put("control", control == null ? JSONObject.NULL : JSObject.fromJSONObject(control));
+        } catch (JSONException e) {
+            data.put("control", JSONObject.NULL);
+        }
         return data;
     }
 
@@ -153,9 +186,69 @@ public class SessionPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Cerrar sesión: el token y el control se van; la notificación con ellos. */
     @PluginMethod
     public void clearToken(PluginCall call) {
         store().clearToken();
+        SessionController.end(getContext());
         call.resolve();
+    }
+
+    // --- El control del entreno (fase 2) -----------------------------------
+
+    /** Entreno registró una serie de fuerza: la notificación pasa a enseñarla. */
+    @PluginMethod
+    public void publish(PluginCall call) {
+        JSObject control = call.getObject("control");
+        if (control == null) {
+            call.reject("control is required");
+            return;
+        }
+        SessionController.publish(getContext(), control, System.currentTimeMillis());
+        call.resolve();
+    }
+
+    /** «Terminar entreno» en el menú de Entreno: lo mismo que «Terminar» en el widget. */
+    @PluginMethod
+    public void end(PluginCall call) {
+        SessionController.end(getContext());
+        call.resolve();
+    }
+
+    /** Saltar el descanso en la app: la notificación quita su reloj también. */
+    @PluginMethod
+    public void skipRest(PluginCall call) {
+        SessionController.skipRest(getContext(), System.currentTimeMillis());
+        call.resolve();
+    }
+
+    /**
+     * El permiso de notificaciones, que Android 13+ pide una vez. Hasta 12 no es un
+     * permiso que se pida: se contesta con si las notificaciones están activadas.
+     */
+    @PluginMethod
+    public void ensureNotifications(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || getPermissionState("notifications") == PermissionState.GRANTED) {
+            answerNotifications(call);
+            return;
+        }
+        requestPermissionForAlias("notifications", call, "notificationsAnswered");
+    }
+
+    @PermissionCallback
+    private void notificationsAnswered(PluginCall call) {
+        // Concedido después de publicar: la tarjeta que no pudo salir, sale ahora.
+        JSONObject control = store().control();
+        if (control != null) {
+            SessionController.publish(getContext(), control, System.currentTimeMillis());
+        }
+        answerNotifications(call);
+    }
+
+    private void answerNotifications(PluginCall call) {
+        JSObject answer = new JSObject();
+        answer.put("granted", NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
+        call.resolve(answer);
     }
 }

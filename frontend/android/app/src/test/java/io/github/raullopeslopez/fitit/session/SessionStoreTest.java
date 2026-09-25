@@ -210,6 +210,34 @@ public class SessionStoreTest {
     }
 
     @Test
+    public void keepsTheControlAcrossAProcessDeath() throws Exception {
+        store.saveControl(new JSONObject().put("exercise", "Press banca").put("count", 4));
+
+        JSONObject control = new SessionStore(context, cipher).control();
+        assertEquals("Press banca", control.getString("exercise"));
+        assertEquals(4, control.getInt("count"));
+    }
+
+    @Test
+    public void withNoSessionThereIsNoControl() throws Exception {
+        assertNull(store.control());
+        store.saveControl(new JSONObject().put("exercise", "Press banca"));
+        store.clearControl();
+        assertNull(store.control());
+    }
+
+    @Test
+    public void signingOutEndsTheControlToo() throws Exception {
+        // Spec: «Cerrar sesión en la app → se borra el token nativo y el control».
+        store.setSession("jwt-abc", "https://fitit.example/api", "0.5.0");
+        store.saveControl(new JSONObject().put("exercise", "Press banca"));
+
+        store.clearToken();
+
+        assertNull(store.control());
+    }
+
+    @Test
     public void countsRefusedSetsUntilSomeoneAsks() {
         store.recordRejected();
         store.recordRejected();
