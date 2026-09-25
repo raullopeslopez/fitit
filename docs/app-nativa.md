@@ -131,14 +131,14 @@ nativos desde la fase 2 (abajo).
   **Hecho** (`platform/camera.js`): `Camera.getPhoto` con la cámara trasera, 1600 px
   de ancho y calidad 80, devuelta como `File` para `readLabel` y con la ruta dentro
   para ML Kit. La web sigue con el `<input capture>`.
-- `@capacitor/local-notifications` + `haptics`: el fin del descanso avisa y vibra con la
-  pantalla bloqueada o la app en segundo plano.
-  **Hecho (notificaciones):** retirado en la fase 0 de `widgets-entreno.md` — nunca
-  funcionó de forma fiable. Lo sustituye el control nativo (notificación, widget) que
-  describe esa spec.
+- ~~`@capacitor/local-notifications` + `haptics`: el fin del descanso avisa y vibra.~~
+  Se hizo y se **retiró** en la fase 0 de `widgets-entreno.md`: nunca funcionó de forma
+  fiable. Lo sustituye el control nativo (notificación en curso y widget) de esa spec,
+  que además no suena ni vibra al acabar el descanso.
 - Opcional: `document-scanner` para la tabla (sólo Android si no se confirma iOS).
 - **Qué notarás:** en Comida, escanear pasa a ser apuntar con la cámara sin hacer
-  foto; el aviso del descanso llega siempre.
+  foto. (El aviso del descanso, que también estaba aquí, lo cubre ahora
+  `widgets-entreno.md`.)
 
 ### Fase 3 — iOS
 - `@capacitor/ios`, los mismos plugins; firma y TestFlight (99 $/año de Apple).

@@ -22,6 +22,10 @@ Respuestas del product owner, condensadas:
 - El control **empieza y termina desde el widget** de la pantalla de inicio (no desde la
   notificación). «Empezar entreno» desde el widget entra si no lo congestiona; se decide
   viendo la maqueta.
+  Cómo queda en esta spec: `Empezar entreno` del widget **abre la app** en Entreno, y el
+  control arranca con la primera serie de fuerza que se registra ahí (el ejercicio se
+  elige en la app, ver «Sin sesión»). Termina con `Terminar` del widget 4×2, con
+  `Terminar entreno` del menú de Entreno o solo, a las dos horas sin registrar nada.
 - Ni sonido ni vibración, con una excepción: **vibra al tocar «+1 serie» en el widget**.
 - Una serie registrada desde fuera **se sube en el momento**, sin esperar a abrir la app.
 
@@ -39,8 +43,8 @@ la pintaba Chrome, y ahí estaba la mitad del problema).
    borra al cerrarla.
 2. Las series tienen orden (`set_index` lo asigna el servidor al llegar). Si la app tiene
    series suyas sin enviar (sin red en el sótano), una serie del widget no puede
-   adelantarlas. Regla: **una sola cola, nativa**: la página deja de tener la suya
-   (`fitit_outbox`) y encola en la nativa; el nativo envía en orden, con o sin app
+   adelantarlas. Regla: **en el APK, una sola cola, nativa**: la página deja de usar la
+   suya (`fitit_outbox`) y encola en la nativa; el nativo envía en orden, con o sin app
    delante. Es más trabajo que dos colas, pero es la única forma de que «se sube en el
    momento» sea verdad y el orden no se rompa.
 3. Sin red no falla nada: la serie se guarda, el widget dice `1 sin enviar` y se reintenta
@@ -59,8 +63,11 @@ Fitit · Press banca · Pecho
 ```
 
 - La cuenta atrás la lleva la propia notificación (cronómetro nativo en cuenta atrás):
-  no hay que reescribirla cada segundo ni despertar nada. Al llegar a cero pasa a
-  `Descanso terminado` y `Saltar` desaparece. Con `Descanso: Sin`, no hay reloj ni
+  no hay que reescribirla cada segundo. Pero el cronómetro nativo **no se para en cero**:
+  sigue en negativo (`−00:12`) hasta que alguien repinta. Ese repintado lo hace una alarma
+  a la hora del fin (ver «Cómo se construye»), y es la que cambia el texto a
+  `Descanso terminado` y quita `Saltar`. Si llega tarde se ve un rato en negativo; se
+  acepta. Con `Descanso: Sin`, no hay reloj ni
   `Saltar`.
 - `+1 serie` y `Saltar` **funcionan sin desbloquear**: el toque va a un receptor nativo,
   no abre la app, y la notificación se actualiza en sitio (`5 series`, reloj nuevo) sin
@@ -95,17 +102,18 @@ escribir); lo ajustado se registra y pasa a ser lo que repite el siguiente toque
 ```
 ┌──────────────────────────────────────────────┐
 │ Press banca · Pecho              01:23  ⏭    │
-│ 4 series                                     │
+│ 4 series · 1 sin enviar                      │
 │ [ − ]   32,5 kg   [ + ]    [ − ]  12  [ + ]  │
-│ [            Registrar serie              ]  │
-│ 1 sin enviar                       Terminar  │
+│ [       Registrar serie        ]   Terminar  │
 └──────────────────────────────────────────────┘
 ```
 
 - Peso a pasos de 2,5 kg; reps de 1 en 1. `⏭` salta el descanso.
 - `Registrar serie` / `+1 serie` **vibran** (una pulsación corta) y el contador sube ahí
   mismo. Es lo único que vibra en toda la feature.
-- `1 sin enviar` sólo aparece cuando hay algo en cola; en verde nunca, en `--muted`.
+- `1 sin enviar` sólo aparece cuando hay algo en cola, detrás del contador de series y
+  en ámbar (acento como texto), como en la maqueta: es un estado, no una etiqueta fija, y
+  en `DESIGN.md` el ámbar es «algo pasó». En verde nunca.
 - `Terminar` cierra el control: quita la notificación, vacía el estado, el widget vuelve
   a «sin entreno». Las series ya registradas no se tocan (una sesión en Fitit es un día;
   no hay nada que «cerrar» en el servidor). Sólo el 4×2 lo lleva; con el 4×1 solo, se
@@ -150,7 +158,7 @@ se queda en `Sin entreno en curso` y tocar abre la app.
 |---|---|
 | Primera serie de fuerza de la sesión en la app | Aparece la notificación en curso; el widget pasa a mostrar la sesión |
 | Serie registrada (app, notificación o widget) | Las tres vistas se actualizan; empieza el descanso si está activado |
-| Fin del descanso | El reloj marca cero y el texto pasa a `Descanso terminado`. Sin sonido ni vibración |
+| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Sin sonido ni vibración |
 | Cambio de ejercicio en la app | El control pasa al nuevo ejercicio con su primera serie |
 | `Terminar` en el widget | Todo desaparece. Las series quedan |
 | Dos horas sin registrar nada | Lo mismo que `Terminar`, solo |
@@ -166,8 +174,10 @@ cuesta un deslizamiento y pedir confirmación mata el gesto.
 Se borra: `platform/notifyNative.js` y sus tests, la dependencia
 `@capacitor/local-notifications` y el permiso `USE_EXACT_ALARM`, el bloque de
 notificación de `public/sw.js`, `platform/notify.js`, `fitit_lock_sets`, el interruptor
-`Registrar sin abrir` y la preferencia `fitit_rest_notice`, y la cola `fitit_outbox` de la
-página (pasa al nativo en el APK; en la PWA se queda como está).
+`Registrar sin abrir` y la preferencia `fitit_rest_notice`.
+
+Se traslada: la cola `fitit_outbox` de la página. En el APK la sustituye la nativa (fase 1);
+en la PWA se queda como está.
 
 Se conserva, porque son reglas y no código: una serie se escribe en disco antes de tocar
 la red; se envía en orden; lo que se repite es la plantilla, no la serie con hora; cardio
@@ -175,12 +185,20 @@ fuera; «descanso» y «control» son cosas distintas.
 
 ## Cómo se construye (resumen técnico)
 
-Un plugin local de Capacitor (`frontend/android/…/fitit/session/`), sin dependencias
-nuevas:
+Un plugin local de Capacitor (`frontend/android/…/fitit/session/`), sin plugins de
+terceros. Sí añade librerías de AndroidX al `build.gradle` de la app, que hoy sólo trae
+appcompat, coordinatorlayout, core-splashscreen y junit:
+
+- `androidx.work:work-runtime` para `SessionSender`.
+- Para el token, lo que se decida (ver «Pendiente de decidir»).
+- En tests: Robolectric y `androidx.test:core`.
+
+Las piezas:
 
 - **`SessionStore`**: el estado (`workoutId`, ejercicio, grupo muscular, plantilla,
   contador, `restEndsAt`, `restSeconds`) y la cola de series, en `SharedPreferences`;
-  el token en `EncryptedSharedPreferences` (androidx.security, Keystore).
+  el token, cifrado con una clave del Keystore; el mecanismo está en «Pendiente de
+  decidir», porque `EncryptedSharedPreferences` (androidx.security) está deprecado.
 - **`SessionNotification`**: construye y actualiza la notificación en curso
   (`NotificationCompat`, `setOngoing`, cronómetro en cuenta atrás, tres acciones, una
   con `RemoteInput`). Canal silencioso, visibilidad pública.
@@ -188,16 +206,26 @@ nuevas:
 - **`SessionActionReceiver`**: recibe los toques de notificación y widget. Aplica el
   cambio al estado, repinta las vistas, vibra si toca, y pide envío.
 - **`SessionSender`**: vacía la cola en orden contra `POST /workouts/{id}/sets` con
-  `WorkManager` (red disponible, reintentos con espera). La misma cola la usa la página.
+  `WorkManager` (red disponible, reintentos con espera). El trabajo va **expedited**
+  (`setExpedited`): si no, Android lo puede aplazar minutos con la pantalla apagada, y
+  «se sube en el momento» dejaría de ser verdad. La misma cola la usa la página.
 - **`SessionPlugin`** (JS ↔ nativo): `publish(state)` desde Entreno en cada serie o
   cambio de ejercicio; `enqueue(set)` para las series de la app; `end()`; `setToken()` /
   `clearToken()`; evento `changed` para que la pantalla se repinte cuando algo llega de
   fuera. En web, cada función es un no-op y `enqueue` cae en `offline.js`.
-- Un relabel al fin del descanso con `AlarmManager` inexacto (no importa que llegue un
-  minuto tarde: el reloj ya lo enseña).
+- Un relabel al fin del descanso con `AlarmManager` inexacto pero
+  `setAndAllowWhileIdle`: sin eso, con el teléfono en reposo (Doze) la alarma puede
+  tardar bastante más de un minuto, y mientras tanto el reloj enseña tiempo negativo. No
+  hace falta alarma exacta, ni por tanto `USE_EXACT_ALARM`.
+- Otra alarma igual para el cierre automático a las dos horas sin registrar nada; se
+  reprograma con cada serie.
 - Tipografía: Geist Mono y Space Grotesk empaquetadas en `res/font` (~200 KB), que
   es lo que enseña la maqueta aprobada; el widget y la notificación no pueden cargar
-  Google Fonts.
+  Google Fonts. **Riesgo, a comprobar en la fase 2:** la plantilla estándar de
+  notificación no admite fuente propia; hace falta un layout propio
+  (`DecoratedCustomViewStyle`), y la capa de Xiaomi puede pintarlo peor en el bloqueo
+  que la plantilla. Si pasa, la notificación va con la fuente del sistema y las fuentes
+  se quedan en el widget.
 
 ## Verificación
 
@@ -219,6 +247,28 @@ inicio con sesión en oscuro, inicio sin sesión y sin red en claro).
 - `Terminar` se queda como está (texto apagado junto a `Registrar serie` en el 4×2).
 - Geist Mono y Space Grotesk se empaquetan en el APK.
 - La PWA pierde `Registrar sin abrir`; su implementación se borra.
+
+## Pendiente de decidir
+
+Tres cosas que la spec no puede cerrar sola. Hay que decidirlas antes de la fase 1 (las dos
+primeras) o de la fase 2 (la tercera).
+
+1. **Series duplicadas en los reintentos.** `POST /workouts/{id}/sets` no lleva ningún
+   identificador del cliente y el servidor asigna `set_index` al llegar. Si el servidor
+   guarda la serie pero la respuesta no llega, `SessionSender` reintenta y la serie entra
+   dos veces. Opciones: un `client_id` generado en el teléfono que el servidor deduplica
+   (backend, migración y test), o aceptar el riesgo y corregir a mano.
+2. **Dónde vive el token nativo.** `EncryptedSharedPreferences` está deprecado. Opciones:
+   cifrarlo con una clave propia del Android Keystore, o `SharedPreferences` privadas sin
+   cifrar (sólo las lee la app; en un teléfono sin root es el mismo sitio donde está hoy
+   `localStorage`).
+3. **Coma decimal en «Otra serie».** La pantalla escribe `32,5 kg` y el teclado español da
+   coma, pero el formato pedido es `32.5x12`. Propuesta: aceptar las dos, y que el error
+   diga `No entendí «12 32». Escríbela como 32,5x12.`
+
+Otros huecos menores, para la fase que los toque: qué enseña el 4×2 en un ejercicio sin
+peso (¿se ocultan los botones de kg?), y cómo se deshace un `+1 serie` accidental desde el
+4×1 (hoy, sólo en la app).
 
 ## Fases
 
@@ -250,7 +300,8 @@ de en `fitit_outbox`. Iniciar y cerrar sesión copian y borran el token nativo.
 - **Qué se ve:** nada nuevo. Las series se envían igual que antes desde la app, con el
   mismo indicador de «sin enviar» en la tarjeta. La PWA no cambia.
 - **Comprobar:** modo avión, tres series, quitar el avión: llegan en orden y una sola
-  vez. Matar la app con series sin enviar y volver: se envían. Cerrar sesión y entrar
+  vez (pero ver «Pendiente de decidir»: un reintento tras una respuesta perdida puede
+  duplicar). Matar la app con series sin enviar y volver: se envían. Cerrar sesión y entrar
   con otra cuenta: nada de la anterior se envía.
 
 ### Fase 2 · Notificación en curso (APK 0.6.0) · día y medio
