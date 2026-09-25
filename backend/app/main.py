@@ -1,9 +1,12 @@
 import logging
 import sys
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .auth import get_current_user
+from .config import settings
 from .routers import (
     auth,
     body_weight,
@@ -49,6 +52,61 @@ def _configure_logging() -> None:
 _configure_logging()
 
 app = FastAPI(title="Fitit API", version="0.1.0")
+
+
+UPGRADE_REQUIRED_DETAIL = "Hay una versión nueva de Fitit. Actualiza la app para seguir."
+
+
+def _parse_version(raw: str) -> tuple[int, ...] | None:
+    """`"0.10.0"` → `(0, 10, 0)`, comparable componente a componente.
+
+    Cualquier cosa que no sean enteros separados por puntos es `None`: no es
+    una versión, y lo que no se entiende no se corta.
+    """
+    parts = raw.strip().split(".")
+    if not all(p.isdigit() for p in parts):
+        return None
+    return tuple(int(p) for p in parts)
+
+
+def _is_outdated(client_version: str | None) -> bool:
+    minimum = _parse_version(settings.min_client_version) if settings.min_client_version else None
+    if minimum is None or client_version is None:
+        return False
+    current = _parse_version(client_version)
+    if current is None:
+        return False
+    # Rellenar con ceros para que "1.0" y "1.0.0" sean la misma versión.
+    width = max(len(current), len(minimum))
+    return current + (0,) * (width - len(current)) < minimum + (0,) * (width - len(minimum))
+
+
+@app.middleware("http")
+async def client_version_gate(request: Request, call_next):
+    """Una app instalada no se actualiza al desplegar: si es más vieja que la
+    mínima, se le pide que se actualice (426) en vez de dejar que se rompa.
+
+    Ni el health check ni la pregunta previa de CORS pasan por aquí.
+    """
+    path = request.url.path.removeprefix(request.scope.get("root_path", ""))
+    if (
+        request.method != "OPTIONS"
+        and path != "/health"
+        and _is_outdated(request.headers.get("x-client-version"))
+    ):
+        return JSONResponse(status_code=426, content={"detail": UPGRADE_REQUIRED_DETAIL})
+    return await call_next(request)
+
+
+# Después del corte para que quede por fuera: un 426 también lleva las
+# cabeceras CORS, o la app nativa no podría leer el mensaje.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=False,  # token en `Authorization`, sin cookies
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type", "X-Client-Version"],
+)
 
 
 @app.get("/health")

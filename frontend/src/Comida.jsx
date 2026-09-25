@@ -42,6 +42,7 @@ import {
   unknownNote,
 } from './food.js'
 import { formatDayShort } from './format.js'
+import { canScan, detectBarcodes } from './platform/scanner.js'
 
 // Los raíles del día: las cuatro comidas, siempre, con su subtotal y lo que
 // lleven dentro. Una comida vacía **sí** se dibuja — es por donde se entra a
@@ -2324,27 +2325,6 @@ function Disparador({ leyendo, children }) {
       <span className="pending-dot" />
     </>
   )
-}
-
-// ¿Sabe este navegador leer un código de barras?
-//
-// `BarcodeDetector` es nativo en Chrome y en Android, y no existe en Safari ni
-// en Firefox. Traer una librería para cubrirlos serían cientos de kilobytes en
-// el bundle de una app que se usa en un móvil Android — y el resto de la
-// pantalla sigue funcionando sin esto: se teclea, o se lee la etiqueta.
-export function canScan() {
-  return typeof window !== 'undefined' && 'BarcodeDetector' in window
-}
-
-// Los códigos que haya en la foto, decodificados aquí mismo. Devuelve una lista
-// vacía si no ve ninguno, que no es un error: es una foto sin código.
-async function detectBarcodes(file) {
-  const detector = new window.BarcodeDetector({
-    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'],
-  })
-  const bitmap = await createImageBitmap(file)
-  const found = await detector.detect(bitmap)
-  return found.map((code) => code.rawValue).filter(Boolean)
 }
 
 // Qué contar del escaneo, encima del formulario.

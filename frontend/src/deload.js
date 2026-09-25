@@ -1,3 +1,5 @@
+import { storage } from './platform/storage.js'
+
 // Which weeks you have marked as a deload, stamped by their Monday.
 //
 // Local to the device on purpose. This is an annotation, not training data:
@@ -10,7 +12,7 @@ const KEY = 'fitit_deload_weeks'
 
 function read() {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY))
+    const raw = JSON.parse(storage.getItem(KEY))
     // Anything that isn't the shape we wrote is treated as nothing. A corrupt
     // key must not take the summary card down with it.
     return Array.isArray(raw) ? raw.filter((w) => typeof w === 'string') : []
@@ -35,7 +37,7 @@ export function toggleDeload(weekStart) {
     ? weeks.filter((w) => w !== weekStart)
     : [...weeks, weekStart]
   try {
-    localStorage.setItem(KEY, JSON.stringify(next))
+    storage.setItem(KEY, JSON.stringify(next))
   } catch {
     // A full or blocked store is not worth losing the screen over; the mark
     // just doesn't survive the reload.

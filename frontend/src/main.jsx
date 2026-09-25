@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import './styles.css'
+import { registerServiceWorker } from './platform/serviceWorker.js'
 
 // Dev benches, on a query string and nothing else: `volume` is the per-muscle
 // row on its own, `dias` is the whole screen with a fixture behind it.
@@ -55,8 +56,4 @@ mount().then((tree) =>
 )
 
 // Register the service worker so the app is installable and loads its shell offline.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
-  })
-}
+registerServiceWorker()

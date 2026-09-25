@@ -1,6 +1,7 @@
 import { apiFetch, deleteExercise, logFood, mergeExercise, register } from './api.js'
 import { foodDayIso } from './food.js'
 import { getToken, setToken, setUnauthorizedHandler } from './auth.js'
+import { CLIENT_VERSION } from './platform/http.js'
 
 describe('apiFetch', () => {
   beforeEach(() => {
@@ -21,6 +22,19 @@ describe('apiFetch', () => {
     const [url, options] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/workouts')
     expect(options.headers.Authorization).toBe('Bearer tok-123')
+  })
+
+  // Lo que permite al servidor pedirle a un APK viejo que se actualice.
+  it('says which app version is asking, on every request', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiFetch('/workouts')
+
+    const [, options] = fetchMock.mock.calls[0]
+    expect(options.headers['X-Client-Version']).toBe(CLIENT_VERSION)
   })
 
   it('parses and returns JSON on success', async () => {

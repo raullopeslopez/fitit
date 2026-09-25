@@ -1,17 +1,19 @@
+import { storage } from './platform/storage.js'
+
 const TOKEN_KEY = 'fitit_token'
 
 let unauthorizedHandler = null
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  return storage.getItem(TOKEN_KEY)
 }
 
 export function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token)
+  storage.setItem(TOKEN_KEY, token)
 }
 
 export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY)
+  storage.removeItem(TOKEN_KEY)
 }
 
 // Let the app react when a request comes back 401 (e.g. token expired) by

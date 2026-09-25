@@ -41,6 +41,20 @@ class Settings(BaseSettings):
     # proyecto y no está publicado: se mira en AI Studio y se pone aquí, sin
     # tocar código.
     gemini_model: str = "gemini-3.8-flash"
+    # Orígenes a los que se abre CORS, separados por comas. La app nativa lleva
+    # la interfaz dentro del APK y llama desde su propio origen: `https://localhost`
+    # en Android y `capacitor://localhost` en iOS (los de Capacitor por defecto).
+    # La web se sirve desde el mismo origen que la API y no los necesita.
+    cors_origins: str = "https://localhost,capacitor://localhost"
+    # Versión más baja de la app que la API sigue atendiendo (`X-Client-Version`).
+    # Vacía significa sin corte. Quien no manda la cabecera, o manda algo que no
+    # es una versión, pasa: la web cacheada, un curl o el health check no se
+    # rompen por esto.
+    min_client_version: str = ""
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @field_validator("database_url")
     @classmethod

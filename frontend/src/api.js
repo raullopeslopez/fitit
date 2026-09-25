@@ -1,10 +1,11 @@
 import { foodMomentIso } from './food.js'
 import { clearToken, getToken, notifyUnauthorized } from './auth.js'
+import { apiUrl, clientHeaders } from './platform/http.js'
 
 export async function login(username, password) {
-  const res = await fetch('/api/auth/login', {
+  const res = await fetch(apiUrl('/auth/login'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...clientHeaders() },
     body: JSON.stringify({ username, password }),
   })
   if (!res.ok) {
@@ -15,9 +16,9 @@ export async function login(username, password) {
 }
 
 export async function register(username, password) {
-  const res = await fetch('/api/auth/register', {
+  const res = await fetch(apiUrl('/auth/register'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...clientHeaders() },
     body: JSON.stringify({ username, password }),
   })
   if (!res.ok) {
@@ -31,9 +32,9 @@ export async function register(username, password) {
 // Trades the ID token Google handed the page for one of ours. Same shape of
 // answer as login/register, so the caller cannot tell which door was used.
 export async function googleLogin(credential) {
-  const res = await fetch('/api/auth/google', {
+  const res = await fetch(apiUrl('/auth/google'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...clientHeaders() },
     body: JSON.stringify({ credential }),
   })
   if (!res.ok) {
@@ -43,17 +44,18 @@ export async function googleLogin(credential) {
   return data.access_token
 }
 
-// Authenticated request against the backend. Attaches the stored JWT, prefixes
-// /api (Vite proxy), and on 401 drops the token + notifies the app to log out.
+// Authenticated request against the backend. Attaches the stored JWT and the
+// client version, resolves the URL (platform/http.js), and on 401 drops the token + notifies the app to log out.
 export async function apiFetch(path, options = {}) {
   const token = getToken()
   // Una subida multipart tiene que llevar su propio `Content-Type`, con el
   // `boundary` que genera el navegador. Ponérselo nosotros —aunque sea el
   // correcto— deja el boundary fuera y el servidor no encuentra las partes.
   const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(apiUrl(path), {
     ...options,
     headers: {
+      ...clientHeaders(),
       ...(isForm ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
