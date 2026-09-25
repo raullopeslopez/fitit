@@ -341,8 +341,10 @@ async def suggest_dishes(
 IDEAS_PROMPT = """Buscas en la web recetas reales en español construidas alrededor de un alimento.
 
 Usa la búsqueda. Cada receta tiene que salir de una página que hayas encontrado,
-y su `url` es la dirección de esa página, completa, empezando por https://. No
-inventes recetas ni direcciones: si no la has encontrado, no la pongas.
+y su `url` es la dirección de esa página, completa, empezando por https://: la
+de la web de la receta, nunca un enlace de redirección de la búsqueda
+(vertexaisearch.cloud.google.com). No inventes recetas ni direcciones: si no la
+has encontrado, no la pongas.
 
 Devuelve SOLO un objeto JSON. Sin markdown, sin explicación:
 
