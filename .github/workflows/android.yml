@@ -1,8 +1,9 @@
 name: Android APK
 
-# Compila el APK de Fitit y lo deja como artefacto descargable del run
-# (Actions → este workflow → el run → «fitit-apk»). Sólo cuando cambia algo
-# que va dentro del APK, o a mano desde la pestaña Actions.
+# Compila el APK de Fitit. En un PR lo deja como artefacto del run («fitit-apk»);
+# en `main`, o a mano desde la pestaña Actions, además lo publica como Release:
+# descarga directa del .apk, sin zip y sin sesión, en un enlace que no cambia:
+#   https://github.com/raullopeslopez/fitit/releases/latest/download/fitit.apk
 on:
   workflow_dispatch:
   push:
@@ -21,6 +22,8 @@ jobs:
   apk:
     name: APK de depuración
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # crear la Release y su tag
     defaults:
       run:
         working-directory: frontend
@@ -47,3 +50,27 @@ jobs:
           name: fitit-apk
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+      # Una Release por versión (`android-v0.1.1`), con el APK dos veces: con su
+      # versión en el nombre, y como `fitit.apk`, que es el que sirve el enlace
+      # fijo de arriba. Si la versión no ha cambiado se reemplaza el APK de esa
+      # misma Release: para una Release nueva, sube `version` en package.json
+      # (y `versionCode`/`versionName` en android/app/build.gradle).
+      - name: Publish Release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="android-v$version"
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          cp "$apk" "fitit-$version.apk"
+          cp "$apk" fitit.apk
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "fitit-$version.apk" fitit.apk --clobber
+          else
+            gh release create "$tag" "fitit-$version.apk" fitit.apk \
+              --target "$GITHUB_SHA" \
+              --title "Fitit $version para Android" \
+              --notes "APK de Fitit $version. Descárgalo desde el móvil e instálalo encima de la versión anterior." \
+              --latest
+          fi

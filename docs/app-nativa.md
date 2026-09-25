@@ -89,10 +89,14 @@ navegador directamente.
   los APK lleven la misma firma (actualizar sin desinstalar, y la huella que
   Google reconoce). Es de depuración: no sirve para publicar.
 
-**Compilar:** `cd frontend && npm run android:apk` (Android SDK y JDK 21) →
-`android/app/build/outputs/apk/debug/app-debug.apk`. O sin instalar nada:
-GitHub → Actions → «Android APK» → *Run workflow*, y el APK sale como artefacto
-`fitit-apk`.
+**Descargar:** https://github.com/raullopeslopez/fitit/releases/latest/download/fitit.apk
+— siempre el último. Cada push a `main` que toque el frontend lo recompila y lo
+publica en la Release de su versión (`android-v<version>`); una versión nueva
+de `package.json` abre una Release nueva. También a mano: Actions → «Android APK»
+→ *Run workflow*. En un PR el APK queda como artefacto `fitit-apk` del run.
+
+**Compilar en local:** `cd frontend && npm run android:apk` (Android SDK y JDK 21) →
+`android/app/build/outputs/apk/debug/app-debug.apk`.
 
 **Una vez, en Google Cloud Console** (para que funcione «Continuar con Google»):
 APIs y servicios → Credenciales → Crear credenciales → ID de cliente OAuth →
