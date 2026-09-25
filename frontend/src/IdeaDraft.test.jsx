@@ -220,6 +220,9 @@ describe('IdeaDraft', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Alta de plato' })).toBeInTheDocument()
     expect(screen.getByLabelText('Nombre')).toHaveValue(IDEA.name)
+    // La receta no dijo sus raciones, y un 1 puesto por defecto sería decirlas
+    // por ella: una receta para cuatro guardada como una ración da macros ×4.
+    expect(screen.getByLabelText('Raciones')).toHaveValue('')
     expect(screen.getByRole('link', { name: 'Ver receta original ↗' })).toHaveAttribute(
       'href',
       IDEA.url,
@@ -242,8 +245,12 @@ describe('IdeaDraft', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Acelga, cruda' }))
     await userEvent.type(screen.getByLabelText('Gramos de Acelga, cruda'), '200')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar plato' }))
+    expect(await screen.findByText('Dime para cuántas raciones es.')).toBeInTheDocument()
+    expect(createDish).not.toHaveBeenCalled()
+    await userEvent.type(screen.getByLabelText('Raciones'), '4')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar plato' }))
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith({ id: 9 }))
-    expect(createDish.mock.calls[0][0]).toMatchObject({ name: IDEA.name, idea_id: IDEA.id })
+    expect(createDish.mock.calls[0][0]).toMatchObject({ name: IDEA.name, idea_id: IDEA.id, servings: 4 })
   })
 })
 
