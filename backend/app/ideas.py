@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 
 MAX_NAME = 160
 MAX_URL = 1000
+SEARCH_REDIRECT_HOST = "vertexaisearch.cloud.google.com"
 MAX_METHOD = 32
 # Minutos creíbles para una receta. Fuera de aquí es ruido, y se guarda como
 # «no lo sé» — nunca como 0, que sería una cifra.
@@ -72,6 +73,10 @@ def _url(raw) -> str | None:
         return None
     parts = urlsplit(url)
     if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
+        return None
+    # Los enlaces con los que el buscador cita sus fuentes son redirecciones
+    # suyas, no la receta: distintas en cada búsqueda y con caducidad.
+    if (parts.hostname or "").endswith(SEARCH_REDIRECT_HOST):
         return None
     return url
 
