@@ -10,8 +10,20 @@
 // with no service worker, no Notification API, or a permission the user said no
 // to — the rest bar on screen keeps working exactly as before.
 
+import { isNative } from './native.js'
+
+// Dentro del APK no hay service worker, así que el aviso de la pantalla de
+// bloqueo no existe todavía: la fase 2 lo rehace con notificaciones nativas
+// (docs/app-nativa.md). Hasta entonces, «no disponible», que es un estado que la
+// sesión ya sabe llevar: la barra de descanso en pantalla sigue funcionando.
+// En el APK el WebView puede anunciar `navigator.serviceWorker` sin que haya
+// ninguno registrado, y `ready` no se resolvería nunca.
+function hasWorker() {
+  return !isNative() && 'serviceWorker' in navigator
+}
+
 export function notificationState() {
-  if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) return 'unsupported'
+  if (typeof Notification === 'undefined' || !hasWorker()) return 'unsupported'
   return Notification.permission
 }
 
@@ -27,7 +39,7 @@ export async function askForNotifications() {
 }
 
 async function tellWorker(message) {
-  if (!('serviceWorker' in navigator)) return false
+  if (!hasWorker()) return false
   try {
     const registration = await navigator.serviceWorker.ready
     if (!registration.active) return false
@@ -43,7 +55,7 @@ async function tellWorker(message) {
 // the platform's own notification shade — so "posted the message" is not
 // evidence of anything. Every failure comes back as a sentence instead.
 async function askWorker(message, timeoutMs = 3000) {
-  if (!('serviceWorker' in navigator)) {
+  if (!hasWorker()) {
     return { ok: false, error: 'este navegador no tiene service worker' }
   }
   try {
@@ -94,7 +106,7 @@ export function stopRestNotice() {
 // page knows the session on screen is out of date.
 export async function claimLockScreenSets(timeoutMs = 2000) {
   const nothing = { queued: [], sent: 0 }
-  if (!('serviceWorker' in navigator)) return nothing
+  if (!hasWorker()) return nothing
   try {
     const registration = await navigator.serviceWorker.ready
     if (!registration.active) return nothing
@@ -118,7 +130,7 @@ export async function claimLockScreenSets(timeoutMs = 2000) {
 // The worker shouting that a set was logged while the app was up (you tapped
 // the notification from the notification shade rather than the lock screen).
 export function onLockScreenSets(handler) {
-  if (!('serviceWorker' in navigator)) return () => {}
+  if (!hasWorker()) return () => {}
   const listener = (event) => {
     if (event.data?.type === 'sets-logged') handler(event.data)
   }

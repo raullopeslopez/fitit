@@ -11,10 +11,16 @@
 // allowed to ask for it again — so the only thing to do is take it again on the
 // way back.
 
+import { KeepAwake } from '@capacitor-community/keep-awake'
+
+import { isNative } from './native.js'
+
 // Holds a screen wake lock until the returned function is called. Safe to call
 // on any browser: with no Wake Lock API this is an expensive no-op and the
 // session behaves exactly as it did before.
 export function holdScreenAwake() {
+  if (isNative()) return holdNatively()
+
   let sentinel = null
   let held = true
 
@@ -60,5 +66,14 @@ export function holdScreenAwake() {
     document.removeEventListener('visibilitychange', onVisible)
     sentinel?.release?.()
     sentinel = null
+  }
+}
+
+// Dentro del APK la pantalla la sujeta Android (`FLAG_KEEP_SCREEN_ON`), y la
+// ventana la conserva aunque se oculte y vuelva: no hay que volver a pedirla.
+function holdNatively() {
+  KeepAwake.keepAwake().catch(() => {})
+  return function release() {
+    KeepAwake.allowSleep().catch(() => {})
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { googleLogin } from './api.js'
-import { showGoogleSignIn } from './platform/googleIdentity.js'
+import { describeFailure, showGoogleSignIn } from './platform/googleIdentity.js'
 
 /**
  * The "Continuar con Google" button, plus the One Tap card Google shows by
@@ -16,6 +16,7 @@ export default function GoogleSignIn({ onAuthenticated }) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const slot = useRef(null)
   const [error, setError] = useState('')
+  const [detail, setDetail] = useState(null)
 
   useEffect(() => {
     if (!clientId) return undefined
@@ -25,12 +26,16 @@ export default function GoogleSignIn({ onAuthenticated }) {
       clientId,
       slot: () => slot.current,
       isLive: () => live,
-      onCredential: async (credential) => {
+      onCredential: async (credential, reason) => {
         setError('')
+        setDetail(null)
         try {
+          // `null` es el selector nativo diciendo que no pudo: mismo aviso.
+          if (!credential) throw new Error(reason || 'no credential')
           onAuthenticated(await googleLogin(credential))
-        } catch {
+        } catch (failure) {
           setError('No se pudo entrar con Google. Inténtalo otra vez.')
+          setDetail(describeFailure(failure))
         }
       },
     })
@@ -51,6 +56,7 @@ export default function GoogleSignIn({ onAuthenticated }) {
           {error}
         </p>
       )}
+      {error && detail && <p className="hint google-signin-detail">Detalle: {detail}</p>}
       <div className="google-signin-or">
         <span>o</span>
       </div>

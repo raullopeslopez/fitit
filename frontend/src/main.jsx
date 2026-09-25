@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import './styles.css'
+import { handleBackButton } from './platform/backButton.js'
 import { registerServiceWorker } from './platform/serviceWorker.js'
 
 // Dev benches, on a query string and nothing else: `volume` is the per-muscle
@@ -57,3 +58,5 @@ mount().then((tree) =>
 
 // Register the service worker so the app is installable and loads its shell offline.
 registerServiceWorker()
+// Dentro del APK, el botón atrás de Android (en la web no hace nada).
+handleBackButton()

@@ -72,13 +72,42 @@ navegador directamente.
   cliente viejo. Los contratos de la API sólo se amplían.
 - Plugins: ninguno.
 
-### Fase 1 — Android para uso propio, a la par con la PWA
-- `@capacitor/core`, `cli`, `android`; interfaz empaquetada dentro de la app.
-- Oficiales: `app`, `status-bar`, `splash-screen`, `keyboard`, `preferences`.
-- Comunidad: `secure-storage` (token), `social-login` (Google), `keep-awake`.
-- Instalación directa del APK, sin Play Store.
-- **Qué notarás:** un icono de Fitit en el móvil que abre sin barra de navegador y
-  arranca sin pedir login otra vez. Por lo demás, las mismas pantallas.
+### Fase 1 — Android para uso propio · hecha
+- Proyecto en `frontend/android/`, paquete `io.github.raullopeslopez.fitit`. La
+  interfaz va dentro del APK y habla con `https://fitit-n4q0.onrender.com`
+  (`frontend/.env.android`).
+- Plugins: `@capacitor/app` (botón atrás), `@capgo/capacitor-social-login` (Google),
+  `@capacitor-community/keep-awake`.
+- **Quitados del plan** por no aportar nada en Android: `preferences` y
+  `secure-storage` (el `localStorage` del WebView vive en los datos privados de la
+  app y Android no lo vacía; el problema era de iOS), `status-bar` (Capacitor 8
+  gestiona las barras del sistema él solo), `splash-screen` (basta el arranque
+  del sistema con el icono).
+- Icono adaptativo generado de `brand/fitit-icono-app.svg`, con capa monocroma
+  para los iconos temáticos de Android 13+.
+- Firma: `android/app/fitit-debug.keystore`, versionada a propósito para que todos
+  los APK lleven la misma firma (actualizar sin desinstalar, y la huella que
+  Google reconoce). Es de depuración: no sirve para publicar.
+
+**Compilar:** `cd frontend && npm run android:apk` (Android SDK y JDK 21) →
+`android/app/build/outputs/apk/debug/app-debug.apk`. O sin instalar nada:
+GitHub → Actions → «Android APK» → *Run workflow*, y el APK sale como artefacto
+`fitit-apk`.
+
+**Una vez, en Google Cloud Console** (para que funcione «Continuar con Google»):
+APIs y servicios → Credenciales → Crear credenciales → ID de cliente OAuth →
+tipo **Android**, en el mismo proyecto que el cliente web:
+- Nombre del paquete: `io.github.raullopeslopez.fitit`
+- Huella SHA-1: `61:11:8D:6A:D2:53:0E:E2:2F:68:0A:AE:B0:42:84:FA:79:CF:4A:8F`
+
+No hay que copiar el ID nuevo en ningún sitio: la app sigue pidiendo el token con
+el ID web, y el cliente Android sólo le dice a Google que este APK es de confianza.
+
+**Lo que en el APK todavía no hay** (vuelve en la fase 2): el aviso de la pantalla
+de bloqueo con «+1 serie», que en la PWA hace el service worker. La barra de
+descanso en pantalla funciona igual. El lector de códigos de barras depende de que
+el WebView del teléfono traiga `BarcodeDetector`; si no, el botón no aparece y se
+teclea o se lee la tabla, como en un iPhone.
 
 ### Fase 2 — Lo que la web no daba
 - `@capacitor-mlkit/barcode-scanning`: escaneo en vivo del código de barras.

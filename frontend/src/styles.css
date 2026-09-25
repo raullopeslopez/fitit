@@ -3684,6 +3684,16 @@ button.set-chip:active:not(:disabled) {
   justify-content: center;
   min-height: 44px;
 }
+/* El botón propio del APK, donde el de Google no se puede pintar. DESIGN.md:
+   44px mínimo en controles. */
+.google-native {
+  min-height: 44px;
+}
+/* El motivo de un fallo del login en el APK: mensajes de Android largos y sin
+   espacios que, sin esto, empujan la columna más allá del borde. */
+.google-signin-detail {
+  overflow-wrap: anywhere;
+}
 .google-signin-or {
   display: flex;
   align-items: center;
