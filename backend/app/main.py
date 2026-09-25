@@ -18,6 +18,7 @@ from .routers import (
     ideas,
     plans,
     rules,
+    steps,
     targets,
     workouts,
 )
@@ -122,6 +123,7 @@ app.include_router(exercises.router, dependencies=[Depends(get_current_user)])
 app.include_router(foods.router, dependencies=[Depends(get_current_user)])
 app.include_router(food_log.router, dependencies=[Depends(get_current_user)])
 app.include_router(body_weight.router, dependencies=[Depends(get_current_user)])
+app.include_router(steps.router, dependencies=[Depends(get_current_user)])
 app.include_router(dishes.router, dependencies=[Depends(get_current_user)])
 app.include_router(targets.router, dependencies=[Depends(get_current_user)])
 app.include_router(rules.router, dependencies=[Depends(get_current_user)])

@@ -1,6 +1,6 @@
 # Aliased so a model field named `date` doesn't shadow the `date` type.
 from datetime import date as Date
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -730,6 +730,43 @@ class WeightTrendOut(BaseModel):
     weigh_ins: int = 0
     # Hasta cuándo está medida. Si es de hace un mes, que lo diga la pantalla.
     up_to: Date | None = None
+
+
+# --- Pasos -------------------------------------------------------------------
+# Lo que sube la app de Android desde Health Connect. Hasta 62 días por subida:
+# dos meses cubren cualquier hueco razonable sin sincronizar, y el techo evita
+# que un cliente roto mande años de una vez.
+MAX_STEPS_DAYS_PER_UPLOAD = 62
+# Cuánto se puede leer de una vez: un año largo, con margen.
+MAX_STEPS_RANGE_DAYS = 400
+
+
+class StepsDay(BaseModel):
+    """Un día y sus pasos. Mismo objeto para subir y para leer."""
+
+    date: Date
+    steps: int = Field(ge=0)
+
+
+class StepsUploadIn(BaseModel):
+    days: list[StepsDay] = Field(min_length=1, max_length=MAX_STEPS_DAYS_PER_UPLOAD)
+
+    @field_validator("days")
+    @classmethod
+    def coherente(cls, days: list[StepsDay]) -> list[StepsDay]:
+        fechas = [d.date for d in days]
+        if len(set(fechas)) != len(fechas):
+            raise ValueError("cada día puede venir una sola vez por subida")
+        # Hoy del servidor en UTC más un día: el móvil que ya está en mañana por
+        # su huso no se rechaza; lo que vaya más allá no es una medida.
+        limite = datetime.now(UTC).date() + timedelta(days=1)
+        if any(f > limite for f in fechas):
+            raise ValueError("no se pueden subir pasos de un día que aún no ha llegado")
+        return days
+
+
+class StepsSavedOut(BaseModel):
+    saved: int
 
 
 # --- Platos ------------------------------------------------------------------
