@@ -108,7 +108,9 @@ escribir); lo ajustado se registra y pasa a ser lo que repite el siguiente toque
 - `1 sin enviar` sólo aparece cuando hay algo en cola; en verde nunca, en `--muted`.
 - `Terminar` cierra el control: quita la notificación, vacía el estado, el widget vuelve
   a «sin entreno». Las series ya registradas no se tocan (una sesión en Fitit es un día;
-  no hay nada que «cerrar» en el servidor).
+  no hay nada que «cerrar» en el servidor). Sólo el 4×2 lo lleva; con el 4×1 solo, se
+  termina desde el menú de Entreno (`Terminar entreno`, donde estaba el interruptor) o
+  esperando las dos horas.
 - Tocar el ejercicio abre la app en Entreno.
 
 **Sin sesión:**
@@ -134,7 +136,8 @@ se queda en `Sin entreno en curso` y tocar abre la app.
 
 - Entreno deja de tener el interruptor `Registrar sin abrir` y su línea de estado
   (`Enviado, pero Android no lo muestra`). El control nativo está siempre, y el permiso
-  de notificaciones se pide una vez, al registrar la primera serie del APK.
+  de notificaciones se pide una vez, al registrar la primera serie del APK. En su sitio
+  del menú va `Terminar entreno`, que hace lo mismo que `Terminar` en el widget.
 - Cardio sigue excluido del control (un intervalo no se repite con un toque).
 - Lo registrado desde fuera aparece en la tarjeta al volver a la app, ya con su hora y
   su estado de envío. Ninguna serie se «reclama»: la cola es una y es nativa.
@@ -192,8 +195,9 @@ nuevas:
   fuera. En web, cada función es un no-op y `enqueue` cae en `offline.js`.
 - Un relabel al fin del descanso con `AlarmManager` inexacto (no importa que llegue un
   minuto tarde: el reloj ya lo enseña).
-- Tipografía: Geist Mono para las cifras exige empaquetar la fuente en `res/font`
-  (~100 KB). Si no, la mono del sistema. Decisión de diseño pendiente.
+- Tipografía: Geist Mono y Space Grotesk empaquetadas en `res/font` (~200 KB), que
+  es lo que enseña la maqueta aprobada; el widget y la notificación no pueden cargar
+  Google Fonts.
 
 ## Verificación
 
@@ -205,17 +209,91 @@ nuevas:
   sin desbloquear; `Otra serie` desde el bloqueo; convivir con YouTube Music; modo avión
   y `N sin enviar`; matar la app y ver que el widget sigue; el widget en los dos tamaños.
 
+## Decisiones tomadas (2026-09-25, sobre la maqueta)
+
+Maqueta: https://claude.ai/artifact/WMLXNPGvGNCGAFnGR6iarh (tres pantallas: bloqueo,
+inicio con sesión en oscuro, inicio sin sesión y sin red en claro).
+
+- Los dos widgets, 4×1 y 4×2, tal como están en la maqueta.
+- `Empezar entreno` entra en el estado sin sesión.
+- `Terminar` se queda como está (texto apagado junto a `Registrar serie` en el 4×2).
+- Geist Mono y Space Grotesk se empaquetan en el APK.
+- La PWA pierde `Registrar sin abrir`; su implementación se borra.
+
 ## Fases
 
-| Fase | Qué se ve | Coste |
-|---|---|---|
-| 1 · Dueño nativo + notificación | La notificación en curso con sus tres botones; se borra lo viejo; token y cola nativos | 2 días |
-| 2 · Widget 4×1 | El widget mínimo, `Empezar` y `Terminar` | 1 día |
-| 3 · Widget 4×2 | Peso y reps con botones | Medio día, si se decide tras ver la maqueta |
+Cinco, cada una un PR y un APK que se instala y se prueba solo. Ninguna deja la app
+peor que la anterior, y la primera ya la deja mejor: sin el control que no funcionaba.
+La verificación en el teléfono es del product owner (aquí no hay dispositivo); cada fase
+lista lo que hay que comprobar, y no se pasa a la siguiente sin ese visto bueno.
 
-## Decisiones pendientes del product owner
+### Fase 0 · Limpieza (APK 0.4.0) · medio día
 
-1. Tamaño del widget: ¿4×1, 4×2 o los dos? ¿`Empezar entreno` dentro?
-2. Confirmar que en la PWA desaparece `Registrar sin abrir` (con esta spec se borra su
-   implementación).
-3. Geist Mono empaquetada en el APK, o mono del sistema para las cifras del widget.
+Se borra el aviso de descanso entero: `platform/notifyNative.js` y `platform/notify.js`
+con sus tests, `@capacitor/local-notifications`, `USE_EXACT_ALARM`, el bloque de
+notificación de `public/sw.js`, el interruptor `Registrar sin abrir` y sus preferencias,
+`fitit_lock_sets` y la línea de estado de Entreno.
+
+- **Qué se ve:** en Entreno (APK y PWA), el menú de la cabecera pierde `Registrar sin
+  abrir` y su línea de estado. La barra de descanso en pantalla y `Pantalla encendida`
+  siguen igual. Nada más cambia.
+- **Comprobar:** registrar una serie con y sin descanso; que no aparece ninguna
+  notificación; que el APK arranca sin pedir permisos nuevos.
+
+### Fase 1 · Dueño nativo, cola y token (APK 0.5.0) · día y medio
+
+El plugin `Session` con `SessionStore` (estado y cola en `SharedPreferences`), el token
+en `EncryptedSharedPreferences` y `SessionSender` con `WorkManager`. Entreno publica el
+estado en cada serie y cambio de ejercicio, y en el APK encola en la cola nativa en vez
+de en `fitit_outbox`. Iniciar y cerrar sesión copian y borran el token nativo.
+
+- **Qué se ve:** nada nuevo. Las series se envían igual que antes desde la app, con el
+  mismo indicador de «sin enviar» en la tarjeta. La PWA no cambia.
+- **Comprobar:** modo avión, tres series, quitar el avión: llegan en orden y una sola
+  vez. Matar la app con series sin enviar y volver: se envían. Cerrar sesión y entrar
+  con otra cuenta: nada de la anterior se envía.
+
+### Fase 2 · Notificación en curso (APK 0.6.0) · día y medio
+
+`SessionNotification` y `SessionActionReceiver`: la tarjeta de la pantalla de bloqueo
+con `+1 serie`, `Otra serie` (campo de texto) y `Saltar`, cronómetro en cuenta atrás,
+relabel a `Descanso terminado`, canal silencioso visible en bloqueo, permiso de
+notificaciones pedido en la primera serie. `Terminar entreno` en el menú de Entreno y
+cierre automático a las dos horas.
+
+- **Qué se ve:** desde la primera serie de fuerza, la notificación de la spec en la
+  bandeja y en la pantalla de bloqueo. En Entreno → menú, `Terminar entreno`.
+- **Comprobar:** con el teléfono bloqueado, `+1 serie` registra sin desbloquear y el
+  contador sube en la tarjeta; `Otra serie` con `35x10` registra eso y el siguiente
+  `+1 serie` repite 35×10; `Saltar` quita el reloj; convive con YouTube Music; el reloj
+  llega a cero y pasa a `Descanso terminado` sin sonar; `Terminar entreno` la quita;
+  matar la app y la tarjeta sigue con sus botones funcionando.
+
+### Fase 3 · Widget 4×1 (APK 0.7.0) · un día
+
+`SessionWidget` con el layout mínimo y el estado sin sesión con `Empezar entreno`
+(abre la app en Entreno con la sesión de hoy). Vibración al tocar `+1 serie`. Fuentes
+en `res/font`. Colores por tema en `res/values` y `res/values-night`.
+
+- **Qué se ve:** en el selector de widgets de Android, «Fitit · Entreno 4×1». Con
+  sesión: ejercicio, grupo, reloj, serie y `+1 serie`. Sin sesión: `Sin entreno en
+  curso` y `Empezar entreno`.
+- **Comprobar:** añadirlo a la pantalla de inicio; el reloj corre sin abrir la app;
+  `+1 serie` vibra y sube el contador ahí y en la notificación; `Empezar entreno` abre
+  Entreno en la sesión de hoy; cambiar de ejercicio en la app y el widget lo sigue;
+  tema claro y oscuro del sistema.
+
+### Fase 4 · Widget 4×2 (APK 0.8.0) · un día
+
+El layout con ajuste: `−`/`+` de peso (2,5 kg) y de reps, `Registrar serie`, `⏭`,
+`Terminar`, `N sin enviar`. Lo ajustado pasa a ser la plantilla que repiten todos los
+`+1 serie`.
+
+- **Qué se ve:** un segundo widget en el selector, «Fitit · Entreno 4×2», como en la
+  maqueta.
+- **Comprobar:** subir el peso dos veces y registrar: la serie entra con +5 kg y la
+  notificación repite ese peso; modo avión y `1 sin enviar` en ámbar, que desaparece
+  al volver la red; `Terminar` vacía los dos widgets y la notificación.
+
+Después, si hace falta: iOS (Live Activities) tiene su propia spec. Y si el Xiaomi
+algún día recibe Android 16, el chip de «Live Updates» sobre la misma notificación.
