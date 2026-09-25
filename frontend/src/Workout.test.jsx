@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
 import * as api from './api.js'
-import * as notify from './notify.js'
-import * as wakelock from './wakelock.js'
+import * as notify from './platform/notify.js'
+import * as wakelock from './platform/wakelock.js'
 
 vi.mock('./api.js')
-vi.mock('./notify.js')
-vi.mock('./wakelock.js')
+vi.mock('./platform/notify.js')
+vi.mock('./platform/wakelock.js')
 
 // Mirrors what the API returns. `weight` is kilos; there is no unit field.
 function benchSet(overrides = {}) {

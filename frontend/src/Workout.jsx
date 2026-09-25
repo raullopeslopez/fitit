@@ -57,7 +57,7 @@ import {
   onLockScreenSets,
   startRestNotice,
   stopRestNotice,
-} from './notify.js'
+} from './platform/notify.js'
 import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
 import {
@@ -73,7 +73,7 @@ import {
   setScreenAwake,
 } from './prefs.js'
 import { showKg } from './units.js'
-import { holdScreenAwake } from './wakelock.js'
+import { holdScreenAwake } from './platform/wakelock.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.

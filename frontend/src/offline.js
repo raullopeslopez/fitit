@@ -1,3 +1,5 @@
+import { storage } from './platform/storage.js'
+
 // What lets the app work with no network. Gyms are basements and the free tier
 // sleeps, so a set you have already done must never depend on a request
 // succeeding right now.
@@ -17,7 +19,7 @@ const OUTBOX_KEY = 'fitit_outbox'
 // drains out of order rewrites the session.
 export function readQueue() {
   try {
-    const stored = JSON.parse(localStorage.getItem(OUTBOX_KEY))
+    const stored = JSON.parse(storage.getItem(OUTBOX_KEY))
     return Array.isArray(stored) ? stored : []
   } catch {
     // A parse error must not be able to take the log screen down with it.
@@ -26,8 +28,8 @@ export function readQueue() {
 }
 
 function writeQueue(entries) {
-  if (entries.length === 0) localStorage.removeItem(OUTBOX_KEY)
-  else localStorage.setItem(OUTBOX_KEY, JSON.stringify(entries))
+  if (entries.length === 0) storage.removeItem(OUTBOX_KEY)
+  else storage.setItem(OUTBOX_KEY, JSON.stringify(entries))
 }
 
 export function enqueueSet(entry) {
@@ -100,12 +102,12 @@ const WORKOUT_KEY = 'fitit_workout_cache'
 
 export function cacheWorkout(workout) {
   if (workout?.id == null) return
-  localStorage.setItem(WORKOUT_KEY, JSON.stringify(workout))
+  storage.setItem(WORKOUT_KEY, JSON.stringify(workout))
 }
 
 export function cachedWorkout(id) {
   try {
-    const stored = JSON.parse(localStorage.getItem(WORKOUT_KEY))
+    const stored = JSON.parse(storage.getItem(WORKOUT_KEY))
     // A different workout's copy is not an answer about this one.
     return stored?.id === id && Array.isArray(stored.sets) ? stored : null
   } catch {
@@ -121,7 +123,7 @@ const MARKS_KEY = 'fitit_marks_cache'
 
 function readMarks() {
   try {
-    const stored = JSON.parse(localStorage.getItem(MARKS_KEY))
+    const stored = JSON.parse(storage.getItem(MARKS_KEY))
     return stored && typeof stored === 'object' ? stored : {}
   } catch {
     return {}
@@ -129,7 +131,7 @@ function readMarks() {
 }
 
 export function cacheMarks(name, marks) {
-  localStorage.setItem(MARKS_KEY, JSON.stringify({ ...readMarks(), [name]: marks }))
+  storage.setItem(MARKS_KEY, JSON.stringify({ ...readMarks(), [name]: marks }))
 }
 
 // Flagged `stale` on the way out, and the caller has to honour it. The entry was
@@ -154,7 +156,7 @@ const BOOT_KEY = 'fitit_boot_summary'
 export function cacheBootSummary(summary) {
   if (!summary) return
   try {
-    localStorage.setItem(BOOT_KEY, JSON.stringify(summary))
+    storage.setItem(BOOT_KEY, JSON.stringify(summary))
   } catch {
     // A full quota must never take down the screen that just loaded fine.
   }
@@ -162,7 +164,7 @@ export function cacheBootSummary(summary) {
 
 export function cachedBootSummary() {
   try {
-    const stored = JSON.parse(localStorage.getItem(BOOT_KEY))
+    const stored = JSON.parse(storage.getItem(BOOT_KEY))
     return stored && typeof stored === 'object' ? stored : null
   } catch {
     return null

@@ -18,6 +18,7 @@ import { checkHealth } from './api.js'
 import { formatDuration, isoWeekStart } from './format.js'
 import { cachedBootSummary } from './offline.js'
 import { showKg } from './units.js'
+import { isKnownOffline } from './platform/network.js'
 
 // How long the first request gets before the wait is worth naming. Under this,
 // the app just opens; a screen that flashes for 300 ms is worse than no screen.
@@ -71,7 +72,7 @@ export function useColdStart({ enabled = true, probe = checkHealth } = {}) {
     // No signal at all is not a cold start, and there is nothing to wait for:
     // the app already logs offline, so gating it behind a wake that cannot
     // happen would lock the user out of their own session in a basement gym.
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (isKnownOffline()) {
       setPhase('local')
       return undefined
     }

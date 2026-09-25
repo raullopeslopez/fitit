@@ -4,12 +4,12 @@ import Days from './Days.jsx'
 import Progress from './Progress.jsx'
 import Workout from './Workout.jsx'
 import * as api from './api.js'
-import * as notify from './notify.js'
+import * as notify from './platform/notify.js'
 import { SHOW_AFTER_MS } from './Skeleton.jsx'
 
 vi.mock('./api.js')
-vi.mock('./notify.js')
-vi.mock('./wakelock.js')
+vi.mock('./platform/notify.js')
+vi.mock('./platform/wakelock.js')
 
 // A request that never answers: the whole of what these screens draw while they
 // wait, with nothing arriving to overwrite it.

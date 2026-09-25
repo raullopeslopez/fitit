@@ -57,7 +57,12 @@ pantalla de inicio y Live Activity del descanso.
 
 Cada fase se puede usar sola y ninguna rompe la PWA.
 
-### Fase 0 — Preparar la web (sin nativo, sin cambios visibles)
+### Fase 0 — Preparar la web (sin nativo, sin cambios visibles) · hecha
+Módulos en `frontend/src/platform/`: `storage`, `http` (base de API y versión),
+`googleIdentity`, `scanner`, `network`, `serviceWorker`, `notify`, `wakelock`.
+`platform/boundary.test.js` falla si algo fuera de esa carpeta vuelve a llamar al
+navegador directamente.
+
 - Carpeta `frontend/src/platform/` con un módulo por capacidad: `auth`, `storage`,
   `scanner`, `notify`, `keepAwake`, `apiBase`. Implementación web = la de hoy. Los
   componentes dejan de llamar a `navigator`, `localStorage` o `window.google` directamente.
