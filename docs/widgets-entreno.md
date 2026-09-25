@@ -1,161 +1,221 @@
-# Widgets para controlar el entreno en curso — revisión
+# Control del entreno desde fuera de la app — especificación
 
-Pregunta: ¿cómo se añade a Fitit un widget que controle la sesión en marcha (ver el
-descanso, apuntar «+1 serie») sin abrir la app? Esto es la revisión, no la implementación.
-Datos de npm del 2026-09-25.
+Decidido el 2026-09-25: **se borra lo que hay y se hace de cero, en nativo.** El aviso de
+descanso actual (`platform/notifyNative.js` sobre el plugin de notificaciones locales, y
+su gemelo en el service worker de la PWA) nunca funcionó bien porque intentaba mantener
+vivo, desde fuera, un estado que sólo conocía la página. Ahora el estado de la sesión en
+curso lo posee un componente nativo de Android, y la notificación, el widget y la propia
+app son tres vistas de lo mismo.
 
-## TL;DR
+Sólo Android (el APK). La PWA no puede tener widgets ni notificaciones en curso de este
+tipo. iOS, cuando exista, tiene su propio patrón (Live Activities) y se especifica aparte.
 
-- **Sólo tiene sentido en el APK.** Una PWA en Android no puede tener widgets (el
-  miembro `widgets` del manifest sólo lo entiende Windows 11). iOS no está construido
-  (fase 3 de `app-nativa.md`). Así que esto es Android, en Kotlin/Java, dentro de
-  `frontend/android`, y la PWA no cambia.
-- **Ya existe un mando a distancia del entreno: la notificación.** En la PWA la sirve el
-  service worker; en el APK, `platform/notifyNative.js` con notificaciones locales. El
-  widget es una **segunda pantalla del mismo estado**, no una función nueva: lo que le
-  falta a la app es un sitio nativo donde ese estado viva, y ese sitio sirve a los dos.
-- **Recomendación: plugin local propio (~250 líneas de Java + un layout), sin dependencia
-  nueva.** Los dos plugins de widgets que están vivos aportan poco (uno) o son demasiado
-  jóvenes y raros (el otro). Detalle abajo.
-- **Lo que un widget puede y no puede:** cuenta atrás en vivo sin despertar la app
-  (`Chronometer` con cuenta atrás), un botón «+1 serie» que **no abre la app** (mejor que
-  la notificación de hoy en el APK, que sí la abre), y un toque en el resto que lleva a
-  Entreno. **No puede** tener un campo de texto: «Otra serie» (peso × reps tecleados) se
-  queda en la notificación. Y en la **pantalla de bloqueo** de un teléfono no hay
-  widgets: ahí sigue mandando la notificación.
+## Lo que el usuario quiere
 
-## Qué hay hoy y qué se reutiliza
+Respuestas del product owner, condensadas:
 
-El estado que un widget necesita ya se calcula y ya viaja. En cada serie registrada,
-`Workout.jsx` llama a `handOverSession`, que entrega a `startRestNotice` un objeto `rest`:
+- Entre series el teléfono está donde caiga. Al acabar una serie, hoy: desbloquear, entrar
+  en la app, buscar la tarjeta, registrar. Quiere: **desbloquear y registrar desde ahí**, o
+  mejor, **desde la propia pantalla de bloqueo**, como los controles de YouTube Music.
+- Ver: el ejercicio en curso, su grupo muscular, la serie que toca y la cuenta atrás.
+- Hacer: registrar la misma serie; registrar con otro peso o reps; saltar el descanso.
+- El control **empieza y termina desde el widget** de la pantalla de inicio (no desde la
+  notificación). «Empezar entreno» desde el widget entra si no lo congestiona; se decide
+  viendo la maqueta.
+- Ni sonido ni vibración, con una excepción: **vibra al tocar «+1 serie» en el widget**.
+- Una serie registrada desde fuera **se sube en el momento**, sin esperar a abrir la app.
 
-```
-{ endsAt, seconds, workoutId, series, payload: { exercise_name, weight, reps, kind… } }
-```
+### Las dos dudas
 
-(`token` y `pending` van también, pero `notifyNative.js` los quita antes de escribir nada
-en disco: una notificación no es sitio para una credencial. El widget hereda esa regla.)
+**¿Convive con YouTube Music?** Sí. Android permite tantas notificaciones en curso como
+apps las tengan; la de Music es de tipo «multimedia» y ocupa su propio bloque en la
+pantalla de bloqueo, la de Fitit es una notificación normal con botones y va debajo. Ni
+una quita a la otra, y Xiaomi las pinta las dos porque las dos son nativas (la de la PWA
+la pintaba Chrome, y ahí estaba la mitad del problema).
 
-Y la escritura ya tiene una sola puerta: el toque en «+1 serie» **no envía nada**, apunta
-una entrada `{ tmpId, workoutId, payload + performed_at }` en `fitit_lock_sets`, y la
-página la recoge al volver (`claimLockScreenSets` → cola `fitit_outbox` → `flushQueue`).
-Un widget tiene que escribir en esa misma lista y nada más; así se conserva el orden de
-`set_index` (DESIGN.md, 2026-07-25) sin tocar una línea del backend.
+**¿Qué implica «subir en el momento»?** Tres cosas, ninguna grave:
+1. El nativo necesita el token de sesión, así que **el token vive también en almacén
+   cifrado de Android** (hoy sólo lo tiene la página). Se copia al iniciar sesión y se
+   borra al cerrarla.
+2. Las series tienen orden (`set_index` lo asigna el servidor al llegar). Si la app tiene
+   series suyas sin enviar (sin red en el sótano), una serie del widget no puede
+   adelantarlas. Regla: **una sola cola, nativa**: la página deja de tener la suya
+   (`fitit_outbox`) y encola en la nativa; el nativo envía en orden, con o sin app
+   delante. Es más trabajo que dos colas, pero es la única forma de que «se sube en el
+   momento» sea verdad y el orden no se rompa.
+3. Sin red no falla nada: la serie se guarda, el widget dice `1 sin enviar` y se reintenta
+   al siguiente toque, al volver la red y al abrir la app.
 
-**El problema es dónde vive eso.** `platform/storage.js` es `localStorage` del WebView, y
-`fitit_lock_sets` también. Un `AppWidgetProvider` corre en el proceso de la app pero no
-puede leer el `localStorage` de un WebView. Hace falta un puente: `SharedPreferences`,
-que sí leen los dos lados. Eso es lo único que la app no tiene todavía.
+## Las tres superficies
 
-## Opciones para el puente
+Copia exacta. Cifras en tabular; el resto de estilo según `DESIGN.md`.
 
-| Opción | Qué es | Vivo | Veredicto |
-|---|---|---|---|
-| **Plugin local propio** (`SessionPlugin.java`, registrado en `MainActivity`) | Tres métodos: `publish(rest)`, `clear()`, `claim()`, sobre `SharedPreferences`. El widget y su receptor de toques van al lado. | — | **Elegido.** Es lo que hacen los otros dos por debajo, sin dependencia, y la escritura de series queda en un solo sitio nativo |
-| `capacitor-widget-bridge` | `setItem`/`getItem` sobre `SharedPreferences` + `reloadAllTimelines()`. El `AppWidgetProvider` lo escribes tú igual | MIT · 8.1.0 · mar 2026 · 2,9k/sem · Cap 8 | Descartado: por el criterio de `app-nativa.md`, entra un plugin sólo si da algo que no tengamos. Esto son 40 líneas de Java |
-| `@capgo/capacitor-widget-kit` | Widgets desde SVG con «hotspots», temporizadores y eventos; trae Live Activities de iOS y hasta un ejemplo de flujo de entreno | MPL-2.0 · 8.1.10 · sep 2026 · **256/sem** · Cap 8 | Descartado ahora: muy joven, poco uso, y rasteriza SVG en un `ImageView` —el texto no sigue la fuente ni el tamaño del sistema y no hay accesibilidad—. **Reconsiderar en la fase iOS** por las Live Activities |
-| `capacitor-live-activities`, `@capgo/capacitor-live-activities` | Sólo iOS | — | Fuera hasta la fase 3 |
-
-## Diseño propuesto
-
-### El widget
-
-Un widget «Sesión en curso», 4×1 (una franja) con variante 2×2. Con sesión viva:
+### 1 · Notificación en curso (pantalla de bloqueo y bandeja)
 
 ```
-Press banca                          [ +1 serie ]
-32,5 kg x 12 · 4 series
-Descanso  01:23
+Fitit · Press banca · Pecho
+32,5 kg × 12 · 4 series                    01:23
+[ +1 serie ]   [ Otra serie ]   [ Saltar ]
 ```
 
-- Título: `exercise_name`. Segunda línea: la serie que repite y cuántas lleva, el mismo
-  texto que ya produce `restText()` en `notifyNative.js` (reutilizar la función, no
-  copiar el formato).
-- Tercera línea: cuenta atrás hasta `endsAt` con un `Chronometer` en cuenta atrás
-  (`setChronometerCountDown`, disponible desde API 24; `minSdk` es 26). La lleva el
-  launcher solo: **cero despertares** de la app durante el descanso. Al llegar a cero
-  pasa a `Descanso terminado`; con `Descanso: Sin` la línea no aparece.
-- Botón `+1 serie`: `PendingIntent.getBroadcast` a un receptor propio. **No abre la
-  app.** Cualquier otro punto del widget abre Entreno en la sesión (`MainActivity`, que
-  ya es `singleTask`; Entreno ya reanuda desde `fitit_rest_until`).
-- Sin sesión: `Sin sesión en curso` y un toque abre la app. Nada de `Empezar entreno`
-  desde el widget: crear la sesión pide al servidor y eso es trabajo de la página.
-- Aspecto: tokens de `DESIGN.md` en `res/values` (papel `#f4f2ee` / tinta `#16181b`,
-  oscuro `#0b0c0e` / `#f2f3f5`, ámbar `#E4571B` / `#FF6A2C` con tinta `--on-accent` en
-  el botón), cifras en tabular. Geist Mono no está en el APK: o se mete como fuente en
-  `res/font` o las cifras van en la mono del sistema. Es una decisión de diseño que
-  hay que tomar con `DESIGN.md` delante, no aquí.
+- La cuenta atrás la lleva la propia notificación (cronómetro nativo en cuenta atrás):
+  no hay que reescribirla cada segundo ni despertar nada. Al llegar a cero pasa a
+  `Descanso terminado` y `Saltar` desaparece. Con `Descanso: Sin`, no hay reloj ni
+  `Saltar`.
+- `+1 serie` y `Saltar` **funcionan sin desbloquear**: el toque va a un receptor nativo,
+  no abre la app, y la notificación se actualiza en sitio (`5 series`, reloj nuevo) sin
+  volver a sonar.
+- `Otra serie` abre el campo de texto de la notificación (respuesta directa, como
+  contestar un WhatsApp desde el bloqueo). Formato `32.5x12`, o sólo `12` en ejercicios
+  sin peso. Una entrada que no se entiende no registra nada y la notificación lo dice en
+  su segunda línea: `No entendí «12 32». Escríbela como 32.5x12.` Si el teléfono exige
+  desbloquear para escribir desde el bloqueo, es política del teléfono (ajuste de
+  «respuesta directa»); en el Xiaomi hay que probarlo.
+- Tocar el cuerpo abre la app en Entreno. Deslizar no la quita: es «en curso» mientras
+  haya sesión; la quita `Terminar` en el widget.
+- Silenciosa: canal sin sonido ni vibración, visible en pantalla de bloqueo. Tocar
+  `+1 serie` aquí no vibra (sólo lo hace el widget, como se pidió).
 
-### El flujo de escritura
+### 2 · Widget de pantalla de inicio
 
-1. `notifyNative.startNatively(rest)` llama además a `Session.publish(rest)`: guarda el
-   JSON (sin token) en `SharedPreferences` y pide `AppWidgetManager.updateAppWidget`.
-   `stopNatively()` → `Session.clear()`: borra y pinta «Sin sesión».
-2. Toque en `+1 serie` (receptor nativo): hace **lo mismo que `logAnother`** en
-   `notifyNative.js` —apunta la entrada con `performed_at` del toque en la lista de
-   pendientes, `series + 1`, `endsAt = ahora + seconds`—, repinta el widget y republica
-   la notificación con el mismo contenido. Envía: nada.
-3. La lista de pendientes (`fitit_lock_sets`) **se muda a `SharedPreferences`**, y
-   `claimNatively()` pasa a leerla por el plugin (`Session.claim()`), que la devuelve y
-   la vacía. Notificación y widget escriben en la misma lista; la página sigue siendo
-   la única que vacía la cola. Es el único cambio en JS que toca algo existente.
+Dos tamaños; el usuario elige tras ver la maqueta. Si el grande congestiona, sale.
 
-Con eso, la notificación del APK puede dejar de abrir la app: sus acciones se pueden
-enrutar al mismo receptor. Es un efecto secundario, no el objetivo, y va como paso
-aparte porque cambia una decisión ya tomada (`app-nativa.md`, fase 2).
-
-### Dónde va cada cosa
+**4×1, mínimo.** Registra la misma serie y nada más.
 
 ```
-frontend/android/app/src/main/java/io/github/raullopeslopez/fitit/
-  SessionPlugin.java       publish / clear / claim  (~80 líneas)
-  SessionStore.java        el SharedPreferences y el JSON  (~60)
-  SessionWidget.java       AppWidgetProvider: pinta RemoteViews  (~100)
-  SessionActionReceiver.java  «+1 serie»: apunta, repinta, republica  (~60)
-  MainActivity.java        registerPlugin(SessionPlugin.class)
-res/layout/widget_session.xml · res/xml/widget_session_info.xml · AndroidManifest (receiver ×2)
-frontend/src/platform/notifyNative.js   llama al plugin; `claimNatively` lee de él
-frontend/src/platform/session.js        el import del plugin, con stub en web
+┌──────────────────────────────────────────────┐
+│ Press banca · Pecho                    01:23 │
+│ 32,5 kg × 12 · 4 series        [ +1 serie ]  │
+└──────────────────────────────────────────────┘
 ```
 
-## Lo que no se puede, y por qué
+**4×2, con ajuste.** Peso y reps se cambian con botones (en un widget no se puede
+escribir); lo ajustado se registra y pasa a ser lo que repite el siguiente toque.
 
-- **Campo de texto.** `RemoteViews` no admite `EditText`; «Otra serie» sigue siendo de la
-  notificación (`RemoteInput`), que es la única superficie con teclado sin abrir la app.
-- **Pantalla de bloqueo.** Android sólo ofrece widgets de bloqueo en tabletas (15/16);
-  HyperOS no los tiene. La notificación sigue siendo el control con el teléfono
-  bloqueado. Los dos conviven: mismo estado, dos superficies.
-- **Refresco periódico.** Los launchers (HyperOS incluido) limitan `updatePeriodMillis`
-  a ≥ 30 min. Aquí da igual: los repintados los provoca la app (cada serie) o el toque, y
-  el reloj lo lleva el launcher. Un widget que necesitase «tic» cada segundo desde la
-  app sería inviable; este no lo necesita.
-- **Android 16 «Live Updates»** (`ProgressStyle` + `requestPromotedOngoing`): el chip
-  en la barra de estado que es la respuesta de Google a las Live Activities. Encaja
-  perfecto con el descanso, `compileSdk`/`targetSdk` ya son 36, pero el plugin de
-  notificaciones no lo expone (sería `NotificationCompat` propio) y el Xiaomi 12 Pro se
-  queda en Android 15 con HyperOS 2. Se anota; no se construye hasta tener dónde verlo.
-- **Wear OS.** Otro APK y otra UI. Fuera de esta revisión.
+```
+┌──────────────────────────────────────────────┐
+│ Press banca · Pecho              01:23  ⏭    │
+│ 4 series                                     │
+│ [ − ]   32,5 kg   [ + ]    [ − ]  12  [ + ]  │
+│ [            Registrar serie              ]  │
+│ 1 sin enviar                       Terminar  │
+└──────────────────────────────────────────────┘
+```
+
+- Peso a pasos de 2,5 kg; reps de 1 en 1. `⏭` salta el descanso.
+- `Registrar serie` / `+1 serie` **vibran** (una pulsación corta) y el contador sube ahí
+  mismo. Es lo único que vibra en toda la feature.
+- `1 sin enviar` sólo aparece cuando hay algo en cola; en verde nunca, en `--muted`.
+- `Terminar` cierra el control: quita la notificación, vacía el estado, el widget vuelve
+  a «sin entreno». Las series ya registradas no se tocan (una sesión en Fitit es un día;
+  no hay nada que «cerrar» en el servidor).
+- Tocar el ejercicio abre la app en Entreno.
+
+**Sin sesión:**
+
+```
+┌──────────────────────────────────────────────┐
+│ Sin entreno en curso                         │
+│ [ Empezar entreno ]                          │
+└──────────────────────────────────────────────┘
+```
+
+`Empezar entreno` **abre la app en Entreno con la sesión de hoy** (la crea si no existe,
+con la lógica que ya tiene la pantalla). No la crea el nativo: evita duplicar la regla de
+«continuar la de hoy» y no necesita red desde el widget. La primera serie de cada
+ejercicio se registra en la app, porque es donde se elige el ejercicio; desde ese momento
+el widget y la notificación lo repiten. Esto es una limitación de diseño, no técnica:
+elegir ejercicio desde un widget es una lista, y eso es la app.
+
+Si tras verlo el usuario prefiere que el widget no tenga `Empezar`, el estado sin sesión
+se queda en `Sin entreno en curso` y tocar abre la app.
+
+### 3 · La app
+
+- Entreno deja de tener el interruptor `Registrar sin abrir` y su línea de estado
+  (`Enviado, pero Android no lo muestra`). El control nativo está siempre, y el permiso
+  de notificaciones se pide una vez, al registrar la primera serie del APK.
+- Cardio sigue excluido del control (un intervalo no se repite con un toque).
+- Lo registrado desde fuera aparece en la tarjeta al volver a la app, ya con su hora y
+  su estado de envío. Ninguna serie se «reclama»: la cola es una y es nativa.
+- En la web (PWA) el interruptor `Registrar sin abrir` **desaparece**: su implementación
+  (service worker) se borra con el resto. La PWA registra desde la pantalla, como siempre.
+
+## Comportamiento
+
+| Momento | Qué pasa |
+|---|---|
+| Primera serie de fuerza de la sesión en la app | Aparece la notificación en curso; el widget pasa a mostrar la sesión |
+| Serie registrada (app, notificación o widget) | Las tres vistas se actualizan; empieza el descanso si está activado |
+| Fin del descanso | El reloj marca cero y el texto pasa a `Descanso terminado`. Sin sonido ni vibración |
+| Cambio de ejercicio en la app | El control pasa al nuevo ejercicio con su primera serie |
+| `Terminar` en el widget | Todo desaparece. Las series quedan |
+| Dos horas sin registrar nada | Lo mismo que `Terminar`, solo |
+| Sin red | Se registra igual; `N sin enviar`; reintento automático |
+| Android mata la app | Nada cambia: el estado es nativo y está en disco |
+| Cerrar sesión en la app | Se borra el token nativo y el control, aunque hubiera sesión |
+
+Un toque accidental en el bolsillo registra una serie. Se acepta: corregirla en la app
+cuesta un deslizamiento y pedir confirmación mata el gesto.
+
+## Qué se borra y qué se conserva
+
+Se borra: `platform/notifyNative.js` y sus tests, la dependencia
+`@capacitor/local-notifications` y el permiso `USE_EXACT_ALARM`, el bloque de
+notificación de `public/sw.js`, `platform/notify.js`, `fitit_lock_sets`, el interruptor
+`Registrar sin abrir` y la preferencia `fitit_rest_notice`, y la cola `fitit_outbox` de la
+página (pasa al nativo en el APK; en la PWA se queda como está).
+
+Se conserva, porque son reglas y no código: una serie se escribe en disco antes de tocar
+la red; se envía en orden; lo que se repite es la plantilla, no la serie con hora; cardio
+fuera; «descanso» y «control» son cosas distintas.
+
+## Cómo se construye (resumen técnico)
+
+Un plugin local de Capacitor (`frontend/android/…/fitit/session/`), sin dependencias
+nuevas:
+
+- **`SessionStore`**: el estado (`workoutId`, ejercicio, grupo muscular, plantilla,
+  contador, `restEndsAt`, `restSeconds`) y la cola de series, en `SharedPreferences`;
+  el token en `EncryptedSharedPreferences` (androidx.security, Keystore).
+- **`SessionNotification`**: construye y actualiza la notificación en curso
+  (`NotificationCompat`, `setOngoing`, cronómetro en cuenta atrás, tres acciones, una
+  con `RemoteInput`). Canal silencioso, visibilidad pública.
+- **`SessionWidget`** (`AppWidgetProvider` + `RemoteViews`) con los dos layouts.
+- **`SessionActionReceiver`**: recibe los toques de notificación y widget. Aplica el
+  cambio al estado, repinta las vistas, vibra si toca, y pide envío.
+- **`SessionSender`**: vacía la cola en orden contra `POST /workouts/{id}/sets` con
+  `WorkManager` (red disponible, reintentos con espera). La misma cola la usa la página.
+- **`SessionPlugin`** (JS ↔ nativo): `publish(state)` desde Entreno en cada serie o
+  cambio de ejercicio; `enqueue(set)` para las series de la app; `end()`; `setToken()` /
+  `clearToken()`; evento `changed` para que la pantalla se repinte cuando algo llega de
+  fuera. En web, cada función es un no-op y `enqueue` cae en `offline.js`.
+- Un relabel al fin del descanso con `AlarmManager` inexacto (no importa que llegue un
+  minuto tarde: el reloj ya lo enseña).
+- Tipografía: Geist Mono para las cifras exige empaquetar la fuente en `res/font`
+  (~100 KB). Si no, la mono del sistema. Decisión de diseño pendiente.
 
 ## Verificación
 
-- JS: `notify.native.test.js` ya simula el plugin de notificaciones; el de sesión se
-  simula igual, y se comprueba que `startNatively` publica sin token, que
-  `claimNatively` devuelve lo que el plugin devuelve y lo vacía, y que `stopNatively`
-  limpia. Corre en `npm test`.
-- Nativo: el proyecto Android no tiene tests propios (sólo el `ExampleUnitTest` de la
-  plantilla). El receptor y el `SessionStore` se pueden probar con JUnit local
-  (`SharedPreferences` en Robolectric), pero el widget sólo se ve **instalando el APK**
-  (`npm run android:apk`), añadiéndolo a la pantalla de inicio y registrando una serie.
-  Desde esta sesión no hay dispositivo: la verificación en pantalla es tuya.
+- JS: el plugin se simula en vitest como los demás de `platform/`; se comprueba qué
+  publica Entreno y cuándo, y que en web no se llama a nada.
+- Nativo: `SessionStore`, el parseo de «Otra serie» y el receptor con JUnit + Robolectric
+  (hoy el proyecto Android no tiene ningún test propio; se estrenan aquí).
+- En el teléfono, que es lo único que prueba lo que importa: bloquear y tocar `+1 serie`
+  sin desbloquear; `Otra serie` desde el bloqueo; convivir con YouTube Music; modo avión
+  y `N sin enviar`; matar la app y ver que el widget sigue; el widget en los dos tamaños.
 
-## Coste y fases
+## Fases
 
 | Fase | Qué se ve | Coste |
 |---|---|---|
-| 1 · Puente | Nada. `fitit_lock_sets` pasa a `SharedPreferences`; `publish/clear/claim` | Medio día |
-| 2 · Widget | El widget en la pantalla de inicio, con cuenta atrás y `+1 serie` | Un día, más el ida y vuelta de probarlo en el teléfono |
-| 3 · Opcional | La notificación del APK deja de abrir la app al tocar `+1 serie` | Un par de horas, pero revisa una decisión de la fase 2 |
+| 1 · Dueño nativo + notificación | La notificación en curso con sus tres botones; se borra lo viejo; token y cola nativos | 2 días |
+| 2 · Widget 4×1 | El widget mínimo, `Empezar` y `Terminar` | 1 día |
+| 3 · Widget 4×2 | Peso y reps con botones | Medio día, si se decide tras ver la maqueta |
 
-Trade-off que decides tú: la fase 1 sola no aporta nada visible, pero es la que evita
-que notificación y widget tengan dos listas de series pendientes. No haría el widget sin
-ella.
+## Decisiones pendientes del product owner
+
+1. Tamaño del widget: ¿4×1, 4×2 o los dos? ¿`Empezar entreno` dentro?
+2. Confirmar que en la PWA desaparece `Registrar sin abrir` (con esta spec se borra su
+   implementación).
+3. Geist Mono empaquetada en el APK, o mono del sistema para las cifras del widget.
