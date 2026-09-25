@@ -133,18 +133,9 @@ nativos desde la fase 2 (abajo).
   para ML Kit. La web sigue con el `<input capture>`.
 - `@capacitor/local-notifications` + `haptics`: el fin del descanso avisa y vibra con la
   pantalla bloqueada o la app en segundo plano.
-  **Hecho (notificaciones):** `platform/notifyNative.js`, detrás de la misma API de
-  `notify.js`. Dos canales de Android: «Sesión en curso» (el aviso con «+1 serie» y
-  «Otra serie») y «Fin del descanso» (programado con alarma a la hora del fin; suena y
-  vibra aunque la app esté cerrada). Un toque en un botón **abre la app** —el plugin
-  sólo sabe lanzar la actividad; bloqueado, Android pide desbloquear— y la serie entra
-  en la cola de la página por `claimLockScreenSets`, como las del service worker. Con la
-  app cerrada, el toque la arranca y la serie llega igual (viaja en la notificación).
-  Para que el fin sea puntual el manifiesto declara `USE_EXACT_ALARM`, que Android 13+
-  concede al instalar (en 12 ya venía concedido): no se abre la pantalla «Alarmas y
-  recordatorios». Una tienda lo rechazaría fuera de apps de alarma; para instalar a
-  mano no importa. Icono propio en la barra de estado (`ic_stat_fitit`, la retícula
-  en una tinta). `haptics` no se usa: el canal ya vibra.
+  **Hecho (notificaciones):** retirado en la fase 0 de `widgets-entreno.md` — nunca
+  funcionó de forma fiable. Lo sustituye el control nativo (notificación, widget) que
+  describe esa spec.
 - Opcional: `document-scanner` para la tabla (sólo Android si no se confirma iOS).
 - **Qué notarás:** en Comida, escanear pasa a ser apuntar con la cámara sin hacer
   foto; el aviso del descanso llega siempre.

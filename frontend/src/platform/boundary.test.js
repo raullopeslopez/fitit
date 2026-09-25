@@ -21,7 +21,6 @@ const FORBIDDEN = [
   [/\bnavigator\.(serviceWorker|wakeLock|onLine)\b/, 'navigator → platform/'],
   [/\bBarcodeDetector\b/, 'BarcodeDetector → platform/scanner.js'],
   [/\bwindow\.google\b/, 'window.google → platform/googleIdentity.js'],
-  [/\bNotification\./, 'Notification → platform/notify.js'],
   [/\bfetch\(\s*[`'"]\/api/, "fetch('/api…') → platform/http.js"],
   [/from\s+['"]@(capacitor|capgo|capacitor-community|capacitor-mlkit)\//, 'plugin nativo → platform/'],
 ]

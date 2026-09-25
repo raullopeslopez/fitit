@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   colores, revalidada para daltonismo en claro y oscuro; Cuádriceps se queda el
   rosa que era de Pierna, para que el grueso del historial no cambie de color.
 
+### Removed
+- **«Registrar sin abrir» y el aviso de descanso.** Ni la notificación de la PWA
+  (service worker) ni la del APK (notificaciones locales) funcionaron nunca de
+  forma fiable: las dos intentaban mantener vivo, desde fuera, un estado que
+  sólo conocía la página. Se retira entero, en APK y PWA; lo sustituye el
+  control nativo que describe `docs/widgets-entreno.md`.
+
 ### Fixed
 - **"Elevación de piernas" contaba como pierna.** El clasificador veía "pierna"
   dentro del nombre antes de llegar a la regla de abdominales, así que un ejercicio
