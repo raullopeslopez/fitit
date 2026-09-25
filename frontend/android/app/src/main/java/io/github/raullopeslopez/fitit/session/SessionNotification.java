@@ -75,7 +75,7 @@ final class SessionNotification {
                 .setSilent(true)
                 .setOnlyAlertOnce(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentIntent(openApp(context))
+                .setContentIntent(SessionLaunch.open(context, control.optInt("workoutId", -1)))
                 .addAction(0, "+1 serie", broadcast(context, SessionController.ACTION_REPEAT, 1, false))
                 .addAction(otherSet(context));
 
@@ -113,11 +113,4 @@ final class SessionNotification {
         return PendingIntent.getBroadcast(context, code, intent, flags);
     }
 
-    /** Tocar el cuerpo abre la app, que vuelve a Entreno si el entreno sigue abierto. */
-    private static PendingIntent openApp(Context context) {
-        Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-        if (launch == null) launch = new Intent();
-        launch.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        return PendingIntent.getActivity(context, 0, launch, PendingIntent.FLAG_IMMUTABLE);
-    }
 }

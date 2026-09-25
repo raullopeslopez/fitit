@@ -97,6 +97,17 @@ describe('platform/session en el APK', () => {
     await expect(session.flush()).resolves.toBeDefined()
   })
 
+  it('reparte la orden con la que se abrió la app', async () => {
+    plugin.addListener.mockResolvedValue({ remove: vi.fn() })
+    const heard = vi.fn()
+
+    session.onLaunch(heard)
+    const [event, handler] = plugin.addListener.mock.calls[0]
+    expect(event).toBe('launch')
+    handler({ action: 'start' })
+    expect(heard).toHaveBeenCalledWith({ action: 'start' })
+  })
+
   it('reparte el aviso de fin de envío', async () => {
     const remove = vi.fn()
     plugin.addListener.mockResolvedValue({ remove })

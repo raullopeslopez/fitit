@@ -7,6 +7,22 @@ import { setToken } from './auth.js'
 import * as offline from './offline.js'
 
 vi.mock('./api.js')
+// El puente con el APK. `onLaunch` es la orden con la que el widget o la
+// notificación abrieron la app; el resto no hace nada, como en la web.
+const launch = vi.hoisted(() => ({ listener: null }))
+vi.mock('./platform/session.js', async (original) => {
+  const real = await original()
+  return {
+    ...real,
+    session: {
+      ...real.session,
+      onLaunch: vi.fn((listener) => {
+        launch.listener = listener
+        return () => {}
+      }),
+    },
+  }
+})
 // Sólo lo que habla con el nativo; el resto de la cola funciona de verdad.
 vi.mock('./offline.js', async (original) => ({
   ...(await original()),
@@ -51,6 +67,70 @@ describe('App', () => {
       await userEvent.click(await screen.findByRole('button', { name: /^salir$/i }))
 
       expect(offline.stopNativeQueue).toHaveBeenCalled()
+    })
+  })
+
+  // Fase 3: tocar el widget o la notificación abre la app con una orden.
+  // Spec: docs/widgets-entreno.md, «2 · Widget».
+  describe('abrir desde el widget o la notificación', () => {
+    const todayISO = () => {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+      ).padStart(2, '0')}`
+    }
+
+    beforeEach(() => {
+      launch.listener = null
+      api.listExercises.mockResolvedValue([])
+    })
+
+    it('«abre este entreno» abre ese entreno', async () => {
+      setToken('tok')
+      api.listDays.mockResolvedValue([])
+      api.getWorkout.mockResolvedValue({ id: 4, date: '2026-07-15', name: 'Legs', sets: [] })
+      render(<App />)
+      await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
+
+      act(() => launch.listener({ action: 'open', workoutId: 4 }))
+
+      expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
+      expect(api.getWorkout).toHaveBeenCalledWith(4)
+    })
+
+    it('«Empezar entreno» continúa el de hoy si ya lo hay', async () => {
+      setToken('tok')
+      api.listDays.mockResolvedValue([
+        { id: 1, date: todayISO(), workouts: [{ id: 9, date: todayISO(), name: null, sets: [] }] },
+      ])
+      api.getWorkout.mockResolvedValue({ id: 9, date: todayISO(), name: null, sets: [] })
+      render(<App />)
+      await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
+
+      act(() => launch.listener({ action: 'start' }))
+
+      expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
+      expect(api.getWorkout).toHaveBeenCalledWith(9)
+      expect(api.createWorkout).not.toHaveBeenCalled()
+    })
+
+    it('«Empezar entreno» crea el de hoy si no lo hay', async () => {
+      setToken('tok')
+      api.listDays.mockResolvedValue([])
+      api.createWorkout.mockResolvedValue({ id: 12, date: todayISO(), name: null, sets: [] })
+      api.getWorkout.mockResolvedValue({ id: 12, date: todayISO(), name: null, sets: [] })
+      render(<App />)
+      await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
+
+      act(() => launch.listener({ action: 'start' }))
+
+      expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
+      expect(api.createWorkout).toHaveBeenCalledTimes(1)
+    })
+
+    it('sin sesión no escucha: la orden espera a que entres', () => {
+      render(<App />)
+      expect(launch.listener).toBeNull()
     })
   })
 

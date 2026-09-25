@@ -23,6 +23,20 @@
             android:name=".session.SessionActionReceiver"
             android:exported="false" />
 
+        <!-- El widget 4×1 del entreno (fase 3). Exportado porque quien lo pinta
+             es el launcher, otra app. -->
+        <receiver
+            android:name=".session.SessionWidget"
+            android:exported="true"
+            android:label="@string/widget_4x1_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/session_widget_4x1_info" />
+        </receiver>
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -105,4 +119,6 @@
     <!-- La notificación en curso del entreno. Android 13+ lo pregunta una vez, al
          registrar la primera serie del APK. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- La pulsación corta al tocar «+1 serie» en el widget. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

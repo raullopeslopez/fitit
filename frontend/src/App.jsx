@@ -11,6 +11,7 @@ import Wordmark from './Wordmark.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
 import { useColdStart } from './coldstart.js'
 import { startNativeQueue, stopNativeQueue } from './offline.js'
+import { session } from './platform/session.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 import { onResume } from './platform/lifecycle.js'
 import { syncSteps } from './steps.js'
@@ -27,6 +28,9 @@ export default function App() {
   // can offer naming it immediately instead of after a trip to the rename tap.
   const [openWorkoutAutoRename, setOpenWorkoutAutoRename] = useState(false)
   const [view, setView] = useState('days')
+  // «Empezar entreno» pulsado en el widget: Días hace lo mismo que su botón en
+  // cuanto sabe si hoy ya hay entreno.
+  const [startOnArrival, setStartOnArrival] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
   // Is the backend awake? Only asked once per launch, and only ever seen on the
   // launch that has to wake it.
@@ -58,6 +62,23 @@ export default function App() {
   // también la cola que la página tuviera. En la web no hace nada.
   useEffect(() => {
     if (token) startNativeQueue(token)
+  }, [token])
+
+  // Abierta desde el widget o la notificación (docs/widgets-entreno.md, fase 3):
+  // «abre este entreno», o «empieza el de hoy» con la regla de siempre, que es
+  // la del botón de Días y no se repite aquí. Sólo con sesión: sin ella la orden
+  // espera en el nativo a que entres. En la web no llega nunca.
+  useEffect(() => {
+    if (!token) return undefined
+    return session.onLaunch(({ action, workoutId } = {}) => {
+      if (action === 'open' && workoutId) {
+        openWorkout(workoutId)
+      } else if (action === 'start') {
+        openWorkout(null)
+        setView('days')
+        setStartOnArrival(true)
+      }
+    })
   }, [token])
 
   // Runs on mount too, which is the point: every relaunch restamps the open
@@ -145,7 +166,11 @@ export default function App() {
         ) : view === 'food' ? (
           <Comida />
         ) : (
-          <Days onOpenWorkout={openWorkout} />
+          <Days
+            onOpenWorkout={openWorkout}
+            startOnArrival={startOnArrival}
+            onStarted={() => setStartOnArrival(false)}
+          />
         )}
       </main>
       {/* Bottom bar puts navigation in thumb reach for one-handed gym use. */}

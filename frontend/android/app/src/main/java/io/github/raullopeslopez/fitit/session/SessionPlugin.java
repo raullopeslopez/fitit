@@ -1,6 +1,7 @@
 package io.github.raullopeslopez.fitit.session;
 
 import android.Manifest;
+import android.content.Intent;
 import android.os.Build;
 import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSArray;
@@ -52,6 +53,27 @@ public class SessionPlugin extends Plugin {
     @Override
     public void load() {
         SessionEvents.add(listener);
+        // La app arrancó desde el widget o la notificación: la orden espera a
+        // que la página se ponga a escuchar (retenida hasta entonces).
+        announceLaunch(getActivity() == null ? null : getActivity().getIntent());
+    }
+
+    /** Con la app ya abierta, el mismo toque llega aquí. */
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        announceLaunch(intent);
+    }
+
+    /** «Abre este entreno» o «empieza el de hoy», una sola vez: `launch`. */
+    private void announceLaunch(Intent intent) {
+        JSONObject order = SessionLaunch.take(intent);
+        if (order == null) return;
+        try {
+            notifyListeners("launch", JSObject.fromJSONObject(order), true);
+        } catch (JSONException e) {
+            // Una orden ilegible se ignora: la app abre donde abriría.
+        }
     }
 
     @Override
