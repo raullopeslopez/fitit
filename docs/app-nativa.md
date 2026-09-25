@@ -117,7 +117,19 @@ teclea o se lee la tabla, como en un iPhone.
 
 ### Fase 2 — Lo que la web no daba
 - `@capacitor-mlkit/barcode-scanning`: escaneo en vivo del código de barras.
+  **Hecho** (`platform/scanner.js`): en el APK «Abrir la cámara» abre el escáner de
+  Google (`BarcodeScanner.scan()`, EAN-13/8, UPC-A/E, sin permiso de cámara) y el
+  código sigue el mismo camino que el de una foto (`GET /foods/barcode/{ean}`, y
+  `POST /foods` si la ficha sirve). Cerrar el escáner sin código lleva al peldaño de
+  la tabla («No he leído ningún código.»). Si al teléfono le falta el módulo de
+  Google, se pide para la próxima y esta vez se hace una foto y ML Kit busca el
+  código en ella (`readBarcodesFromImage`, por la ruta del fichero). No recoge un
+  resultado que llegue por `appRestoredResult` (Android mató la app con el escáner
+  delante): se vuelve a escanear.
 - `@capacitor/camera`: foto de la tabla ya reducida antes de subirla.
+  **Hecho** (`platform/camera.js`): `Camera.getPhoto` con la cámara trasera, 1600 px
+  de ancho y calidad 80, devuelta como `File` para `readLabel` y con la ruta dentro
+  para ML Kit. La web sigue con el `<input capture>`.
 - `@capacitor/local-notifications` + `haptics`: el fin del descanso avisa y vibra con la
   pantalla bloqueada o la app en segundo plano.
 - Opcional: `document-scanner` para la tabla (sólo Android si no se confirma iOS).
