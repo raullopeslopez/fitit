@@ -100,7 +100,9 @@ de `package.json` abre una Release nueva. También a mano: Actions → «Android
 
 **Una vez, en Google Cloud Console** (para que funcione «Continuar con Google»):
 APIs y servicios → Credenciales → Crear credenciales → ID de cliente OAuth →
-tipo **Android**, en el mismo proyecto que el cliente web:
+tipo **Android**, en el **mismo proyecto que el cliente web** (número de proyecto
+`387241176763`, el prefijo del ID web; hay otro proyecto llamado «Fitit» que **no** es
+ese, y un cliente creado allí da `[28444] Developer console is not set up correctly`):
 - Nombre del paquete: `io.github.raullopeslopez.fitit`
 - Huella SHA-1: `61:11:8D:6A:D2:53:0E:E2:2F:68:0A:AE:B0:42:84:FA:79:CF:4A:8F`
 
