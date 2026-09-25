@@ -64,6 +64,7 @@ import {
   setScreenAwake,
 } from './prefs.js'
 import { showKg } from './units.js'
+import { nativeSession, session } from './platform/session.js'
 import { holdScreenAwake } from './platform/wakelock.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
@@ -1465,15 +1466,33 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   const tmpPrefix = useRef(`tmp-${Date.now().toString(36)}`)
   // One drain at a time, or two triggers firing together send the same set twice.
   const flushing = useRef(false)
+  // The notification permission is asked for once per visit to Entreno; Android
+  // itself stops asking after the second no.
+  const askedNotifications = useRef(false)
 
   function endRest() {
     setRestUntil(null)
     setRestEndsAt(null)
   }
 
-  // Skipping is a decision, not the clock running out.
+  // Skipping is a decision, not the clock running out. In the APK the
+  // notification drops its clock too: two clocks disagreeing is worse than none.
   function skipRest() {
     endRest()
+    if (nativeSession()) session.skipRest().catch(() => {})
+  }
+
+  // The rest the notification started or skipped (docs/widgets-entreno.md,
+  // fase 2): a +1 from the lock screen starts the bar here too, and «Saltar»
+  // there takes it away. Only for this workout.
+  function followNativeRest(control) {
+    if (!control || control.workoutId !== workoutId) return
+    if (control.restEndsAt > Date.now()) {
+      setRestUntil(control.restEndsAt)
+      setRestEndsAt(control.restEndsAt)
+    } else if (!control.restEndsAt) {
+      endRest()
+    }
   }
 
   // The countdown on screen.
@@ -1596,7 +1615,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       setWorkout(withQueued)
       if (rejected > 0) refused()
     })
-    return onNativeSend(({ workout: answered, rejected }) => {
+    return onNativeSend(({ workout: answered, rejected, control }) => {
+      followNativeRest(control)
       // Sólo este entreno se redibuja con la respuesta; la cola puede llevar
       // series de una sesión de la que ya saliste.
       if (answered?.id === workoutId) {
@@ -1607,6 +1627,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       }
       if (rejected > 0) refused()
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutId])
 
   // The screen doesn't go dark between sets. Re-run on the preference, so
@@ -1684,8 +1705,37 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     setWorkout(withQueued)
     // Started on the tap, not on the round trip: resting is what you do *while*
     // the request is open, and offline there may not be a round trip for hours.
-    startRest()
+    const endsAt = startRest()
+    if (fields.kind !== 'cardio') publishControl(name, fields, endsAt)
     await flushQueue()
+  }
+
+  // In the APK, what the notification in progress shows and repeats: the set
+  // just logged, as a template (the stamped moment is not something to repeat),
+  // and how many of this exercise so far. Cardio is left out: the interval you
+  // just ran is not the one you are about to run. The notification permission
+  // is asked for here, on the first set, where it is obviously for something.
+  // Spec: docs/widgets-entreno.md, fase 2.
+  function publishControl(name, fields, endsAt) {
+    if (!nativeSession()) return
+    const now = Date.now()
+    session
+      .publish({
+        workoutId: workout.id,
+        exercise: name,
+        group: muscleByName[name] ?? null,
+        template: { exercise_name: name, reps: fields.reps, weight: fields.weight ?? null },
+        // `workout` is this render's: the set just queued isn't in it yet.
+        count: setsFor(name).length + 1,
+        restSeconds,
+        restEndsAt: endsAt ?? 0,
+        lastSetAt: now,
+      })
+      .catch(() => {})
+    if (!askedNotifications.current) {
+      askedNotifications.current = true
+      session.ensureNotifications().catch(() => {})
+    }
   }
 
   // Drain the outbox oldest-first. Nothing here throws at the card: a set that
@@ -2325,6 +2375,22 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
                       ))}
                     </div>
                   </div>
+                  {/* Only in the APK, in the spot the lock-screen switch used to
+                      have: takes the notification in progress away. The sets
+                      stay — a session in Fitit is a day, and there is nothing
+                      on the server to close. docs/widgets-entreno.md, fase 2. */}
+                  {nativeSession() && (
+                    <button
+                      type="button"
+                      className="secondary set-action head-menu-item"
+                      onClick={() => {
+                        session.end().catch(() => {})
+                        closeMenu()
+                      }}
+                    >
+                      Terminar entreno
+                    </button>
+                  )}
                   {/* Two taps to delete: the first only arms it. Destructive gets
                       the true-red treatment DESIGN.md reserves for it. */}
                   {confirmingDelete ? (

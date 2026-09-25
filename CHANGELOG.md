@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.6.0: registrar series desde la pantalla de bloqueo.** Fase 2 de
+  `docs/widgets-entreno.md`. Desde la primera serie de fuerza aparece una
+  notificación en curso, silenciosa y visible con el teléfono bloqueado: el
+  ejercicio y su grupo (`Press banca · Pecho`), la serie que se repite y cuántas
+  van (`32,5 kg × 12 · 4 series`) y la cuenta atrás del descanso. Tres botones:
+  **`+1 serie`** registra otra igual sin desbloquear; **`Otra serie`** abre un
+  campo para escribir `32,5x10` (vale coma o punto, o sólo las reps), y lo que no
+  entiende lo dice en la segunda línea en vez de registrarlo; **`Saltar`** quita el
+  reloj. Al acabar el descanso dice `Descanso terminado`, sin sonar. Lo registrado
+  desde ahí aparece en la tarjeta de Entreno y se envía en el momento. En Entreno
+  → menú (sólo en el APK), **`Terminar entreno`** la quita; sola se va tras dos
+  horas sin series. La primera serie del APK pide el permiso de notificaciones.
 - **APK 0.5.0: las series las envía Android, no la página.** Fase 1 de
   `docs/widgets-entreno.md`. En el APK la cola de series sin enviar pasa a
   la parte nativa: se guarda en el teléfono y la envía WorkManager en cuanto

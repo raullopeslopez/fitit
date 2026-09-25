@@ -12,6 +12,10 @@ const plugin = vi.hoisted(() => ({
   flush: vi.fn(),
   setSession: vi.fn(),
   clearToken: vi.fn(),
+  publish: vi.fn(),
+  end: vi.fn(),
+  skipRest: vi.fn(),
+  ensureNotifications: vi.fn(),
   addListener: vi.fn(),
 }))
 vi.mock('@capacitor/core', () => ({ registerPlugin: vi.fn(() => plugin) }))
@@ -40,6 +44,20 @@ describe('platform/session en el APK', () => {
       apiBase: 'https://x/api',
       clientVersion: '0.5.0',
     })
+  })
+
+  it('publica el control, lo termina, salta el descanso y pide el permiso', async () => {
+    const control = { workoutId: 1, exercise: 'Press banca' }
+    plugin.ensureNotifications.mockResolvedValue({ granted: true })
+
+    await session.publish(control)
+    await session.skipRest()
+    await session.end()
+
+    expect(plugin.publish).toHaveBeenCalledWith({ control })
+    expect(plugin.skipRest).toHaveBeenCalled()
+    expect(plugin.end).toHaveBeenCalled()
+    await expect(session.ensureNotifications()).resolves.toEqual({ granted: true })
   })
 
   it('llama al nativo de uno en uno, en el orden en que se pidió', async () => {
