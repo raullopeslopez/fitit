@@ -23,6 +23,7 @@ const FORBIDDEN = [
   [/\bwindow\.google\b/, 'window.google → platform/googleIdentity.js'],
   [/\bNotification\./, 'Notification → platform/notify.js'],
   [/\bfetch\(\s*[`'"]\/api/, "fetch('/api…') → platform/http.js"],
+  [/from\s+['"]@(capacitor|capgo|capacitor-community|capacitor-mlkit)\//, 'plugin nativo → platform/'],
 ]
 
 function sources(dir) {

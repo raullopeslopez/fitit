@@ -1,0 +1,13 @@
+{
+  "appId": "io.github.raullopeslopez.fitit",
+  "appName": "Fitit",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#f4f2ee"
+  },
+  "plugins": {
+    "SocialLogin": {
+      "providers": { "google": true, "facebook": false, "apple": false, "twitter": false }
+    }
+  }
+}

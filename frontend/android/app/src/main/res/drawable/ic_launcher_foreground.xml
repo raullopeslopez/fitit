@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado de brand/fitit-icono-app.svg: la retícula 3×3, sin el fondo (lo pone
+     el adaptive icon). Escalada 0,9 sobre su centro (338) para caber en la zona segura de 66 dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:pivotX="338"
+        android:pivotY="338"
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:translateX="174"
+        android:translateY="174">
+        <path android:fillColor="#F4F2EE" android:pathData="M32.67,32.67h130.67v130.67h-130.67z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M256.33,16.33h163.33v163.33h-163.33z"/>
+        <path android:fillColor="#E4571B" android:pathData="M480,0h196v196h-196z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M49,289h98v98h-98z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M272.67,272.67h130.67v130.67h-130.67z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M496.33,256.33h163.33v163.33h-163.33z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M65.33,545.33h65.33v65.33h-65.33z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M289,529h98v98h-98z"/>
+        <path android:fillColor="#F4F2EE" android:pathData="M512.67,512.67h130.67v130.67h-130.67z"/>
+    </group>
+</vector>

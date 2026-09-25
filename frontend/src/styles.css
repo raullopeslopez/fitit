@@ -3684,6 +3684,11 @@ button.set-chip:active:not(:disabled) {
   justify-content: center;
   min-height: 44px;
 }
+/* El botón propio del APK, donde el de Google no se puede pintar. DESIGN.md:
+   44px mínimo en controles. */
+.google-native {
+  min-height: 44px;
+}
 .google-signin-or {
   display: flex;
   align-items: center;

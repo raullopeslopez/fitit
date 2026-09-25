@@ -6,6 +6,10 @@
 // cuenta del sistema (`@capgo/capacitor-social-login`). Lo que devuelve es lo
 // mismo en los dos casos: un ID token que el backend canjea en `/auth/google`.
 
+import { SocialLogin } from '@capgo/capacitor-social-login'
+
+import { isNative } from './native.js'
+
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
 
 // Module-level so a screen that mounts twice (login → registro → login) asks
@@ -40,6 +44,8 @@ function loadGis() {
  * fue, no pinta nada.
  */
 export function showGoogleSignIn({ clientId, slot, isLive, onCredential }) {
+  if (isNative()) return showNativeButton({ clientId, slot, onCredential })
+
   loadGis()
     .then(() => {
       if (!isLive() || !slot()) return
@@ -69,4 +75,40 @@ export function showGoogleSignIn({ clientId, slot, isLive, onCredential }) {
     })
 
   return () => window.google?.accounts?.id?.cancel()
+}
+
+// En el APK: nuestro propio botón, y al tocarlo el selector de cuentas de
+// Android. `webClientId` es el mismo ID de cliente **web** que usa la PWA, así
+// que el ID token que devuelve lleva la audiencia que el backend ya comprueba
+// y `/auth/google` no distingue de dónde vino.
+//
+// El selector exige además un cliente OAuth de tipo Android en Google Cloud con
+// el paquete y la huella SHA-1 del certificado del APK (docs/app-nativa.md).
+// Sin él, el login falla con un error y la contraseña sigue siendo la entrada.
+let nativeReady = null
+
+function showNativeButton({ clientId, slot, onCredential }) {
+  const host = slot()
+  if (!host) return () => {}
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'secondary btn-full google-native'
+  button.textContent = 'Continuar con Google'
+  button.addEventListener('click', async () => {
+    try {
+      nativeReady ??= SocialLogin.initialize({ google: { webClientId: clientId } })
+      await nativeReady
+      const { result } = await SocialLogin.login({ provider: 'google', options: {} })
+      if (result?.idToken) onCredential(result.idToken)
+    } catch (error) {
+      nativeReady = null
+      // Cerrar el selector no es un error que haya que contar.
+      if (error?.code === 'USER_CANCELLED') return
+      onCredential(null)
+    }
+  })
+  host.replaceChildren(button)
+
+  return () => button.remove()
 }

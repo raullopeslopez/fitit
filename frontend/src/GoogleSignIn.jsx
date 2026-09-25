@@ -28,6 +28,8 @@ export default function GoogleSignIn({ onAuthenticated }) {
       onCredential: async (credential) => {
         setError('')
         try {
+          // `null` es el selector nativo diciendo que no pudo: mismo aviso.
+          if (!credential) throw new Error('no credential')
           onAuthenticated(await googleLogin(credential))
         } catch {
           setError('No se pudo entrar con Google. Inténtalo otra vez.')
