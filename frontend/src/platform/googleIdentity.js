@@ -105,10 +105,20 @@ function showNativeButton({ clientId, slot, onCredential }) {
       nativeReady = null
       // Cerrar el selector no es un error que haya que contar.
       if (error?.code === 'USER_CANCELLED') return
-      onCredential(null)
+      onCredential(null, error?.message ?? String(error))
     }
   })
   host.replaceChildren(button)
 
   return () => button.remove()
+}
+
+// Qué contar debajo del aviso cuando el login falla. Sólo en el APK: ahí un
+// fallo puede venir de la huella, del proyecto de Google Cloud o de que el
+// cliente Android aún no se ha propagado, y sin el motivo no hay forma de
+// saber cuál desde el teléfono. En la web el aviso sigue siendo el de siempre.
+export function describeFailure(error) {
+  if (!isNative()) return null
+  if (error?.status) return `el servidor rechazó la cuenta (${error.status})`
+  return error?.message || null
 }

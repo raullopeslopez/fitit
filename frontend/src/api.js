@@ -38,7 +38,7 @@ export async function googleLogin(credential) {
     body: JSON.stringify({ credential }),
   })
   if (!res.ok) {
-    throw new Error('google sign-in rejected')
+    throw Object.assign(new Error('google sign-in rejected'), { status: res.status })
   }
   const data = await res.json()
   return data.access_token

@@ -18,10 +18,15 @@ vi.mock('@capgo/capacitor-social-login', () => ({
   SocialLogin: { initialize: vi.fn(() => Promise.resolve()), login: vi.fn() },
 }))
 
+vi.mock('../api.js', () => ({ googleLogin: vi.fn() }))
+
+import { fireEvent, render, screen } from '@testing-library/react'
 import { App } from '@capacitor/app'
 import { KeepAwake } from '@capacitor-community/keep-awake'
 import { SocialLogin } from '@capgo/capacitor-social-login'
 
+import { googleLogin } from '../api.js'
+import GoogleSignIn from '../GoogleSignIn.jsx'
 import { handleBackButton } from './backButton.js'
 import { showGoogleSignIn } from './googleIdentity.js'
 import { notificationState, startRestNotice } from './notify.js'
@@ -116,12 +121,53 @@ describe('platform/ dentro del APK', () => {
       expect(onCredential).not.toHaveBeenCalled()
     })
 
-    it('un fallo del selector llega como credencial vacía, para que salga el aviso', async () => {
-      SocialLogin.login.mockRejectedValue(new Error('no android client'))
+    it('un fallo del selector llega como credencial vacía y con su motivo', async () => {
+      SocialLogin.login.mockRejectedValue(
+        new Error('[28444] Developer console is not set up correctly.'),
+      )
       const onCredential = vi.fn()
       show(onCredential)
       slot.querySelector('button').click()
-      await vi.waitFor(() => expect(onCredential).toHaveBeenCalledWith(null))
+      await vi.waitFor(() =>
+        expect(onCredential).toHaveBeenCalledWith(
+          null,
+          '[28444] Developer console is not set up correctly.',
+        ),
+      )
+    })
+  })
+
+  // El aviso de siempre, y debajo el motivo: sin él, un fallo del login en el
+  // teléfono no se puede distinguir de otro (huella, proyecto, propagación).
+  describe('el aviso de error en Login', () => {
+    it('enseña el motivo del selector de Android', async () => {
+      vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'web-client.apps.googleusercontent.com')
+      SocialLogin.login.mockRejectedValue(new Error('[28444] Developer console is not set up correctly.'))
+      render(<GoogleSignIn onAuthenticated={() => {}} />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Continuar con Google' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No se pudo entrar con Google. Inténtalo otra vez.',
+      )
+      expect(
+        screen.getByText('Detalle: [28444] Developer console is not set up correctly.'),
+      ).toBeInTheDocument()
+      vi.unstubAllEnvs()
+    })
+
+    it('y el del servidor, si Android dio la cuenta pero Fitit no la aceptó', async () => {
+      vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'web-client.apps.googleusercontent.com')
+      SocialLogin.login.mockResolvedValue({ provider: 'google', result: { idToken: 'jwt' } })
+      googleLogin.mockRejectedValue(Object.assign(new Error('google sign-in rejected'), { status: 401 }))
+      render(<GoogleSignIn onAuthenticated={() => {}} />)
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Continuar con Google' }))
+
+      expect(
+        await screen.findByText('Detalle: el servidor rechazó la cuenta (401)'),
+      ).toBeInTheDocument()
+      vi.unstubAllEnvs()
     })
   })
 })
