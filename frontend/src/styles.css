@@ -3689,11 +3689,6 @@ button.set-chip:active:not(:disabled) {
 .google-native {
   min-height: 44px;
 }
-/* El motivo de un fallo del login en el APK: mensajes de Android largos y sin
-   espacios que, sin esto, empujan la columna más allá del borde. */
-.google-signin-detail {
-  overflow-wrap: anywhere;
-}
 .google-signin-or {
   display: flex;
   align-items: center;
