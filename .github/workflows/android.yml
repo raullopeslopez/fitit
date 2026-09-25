@@ -33,7 +33,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # Sin setup-android: el runner de ubuntu ya trae el SDK (ANDROID_HOME) y
+      # Gradle baja lo que falte. La acción pedía el paquete `tools`, retirado.
       - name: Install deps
         run: npm install
       - name: Build web bundle + sync Android
