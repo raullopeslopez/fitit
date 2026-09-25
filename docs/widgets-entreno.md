@@ -257,7 +257,7 @@ inicio con sesión en oscuro, inicio sin sesión y sin red en claro).
    `POST /workouts/{id}/sets` lo acepta como campo opcional. Si ya existe en ese entreno una
    serie con el mismo `client_id`, el servidor no crea otra: contesta con el entreno tal
    como está, así que el reintento se ve como un éxito. Sin `client_id` todo sigue como
-   hoy, y los clientes viejos no se rompen. En la base: columna `set_entries.client_id`
+   hoy, y los clientes viejos no se rompen. En la base: columna `sets.client_id`
    que admite nulo, única por entreno cuando no es nula, y su migración Alembic. Spec en
    `log_set.feature`: el mismo `client_id` dos veces da una serie, y dos series sin
    `client_id` siguen siendo dos. Así «llegan una sola vez» pasa a ser una garantía y no
@@ -299,7 +299,7 @@ notificación de `public/sw.js`, el interruptor `Registrar sin abrir` y sus pref
 ### Fase 1 · Dueño nativo, cola y token (APK 0.5.0) · dos días
 
 Primero el backend, que se puede mergear y desplegar solo: `client_id` en `SetIn` y en
-`set_entries` (migración y escenarios en `log_set.feature`), y `fitit_outbox` mandándolo.
+`sets` (migración y escenarios en `log_set.feature`), y `fitit_outbox` mandándolo.
 Después el plugin `Session` con `SessionStore` (estado y cola en `SharedPreferences`), el
 token cifrado con la clave del Keystore y `SessionSender` con `WorkManager`. Entreno publica el
 estado en cada serie y cambio de ejercicio, y en el APK encola en la cola nativa en vez
