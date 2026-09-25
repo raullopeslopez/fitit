@@ -5,7 +5,6 @@ import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import './styles.css'
 import { handleBackButton } from './platform/backButton.js'
-import { initNotifications } from './platform/notify.js'
 import { registerServiceWorker } from './platform/serviceWorker.js'
 
 // Dev benches, on a query string and nothing else: `volume` is the per-muscle
@@ -61,5 +60,3 @@ mount().then((tree) =>
 registerServiceWorker()
 // Dentro del APK, el botón atrás de Android (en la web no hace nada).
 handleBackButton()
-// Dentro del APK, los toques en «+1 serie» (también el que arrancó la app).
-initNotifications()

@@ -95,9 +95,4 @@
     <uses-permission android:name="android.permission.health.READ_VO2_MAX" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_VO2_MAX" tools:node="remove" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- El aviso de fin de descanso es una alarma a una hora exacta
-         (platform/notifyNative.js). Con este permiso Android 13+ la concede al
-         instalar, sin mandarte a «Alarmas y recordatorios». Una tienda sólo lo
-         acepta en apps de alarma o calendario: para instalar a mano, basta. -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>
