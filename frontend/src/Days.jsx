@@ -13,6 +13,7 @@ import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { cacheBootSummary } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
 import { CtaLabelSkeleton, DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
+import { STEPS_SYNCED, formatSteps, stepsByDate } from './steps.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -107,6 +108,9 @@ export default function Days({ onOpenWorkout }) {
   const [menuFor, setMenuFor] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
+  // Pasos por fecha, de Health Connect (steps.js). Un día que no está no tiene
+  // dato y se dibuja sin cifra.
+  const [steps, setSteps] = useState({})
 
   // A press that became a hold must not also land as a tap on the row it was
   // held over: the sheet would open behind the session it just opened.
@@ -124,6 +128,32 @@ export default function Days({ onOpenWorkout }) {
       })
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])
+
+  // Los pasos de los días que hay en la lista: desde el más antiguo (hasta 400
+  // días atrás, lo que deja pedir el servidor) hasta el más reciente. Se vuelven
+  // a pedir cuando el teléfono acaba de subir pasos nuevos.
+  useEffect(() => {
+    if (!days || days.length === 0) return undefined
+    const dates = days.map((day) => day.date).sort()
+    const to = dates[dates.length - 1]
+    const [y, m, d] = to.split('-').map(Number)
+    const limit = new Date(y, m - 1, d - 399)
+    const limitIso = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(
+      limit.getDate(),
+    ).padStart(2, '0')}`
+    const from = dates[0] > limitIso ? dates[0] : limitIso
+    let live = true
+    const load = () =>
+      stepsByDate(from, to)
+        .then((loaded) => live && setSteps(loaded))
+        .catch(() => {})
+    load()
+    window.addEventListener(STEPS_SYNCED, load)
+    return () => {
+      live = false
+      window.removeEventListener(STEPS_SYNCED, load)
+    }
+  }, [days])
 
   useEffect(() => () => clearTimeout(pressTimer.current), [])
 
@@ -451,6 +481,9 @@ export default function Days({ onOpenWorkout }) {
                         renderSession(day, w, day.date !== todayISO() || !!sessionLength(w)),
                       )}
                     </ul>
+                    {steps[day.date] != null && (
+                      <p className="day-steps">{formatSteps(steps[day.date])}</p>
+                    )}
                   </div>
                 </div>
               )

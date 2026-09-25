@@ -152,11 +152,21 @@ nativos desde la fase 2 (abajo).
 - **Qué notarás:** lo mismo que en Android. El escáner de códigos funciona por primera vez
   en iPhone.
 
-### Fase 4 — Salud
-- `@capgo/capacitor-health` (o `capacitor-health`): leer el peso de la báscula para
-  la pantalla de Peso y, si interesa, pasos o energía activa.
-- Decisión pendiente: sólo leer, o también escribir los entrenos en Salud.
-- Una medida que falta en Salud es `NULL`, no `0` (misma regla que en Comida).
+### Fase 4 — Salud · hecha (0.3.0)
+Decidido: **leer los pasos** y **escribir el peso tecleado**. El peso no se lee (si algún
+día se lee, manda lo tecleado); nada más de salud se lee ni se escribe.
+- Plugin `@capgo/capacitor-health` (Health Connect). `capacitor-health` sólo lee, y el peso
+  hay que escribirlo. Exige Android 8+: `minSdkVersion` pasa de 24 a 26.
+- `platform/health.js`: permiso `read: steps` + `write: weight`; pasos por día de los
+  últimos 30 días (lo que Health Connect deja leer sin permiso de historial); un día con 0
+  no se sube (un día sin datos no es un 0).
+- `steps.js`: sube los pasos al abrir la app y al volver a ella, como mucho cada 5 minutos
+  (`PUT /steps`, una fila por día y usuario, reescribe el día). Días los pinta bajo las
+  sesiones de cada día («8.432 pasos»); un día sin fila no enseña nada.
+- El peso tecleado en el APK va también a Health Connect. El plugin sólo sabe añadir: una
+  corrección el mismo día deja allí dos pesadas; en Fitit sigue habiendo una.
+- `/privacidad` explica los dos permisos; Health Connect la enlaza desde su diálogo
+  (`health_connect_privacy_policy_url`).
 
 ### Fase 5 — Tienda (sólo si se decide publicar)
 - Política de privacidad y **consentimiento explícito** antes de mandar fotos o datos de

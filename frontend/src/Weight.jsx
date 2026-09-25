@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { logBodyWeight, weightTrend } from './api.js'
+import { saveWeightToHealth } from './platform/health.js'
 import { formatDayShort } from './format.js'
 
 // La fecha civil de hoy. **No** `foodDayIso()`: el corte de las 04:00 es del
@@ -52,6 +53,9 @@ export default function Weight({ today = new Date() }) {
     setGuardando(true)
     try {
       await logBodyWeight({ measured_on: hoyIso(today), kg })
+      // En el APK, también a Health Connect, para las demás apps. Sin esperar:
+      // lo que cuenta es que ya está en Fitit.
+      saveWeightToHealth(kg)
       setTexto('')
       await refrescar()
     } catch {

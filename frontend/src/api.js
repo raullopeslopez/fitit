@@ -361,6 +361,19 @@ export function logBodyWeight({ measured_on, kg }) {
   })
 }
 
+// Los pasos del teléfono (Health Connect), un día por fila. Subir un día que ya
+// estaba lo reescribe: los pasos del día sólo crecen, y la última lectura es la
+// más completa.
+export function putSteps(days) {
+  return apiFetch('/steps', { method: 'PUT', body: JSON.stringify({ days }) })
+}
+
+// Los pasos entre dos fechas, ambas incluidas. Sólo vienen los días que tienen
+// pasos: un día que falta es un día sin dato, no un día de cero.
+export function getSteps(from, to) {
+  return apiFetch(`/steps?from=${from}&to=${to}`)
+}
+
 // Las pesadas, de la más reciente a la más antigua. Todavía no la pinta nadie:
 // la usará la curva de peso cuando exista.
 export function listBodyWeights() {

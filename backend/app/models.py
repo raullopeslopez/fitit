@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -381,6 +382,37 @@ class BodyWeight(Base):
     measured_on: Mapped[date] = mapped_column(Date, index=True)
     kg: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DailySteps(Base):
+    """Los pasos de un día, tal como los cuenta el móvil.
+
+    Una fila por día y por usuario. La cuenta la lleva Health Connect y la app
+    de Android la sube; el servidor no suma nada. Como el recuento crece a lo
+    largo del día, una lectura posterior del mismo día es la más completa y
+    escribe encima de la anterior (`PUT /steps`).
+
+    `date` es un día civil, el que dice el teléfono, y **no pasa por
+    `food_log_date()`**: por lo mismo que `BodyWeight.measured_on`, el corte de
+    las 04:00 es del diario de comida. Los pasos de la 01:00 son de ese día.
+
+    Un día sin fila es desconocido — la pantalla imprime `—`. Nadie sintetiza
+    filas con 0: un cero aquí es un cero que el móvil midió.
+    """
+
+    __tablename__ = "daily_steps"
+    __table_args__ = (
+        UniqueConstraint("user_id", "date", name="uq_daily_steps_user_day"),
+        CheckConstraint("steps >= 0", name="ck_daily_steps_non_negative"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    date: Mapped[date] = mapped_column(Date)
+    steps: Mapped[int] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class Dish(Base):
