@@ -11,6 +11,8 @@ import Wordmark from './Wordmark.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
 import { useColdStart } from './coldstart.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
+import { onResume } from './platform/lifecycle.js'
+import { syncSteps } from './steps.js'
 
 export default function App() {
   const [token, setTokenState] = useState(getToken())
@@ -40,6 +42,14 @@ export default function App() {
     setUnauthorizedHandler(() => setTokenState(null))
     return () => setUnauthorizedHandler(null)
   }, [])
+
+  // Los pasos del teléfono, al entrar y cada vez que la app vuelve a primer
+  // plano. Fuera del APK `syncSteps` no hace nada.
+  useEffect(() => {
+    if (!token) return undefined
+    syncSteps()
+    return onResume(() => syncSteps())
+  }, [token])
 
   // Runs on mount too, which is the point: every relaunch restamps the open
   // workout, so a long session doesn't age out from under you.

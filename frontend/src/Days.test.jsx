@@ -57,6 +57,21 @@ describe('Days', () => {
     expect(container.querySelector('.day-session-count').textContent).toBe('2 SER')
   })
 
+  // Los pasos del teléfono van bajo las sesiones del día que los tiene. Un día
+  // sin fila no tiene dato: no sale cifra, y nunca un «0 pasos».
+  it('shows the day’s steps, and nothing on a day without them', async () => {
+    api.listDays.mockResolvedValue([
+      { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
+      { id: 1, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    api.getSteps.mockResolvedValue([{ date: '2026-07-16', steps: 8432 }])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+    expect(await screen.findByText('8.432 pasos')).toBeInTheDocument()
+    expect(api.getSteps).toHaveBeenCalledWith('2026-07-15', '2026-07-16')
+    expect(container.querySelectorAll('.day-steps')).toHaveLength(1)
+  })
+
   // "How much have I done this week" was answerable only by counting rows. A
   // mono rule per week — no new surface, one line of type — turns a scroll into
   // a report, and gives the ruled entries the section rhythm they lacked.

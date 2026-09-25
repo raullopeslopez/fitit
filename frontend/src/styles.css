@@ -886,6 +886,18 @@ button.workout-title:active:not(:disabled) {
 }
 /* "Which day" is the half you read; the month is the half you already know.
    Splitting them is what lets the stamp sit in a 3.6rem gutter and still lead. */
+/* Los pasos del día (Health Connect), bajo sus sesiones: un dato del día, no de
+   una sesión, así que ocupa la fila entera a la derecha del sello. Cifra en
+   mono como todas, en `--muted` porque es contexto, no lo que registraste. */
+.day-steps {
+  grid-column: 2 / -1;
+  margin: 0.35rem 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
 .day-date-day {
   color: var(--text);
 }
