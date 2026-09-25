@@ -9,6 +9,12 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- Escáner de códigos de Google (ML Kit, `BarcodeScanner.scan()`): Play
+             Services baja el módulo al instalar. No pide permiso de cámara: la
+             cámara la abre Google, no la app. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui"/>
+
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -38,4 +44,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- El aviso de fin de descanso es una alarma a una hora exacta
+         (platform/notifyNative.js). Con este permiso Android 13+ la concede al
+         instalar, sin mandarte a «Alarmas y recordatorios». Una tienda sólo lo
+         acepta en apps de alarma o calendario: para instalar a mano, basta. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>

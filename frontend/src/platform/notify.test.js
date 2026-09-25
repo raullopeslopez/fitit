@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  blockedNotice,
   announceRestNotice,
   askForNotifications,
   claimLockScreenSets,
@@ -52,6 +53,10 @@ afterEach(() => {
 })
 
 describe('permission', () => {
+  it('a blocked permission is the browser’s to give back', () => {
+    expect(blockedNotice()).toBe('Bloqueado en el navegador.')
+  })
+
   it('reports a browser that cannot do this at all', () => {
     expect(notificationState()).toBe('unsupported')
   })

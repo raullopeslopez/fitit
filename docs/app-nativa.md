@@ -89,31 +89,59 @@ navegador directamente.
   los APK lleven la misma firma (actualizar sin desinstalar, y la huella que
   Google reconoce). Es de depuración: no sirve para publicar.
 
-**Compilar:** `cd frontend && npm run android:apk` (Android SDK y JDK 21) →
-`android/app/build/outputs/apk/debug/app-debug.apk`. O sin instalar nada:
-GitHub → Actions → «Android APK» → *Run workflow*, y el APK sale como artefacto
-`fitit-apk`.
+**Descargar:** https://github.com/raullopeslopez/fitit/releases/latest/download/fitit.apk
+— siempre el último. Cada push a `main` que toque el frontend lo recompila y lo
+publica en la Release de su versión (`android-v<version>`); una versión nueva
+de `package.json` abre una Release nueva. También a mano: Actions → «Android APK»
+→ *Run workflow*. En un PR el APK queda como artefacto `fitit-apk` del run.
+
+**Compilar en local:** `cd frontend && npm run android:apk` (Android SDK y JDK 21) →
+`android/app/build/outputs/apk/debug/app-debug.apk`.
 
 **Una vez, en Google Cloud Console** (para que funcione «Continuar con Google»):
 APIs y servicios → Credenciales → Crear credenciales → ID de cliente OAuth →
-tipo **Android**, en el mismo proyecto que el cliente web:
+tipo **Android**, en el **mismo proyecto que el cliente web** (número de proyecto
+`387241176763`, el prefijo del ID web; hay otro proyecto llamado «Fitit» que **no** es
+ese, y un cliente creado allí da `[28444] Developer console is not set up correctly`):
 - Nombre del paquete: `io.github.raullopeslopez.fitit`
 - Huella SHA-1: `61:11:8D:6A:D2:53:0E:E2:2F:68:0A:AE:B0:42:84:FA:79:CF:4A:8F`
 
 No hay que copiar el ID nuevo en ningún sitio: la app sigue pidiendo el token con
 el ID web, y el cliente Android sólo le dice a Google que este APK es de confianza.
 
-**Lo que en el APK todavía no hay** (vuelve en la fase 2): el aviso de la pantalla
-de bloqueo con «+1 serie», que en la PWA hace el service worker. La barra de
-descanso en pantalla funciona igual. El lector de códigos de barras depende de que
-el WebView del teléfono traiga `BarcodeDetector`; si no, el botón no aparece y se
-teclea o se lee la tabla, como en un iPhone.
+**El aviso de la pantalla de bloqueo** con «+1 serie», que en la PWA hace el service
+worker, y el lector de códigos, que en la PWA es `BarcodeDetector`, en el APK son
+nativos desde la fase 2 (abajo).
 
 ### Fase 2 — Lo que la web no daba
 - `@capacitor-mlkit/barcode-scanning`: escaneo en vivo del código de barras.
+  **Hecho** (`platform/scanner.js`): en el APK «Abrir la cámara» abre el escáner de
+  Google (`BarcodeScanner.scan()`, EAN-13/8, UPC-A/E, sin permiso de cámara) y el
+  código sigue el mismo camino que el de una foto (`GET /foods/barcode/{ean}`, y
+  `POST /foods` si la ficha sirve). Cerrar el escáner sin código lleva al peldaño de
+  la tabla («No he leído ningún código.»). Si al teléfono le falta el módulo de
+  Google, se pide para la próxima y esta vez se hace una foto y ML Kit busca el
+  código en ella (`readBarcodesFromImage`, por la ruta del fichero). No recoge un
+  resultado que llegue por `appRestoredResult` (Android mató la app con el escáner
+  delante): se vuelve a escanear.
 - `@capacitor/camera`: foto de la tabla ya reducida antes de subirla.
+  **Hecho** (`platform/camera.js`): `Camera.getPhoto` con la cámara trasera, 1600 px
+  de ancho y calidad 80, devuelta como `File` para `readLabel` y con la ruta dentro
+  para ML Kit. La web sigue con el `<input capture>`.
 - `@capacitor/local-notifications` + `haptics`: el fin del descanso avisa y vibra con la
   pantalla bloqueada o la app en segundo plano.
+  **Hecho (notificaciones):** `platform/notifyNative.js`, detrás de la misma API de
+  `notify.js`. Dos canales de Android: «Sesión en curso» (el aviso con «+1 serie» y
+  «Otra serie») y «Fin del descanso» (programado con alarma a la hora del fin; suena y
+  vibra aunque la app esté cerrada). Un toque en un botón **abre la app** —el plugin
+  sólo sabe lanzar la actividad; bloqueado, Android pide desbloquear— y la serie entra
+  en la cola de la página por `claimLockScreenSets`, como las del service worker. Con la
+  app cerrada, el toque la arranca y la serie llega igual (viaja en la notificación).
+  Para que el fin sea puntual el manifiesto declara `USE_EXACT_ALARM`, que Android 13+
+  concede al instalar (en 12 ya venía concedido): no se abre la pantalla «Alarmas y
+  recordatorios». Una tienda lo rechazaría fuera de apps de alarma; para instalar a
+  mano no importa. Icono propio en la barra de estado (`ic_stat_fitit`, la retícula
+  en una tinta). `haptics` no se usa: el canal ya vibra.
 - Opcional: `document-scanner` para la tabla (sólo Android si no se confirma iOS).
 - **Qué notarás:** en Comida, escanear pasa a ser apuntar con la cámara sin hacer
   foto; el aviso del descanso llega siempre.

@@ -52,6 +52,7 @@ import {
 import {
   announceRestNotice,
   askForNotifications,
+  blockedNotice,
   claimLockScreenSets,
   notificationState,
   onLockScreenSets,
@@ -2491,7 +2492,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
                     <div className="menu-pref">
                       <span className="prefs-label">Registrar sin abrir</span>
                       {notificationState() === 'denied' ? (
-                        <p className="menu-note">Bloqueado en el navegador.</p>
+                        <p className="menu-note">{blockedNotice()}</p>
                       ) : (
                         <>
                           <div

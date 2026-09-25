@@ -42,7 +42,8 @@ import {
   unknownNote,
 } from './food.js'
 import { formatDayShort } from './format.js'
-import { canScan, detectBarcodes } from './platform/scanner.js'
+import { takePhoto, usesNativeCamera } from './platform/camera.js'
+import { canScan, detectBarcodes, scanLive } from './platform/scanner.js'
 
 // Los raíles del día: las cuatro comidas, siempre, con su subtotal y lo que
 // lleven dentro. Una comida vacía **sí** se dibuja — es por donde se entra a
@@ -1363,12 +1364,52 @@ function AddFood({
   // Un fallo de red no puede dejarte mirando un botón que no hace nada: se
   // acaba abriendo el formulario, que es donde estabas antes de que el botón
   // existiera.
+  //
+  // En el APK el peldaño 1 cambia de forma: no hay foto, se apunta al código con
+  // el escáner de Google (`scanLive`) y la foto se guarda para la tabla. Lo que
+  // no cambia es lo de detrás: el código, venga de donde venga, sigue el mismo
+  // camino (`resolveCode`). Sin el escáner en vivo —el módulo de Google aún no
+  // está en ese teléfono— la escalada es la de la web, con la foto de la cámara
+  // de Android y el código decodificado en ella con ML Kit.
+  //
+  // `event` es el `change` del `input` en la web. En el APK no hay input: el
+  // botón llama sin nada, y la foto la pide `takePhoto`.
   async function openCamera(event) {
-    const file = take(event)
-    if (!file) return
+    let file = null
+    if (event) {
+      file = take(event)
+      if (!file) return
+    }
     setEscalating(null)
     setBarcode(null)
     setResolved(null)
+
+    if (!event) {
+      const live = await scanLive()
+      if (live?.code) {
+        setReading('scan')
+        setLabel(null)
+        setCreating(false)
+        try {
+          await resolveCode(live.code)
+        } catch {
+          // Sin foto de la que tirar, un fallo de red es lo que dice: que no se
+          // ha podido preguntar. La escalada ofrece la tabla, como siempre.
+          setReading(null)
+          setEscalating('offline')
+        }
+        return
+      }
+      // Cerraste el escáner sin que leyera nada: el envase no tiene código, o
+      // no se deja leer. Es el mismo peldaño que un código que no sirve —otra
+      // foto, de la tabla, o teclearlo—, con su propio motivo.
+      if (live?.cancelled) {
+        setEscalating('nocode')
+        return
+      }
+      file = await nativePhoto()
+      if (!file) return
+    }
 
     // Peldaño 1: el código. Sólo donde el navegador sabe decodificar — en un
     // Chrome de Android está, en un Safari no —, y si no sabe, la escalada
@@ -1381,45 +1422,7 @@ function AddFood({
       try {
         const codes = await detectBarcodes(file)
         if (codes.length > 0) {
-          setBarcode(codes[0])
-          const found = await scanBarcode(codes[0])
-          // Con ficha utilizable se acabó: ni tabla, ni modelo, ni cuota.
-          if (found?.food) {
-            setReading(null)
-            setScan(found)
-            return
-          }
-          if (!found?.refusal) {
-            // Y se guarda sin preguntar. Un formulario delante de esto sería
-            // pedir una firma sin lectura: nadie corrige campo por campo una
-            // ficha que no ha medido, y el código identifica el producto mejor
-            // que cualquier nombre que uno teclee. Guardarlo es lo que convierte
-            // «veinte fotos al día» en «veinte productos nuevos al día».
-            //
-            // Sin preguntar no significa inventando: un nutriente que la ficha
-            // no trae viaja `null`, igual que si nadie lo hubiera tecleado.
-            try {
-              setResolved(await createFood(fromScan(found, codes[0])))
-            } catch {
-              // Si el guardado no llega, no se pierde la lectura: el formulario
-              // se abre con lo que la ficha traía y se guarda a mano.
-              setScan(found)
-              setCreating(true)
-            } finally {
-              setReading(null)
-            }
-            return
-          }
-          setReading(null)
-          // El código se leyó y no sirve. Aquí **no** se lee la tabla de esta
-          // misma foto: el código y la tabla están en caras distintas del
-          // envase, así que esa foto casi nunca tiene tabla que leer y gastar
-          // cuota en ella es pagar por un fallo seguro. Se pide otra, y se dice
-          // por qué — un paso con motivo, no un menú por adelantado.
-          // Tres motivos, tres frases: que nadie lo conozca, que no se haya
-          // podido preguntar y que la ficha exista pero no sirva son cosas
-          // distintas, y la de en medio no se arregla esperando.
-          setEscalating(found.refusal)
+          await resolveCode(codes[0])
           return
         }
       } catch {
@@ -1433,9 +1436,71 @@ function AddFood({
     await readTable(file)
   }
 
+  // Un código leído, del escáner en vivo o de una foto, hasta el final.
+  //
+  // Un solo camino para los dos a propósito: `GET /foods/barcode/{ean}`, y si la
+  // ficha pública sirve, `POST /foods` — la única puerta. Lanza si no hay red:
+  // qué hacer entonces depende de si hay una foto de la que tirar.
+  async function resolveCode(code) {
+    setBarcode(code)
+    const found = await scanBarcode(code)
+    // Con ficha utilizable se acabó: ni tabla, ni modelo, ni cuota.
+    if (found?.food) {
+      setReading(null)
+      setScan(found)
+      return
+    }
+    if (!found?.refusal) {
+      // Y se guarda sin preguntar. Un formulario delante de esto sería
+      // pedir una firma sin lectura: nadie corrige campo por campo una
+      // ficha que no ha medido, y el código identifica el producto mejor
+      // que cualquier nombre que uno teclee. Guardarlo es lo que convierte
+      // «veinte fotos al día» en «veinte productos nuevos al día».
+      //
+      // Sin preguntar no significa inventando: un nutriente que la ficha
+      // no trae viaja `null`, igual que si nadie lo hubiera tecleado.
+      try {
+        setResolved(await createFood(fromScan(found, code)))
+      } catch {
+        // Si el guardado no llega, no se pierde la lectura: el formulario
+        // se abre con lo que la ficha traía y se guarda a mano.
+        setScan(found)
+        setCreating(true)
+      } finally {
+        setReading(null)
+      }
+      return
+    }
+    setReading(null)
+    // El código se leyó y no sirve. Aquí **no** se lee la tabla de esta
+    // misma foto: el código y la tabla están en caras distintas del
+    // envase, así que esa foto casi nunca tiene tabla que leer y gastar
+    // cuota en ella es pagar por un fallo seguro. Se pide otra, y se dice
+    // por qué — un paso con motivo, no un menú por adelantado.
+    // Tres motivos, tres frases: que nadie lo conozca, que no se haya
+    // podido preguntar y que la ficha exista pero no sirva son cosas
+    // distintas, y la de en medio no se arregla esperando.
+    setEscalating(found.refusal)
+  }
+
+  // La foto de la cámara de Android. `null` si volviste sin hacerla, que no
+  // es un error. Si la cámara falla de verdad, el formulario: un botón que no
+  // hace nada no se distingue de uno roto.
+  async function nativePhoto() {
+    try {
+      return await takePhoto()
+    } catch {
+      setReading(null)
+      setEscalating(null)
+      setUnreadable(false)
+      setCreating(true)
+      return null
+    }
+  }
+
   // La segunda foto: la de la tabla, ya con el código descartado.
-  function shootTable(event) {
-    const file = take(event)
+  async function shootTable(event) {
+    const file = event ? take(event) : await nativePhoto()
     if (file) readTable(file)
   }
 
@@ -1807,33 +1872,20 @@ function Camara({ available, block, busy, onShoot, onType, onExpired }) {
           Demasiadas fotos seguidas. Espera un minuto, o tecléalo.
         </p>
       )}
-      {/* Un `label` y no un botón porque lo que abre la cámara es el `input`:
-          envolverlo es la única forma de que el disparador tenga el aspecto de un
-          control y siga siendo el control real. `capture` pide la trasera del
-          móvil; en un ordenador el navegador lo ignora y ofrece un fichero, que
-          para probar va igual de bien. */}
-      <label
+      <Obturador
+        id="food-photo"
         className={`btn-full food-camera-shoot${busy || left ? ' is-busy' : ''}`}
-        htmlFor="food-photo"
-        aria-busy={busy ? true : undefined}
+        name="Abrir la cámara"
+        busy={busy}
+        disabled={busy || Boolean(left)}
+        onShoot={onShoot}
       >
         {left ? (
           <span className="food-camera-count">Espera {left} s</span>
         ) : (
           <Disparador leyendo={busy}>Abrir la cámara</Disparador>
         )}
-        {/* `aria-label` fijo: el texto visible pasa a «Leyendo…» o a la cuenta
-            mientras tanto, y sin esto el nombre del control se iría con él. */}
-        <input
-          id="food-photo"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          aria-label="Abrir la cámara"
-          disabled={busy || Boolean(left)}
-          onChange={onShoot}
-        />
-      </label>
+      </Obturador>
     </div>
   )
 }
@@ -1958,6 +2010,9 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
                 offline: 'No he podido preguntar por ese código.',
                 unusable: 'Los datos de ese código no me sirven.',
                 unreadable: 'No he podido leer la etiqueta.',
+                // Sólo en el APK: cerraste el escáner de códigos sin que leyera
+                // ninguno.
+                nocode: 'No he leído ningún código.',
               }[reason] ?? 'Ese código no está en ninguna base.'
             }
           </p>
@@ -1967,21 +2022,15 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
               : 'Acerca la foto a la tabla nutricional y la leo.'}
           </p>
           <div className="food-escalada-actions">
-            <label
+            <Obturador
+              id="food-table"
               className={`set-action food-escalada-shoot${busy ? ' is-busy' : ''}`}
-              htmlFor="food-table"
+              name={shoot}
+              disabled={busy}
+              onShoot={onShoot}
             >
               <Disparador leyendo={busy}>{shoot}</Disparador>
-              <input
-                id="food-table"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                aria-label={shoot}
-                disabled={busy}
-                onChange={onShoot}
-              />
-            </label>
+            </Obturador>
             <button
               type="button"
               className="set-action secondary"
@@ -2308,6 +2357,51 @@ function Procedencia({ source }) {
       <p className="hint food-source">Leído del código de barras. No ha hecho falta la tabla.</p>
       <p className="hint food-source">Se guarda en tus alimentos, con su código.</p>
     </>
+  )
+}
+
+// El control que hace la foto, en cada sitio con lo que allí la hace.
+//
+// En la web, un `label` y no un botón, porque lo que abre la cámara es el
+// `input`: envolverlo es la única forma de que el disparador tenga el aspecto de
+// un control y siga siendo el control real. `capture` pide la trasera del
+// móvil; en un ordenador el navegador lo ignora y ofrece un fichero, que para
+// probar va igual de bien.
+//
+// En el APK no hay `input` que envolver: la cámara la abre el plugin
+// (`platform/camera.js`, `platform/scanner.js`), así que es un botón y llama
+// a `onShoot` sin evento.
+//
+// `name` fijo en los dos: el texto visible pasa a «Leyendo…» o a la cuenta
+// mientras tanto, y sin esto el nombre del control se iría con él.
+function Obturador({ id, className, name, busy, disabled, onShoot, children }) {
+  if (usesNativeCamera()) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-label={name}
+        aria-busy={busy ? true : undefined}
+        disabled={disabled}
+        onClick={() => onShoot()}
+      >
+        {children}
+      </button>
+    )
+  }
+  return (
+    <label className={className} htmlFor={id} aria-busy={busy ? true : undefined}>
+      {children}
+      <input
+        id={id}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        aria-label={name}
+        disabled={disabled}
+        onChange={onShoot}
+      />
+    </label>
   )
 }
 
