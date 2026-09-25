@@ -1,7 +1,8 @@
 from datetime import UTC, date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -244,14 +245,24 @@ async def delete_workout(
 async def log_set(
     workout_id: int,
     payload: SetIn,
+    response: Response,
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> WorkoutOut:
     """Append a set to a workout, creating the exercise on first use.
 
+    A set whose `client_id` this workout already holds is a retry of one that
+    arrived: nothing is written, and the answer is the workout as it stands,
+    with 200 instead of 201 — still a success, so the client's queue drops it.
+
     Spec: tests/features/log_set.feature
     """
     await _get_owned_workout(session, workout_id, user_id)
+
+    if payload.client_id is not None and await _holds_client_id(
+        session, workout_id, payload.client_id
+    ):
+        return await _already_logged(session, workout_id, response)
 
     # An existing exercise keeps its kind; a new one takes the payload's (default strength).
     existing = await find_exercise(session, user_id, payload.exercise_name)
@@ -276,10 +287,36 @@ async def log_set(
             duration_seconds=payload.duration_seconds,
             distance=payload.distance,
             created_at=_moment_of(payload.performed_at),
+            client_id=payload.client_id,
         )
     )
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        # Two copies of the same retry raced past the check above; the index let
+        # one in. Only a client_id can collide here, and the loser is a retry.
+        await session.rollback()
+        if payload.client_id is None:
+            raise
+        return await _already_logged(session, workout_id, response)
 
+    loaded = await load_workout(session, workout_id)
+    assert loaded is not None
+    return loaded
+
+
+async def _holds_client_id(session: AsyncSession, workout_id: int, client_id: str) -> bool:
+    return (
+        await session.scalar(
+            select(SetEntry.id).where(
+                SetEntry.workout_id == workout_id, SetEntry.client_id == client_id
+            )
+        )
+    ) is not None
+
+
+async def _already_logged(session: AsyncSession, workout_id: int, response: Response) -> WorkoutOut:
+    response.status_code = status.HTTP_200_OK
     loaded = await load_workout(session, workout_id)
     assert loaded is not None
     return loaded

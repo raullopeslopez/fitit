@@ -124,6 +124,11 @@ class SetIn(BaseModel):
     # business moving it in time.
     # Spec: tests/features/set_moment.feature
     performed_at: datetime | None = None
+    # Stamped by the client when the set is logged, and resent unchanged on every
+    # retry: a second arrival with the same id in the same workout is the same
+    # set. Optional, like `performed_at`. Only honoured on create.
+    # Spec: tests/features/log_set.feature
+    client_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class SetOut(BaseModel):

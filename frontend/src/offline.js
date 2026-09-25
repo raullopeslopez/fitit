@@ -32,8 +32,19 @@ function writeQueue(entries) {
   else storage.setItem(OUTBOX_KEY, JSON.stringify(entries))
 }
 
+// Each set carries an id of its own from the moment it is queued, and every
+// retry resends it: a set the server saved but whose answer never arrived comes
+// back with the same id, and the server answers "already logged" instead of
+// logging it twice. A set that already has one keeps it — it is the same set.
+// Spec: backend tests/features/log_set.feature
+//
+// `randomUUID` only exists in a secure context (https, localhost, the APK).
+// Opened over plain http — the dev server by LAN IP — the set goes without an
+// id, exactly as before: losing the dedup is fine, losing the set is not.
 export function enqueueSet(entry) {
-  writeQueue([...readQueue(), entry])
+  const id = entry.payload.client_id ?? globalThis.crypto?.randomUUID?.()
+  const payload = id ? { ...entry.payload, client_id: id } : entry.payload
+  writeQueue([...readQueue(), { ...entry, payload }])
 }
 
 export function dropQueued(tmpId) {

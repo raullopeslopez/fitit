@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rosa que era de Pierna, para que el grueso del historial no cambie de color.
 
 ### Fixed
+- **Una serie reintentada ya no puede entrar dos veces.** Si el servidor guardaba
+  una serie pero la respuesta se perdía (red que se corta en el sótano), la cola
+  la reenviaba y quedaba duplicada. Ahora cada serie lleva un `client_id` desde
+  que se registra, y el servidor reconoce el reintento: contesta 200 con el
+  entreno tal cual en vez de crear otra. Es el primer paso de la fase 1 de
+  `docs/widgets-entreno.md`, donde la cola nativa del APK lo necesita aún más.
 - **"Elevación de piernas" contaba como pierna.** El clasificador veía "pierna"
   dentro del nombre antes de llegar a la regla de abdominales, así que un ejercicio
   de core llevaba meses sumando en el grupo equivocado. Ahora es Core.

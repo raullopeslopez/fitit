@@ -159,6 +159,15 @@ class SetEntry(Base):
         default=lambda: datetime.now(UTC),
         server_default=func.now(),
     )
+    # The id the phone stamped on the set when it was logged, so a retry from an
+    # offline queue is recognised instead of logged twice. Null for sets from a
+    # client that sends none — and NULLs never collide under the unique index,
+    # so two such sets stay two sets. Spec: tests/features/log_set.feature
+    client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    __table_args__ = (
+        Index("uq_sets_workout_client_id", "workout_id", "client_id", unique=True),
+    )
 
     workout: Mapped["Workout"] = relationship(back_populates="sets")
     exercise: Mapped["Exercise"] = relationship(back_populates="sets")

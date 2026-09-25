@@ -612,6 +612,7 @@ describe('Workout', () => {
         rpe: null,
         note: null,
         performed_at: expect.any(String),
+        client_id: expect.any(String),
       }),
     )
   })
@@ -643,6 +644,7 @@ describe('Workout', () => {
         rpe: null,
         note: null,
         performed_at: expect.any(String),
+        client_id: expect.any(String),
       }),
     )
   })
@@ -699,6 +701,7 @@ describe('Workout', () => {
         distance: 5.2, // kilometres; there is no other unit to send
         note: null,
         performed_at: expect.any(String),
+        client_id: expect.any(String),
       }),
     )
     expect(await screen.findByRole('listitem')).toHaveTextContent(
@@ -1205,6 +1208,7 @@ describe('Workout', () => {
         rpe: null,
         note: null,
         performed_at: expect.any(String),
+        client_id: expect.any(String),
       }),
     )
   })
@@ -3236,6 +3240,8 @@ describe('Workout', () => {
           reps: 8,
           weight: 60,
           performed_at: '2026-07-16T18:20:00.000Z',
+          // The worker's set had no id; it gets one on joining the outbox.
+          client_id: expect.any(String),
         }),
       )
       expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()
