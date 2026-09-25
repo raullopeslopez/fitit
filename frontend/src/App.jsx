@@ -10,6 +10,7 @@ import Workout from './Workout.jsx'
 import Wordmark from './Wordmark.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
 import { useColdStart } from './coldstart.js'
+import { startNativeQueue, stopNativeQueue } from './offline.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 import { onResume } from './platform/lifecycle.js'
 import { syncSteps } from './steps.js'
@@ -51,6 +52,14 @@ export default function App() {
     return onResume(() => syncSteps())
   }, [token])
 
+  // En el APK la cola de series la envía el nativo, también con la app cerrada,
+  // y para eso necesita el token: al entrar, y en cada arranque con la sesión
+  // ya iniciada (un token renovado, o el APK recién actualizado). Le entrega
+  // también la cola que la página tuviera. En la web no hace nada.
+  useEffect(() => {
+    if (token) startNativeQueue(token)
+  }, [token])
+
   // Runs on mount too, which is the point: every relaunch restamps the open
   // workout, so a long session doesn't age out from under you.
   useEffect(() => {
@@ -64,6 +73,7 @@ export default function App() {
 
   function handleLogout() {
     clearToken()
+    stopNativeQueue()
     setTokenState(null)
     openWorkout(null)
     setView('days')

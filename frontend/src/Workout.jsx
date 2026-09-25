@@ -39,13 +39,17 @@ import {
   cacheWorkout,
   cachedMarks,
   cachedWorkout,
+  checkInNativeQueue,
   dropQueued,
   dropQueuedFor,
   enqueueSet,
+  flushNatively,
+  onNativeSend,
   queuedFor,
   readQueue,
   renameQueued,
   retryable,
+  sendsNatively,
 } from './offline.js'
 import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
@@ -1579,6 +1583,32 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutId])
 
+  // En el APK la cola la envía el nativo, con la app abierta o cerrada
+  // (docs/widgets-entreno.md, fase 1), y cuenta aquí lo que ha pasado. La copia
+  // de la cola ya viene al día (offline.js), así que redibujar con `withQueued`
+  // quita de «pendiente» lo que el servidor ya tiene. En la web esto no hace
+  // nada: la página envía y se entera en `flushQueue`.
+  useEffect(() => {
+    if (!sendsNatively()) return undefined
+    const refused = () => setError('El servidor rechazó una serie. Vuelve a registrarla.')
+    // Lo que el servidor rechazó con la app cerrada, cuando no había a quién decírselo.
+    checkInNativeQueue().then((rejected) => {
+      setWorkout(withQueued)
+      if (rejected > 0) refused()
+    })
+    return onNativeSend(({ workout: answered, rejected }) => {
+      // Sólo este entreno se redibuja con la respuesta; la cola puede llevar
+      // series de una sesión de la que ya saliste.
+      if (answered?.id === workoutId) {
+        cacheWorkout(answered)
+        setWorkout(withQueued(answered))
+      } else {
+        setWorkout(withQueued)
+      }
+      if (rejected > 0) refused()
+    })
+  }, [workoutId])
+
   // The screen doesn't go dark between sets. Re-run on the preference, so
   // turning it off in the overflow lets go of the lock there and then.
   useEffect(() => {
@@ -1662,6 +1692,11 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // couldn't be sent is not an error the lifter can act on, it is a set waiting
   // for signal, and the row already says so.
   async function flushQueue() {
+    // En el APK envía el nativo; aquí sólo se le pide.
+    if (sendsNatively()) {
+      await flushNatively()
+      return
+    }
     if (flushing.current) return
     flushing.current = true
     try {

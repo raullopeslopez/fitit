@@ -42,6 +42,12 @@ jobs:
         run: npm install
       - name: Build web bundle + sync Android
         run: npm run android:build
+      # Los tests nativos (JUnit + Robolectric, sin emulador). El hook de
+      # pre-commit no los pasa porque necesitan el SDK de Android: éste es su
+      # sitio. Antes de compilar, para que un APK roto por dentro no se publique.
+      - name: Native unit tests
+        working-directory: frontend/android
+        run: ./gradlew testDebugUnitTest --no-daemon
       - name: Assemble APK
         working-directory: frontend/android
         run: ./gradlew assembleDebug --no-daemon

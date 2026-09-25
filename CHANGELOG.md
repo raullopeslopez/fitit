@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.5.0: las series las envía Android, no la página.** Fase 1 de
+  `docs/widgets-entreno.md`. En el APK la cola de series sin enviar pasa a
+  la parte nativa: se guarda en el teléfono y la envía WorkManager en cuanto
+  hay red, también con la app cerrada o muerta, en orden y con reintentos. Para
+  eso el nativo guarda el token, cifrado con una clave del Keystore de Android.
+  La página ya no envía nada en el APK: encola, pide el envío y pinta lo que el
+  nativo le cuenta. En pantalla no cambia nada, y la PWA sigue exactamente
+  igual. Es la base de la notificación y los widgets (fases 2–4): una serie
+  registrada desde fuera de la app irá a esta misma cola.
 - **La tarjeta de periodo tiene una referencia, no solo una comparación.** La
   barra de cada músculo se medía contra tu propio músculo más entrenado, así que
   cinco series de pecho llenaban la barra de lado a lado — el gesto de "hecho" —
