@@ -51,7 +51,9 @@ más. Apache-2.0 y MIT no ponen condiciones prácticas.
 | Biometría (`native-biometric`, `biometric-auth`) | Ahora mismo no resuelve nada |
 
 **Sin open source fiable, en Swift/Kotlin propio** (sólo si se quieren): widget de
-pantalla de inicio y Live Activity del descanso.
+pantalla de inicio y Live Activity del descanso. El widget de Android está revisado en
+`widgets-entreno.md` (2026-09-25): plugin local propio sobre `SharedPreferences`, sin
+dependencia nueva.
 
 ## Fases
 
