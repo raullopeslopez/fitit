@@ -38,14 +38,15 @@ una quita a la otra, y Xiaomi las pinta las dos porque las dos son nativas (la d
 la pintaba Chrome, y ahí estaba la mitad del problema).
 
 **¿Qué implica «subir en el momento»?** Tres cosas, ninguna grave:
-1. El nativo necesita el token de sesión, así que **el token vive también en almacén
-   cifrado de Android** (hoy sólo lo tiene la página). Se copia al iniciar sesión y se
+1. El nativo necesita el token de sesión, así que **el token vive también en el
+   nativo, cifrado con una clave del Android Keystore** (hoy sólo lo tiene la página). Se copia al iniciar sesión y se
    borra al cerrarla.
 2. Las series tienen orden (`set_index` lo asigna el servidor al llegar). Si la app tiene
    series suyas sin enviar (sin red en el sótano), una serie del widget no puede
    adelantarlas. Regla: **en el APK, una sola cola, nativa**: la página deja de usar la
    suya (`fitit_outbox`) y encola en la nativa; el nativo envía en orden, con o sin app
-   delante. Es más trabajo que dos colas, pero es la única forma de que «se sube en el
+   delante, y cada serie lleva un `client_id` para que un reintento no la duplique. Es
+   más trabajo que dos colas, pero es la única forma de que «se sube en el
    momento» sea verdad y el orden no se rompa.
 3. Sin red no falla nada: la serie se guarda, el widget dice `1 sin enviar` y se reintenta
    al siguiente toque, al volver la red y al abrir la app.
@@ -73,9 +74,10 @@ Fitit · Press banca · Pecho
   no abre la app, y la notificación se actualiza en sitio (`5 series`, reloj nuevo) sin
   volver a sonar.
 - `Otra serie` abre el campo de texto de la notificación (respuesta directa, como
-  contestar un WhatsApp desde el bloqueo). Formato `32.5x12`, o sólo `12` en ejercicios
-  sin peso. Una entrada que no se entiende no registra nada y la notificación lo dice en
-  su segunda línea: `No entendí «12 32». Escríbela como 32.5x12.` Si el teléfono exige
+  contestar un WhatsApp desde el bloqueo). Formato `32,5x12` (también con punto o con
+  `×`), o sólo `12` en ejercicios sin peso. Una entrada que no se entiende no registra
+  nada y la notificación lo dice en su segunda línea:
+  `No entendí «12 32». Escríbela como 32,5x12.` Si el teléfono exige
   desbloquear para escribir desde el bloqueo, es política del teléfono (ajuste de
   «respuesta directa»); en el Xiaomi hay que probarlo.
 - Tocar el cuerpo abre la app en Entreno. Deslizar no la quita: es «en curso» mientras
@@ -190,15 +192,15 @@ terceros. Sí añade librerías de AndroidX al `build.gradle` de la app, que hoy
 appcompat, coordinatorlayout, core-splashscreen y junit:
 
 - `androidx.work:work-runtime` para `SessionSender`.
-- Para el token, lo que se decida (ver «Pendiente de decidir»).
 - En tests: Robolectric y `androidx.test:core`.
 
 Las piezas:
 
 - **`SessionStore`**: el estado (`workoutId`, ejercicio, grupo muscular, plantilla,
   contador, `restEndsAt`, `restSeconds`) y la cola de series, en `SharedPreferences`;
-  el token, cifrado con una clave del Keystore; el mecanismo está en «Pendiente de
-  decidir», porque `EncryptedSharedPreferences` (androidx.security) está deprecado.
+  el token, cifrado con una clave AES/GCM propia del Android Keystore (no
+  `EncryptedSharedPreferences`, que está deprecado). Cada serie de la cola lleva su
+  `client_id`.
 - **`SessionNotification`**: construye y actualiza la notificación en curso
   (`NotificationCompat`, `setOngoing`, cronómetro en cuenta atrás, tres acciones, una
   con `RemoteInput`). Canal silencioso, visibilidad pública.
@@ -248,26 +250,30 @@ inicio con sesión en oscuro, inicio sin sesión y sin red en claro).
 - Geist Mono y Space Grotesk se empaquetan en el APK.
 - La PWA pierde `Registrar sin abrir`; su implementación se borra.
 
-## Pendiente de decidir
+## Decidido después de la revisión (2026-09-25)
 
-Tres cosas que la spec no puede cerrar sola. Hay que decidirlas antes de la fase 1 (las dos
-primeras) o de la fase 2 (la tercera).
+1. **Cada serie lleva un `client_id`.** Es un UUID que genera quien la crea (el nativo en
+   el APK, la página en la PWA) en el momento de registrarla, y viaja con ella en la cola.
+   `POST /workouts/{id}/sets` lo acepta como campo opcional. Si ya existe en ese entreno una
+   serie con el mismo `client_id`, el servidor no crea otra: contesta con el entreno tal
+   como está, así que el reintento se ve como un éxito. Sin `client_id` todo sigue como
+   hoy, y los clientes viejos no se rompen. En la base: columna `set_entries.client_id`
+   que admite nulo, única por entreno cuando no es nula, y su migración Alembic. Spec en
+   `log_set.feature`: el mismo `client_id` dos veces da una serie, y dos series sin
+   `client_id` siguen siendo dos. Así «llegan una sola vez» pasa a ser una garantía y no
+   un deseo. Lo aprovecha también `fitit_outbox` en la PWA, que tiene el mismo problema.
+2. **El token, cifrado con una clave del Android Keystore.** Es una clave AES/GCM propia,
+   creada la primera vez, que no sale del Keystore. El token cifrado va en
+   `SharedPreferences`. No añade ninguna librería. Si la clave se pierde o se invalida
+   (restaurar el teléfono, por ejemplo), el nativo tira el token y deja de enviar hasta
+   que se abre la app, que se lo vuelve a copiar al arrancar. Las series esperan en la
+   cola, así que no se pierde nada.
+3. **«Otra serie» acepta coma decimal.** Valen `32,5x12`, `32.5x12`, `32,5 x 12`, con `×`
+   en lugar de `x`, y sólo `12` en ejercicios sin peso. El ejemplo del error usa la coma:
+   `No entendí «12 32». Escríbela como 32,5x12.`
 
-1. **Series duplicadas en los reintentos.** `POST /workouts/{id}/sets` no lleva ningún
-   identificador del cliente y el servidor asigna `set_index` al llegar. Si el servidor
-   guarda la serie pero la respuesta no llega, `SessionSender` reintenta y la serie entra
-   dos veces. Opciones: un `client_id` generado en el teléfono que el servidor deduplica
-   (backend, migración y test), o aceptar el riesgo y corregir a mano.
-2. **Dónde vive el token nativo.** `EncryptedSharedPreferences` está deprecado. Opciones:
-   cifrarlo con una clave propia del Android Keystore, o `SharedPreferences` privadas sin
-   cifrar (sólo las lee la app; en un teléfono sin root es el mismo sitio donde está hoy
-   `localStorage`).
-3. **Coma decimal en «Otra serie».** La pantalla escribe `32,5 kg` y el teclado español da
-   coma, pero el formato pedido es `32.5x12`. Propuesta: aceptar las dos, y que el error
-   diga `No entendí «12 32». Escríbela como 32,5x12.`
-
-Otros huecos menores, para la fase que los toque: qué enseña el 4×2 en un ejercicio sin
-peso (¿se ocultan los botones de kg?), y cómo se deshace un `+1 serie` accidental desde el
+Siguen abiertos, para la fase que los toque: qué enseña el 4×2 en un ejercicio sin peso
+(¿se ocultan los botones de kg?), y cómo se deshace un `+1 serie` accidental desde el
 4×1 (hoy, sólo en la app).
 
 ## Fases
@@ -290,18 +296,20 @@ notificación de `public/sw.js`, el interruptor `Registrar sin abrir` y sus pref
 - **Comprobar:** registrar una serie con y sin descanso; que no aparece ninguna
   notificación; que el APK arranca sin pedir permisos nuevos.
 
-### Fase 1 · Dueño nativo, cola y token (APK 0.5.0) · día y medio
+### Fase 1 · Dueño nativo, cola y token (APK 0.5.0) · dos días
 
-El plugin `Session` con `SessionStore` (estado y cola en `SharedPreferences`), el token
-en `EncryptedSharedPreferences` y `SessionSender` con `WorkManager`. Entreno publica el
+Primero el backend, que se puede mergear y desplegar solo: `client_id` en `SetIn` y en
+`set_entries` (migración y escenarios en `log_set.feature`), y `fitit_outbox` mandándolo.
+Después el plugin `Session` con `SessionStore` (estado y cola en `SharedPreferences`), el
+token cifrado con la clave del Keystore y `SessionSender` con `WorkManager`. Entreno publica el
 estado en cada serie y cambio de ejercicio, y en el APK encola en la cola nativa en vez
 de en `fitit_outbox`. Iniciar y cerrar sesión copian y borran el token nativo.
 
 - **Qué se ve:** nada nuevo. Las series se envían igual que antes desde la app, con el
   mismo indicador de «sin enviar» en la tarjeta. La PWA no cambia.
 - **Comprobar:** modo avión, tres series, quitar el avión: llegan en orden y una sola
-  vez (pero ver «Pendiente de decidir»: un reintento tras una respuesta perdida puede
-  duplicar). Matar la app con series sin enviar y volver: se envían. Cerrar sesión y entrar
+  vez. Con la red cortándose a mitad de envío (entrar y salir del ascensor), ninguna
+  serie aparece dos veces. Matar la app con series sin enviar y volver: se envían. Cerrar sesión y entrar
   con otra cuenta: nada de la anterior se envía.
 
 ### Fase 2 · Notificación en curso (APK 0.6.0) · día y medio
@@ -315,7 +323,7 @@ cierre automático a las dos horas.
 - **Qué se ve:** desde la primera serie de fuerza, la notificación de la spec en la
   bandeja y en la pantalla de bloqueo. En Entreno → menú, `Terminar entreno`.
 - **Comprobar:** con el teléfono bloqueado, `+1 serie` registra sin desbloquear y el
-  contador sube en la tarjeta; `Otra serie` con `35x10` registra eso y el siguiente
+  contador sube en la tarjeta; `Otra serie` con `35x10` registra eso, y `32,5x8` también se entiende; y el siguiente
   `+1 serie` repite 35×10; `Saltar` quita el reloj; convive con YouTube Music; el reloj
   llega a cero y pasa a `Descanso terminado` sin sonar; `Terminar entreno` la quita;
   matar la app y la tarjeta sigue con sus botones funcionando.
