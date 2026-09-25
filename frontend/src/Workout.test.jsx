@@ -2751,6 +2751,37 @@ describe('Workout', () => {
       expect(cardToggle('Bench Press')).toBeInTheDocument()
     })
 
+    it('does not lose a set logged after reopening with one still unsent', async () => {
+      // A set left over from the last time the app was open is `tmp-1`. The
+      // counter starts again on every mount, so the next set logged would be
+      // `tmp-1` too — and sending the first drops every entry with that id,
+      // the second included, before it ever reaches the server.
+      localStorage.setItem(
+        'fitit_outbox',
+        JSON.stringify([
+          {
+            tmpId: 'tmp-1',
+            workoutId: 1,
+            payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 },
+          },
+        ]),
+      )
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+      expect(await screen.findByText(/60 kg x 8/)).toBeInTheDocument()
+
+      await logBench({ weight: '65' })
+      expect(await screen.findByText(/65 kg x 8/)).toBeInTheDocument()
+
+      // Signal again: both go, in order.
+      api.logSet.mockReset()
+      api.logSet.mockResolvedValue(workoutWith(benchSet()))
+      window.dispatchEvent(new Event('online'))
+
+      await waitFor(() => expect(api.logSet).toHaveBeenCalledTimes(2))
+      expect(api.logSet.mock.calls.map(([, set]) => set.weight)).toEqual([60, 65])
+    })
+
     it('reopens into the session with no signal at all', async () => {
       // The one that makes the rest of this real. Without the workout cache
       // `getWorkout` fails, the screen renders its error state, and the queue

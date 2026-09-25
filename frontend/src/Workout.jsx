@@ -1453,7 +1453,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // content-weight controls).
   const [screenAwake, setScreenAwakeState] = useState(getScreenAwake)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
+  // It starts again on every mount, and the queue does not: a set left unsent
+  // from the last time the app was open is already `tmp-1`. So the id carries
+  // the moment this screen mounted too — two sets sharing an id means sending
+  // one drops both, and the second never reaches the server.
   const nextTmpId = useRef(0)
+  const tmpPrefix = useRef(`tmp-${Date.now().toString(36)}`)
   // One drain at a time, or two triggers firing together send the same set twice.
   const flushing = useRef(false)
 
@@ -1644,7 +1649,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     // after the lift, and is the number a session's length is measured from.
     const template = { exercise_name: name, ...fields }
     const payload = { ...template, performed_at: new Date().toISOString() }
-    const tmpId = `tmp-${(nextTmpId.current += 1)}`
+    const tmpId = `${tmpPrefix.current}-${(nextTmpId.current += 1)}`
     enqueueSet({ tmpId, workoutId: workout.id, payload })
     setWorkout(withQueued)
     // Started on the tap, not on the round trip: resting is what you do *while*

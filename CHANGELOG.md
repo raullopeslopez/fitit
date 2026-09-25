@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **Se podía perder una serie registrada sin red.** Las series pendientes llevan
+  un id local (`tmp-1`, `tmp-2`…) cuyo contador volvía a empezar cada vez que se
+  abría Entreno. Con una serie sin enviar de la vez anterior, la siguiente que
+  registrabas sin red se llamaba igual, y al enviarse la primera se borraban las
+  dos de la cola: la segunda no llegaba nunca al servidor. El id lleva ahora
+  también el momento en que se abrió la pantalla.
 - **Una serie reintentada ya no puede entrar dos veces.** Si el servidor guardaba
   una serie pero la respuesta se perdía (red que se corta en el sótano), la cola
   la reenviaba y quedaba duplicada. Ahora cada serie lleva un `client_id` desde
