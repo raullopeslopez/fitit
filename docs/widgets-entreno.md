@@ -310,10 +310,40 @@ de en `fitit_outbox`. Iniciar y cerrar sesión copian y borran el token nativo.
 - **Comprobar:** modo avión, tres series, quitar el avión: llegan en orden y una sola
   vez. Con la red cortándose a mitad de envío (entrar y salir del ascensor), ninguna
   serie aparece dos veces. Matar la app con series sin enviar y volver: se envían. Cerrar sesión y entrar
-  con otra cuenta: nada de la anterior se envía.
+  con otra cuenta: nada de la anterior acaba en la cuenta nueva.
+
+**Hecho (2026-09-25).** Backend en #160; lo nativo en `android/…/fitit/session/`, con 30
+tests JUnit + Robolectric que CI pasa antes de compilar el APK (el hook de pre-commit no
+puede: necesitan el SDK de Android). Lo que se decidió al construirlo:
+
+- **La página guarda una copia de la cola.** Pinta las filas «sin enviar» de forma
+  síncrona y el puente de Capacitor es asíncrono, así que `fitit_outbox` sigue existiendo
+  en el APK, pero como copia: cada cambio (encolar, renombrar, borrar un ejercicio) va al
+  nativo como una operación suelta, nunca la cola entera, y la cola que devuelve el nativo
+  manda sobre la copia. Lo que la página encoló y el nativo aún no ha confirmado no se
+  borra de la copia aunque llegue una cola sin ello. En el APK la página ya no llama a
+  `logSet`: sólo pide el envío (`flush`) y redibuja con lo que cuenta el aviso `changed`.
+- **Cerrar sesión borra el token nativo, no la cola.** Igual que la web: con otra cuenta,
+  el servidor rechaza las series de un entreno que no es suyo, y la app dice «El servidor
+  rechazó una serie». Borrar la cola al salir perdería las series de quien sale sin
+  querer.
+- **Las series rechazadas se cuentan una vez.** Sólo las recogen el aviso de fin de envío
+  y la consulta al abrir Entreno; así el aviso llega aunque el rechazo fuera con la app
+  cerrada.
+- **En Android 11 o anterior** un envío urgente (*expedited*) corre como servicio en
+  primer plano y enseña una notificación silenciosa, «Enviando series», mientras dura. De
+  Android 12 en adelante no aparece nada.
+- **«Entreno publica el estado» pasa a la fase 2.** El ejercicio, la plantilla y el fin
+  del descanso sólo los lee la notificación; publicarlos antes era escribir algo que nadie
+  lee ni se puede probar.
+- Un fallo que ya estaba en producción, arreglado en #160: el id local de las series
+  pendientes (`tmp-1`…) se repetía entre aperturas de Entreno, y enviar una borraba de la
+  cola a la otra.
 
 ### Fase 2 · Notificación en curso (APK 0.6.0) · día y medio
 
+Entreno publica el estado al nativo (ejercicio, grupo, plantilla, contador, fin del
+descanso) en cada serie y cambio de ejercicio; viene de la fase 1.
 `SessionNotification` y `SessionActionReceiver`: la tarjeta de la pantalla de bloqueo
 con `+1 serie`, `Otra serie` (campo de texto) y `Saltar`, cronómetro en cuenta atrás,
 relabel a `Descanso terminado`, canal silencioso visible en bloqueo, permiso de

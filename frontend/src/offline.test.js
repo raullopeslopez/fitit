@@ -41,6 +41,51 @@ describe('the outbox', () => {
     expect(readQueue()[0].payload.weight).toBe(60)
   })
 
+  it('stamps each set with its own client id when it is queued', () => {
+    enqueueSet(bench('tmp-1'))
+    enqueueSet(bench('tmp-2'))
+
+    // The id is what lets the server recognise a retry: a set it saved whose
+    // answer never reached the phone comes back with the same id and is not
+    // logged twice. Two sets, two ids — identical reps and weight included.
+    const [first, second] = readQueue().map((e) => e.payload.client_id)
+    expect(first).toMatch(/^[0-9a-f-]{36}$/)
+    expect(second).toMatch(/^[0-9a-f-]{36}$/)
+    expect(first).not.toBe(second)
+  })
+
+  it('keeps the client id a set already has', () => {
+    // A set taken back into the queue is the same set: a new id would turn its
+    // retry into a second set.
+    const entry = bench('tmp-1')
+    entry.payload.client_id = 'already-stamped'
+    enqueueSet(entry)
+
+    expect(readQueue()[0].payload.client_id).toBe('already-stamped')
+  })
+
+  it('still queues the set where no id can be made', () => {
+    // Plain http (the dev server opened by LAN IP) has no randomUUID. The set
+    // must still be kept; it just travels without an id, as it always did.
+    const original = crypto.randomUUID
+    crypto.randomUUID = undefined
+    try {
+      enqueueSet(bench('tmp-1'))
+    } finally {
+      crypto.randomUUID = original
+    }
+
+    expect(readQueue()).toHaveLength(1)
+    expect(readQueue()[0].payload).not.toHaveProperty('client_id')
+  })
+
+  it('keeps the same client id across every read of the queue', () => {
+    enqueueSet(bench('tmp-1'))
+
+    // Stamped once, on disk: each retry reads it back from storage.
+    expect(readQueue()[0].payload.client_id).toBe(readQueue()[0].payload.client_id)
+  })
+
   it('drops one entry without disturbing the rest', () => {
     enqueueSet(bench('tmp-1'))
     enqueueSet(bench('tmp-2'))

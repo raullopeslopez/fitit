@@ -1,3 +1,5 @@
+import { CLIENT_VERSION, apiUrl } from './platform/http.js'
+import { nativeSession, session } from './platform/session.js'
 import { storage } from './platform/storage.js'
 
 // What lets the app work with no network. Gyms are basements and the free tier
@@ -32,12 +34,35 @@ function writeQueue(entries) {
   else storage.setItem(OUTBOX_KEY, JSON.stringify(entries))
 }
 
+// Each set carries an id of its own from the moment it is queued, and every
+// retry resends it: a set the server saved but whose answer never arrived comes
+// back with the same id, and the server answers "already logged" instead of
+// logging it twice. A set that already has one keeps it — it is the same set.
+// Spec: backend tests/features/log_set.feature
+//
+// `randomUUID` only exists in a secure context (https, localhost, the APK).
+// Opened over plain http — the dev server by LAN IP — the set goes without an
+// id, exactly as before: losing the dedup is fine, losing the set is not.
 export function enqueueSet(entry) {
-  writeQueue([...readQueue(), entry])
+  const id = entry.payload.client_id ?? globalThis.crypto?.randomUUID?.()
+  const payload = id ? { ...entry.payload, client_id: id } : entry.payload
+  const stamped = { ...entry, payload }
+  writeQueue([...readQueue(), stamped])
+  if (nativeSession()) {
+    // Hasta que el nativo conteste, la serie sólo está en la copia: ninguna
+    // cola que llegue de él mientras tanto puede borrarla de la pantalla.
+    inFlight.set(stamped.tmpId, stamped)
+    session
+      .enqueue(stamped)
+      .then(adoptNativeQueue)
+      .catch(() => {})
+      .finally(() => inFlight.delete(stamped.tmpId))
+  }
 }
 
 export function dropQueued(tmpId) {
   writeQueue(readQueue().filter((e) => e.tmpId !== tmpId))
+  if (nativeSession()) session.drop(tmpId).then(adoptNativeQueue).catch(() => {})
 }
 
 export function clearQueued() {
@@ -49,6 +74,7 @@ export function clearQueued() {
 // set would quietly stand the old exercise back up on the next drain — the very
 // duplicate the rename was there to get rid of.
 export function renameQueued(from, to) {
+  if (nativeSession()) session.rename(from, to).then(adoptNativeQueue).catch(() => {})
   const entries = readQueue()
   if (!entries.some((e) => e.payload?.exercise_name === from)) return
   writeQueue(
@@ -65,9 +91,74 @@ export function renameQueued(from, to) {
 // queued set drained after the delete would stand the exercise straight back up
 // — with one set, under the name you just threw away.
 export function dropQueuedFor(name) {
+  if (nativeSession()) session.dropFor(name).then(adoptNativeQueue).catch(() => {})
   const entries = readQueue()
   const left = entries.filter((e) => e.payload?.exercise_name !== name)
   if (left.length !== entries.length) writeQueue(left)
+}
+
+// ---------------------------------------------------------------------------
+// En el APK la cola la tiene el nativo, y la envía él con la app abierta o
+// cerrada (docs/widgets-entreno.md, fase 1). `fitit_outbox` pasa a ser una copia
+// para pintar las filas «sin enviar» sin esperar al puente: cada cambio de
+// arriba se escribe en ella y se le manda al nativo como una operación suelta, y
+// lo que el nativo conteste manda sobre la copia. En la web nada de esto hace
+// nada, y la página sigue enviando su cola como siempre.
+// ---------------------------------------------------------------------------
+
+// Series encoladas aquí que el nativo todavía no ha confirmado.
+const inFlight = new Map()
+
+// La cola del nativo pasa a la copia, más lo que aún va de camino hacia él.
+function adoptNativeQueue(result) {
+  if (!Array.isArray(result?.queue)) return
+  const there = new Set(result.queue.map((e) => e.tmpId))
+  writeQueue([...result.queue, ...[...inFlight.values()].filter((e) => !there.has(e.tmpId))])
+}
+
+// ¿Envía el nativo? Entonces la página no manda nada: sólo pide que se envíe.
+export function sendsNatively() {
+  return nativeSession()
+}
+
+export function flushNatively() {
+  return session.flush().catch(() => {})
+}
+
+// Al entrar (o al abrir la app con sesión): el token, dónde enviar, y lo que la
+// página tuviera en su cola —de antes de esta versión, o de antes de entrar—.
+export function startNativeQueue(token) {
+  if (!nativeSession()) return
+  session.setSession(token, apiUrl(''), CLIENT_VERSION).catch(() => {})
+  session.adopt(readQueue()).then(adoptNativeQueue).catch(() => {})
+}
+
+// Cerrar sesión: el nativo olvida el token. Las series no, igual que la web.
+export function stopNativeQueue() {
+  if (nativeSession()) session.clearToken().catch(() => {})
+}
+
+// Al abrir Entreno: la cola al día, y cuántas series rechazó el servidor
+// mientras nadie miraba (con la app cerrada, el aviso no tuvo a quién llegar).
+export async function checkInNativeQueue() {
+  if (!nativeSession()) return 0
+  try {
+    const result = await session.snapshot()
+    adoptNativeQueue(result)
+    return result?.rejected ?? 0
+  } catch {
+    return 0
+  }
+}
+
+// Un envío del nativo terminó: `{ queue, sent, rejected, workout }`. La copia se
+// pone al día antes de avisar, para que quien pinte no vea dos veces una serie
+// que ya está en el servidor.
+export function onNativeSend(listener) {
+  return session.onChanged((event) => {
+    adoptNativeQueue(event)
+    listener(event)
+  })
 }
 
 // The backlog belonging to one workout. Another session's unsent sets are still

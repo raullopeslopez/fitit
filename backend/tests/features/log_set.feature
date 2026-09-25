@@ -7,3 +7,29 @@ Feature: Log a workout set
     When I log a set of 8 reps at 60 kg for "Bench Press"
     Then the workout contains 1 set for "Bench Press"
     And that set records 8 reps at 60 kg
+
+  # A set queued offline is retried until an answer arrives. When the server
+  # saved it but the answer was lost, the retry must not log it a second time:
+  # the phone stamps each set with its own id, and the server recognises it.
+  Scenario: A retried set is logged only once
+    Given an exercise "Bench Press"
+    And a workout started today
+    When I log a set of 8 reps at 60 kg for "Bench Press" with client id "a1b2"
+    And I log a set of 8 reps at 60 kg for "Bench Press" with client id "a1b2"
+    Then the retry is answered as already logged
+    And the workout contains 1 set for "Bench Press"
+
+  Scenario: Different client ids are different sets
+    Given an exercise "Bench Press"
+    And a workout started today
+    When I log a set of 8 reps at 60 kg for "Bench Press" with client id "a1b2"
+    And I log a set of 8 reps at 60 kg for "Bench Press" with client id "c3d4"
+    Then the workout contains 2 sets for "Bench Press"
+
+  # An older client sends no id at all, and two identical sets are two sets.
+  Scenario: Sets without a client id are never merged
+    Given an exercise "Bench Press"
+    And a workout started today
+    When I log a set of 8 reps at 60 kg for "Bench Press"
+    And I log a set of 8 reps at 60 kg for "Bench Press"
+    Then the workout contains 2 sets for "Bench Press"

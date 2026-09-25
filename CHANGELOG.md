@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.5.0: las series las envía Android, no la página.** Fase 1 de
+  `docs/widgets-entreno.md`. En el APK la cola de series sin enviar pasa a
+  la parte nativa: se guarda en el teléfono y la envía WorkManager en cuanto
+  hay red, también con la app cerrada o muerta, en orden y con reintentos. Para
+  eso el nativo guarda el token, cifrado con una clave del Keystore de Android.
+  La página ya no envía nada en el APK: encola, pide el envío y pinta lo que el
+  nativo le cuenta. En pantalla no cambia nada, y la PWA sigue exactamente
+  igual. Es la base de la notificación y los widgets (fases 2–4): una serie
+  registrada desde fuera de la app irá a esta misma cola.
 - **La tarjeta de periodo tiene una referencia, no solo una comparación.** La
   barra de cada músculo se medía contra tu propio músculo más entrenado, así que
   cinco series de pecho llenaban la barra de lado a lado — el gesto de "hecho" —
@@ -42,6 +51,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **Se podía perder una serie registrada sin red.** Las series pendientes llevan
+  un id local (`tmp-1`, `tmp-2`…) cuyo contador volvía a empezar cada vez que se
+  abría Entreno. Con una serie sin enviar de la vez anterior, la siguiente que
+  registrabas sin red se llamaba igual, y al enviarse la primera se borraban las
+  dos de la cola: la segunda no llegaba nunca al servidor. El id lleva ahora
+  también el momento en que se abrió la pantalla.
+- **Una serie reintentada ya no puede entrar dos veces.** Si el servidor guardaba
+  una serie pero la respuesta se perdía (red que se corta en el sótano), la cola
+  la reenviaba y quedaba duplicada. Ahora cada serie lleva un `client_id` desde
+  que se registra, y el servidor reconoce el reintento: contesta 200 con el
+  entreno tal cual en vez de crear otra. Es el primer paso de la fase 1 de
+  `docs/widgets-entreno.md`, donde la cola nativa del APK lo necesita aún más.
 - **"Elevación de piernas" contaba como pierna.** El clasificador veía "pierna"
   dentro del nombre antes de llegar a la regla de abdominales, así que un ejercicio
   de core llevaba meses sumando en el grupo equivocado. Ahora es Core.

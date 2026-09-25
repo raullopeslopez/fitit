@@ -4,8 +4,15 @@ import userEvent from '@testing-library/user-event'
 import App from './App.jsx'
 import * as api from './api.js'
 import { setToken } from './auth.js'
+import * as offline from './offline.js'
 
 vi.mock('./api.js')
+// Sólo lo que habla con el nativo; el resto de la cola funciona de verdad.
+vi.mock('./offline.js', async (original) => ({
+  ...(await original()),
+  startNativeQueue: vi.fn(),
+  stopNativeQueue: vi.fn(),
+}))
 
 describe('App', () => {
   beforeEach(() => {
@@ -15,6 +22,36 @@ describe('App', () => {
     // are about navigation, so the quiet answer is the right one — but it has
     // to be a promise, or the auto-mock hands the effect an undefined.
     api.recentlyTrained.mockResolvedValue([])
+  })
+
+  // En el APK la cola la envía el nativo, también con la app cerrada, y para eso
+  // necesita el token. En la web estas dos llamadas no hacen nada (offline.js).
+  describe('el token, también para el nativo', () => {
+    beforeEach(() => {
+      api.listDays.mockResolvedValue([])
+    })
+
+    it('se lo da al abrir la app con la sesión ya iniciada', async () => {
+      setToken('tok')
+      render(<App />)
+
+      expect(offline.startNativeQueue).toHaveBeenCalledWith('tok')
+    })
+
+    it('no le da nada sin sesión', () => {
+      render(<App />)
+
+      expect(offline.startNativeQueue).not.toHaveBeenCalled()
+    })
+
+    it('se lo quita al salir', async () => {
+      setToken('tok')
+      render(<App />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^salir$/i }))
+
+      expect(offline.stopNativeQueue).toHaveBeenCalled()
+    })
   })
 
   it('shows the login screen when there is no token', () => {
