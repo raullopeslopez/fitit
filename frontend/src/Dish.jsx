@@ -89,7 +89,10 @@ export function NewDish({
   notice = null,
 }) {
   const [name, setName] = useState(initialName)
-  const [servings, setServings] = useState('1')
+  // Desde una idea las raciones empiezan vacías: la receta no las dijo, y un 1
+  // por defecto sería decirlas por ella —una receta para cuatro guardada como
+  // una ración da macros ×4—. Es la misma regla que el borrador de la idea.
+  const [servings, setServings] = useState(ideaId ? '' : '1')
   const [basis, setBasis] = useState('raw')
   const [method, setMethod] = useState('')
   const [ingredients, setIngredients] = useState([])
@@ -146,6 +149,10 @@ export function NewDish({
     const pesados = ingredients.map((i) => ({ food_id: i.food_id, grams: Number(String(i.grams).replace(',', '.')) }))
     if (pesados.some((i) => !Number.isFinite(i.grams) || i.grams <= 0)) {
       setError('Dime cuántos gramos lleva cada ingrediente.')
+      return
+    }
+    if (!String(servings).trim()) {
+      setError('Dime para cuántas raciones es.')
       return
     }
     const raciones = Number(String(servings).replace(',', '.'))

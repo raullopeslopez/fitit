@@ -37,6 +37,20 @@ def test_an_idea_without_a_web_link_is_dropped(url):
     assert read_ideas({"ideas": [{"name": "A", "url": url}]}) == []
 
 
+# El buscador de Gemini cita sus fuentes con enlaces de redirección propios. Uno
+# de esos no es la receta: no dice de qué web es, no se puede deduplicar —cada
+# búsqueda da uno distinto para la misma receta— y caduca.
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AbF9wXE",
+        "https://VertexAISearch.cloud.google.com/grounding-api-redirect/x",
+    ],
+)
+def test_a_search_redirect_is_not_a_recipe_link(url):
+    assert read_ideas({"ideas": [{"name": "A", "url": url}]}) == []
+
+
 def test_minutes_that_are_not_a_duration_are_unknown_not_zero():
     ideas = read_ideas({"ideas": [
         {"name": "A", "url": "https://a.es/1", "minutes": 0},
