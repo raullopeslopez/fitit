@@ -17,7 +17,6 @@ import {
   setExerciseMuscle,
   setExerciseNote,
 } from './api.js'
-import { getToken } from './auth.js'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
 import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
@@ -30,7 +29,6 @@ import {
   formatDate,
   formatDuration,
   formatSet,
-  formatTime,
   parseDuration,
   sessionLength,
 } from './format.js'
@@ -49,26 +47,14 @@ import {
   renameQueued,
   retryable,
 } from './offline.js'
-import {
-  announceRestNotice,
-  askForNotifications,
-  blockedNotice,
-  claimLockScreenSets,
-  notificationState,
-  onLockScreenSets,
-  startRestNotice,
-  stopRestNotice,
-} from './platform/notify.js'
 import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
 import {
   REST_OPTIONS,
-  getLockLogging,
   getRepeatTemplate,
   getRestSeconds,
   getRestUntil,
   getScreenAwake,
-  setLockLogging,
   setRestSeconds,
   setRestUntil,
   setScreenAwake,
@@ -1462,58 +1448,26 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   // mid-rest and coming back picks the clock up where it actually is.
   const [restSeconds, setRestSecondsState] = useState(getRestSeconds)
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
-  // The two session aids: the screen staying lit while you are at the rack, and
-  // a lock-screen notification with `+1 serie` on it for when the phone is in a
-  // pocket. Both are once-a-session choices, so both live in the header
-  // overflow (DESIGN.md: rare actions don't take content-weight controls).
-  //
-  // Deliberately independent of the rest above. They were one setting, which
-  // meant choosing "Sin descanso" silently took the lock screen away too —
-  // "I don't time my rests" and "I don't want to log from my pocket" are not
-  // the same sentence. The rest now only decides whether that notification also
-  // carries a countdown and a buzz.
+  // The screen staying lit while you are at the rack — a once-a-session choice,
+  // so it lives in the header overflow (DESIGN.md: rare actions don't take
+  // content-weight controls).
   const [screenAwake, setScreenAwakeState] = useState(getScreenAwake)
-  const [lockLogging, setLockLoggingState] = useState(getLockLogging)
-  // What the worker said about the last handover. This is the one feature in
-  // the app whose whole output happens where the app cannot see it — another
-  // thread, then the platform's notification shade — so without this the only
-  // way to know whether it works is to lock the phone and hope. `null` until
-  // the first set: nothing has been asked of the worker yet.
-  const [noticeState, setNoticeState] = useState(null)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
   const nextTmpId = useRef(0)
   // One drain at a time, or two triggers firing together send the same set twice.
   const flushing = useRef(false)
 
-  // The rest is over. The lock-screen notification deliberately stays: it has
-  // just turned into "Descanso terminado", and its `+1 serie` button is the
-  // whole point — closing it here would take the button away at the exact
-  // moment you are about to use it.
   function endRest() {
     setRestUntil(null)
     setRestEndsAt(null)
   }
 
-  // Skipping is a decision, not the clock running out. The clock stops; the
-  // notification stays, minus its countdown — it is the remote for the session,
-  // and you have not left the session.
+  // Skipping is a decision, not the clock running out.
   function skipRest() {
     endRest()
-    if (lastNotice.current) handOverSession(lastNotice.current, null)
-    else stopRestNotice()
   }
 
-  // The last set logged in this session, so the notification can be rebuilt
-  // without one (skipping the rest, say). Null until the first set: `+1 serie`
-  // has nothing to repeat before then, which is why the lock screen only shows
-  // up once you have logged something from the card.
-  const lastNotice = useRef(null)
-  // Whether the notification still owes itself an arrival on a locked screen.
-  // Spent by the first hide after each set — see the visibility handler.
-  const announceOwed = useRef(false)
-
-  // The countdown on screen. Independent of the notification below: the rest is
-  // one thing you might want and logging from your pocket is another.
+  // The countdown on screen.
   function startRest() {
     if (restSeconds <= 0) return null
     const until = Date.now() + restSeconds * 1000
@@ -1522,81 +1476,17 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     return until
   }
 
-  // Everything the tap will need while this page is frozen: which workout, the
-  // set to repeat, the token to send it with — and how many sets are still
-  // sitting in our own outbox, because those are older and set_index is
-  // assigned in arrival order. `endsAt` null means there is no rest to show,
-  // which is a full citizen here, not a degraded state.
-  //
-  // The two preferences are read from the store rather than from this render:
-  // both are written synchronously when they change, and the toggles that
-  // change them hand the session over again in the same breath — at which point
-  // the React state is still a render behind, and would send the worker the
-  // rest length you just turned off.
-  function handOverSession(notice, endsAt) {
-    lastNotice.current = notice
-    // One arrival per set. See the visibility handler for why this is spent
-    // rather than repeated.
-    announceOwed.current = true
-    if (!getLockLogging() || notificationState() !== 'granted') return
-    startRestNotice({
-      endsAt,
-      seconds: getRestSeconds(),
-      workoutId: workout.id,
-      token: getToken(),
-      pending: readQueue().length,
-      ...notice,
-    }).then((result) => setNoticeState({ at: Date.now(), ...result }))
-  }
-
-  // One muted line under the toggle, saying whether the thing is actually
-  // alive. Four different failures used to look identical from here — the
-  // worker never woke, the worker threw, Android dropped the notification, or
-  // nothing had been handed over yet — and telling them apart meant guessing.
-  function noticeSummary() {
-    if (!lockLogging) return null
-    if (!noticeState) return 'Se activa al registrar una serie.'
-    if (!noticeState.ok) return `No se pudo enviar: ${noticeState.error}`
-    // The worker did everything right and the platform kept nothing. That is
-    // Android's own doing — almost always the per-site channel in Ajustes.
-    if (noticeState.shown === 0) {
-      return `Enviado a las ${formatTime(noticeState.at)}, pero Android no lo muestra.`
-    }
-    return `Activo · última a las ${formatTime(noticeState.at)}`
-  }
-
   function chooseRestSeconds(seconds) {
     setRestSeconds(seconds)
     setRestSecondsState(seconds)
     // Turning rest off should stop the clock you're looking at, not just the
-    // next one — and it must not take the lock screen with it.
-    if (seconds <= 0) {
-      endRest()
-      if (lastNotice.current) handOverSession(lastNotice.current, null)
-    }
+    // next one.
+    if (seconds <= 0) endRest()
   }
 
   function chooseScreenAwake(on) {
     setScreenAwake(on)
     setScreenAwakeState(on)
-  }
-
-  // The permission is asked for here and nowhere else: from a tap on the thing
-  // that needs it, so the prompt has a question attached. A no leaves the
-  // preference off — the browser only offers to ask once.
-  async function chooseLockLogging(on) {
-    if (!on) {
-      setLockLogging(false)
-      setLockLoggingState(false)
-      stopRestNotice()
-      return
-    }
-    const granted = notificationState() === 'granted' || (await askForNotifications())
-    setLockLogging(granted)
-    setLockLoggingState(granted)
-    // Switched on mid-session: put it up now, against the last set logged,
-    // rather than making you log another one to see whether it worked.
-    if (granted && lastNotice.current) handOverSession(lastNotice.current, restEndsAt)
   }
 
   // Retire the bar the moment it runs out, without waiting for the next tick.
@@ -1660,56 +1550,24 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
         )
       })
       .catch(() => setError('No se pudo cargar el entreno.'))
-      // Only once the session on screen exists. Absorbing first would race the
+      // Only once the session on screen exists. Draining first would race the
       // load: a set sent from here would be wiped by a response that was
       // already in flight before it went out.
-      .finally(() => absorbLockScreen())
+      .finally(() => flushQueue())
   }, [workoutId])
 
-  // The three moments a phone in a basement gets its signal back: the app
-  // starting, the browser noticing the network, and you bringing the app
-  // forward. No polling timer — a countdown that wakes the radio every few
-  // seconds is a battery cost paid by every session to help the rare one.
-  //
-  // Coming forward is also the moment to take back whatever was logged from the
-  // lock screen while this page was frozen.
+  // The two moments a phone in a basement gets its signal back: the browser
+  // noticing the network, and you bringing the app forward. No polling timer —
+  // a countdown that wakes the radio every few seconds is a battery cost paid
+  // by every session to help the rare one.
   useEffect(() => {
-    const drain = () => absorbLockScreen()
+    const drain = () => flushQueue()
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        absorbLockScreen()
-        return
-      }
-      // Going away is the other half. The phone being hidden *is* the phone
-      // being pocketed, and Android draws on a locked screen what arrives while
-      // locked — a notification already in the shade is not redrawn. So this is
-      // the moment to make it arrive again, and it beats any timer guessing at
-      // how long somebody takes to put a phone away.
-      //
-      // Once per set, though, and no more. Hidden also means "switched to
-      // WhatsApp", and re-arriving has to make a sound to count as an arrival —
-      // so announcing on every hide turned a between-sets aid into a banner
-      // that interrupted whatever else the phone was doing. One set logged buys
-      // one arrival; the next one has to be earned by lifting something.
-      if (announceOwed.current && lastNotice.current && getLockLogging()) {
-        announceOwed.current = false
-        announceRestNotice()
-      }
+      if (document.visibilityState === 'visible') flushQueue()
     }
-    // The app was awake when the notification was tapped (from the shade rather
-    // than the lock screen): take the set, and the rest clock with it, or the
-    // bar on screen and the notification disagree about the same countdown.
-    const stopListening = onLockScreenSets(({ endsAt } = {}) => {
-      if (endsAt != null) {
-        setRestUntil(endsAt)
-        setRestEndsAt(endsAt)
-      }
-      absorbLockScreen()
-    })
     window.addEventListener('online', drain)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
-      stopListening()
       window.removeEventListener('online', drain)
       document.removeEventListener('visibilitychange', onVisible)
     }
@@ -1722,10 +1580,6 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     if (!screenAwake) return undefined
     return holdScreenAwake()
   }, [screenAwake])
-
-  // Walking out of the session takes its notification with it: a `+1 serie`
-  // button for a workout you have left would log into the wrong one.
-  useEffect(() => () => stopRestNotice(), [workoutId])
 
   useEffect(() => {
     // Autocomplete is best-effort; a failure here shouldn't break logging.
@@ -1795,60 +1649,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     setWorkout(withQueued)
     // Started on the tap, not on the round trip: resting is what you do *while*
     // the request is open, and offline there may not be a round trip for hours.
-    //
-    // The lock screen gets the same set to repeat that the card's `+1 serie`
-    // would. Cardio is the one exclusion: an interval you just ran is not an
-    // interval you are about to run.
-    const endsAt = startRest()
-    // The template, not the stamped payload: the worker repeats this set later,
-    // and a repeat done at 19:40 is not a set performed at 19:20. It stamps its
-    // own copy when the tap happens.
-    const notice =
-      fields.kind === 'cardio' ? null : { series: setsFor(name).length + 1, payload: template }
-    if (notice) handOverSession(notice, endsAt)
+    startRest()
     await flushQueue()
-    // Again, now that the outbox has had its chance to drain: the worker holds
-    // off sending anything of its own while sets older than it are still queued
-    // here, and that count is only true once this is over.
-    if (notice) handOverSession(notice, endsAt)
-  }
-
-  // Sets logged from the lock screen, taken back the moment this page is alive
-  // again. The unsent ones join the outbox — which is the only thing allowed to
-  // drain, so the session keeps one order — and anything the worker already
-  // sent means the workout on screen is out of date.
-  async function absorbLockScreen() {
-    const { queued, sent } = await claimLockScreenSets()
-    queued.forEach((entry) => enqueueSet(entry))
-    if (queued.length > 0) {
-      setWorkout(withQueued)
-      // Normally the card is already standing — the worker only ever repeats a
-      // set you logged from it. But a set on disk with no card is a set you
-      // cannot see, so anything without one gets one, at the top, where the
-      // work you just did belongs.
-      setExercises((list) => {
-        const standing = new Set(list.map((e) => e.name))
-        const missing = [
-          ...new Set(
-            queued.map((e) => e.payload.exercise_name).filter((name) => !standing.has(name)),
-          ),
-        ]
-        return missing.length === 0
-          ? list
-          : [...missing.map((name) => ({ name, kind: 'strength' })), ...list]
-      })
-    }
-    await flushQueue()
-    if (sent > 0) {
-      // Best-effort: with no signal the rows are already on screen from the
-      // queue, and the next visit will pick up the rest.
-      await getWorkout(workoutId)
-        .then((w) => {
-          cacheWorkout(w)
-          setWorkout(withQueued(w))
-        })
-        .catch(() => {})
-    }
   }
 
   // Drain the outbox oldest-first. Nothing here throws at the card: a set that
@@ -2458,9 +2260,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
                       ))}
                     </div>
                   </div>
-                  {/* The screen not going dark is the cheap half of not making
-                      the trip to the pocket; the lock-screen notice is the
-                      other half, for when the phone goes in it anyway. */}
+                  {/* The screen not going dark removes the trip to the pocket
+                      outright while you are standing at the rack. */}
                   <div className="menu-pref">
                     <span className="prefs-label">Pantalla activa</span>
                     <div
@@ -2484,46 +2285,6 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
                       ))}
                     </div>
                   </div>
-                  {/* Its own setting, not the rest's: "I don't time my rests"
-                      and "I don't want to log from my pocket" are different
-                      sentences. Hidden outright where the browser can't do it —
-                      a control with nothing to decide isn't shown (DESIGN.md). */}
-                  {notificationState() !== 'unsupported' && (
-                    <div className="menu-pref">
-                      <span className="prefs-label">Registrar sin abrir</span>
-                      {notificationState() === 'denied' ? (
-                        <p className="menu-note">{blockedNotice()}</p>
-                      ) : (
-                        <>
-                          <div
-                            className="unit-toggle"
-                            role="group"
-                            aria-label="Registrar series desde la pantalla bloqueada"
-                          >
-                            {[
-                              [true, 'Sí'],
-                              [false, 'No'],
-                            ].map(([on, label]) => (
-                              <button
-                                key={label}
-                                type="button"
-                                className="unit-option"
-                                aria-pressed={lockLogging === on}
-                                onClick={() => chooseLockLogging(on)}
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                          {noticeSummary() && (
-                            <p className="menu-note" role="status">
-                              {noticeSummary()}
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
                   {/* Two taps to delete: the first only arms it. Destructive gets
                       the true-red treatment DESIGN.md reserves for it. */}
                   {confirmingDelete ? (

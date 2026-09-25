@@ -3,8 +3,7 @@
 // A phone that locks itself between sets costs a wake, an unlock and a hunt for
 // the card — the pocket-to-card trip that is the most expensive thing left in
 // logging a set. The screen staying lit removes it outright while you are
-// standing at the rack; the lock-screen notification (see notify.js) covers the
-// case where the phone genuinely does go into a pocket.
+// standing at the rack.
 //
 // The lock is not something you take once. Android hands it back the moment the
 // tab is hidden or the screen is turned off by hand, and a hidden page is not

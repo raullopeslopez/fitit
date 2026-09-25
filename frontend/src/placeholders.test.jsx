@@ -4,11 +4,9 @@ import Days from './Days.jsx'
 import Progress from './Progress.jsx'
 import Workout from './Workout.jsx'
 import * as api from './api.js'
-import * as notify from './platform/notify.js'
 import { SHOW_AFTER_MS } from './Skeleton.jsx'
 
 vi.mock('./api.js')
-vi.mock('./platform/notify.js')
 vi.mock('./platform/wakelock.js')
 
 // A request that never answers: the whole of what these screens draw while they
@@ -27,8 +25,6 @@ describe('placeholders de carga', () => {
     localStorage.clear()
     api.listExercises.mockImplementation(never)
     api.recentlyTrained.mockImplementation(never)
-    // Devuelve el "deja de escuchar" que Entreno llama al desmontar.
-    notify.onLockScreenSets.mockReturnValue(() => {})
   })
 
   describe('Días', () => {
