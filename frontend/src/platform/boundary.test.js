@@ -42,12 +42,20 @@ function sources(dir) {
 function code(text) {
   return text
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n')
+    // `\r?\n` y no `\n`: en Windows git deja los archivos en CRLF, el `\r` se
+    // queda al final de cada línea, `.` no lo cruza y `//.*$` no llega al final.
+    // El comentario sobrevivía y el test acusaba a un comentario.
+    .split(/\r?\n/)
     .map((line) => line.replace(/(^|[^:'"`])\/\/.*$/, '$1'))
     .join('\n')
 }
 
 describe('platform/', () => {
+  it('un comentario no cuenta, venga el archivo en LF o en CRLF', () => {
+    expect(code('// usa localStorage\nconst a = 1\n')).not.toMatch(/localStorage/)
+    expect(code('// usa localStorage\r\nconst a = 1\r\n')).not.toMatch(/localStorage/)
+  })
+
   it('nada fuera de platform/ toca el navegador directamente', () => {
     const leaks = []
     for (const file of sources(SRC)) {
