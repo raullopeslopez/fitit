@@ -99,3 +99,48 @@ export function getRepeatTemplate(workoutId) {
   }
 }
 
+// Exercises added to a workout that have no sets yet. The cards are rebuilt on
+// every entry from the logged sets and the repeat template, and an exercise
+// with neither was simply gone: add it, leave the app before its first set,
+// come back and add it again. Same shape as the template — one slot, keyed by
+// workout — with the kind kept, since a new exercise takes its Fuerza/Cardio
+// from the toggle and nothing else remembers it until the first set.
+const ADDED_KEY = 'fitit_added_exercises'
+
+function readAdded() {
+  try {
+    const stored = JSON.parse(storage.getItem(ADDED_KEY))
+    return stored && Array.isArray(stored.exercises) ? stored : null
+  } catch {
+    return null
+  }
+}
+
+function writeAdded(workoutId, exercises) {
+  if (exercises.length === 0) storage.removeItem(ADDED_KEY)
+  else storage.setItem(ADDED_KEY, JSON.stringify({ workoutId, exercises }))
+}
+
+// [{ name, kind }], most recently added first.
+export function getAddedExercises(workoutId) {
+  const stored = readAdded()
+  return stored?.workoutId === workoutId ? stored.exercises : []
+}
+
+export function rememberAddedExercise(workoutId, { name, kind }) {
+  const rest = getAddedExercises(workoutId).filter((e) => e.name !== name)
+  writeAdded(workoutId, [{ name, kind }, ...rest])
+}
+
+export function forgetAddedExercise(workoutId, name) {
+  const list = getAddedExercises(workoutId)
+  if (list.some((e) => e.name === name)) writeAdded(workoutId, list.filter((e) => e.name !== name))
+}
+
+export function renameAddedExercise(workoutId, from, to) {
+  const list = getAddedExercises(workoutId)
+  if (list.some((e) => e.name === from)) {
+    writeAdded(workoutId, list.map((e) => (e.name === from ? { ...e, name: to } : e)))
+  }
+}
+

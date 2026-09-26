@@ -55,7 +55,11 @@ import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
 import {
   REST_OPTIONS,
+  forgetAddedExercise,
+  getAddedExercises,
   getRepeatTemplate,
+  rememberAddedExercise,
+  renameAddedExercise,
   getRestSeconds,
   getRestUntil,
   getScreenAwake,
@@ -1554,8 +1558,18 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
         // touched queue up *under* what you've logged: worked lifts still rise
         // to the top, and the rest read as what's left to do — in the order the
         // original session did them, so a fresh repeat opens on its first lift.
-        const queued = (getRepeatTemplate(workoutId) ?? []).filter((n) => !loggedNames.has(n))
-        setExercises([...logged, ...queued.map((name) => ({ name, kind: 'strength' }))])
+        // Exercises added here and left before their first set go on top, as
+        // they were when you added them: it's what you were about to do.
+        const added = getAddedExercises(workoutId).filter((e) => !loggedNames.has(e.name))
+        const addedNames = new Set(added.map((e) => e.name))
+        const queued = (getRepeatTemplate(workoutId) ?? []).filter(
+          (n) => !loggedNames.has(n) && !addedNames.has(n),
+        )
+        setExercises([
+          ...added.map(({ name, kind }) => ({ name, kind: kind ?? 'strength' })),
+          ...logged,
+          ...queued.map((name) => ({ name, kind: 'strength' })),
+        ])
 
         // Every card needs its marks, rebuilt ones included. Only the add path
         // used to fetch them, so reopening a workout lost the target on every
@@ -1563,7 +1577,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
         // running peak — flagging set 2 as a record for beating set 1. The
         // current workout is excluded server-side, or the answer is your own
         // sets from ten minutes ago.
-        const names = [...logged.map((e) => e.name), ...queued]
+        const names = [...added.map((e) => e.name), ...logged.map((e) => e.name), ...queued]
         if (names.length === 0) return
         const marks = await Promise.all(names.map((n) => marksFor(n, workoutId)))
         const byName = new Map(names.map((n, i) => [n, marks[i]]))
@@ -1686,6 +1700,8 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
     setExercises((list) =>
       list.some((e) => e.name === name) ? list : [{ name, previous, kind }, ...list],
     )
+    // Written down, or leaving the app before its first set loses the card.
+    if (!setsFor(name).length) rememberAddedExercise(workoutId, { name, kind })
     setExerciseInput('')
     setAdding(false)
   }
@@ -1970,7 +1986,13 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
 
   async function deleteExerciseFor(name) {
     const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
-    if (id == null) return
+    if (id == null) {
+      // Nunca llegó al servidor (añadido aquí, sin series): no hay nada que
+      // borrar allí, sólo la tarjeta y la nota de que la añadiste.
+      forgetAddedExercise(workoutId, name)
+      setExercises((list) => list.filter((e) => e.name !== name))
+      return
+    }
     setError('')
     try {
       await deleteExercise(id)
@@ -1979,6 +2001,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       // nombre también: mandarlo levantaría otra vez el ejercicio que acabas
       // de borrar.
       dropQueuedFor(name)
+      forgetAddedExercise(workoutId, name)
       setExercises((list) => list.filter((e) => e.name !== name))
       setWorkout((w) =>
         w ? { ...w, sets: w.sets.filter((set) => set.exercise_name !== name) } : w,
@@ -2133,6 +2156,7 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
   function applyRename(from, to) {
     if (!to || from === to) return
     renameQueued(from, to)
+    renameAddedExercise(workoutId, from, to)
     moveCardKey(from, to)
     // Mover la entrada, no añadir otra: un mapa que se quedase con los dos
     // nombres mantendría vivos para siempre el grupo, la nota y el plegado de

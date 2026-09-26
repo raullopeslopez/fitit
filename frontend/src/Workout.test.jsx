@@ -2599,6 +2599,102 @@ describe('Workout', () => {
     })
   })
 
+  // Añadir un ejercicio y salir de la app sin registrarle nada lo perdía: la
+  // lista de tarjetas se rehace al entrar desde las series y la plantilla de
+  // «Repetir», y un ejercicio sin series no estaba en ninguna de las dos.
+  describe('un ejercicio añadido sin series', () => {
+    async function addSentadilla() {
+      await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      await waitFor(() => expect(cardToggle('Sentadilla')).toBeInTheDocument())
+    }
+
+    it('sigue ahí al salir y volver a entrar, arriba', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      const first = renderWorkout()
+      await addSentadilla()
+      first.unmount()
+
+      const { container } = renderWorkout()
+
+      await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(1))
+      const names = [...container.querySelectorAll('.card-toggle .card-name')].map((el) =>
+        el.textContent.trim(),
+      )
+      expect(names).toEqual(['Sentadilla', 'Bench Press'])
+      expect(api.getPreviousMarks).toHaveBeenCalledWith('Sentadilla', 1)
+    })
+
+    it('no aparece en otro entreno', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      const first = renderWorkout()
+      await addSentadilla()
+      first.unmount()
+
+      api.getWorkout.mockResolvedValue({ ...workoutWith(benchSet({ id: 1 })), id: 2 })
+      renderWorkout({ workoutId: 2 })
+
+      await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+      expect(cardToggles('Sentadilla')).toHaveLength(0)
+    })
+
+    // Nunca llegó al servidor, así que no hay nada que borrar allí: «Sí,
+    // eliminar» no hacía nada, y ahora que la tarjeta sobrevive a salir de la
+    // app se habría quedado en el entreno sin forma de quitarla.
+    it('uno que nunca se guardó se quita con «Eliminar», sin llamar al servidor', async () => {
+      api.listDays.mockResolvedValue([])
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      const first = renderWorkout()
+      await addSentadilla()
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /editar ejercicio sentadilla/i }),
+      )
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^eliminar ejercicio$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /sí, eliminar/i }))
+
+      await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(0))
+      expect(api.deleteExercise).not.toHaveBeenCalled()
+      first.unmount()
+
+      renderWorkout()
+      await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+      expect(cardToggles('Sentadilla')).toHaveLength(0)
+    })
+
+    it('cuando ya tiene series, no sale dos veces', async () => {
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
+      const first = renderWorkout()
+      await addSentadilla()
+      first.unmount()
+
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1 }),
+          benchSet({ id: 2, exercise_name: 'Sentadilla', exercise_id: 9 }),
+        ),
+      )
+      renderWorkout()
+
+      await screen.findByRole('heading', { level: 2, name: /Sentadilla/i })
+      expect(cardToggles('Sentadilla')).toHaveLength(1)
+    })
+  })
+
   // The gym is a basement and Render sleeps. If the network sits between
   // finishing a set and seeing it logged, the app is slow exactly when it is
   // being used. The set lands locally first; the request catches up after.
