@@ -341,3 +341,10 @@ if (import.meta.env?.DEV) {
     console.warn(`volume.js: no band for ${missing.join(', ')}`)
   }
 }
+
+// What a row below its band says: the distance to the floor, in sets. Only an
+// exact 1 is singular — in month mode the gap is a weekly average, and 1.5
+// sets is not «one».
+export function shortOf(gap) {
+  return gap === 1 ? 'falta 1' : `faltan ${gap}`
+}

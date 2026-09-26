@@ -785,10 +785,14 @@ describe('Comida', () => {
         forceTheme(theme)
         await settle()
         const ratio = contrastRatio(parseColor(getComputedStyle(hero).color), backdropOf(hero))
-        // 3.0 es el suelo de AA para texto grande (2,6rem lo es de sobra). El
-        // acento sobre papel no llega a 4.5 y no tiene por qué: es un número de
-        // 42 px, no prosa.
+        // 3.0 es el suelo de AA para texto grande (2,6rem lo es de sobra).
         expect(ratio, `${theme}: ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(3)
+        // Pero pasar el suelo no era la regla: el ámbar como *texto* va en
+        // `--accent-ink`, que en papel baja a #C2440F. La barra de al lado sigue
+        // en `--accent` — relleno y tinta se separan igual que en el resto de la app.
+        expect(rgb(parseColor(getComputedStyle(hero).color)), theme).toEqual(
+          rgb(token('--accent-ink')),
+        )
       }
     })
   })

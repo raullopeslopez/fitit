@@ -9,6 +9,7 @@ import {
   MEV_AT,
   MRV_AT,
   RUNWAY_SETS,
+  shortOf,
 } from './volume.js'
 
 // How long a tail the row draws to the left of the band: the distance from the
@@ -337,5 +338,16 @@ describe('indirect volume', () => {
         }
       }
     }
+  })
+})
+
+describe('shortOf', () => {
+  // «Tríceps · faltan 1» se veía en Progreso: el plural no miraba el número.
+  it('concuerda con el número: una serie falta, varias faltan', () => {
+    expect(shortOf(1)).toBe('falta 1')
+    expect(shortOf(2)).toBe('faltan 2')
+    // En modo mes la cifra es una media semanal: 1.5 series no es «una».
+    expect(shortOf(1.5)).toBe('faltan 1.5')
+    expect(shortOf(0.5)).toBe('faltan 0.5')
   })
 })

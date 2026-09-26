@@ -28,7 +28,7 @@ import {
   typicalWeekSets,
 } from './stats.js'
 import { showKg } from './units.js'
-import { bandFor, bandPosition, bandState } from './volume.js'
+import { bandFor, bandPosition, bandState, shortOf } from './volume.js'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
@@ -123,10 +123,7 @@ function Ladder({ rungs, color }) {
               x={inwards ? x(rung) - 8 : x(rung) + 6}
               y={y(rung.weight) - 6}
               textAnchor={inwards ? 'end' : 'start'}
-              fontSize={isLast ? 11 : 10}
-              fontWeight={isLast ? 600 : 400}
-              fill={isLast ? 'var(--text)' : 'var(--muted)'}
-              fontFamily="var(--font-mono)"
+              className={isLast ? 'chart-point-label is-last' : 'chart-point-label'}
             >
               {showKg(rung.weight)} × {rung.reps}
             </text>
@@ -138,9 +135,7 @@ function Ladder({ rungs, color }) {
           key={`t${rung.date}`}
           x={x(rung)}
           y={H - 4}
-          fontSize="9"
-          fill="var(--muted)"
-          fontFamily="var(--font-mono)"
+          className="chart-tick"
         >
           {formatMonth(rung.date).slice(0, 3)}
         </text>
@@ -302,7 +297,7 @@ function VolumeRow({ group, shown, indirect = 0, deload, target, judging, shortW
       : shortWeek
         ? ''
         : state === 'bajo'
-          ? `faltan ${gap}`
+          ? shortOf(gap)
           : state === 'sin-banda'
             ? 'sin zona'
             : ''
