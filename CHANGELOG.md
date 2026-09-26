@@ -8,6 +8,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.10.0: widgets y notificación del entreno rediseñados.** Fase 6 de
+  `docs/widgets-entreno.md`, con el diseño de `DESIGN.md` («Fuera de la app»).
+  - **Widget 4×2:** arriba, en una línea, `Press banca · 4 series` (con cola,
+    `· 1 sin enviar` en ámbar) y `Terminar` como un aro rojo con ■ en la esquina.
+    Descansando, el tiempo debajo en grande. Abajo, el **bloque de ajuste**: dos filas,
+    `− 32,5 kg +` y `− 12 reps +`, y a su derecha el botón ámbar **`+1`**, que registra.
+    Al pulsar un `−` o `+`, su zona se tiñe y el signo pasa a ámbar.
+  - **Pasado el descanso** el número no se cambia por «Descanso terminado»: se vuelve
+    ámbar y cuenta lo que te pasas, `+00:12`, en los widgets y en la notificación.
+  - **Notificación:** cerrada, `Press banca` / `32,5 kg × 12 · 4 series` con el tiempo
+    grande a la derecha; desplegada, `Press banca · 4 series`, el tiempo y el mismo
+    bloque de ajuste que el widget, para cambiar peso y reps y registrar desde ahí. Ya no
+    tiene botones abajo.
+  - **Widget 4×1:** el botón dice sólo `+1`.
+  - **Sin entreno, el 4×2 tiene dos pantallas**, que se cambian tocando los puntitos de
+    abajo: `Sin entreno en curso` / `Último: hace 2 días · Pierna` con `Empezar entreno`;
+    y `PASOS HOY` con los pasos de hoy (`8.432 / 10.000`), una barra hasta el objetivo y
+    `Media semanal: 7.910`. Sin pasos de hoy sólo está la primera. El widget recuerda en
+    cuál estabas.
+  - **`Sesión caducada`:** si el servidor deja de aceptar tu sesión con la app cerrada,
+    los widgets dicen `Sesión caducada` / `Abre Fitit para volver a entrar. Tus series
+    siguen guardadas.` con un botón `Abrir Fitit` (`Abrir` en el 4×1). Al volver a
+    entrar, todo sigue donde estaba y las series pendientes se envían.
+
+### Removed
+- **APK 0.10.0: escribir series fuera de la app, saltar el descanso y `Otro ejercicio`.**
+  La notificación ya no tiene `+1 serie`, `Otra serie` ni `Otro ejercicio` (y con ellos
+  se va escribir `Remo 40x10`); el 4×2 pierde `⏭` y `Otro ejercicio`. Una serie distinta
+  se ajusta con `−` y `+`; otro ejercicio se elige en la app, y saltar el descanso
+  también se hace en la app.
+
+### Added
+- **APK 0.10.0: widget 3×2.** Un tercer widget en el selector, «Fitit · Entreno 3×2»:
+  el mismo que el 4×2, en tres columnas.
+- **Objetivo: `Pasos al día`.** En Comida → `Objetivo diario`, debajo de `Sexo`. Es la
+  meta de la barra del widget; vacío es sin objetivo, y fuera de 1.000–100.000 avisa
+  `Entre 1.000 y 100.000 pasos.`
+
+### Changed
 - **APK 0.9.1: `Otro ejercicio` del widget 4×2 sólo sirve para añadir uno.** Tocarlo
   abre Entreno con el campo `Ejercicio` enfocado, como hacía `Nuevo…`. Se van la
   lista de cuatro ejercicios con su marca, `Nuevo…`, `Cancelar` y
