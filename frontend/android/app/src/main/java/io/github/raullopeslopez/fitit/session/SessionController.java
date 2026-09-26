@@ -20,6 +20,13 @@ public final class SessionController {
     /** El mismo +1, desde el widget: además vibra. */
     public static final String ACTION_WIDGET_REPEAT = PREFIX + "WIDGET_REPEAT";
     public static final String ACTION_OTHER = PREFIX + "OTHER";
+    /** Los − y + del widget 4×2: cambian la serie que se repite, no registran. */
+    public static final String ACTION_WEIGHT_DOWN = PREFIX + "WEIGHT_DOWN";
+    public static final String ACTION_WEIGHT_UP = PREFIX + "WEIGHT_UP";
+    public static final String ACTION_REPS_DOWN = PREFIX + "REPS_DOWN";
+    public static final String ACTION_REPS_UP = PREFIX + "REPS_UP";
+    /** «Terminar» del widget 4×2. */
+    public static final String ACTION_END = PREFIX + "END";
     public static final String ACTION_SKIP = PREFIX + "SKIP";
     public static final String ACTION_REST_OVER = PREFIX + "REST_OVER";
     public static final String ACTION_EXPIRE = PREFIX + "EXPIRE";
@@ -83,6 +90,21 @@ public final class SessionController {
                 case ACTION_OTHER:
                     other(context, store, control, typed(intent), now);
                     break;
+                case ACTION_WEIGHT_DOWN:
+                    adjust(context, store, SessionControl.weight(control, -1), now);
+                    break;
+                case ACTION_WEIGHT_UP:
+                    adjust(context, store, SessionControl.weight(control, 1), now);
+                    break;
+                case ACTION_REPS_DOWN:
+                    adjust(context, store, SessionControl.reps(control, -1), now);
+                    break;
+                case ACTION_REPS_UP:
+                    adjust(context, store, SessionControl.reps(control, 1), now);
+                    break;
+                case ACTION_END:
+                    end(context);
+                    break;
                 case ACTION_SKIP:
                     skipRest(context, now);
                     SessionEvents.changed();
@@ -115,6 +137,12 @@ public final class SessionController {
             return;
         }
         log(context, store, SessionControl.other(control, parsed, now), now);
+    }
+
+    /** Un − o + del 4×2: la serie que repetirán los siguientes toques, a la vista en todas partes. */
+    private static void adjust(Context context, SessionStore store, JSONObject control, long now) {
+        store.saveControl(control);
+        refresh(context, control, now);
     }
 
     /** Una serie desde fuera: a la cola, al servidor en cuanto se pueda, y a la vista. */

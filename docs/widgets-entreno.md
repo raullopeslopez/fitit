@@ -272,9 +272,8 @@ inicio con sesión en oscuro, inicio sin sesión y sin red en claro).
    en lugar de `x`, y sólo `12` en ejercicios sin peso. El ejemplo del error usa la coma:
    `No entendí «12 32». Escríbela como 32,5x12.`
 
-Siguen abiertos, para la fase que los toque: qué enseña el 4×2 en un ejercicio sin peso
-(¿se ocultan los botones de kg?), y cómo se deshace un `+1 serie` accidental desde el
-4×1 (hoy, sólo en la app).
+Sigue abierto: cómo se deshace un `+1 serie` accidental desde el 4×1 (hoy, sólo en la
+app). Lo del 4×2 en un ejercicio sin peso se decidió en la fase 4: sin botones de kg.
 
 ## Fases
 
@@ -443,6 +442,27 @@ El layout con ajuste: `−`/`+` de peso (2,5 kg) y de reps, `Registrar serie`, `
 - **Comprobar:** subir el peso dos veces y registrar: la serie entra con +5 kg y la
   notificación repite ese peso; modo avión y `1 sin enviar` en ámbar, que desaparece
   al volver la red; `Terminar` vacía los dos widgets y la notificación.
+
+**Hecho (2026-09-26).** `SessionWidget4x2` y `res/layout/widget_session_4x2.xml`, con
+los ajustes en `SessionControl` (`weight`, `reps`) y sus acciones en `SessionController`;
+19 tests nativos más (100 en total). Lo que se decidió al construirlo:
+
+- **Los `−`/`+` no registran:** cambian la plantilla del control y la guardan. La
+  notificación y el 4×1 se repintan en el acto con la serie nueva, antes de registrarla:
+  lo que se ve en cualquier sitio es lo que registrará el siguiente toque, venga de
+  donde venga. No vibran; sólo `Registrar serie` (la misma acción que el `+1 serie`
+  del 4×1).
+- **Límites:** el peso no baja de 0 ni pasa de 1000; las reps, de 1 a 1000. Un peso que
+  no es múltiplo de 2,5 (31 kg) sube y baja desde ahí (33,5, 28,5).
+- **Ejercicio sin peso: sin botones de kg.** Queda sólo el bloque de reps, a lo ancho.
+  Era la duda abierta de la revisión.
+- **`N sin enviar` cuenta toda la cola**, no sólo la de este ejercicio: es lo que el
+  teléfono aún debe al servidor. El widget se repinta al acabar cada envío, así que
+  desaparece sola al volver la red.
+- **`⏭` sólo mientras corre el descanso.** Acabado, en su sitio sale `Descanso
+  terminado`, como en la maqueta en claro.
+- **Sin sesión, apilado:** título, día y `Empezar entreno` a lo ancho. En fila, como en
+  el 4×1, el título se partía en dos líneas.
 
 Después, si hace falta: iOS (Live Activities) tiene su propia spec. Y si el Xiaomi
 algún día recibe Android 16, el chip de «Live Updates» sobre la misma notificación.

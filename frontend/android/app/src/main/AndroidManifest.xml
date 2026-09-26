@@ -37,6 +37,19 @@
                 android:resource="@xml/session_widget_4x1_info" />
         </receiver>
 
+        <!-- El widget 4×2 del entreno (fase 4), el que ajusta peso y reps. -->
+        <receiver
+            android:name=".session.SessionWidget4x2"
+            android:exported="true"
+            android:label="@string/widget_4x2_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/session_widget_4x2_info" />
+        </receiver>
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"

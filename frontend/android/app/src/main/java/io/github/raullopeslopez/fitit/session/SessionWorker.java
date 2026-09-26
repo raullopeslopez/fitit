@@ -29,6 +29,8 @@ public final class SessionWorker extends Worker {
     public Result doWork() {
         QueueDrainer.Outcome outcome =
                 new QueueDrainer(Session.store(getApplicationContext()), Session.http()).drain();
+        // Lo enviado deja de contar como «sin enviar» en el widget 4×2.
+        SessionWidget.updateAll(getApplicationContext());
         SessionEvents.publish(outcome);
         return outcome.status == QueueDrainer.Status.RETRY ? Result.retry() : Result.success();
     }

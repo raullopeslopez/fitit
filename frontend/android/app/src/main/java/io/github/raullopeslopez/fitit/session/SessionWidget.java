@@ -36,12 +36,14 @@ public class SessionWidget extends AppWidgetProvider {
         render(context, manager, ids);
     }
 
-    /** Repinta todos los widgets puestos; si no hay ninguno no hace nada. */
+    /** Repinta todos los widgets puestos, 4×1 y 4×2; si no hay ninguno no hace nada. */
     public static void updateAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         if (manager == null) return;
         int[] ids = manager.getAppWidgetIds(new ComponentName(context, SessionWidget.class));
         if (ids != null && ids.length > 0) render(context, manager, ids);
+        int[] large = manager.getAppWidgetIds(new ComponentName(context, SessionWidget4x2.class));
+        if (large != null && large.length > 0) SessionWidget4x2.render(context, manager, large);
     }
 
     private static void render(Context context, AppWidgetManager manager, int[] ids) {
@@ -51,22 +53,37 @@ public class SessionWidget extends AppWidgetProvider {
 
     static RemoteViews views(Context context, JSONObject control, long now) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x1);
-        if (control == null) {
-            views.setViewVisibility(R.id.widget_session, View.GONE);
-            views.setViewVisibility(R.id.widget_idle, View.VISIBLE);
-            views.setTextViewText(R.id.widget_idle_date, LocalDate.now().format(DAY));
-            views.setOnClickPendingIntent(R.id.widget_start, SessionLaunch.start(context));
-            views.setOnClickPendingIntent(R.id.widget_idle, SessionLaunch.start(context));
-            return views;
-        }
+        if (control == null) return idle(context, views);
 
+        header(context, views, control, now);
+        views.setTextViewText(R.id.widget_set, SessionControl.set(control));
+        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        views.setOnClickPendingIntent(R.id.widget_repeat,
+                SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20, false));
+        return views;
+    }
+
+    // Lo que comparten los dos tamaños; los ids se llaman igual en los dos layouts.
+
+    /** Sin sesión: «Sin entreno en curso», el día, y «Empezar entreno». */
+    static RemoteViews idle(Context context, RemoteViews views) {
+        views.setViewVisibility(R.id.widget_session, View.GONE);
+        views.setViewVisibility(R.id.widget_idle, View.VISIBLE);
+        views.setTextViewText(R.id.widget_idle_date, LocalDate.now().format(DAY));
+        views.setOnClickPendingIntent(R.id.widget_start, SessionLaunch.start(context));
+        views.setOnClickPendingIntent(R.id.widget_idle, SessionLaunch.start(context));
+        return views;
+    }
+
+    /** El ejercicio, que abre la app al tocarlo, y el reloj del descanso. */
+    static void header(Context context, RemoteViews views, JSONObject control, long now) {
         views.setViewVisibility(R.id.widget_idle, View.GONE);
         views.setViewVisibility(R.id.widget_session, View.VISIBLE);
         views.setTextViewText(R.id.widget_exercise, control.optString("exercise", ""));
         String group = control.isNull("group") ? "" : control.optString("group", "");
         views.setTextViewText(R.id.widget_group, group.isEmpty() ? "" : " · " + group);
-        views.setTextViewText(R.id.widget_set, SessionControl.set(control));
-        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        views.setOnClickPendingIntent(R.id.widget_open,
+                SessionLaunch.open(context, control.optInt("workoutId", -1)));
 
         switch (SessionControl.rest(control, now)) {
             case RUNNING:
@@ -87,11 +104,5 @@ public class SessionWidget extends AppWidgetProvider {
                 views.setViewVisibility(R.id.widget_rest_over, View.GONE);
                 break;
         }
-
-        views.setOnClickPendingIntent(R.id.widget_open,
-                SessionLaunch.open(context, control.optInt("workoutId", -1)));
-        views.setOnClickPendingIntent(R.id.widget_repeat,
-                SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20, false));
-        return views;
     }
 }

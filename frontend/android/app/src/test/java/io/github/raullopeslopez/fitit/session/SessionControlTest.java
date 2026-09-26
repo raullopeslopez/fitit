@@ -199,4 +199,86 @@ public class SessionControlTest {
         assertFalse(SessionControl.expired(control, NOW + SessionControl.IDLE_MS - 1));
         assertTrue(SessionControl.expired(control, NOW + SessionControl.IDLE_MS));
     }
+
+    // --- Ajuste del widget 4×2 (fase 4) ---------------------------------------
+
+    @Test
+    public void thePlusOnWeightAddsTwoAndAHalfKilos() throws Exception {
+        JSONObject once = SessionControl.weight(bench(), 1);
+        JSONObject twice = SessionControl.weight(once, 1);
+
+        assertEquals(35, once.getJSONObject("template").getDouble("weight"), 0);
+        assertEquals(37.5, twice.getJSONObject("template").getDouble("weight"), 0);
+        assertEquals("37,5 kg × 12", SessionControl.set(twice));
+    }
+
+    @Test
+    public void theWeightDoesNotGoBelowZero() throws Exception {
+        JSONObject control = bench();
+        control.getJSONObject("template").put("weight", 1.5);
+
+        JSONObject down = SessionControl.weight(control, -1);
+
+        assertEquals(0, down.getJSONObject("template").getDouble("weight"), 0);
+        assertEquals("0 kg × 12", SessionControl.set(down));
+    }
+
+    @Test
+    public void repsGoOneByOneAndNeverBelowOne() throws Exception {
+        JSONObject control = bench();
+        control.getJSONObject("template").put("reps", 2);
+
+        JSONObject up = SessionControl.reps(control, 1);
+        JSONObject down = SessionControl.reps(SessionControl.reps(control, -1), -1);
+
+        assertEquals(3, up.getJSONObject("template").getInt("reps"));
+        assertEquals(1, down.getJSONObject("template").getInt("reps"));
+    }
+
+    @Test
+    public void aBodyweightExerciseKeepsNoWeight() throws Exception {
+        JSONObject up = SessionControl.weight(pullUps(), 1);
+
+        assertTrue(up.getJSONObject("template").isNull("weight"));
+        assertFalse(SessionControl.hasWeight(up));
+        assertTrue(SessionControl.hasWeight(bench()));
+    }
+
+    @Test
+    public void adjustingLogsNothingAndLeavesTheRestAlone() throws Exception {
+        JSONObject control = bench().put("restEndsAt", NOW + 30_000).put("notice", "No entendí");
+
+        JSONObject after = SessionControl.reps(SessionControl.weight(control, 1), 1);
+
+        assertEquals(4, after.getInt("count"));
+        assertEquals(NOW + 30_000, after.getLong("restEndsAt"));
+        assertEquals(NOW - 60_000, after.getLong("lastSetAt"));
+        // El aviso de una entrada mal escrita se va: ya hay otra serie a la vista.
+        assertFalse(after.has("notice"));
+        // Lo de antes no se toca: quien ajusta trabaja sobre una copia.
+        assertEquals(32.5, control.getJSONObject("template").getDouble("weight"), 0);
+    }
+
+    @Test
+    public void theAdjustedSetIsWhatTheNextRepeatLogs() throws Exception {
+        JSONObject adjusted = SessionControl.weight(SessionControl.weight(bench(), 1), 1);
+
+        SessionControl.Step step = SessionControl.repeat(adjusted, NOW);
+
+        assertEquals(37.5, step.entry.getJSONObject("payload").getDouble("weight"), 0);
+        assertEquals(37.5, step.control.getJSONObject("template").getDouble("weight"), 0);
+    }
+
+    @Test
+    public void unsentSaysHowManyAndOnlyWhenThereAreAny() {
+        assertEquals("", SessionControl.unsent(0));
+        assertEquals(" · 1 sin enviar", SessionControl.unsent(1));
+        assertEquals(" · 3 sin enviar", SessionControl.unsent(3));
+    }
+
+    @Test
+    public void theWidgetReadsWeightAndRepsApart() throws Exception {
+        assertEquals("32,5 kg", SessionControl.kilosLabel(bench()));
+        assertEquals("12", SessionControl.repsLabel(bench()));
+    }
 }
