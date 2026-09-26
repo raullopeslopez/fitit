@@ -90,6 +90,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **Un ejercicio añadido sin series ya no se pierde al salir de la app.** En Entreno,
+  añadir un ejercicio y cerrar o dejar la app antes de su primera serie hacía que al
+  volver la tarjeta hubiera desaparecido y hubiera que añadirlo otra vez. Ahora sigue
+  arriba, donde lo dejaste, hasta que le registras series. Cada entreno
+  guarda los suyos: no se cuela en otro día. Pasa igual en la web y en el APK.
+  Y uno nuevo añadido por error se puede quitar: en su tarjeta, `Editar ejercicio` →
+  `Grupo, nota y eliminar` → `Eliminar ejercicio` → `Sí, eliminar` no hacía nada
+  cuando el ejercicio aún no existía en el servidor; ahora quita la tarjeta.
 - **«Terminar entreno» dejaba corriendo el descanso de la pantalla** (APK 0.7.1).
   La notificación se iba y el reloj de Entreno seguía contando. Ahora se para con
   ella, y también cuando el control termina fuera de la app (el `Terminar` del
