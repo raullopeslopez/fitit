@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.app.RemoteInput;
 import io.github.raullopeslopez.fitit.R;
 import org.json.JSONObject;
 
@@ -18,13 +17,12 @@ import org.json.JSONObject;
  * <pre>
  * Fitit · Press banca
  * 32,5 kg × 12 · 4 series                    01:23
- * [ +1 serie ]   [ Otra serie ]   [ Saltar ]            (descansando)
- * [ +1 serie ]   [ Otra serie ]   [ Otro ejercicio ]    (sin descanso)
+ * [ +1 serie ]
  * </pre>
  *
  * <p>La cuenta atrás es el cronómetro de la propia notificación: nadie la reescribe
  * cada segundo. Al acabar, la alarma de fin de descanso la repinta con «Descanso
- * terminado» y sin «Saltar». Canal silencioso: ni suena ni vibra. Plantilla
+ * terminado». Canal silencioso: ni suena ni vibra. Plantilla
  * estándar, con la fuente del sistema (la spec dejaba las fuentes propias como
  * riesgo en la capa de Xiaomi). Spec: docs/widgets-entreno.md, «1 · Notificación
  * en curso».
@@ -83,58 +81,25 @@ final class SessionNotification {
                 .setOnlyAlertOnce(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(SessionLaunch.open(context, control.optInt("workoutId", -1)))
-                .addAction(0, "+1 serie", broadcast(context, SessionController.ACTION_REPEAT, 1, false))
-                .addAction(otherSet(context));
+                .addAction(0, "+1 serie", broadcast(context, SessionController.ACTION_REPEAT, 1));
 
         SessionControl.Rest rest = SessionControl.rest(control, now);
         if (rest == SessionControl.Rest.RUNNING) {
             builder.setWhen(control.optLong("restEndsAt"))
                     .setShowWhen(true)
                     .setUsesChronometer(true)
-                    .setChronometerCountDown(true)
-                    .addAction(0, "Saltar", broadcast(context, SessionController.ACTION_SKIP, 3, false));
+                    .setChronometerCountDown(true);
         } else {
-            // Android pinta tres botones como mucho (el cuarto se pierde sin
-            // aviso): el tercero es «Saltar» mientras corre el descanso y «Otro
-            // ejercicio» el resto del tiempo. «Otra serie» entiende también
-            // «Remo 40x10», así que cambiar se puede siempre.
-            builder.setShowWhen(false).setUsesChronometer(false).addAction(otherExercise(context));
+            builder.setShowWhen(false).setUsesChronometer(false);
             if (rest == SessionControl.Rest.OVER) builder.setSubText("Descanso terminado");
         }
         return builder.build();
     }
 
-    /** «Otro ejercicio»: el nombre y la serie, como «Remo 40x10», o sólo el nombre. */
-    private static NotificationCompat.Action otherExercise(Context context) {
-        RemoteInput input = new RemoteInput.Builder(SessionController.KEY_OTHER)
-                .setLabel("Ejercicio y serie, como Remo 40x10")
-                .build();
-        return new NotificationCompat.Action.Builder(
-                        0, "Otro ejercicio",
-                        broadcast(context, SessionController.ACTION_OTHER_EXERCISE, 4, true))
-                .addRemoteInput(input)
-                .setAllowGeneratedReplies(false)
-                .build();
-    }
-
-    /** «Otra serie»: el campo de texto de la notificación, como contestar un mensaje. */
-    private static NotificationCompat.Action otherSet(Context context) {
-        RemoteInput input = new RemoteInput.Builder(SessionController.KEY_OTHER)
-                .setLabel("Peso x reps, como 32,5x12")
-                .build();
-        // Mutable: Android escribe lo tecleado dentro del intent.
-        return new NotificationCompat.Action.Builder(
-                        0, "Otra serie", broadcast(context, SessionController.ACTION_OTHER, 2, true))
-                .addRemoteInput(input)
-                .setAllowGeneratedReplies(false)
-                .build();
-    }
-
-    static PendingIntent broadcast(Context context, String action, int code, boolean mutable) {
+    static PendingIntent broadcast(Context context, String action, int code) {
         Intent intent = new Intent(context, SessionActionReceiver.class).setAction(action);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT
-                | (mutable ? PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_IMMUTABLE);
-        return PendingIntent.getBroadcast(context, code, intent, flags);
+        return PendingIntent.getBroadcast(context, code, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
 }

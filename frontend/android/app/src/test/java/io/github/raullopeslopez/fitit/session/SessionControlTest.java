@@ -2,21 +2,17 @@ package io.github.raullopeslopez.fitit.session;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.List;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-// Lo que decide la notificación sin tocar Android: qué serie registra un toque,
-// cómo se lee «Otra serie» y qué texto se enseña. Copia de la spec:
-// docs/widgets-entreno.md, «1 · Notificación en curso».
+// Lo que decide el control sin tocar Android: qué serie registra un toque, cómo
+// se ajusta y qué texto se enseña. Spec: docs/widgets-entreno.md y DESIGN.md,
+// «Fuera de la app».
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class SessionControlTest {
@@ -48,7 +44,7 @@ public class SessionControlTest {
         return control;
     }
 
-    // --- +1 serie -------------------------------------------------------------
+    // --- +1 -------------------------------------------------------------------
 
     @Test
     public void aRepeatLogsTheTemplateStampedWithItsMoment() throws Exception {
@@ -91,71 +87,10 @@ public class SessionControlTest {
     }
 
     @Test
-    public void aRepeatClearsAMessageAboutAnEntryItCouldNotRead() throws Exception {
-        JSONObject after =
-                SessionControl.repeat(bench().put("notice", "No entendí"), NOW).control;
-
-        assertFalse(after.has("notice"));
-    }
-
-    @Test
     public void aBodyweightSetCarriesNoWeight() throws Exception {
         JSONObject payload = SessionControl.repeat(pullUps(), NOW).entry.getJSONObject("payload");
 
         assertTrue(payload.isNull("weight"));
-    }
-
-    // --- Otra serie -----------------------------------------------------------
-
-    @Test
-    public void readsWeightTimesRepsWithACommaAPointOrASign() throws Exception {
-        for (String typed : new String[] {"32,5x10", "32.5x10", "32,5 x 10", "32,5×10", " 32,5X10 "}) {
-            SessionControl.Parsed p = SessionControl.parse(typed, bench().getJSONObject("template"));
-            assertNull(typed, p.error);
-            assertEquals(typed, 32.5, p.weight, 0);
-            assertEquals(typed, 10, p.reps);
-        }
-    }
-
-    @Test
-    public void aLoneNumberIsRepsAndKeepsTheWeight() throws Exception {
-        SessionControl.Parsed p = SessionControl.parse("10", bench().getJSONObject("template"));
-
-        assertNull(p.error);
-        assertEquals(10, p.reps);
-        assertEquals(32.5, p.weight, 0);
-    }
-
-    @Test
-    public void aLoneNumberOnABodyweightExerciseIsJustReps() throws Exception {
-        SessionControl.Parsed p = SessionControl.parse("12", pullUps().getJSONObject("template"));
-
-        assertNull(p.error);
-        assertEquals(12, p.reps);
-        assertNull(p.weight);
-    }
-
-    @Test
-    public void somethingItCannotReadIsExplainedNotLogged() throws Exception {
-        for (String typed : new String[] {"12 32", "", "x10", "32,5x", "32,5x10,5", "abc", "0", "32,5x0"}) {
-            SessionControl.Parsed p = SessionControl.parse(typed, bench().getJSONObject("template"));
-            assertEquals(
-                    typed,
-                    "No entendí «" + typed.trim() + "». Escríbela como 32,5x12.",
-                    p.error);
-        }
-    }
-
-    @Test
-    public void anotherSetBecomesWhatTheNextRepeatRepeats() throws Exception {
-        JSONObject control = bench();
-        SessionControl.Parsed p = SessionControl.parse("35x10", control.getJSONObject("template"));
-        SessionControl.Step step = SessionControl.other(control, p, NOW);
-
-        assertEquals(35, step.entry.getJSONObject("payload").getDouble("weight"), 0);
-        JSONObject next = SessionControl.repeat(step.control, NOW + 1).entry.getJSONObject("payload");
-        assertEquals(35, next.getDouble("weight"), 0);
-        assertEquals(10, next.getInt("reps"));
     }
 
     // --- Lo que se lee --------------------------------------------------------
@@ -180,13 +115,6 @@ public class SessionControlTest {
     }
 
     @Test
-    public void aMessageTakesTheLineUntilTheNextSet() throws Exception {
-        assertEquals(
-                "No entendí «12 32». Escríbela como 32,5x12.",
-                SessionControl.line(bench().put("notice", "No entendí «12 32». Escríbela como 32,5x12.")));
-    }
-
-    @Test
     public void theRestIsRunningOverOrNone() throws Exception {
         assertEquals(SessionControl.Rest.RUNNING,
                 SessionControl.rest(bench().put("restEndsAt", NOW + 10_000), NOW));
@@ -204,7 +132,7 @@ public class SessionControlTest {
         assertTrue(SessionControl.expired(control, NOW + SessionControl.IDLE_MS));
     }
 
-    // --- Ajuste del widget 4×2 (fase 4) ---------------------------------------
+    // --- El bloque de ajuste --------------------------------------------------
 
     @Test
     public void thePlusOnWeightAddsTwoAndAHalfKilos() throws Exception {
@@ -250,15 +178,13 @@ public class SessionControlTest {
 
     @Test
     public void adjustingLogsNothingAndLeavesTheRestAlone() throws Exception {
-        JSONObject control = bench().put("restEndsAt", NOW + 30_000).put("notice", "No entendí");
+        JSONObject control = bench().put("restEndsAt", NOW + 30_000);
 
         JSONObject after = SessionControl.reps(SessionControl.weight(control, 1), 1);
 
         assertEquals(4, after.getInt("count"));
         assertEquals(NOW + 30_000, after.getLong("restEndsAt"));
         assertEquals(NOW - 60_000, after.getLong("lastSetAt"));
-        // El aviso de una entrada mal escrita se va: ya hay otra serie a la vista.
-        assertFalse(after.has("notice"));
         // Lo de antes no se toca: quien ajusta trabaja sobre una copia.
         assertEquals(32.5, control.getJSONObject("template").getDouble("weight"), 0);
     }
@@ -284,189 +210,5 @@ public class SessionControlTest {
     public void theWidgetReadsWeightAndRepsApart() throws Exception {
         assertEquals("32,5 kg", SessionControl.kilosLabel(bench()));
         assertEquals("12", SessionControl.repsLabel(bench()));
-    }
-
-    // --- Cambiar de ejercicio (fase 5) ----------------------------------------
-
-    static JSONObject candidate(String name, Integer reps, Double weight, int count)
-            throws Exception {
-        JSONObject c = new JSONObject().put("exercise", name).put("count", count);
-        if (reps == null) {
-            c.put("template", JSONObject.NULL);
-        } else {
-            c.put("template", new JSONObject()
-                    .put("exercise_name", name)
-                    .put("reps", reps)
-                    .put("weight", weight == null ? JSONObject.NULL : weight));
-        }
-        return c;
-    }
-
-    /** Press banca en curso, y lo que publicó la app para elegir. */
-    private static JSONObject withCandidates() throws Exception {
-        return bench().put("candidates", new JSONArray()
-                .put(candidate("Remo", 10, 40.0, 0))
-                .put(candidate("Dominadas", 8, null, 0))
-                .put(candidate("Sentadilla", null, null, 0))
-                .put(candidate("Curl", 12, 12.5, 3)));
-    }
-
-    @Test
-    public void theCandidatesAreThoseTheAppPublishedWithoutTheCurrentOneAndAtMostFour()
-            throws Exception {
-        JSONObject control = bench().put("candidates", new JSONArray()
-                .put(candidate("Press banca", 12, 32.5, 4))
-                .put(candidate("Dominadas", 8, null, 0))
-                .put(candidate("Sentadilla", null, null, 0))
-                .put(candidate("Curl", 12, 12.5, 3))
-                .put(candidate("Remo", 10, 40.0, 0))
-                .put(candidate("Fondos", 10, null, 0)));
-
-        List<JSONObject> list = SessionControl.candidates(control);
-
-        assertEquals(4, list.size());
-        assertEquals("Dominadas", list.get(0).getString("exercise"));
-        assertEquals("Remo", list.get(3).getString("exercise"));
-        assertTrue(SessionControl.candidates(bench()).isEmpty());
-    }
-
-    @Test
-    public void switchingMakesTheCandidateTheCurrentOneAndLogsNothing() throws Exception {
-        JSONObject control = withCandidates()
-                .put("restEndsAt", NOW + 30_000)
-                .put("notice", "No entendí");
-
-        JSONObject after = SessionControl.switchTo(control, "Remo");
-
-        assertEquals("Remo", after.getString("exercise"));
-        assertEquals("Remo", after.getJSONObject("template").getString("exercise_name"));
-        assertEquals(10, after.getJSONObject("template").getInt("reps"));
-        assertEquals(40, after.getJSONObject("template").getDouble("weight"), 0);
-        assertEquals(0, after.getInt("count"));
-        // El descanso sigue y no cuenta como serie: el cierre de dos horas no se mueve.
-        assertEquals(NOW + 30_000, after.getLong("restEndsAt"));
-        assertEquals(NOW - 60_000, after.getLong("lastSetAt"));
-        assertFalse(after.has("notice"));
-        // Y el de antes pasa a ser un candidato, para poder volver.
-        List<JSONObject> list = SessionControl.candidates(after);
-        assertEquals(4, list.size());
-        assertEquals("Press banca", list.get(2).getString("exercise"));
-        assertEquals(4, list.get(2).getInt("count"));
-        assertEquals(12, list.get(2).getJSONObject("template").getInt("reps"));
-        assertEquals(32.5, list.get(2).getJSONObject("template").getDouble("weight"), 0);
-        for (JSONObject c : list) assertFalse("Remo".equals(c.getString("exercise")));
-    }
-
-    @Test
-    public void switchingKeepsTheCountOfWhatThisWorkoutAlreadyHas() throws Exception {
-        JSONObject after = SessionControl.switchTo(withCandidates(), "Curl");
-
-        assertEquals(3, after.getInt("count"));
-        assertEquals("12,5 kg × 12 · 3 series", SessionControl.line(after));
-    }
-
-    @Test
-    public void aCandidateWithNoMarkStartsAtTenRepsAndNoWeight() throws Exception {
-        JSONObject after = SessionControl.switchTo(withCandidates(), "Sentadilla");
-
-        assertEquals(10, after.getJSONObject("template").getInt("reps"));
-        assertTrue(after.getJSONObject("template").isNull("weight"));
-        assertEquals("10 reps · 0 series", SessionControl.line(after));
-    }
-
-    @Test
-    public void switchingToSomethingThatIsNotACandidateChangesNothing() throws Exception {
-        assertNull(SessionControl.switchTo(withCandidates(), "Peso muerto"));
-    }
-
-    // --- «Otro ejercicio» en la notificación ----------------------------------
-
-    @Test
-    public void anExerciseAndASetLogsTheFirstSetOfIt() throws Exception {
-        for (String typed : new String[] {"Peso muerto 100x5", "Peso muerto 100 x 5", "Peso muerto 100×5"}) {
-            SessionControl.Step step = SessionControl.typed(withCandidates(), typed, NOW);
-
-            assertNotNull(typed, step.entry);
-            JSONObject payload = step.entry.getJSONObject("payload");
-            assertEquals(typed, "Peso muerto", payload.getString("exercise_name"));
-            assertEquals(typed, 100, payload.getDouble("weight"), 0);
-            assertEquals(typed, 5, payload.getInt("reps"));
-            assertEquals("Peso muerto", step.control.getString("exercise"));
-            assertEquals(1, step.control.getInt("count"));
-            assertEquals(NOW + 90_000, step.control.getLong("restEndsAt"));
-            assertEquals(NOW, step.control.getLong("lastSetAt"));
-        }
-    }
-
-    @Test
-    public void aDecimalWeightTakesACommaOrAPoint() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "Remo 40,5 x 10", NOW);
-
-        assertEquals(40.5, step.entry.getJSONObject("payload").getDouble("weight"), 0);
-        assertEquals(40.5, SessionControl.typed(withCandidates(), "Remo 40.5x10", NOW)
-                .entry.getJSONObject("payload").getDouble("weight"), 0);
-    }
-
-    @Test
-    public void aNameThatMatchesACandidateTakesTheCandidatesNameAndCount() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "curl 15x10", NOW);
-
-        assertEquals("Curl", step.entry.getJSONObject("payload").getString("exercise_name"));
-        assertEquals("Curl", step.control.getString("exercise"));
-        assertEquals(4, step.control.getInt("count"));
-        // Sin mayúsculas ni tildes también.
-        JSONObject control = withCandidates();
-        control.getJSONArray("candidates").put(0, candidate("Remo con barra", 10, 60.0, 0));
-        SessionControl.Step accents = SessionControl.typed(control, "REMO CÓN BARRA 60x8", NOW);
-        assertEquals("Remo con barra",
-                accents.entry.getJSONObject("payload").getString("exercise_name"));
-    }
-
-    @Test
-    public void onlyRepsIsABodyweightSet() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "Fondos 12", NOW);
-
-        JSONObject payload = step.entry.getJSONObject("payload");
-        assertEquals("Fondos", payload.getString("exercise_name"));
-        assertEquals(12, payload.getInt("reps"));
-        assertTrue(payload.isNull("weight"));
-    }
-
-    @Test
-    public void onlyTheNameOfACandidateSwitchesWithoutLogging() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "remo", NOW);
-
-        assertNull(step.entry);
-        assertEquals("Remo", step.control.getString("exercise"));
-        assertEquals(0, step.control.getInt("count"));
-    }
-
-    @Test
-    public void onlyANameItDoesNotKnowIsExplainedNotLogged() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "Peso muerto", NOW);
-
-        assertNull(step.entry);
-        assertEquals("Press banca", step.control.getString("exercise"));
-        assertEquals("Escríbelo con la serie, como Remo 40x10.", SessionControl.line(step.control));
-    }
-
-    @Test
-    public void theCurrentExerciseWithASetIsJustAnotherSet() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "press banca 35x10", NOW);
-
-        assertEquals("Press banca", step.control.getString("exercise"));
-        assertEquals(5, step.control.getInt("count"));
-        assertEquals(35, step.entry.getJSONObject("payload").getDouble("weight"), 0);
-    }
-
-    @Test
-    public void aSetWithNoNameIsStillOtraSerie() throws Exception {
-        SessionControl.Step step = SessionControl.typed(withCandidates(), "35x10", NOW);
-
-        assertEquals("Press banca", step.entry.getJSONObject("payload").getString("exercise_name"));
-        assertEquals(5, step.control.getInt("count"));
-        SessionControl.Step wrong = SessionControl.typed(withCandidates(), "12 32", NOW);
-        assertNull(wrong.entry);
-        assertEquals("No entendí «12 32». Escríbela como 32,5x12.", SessionControl.line(wrong.control));
     }
 }

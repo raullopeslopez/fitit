@@ -140,6 +140,18 @@ public class SessionWidgetTest {
         return found;
     }
 
+    /** Cuántas vistas visibles se describen así a un lector de pantalla. */
+    static int described(View view, String description) {
+        if (view.getVisibility() != View.VISIBLE) return 0;
+        int count = description.contentEquals(
+                view.getContentDescription() == null ? "" : view.getContentDescription()) ? 1 : 0;
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) count += described(group.getChildAt(i), description);
+        }
+        return count;
+    }
+
     private static void collect(View view, java.util.List<String> found) {
         if (view.getVisibility() != View.VISIBLE) return;
         if (view instanceof TextView) found.add(((TextView) view).getText().toString());

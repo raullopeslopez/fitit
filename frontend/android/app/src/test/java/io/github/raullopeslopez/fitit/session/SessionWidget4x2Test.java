@@ -129,8 +129,12 @@ public class SessionWidget4x2Test {
         assertEquals("Registrar serie", text(R.id.widget_log));
         assertEquals("Terminar", text(R.id.widget_end));
         assertTrue(shown(R.id.widget_clock));
-        assertTrue(shown(R.id.widget_skip));
-        assertEquals("Saltar descanso", view().findViewById(R.id.widget_skip).getContentDescription());
+        // Ni saltar el descanso ni «Otro ejercicio»: añadir o cambiar de
+        // ejercicio se hace dentro de la app (DESIGN.md, «Fuera de la app»).
+        for (String shownText : SessionWidgetTest.texts(view())) {
+            assertFalse(shownText, shownText.contains("Otro ejercicio"));
+        }
+        assertEquals(0, SessionWidgetTest.described(view(), "Saltar descanso"));
     }
 
     @Test
@@ -204,25 +208,12 @@ public class SessionWidget4x2Test {
     }
 
     @Test
-    public void skipIsThereOnlyWhileResting() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now + 60_000), now);
-
-        tap(R.id.widget_skip, now + 1_000);
-
-        assertEquals(0, store.control().getLong("restEndsAt"));
-        assertFalse(shown(R.id.widget_clock));
-        assertFalse(shown(R.id.widget_skip));
-    }
-
-    @Test
     public void whenTheRestIsOverItSaysSo() throws Exception {
         long now = now();
         SessionController.publish(context, bench(now - 1), now);
 
         assertTrue(shown(R.id.widget_rest_over));
         assertFalse(shown(R.id.widget_clock));
-        assertFalse(shown(R.id.widget_skip));
     }
 
     @Test
@@ -277,35 +268,5 @@ public class SessionWidget4x2Test {
         assertNotNull(started);
         assertEquals(SessionLaunch.OPEN, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
         assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
-    }
-
-    // --- Otro ejercicio -------------------------------------------------------
-    // Sólo crea: abre la app con el campo de añadir ejercicio. Cambiar a uno que
-    // ya está en el entreno se hace desde la notificación («remo») o la app.
-
-    @Test
-    public void otroEjercicioSitsBesideTerminar() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now - 1), now);
-
-        assertTrue(shown(R.id.widget_other));
-        assertEquals("Otro ejercicio", text(R.id.widget_other));
-    }
-
-    @Test
-    public void otroEjercicioOpensTheAppToAddAnExercise() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now + 60_000), now);
-
-        view().findViewById(R.id.widget_other).performClick();
-
-        Intent started = shadowOf((Application) context).getNextStartedActivity();
-        assertNotNull(started);
-        assertEquals(SessionLaunch.ADD, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
-        assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
-        // No registra nada y el widget sigue enseñando la serie.
-        assertTrue(store.queue().isEmpty());
-        assertTrue(shown(R.id.widget_session));
-        assertEquals("Press banca", text(R.id.widget_exercise));
     }
 }

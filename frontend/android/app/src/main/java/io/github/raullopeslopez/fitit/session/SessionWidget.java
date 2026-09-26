@@ -59,7 +59,7 @@ public class SessionWidget extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         views.setOnClickPendingIntent(R.id.widget_repeat,
-                SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20, false));
+                SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20));
         return views;
     }
 

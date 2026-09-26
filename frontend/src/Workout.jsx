@@ -1385,10 +1385,6 @@ export default function Workout({
   onExit,
   initialWorkout = null,
   autoRename = false,
-  // Abierta con «Otro ejercicio» del widget 4×2: el campo de añadir ejercicio
-  // se lleva el foco. Es un contador y no un sí/no, para que dos toques
-  // seguidos sobre el mismo entreno enfoquen dos veces.
-  focusAdd = 0,
 }) {
   const seed = initialWorkout?.id === workoutId ? initialWorkout : null
   const [workout, setWorkout] = useState(() => withQueued(seed))
@@ -1482,14 +1478,6 @@ export default function Workout({
   // The notification permission is asked for once per visit to Entreno; Android
   // itself stops asking after the second no.
   const askedNotifications = useRef(false)
-  // El ejercicio del control en curso, tal como lo sabe esta pantalla: el que
-  // publicó al registrar, o el que eligieron fuera (la notificación). Sólo
-  // cuando el de fuera es otro, Entreno sube su tarjeta. Fase 5.
-  const controlExercise = useRef(null)
-  // Lo último que se le dijo al nativo sobre a qué se puede cambiar, para no
-  // repetírselo en cada repintado.
-  const sentCandidates = useRef(null)
-  const addInput = useRef(null)
 
   function endRest() {
     setRestUntil(null)
@@ -1503,9 +1491,9 @@ export default function Workout({
     if (nativeSession()) session.skipRest().catch(() => {})
   }
 
-  // The rest the notification started or skipped (docs/widgets-entreno.md,
-  // fase 2): a +1 from the lock screen starts the bar here too, and «Saltar»
-  // there takes it away. Only for this workout.
+  // The rest the notification or a widget started (docs/widgets-entreno.md,
+  // fase 2): a +1 from the lock screen starts the bar here too, and a control
+  // with no clock takes it away. Only for this workout.
   function followNativeRest(control) {
     if (!control || control.workoutId !== workoutId) return
     if (control.restEndsAt > Date.now()) {
@@ -1514,36 +1502,6 @@ export default function Workout({
     } else if (!control.restEndsAt) {
       endRest()
     }
-  }
-
-  // El ejercicio que se eligió fuera (fase 5): «Otro ejercicio» en la
-  // notificación. Su tarjeta sube arriba y se abre, y si no la había (un
-  // nombre escrito en la notificación) se pone sin series, como al añadirlo
-  // aquí. Un +1 del mismo ejercicio no mueve nada: sólo cuando cambia.
-  function followNativeExercise(control) {
-    if (!control || control.workoutId !== workoutId || !control.exercise) return
-    if (control.exercise === controlExercise.current) return
-    controlExercise.current = control.exercise
-    const name = control.exercise
-    setExercises((list) => {
-      const found = list.find((e) => e.name === name)
-      if (found) return [found, ...list.filter((e) => e !== found)]
-      return [{ name, kind: 'strength' }, ...list]
-    })
-    // Una tarjeta que llega de fuera sin series es como una añadida a mano:
-    // apuntada, o salir de la app antes de su primera serie la pierde.
-    if (!setsFor(name).length) rememberAddedExercise(workoutId, { name, kind: 'strength' })
-    setToggled((t) => ({ ...t, [name]: true }))
-    // Una tarjeta nueva necesita sus marcas, como la que se añade a mano; a la
-    // que ya las tenía no se le tocan.
-    marksFor(name, workoutId).then((marks) => {
-      const previous = marks ?? { found: false, sets: [] }
-      setExercises((list) =>
-        list.map((e) =>
-          e.name === name && !e.previous ? { ...e, previous, kind: previous.kind ?? e.kind } : e,
-        ),
-      )
-    })
   }
 
   // The countdown on screen.
@@ -1680,13 +1638,8 @@ export default function Workout({
       // Terminado fuera de aquí (el widget, dos horas sin series): el descanso
       // de la pantalla era el de ese control. Sólo con `ended`: un envío sin
       // control es una sesión que nunca lo tuvo (sólo cardio), y su reloj sigue.
-      if (ended) {
-        endRest()
-        controlExercise.current = null
-      } else {
-        followNativeRest(control)
-        followNativeExercise(control)
-      }
+      if (ended) endRest()
+      else followNativeRest(control)
       // Sólo este entreno se redibuja con la respuesta; la cola puede llevar
       // series de una sesión de la que ya saliste.
       if (answered?.id === workoutId) {
@@ -1802,46 +1755,12 @@ export default function Workout({
         restSeconds,
         restEndsAt: endsAt ?? 0,
         lastSetAt: now,
-        candidates: candidatesFor(name),
       })
       .catch(() => {})
-    controlExercise.current = name
     if (!askedNotifications.current) {
       askedNotifications.current = true
       session.ensureNotifications().catch(() => {})
     }
-  }
-
-  // A qué ejercicios se puede cambiar sin abrir la app (fase 5): la
-  // notificación los reconoce por su nombre. El nativo no tiene
-  // red para elegir, así que la lista va hecha desde aquí, sin pedir nada nuevo
-  // al servidor —sólo lo que esta pantalla ya tiene—, en este orden:
-  //   1. lo de este entreno que aún no tiene series, en el orden de la pantalla
-  //      (lo añadido y lo que queda de «Repetir», que también son tarjetas);
-  //   2. lo ya hecho en este entreno, lo más reciente primero, para volver.
-  // Sin el ejercicio en curso, sin cardio, y como mucho cuatro (lo que cabía en
-  // la lista del widget, ya retirada). La marca es la última serie de hoy si la hay, y si no la
-  // primera de la última vez (la misma con la que se rellena la tarjeta). Sin
-  // marca, `template: null`: el nativo no inventa un peso.
-  function candidatesFor(current) {
-    const sets = workout?.sets ?? []
-    const lastAt = (name) => sets.findLastIndex((s) => s.exercise_name === name)
-    const strength = exercises.filter((ex) => ex.kind !== 'cardio' && ex.name !== current)
-    const fresh = strength.filter((ex) => lastAt(ex.name) < 0)
-    const done = strength
-      .filter((ex) => lastAt(ex.name) >= 0)
-      .sort((a, b) => lastAt(b.name) - lastAt(a.name))
-    return [...fresh, ...done].slice(0, 4).map((ex) => {
-      const own = setsFor(ex.name)
-      const mark = own.at(-1) ?? (ex.previous?.found ? ex.previous.sets?.[0] : null)
-      return {
-        exercise: ex.name,
-        template: mark
-          ? { exercise_name: ex.name, reps: mark.reps, weight: mark.weight ?? null }
-          : null,
-        count: own.length,
-      }
-    })
   }
 
   // Drain the outbox oldest-first. Nothing here throws at the card: a set that
@@ -2329,27 +2248,6 @@ export default function Workout({
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
-  // Cuando cambia la lista (se añade un ejercicio, se registra una serie), el
-  // nativo se entera de a qué se puede cambiar. Sólo la lista: si no hay control
-  // de este entreno, el nativo no hace nada, y la serie, el contador y el
-  // descanso del control no se tocan desde aquí. Fase 5.
-  const candidateList = nativeSession() && workout ? candidatesFor(controlExercise.current) : null
-  const candidateKey = candidateList ? JSON.stringify(candidateList) : null
-  useEffect(() => {
-    if (!candidateKey || candidateKey === sentCandidates.current) return
-    sentCandidates.current = candidateKey
-    session.candidates(workoutId, JSON.parse(candidateKey)).catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidateKey])
-
-  // «Otro ejercicio» en el widget: el campo de añadir, con el foco, en cuanto existe.
-  const loaded = Boolean(workout)
-  useEffect(() => {
-    if (!focusAdd || !loaded) return
-    addInput.current?.focus()
-    addInput.current?.scrollIntoView?.({ block: 'center' })
-  }, [focusAdd, loaded])
-
   // How long this session took, from its own sets. Empty while it is still
   // running, so the header simply doesn't carry it yet.
   const took = sessionLength(workout)
@@ -2572,7 +2470,6 @@ export default function Workout({
           <label htmlFor="exercise">Ejercicio</label>
           <input
             id="exercise"
-            ref={addInput}
             value={exerciseInput}
             onChange={(e) => setExerciseInput(e.target.value)}
             placeholder="Buscar o escribir…"

@@ -36,10 +36,10 @@ final class SessionAlarms {
     }
 
     private static PendingIntent restOver(Context context) {
-        return SessionNotification.broadcast(context, SessionController.ACTION_REST_OVER, 10, false);
+        return SessionNotification.broadcast(context, SessionController.ACTION_REST_OVER, 10);
     }
 
     private static PendingIntent expire(Context context) {
-        return SessionNotification.broadcast(context, SessionController.ACTION_EXPIRE, 11, false);
+        return SessionNotification.broadcast(context, SessionController.ACTION_EXPIRE, 11);
     }
 }

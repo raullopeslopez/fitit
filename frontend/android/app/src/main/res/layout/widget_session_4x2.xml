@@ -93,16 +93,6 @@
                 android:textColor="@color/widget_text"
                 android:textSize="24sp" />
 
-            <ImageView
-                android:id="@+id/widget_skip"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/widget_stepper"
-                android:contentDescription="@string/widget_skip"
-                android:scaleType="center"
-                android:src="@drawable/ic_widget_skip" />
-
             <TextView
                 android:id="@+id/widget_rest_over"
                 android:layout_width="wrap_content"
@@ -254,20 +244,6 @@
                 android:text="@string/widget_log"
                 android:textColor="@color/widget_on_accent"
                 android:textSize="15sp" />
-
-            <TextView
-                android:id="@+id/widget_other"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:layout_marginStart="4dp"
-                android:fontFamily="@font/geist_regular"
-                android:gravity="center"
-                android:maxLines="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="@string/widget_other"
-                android:textColor="@color/widget_muted"
-                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/widget_end"

@@ -234,22 +234,6 @@ public class SessionPlugin extends Plugin {
         call.resolve();
     }
 
-    /**
-     * A qué ejercicios se puede cambiar desde el 4×2 (fase 5), cuando cambia la
-     * lista en la app: sólo la lista del control de ese entreno, nada más.
-     */
-    @PluginMethod
-    public void candidates(PluginCall call) {
-        Integer workoutId = call.getInt("workoutId");
-        JSArray list = call.getArray("candidates", new JSArray());
-        if (workoutId == null) {
-            call.reject("workoutId is required");
-            return;
-        }
-        SessionController.candidates(getContext(), workoutId, list, System.currentTimeMillis());
-        call.resolve();
-    }
-
     /** «Terminar entreno» en el menú de Entreno: lo mismo que «Terminar» en el widget. */
     @PluginMethod
     public void end(PluginCall call) {

@@ -46,15 +46,9 @@ export const session = {
   skipRest: () => run(() => FititSession.skipRest()),
   // Android 13+ lo pregunta una vez; contesta `{ granted }`.
   ensureNotifications: () => run(() => FititSession.ensureNotifications()),
-  // A qué ejercicios se puede cambiar desde el widget y la notificación (fase 5):
-  // `[{ exercise, template, count }]`. Sólo cambia la lista del control de ese
-  // entreno; sin control, el nativo no hace nada.
-  candidates: (workoutId, candidates) =>
-    run(() => FititSession.candidates({ workoutId, candidates })),
 
   // La orden con la que el widget o la notificación abrieron la app:
-  // `{ action: 'open', workoutId }`, `{ action: 'add', workoutId }` («Nuevo…»
-  // del 4×2) o `{ action: 'start' }`. El nativo la guarda
+  // `{ action: 'open', workoutId }` o `{ action: 'start' }`. El nativo la guarda
   // hasta que alguien escucha, así que vale también para un arranque en frío.
   onLaunch(listener) {
     if (!isNative()) return () => {}
