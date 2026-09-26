@@ -29,11 +29,13 @@ import org.json.JSONObject;
  * en curso».
  */
 final class SessionNotification {
-    static final String CHANNEL = "fitit_session";
+    static final String CHANNEL = "fitit_entreno";
     static final int ID = 4102;
-    // Los canales del aviso de descanso que retiró la fase 0. Android los guarda
-    // aunque el código se haya ido; sin esto seguirían en Ajustes.
-    private static final String[] RETIRED = {"fitit-sesion", "fitit-fin-descanso"};
+    // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
+    // se haya ido: los del aviso de descanso que retiró la fase 0, y el de la
+    // 0.6.0, de importancia baja (Android no deja subírsela a un canal que ya
+    // existe, así que se sustituye).
+    private static final String[] RETIRED = {"fitit-sesion", "fitit-fin-descanso", "fitit_session"};
 
     private SessionNotification() {}
 
@@ -56,8 +58,12 @@ final class SessionNotification {
     private static void ensureChannel(Context context) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         for (String retired : RETIRED) manager.deleteNotificationChannel(retired);
+        // Importancia normal, no baja. Android trata la baja como «silenciosa», y
+        // muchos teléfonos —Xiaomi el primero— no enseñan las silenciosas en la
+        // pantalla de bloqueo, que es donde tiene que estar. Sin sonido ni
+        // vibración en el canal, y `setSilent` en cada aviso: sigue sin sonar.
         NotificationChannel channel = new NotificationChannel(
-                CHANNEL, "Entreno en curso", NotificationManager.IMPORTANCE_LOW);
+                CHANNEL, "Entreno en curso", NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription("La serie que toca y el descanso, con botones para registrar sin abrir la app.");
         channel.setSound(null, null);
         channel.enableVibration(false);

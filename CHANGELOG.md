@@ -73,6 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **La notificación del entreno no salía en la pantalla de bloqueo** (APK 0.6.0).
+  Su canal era de importancia baja para que no sonara, y Android —Xiaomi el
+  primero— esconde del bloqueo lo que trata como «silencioso». Ahora el canal es
+  de importancia normal sin sonido ni vibración: se ve con el teléfono bloqueado y
+  sigue sin sonar. Canal nuevo («Entreno en curso»); el de la 0.6.0 se retira.
 - **Se podía perder una serie registrada sin red.** Las series pendientes llevan
   un id local (`tmp-1`, `tmp-2`…) cuyo contador volvía a empezar cada vez que se
   abría Entreno. Con una serie sin enviar de la vez anterior, la siguiente que

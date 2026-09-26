@@ -385,6 +385,12 @@ al construirlo, y que hay que mirar en el teléfono:
 - **Los canales del aviso antiguo** (`fitit-sesion`, `fitit-fin-descanso`) se borran al
   publicar: Android los conservaba en Ajustes aunque el código se hubiera ido.
 - **Saltar el descanso en la app lo quita también de la notificación, y al revés.**
+- **Corregido tras probarla (0.7.0): no salía en la pantalla de bloqueo.** El canal era
+  de importancia baja para que no sonara, y Android trata esa importancia como
+  «silenciosa»: Xiaomi, y otros, no enseñan las silenciosas en el bloqueo. El canal pasa
+  a importancia normal con sonido y vibración quitados (sigue sin sonar), con otro id
+  (`fitit_entreno`), porque Android no deja subir la importancia de uno que ya existe;
+  el de la 0.6.0 se borra.
 
 ### Fase 3 · Widget 4×1 (APK 0.7.0) · un día
 
