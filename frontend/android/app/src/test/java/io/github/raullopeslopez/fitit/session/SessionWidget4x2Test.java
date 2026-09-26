@@ -489,6 +489,32 @@ public class SessionWidget4x2Test {
         assertEquals("Último: hace 2 días", text(R.id.widget_idle_date));
     }
 
+    // --- El 3×2: el mismo widget, más estrecho (DESIGN.md, «Tamaños») ----------
+
+    @Test
+    public void theThreeByTwoIsTheSameWidgetAndLogsTheSame() throws Exception {
+        int mid = widgets.createWidget(SessionWidget3x2.class, R.layout.widget_session_4x2);
+        long now = now();
+        SessionController.publish(context, bench(now + 83_000), now);
+
+        View three = widgets.getViewFor(mid);
+        assertEquals("Press banca", ((TextView) three.findViewById(R.id.widget_exercise)).getText().toString());
+        assertEquals("32,5", ((TextView) three.findViewById(R.id.widget_weight)).getText().toString());
+        assertEquals("+1", ((TextView) three.findViewById(R.id.widget_log)).getText().toString());
+
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        three.findViewById(R.id.widget_log).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals(seen + 1, sent.size());
+        SessionController.handle(context, sent.get(sent.size() - 1), now + 1_000);
+
+        assertEquals(1, store.queue().size());
+        // Y lo repinta el mismo updateAll que a los otros dos.
+        assertEquals(" · 5 series", ((TextView) widgets.getViewFor(mid)
+                .findViewById(R.id.widget_count)).getText().toString());
+    }
+
     @Test
     public void tappingTheExerciseOpensThatWorkout() throws Exception {
         long now = now();

@@ -336,6 +336,74 @@ public class SessionWidgetLookTest {
         WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-2-sin-objetivo-oscuro");
     }
 
+    // --- El 3×2, a ≈270 dp (DESIGN.md, «Tamaños») -------------------------------
+
+    private View mid(JSONObject control) {
+        int id = widgets.createWidget(SessionWidget3x2.class, R.layout.widget_session_4x2);
+        if (control != null) SessionController.publish(context, control, System.currentTimeMillis());
+        else SessionWidget.updateAll(context);
+        return WidgetRender.lay(context, widgets.getViewFor(id), 270, 200);
+    }
+
+    /** Un texto cabe si no hay «…» en ninguna de sus líneas. */
+    private static void whole(View root, int id) {
+        TextView text = root.findViewById(id);
+        android.text.Layout layout = text.getLayout();
+        for (int i = 0; i < layout.getLineCount(); i++) {
+            assertEquals("«" + text.getText() + "» se corta", 0, layout.getEllipsisCount(i));
+        }
+    }
+
+    @Test
+    public void theThreeByTwoKeepsEveryMeasureOfTheFourByTwo() throws Exception {
+        View root = mid(bench(System.currentTimeMillis() + 83_000));
+
+        Rect line = at(root, R.id.widget_line);
+        Rect clock = digits(root, R.id.widget_clock);
+        Rect block = at(root, R.id.widget_block);
+        near("línea → tiempo", 11, dp(clock.top - line.bottom));
+        near("tiempo → bloque", 11, dp(block.top - clock.bottom));
+        near("ancho del +1", 60, dp(at(root, R.id.widget_log).width()));
+        for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
+                R.id.widget_reps_down, R.id.widget_reps_up}) {
+            near("zona de toque", 44, dp(at(root, id).width()));
+        }
+        // Las cifras caben entre sus − y +.
+        assertTrue(at(root, R.id.widget_weight_down).right <= at(root, R.id.widget_weight).left);
+        assertTrue(at(root, R.id.widget_weight).right <= at(root, R.id.widget_weight_up).left);
+        near("toque de Terminar", 44, dp(at(root, R.id.widget_end).width()));
+        assertTrue("el bloque se sale por abajo", dp(block.bottom) <= 200 - 14 + 0.5f);
+        WidgetRender.save(root, WALL_LIGHT, "3x2-descansando-claro");
+
+        WidgetRender.save(mid(bench(0)), WALL_LIGHT, "3x2-entrenando-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void theThreeByTwoPastTheRestInTheDark() throws Exception {
+        WidgetRender.save(mid(bench(System.currentTimeMillis() - 12_500)), WALL_DARK, "3x2-pasado-oscuro");
+    }
+
+    @Test
+    public void theThreeByTwoWithNoWorkoutAndExpired() throws Exception {
+        idleSummary(true);
+        View first = mid(null);
+        whole(first, R.id.widget_idle_date);
+        WidgetRender.save(first, WALL_LIGHT, "3x2-sin-entreno-1-claro");
+
+        store.flipIdlePage();
+        View second = mid(null);
+        assertTrue("la cifra y el objetivo caben en la línea",
+                at(second, R.id.widget_steps_goal).right <= at(second, R.id.widget_idle_steps).right);
+        WidgetRender.save(second, WALL_LIGHT, "3x2-sin-entreno-2-claro");
+
+        store.markExpired();
+        View expired = mid(null);
+        whole(expired, R.id.widget_expired_body);
+        assertTrue(dp(at(expired, R.id.widget_reopen).bottom) <= 200 - 14 + 0.5f);
+        WidgetRender.save(expired, WALL_LIGHT, "3x2-caducada-claro");
+    }
+
     @Test
     public void aBodyweightExerciseKeepsOnlyTheRepsRow() throws Exception {
         JSONObject pullUps = bench(0).put("exercise", "Dominadas");

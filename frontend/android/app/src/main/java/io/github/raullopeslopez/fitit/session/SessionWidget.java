@@ -36,7 +36,7 @@ public class SessionWidget extends AppWidgetProvider {
         render(context, manager, ids);
     }
 
-    /** Repinta todos los widgets puestos, 4×1 y 4×2; si no hay ninguno no hace nada. */
+    /** Repinta todos los widgets puestos, 4×1, 4×2 y 3×2; si no hay ninguno no hace nada. */
     public static void updateAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         if (manager == null) return;
@@ -44,7 +44,10 @@ public class SessionWidget extends AppWidgetProvider {
         if (ids != null && ids.length > 0) render(context, manager, ids);
         int[] large = manager.getAppWidgetIds(new ComponentName(context, SessionWidget4x2.class));
         if (large != null && large.length > 0) SessionWidget4x2.render(context, manager, large);
-        if ((ids != null && ids.length > 0) || (large != null && large.length > 0)) {
+        int[] mid = manager.getAppWidgetIds(new ComponentName(context, SessionWidget3x2.class));
+        if (mid != null && mid.length > 0) SessionWidget4x2.render(context, manager, mid);
+        if ((ids != null && ids.length > 0) || (large != null && large.length > 0)
+                || (mid != null && mid.length > 0)) {
             SessionAlarms.armDay(context, System.currentTimeMillis());
         }
     }

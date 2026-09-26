@@ -10,20 +10,21 @@ import java.time.LocalDate;
 import org.json.JSONObject;
 
 /**
- * El widget 4×2 de la pantalla de inicio, el que ajusta.
+ * El widget 4×2 de la pantalla de inicio, el que ajusta; y el 3×2
+ * ({@link SessionWidget3x2}), que es el mismo más estrecho.
  *
  * <pre>
- * Press banca                      01:23
- * 4 series · 1 sin enviar
- * [ − ]   32,5 kg   [ + ]    [ − ]  12  [ + ]
- * [   Registrar serie   ]  Terminar
+ * Press banca · 4 series · 1 sin enviar         (■)
+ * 01:23
+ * [ −  32,5 kg  + |    ]
+ * [ −  12 reps  + | +1 ]
  * </pre>
  *
  * <p>Añadir o cambiar de ejercicio se hace dentro de la app: tocar el ejercicio
  * la abre en ese entreno ({@link SessionLaunch#OPEN}).
  *
  * <p>Los {@code −}/{@code +} cambian la serie que se repite y no registran nada;
- * «Registrar serie» es el +1 del 4×1 (y vibra igual). Un ejercicio sin peso no
+ * el {@code +1} es el del 4×1 (y vibra igual). Un ejercicio sin peso no
  * enseña los botones de kg. Lo demás, el ejercicio, el reloj y el estado sin
  * sesión, es lo mismo que el 4×1 ({@link SessionWidget}), que es también quien
  * repinta los dos. Spec: docs/widgets-entreno.md, «4×2, con ajuste» y fase 4.

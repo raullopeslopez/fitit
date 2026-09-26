@@ -6,6 +6,8 @@
     <string name="widget_4x1_description">La serie que toca, el descanso y «+1» sin abrir la app.</string>
     <string name="widget_4x2_label">Fitit · Entreno 4×2</string>
     <string name="widget_4x2_description">Ajusta peso y reps, registra la serie o termina el entreno, sin abrir la app.</string>
+    <string name="widget_3x2_label">Fitit · Entreno 3×2</string>
+    <string name="widget_3x2_description">El mismo que el 4×2, en tres columnas.</string>
     <!-- El +1 (DESIGN.md): lo que se ve, y cómo lo nombra un lector de pantalla. -->
     <string name="widget_plus_one">+1</string>
     <string name="widget_log">Registrar serie</string>
