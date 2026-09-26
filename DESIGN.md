@@ -471,6 +471,100 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
 - **Border radius:** controls 6px · cards 8px · banners 8px · pill 9999px. (Sharper than
   the old 12–16px — instrument, not toy.)
 
+## Fuera de la app: widgets y notificación nativa (APK)
+Lo que se ve sin abrir Fitit en Android: los widgets de la pantalla de inicio y la
+notificación del entreno. La notificación **web** de la PWA sigue las reglas de «Layout»
+de arriba; esto es la app nativa. Especificación y fases: `docs/widgets-entreno.md`.
+Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widgets-20260926/`
+(`preview-v9` a `v17`).
+
+- **Tesis: una serie, un toque.** Cada superficie tiene **un solo relleno ámbar**, el toque
+  que registra (`+1`) o el que empieza (`Empezar entreno`). Lo raro —terminar, cambiar de
+  pantalla— va apagado. Es la misma regla del ámbar de la app, llevada a donde el usuario
+  mira de reojo entre series: un único color de acento se encuentra sin buscarlo; dos se
+  anulan (congestión visual, Rosenholtz). Máximo tres bloques de información a la vista.
+- **Tamaños.** 4×2 (358 × 200 dp en el Xiaomi del usuario) y 3×2 (≈270 dp de ancho, a
+  medir en el launcher real), con el mismo diseño. El 4×1 se queda como está salvo el
+  botón, que dice sólo `+1`. Toques de 44 dp como mínimo, siempre, aunque el icono sea menor.
+- **Tipos y color.** Nombre del ejercicio en Geist 600 15sp; lo secundario en Geist 13sp
+  `--muted`; toda cifra en Geist Mono con tabulares. Colores de `widget_colors.xml`, que
+  son los de este documento; claro y oscuro los elige el sistema.
+- **Nada que se deslice a los lados.** El launcher se queda ese gesto para cambiar de página;
+  un widget no lo recibe. Lo que cambia de pantalla se **toca**.
+
+### Estados del 4×2 y el 3×2
+Un solo estado activo cada vez. Tocar cualquier zona sin botón (nombre, series) abre Fitit
+en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no en el widget.
+
+- **Sin entreno — dos pantallas.** Una fila de puntitos abajo (activo: pastilla 18 × 7 en
+  `--text`; inactivo: 7 × 7 en `--border-strong`) de 44 dp de alto; tocarla cambia de
+  pantalla y el widget recuerda en cuál está.
+  - Pantalla 1: `Sin entreno en curso` / `Último: hace 2 días · Pierna` y el botón ámbar
+    `Empezar entreno` a lo ancho.
+  - Pantalla 2: sello `PASOS HOY` con el icono de pisadas en `--accent-ink`; `8.432` en
+    Geist Mono 40sp seguido de `/ 10.000` en Mono 15sp `--muted`; una barra de 8 dp,
+    `--accent` sobre `--border`, que se llena hasta el objetivo; y `Media semanal: 7.910`.
+    La barra dibuja un dato, no un tiempo: se repinta cuando cambian los pasos, nunca cada
+    segundo. Sin objetivo fijado no hay barra ni `/ 10.000`.
+- **Entrenando.** Arriba, en una línea: `Press banca` (600, `--text`) `· 4 series`
+  (`--muted`), y Terminar a la derecha. Debajo, el **bloque de ajuste**. Nada más.
+- **Descansando.** Entre la línea del ejercicio y el bloque aparece el tiempo, `01:23` en
+  Geist Mono 30sp, alineado a la izquierda y **centrado en su hueco**: 11 dp arriba y 11
+  abajo (medido; antes quedaba a 2 dp del nombre y 20 del bloque y parecía pegado).
+- **Pasado de tiempo.** Al llegar a cero, el mismo número pasa a `--accent-ink` y cuenta
+  hacia arriba con signo: `+00:12`, `+02:47`. No hay botón de saltar en ningún sitio:
+  registrar ya empieza la serie aunque quede descanso. **No se añade un amarillo**: no hay
+  tono de aviso en el sistema a propósito y el ámbar ya significa «ha pasado algo»; además
+  un amarillo sobre blanco no se lee. Contraste medido del ámbar como texto: 5,09 en claro
+  y 6,29 en oscuro.
+- **Sin enviar.** La línea del ejercicio dice `5 series · 1 sin enviar`, con `1 sin enviar`
+  en `--accent-ink`. Se va sola al llegar las series al servidor.
+- **Sesión caducada.** `Sesión caducada` / `Abre Fitit para volver a entrar. Tus series
+  siguen guardadas.` y un botón con borde, **sin relleno**, `Abrir Fitit`: no registra nada,
+  así que no lleva ámbar.
+
+### El bloque de ajuste
+- **Una sola pieza**: los dos ajustes (`− 32,5 kg +`, `− 12 reps +`) apilados y el `+1` como
+  su extremo derecho, con un marco común (1 dp `--border-strong`, radio 14) y un filete de
+  1 dp `--border` entre filas. Dos filas de **48 dp**, así que el bloque mide lo mismo que
+  dos ajustes sueltos con su hueco (44 + 8 + 44 = 96). Menos cajas que compitan: se pasó de
+  siete cajas con borde a cuatro.
+- **`+1`**: 60 dp de ancho y todo el alto del bloque, relleno `--accent`, `+1` en Geist Mono
+  600 20sp `--on-accent`. Dice sólo `+1`: el botón no repite la serie, que ya está escrita
+  en los ajustes a su izquierda.
+- **`−` y `+`**: glifos en `--text` (no ámbar: el ámbar es del `+1`), zona de toque de 44 dp.
+  **Al pulsar**, su zona se tiñe (`#FBE6DC` claro / `#3A2216` oscuro) y el glifo pasa a
+  `--accent-ink`. Suave y no sólido: sólido, el `+` de los kilos se fundía con el `+1` de al
+  lado. Riesgo conocido: el `+` de los kilos está pegado al `+1`; si en uso real un toque
+  desviado registra una serie, se separan 6–8 dp.
+- **Terminar**: un aro de 34 dp con borde 1,5 dp en `--danger` y un ■ de 14 dp dentro,
+  arriba a la derecha, zona de toque de 44 dp. Rojo porque terminar no se deshace. Riesgo
+  conocido: ■ es el símbolo universal de «parar» y está al lado de un cronómetro; si se lee
+  como «parar el descanso», la alternativa aprobada es una bandera de meta en el mismo aro.
+
+### El 4×1
+Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Press banca` /
+`32,5 kg × 12 · 4 series` y `+1`; descansando, el tiempo a la izquierda en Mono 30sp;
+`Sesión caducada` + `Abrir`. El pasado de tiempo sigue la misma regla del ámbar.
+
+### La notificación del entreno
+- **Diseño propio, no plantilla.** Cabecera y marco los pone Android (`Fitit · Entreno`);
+  lo de en medio es nuestro. Es una renuncia consciente: una notificación con diseño propio
+  **no puede ser «Live Update»**, así que no sube a la isla de HyperOS ni al chip de la
+  barra de estado. Se eligió tener el tiempo grande ya (HyperOS 3.0.3.0 aún no abre la isla
+  a terceros; llega con la 3.1). El tamaño de la tarjeta de YouTube Music no está al alcance:
+  es la plantilla multimedia, reservada a quien reproduce audio.
+- **Cerrada** (≈64 dp de contenido): `Press banca` / `32,5 kg × 12 · 4 series` a la
+  izquierda y el tiempo en Mono 34sp a la derecha.
+- **Desplegada**: la línea `Press banca · 4 series`, el tiempo en Mono 34sp y el **mismo
+  bloque de ajuste del widget**: se cambia peso y reps y se registra desde la notificación.
+- **Sin botones del sistema.** Desaparecen `+1 serie`, `Otra serie` y `Otro ejercicio`, y con
+  ellos **escribir desde fuera de la app** (`Remo 40x10`, `35x10`): Android sólo deja campos
+  de texto en sus propios botones, y el bloque ocupa ese sitio. Una serie distinta se ajusta
+  antes con `−`/`+`; otro ejercicio, dentro de la app.
+- El tiempo sigue la misma regla que en el widget: texto mientras baja, `--accent-ink` y
+  `+00:12` al pasarse.
+
 ## Motion
 - **Approach:** minimal-functional. One expressive moment only: the PR.
 - **Easing:** enter `ease-out` · exit `ease-in` · move `ease-in-out`.
@@ -556,3 +650,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-08-16 | La marca deja de ser una mancuerna y pasa a ser la retícula que crece | Llega el kit de marca (`brand/`) y con él una identidad que la app puede pintar con sus propios tokens en vez de con una imagen: cuadrados que crecen hacia la esquina superior derecha, la de arriba a la derecha al 100 % y en ámbar. Tres consecuencias en pantalla. (1) **El isotipo del header pasa a SVG en línea.** `mark.png` era un PNG de tinta fija, así que en tema oscuro dependía de que el recorte llevara ya el color correcto; ahora la tinta es `currentColor` (hereda `--text`) y la celda ámbar es `var(--accent)`, de modo que la marca cambia con el tema por construcción y no por tener dos ficheros. El kit y este documento comparten los mismos valores —`#16181b`/`#e4571b` en claro, `#f2f3f5`/`#ff6a2c` en oscuro—, que es lo que hace posible atarla a tokens sin desviarse de la marca. (2) **Va la retícula 3×3, no la 4×4.** El kit pone el suelo de la 4×4 en 24 px y el isotipo del header mide 20.2 medidos (0.79em sobre un `h1` de 25.6px, la proporción del lockup). A ese tamaño los cuadrados más pequeños de la 4×4 caen por debajo de 1.5px y la marca se lee como una mancha de puntos, que es exactamente lo que se vio en la primera pasada antes de mirarla en pantalla. (3) **Se va la I capital de `fitIt`.** Estaba ahí para que una letra hiciera eco del icono de barra y discos; muerto el icono, la letra sostiene un chiste que ya no existe, y el kit fija el nombre en una sola caja y un solo peso. El tracking pasa de −0.0375em a −0.055em, que es el del lockup. El lockup vivía copiado en App, Login y Register; ahora es `Wordmark.jsx`, una vez. Los PNG servidos se generan desde los SVG del kit con `frontend/tools/make_icons.py` (Pillow, sin cairo ni ImageMagick: los SVG son sólo rectángulos), y con ellos llega un icono `maskable` aparte: el del kit lleva esquinas redondeadas y Android le aplica encima su propia máscara, así que declararlo `any maskable` como estaba lo redondeaba dos veces y asomaba el fondo del lanzador. El favicon pasa a SVG con la tinta atada a `prefers-color-scheme` —en una barra de pestañas oscura el `#16181b` del kit desaparece— con el PNG de 64 como fallback. |
 | 2026-08-24 | `--danger` sube en los dos temas: dark `#EF4444`→`#F87171`, claro `#DC2626`→`#CE1F1F` | El rojo destructivo llevaba meses suspendiendo la AA en los dos temas, y **peor al tocarlo que en reposo**. Medido sobre el color realmente pintado, no sobre el token: en oscuro `#EF4444` da **4,345** sobre `--surface-raised` y **3,676** bajo el velo de `:hover` (6 % de `--text`); en claro `#DC2626` da **4,319** sobre el papel. Lo de claro había pasado siempre porque se comprobó contra blanco puro (4,829) y el fondo de tema claro de este documento es papel cálido `#F4F2EE` — un token validado contra el fondo equivocado suspende en silencio. Y el suelo es 4,5 y no 3: `Eliminar ejercicio` va a 16 px/600, que no es «large text» para WCAG. Los nuevos: oscuro 5,911 en reposo y 5,001 en hover; claro 5,469 sobre blanco, 4,891 sobre papel y 4,842 en hover. Barrido de los ocho usos de `--danger`: seis son tinta sobre una superficie (`.set-delete`, `.head-menu-danger`, `.secondary.delete-exercise`, `.sheet-danger`, `.editor-row-danger`, `.alert`) y todos mejoran; dos son velos sin texto encima (fondos al 10–12 %, bordes al 25–35 %) y no cambian de veredicto. El único que empeora es el noveno sitio, el **relleno**: `.dialog-actions .danger`, blanco clavado sobre el rojo, que en oscuro cae de 3,769 a 2,766 — un uso que ya suspendía y que ninguna prueba miraba, porque vive en una hoja modal y las de contraste recorren el panel del editor. Se arregla con un token nuevo, `--on-danger`, hermano de `--on-accent`: blanco en claro (5,469 sobre `#CE1F1F`) y tinta `#0B0C0E` en oscuro (7,079 sobre `#F87171`, 5,233 sobre su hover). |
 | 2026-09-26 | Escala tipográfica cerrada y vigilada; «← Días» deja de ser relleno | Auditoría de prod contra este documento: el color se cumplía entero, la tipografía no — 26 tamaños distintos en `styles.css` donde la tabla define 8, y texto en minúscula por debajo de Label en cuatro pantallas (etiqueta de músculo 11,52 px, chips de serie 12,48, `20 d` y meses del ritmo 11,52/10,88, `+ añadir` 12), más sellos a 10,4 en lugar de Micro. Se colapsan las 76 declaraciones: prosa pequeña a Label, sellos a Micro, la deriva de 14–15 px a Body o Meta según sea contenido o nota, 1,05–1,35 a Title o Big stat. Entra un paso nuevo, **Display figure 2,6rem**, porque ya existía dos veces (objetivo de hoy, kcal) y la cifra del arranque en frío estaba a 2,3 sin razón. Los glifos quedan fuera de la escala por nombre, y `typeScale.test.js` hace que el próximo tamaño suelto rompa el build en lugar de esperar a otra auditoría. La cifra de kcal pasa de `--accent` a `--accent-ink`: es texto, y en papel el ámbar como texto es el hondo. «← Días» deja el relleno ámbar que se le dio en #25: con él, la pantalla del entreno tenía tres rellenos ámbar y volver pesaba igual que registrar una serie; ahora es tinta ámbar con marco tenue. `success`/`warning` salen del documento: nunca fueron tokens. |
+| 2026-09-26 | Widgets y notificación nativa rediseñados | Consulta de diseño con el usuario (17 iteraciones, vistas previas en `~/.gstack/.../widgets-20260926/`). Tesis «una serie, un toque»: un solo relleno ámbar por superficie. El ruido se midió y se redujo por agrupación, no quitando datos: los seis `−`/`+` sueltos pasan a un bloque de ajuste de una pieza con el `+1` como extremo (siete cajas con borde → cuatro, tres marcas ámbar → una). Sin botón de saltar: al pasarse del descanso el número pasa a `--accent-ink` y cuenta `+00:12`, sin añadir un tono de aviso. Terminar, aro `--danger`. «Sin entreno» gana una segunda pantalla de pasos contra un objetivo nuevo (`/ 10.000`, barra y `Media semanal`), y se cambia tocando los puntitos porque el launcher se queda el deslizamiento lateral. La notificación pasa a diseño propio con el mismo bloque (N4): se pierde escribir desde fuera de la app y la isla de HyperOS, a cambio del tiempo grande hoy. Se descartó convertir este archivo al formato abierto de gstack: la conversión automática inventaba tokens y recuperaba `#EF4444`, retirado por contraste. |
