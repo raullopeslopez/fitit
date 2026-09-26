@@ -6,5 +6,8 @@
     <color name="widget_text">#F2F3F5</color>
     <color name="widget_muted">#9BA1A9</color>
     <color name="widget_accent">#FF6A2C</color>
+    <!-- El ámbar como texto (accent-ink en DESIGN.md): el + de los ajustes y
+         «N sin enviar» del 4×2. -->
+    <color name="widget_accent_ink">#FF6A2C</color>
     <color name="widget_on_accent">#16181B</color>
 </resources>

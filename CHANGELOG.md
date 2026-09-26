@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.8.0: widget 4×2 del entreno, con ajuste de peso y reps.** Fase 4 de
+  `docs/widgets-entreno.md`. En el selector de widgets de Android aparece un segundo
+  widget, «Fitit · Entreno 4×2». Con un entreno en marcha: el ejercicio y su grupo, las
+  series que van (`4 series`), la cuenta atrás con un botón **`⏭`** para saltar el
+  descanso, peso y reps con sus **`−`** y **`+`** (2,5 kg y 1 rep por toque),
+  **`Registrar serie`** y **`Terminar`**. Los `−`/`+` no registran nada: cambian la
+  serie que registra el siguiente toque, y la notificación y el 4×1 pasan a repetir
+  ese peso y esas reps. `Registrar serie` vibra una vez, como `+1 serie`. Con series
+  en cola sale ` · 1 sin enviar` en ámbar detrás del contador, y se va cuando llegan
+  al servidor. `Terminar` cierra el control: quita la notificación y deja los dos
+  widgets en `Sin entreno en curso`; las series ya registradas no se tocan. En un
+  ejercicio sin peso no hay botones de kg, sólo los de reps.
 - **APK 0.7.0: widget 4×1 del entreno en la pantalla de inicio.** Fase 3 de
   `docs/widgets-entreno.md`. En el selector de widgets de Android aparece
   «Fitit · Entreno 4×1». Con un entreno en marcha enseña el ejercicio y su grupo

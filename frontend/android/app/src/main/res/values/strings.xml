@@ -4,6 +4,16 @@
     <!-- El widget del entreno (docs/widgets-entreno.md, fase 3). -->
     <string name="widget_4x1_label">Fitit · Entreno 4×1</string>
     <string name="widget_4x1_description">La serie que toca, el descanso y «+1 serie» sin abrir la app.</string>
+    <string name="widget_4x2_label">Fitit · Entreno 4×2</string>
+    <string name="widget_4x2_description">Ajusta peso y reps, registra la serie, salta el descanso o termina, sin abrir la app.</string>
+    <string name="widget_log">Registrar serie</string>
+    <string name="widget_end">Terminar</string>
+    <string name="widget_skip">Saltar descanso</string>
+    <string name="widget_reps_unit">reps</string>
+    <string name="widget_weight_down">Menos 2,5 kg</string>
+    <string name="widget_weight_up">Más 2,5 kg</string>
+    <string name="widget_reps_down">Una rep menos</string>
+    <string name="widget_reps_up">Una rep más</string>
     <string name="widget_idle_title">Sin entreno en curso</string>
     <string name="widget_start">Empezar entreno</string>
     <string name="widget_repeat">+1 serie</string>

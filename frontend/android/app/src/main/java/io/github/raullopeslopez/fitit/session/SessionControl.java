@@ -95,6 +95,69 @@ public final class SessionControl {
         return new Step(entry, after);
     }
 
+    /** Un paso de los botones de peso del widget 4×2. */
+    static final BigDecimal WEIGHT_STEP = new BigDecimal("2.5");
+    private static final int MAX = 1000;
+
+    /**
+     * {@code −}/{@code +} de peso en el 4×2: 2,5 kg por toque, nunca por debajo de 0.
+     * No registra nada: cambia la serie que registra el siguiente toque, sea
+     * «Registrar serie», «+1 serie» de la notificación o del 4×1. Un ejercicio sin
+     * peso se queda sin peso (el widget ni enseña esos botones).
+     */
+    public static JSONObject weight(JSONObject control, int steps) throws JSONException {
+        JSONObject after = adjusting(control);
+        JSONObject template = after.getJSONObject("template");
+        if (template.isNull("weight")) return after;
+        BigDecimal next = BigDecimal.valueOf(template.getDouble("weight"))
+                .add(WEIGHT_STEP.multiply(BigDecimal.valueOf(steps)))
+                .max(BigDecimal.ZERO)
+                .min(BigDecimal.valueOf(MAX));
+        template.put("weight", next.doubleValue());
+        return after;
+    }
+
+    /** {@code −}/{@code +} de reps en el 4×2: de una en una, nunca menos de 1. */
+    public static JSONObject reps(JSONObject control, int steps) throws JSONException {
+        JSONObject after = adjusting(control);
+        JSONObject template = after.getJSONObject("template");
+        int next = Math.max(1, Math.min(MAX, template.optInt("reps", 1) + steps));
+        template.put("reps", next);
+        return after;
+    }
+
+    // Una copia, para que quien ajusta no toque el control que le dieron. El aviso de
+    // una entrada mal escrita se va: ya hay otra serie a la vista.
+    private static JSONObject adjusting(JSONObject control) throws JSONException {
+        JSONObject after = new JSONObject(control.toString());
+        after.remove("notice");
+        return after;
+    }
+
+    /** ¿Lleva peso la serie? Sin él, el 4×2 esconde los botones de kg. */
+    public static boolean hasWeight(JSONObject control) {
+        JSONObject template = control.optJSONObject("template");
+        return template != null && !template.isNull("weight");
+    }
+
+    /** El peso del 4×2, entre sus botones: «32,5 kg». */
+    public static String kilosLabel(JSONObject control) {
+        return hasWeight(control)
+                ? kilos(control.optJSONObject("template").optDouble("weight")) + " kg"
+                : "";
+    }
+
+    /** Las reps del 4×2, entre sus botones: «12» (la palabra «reps» va aparte). */
+    public static String repsLabel(JSONObject control) {
+        JSONObject template = control.optJSONObject("template");
+        return String.valueOf(template == null ? 0 : template.optInt("reps", 0));
+    }
+
+    /** « · 1 sin enviar» detrás del contador de series, o nada si la cola está vacía. */
+    public static String unsent(int queued) {
+        return queued > 0 ? " · " + queued + " sin enviar" : "";
+    }
+
     /**
      * Lee «Otra serie». Un número solo son las reps y conserva el peso de la
      * plantilla (sin peso en un ejercicio que no lo lleva).
