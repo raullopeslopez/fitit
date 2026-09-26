@@ -137,10 +137,6 @@ public final class SessionControl {
         return list;
     }
 
-    /** La marca de un candidato: «40 kg × 10», «8 reps», o nada si no la tiene. */
-    public static String mark(JSONObject candidate) {
-        return candidate.optJSONObject("template") == null ? "" : set(candidate);
-    }
 
     /**
      * Tocar un candidato: pasa a ser el ejercicio en curso **sin registrar nada**.

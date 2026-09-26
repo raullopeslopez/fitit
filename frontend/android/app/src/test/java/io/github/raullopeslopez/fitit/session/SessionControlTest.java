@@ -331,16 +331,6 @@ public class SessionControlTest {
     }
 
     @Test
-    public void eachCandidateSaysItsLastMark() throws Exception {
-        List<JSONObject> list = SessionControl.candidates(withCandidates());
-
-        assertEquals("40 kg × 10", SessionControl.mark(list.get(0)));
-        assertEquals("8 reps", SessionControl.mark(list.get(1)));
-        assertEquals("", SessionControl.mark(list.get(2)));
-        assertEquals("12,5 kg × 12", SessionControl.mark(list.get(3)));
-    }
-
-    @Test
     public void switchingMakesTheCandidateTheCurrentOneAndLogsNothing() throws Exception {
         JSONObject control = withCandidates()
                 .put("restEndsAt", NOW + 30_000)
@@ -362,7 +352,8 @@ public class SessionControlTest {
         assertEquals(4, list.size());
         assertEquals("Press banca", list.get(2).getString("exercise"));
         assertEquals(4, list.get(2).getInt("count"));
-        assertEquals("32,5 kg × 12", SessionControl.mark(list.get(2)));
+        assertEquals(12, list.get(2).getJSONObject("template").getInt("reps"));
+        assertEquals(32.5, list.get(2).getJSONObject("template").getDouble("weight"), 0);
         for (JSONObject c : list) assertFalse("Remo".equals(c.getString("exercise")));
     }
 
