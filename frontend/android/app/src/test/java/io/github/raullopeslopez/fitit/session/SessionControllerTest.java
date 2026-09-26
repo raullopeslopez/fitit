@@ -15,8 +15,15 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.SystemClock;
+import android.os.Vibrator;
+import android.view.View;
+import android.widget.Chronometer;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.testing.WorkManagerTestInitHelper;
+import io.github.raullopeslopez.fitit.R;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONObject;
@@ -28,9 +35,10 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowAlarmManager;
 
-// La notificación en curso y sus tres botones, de punta a punta sin teléfono:
-// lo que Entreno publica, lo que enseña Android y lo que hace cada toque.
-// Spec: docs/widgets-entreno.md, «1 · Notificación en curso» y «Comportamiento».
+// La notificación en curso, de punta a punta sin teléfono: lo que Entreno
+// publica, lo que enseña Android y lo que hace cada toque. Spec:
+// docs/widgets-entreno.md («Comportamiento», fase 6) y DESIGN.md («La notificación
+// del entreno»).
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class SessionControllerTest {
@@ -101,7 +109,26 @@ public class SessionControllerTest {
         SessionController.handle(context, new Intent(action), NOW + 5_000);
     }
 
-    // --- Lo que se ve ---------------------------------------------------------
+    /** La notificación cerrada, inflada como la pintaría Android. */
+    private View collapsed() {
+        return shown().contentView.apply(context, new FrameLayout(context));
+    }
+
+    /** Y desplegada. */
+    private View expanded() {
+        return shown().bigContentView.apply(context, new FrameLayout(context));
+    }
+
+    private static String text(View root, int id) {
+        return ((TextView) root.findViewById(id)).getText().toString();
+    }
+
+    private static boolean visible(View root, int id) {
+        View v = root.findViewById(id);
+        return v != null && v.getVisibility() == View.VISIBLE;
+    }
+
+    // --- Lo que se ve (N4: diseño propio, DESIGN.md «La notificación») --------
 
     @Test
     public void entrenoPublishesAndTheCardAppears() throws Exception {
@@ -109,53 +136,110 @@ public class SessionControllerTest {
 
         Notification n = shown();
         assertNotNull(n);
+        // Título y texto siguen ahí para quien no pinta el diseño propio (lector
+        // de pantalla, relojes).
         assertEquals("Press banca", n.extras.getString(Notification.EXTRA_TITLE));
         assertEquals("32,5 kg × 12 · 4 series", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        // Ni «Otra serie» ni «Saltar»: escribir desde fuera y saltar el descanso
-        // se fueron con el rediseño (DESIGN.md, «Fuera de la app»).
-        assertEquals(List.of("+1 serie"), actions(n));
         // En curso: deslizar no la quita.
         assertTrue((n.flags & Notification.FLAG_ONGOING_EVENT) != 0);
         assertEquals(Notification.VISIBILITY_PUBLIC, n.visibility);
     }
 
     @Test
-    public void theCountdownIsTheNotificationsOwnClock() throws Exception {
+    public void itIsOurOwnDesignInsideTheSystemFrameWithNoSystemButtons() throws Exception {
         SessionController.publish(context, bench(NOW + 83_000), NOW);
 
         Notification n = shown();
-        assertTrue(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertTrue(n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN));
-        assertEquals(NOW + 83_000, n.when);
+        // Cabecera y marco los pone Android; lo de en medio es nuestro.
+        assertEquals("android.app.Notification$DecoratedCustomViewStyle",
+                n.extras.getString(Notification.EXTRA_TEMPLATE));
+        assertEquals(R.layout.notification_session, n.contentView.getLayoutId());
+        assertEquals(R.layout.notification_session_big, n.bigContentView.getLayoutId());
+        // Sin botones del sistema: ni +1 serie, ni Otra serie, ni Otro ejercicio.
+        assertEquals(List.of(), actions(n));
+        // El tiempo es el nuestro, grande; la cabecera no repite otro reloj.
+        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
     }
 
     @Test
-    public void pastTheRestTheClockCountsUpFromTheEndOfTheRest() throws Exception {
+    public void collapsedItIsTheExerciseTheSetAndTheTimeOnTheRight() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        View root = collapsed();
+        assertEquals("Press banca", text(root, R.id.widget_exercise));
+        assertEquals("32,5 kg × 12", text(root, R.id.widget_set));
+        assertEquals(" · 4 series", text(root, R.id.widget_count));
+        Chronometer clock = root.findViewById(R.id.widget_clock);
+        assertTrue(visible(root, R.id.widget_clock));
+        assertTrue(clock.isCountDown());
+        long remaining = clock.getBase() - SystemClock.elapsedRealtime();
+        assertEquals(83_000, remaining, 1_000);
+        assertFalse(visible(root, R.id.widget_over));
+    }
+
+    @Test
+    public void expandedItCarriesTheSameAdjustBlockAsTheWidget() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        View root = expanded();
+        assertEquals("Press banca", text(root, R.id.widget_exercise));
+        assertEquals(" · 4 series", text(root, R.id.widget_count));
+        assertTrue(visible(root, R.id.widget_clock));
+        assertTrue(visible(root, R.id.widget_block));
+        assertEquals("32,5", text(root, R.id.widget_weight));
+        assertEquals("12", text(root, R.id.widget_reps));
+        assertEquals("+1", text(root, R.id.widget_log));
+    }
+
+    @Test
+    public void theExpandedBlockAdjustsAndLogsWithoutVibrating() throws Exception {
+        SessionController.publish(context, bench(NOW - 1), NOW);
+
+        tapIn(expanded(), R.id.widget_weight_up);
+        assertTrue(store.queue().isEmpty());
+        assertEquals("35", text(expanded(), R.id.widget_weight));
+
+        tapIn(expanded(), R.id.widget_log);
+        assertEquals(1, store.queue().size());
+        assertEquals(35, store.head().getJSONObject("payload").getDouble("weight"), 0);
+        assertEquals(" · 5 series", text(expanded(), R.id.widget_count));
+        // Sólo el widget vibra.
+        assertFalse(shadowOf(context.getSystemService(Vibrator.class)).isVibrating());
+    }
+
+    // Toca una vista de la notificación y entrega lo que emitió, como Android.
+    private void tapIn(View root, int id) {
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        root.findViewById(id).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals("la vista emite una acción", seen + 1, sent.size());
+        SessionController.handle(context, sent.get(sent.size() - 1), NOW + 5_000);
+    }
+
+    @Test
+    public void pastTheRestTheTimeTurnsAmberAndCountsUpWithASign() throws Exception {
         SessionController.publish(context, bench(NOW - 12_000), NOW);
 
-        Notification n = shown();
-        assertNull(n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
-        assertTrue(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN));
-        assertEquals(NOW - 12_000, n.when);
+        for (View root : new View[] {collapsed(), expanded()}) {
+            assertFalse(visible(root, R.id.widget_clock));
+            assertTrue(visible(root, R.id.widget_over));
+            Chronometer over = root.findViewById(R.id.widget_over);
+            assertFalse(over.isCountDown());
+            assertEquals(12_000, SystemClock.elapsedRealtime() - over.getBase(), 1_000);
+            assertEquals("+%s", over.getFormat());
+            assertEquals(context.getColor(R.color.widget_accent_ink), over.getCurrentTextColor());
+        }
+        assertNull(shown().extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
     }
 
     @Test
     public void withRestOffThereIsNoClock() throws Exception {
         SessionController.publish(context, bench(0).put("restSeconds", 0), NOW);
 
-        Notification n = shown();
-        assertNull(n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie"), actions(n));
-    }
-
-    @Test
-    public void nothingInTheNotificationAsksToTypeASet() throws Exception {
-        SessionController.publish(context, bench(NOW - 1), NOW);
-
-        for (Notification.Action a : shown().actions) {
-            assertNull(a.title.toString(), a.getRemoteInputs());
+        for (View root : new View[] {collapsed(), expanded()}) {
+            assertFalse(visible(root, R.id.widget_clock));
+            assertFalse(visible(root, R.id.widget_over));
         }
     }
 
@@ -228,7 +312,8 @@ public class SessionControllerTest {
         // La notificación se actualiza en sitio: una serie más y reloj nuevo.
         Notification n = shown();
         assertEquals("32,5 kg × 12 · 5 series", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        assertEquals(NOW + 5_000 + 90_000, n.when);
+        Chronometer clock = collapsed().findViewById(R.id.widget_clock);
+        assertEquals(90_000, clock.getBase() - SystemClock.elapsedRealtime(), 1_000);
         // Y la app, si está abierta, se entera.
         assertTrue(heard.contains("changed"));
     }
@@ -251,8 +336,8 @@ public class SessionControllerTest {
 
         SessionController.skipRest(context, NOW + 5_000);
 
-        Notification n = shown();
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
+        assertFalse(visible(collapsed(), R.id.widget_clock));
+        assertFalse(visible(expanded(), R.id.widget_clock));
         assertEquals(0, store.control().getLong("restEndsAt"));
     }
 
@@ -273,9 +358,9 @@ public class SessionControllerTest {
 
         tap(SessionController.ACTION_REST_OVER);
 
-        Notification n = shown();
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN));
-        assertEquals(NOW + 1_000, n.when);
+        // La alarma repinta: el reloj que bajaba se va y aparece el que sube.
+        assertFalse(visible(collapsed(), R.id.widget_clock));
+        assertTrue(visible(collapsed(), R.id.widget_over));
     }
 
     @Test

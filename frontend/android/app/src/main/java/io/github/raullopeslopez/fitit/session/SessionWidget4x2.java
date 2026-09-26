@@ -51,12 +51,12 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
         block(views, control);
 
-        tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
-        tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
-        tap(context, views, R.id.widget_reps_down, SessionController.ACTION_REPS_DOWN, 32);
-        tap(context, views, R.id.widget_reps_up, SessionController.ACTION_REPS_UP, 33);
-        tap(context, views, R.id.widget_log, SessionController.ACTION_WIDGET_REPEAT, 21);
-        tap(context, views, R.id.widget_end, SessionController.ACTION_END, 34);
+        SessionNotification.tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
+        SessionNotification.tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
+        SessionNotification.tap(context, views, R.id.widget_reps_down, SessionController.ACTION_REPS_DOWN, 32);
+        SessionNotification.tap(context, views, R.id.widget_reps_up, SessionController.ACTION_REPS_UP, 33);
+        SessionNotification.tap(context, views, R.id.widget_log, SessionController.ACTION_WIDGET_REPEAT, 21);
+        SessionNotification.tap(context, views, R.id.widget_end, SessionController.ACTION_END, 34);
         return views;
     }
 
@@ -70,9 +70,5 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         views.setViewVisibility(R.id.widget_divider, weighted);
         views.setTextViewText(R.id.widget_weight, SessionControl.weightLabel(control));
         views.setTextViewText(R.id.widget_reps, SessionControl.repsLabel(control));
-    }
-
-    private static void tap(Context context, RemoteViews views, int id, String action, int code) {
-        views.setOnClickPendingIntent(id, SessionNotification.broadcast(context, action, code));
     }
 }

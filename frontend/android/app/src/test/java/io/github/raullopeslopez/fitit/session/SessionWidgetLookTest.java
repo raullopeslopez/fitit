@@ -8,6 +8,7 @@ import android.Manifest;
 import android.app.Application;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.view.View;
 import android.widget.TextView;
@@ -88,13 +89,39 @@ public class SessionWidgetLookTest {
         assertEquals(what, expected, actual, 1f);
     }
 
+    /**
+     * Lo que ocupa la cifra del tiempo: su caja sin el aire de la fuente, un alto
+     * igual al tamaño del texto y centrado, como `line-height` = tamaño en las
+     * vistas previas. Los 11 dp de DESIGN.md se miden desde aquí.
+     */
+    private Rect digits(View root, int id) {
+        TextView text = root.findViewById(id);
+        Rect rect = at(root, id);
+        int air = Math.round((text.getHeight() - text.getTextSize()) / 2f);
+        rect.inset(0, air);
+        return rect;
+    }
+
+    /**
+     * La caja del tiempo cabe entera la línea de la fuente. Con la caja del
+     * tamaño del texto (30 dp para 30sp), Geist Mono, que mide 1,3 em, se
+     * alineaba arriba y perdía el pie redondo del 0 y del 3.
+     */
+    private static void uncut(View root, int id) {
+        TextView text = root.findViewById(id);
+        Paint.FontMetricsInt font = text.getPaint().getFontMetricsInt();
+        assertTrue("el tiempo corta el pie de las cifras: " + text.getHeight() + " < "
+                + (font.descent - font.ascent), text.getHeight() >= font.descent - font.ascent);
+    }
+
     @Test
     public void restingTheTimeSitsElevenDpFromTheLineAndFromTheBlock() throws Exception {
         View root = large(bench(System.currentTimeMillis() + 83_000), 358);
 
         Rect line = at(root, R.id.widget_line);
-        Rect clock = at(root, R.id.widget_clock);
+        Rect clock = digits(root, R.id.widget_clock);
         Rect block = at(root, R.id.widget_block);
+        uncut(root, R.id.widget_clock);
         // Centrado en su hueco (DESIGN.md): antes quedaba a 2 dp del nombre y a 20
         // del bloque y parecía pegado.
         near("línea → tiempo", 11, dp(clock.top - line.bottom));
@@ -135,7 +162,8 @@ public class SessionWidgetLookTest {
         View root = large(bench(System.currentTimeMillis() - 12_500), 358);
 
         Rect line = at(root, R.id.widget_line);
-        Rect over = at(root, R.id.widget_over);
+        Rect over = digits(root, R.id.widget_over);
+        uncut(root, R.id.widget_over);
         near("línea → tiempo de más", 11, dp(over.top - line.bottom));
         near("tiempo de más → bloque", 11, dp(at(root, R.id.widget_block).top - over.bottom));
         WidgetRender.save(root, WALL_LIGHT, "4x2-pasado-claro");
@@ -163,6 +191,57 @@ public class SessionWidgetLookTest {
         View over = WidgetRender.lay(context, widgets.getViewFor(id), 358, 90);
         assertTrue(at(over, R.id.widget_over).right <= at(over, R.id.widget_exercise).left);
         WidgetRender.save(over, WALL_LIGHT, "4x1-pasado-claro");
+    }
+
+    // --- La notificación (N4) ---------------------------------------------------
+    // Sin fondo propio: el marco y el fondo los pone Android. Se pinta sobre el
+    // color de tarjeta de las vistas previas, al ancho de contenido de una
+    // notificación en el Xiaomi (360 dp menos los márgenes del sistema).
+
+    private android.app.Notification notification(JSONObject control) {
+        SessionController.publish(context, control, System.currentTimeMillis());
+        android.app.NotificationManager manager =
+                context.getSystemService(android.app.NotificationManager.class);
+        android.app.Notification[] active = shadowOf(manager).getAllNotifications()
+                .toArray(new android.app.Notification[0]);
+        return active[active.length - 1];
+    }
+
+    private View card(android.widget.RemoteViews views) {
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(context);
+        int pad = WidgetRender.px(context, 16);
+        frame.setPadding(pad, pad / 2, pad, pad / 2);
+        frame.addView(views.apply(context, frame));
+        return WidgetRender.layFree(context, frame, 360);
+    }
+
+    @Test
+    public void theNotificationCollapsedFitsTheSystemRowAndExpandedCarriesTheBlock() throws Exception {
+        android.app.Notification n = notification(bench(System.currentTimeMillis() + 83_000));
+
+        View small = card(n.contentView);
+        uncut(small, R.id.widget_clock);
+        // Android da unos 48 dp al contenido de una notificación cerrada con diseño propio.
+        assertTrue("alto cerrada: " + dp(small.getHeight()), dp(small.getHeight()) <= 48 + 16);
+        WidgetRender.save(small, 0xFFFFFFFF, "notificacion-cerrada-claro");
+
+        View big = card(n.bigContentView);
+        uncut(big, R.id.widget_clock);
+        near("bloque de la notificación", 99, dp(at(big, R.id.widget_block).height()));
+        // Y el desplegado cabe en los 256 dp que da Android.
+        assertTrue("alto desplegada: " + dp(big.getHeight()), dp(big.getHeight()) <= 256);
+        WidgetRender.save(big, 0xFFFFFFFF, "notificacion-desplegada-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void theNotificationPastTheRestInTheDark() throws Exception {
+        android.app.Notification n = notification(bench(System.currentTimeMillis() - 12_500));
+
+        WidgetRender.save(card(n.contentView), 0xFF15171A, "notificacion-cerrada-pasado-oscuro");
+        View big = card(n.bigContentView);
+        assertEquals(0xFFFF6A2C, ((TextView) big.findViewById(R.id.widget_over)).getCurrentTextColor());
+        WidgetRender.save(big, 0xFF15171A, "notificacion-desplegada-pasado-oscuro");
     }
 
     @Test

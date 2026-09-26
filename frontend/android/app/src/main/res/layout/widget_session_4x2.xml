@@ -84,15 +84,19 @@
                 </LinearLayout>
 
                 <!-- El tiempo, alineado a la izquierda y centrado en su hueco:
-                     11 dp a la línea y 11 al bloque. La caja mide lo que la
-                     cifra (30 dp, como line-height: 30px en la vista previa):
-                     con el alto de la fuente entera, el hueco de encima de las
-                     cifras sumaba y el tiempo parecía despegado del nombre. -->
+                     11 dp a la línea y 11 al bloque, contados desde una franja
+                     de 30 dp (line-height: 30px en la vista previa). La caja es
+                     la línea entera de la fuente (1,3 em, 39 dp): una caja de
+                     30 dp alineaba la cifra arriba y le cortaba el pie. Los
+                     4,5 dp de aire que sobran por cada lado se descuentan con
+                     los márgenes (11 − 4,5 arriba, −4,5 abajo); las cifras
+                     quedan centradas en la línea, así que la franja es la suya. -->
                 <Chronometer
                     android:id="@+id/widget_clock"
                     android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:layout_marginTop="11dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6.5dp"
+                    android:layout_marginBottom="-4.5dp"
                     android:fontFamily="@font/geist_mono_medium"
                     android:gravity="center_vertical"
                     android:includeFontPadding="false"
@@ -106,8 +110,9 @@
                 <Chronometer
                     android:id="@+id/widget_over"
                     android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:layout_marginTop="11dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6.5dp"
+                    android:layout_marginBottom="-4.5dp"
                     android:fontFamily="@font/geist_mono_medium"
                     android:format="+%s"
                     android:gravity="center_vertical"
