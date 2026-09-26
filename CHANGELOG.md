@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.7.0: widget 4×1 del entreno en la pantalla de inicio.** Fase 3 de
+  `docs/widgets-entreno.md`. En el selector de widgets de Android aparece
+  «Fitit · Entreno 4×1». Con un entreno en marcha enseña el ejercicio y su grupo
+  (`Press banca · Pecho`), la cuenta atrás del descanso, la serie que se repite
+  (`32,5 kg × 12 · 4 series`) y **`+1 serie`**, que registra sin abrir la app y
+  vibra una vez. Al acabar el descanso dice `Descanso terminado`. Sin entreno:
+  `Sin entreno en curso`, el día y **`Empezar entreno`**, que abre la app y hace
+  lo mismo que el botón de Días (continuar el de hoy o crearlo). Tocar el
+  ejercicio, en el widget o en la notificación, abre ese entreno. Colores de la
+  maqueta en tema claro y oscuro del sistema, y sus fuentes empaquetadas.
 - **APK 0.6.0: registrar series desde la pantalla de bloqueo.** Fase 2 de
   `docs/widgets-entreno.md`. Desde la primera serie de fuerza aparece una
   notificación en curso, silenciosa y visible con el teléfono bloqueado: el
@@ -63,6 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **La notificación del entreno no salía en la pantalla de bloqueo** (APK 0.6.0).
+  Su canal era de importancia baja para que no sonara, y Android —Xiaomi el
+  primero— esconde del bloqueo lo que trata como «silencioso». Ahora el canal es
+  de importancia normal sin sonido ni vibración: se ve con el teléfono bloqueado y
+  sigue sin sonar. Canal nuevo («Entreno en curso»); el de la 0.6.0 se retira.
 - **Se podía perder una serie registrada sin red.** Las series pendientes llevan
   un id local (`tmp-1`, `tmp-2`…) cuyo contador volvía a empezar cada vez que se
   abría Entreno. Con una serie sin enviar de la vez anterior, la siguiente que

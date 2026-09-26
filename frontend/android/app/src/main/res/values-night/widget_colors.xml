@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El widget del entreno, tema oscuro (maqueta aprobada). -->
+<resources>
+    <color name="widget_bg">#15171A</color>
+    <color name="widget_border">#24272C</color>
+    <color name="widget_text">#F2F3F5</color>
+    <color name="widget_muted">#9BA1A9</color>
+    <color name="widget_accent">#FF6A2C</color>
+    <color name="widget_on_accent">#16181B</color>
+</resources>

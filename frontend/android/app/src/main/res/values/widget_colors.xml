@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El widget del entreno, tema claro: los colores de la maqueta aprobada
+     (docs/widgets-entreno.md), que son los de DESIGN.md. El oscuro está en
+     values-night; Android elige según el tema del sistema. -->
+<resources>
+    <color name="widget_bg">#FFFFFF</color>
+    <color name="widget_border">#E6E2DA</color>
+    <color name="widget_text">#16181B</color>
+    <color name="widget_muted">#616875</color>
+    <color name="widget_accent">#E4571B</color>
+    <color name="widget_on_accent">#16181B</color>
+</resources>

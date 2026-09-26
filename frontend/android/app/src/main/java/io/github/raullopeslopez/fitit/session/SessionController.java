@@ -3,6 +3,8 @@ package io.github.raullopeslopez.fitit.session;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import androidx.core.app.RemoteInput;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,6 +17,8 @@ import org.json.JSONObject;
 public final class SessionController {
     private static final String PREFIX = "io.github.raullopeslopez.fitit.session.";
     public static final String ACTION_REPEAT = PREFIX + "REPEAT";
+    /** El mismo +1, desde el widget: además vibra. */
+    public static final String ACTION_WIDGET_REPEAT = PREFIX + "WIDGET_REPEAT";
     public static final String ACTION_OTHER = PREFIX + "OTHER";
     public static final String ACTION_SKIP = PREFIX + "SKIP";
     public static final String ACTION_REST_OVER = PREFIX + "REST_OVER";
@@ -34,6 +38,7 @@ public final class SessionController {
         Session.store(context).clearControl();
         SessionNotification.cancel(context);
         SessionAlarms.cancel(context);
+        SessionWidget.updateAll(context);
         SessionEvents.changed();
     }
 
@@ -61,12 +66,19 @@ public final class SessionController {
             // notificación ya en la bandeja): se retira, sin registrar nada.
             SessionNotification.cancel(context);
             SessionAlarms.cancel(context);
+            SessionWidget.updateAll(context);
             return;
         }
         try {
             switch (action) {
                 case ACTION_REPEAT:
                     log(context, store, SessionControl.repeat(control, now), now);
+                    break;
+                case ACTION_WIDGET_REPEAT:
+                    // Lo único que vibra en toda la función: el pulgar sobre el
+                    // widget no ve nada más que confirme el toque.
+                    log(context, store, SessionControl.repeat(control, now), now);
+                    pulse(context);
                     break;
                 case ACTION_OTHER:
                     other(context, store, control, typed(intent), now);
@@ -118,6 +130,14 @@ public final class SessionController {
     private static void refresh(Context context, JSONObject control, long now) {
         SessionNotification.show(context, control, now);
         SessionAlarms.arm(context, control, now);
+        SessionWidget.updateAll(context);
+    }
+
+    /** Una pulsación corta. */
+    private static void pulse(Context context) {
+        Vibrator vibrator = context.getSystemService(Vibrator.class);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
     }
 
     private static String typed(Intent intent) {

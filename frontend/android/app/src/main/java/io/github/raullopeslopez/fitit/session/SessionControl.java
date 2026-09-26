@@ -129,13 +129,22 @@ public final class SessionControl {
     public static String line(JSONObject control) {
         String notice = control.optString("notice", "");
         if (!notice.isEmpty()) return notice;
+        return set(control) + " · " + series(control);
+    }
+
+    /** La serie que se repite: «32,5 kg × 12», o «8 reps» sin peso. */
+    public static String set(JSONObject control) {
         JSONObject template = control.optJSONObject("template");
         int reps = template == null ? 0 : template.optInt("reps", 0);
-        String set = template == null || template.isNull("weight")
+        return template == null || template.isNull("weight")
                 ? reps + " reps"
                 : kilos(template.optDouble("weight")) + " kg × " + reps;
+    }
+
+    /** Cuántas van de este ejercicio: «1 serie», «4 series». */
+    public static String series(JSONObject control) {
         int count = control.optInt("count", 0);
-        return set + " · " + count + (count == 1 ? " serie" : " series");
+        return count + (count == 1 ? " serie" : " series");
     }
 
     /** El peso como lo escribe la app: coma decimal y sin ceros de más. */

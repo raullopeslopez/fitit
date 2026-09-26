@@ -377,14 +377,20 @@ al construirlo, y que hay que mirar en el teléfono:
   de respetar «en curso» para las notificaciones normales; en el bloqueo sigue fija. Vuelve
   con la siguiente serie. Hacerla indeslizable exige un servicio en primer plano, que es
   otra cosa (y otro permiso).
-- **Tocar el cuerpo abre la app**, que vuelve a Entreno si el entreno sigue abierto (la
-  misma regla de siempre para reabrir); no fuerza Entreno si ya se había salido.
+- **Tocar el cuerpo abre la app en ese entreno** (desde la fase 3; antes dependía de la
+  regla de reabrir).
 - **El permiso se pide en la primera serie de cada visita a Entreno** hasta que se
   conteste; Android deja de preguntar tras el segundo no. Sin permiso el control se
   guarda igual (lo usará el widget) y no se enseña nada.
 - **Los canales del aviso antiguo** (`fitit-sesion`, `fitit-fin-descanso`) se borran al
   publicar: Android los conservaba en Ajustes aunque el código se hubiera ido.
 - **Saltar el descanso en la app lo quita también de la notificación, y al revés.**
+- **Corregido tras probarla (0.7.0): no salía en la pantalla de bloqueo.** El canal era
+  de importancia baja para que no sonara, y Android trata esa importancia como
+  «silenciosa»: Xiaomi, y otros, no enseñan las silenciosas en el bloqueo. El canal pasa
+  a importancia normal con sonido y vibración quitados (sigue sin sonar), con otro id
+  (`fitit_entreno`), porque Android no deja subir la importancia de uno que ya existe;
+  el de la 0.6.0 se borra.
 
 ### Fase 3 · Widget 4×1 (APK 0.7.0) · un día
 
@@ -399,6 +405,27 @@ en `res/font`. Colores por tema en `res/values` y `res/values-night`.
   `+1 serie` vibra y sube el contador ahí y en la notificación; `Empezar entreno` abre
   Entreno en la sesión de hoy; cambiar de ejercicio en la app y el widget lo sigue;
   tema claro y oscuro del sistema.
+
+**Hecho (2026-09-25).** `SessionWidget` (proveedor y `RemoteViews`), `SessionLaunch`
+(abrir la app con una orden) y el diseño en `res/layout/widget_session_4x1.xml`, con 11
+tests nativos más. Lo que se decidió al construirlo:
+
+- **Fuentes** recortadas a caracteres latinos y fijadas a los pesos de la maqueta: Space
+  Grotesk 600, Geist 400 y 600, Geist Mono 500 y 600, unos 185 KB en `res/font`. Licencia
+  OFL en `android/fonts-licenses/` y dentro de cada archivo. **A comprobar en el Xiaomi:**
+  que el launcher pinta las fuentes propias en un widget; si no, sale con la del sistema y
+  todo lo demás funciona igual.
+- **Sin sesión dice el día, no las series:** `Sin entreno en curso` y debajo `jueves 25`.
+  La maqueta añadía `· 0 series`, pero sin control el nativo no sabe cuántas series lleva
+  el día (terminar el control no borra las del servidor), y un cero falso es peor que
+  nada. Tocar cualquier parte del estado sin sesión es `Empezar entreno`.
+- **`Empezar entreno` no crea nada en nativo:** abre la app y le pide a Días que haga lo
+  mismo que su botón (continuar el de hoy o crearlo). La orden viaja en el intent y se lee
+  una sola vez, para que girar el teléfono no vuelva a abrir el entreno. Sin sesión
+  iniciada, espera a que entres.
+- **Tocar el ejercicio abre ese entreno**, el del control, y lo mismo el cuerpo de la
+  notificación.
+- **La vibración** es una pulsación de 30 ms, sólo al tocar `+1 serie` en el widget.
 
 ### Fase 4 · Widget 4×2 (APK 0.8.0) · un día
 

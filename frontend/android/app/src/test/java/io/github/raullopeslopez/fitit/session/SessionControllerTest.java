@@ -167,9 +167,26 @@ public class SessionControllerTest {
         NotificationChannel channel = notifications.getNotificationChannel(SessionNotification.CHANNEL);
         assertNotNull(channel);
         assertEquals("Entreno en curso", channel.getName().toString());
+        // Importancia normal, no baja: Android (y Xiaomi el primero) esconde de
+        // la pantalla de bloqueo las notificaciones de importancia baja, que
+        // trata como «silenciosas». Sin sonido ni vibración sigue sin sonar.
+        assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.getImportance());
         assertNull(channel.getSound());
         assertFalse(channel.shouldVibrate());
         assertEquals(Notification.VISIBILITY_PUBLIC, channel.getLockscreenVisibility());
+    }
+
+    @Test
+    public void theLowImportanceChannelOfApk060IsRetired() throws Exception {
+        // Android no deja subir la importancia de un canal que ya existe: el de
+        // la 0.6.0 se borra y el control usa uno nuevo.
+        notifications.createNotificationChannel(
+                new NotificationChannel("fitit_session", "Entreno en curso", NotificationManager.IMPORTANCE_LOW));
+
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        assertNull(notifications.getNotificationChannel("fitit_session"));
+        assertNotNull(notifications.getNotificationChannel(SessionNotification.CHANNEL));
     }
 
     @Test

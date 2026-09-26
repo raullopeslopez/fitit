@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 4×1: registra la misma serie y nada más. Sin actualización periódica: se
+     repinta cuando cambia el control, y el reloj lo lleva el propio widget. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_session_4x1"
+    android:previewLayout="@layout/widget_session_4x1"
+    android:description="@string/widget_4x1_description"
+    android:widgetCategory="home_screen" />

@@ -47,6 +47,17 @@ export const session = {
   // Android 13+ lo pregunta una vez; contesta `{ granted }`.
   ensureNotifications: () => run(() => FititSession.ensureNotifications()),
 
+  // La orden con la que el widget o la notificación abrieron la app:
+  // `{ action: 'open', workoutId }` o `{ action: 'start' }`. El nativo la guarda
+  // hasta que alguien escucha, así que vale también para un arranque en frío.
+  onLaunch(listener) {
+    if (!isNative()) return () => {}
+    const handle = FititSession.addListener('launch', listener)
+    return () => {
+      Promise.resolve(handle).then((h) => h?.remove())
+    }
+  },
+
   // Un envío terminó (`{ queue, sent, rejected, workout, control }`) o algo
   // cambió desde la notificación (`{ queue, control }`). Devuelve cómo dejar de
   // escuchar.

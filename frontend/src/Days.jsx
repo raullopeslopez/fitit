@@ -96,7 +96,7 @@ function restBetween(newerIso, olderIso) {
   return `${stamp.split(' ')[0]} · DESCANSO`
 }
 
-export default function Days({ onOpenWorkout }) {
+export default function Days({ onOpenWorkout, startOnArrival = false, onStarted = () => {} }) {
   const [days, setDays] = useState(null)
   const [date, setDate] = useState(todayISO())
   const [name, setName] = useState('')
@@ -218,6 +218,16 @@ export default function Days({ onOpenWorkout }) {
       setCreating(false)
     }
   }
+
+  // «Empezar entreno» desde el widget del APK: lo mismo que el botón de aquí
+  // arriba, en cuanto se sabe si hoy ya hay entreno. Una sola vez por orden.
+  useEffect(() => {
+    if (!startOnArrival || days === null) return
+    onStarted()
+    if (todaySession) onOpenWorkout(todaySession.id, todaySession)
+    else startToday()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startOnArrival, days])
 
   // The date+name form is only for backfilling a past session.
   async function handleCreate(event) {
