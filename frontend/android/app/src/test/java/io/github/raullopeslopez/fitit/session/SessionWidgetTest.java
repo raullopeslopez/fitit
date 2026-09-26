@@ -94,7 +94,6 @@ public class SessionWidgetTest {
         assertTrue(shown(R.id.widget_session));
         assertFalse(shown(R.id.widget_idle));
         assertEquals("Press banca", text(R.id.widget_exercise));
-        assertEquals(" · Pecho", text(R.id.widget_group));
         assertEquals("32,5 kg × 12", text(R.id.widget_set));
         assertEquals(" · 4 series", text(R.id.widget_count));
         assertEquals("+1 serie", text(R.id.widget_repeat));
@@ -126,11 +125,28 @@ public class SessionWidgetTest {
     }
 
     @Test
-    public void withoutAGroupThereIsNoDot() throws Exception {
+    public void theMuscleGroupIsNotShown() throws Exception {
+        // Fase 5: «Press banca», no «Press banca · Pecho».
         long now = now();
-        SessionController.publish(context, bench(0).put("group", JSONObject.NULL), now);
+        SessionController.publish(context, bench(0), now);
 
-        assertEquals("", text(R.id.widget_group));
+        for (String shownText : texts(view())) assertFalse(shownText, shownText.contains("Pecho"));
+    }
+
+    /** Todo el texto que se ve en un widget pintado. */
+    static java.util.List<String> texts(View root) {
+        java.util.List<String> found = new java.util.ArrayList<>();
+        collect(root, found);
+        return found;
+    }
+
+    private static void collect(View view, java.util.List<String> found) {
+        if (view.getVisibility() != View.VISIBLE) return;
+        if (view instanceof TextView) found.add(((TextView) view).getText().toString());
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), found);
+        }
     }
 
     @Test

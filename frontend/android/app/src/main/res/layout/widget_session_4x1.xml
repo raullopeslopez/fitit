@@ -44,17 +44,6 @@
                     android:text="Press banca"
                     android:textColor="@color/widget_text"
                     android:textSize="16sp" />
-
-                <TextView
-                    android:id="@+id/widget_group"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/geist_regular"
-                    android:maxLines="1"
-                    android:text=" · Pecho"
-                    android:textColor="@color/widget_muted"
-                    android:textSize="16sp" />
             </LinearLayout>
 
             <Chronometer

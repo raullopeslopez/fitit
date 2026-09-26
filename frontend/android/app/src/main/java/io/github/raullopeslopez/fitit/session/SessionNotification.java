@@ -16,9 +16,10 @@ import org.json.JSONObject;
  * La notificación en curso: pantalla de bloqueo y bandeja.
  *
  * <pre>
- * Fitit · Press banca · Pecho
+ * Fitit · Press banca
  * 32,5 kg × 12 · 4 series                    01:23
- * [ +1 serie ]   [ Otra serie ]   [ Saltar ]
+ * [ +1 serie ]   [ Otra serie ]   [ Saltar ]            (descansando)
+ * [ +1 serie ]   [ Otra serie ]   [ Otro ejercicio ]    (sin descanso)
  * </pre>
  *
  * <p>La cuenta atrás es el cronómetro de la propia notificación: nadie la reescribe
@@ -93,10 +94,27 @@ final class SessionNotification {
                     .setChronometerCountDown(true)
                     .addAction(0, "Saltar", broadcast(context, SessionController.ACTION_SKIP, 3, false));
         } else {
-            builder.setShowWhen(false).setUsesChronometer(false);
+            // Android pinta tres botones como mucho (el cuarto se pierde sin
+            // aviso): el tercero es «Saltar» mientras corre el descanso y «Otro
+            // ejercicio» el resto del tiempo. «Otra serie» entiende también
+            // «Remo 40x10», así que cambiar se puede siempre.
+            builder.setShowWhen(false).setUsesChronometer(false).addAction(otherExercise(context));
             if (rest == SessionControl.Rest.OVER) builder.setSubText("Descanso terminado");
         }
         return builder.build();
+    }
+
+    /** «Otro ejercicio»: el nombre y la serie, como «Remo 40x10», o sólo el nombre. */
+    private static NotificationCompat.Action otherExercise(Context context) {
+        RemoteInput input = new RemoteInput.Builder(SessionController.KEY_OTHER)
+                .setLabel("Ejercicio y serie, como Remo 40x10")
+                .build();
+        return new NotificationCompat.Action.Builder(
+                        0, "Otro ejercicio",
+                        broadcast(context, SessionController.ACTION_OTHER_EXERCISE, 4, true))
+                .addRemoteInput(input)
+                .setAllowGeneratedReplies(false)
+                .build();
     }
 
     /** «Otra serie»: el campo de texto de la notificación, como contestar un mensaje. */

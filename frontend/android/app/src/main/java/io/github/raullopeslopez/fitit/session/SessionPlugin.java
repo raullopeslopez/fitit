@@ -73,6 +73,10 @@ public class SessionPlugin extends Plugin {
     private void announceLaunch(Intent intent) {
         JSONObject order = SessionLaunch.take(intent);
         if (order == null) return;
+        // «Nuevo…»: el 4×2 deja la lista, que ya ha hecho su trabajo.
+        if (SessionLaunch.ADD.equals(order.optString("action"))) {
+            SessionController.stopChoosing(getContext(), System.currentTimeMillis());
+        }
         try {
             notifyListeners("launch", JSObject.fromJSONObject(order), true);
         } catch (JSONException e) {
@@ -231,6 +235,22 @@ public class SessionPlugin extends Plugin {
             return;
         }
         SessionController.publish(getContext(), control, System.currentTimeMillis());
+        call.resolve();
+    }
+
+    /**
+     * A qué ejercicios se puede cambiar desde el 4×2 (fase 5), cuando cambia la
+     * lista en la app: sólo la lista del control de ese entreno, nada más.
+     */
+    @PluginMethod
+    public void candidates(PluginCall call) {
+        Integer workoutId = call.getInt("workoutId");
+        JSArray list = call.getArray("candidates", new JSArray());
+        if (workoutId == null) {
+            call.reject("workoutId is required");
+            return;
+        }
+        SessionController.candidates(getContext(), workoutId, list, System.currentTimeMillis());
         call.resolve();
     }
 
