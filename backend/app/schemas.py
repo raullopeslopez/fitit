@@ -932,6 +932,9 @@ class TargetProfileIn(BaseModel):
     height_cm: float | None = Field(default=None, gt=80, le=260)
     birth_year: int | None = Field(default=None, ge=1900, le=2030)
     sex: Sex | None = None
+    # La meta de pasos diaria del widget. `null` la borra; omitido la deja
+    # como esté, igual que el resto de este perfil.
+    steps_goal: int | None = Field(default=None, ge=1000, le=100000)
 
 
 class TargetProfileOut(BaseModel):
@@ -944,6 +947,7 @@ class TargetProfileOut(BaseModel):
     sex: Sex | None = None
     # Lo que hay fijado ahora mismo, que puede no ser lo que se propone.
     objetivo_kcal: float | None = None
+    steps_goal: int | None = None
 
 
 class TargetProposalOut(BaseModel):

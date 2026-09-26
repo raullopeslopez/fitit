@@ -158,3 +158,48 @@ def when_accept_other(client, kcal):
 @then("what today's diary says I was aiming for has not moved")
 def then_frozen(client, leido):
     assert client.get("/food-log").json()["target_kcal"] == leido
+
+
+# --- Meta de pasos diaria -----------------------------------------------------
+
+
+@when("I ask for my profile", target_fixture="perfil")
+def when_ask_profile(client):
+    resp = client.get("/targets")
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse("I set my daily steps goal to {steps:d}"), target_fixture="perfil")
+@given(parsers.parse("I set my daily steps goal to {steps:d}"), target_fixture="perfil")
+def when_set_steps_goal(client, steps):
+    resp = client.patch("/targets", json={"steps_goal": steps})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when("I clear my daily steps goal", target_fixture="perfil")
+def when_clear_steps_goal(client):
+    resp = client.patch("/targets", json={"steps_goal": None})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse("I try to set my daily steps goal to {steps:d}"), target_fixture="rechazo")
+def when_try_set_steps_goal(client, steps):
+    return client.patch("/targets", json={"steps_goal": steps})
+
+
+@then(parsers.parse("my daily steps goal is {steps:d}"))
+def then_steps_goal_is(perfil, steps):
+    assert perfil["steps_goal"] == steps
+
+
+@then("my daily steps goal is not set")
+def then_steps_goal_unset(perfil):
+    assert perfil["steps_goal"] is None
+
+
+@then("it is rejected")
+def then_rejected(rechazo):
+    assert rechazo.status_code == 422, rechazo.text

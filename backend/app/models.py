@@ -66,6 +66,10 @@ class User(Base):
     height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
     birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sex: Mapped[str | None] = mapped_column(String(8), nullable=True)  # male|female
+    # La meta de pasos diaria que enseña el widget de Android («8.432 / 10.000»).
+    # `NULL` es «no la has fijado», no cero — Health Connect se lee en el
+    # teléfono; aquí sólo se guarda el número contra el que comparar.
+    steps_goal: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Exercise(Base):

@@ -17,13 +17,20 @@ from app.models import Base
 
 VERSIONS = Path(__file__).resolve().parents[2] / "alembic" / "versions"
 MIGRATION = "d5f1a09c3e42_add_derived_targets.py"
-PERFIL = ("goal", "goal_rate", "height_cm", "birth_year", "sex")
+STEPS_GOAL_MIGRATION = "d30c512b2762_add_steps_goal.py"
+PERFIL = ("goal", "goal_rate", "height_cm", "birth_year", "sex", "steps_goal")
+
+
+def _load(filename):
+    spec = importlib.util.spec_from_file_location(f"migration_{filename}", VERSIONS / filename)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _migrated():
-    spec = importlib.util.spec_from_file_location("migration_targets", VERSIONS / MIGRATION)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = _load(MIGRATION)
+    steps_module = _load(STEPS_GOAL_MIGRATION)
 
     engine = create_engine("sqlite://")
     with engine.begin() as conn:
@@ -31,6 +38,7 @@ def _migrated():
         context = MigrationContext.configure(conn)
         with Operations.context(context):
             module.upgrade()
+            steps_module.upgrade()
         inspector = inspect(conn)
         schema = {
             table: {c["name"]: c["nullable"] for c in inspector.get_columns(table)}
