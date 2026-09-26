@@ -47,6 +47,11 @@ export const session = {
   // Android 13+ lo pregunta una vez; contesta `{ granted }`.
   ensureNotifications: () => run(() => FititSession.ensureNotifications()),
 
+  // Lo que enseña el widget sin entreno en curso (widgetSummary.js): una o más
+  // piezas de `{ lastWorkout, steps, stepsGoal }`; el nativo las junta con lo
+  // que ya tenía.
+  summary: (summary) => run(() => FititSession.summary({ summary })),
+
   // La orden con la que el widget o la notificación abrieron la app:
   // `{ action: 'open', workoutId }` o `{ action: 'start' }`. El nativo la guarda
   // hasta que alguien escucha, así que vale también para un arranque en frío.

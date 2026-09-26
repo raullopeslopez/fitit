@@ -20,8 +20,13 @@ import android.widget.TextView;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.testing.TestWorkerBuilder;
 import androidx.work.testing.WorkManagerTestInitHelper;
+import android.app.AlarmManager;
+import android.widget.ProgressBar;
 import io.github.raullopeslopez.fitit.R;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import org.json.JSONArray;
 import java.util.concurrent.Executors;
 import org.json.JSONObject;
 import org.junit.After;
@@ -344,6 +349,144 @@ public class SessionWidget4x2Test {
         Intent started = shadowOf((Application) context).getNextStartedActivity();
         assertNotNull(started);
         assertEquals(SessionLaunch.START, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
+    }
+
+    // --- Sin entreno: dos pantallas (DESIGN.md, «Sin entreno») ---------------
+
+    private static String day(int ago) {
+        return LocalDate.now().minusDays(ago).toString();
+    }
+
+    private void summary(JSONObject part) throws Exception {
+        store.mergeSummary(part);
+        SessionWidget.updateAll(context);
+    }
+
+    private static JSONObject last(int ago, String... groups) throws Exception {
+        JSONArray names = new JSONArray();
+        for (String g : groups) names.put(g);
+        return new JSONObject().put("lastWorkout",
+                new JSONObject().put("date", day(ago)).put("groups", names));
+    }
+
+    private static JSONObject stepsToday(int today, Integer weekAverage) throws Exception {
+        return new JSONObject().put("steps", new JSONObject()
+                .put("date", day(0))
+                .put("today", today)
+                .put("weekAverage", weekAverage == null ? JSONObject.NULL : weekAverage));
+    }
+
+    // Toca los puntitos y entrega lo que emitió, como Android.
+    private void tapDots() {
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        view().findViewById(R.id.widget_dots).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals("los puntitos emiten una acción", seen + 1, sent.size());
+        SessionController.handle(context, sent.get(sent.size() - 1), now());
+    }
+
+    @Test
+    public void pageOneSaysWhenAndWhatTheLastWorkoutWas() throws Exception {
+        summary(last(2, "Cuádriceps", "Glúteo"));
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertEquals("Sin entreno en curso", text(R.id.widget_idle_title));
+        assertEquals("Último: hace 2 días · Cuádriceps, Glúteo", text(R.id.widget_idle_date));
+        assertEquals("Empezar entreno", text(R.id.widget_start));
+
+        summary(last(1, "Pecho"));
+        assertEquals("Último: ayer · Pecho", text(R.id.widget_idle_date));
+
+        summary(last(0));
+        assertEquals("Último: hoy", text(R.id.widget_idle_date));
+    }
+
+    @Test
+    public void withNoStepsThereIsOnlyPageOneAndNoDots() throws Exception {
+        store.flipIdlePage();
+        SessionWidget.updateAll(context);
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_idle_steps));
+        assertFalse(shown(R.id.widget_dots));
+    }
+
+    @Test
+    public void tappingTheDotsSwitchesToTodaysStepsAndBack() throws Exception {
+        summary(stepsToday(8432, 7910).put("stepsGoal", 10000));
+        assertTrue(shown(R.id.widget_dots));
+        assertTrue(shown(R.id.widget_idle_start));
+
+        tapDots();
+
+        assertFalse(shown(R.id.widget_idle_start));
+        assertTrue(shown(R.id.widget_idle_steps));
+        assertEquals("8.432", text(R.id.widget_steps));
+        assertEquals("/ 10.000", text(R.id.widget_steps_goal));
+        assertEquals("7.910", text(R.id.widget_steps_week));
+        assertTrue(shown(R.id.widget_steps_bar));
+        ProgressBar bar = view().findViewById(R.id.widget_steps_bar);
+        assertEquals(843, bar.getProgress());
+        // Y se acuerda: repintar no la devuelve a la primera.
+        SessionWidget.updateAll(context);
+        assertTrue(shown(R.id.widget_idle_steps));
+
+        tapDots();
+
+        assertTrue(shown(R.id.widget_idle_start));
+    }
+
+    @Test
+    public void aGoalMetFillsTheBarAndStopsThere() throws Exception {
+        summary(stepsToday(12000, null).put("stepsGoal", 10000));
+        tapDots();
+
+        assertEquals(1000, ((ProgressBar) view().findViewById(R.id.widget_steps_bar)).getProgress());
+        // Sin media, la línea no se inventa una.
+        assertFalse(shown(R.id.widget_steps_week_line));
+    }
+
+    @Test
+    public void withNoGoalThereIsNoBarAndNoSlash() throws Exception {
+        summary(stepsToday(8432, 7910));
+        tapDots();
+
+        assertEquals("8.432", text(R.id.widget_steps));
+        assertFalse(shown(R.id.widget_steps_goal));
+        assertFalse(shown(R.id.widget_steps_bar));
+    }
+
+    @Test
+    public void yesterdaysStepsAreNotTodays() throws Exception {
+        // Pasada la medianoche, lo que se leyó ayer no son «pasos hoy».
+        summary(new JSONObject().put("steps",
+                new JSONObject().put("date", day(1)).put("today", 8432)));
+        store.flipIdlePage();
+        SessionWidget.updateAll(context);
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_dots));
+    }
+
+    @Test
+    public void atMidnightTheWidgetsRepaintThemselves() throws Exception {
+        summary(last(2));
+
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        long midnight = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault())
+                .toInstant().toEpochMilli();
+        boolean armed = false;
+        for (org.robolectric.shadows.ShadowAlarmManager.ScheduledAlarm alarm
+                : shadowOf(alarms).getScheduledAlarms()) {
+            if (alarm.triggerAtTime == midnight) armed = true;
+        }
+        assertTrue("hay una alarma a medianoche", armed);
+
+        // Y la alarma repinta aunque no haya entreno: «hace 2 días» pasa a 3.
+        SessionController.handle(context, new Intent(SessionController.ACTION_DAY), now());
+        assertTrue(shown(R.id.widget_idle_start));
+        assertEquals("Último: hace 2 días", text(R.id.widget_idle_date));
     }
 
     @Test

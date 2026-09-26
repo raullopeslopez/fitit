@@ -237,6 +237,41 @@ public class SessionStoreTest {
         assertNull(store.control());
     }
 
+    // --- Lo que enseña el widget sin entreno (DESIGN.md, «Sin entreno») -------
+
+    @Test
+    public void theSummaryArrivesInPiecesAndEachPieceKeepsTheOthers() throws Exception {
+        store.mergeSummary(new JSONObject().put("stepsGoal", 10000));
+        store.mergeSummary(new JSONObject().put("steps",
+                new JSONObject().put("date", "2026-09-27").put("today", 8432)));
+
+        JSONObject summary = store.summary();
+        assertEquals(10000, summary.getInt("stepsGoal"));
+        assertEquals(8432, summary.getJSONObject("steps").getInt("today"));
+
+        // Un null borra esa pieza y sólo ésa: sin objetivo, no hay barra.
+        store.mergeSummary(new JSONObject().put("stepsGoal", JSONObject.NULL));
+        assertTrue(store.summary().isNull("stepsGoal"));
+        assertEquals(8432, store.summary().getJSONObject("steps").getInt("today"));
+    }
+
+    @Test
+    public void signingOutForgetsTheSummary() throws Exception {
+        // Los pasos y el último entreno son de quien estaba dentro.
+        store.mergeSummary(new JSONObject().put("stepsGoal", 10000));
+        store.clearToken();
+        assertEquals(0, store.summary().length());
+    }
+
+    @Test
+    public void theIdlePageFlipsAndIsRemembered() {
+        assertEquals(0, store.idlePage());
+        store.flipIdlePage();
+        assertEquals(1, new SessionStore(context, cipher).idlePage());
+        store.flipIdlePage();
+        assertEquals(0, store.idlePage());
+    }
+
     @Test
     public void countsRefusedSetsUntilSomeoneAsks() {
         store.recordRejected();

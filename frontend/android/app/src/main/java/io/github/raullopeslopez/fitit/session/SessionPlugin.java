@@ -234,6 +234,22 @@ public class SessionPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Lo que enseña el widget sin entreno (último entreno, pasos de hoy, objetivo),
+     * en piezas que se juntan con lo que ya había. Ver widgetSummary.js.
+     */
+    @PluginMethod
+    public void summary(PluginCall call) {
+        JSObject summary = call.getObject("summary");
+        if (summary == null) {
+            call.reject("summary is required");
+            return;
+        }
+        store().mergeSummary(summary);
+        SessionWidget.updateAll(getContext());
+        call.resolve();
+    }
+
     /** «Terminar entreno» en el menú de Entreno: lo mismo que «Terminar» en el widget. */
     @PluginMethod
     public void end(PluginCall call) {

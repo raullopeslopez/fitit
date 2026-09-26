@@ -16,6 +16,7 @@ const plugin = vi.hoisted(() => ({
   end: vi.fn(),
   skipRest: vi.fn(),
   ensureNotifications: vi.fn(),
+  summary: vi.fn(),
   addListener: vi.fn(),
 }))
 vi.mock('@capacitor/core', () => ({ registerPlugin: vi.fn(() => plugin) }))
@@ -44,6 +45,11 @@ describe('platform/session en el APK', () => {
       apiBase: 'https://x/api',
       clientVersion: '0.5.0',
     })
+  })
+
+  it('le da al widget lo que enseña sin entreno', async () => {
+    await session.summary({ stepsGoal: 10000 })
+    expect(plugin.summary).toHaveBeenCalledWith({ summary: { stepsGoal: 10000 } })
   })
 
   it('publica el control, lo termina, salta el descanso y pide el permiso', async () => {

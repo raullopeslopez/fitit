@@ -280,6 +280,62 @@ public class SessionWidgetLookTest {
         WidgetRender.save(large(bench(0), 358), WALL_DARK, "4x2-caducada-oscuro");
     }
 
+    // --- Sin entreno: dos pantallas (vista previa v16) --------------------------
+
+    private View idle(float width) throws Exception {
+        int id = widgets.createWidget(SessionWidget4x2.class, R.layout.widget_session_4x2);
+        SessionWidget.updateAll(context);
+        return WidgetRender.lay(context, widgets.getViewFor(id), width, 200);
+    }
+
+    private void idleSummary(boolean goal) throws Exception {
+        String today = java.time.LocalDate.now().toString();
+        String twoDaysAgo = java.time.LocalDate.now().minusDays(2).toString();
+        store.mergeSummary(new JSONObject()
+                .put("lastWorkout", new JSONObject().put("date", twoDaysAgo)
+                        .put("groups", new org.json.JSONArray().put("Pierna")))
+                .put("steps", new JSONObject().put("date", today).put("today", 8432).put("weekAverage", 7910))
+                .put("stepsGoal", goal ? (Object) 10000 : JSONObject.NULL));
+    }
+
+    @Test
+    public void idleTwoPagesWithTheDotsAtTheBottom() throws Exception {
+        idleSummary(true);
+        View first = idle(358);
+        Rect dots = at(first, R.id.widget_dots);
+        near("toque de los puntitos", 44, dp(dots.height()));
+        // Se meten 12 dp en el margen de abajo: los puntitos, a 24 del borde, como
+        // en la vista previa (fila de 20 px pegada al padding de 14).
+        near("puntitos al borde", 24, 200 - dp(dots.centerY()));
+        near("botón a lo ancho", 358 - 32, dp(at(first, R.id.widget_start).width()));
+        WidgetRender.save(first, WALL_LIGHT, "4x2-sin-entreno-1-claro");
+
+        store.flipIdlePage();
+        View second = idle(358);
+        Rect bar = at(second, R.id.widget_steps_bar);
+        near("barra", 8, dp(bar.height()));
+        uncut(second, R.id.widget_steps);
+        // Nada se monta: la cifra termina antes de la barra, y la barra antes de la media.
+        assertTrue(digits(second, R.id.widget_steps).bottom <= bar.top);
+        assertTrue(bar.bottom <= at(second, R.id.widget_steps_week_line).top);
+        assertTrue(at(second, R.id.widget_steps_week_line).bottom <= dots.top + WidgetRender.px(context, 12));
+        WidgetRender.save(second, WALL_LIGHT, "4x2-sin-entreno-2-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void idleStepsInTheDarkAndWithNoGoal() throws Exception {
+        idleSummary(true);
+        store.flipIdlePage();
+        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-2-oscuro");
+        store.flipIdlePage();
+        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-1-oscuro");
+
+        idleSummary(false);
+        store.flipIdlePage();
+        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-2-sin-objetivo-oscuro");
+    }
+
     @Test
     public void aBodyweightExerciseKeepsOnlyTheRepsRow() throws Exception {
         JSONObject pullUps = bench(0).put("exercise", "Dominadas");

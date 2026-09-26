@@ -44,6 +44,9 @@ public class SessionWidget extends AppWidgetProvider {
         if (ids != null && ids.length > 0) render(context, manager, ids);
         int[] large = manager.getAppWidgetIds(new ComponentName(context, SessionWidget4x2.class));
         if (large != null && large.length > 0) SessionWidget4x2.render(context, manager, large);
+        if ((ids != null && ids.length > 0) || (large != null && large.length > 0)) {
+            SessionAlarms.armDay(context, System.currentTimeMillis());
+        }
     }
 
     private static void render(Context context, AppWidgetManager manager, int[] ids) {

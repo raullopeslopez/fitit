@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { acceptTarget, getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
 import { formatMacro } from './food.js'
+import { publishStepsGoal } from './widgetSummary.js'
 
 const OBJETIVOS = [
   ['cut', 'Bajar'],
@@ -39,6 +40,7 @@ export default function Objetivo({ onAccepted }) {
   const [perfil, setPerfil] = useState(null)
   const [propuesta, setPropuesta] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [pasosMal, setPasosMal] = useState(false)
 
   const preguntar = useCallback(async () => {
     try {
@@ -74,7 +76,23 @@ export default function Objetivo({ onAccepted }) {
     return String(raw ?? '').trim() === '' || !Number.isFinite(value) ? null : value
   }
 
+  // Pasos: un entero, con o sin punto de miles («10.000» son diez mil, no diez).
+  // Vacío es sin objetivo (null), nunca cero.
+  const pasos = (raw) => {
+    const text = String(raw ?? '').replace(/[.\s]/g, '')
+    if (text === '') return null
+    return /^\d+$/.test(text) ? Number(text) : NaN
+  }
+
   async function guardarPerfil() {
+    const stepsGoal = pasos(perfil.steps_goal)
+    // El servidor sólo acepta 1.000–100.000; mandarle otra cosa sería un error
+    // callado en vez de una frase.
+    if (stepsGoal !== null && !(stepsGoal >= 1000 && stepsGoal <= 100000)) {
+      setPasosMal(true)
+      return
+    }
+    setPasosMal(false)
     setBusy(true)
     try {
       await saveTargetProfile({
@@ -83,7 +101,10 @@ export default function Objetivo({ onAccepted }) {
         height_cm: numero(perfil.height_cm),
         birth_year: numero(perfil.birth_year),
         sex: perfil.sex || null,
+        steps_goal: stepsGoal,
       })
+      // El widget de Android dibuja la barra contra este número.
+      publishStepsGoal(stepsGoal)
       // Y se vuelve a preguntar: la cifra depende de lo que se acaba de guardar.
       await preguntar()
     } finally {
@@ -181,6 +202,23 @@ export default function Objetivo({ onAccepted }) {
           <option value="male">Hombre</option>
           <option value="female">Mujer</option>
         </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="steps_goal">Pasos al día</label>
+        <input
+          id="steps_goal"
+          inputMode="numeric"
+          value={perfil.steps_goal ?? ''}
+          onChange={set('steps_goal')}
+          placeholder="10.000"
+          aria-describedby={pasosMal ? 'steps_goal_error' : undefined}
+        />
+        {pasosMal && (
+          <p id="steps_goal_error" className="objetivo-falta">
+            Entre 1.000 y 100.000 pasos.
+          </p>
+        )}
       </div>
 
       <div className="objetivo-actions">

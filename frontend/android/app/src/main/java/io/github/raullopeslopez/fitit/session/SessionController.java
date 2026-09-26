@@ -26,6 +26,10 @@ public final class SessionController {
     public static final String ACTION_END = PREFIX + "END";
     public static final String ACTION_REST_OVER = PREFIX + "REST_OVER";
     public static final String ACTION_EXPIRE = PREFIX + "EXPIRE";
+    /** Los puntitos del widget sin entreno: la otra pantalla. */
+    public static final String ACTION_PAGE = PREFIX + "PAGE";
+    /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
+    public static final String ACTION_DAY = PREFIX + "DAY";
 
     private SessionController() {}
 
@@ -76,6 +80,16 @@ public final class SessionController {
         String action = intent.getAction();
         if (action == null) return;
         SessionStore store = Session.store(context);
+        // Lo del widget sin entreno no tiene control al que preguntar.
+        if (ACTION_PAGE.equals(action)) {
+            store.flipIdlePage();
+            SessionWidget.updateAll(context);
+            return;
+        }
+        if (ACTION_DAY.equals(action)) {
+            SessionWidget.updateAll(context);
+            return;
+        }
         JSONObject control = store.control();
         if (control == null) {
             // Una tarjeta que sobrevivió a su control (se cerró la sesión con la

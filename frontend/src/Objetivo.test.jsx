@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event'
 import Objetivo from './Objetivo.jsx'
 import { acceptTarget, getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
 
+import { publishStepsGoal } from './widgetSummary.js'
+
 vi.mock('./api.js')
+vi.mock('./widgetSummary.js', () => ({ publishStepsGoal: vi.fn() }))
 
 const PERFIL = {
   goal: 'maintain',
@@ -12,6 +15,7 @@ const PERFIL = {
   height_cm: 178,
   birth_year: 1991,
   sex: 'male',
+  steps_goal: 10000,
   objetivo_kcal: null,
 }
 
@@ -78,5 +82,47 @@ describe('Objetivo', () => {
     expect(saveTargetProfile.mock.calls[0][0]).toMatchObject({ height_cm: 178 })
     // Y vuelve a preguntar: el número depende de lo que se acaba de guardar.
     await waitFor(() => expect(getTargetProposal).toHaveBeenCalledTimes(2))
+  })
+
+  describe('Pasos al día', () => {
+    beforeEach(() => {
+      getTargetProposal.mockResolvedValue({ kcal: 2600, source: 'measured', days: 21, missing: [] })
+    })
+
+    it('enseña el objetivo que hay y guarda el nuevo, con o sin punto de miles', async () => {
+      render(<Objetivo onAccepted={() => {}} />)
+      const field = await screen.findByLabelText('Pasos al día')
+      expect(field).toHaveValue('10000')
+
+      await userEvent.clear(field)
+      await userEvent.type(field, '12.500')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar mis datos' }))
+
+      await waitFor(() => expect(saveTargetProfile).toHaveBeenCalled())
+      expect(saveTargetProfile.mock.calls[0][0]).toMatchObject({ steps_goal: 12500 })
+      // Y el widget de Android lo sabe ya, sin esperar a la próxima lectura de pasos.
+      await waitFor(() => expect(publishStepsGoal).toHaveBeenCalledWith(12500))
+    })
+
+    it('vacío es sin objetivo: se guarda null, no cero', async () => {
+      render(<Objetivo onAccepted={() => {}} />)
+      await userEvent.clear(await screen.findByLabelText('Pasos al día'))
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar mis datos' }))
+
+      await waitFor(() => expect(saveTargetProfile).toHaveBeenCalled())
+      expect(saveTargetProfile.mock.calls[0][0]).toMatchObject({ steps_goal: null })
+      await waitFor(() => expect(publishStepsGoal).toHaveBeenCalledWith(null))
+    })
+
+    it('fuera de 1.000–100.000 no se manda: lo dice en vez de fallar callado', async () => {
+      render(<Objetivo onAccepted={() => {}} />)
+      const field = await screen.findByLabelText('Pasos al día')
+      await userEvent.clear(field)
+      await userEvent.type(field, '50')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar mis datos' }))
+
+      expect(await screen.findByText('Entre 1.000 y 100.000 pasos.')).toBeInTheDocument()
+      expect(saveTargetProfile).not.toHaveBeenCalled()
+    })
   })
 })

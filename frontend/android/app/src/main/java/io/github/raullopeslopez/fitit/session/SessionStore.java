@@ -33,6 +33,8 @@ public final class SessionStore {
     private static final String REJECTED = "rejected";
     private static final String CONTROL = "control";
     private static final String EXPIRED = "expired";
+    private static final String SUMMARY = "summary";
+    private static final String IDLE_PAGE = "idle_page";
 
     private final SharedPreferences prefs;
     private final TokenCipher cipher;
@@ -167,7 +169,8 @@ public final class SessionStore {
      * notificación de alguien que ya no está). Las series no, igual que en la web.
      */
     public synchronized void clearToken() {
-        prefs.edit().remove(TOKEN).remove(CONTROL).apply();
+        // El resumen del widget (pasos, último entreno) es de quien estaba dentro.
+        prefs.edit().remove(TOKEN).remove(CONTROL).remove(SUMMARY).apply();
     }
 
     /**
@@ -204,6 +207,44 @@ public final class SessionStore {
 
     public synchronized void clearControl() {
         prefs.edit().remove(CONTROL).apply();
+    }
+
+    // --- Sin entreno: lo que enseña el widget (IdleSummary) -----------------
+
+    /**
+     * Una o más piezas del resumen ({@code lastWorkout}, {@code steps},
+     * {@code stepsGoal}) sobre las que ya había: cada lectura de la app trae sólo
+     * lo suyo. Un null borra esa pieza.
+     */
+    public synchronized void mergeSummary(JSONObject part) {
+        JSONObject summary = summary();
+        java.util.Iterator<String> keys = part.keys();
+        try {
+            while (keys.hasNext()) {
+                String key = keys.next();
+                summary.put(key, part.get(key));
+            }
+        } catch (JSONException e) {
+            return;
+        }
+        prefs.edit().putString(SUMMARY, summary.toString()).apply();
+    }
+
+    public synchronized JSONObject summary() {
+        try {
+            return new JSONObject(prefs.getString(SUMMARY, "{}"));
+        } catch (JSONException e) {
+            return new JSONObject();
+        }
+    }
+
+    /** La pantalla del widget sin entreno: 0, empezar; 1, pasos. Se recuerda. */
+    public synchronized int idlePage() {
+        return prefs.getInt(IDLE_PAGE, 0);
+    }
+
+    public synchronized void flipIdlePage() {
+        prefs.edit().putInt(IDLE_PAGE, idlePage() == 0 ? 1 : 0).apply();
     }
 
     // --- Series rechazadas -------------------------------------------------
