@@ -1530,6 +1530,9 @@ export default function Workout({
       if (found) return [found, ...list.filter((e) => e !== found)]
       return [{ name, kind: 'strength' }, ...list]
     })
+    // Una tarjeta que llega de fuera sin series es como una añadida a mano:
+    // apuntada, o salir de la app antes de su primera serie la pierde.
+    if (!setsFor(name).length) rememberAddedExercise(workoutId, { name, kind: 'strength' })
     setToggled((t) => ({ ...t, [name]: true }))
     // Una tarjeta nueva necesita sus marcas, como la que se añade a mano; a la
     // que ya las tenía no se le tocan.

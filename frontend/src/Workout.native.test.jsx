@@ -458,6 +458,11 @@ describe('Entreno y el cambio de ejercicio desde fuera', () => {
     await waitFor(() => expect(titles()).toEqual(['Remo', 'Bench Press']))
     const [remo] = screen.getAllByRole('button', { name: /Remo/ })
     expect(remo).toHaveAttribute('aria-expanded', 'true')
+    // Y queda apuntada para este entreno, como una añadida a mano: salir de la
+    // app antes de su primera serie no la pierde.
+    const saved = JSON.parse(localStorage.getItem('fitit_added_exercises'))
+    expect(saved.workoutId).toBe(1)
+    expect(saved.exercises).toContainEqual({ name: 'Remo', kind: 'strength' })
   })
 
   it('si fuera se cambia a una tarjeta que ya estaba, sube y se abre', async () => {
