@@ -73,6 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **«Terminar entreno» dejaba corriendo el descanso de la pantalla** (APK 0.7.1).
+  La notificación se iba y el reloj de Entreno seguía contando. Ahora se para con
+  ella, y también cuando el control termina fuera de la app (el `Terminar` del
+  widget o las dos horas sin series). Un envío de series no lo toca: una sesión
+  sólo de cardio no tiene control y su descanso sigue.
 - **La notificación del entreno no salía en la pantalla de bloqueo** (APK 0.6.0).
   Su canal era de importancia baja para que no sonara, y Android —Xiaomi el
   primero— esconde del bloqueo lo que trata como «silencioso». Ahora el canal es

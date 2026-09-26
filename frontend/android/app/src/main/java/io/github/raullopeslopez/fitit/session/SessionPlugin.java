@@ -42,7 +42,11 @@ public class SessionPlugin extends Plugin {
         public void onChanged() {
             // Algo entró o cambió desde la notificación: la página pinta la
             // serie nueva (pendiente) y sigue el descanso que empezó.
-            notifyListeners("changed", withControl(queueOnly()));
+            JSObject data = withControl(queueOnly());
+            // Sin control tras un cambio es que se terminó (widget, dos horas):
+            // la página para su descanso. Un envío sin control no lo dice.
+            if (store().control() == null) data.put("ended", true);
+            notifyListeners("changed", data);
         }
     };
 
