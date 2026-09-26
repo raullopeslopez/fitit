@@ -100,10 +100,10 @@ public final class SessionControl {
         return template != null && !template.isNull("weight");
     }
 
-    /** El peso del bloque de ajuste, entre sus botones: «32,5 kg». */
-    public static String kilosLabel(JSONObject control) {
+    /** El peso del bloque de ajuste, entre sus botones: «32,5» (la palabra «kg» va aparte). */
+    public static String weightLabel(JSONObject control) {
         return hasWeight(control)
-                ? kilos(control.optJSONObject("template").optDouble("weight")) + " kg"
+                ? kilos(control.optJSONObject("template").optDouble("weight"))
                 : "";
     }
 

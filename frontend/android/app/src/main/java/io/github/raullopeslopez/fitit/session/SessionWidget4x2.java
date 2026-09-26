@@ -44,15 +44,12 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
         SessionWidget.header(context, views, control, now);
 
-        views.setTextViewText(R.id.widget_count, SessionControl.series(control));
+        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         String unsent = SessionControl.unsent(Session.store(context).queue().size());
         views.setTextViewText(R.id.widget_unsent, unsent);
         views.setViewVisibility(R.id.widget_unsent, unsent.isEmpty() ? View.GONE : View.VISIBLE);
 
-        views.setViewVisibility(R.id.widget_weight_box,
-                SessionControl.hasWeight(control) ? View.VISIBLE : View.GONE);
-        views.setTextViewText(R.id.widget_weight, SessionControl.kilosLabel(control));
-        views.setTextViewText(R.id.widget_reps, SessionControl.repsLabel(control));
+        block(views, control);
 
         tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
@@ -61,6 +58,18 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         tap(context, views, R.id.widget_log, SessionController.ACTION_WIDGET_REPEAT, 21);
         tap(context, views, R.id.widget_end, SessionController.ACTION_END, 34);
         return views;
+    }
+
+    /**
+     * Las cifras del bloque de ajuste (widget_adjust_block). Sin peso, la fila de
+     * kg y su filete se van y queda sólo la de reps.
+     */
+    static void block(RemoteViews views, JSONObject control) {
+        int weighted = SessionControl.hasWeight(control) ? View.VISIBLE : View.GONE;
+        views.setViewVisibility(R.id.widget_weight_box, weighted);
+        views.setViewVisibility(R.id.widget_divider, weighted);
+        views.setTextViewText(R.id.widget_weight, SessionControl.weightLabel(control));
+        views.setTextViewText(R.id.widget_reps, SessionControl.repsLabel(control));
     }
 
     private static void tap(Context context, RemoteViews views, int id, String action, int code) {

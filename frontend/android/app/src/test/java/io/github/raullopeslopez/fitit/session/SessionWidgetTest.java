@@ -96,7 +96,8 @@ public class SessionWidgetTest {
         assertEquals("Press banca", text(R.id.widget_exercise));
         assertEquals("32,5 kg × 12", text(R.id.widget_set));
         assertEquals(" · 4 series", text(R.id.widget_count));
-        assertEquals("+1 serie", text(R.id.widget_repeat));
+        // Sólo «+1» (DESIGN.md): la serie ya está escrita a su izquierda.
+        assertEquals("+1", text(R.id.widget_repeat));
         // El reloj lo lleva el propio widget: cuenta atrás hasta el fin del descanso.
         Chronometer clock = view().findViewById(R.id.widget_clock);
         assertTrue(shown(R.id.widget_clock));

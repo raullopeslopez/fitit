@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- El widget del entreno, tema claro: los colores de la maqueta aprobada
-     (docs/widgets-entreno.md), que son los de DESIGN.md. El oscuro está en
-     values-night; Android elige según el tema del sistema. -->
+<!-- Los widgets y la notificación del entreno, tema claro: los colores de DESIGN.md
+     («Fuera de la app»). El oscuro está en values-night; Android elige según el
+     tema del sistema. -->
 <resources>
     <color name="widget_bg">#FFFFFF</color>
     <color name="widget_border">#E6E2DA</color>
+    <!-- El marco del bloque de ajuste y los puntitos apagados. -->
+    <color name="widget_border_strong">#C9C3B8</color>
     <color name="widget_text">#16181B</color>
     <color name="widget_muted">#616875</color>
     <color name="widget_accent">#E4571B</color>
-    <!-- El ámbar como texto (accent-ink en DESIGN.md): el + de los ajustes y
-         «N sin enviar» del 4×2. -->
+    <!-- El ámbar como texto (accent-ink en DESIGN.md): «1 sin enviar», el tiempo
+         pasado, el glifo pulsado. -->
     <color name="widget_accent_ink">#C2440F</color>
     <color name="widget_on_accent">#16181B</color>
+    <!-- Terminar: rojo porque no se deshace (danger en DESIGN.md). -->
+    <color name="widget_danger">#CE1F1F</color>
+    <!-- La zona de un − o + mientras se pulsa: suave, no sólida, para que el + de
+         los kilos no se funda con el +1 de al lado. -->
+    <color name="widget_press">#FBE6DC</color>
 </resources>

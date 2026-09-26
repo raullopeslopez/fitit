@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 4×2 del entreno (docs/widgets-entreno.md, «4×2, con ajuste»), como en
-     la maqueta aprobada. Tres filas: el ejercicio con su reloj y ⏭; peso y reps
-     con sus − y +; «Registrar serie», «Otro ejercicio» y «Terminar». «Otro
-     ejercicio» abre la app para añadir uno. Sin sesión (widget_idle), lo
-     mismo que el 4×1 pero apilado. SessionWidget4x2 enseña un estado y esconde el otro; los
-     textos de aquí son los de la vista previa del selector de widgets. -->
+<!-- Widget 4×2 del entreno (DESIGN.md, «Fuera de la app»; vistas previas v9–v12).
+     Arriba, en una línea, «Press banca · 4 series» y Terminar a la derecha; debajo,
+     descansando, el tiempo; y el bloque de ajuste. Nada más. Tocar la línea abre
+     la app en ese entreno. Sin sesión (widget_idle), apilado. SessionWidget4x2
+     enseña un estado y esconde el otro; los textos de aquí son los de la vista
+     previa del selector de widgets. El 3×2 usa este mismo layout. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -22,7 +22,6 @@
         android:layout_gravity="center_vertical"
         android:orientation="vertical">
 
-        <!-- Fila 1: ejercicio y series a la izquierda; reloj y ⏭ a la derecha. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -38,7 +37,11 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
+                <!-- Ancho ajustado al contenido: así el nombre, con peso, sólo
+                     encoge (y se corta con …) cuando no cabe, y las series van
+                     pegadas detrás en vez de al otro extremo. -->
                 <LinearLayout
+                    android:id="@+id/widget_line"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -47,27 +50,23 @@
                         android:id="@+id/widget_exercise"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:ellipsize="end"
-                        android:fontFamily="@font/space_grotesk_semibold"
+                        android:fontFamily="@font/geist_semibold"
+                        android:includeFontPadding="false"
                         android:maxLines="1"
                         android:text="Press banca"
                         android:textColor="@color/widget_text"
-                        android:textSize="17sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:orientation="horizontal">
+                        android:textSize="15sp" />
 
                     <TextView
                         android:id="@+id/widget_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_mono_medium"
+                        android:fontFamily="@font/geist_regular"
+                        android:includeFontPadding="false"
                         android:maxLines="1"
-                        android:text="4 series"
+                        android:text=" · 4 series"
                         android:textColor="@color/widget_muted"
                         android:textSize="13sp" />
 
@@ -76,188 +75,60 @@
                         android:id="@+id/widget_unsent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_mono_medium"
+                        android:fontFamily="@font/geist_regular"
+                        android:includeFontPadding="false"
                         android:maxLines="1"
                         android:textColor="@color/widget_accent_ink"
                         android:textSize="13sp"
                         android:visibility="gone" />
                 </LinearLayout>
-            </LinearLayout>
 
-            <Chronometer
-                android:id="@+id/widget_clock"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/geist_mono_semibold"
-                android:textColor="@color/widget_text"
-                android:textSize="24sp" />
-
-            <TextView
-                android:id="@+id/widget_rest_over"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:fontFamily="@font/geist_semibold"
-                android:text="@string/widget_rest_over"
-                android:textColor="@color/widget_text"
-                android:textSize="13sp"
-                android:visibility="gone" />
-        </LinearLayout>
-
-        <!-- Fila 2: − peso +   − reps +. -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:id="@+id/widget_weight_box"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/widget_weight_down"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/widget_stepper"
-                    android:contentDescription="@string/widget_weight_down"
+                <!-- El tiempo, alineado a la izquierda y centrado en su hueco:
+                     11 dp a la línea y 11 al bloque. La caja mide lo que la
+                     cifra (30 dp, como line-height: 30px en la vista previa):
+                     con el alto de la fuente entera, el hueco de encima de las
+                     cifras sumaba y el tiempo parecía despegado del nombre. -->
+                <Chronometer
+                    android:id="@+id/widget_clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_marginTop="11dp"
                     android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center"
-                    android:text="−"
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
                     android:textColor="@color/widget_text"
-                    android:textSize="20sp" />
+                    android:textSize="30sp" />
 
                 <TextView
-                    android:id="@+id/widget_weight"
-                    android:layout_width="0dp"
+                    android:id="@+id/widget_rest_over"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center"
-                    android:maxLines="1"
-                    android:text="32,5 kg"
+                    android:layout_marginTop="11dp"
+                    android:fontFamily="@font/geist_semibold"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_rest_over"
                     android:textColor="@color/widget_text"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:id="@+id/widget_weight_up"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/widget_stepper"
-                    android:contentDescription="@string/widget_weight_up"
-                    android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center"
-                    android:text="+"
-                    android:textColor="@color/widget_accent_ink"
-                    android:textSize="20sp" />
+                    android:textSize="13sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/widget_reps_box"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/widget_reps_down"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/widget_stepper"
-                    android:contentDescription="@string/widget_reps_down"
-                    android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center"
-                    android:text="−"
-                    android:textColor="@color/widget_text"
-                    android:textSize="20sp" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/widget_reps"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_mono_medium"
-                        android:maxLines="1"
-                        android:text="12"
-                        android:textColor="@color/widget_text"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:fontFamily="@font/geist_regular"
-                        android:text="@string/widget_reps_unit"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/widget_reps_up"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/widget_stepper"
-                    android:contentDescription="@string/widget_reps_up"
-                    android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center"
-                    android:text="+"
-                    android:textColor="@color/widget_accent_ink"
-                    android:textSize="20sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Fila 3: Registrar serie · Otro ejercicio · Terminar. Los dos de la
-             derecha, texto apagado: son lo raro, y el botón lleno es lo de cada serie. -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/widget_log"
-                android:layout_width="0dp"
-                android:layout_height="44dp"
-                android:layout_weight="1"
-                android:background="@drawable/widget_button"
-                android:ellipsize="end"
-                android:fontFamily="@font/geist_semibold"
-                android:gravity="center"
-                android:maxLines="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="@string/widget_log"
-                android:textColor="@color/widget_on_accent"
-                android:textSize="15sp" />
-
-            <TextView
+            <!-- Terminar: el aro rojo con ■, arriba a la derecha, 44 dp de toque. -->
+            <ImageView
                 android:id="@+id/widget_end"
-                android:layout_width="wrap_content"
+                android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:fontFamily="@font/geist_regular"
-                android:gravity="center"
-                android:maxLines="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="4dp"
-                android:text="@string/widget_end"
-                android:textColor="@color/widget_muted"
-                android:textSize="14sp" />
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="-5dp"
+                android:contentDescription="@string/widget_end"
+                android:scaleType="center"
+                android:src="@drawable/widget_end_ring" />
         </LinearLayout>
+
+        <include
+            layout="@layout/widget_adjust_block"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="11dp" />
     </LinearLayout>
 
     <!-- Sin sesión, apilado: en el 4×2 hay alto de sobra y así el título no se

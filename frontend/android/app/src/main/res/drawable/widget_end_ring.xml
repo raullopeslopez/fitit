@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Terminar: un aro de 34 dp con borde 1,5 dp en danger y un ■ de 14 dp dentro.
+     Rojo porque terminar no se deshace. Va centrado en una zona de toque de 44 dp. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="34dp" android:height="34dp" android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent" />
+            <stroke android:width="1.5dp" android:color="@color/widget_danger" />
+        </shape>
+    </item>
+    <item android:width="14dp" android:height="14dp" android:gravity="center">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_danger" />
+            <corners android:radius="2.5dp" />
+        </shape>
+    </item>
+</layer-list>

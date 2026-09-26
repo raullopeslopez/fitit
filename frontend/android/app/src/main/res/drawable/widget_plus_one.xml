@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El +1: el extremo derecho del bloque de ajuste, el único relleno ámbar. Sus
+     esquinas de la derecha siguen las del marco (14 menos el borde). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/widget_accent" />
+    <corners android:topRightRadius="13dp" android:bottomRightRadius="13dp" />
+</shape>

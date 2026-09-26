@@ -3,11 +3,15 @@
     <string name="app_name">Fitit</string>
     <!-- El widget del entreno (docs/widgets-entreno.md, fase 3). -->
     <string name="widget_4x1_label">Fitit · Entreno 4×1</string>
-    <string name="widget_4x1_description">La serie que toca, el descanso y «+1 serie» sin abrir la app.</string>
+    <string name="widget_4x1_description">La serie que toca, el descanso y «+1» sin abrir la app.</string>
     <string name="widget_4x2_label">Fitit · Entreno 4×2</string>
     <string name="widget_4x2_description">Ajusta peso y reps, registra la serie o termina el entreno, sin abrir la app.</string>
+    <!-- El +1 (DESIGN.md): lo que se ve, y cómo lo nombra un lector de pantalla. -->
+    <string name="widget_plus_one">+1</string>
     <string name="widget_log">Registrar serie</string>
-    <string name="widget_end">Terminar</string>
+    <!-- Terminar es un aro con ■, sin texto: esto es su nombre para el lector. -->
+    <string name="widget_end">Terminar entreno</string>
+    <string name="widget_weight_unit">kg</string>
     <string name="widget_reps_unit">reps</string>
     <string name="widget_weight_down">Menos 2,5 kg</string>
     <string name="widget_weight_up">Más 2,5 kg</string>
@@ -15,7 +19,6 @@
     <string name="widget_reps_up">Una rep más</string>
     <string name="widget_idle_title">Sin entreno en curso</string>
     <string name="widget_start">Empezar entreno</string>
-    <string name="widget_repeat">+1 serie</string>
     <string name="widget_rest_over">Descanso terminado</string>
     <string name="title_activity_main">Fitit</string>
     <string name="package_name">io.github.raullopeslopez.fitit</string>

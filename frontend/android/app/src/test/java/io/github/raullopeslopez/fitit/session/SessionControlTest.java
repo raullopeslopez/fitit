@@ -208,7 +208,8 @@ public class SessionControlTest {
 
     @Test
     public void theWidgetReadsWeightAndRepsApart() throws Exception {
-        assertEquals("32,5 kg", SessionControl.kilosLabel(bench()));
+        // «32,5» y la unidad aparte, más pequeña y apagada, como «12 reps».
+        assertEquals("32,5", SessionControl.weightLabel(bench()));
         assertEquals("12", SessionControl.repsLabel(bench()));
     }
 }

@@ -122,12 +122,16 @@ public class SessionWidget4x2Test {
         for (String shownText : SessionWidgetTest.texts(view())) {
             assertFalse(shownText, shownText.contains("Pecho"));
         }
-        assertEquals("4 series", text(R.id.widget_count));
+        // Una línea: «Press banca · 4 series».
+        assertEquals(" · 4 series", text(R.id.widget_count));
         assertFalse(shown(R.id.widget_unsent));
-        assertEquals("32,5 kg", text(R.id.widget_weight));
+        assertEquals("32,5", text(R.id.widget_weight));
         assertEquals("12", text(R.id.widget_reps));
-        assertEquals("Registrar serie", text(R.id.widget_log));
-        assertEquals("Terminar", text(R.id.widget_end));
+        // El +1 no repite la serie: ya está escrita en los ajustes de al lado.
+        assertEquals("+1", text(R.id.widget_log));
+        // Terminar es un aro con ■: sin texto, con nombre para el lector de pantalla.
+        assertTrue(shown(R.id.widget_end));
+        assertEquals("Terminar entreno", view().findViewById(R.id.widget_end).getContentDescription());
         assertTrue(shown(R.id.widget_clock));
         // Ni saltar el descanso ni «Otro ejercicio»: añadir o cambiar de
         // ejercicio se hace dentro de la app (DESIGN.md, «Fuera de la app»).
@@ -147,14 +151,14 @@ public class SessionWidget4x2Test {
 
         // Ajustar no registra: sólo cambia la serie que está a la vista.
         assertTrue(store.queue().isEmpty());
-        assertEquals("37,5 kg", text(R.id.widget_weight));
-        assertEquals("4 series", text(R.id.widget_count));
+        assertEquals("37,5", text(R.id.widget_weight));
+        assertEquals(" · 4 series", text(R.id.widget_count));
 
         tap(R.id.widget_log, now + 3_000);
 
         assertEquals(1, store.queue().size());
         assertEquals(37.5, store.queue().get(0).getJSONObject("payload").getDouble("weight"), 0);
-        assertEquals("5 series", text(R.id.widget_count));
+        assertEquals(" · 5 series", text(R.id.widget_count));
         // Y es lo que repite desde ahora la notificación, y el 4×1.
         assertEquals("37,5 kg × 12 · 5 series",
                 notification().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
@@ -184,8 +188,26 @@ public class SessionWidget4x2Test {
         tap(R.id.widget_weight_down, now + 1_000);
         tap(R.id.widget_reps_down, now + 2_000);
 
-        assertEquals("30 kg", text(R.id.widget_weight));
+        assertEquals("30", text(R.id.widget_weight));
         assertEquals("11", text(R.id.widget_reps));
+    }
+
+    @Test
+    public void theGlyphsAreTextColouredAndTurnAmberWhilePressed() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+
+        int[] pressed = {android.R.attr.state_pressed, android.R.attr.state_enabled};
+        for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
+                R.id.widget_reps_down, R.id.widget_reps_up}) {
+            TextView glyph = view().findViewById(id);
+            // En reposo, color de texto: el ámbar es sólo del +1.
+            assertEquals(context.getColor(R.color.widget_text), glyph.getTextColors().getDefaultColor());
+            // Al pulsar, el glifo pasa a accent-ink y su zona se tiñe.
+            assertEquals(context.getColor(R.color.widget_accent_ink),
+                    glyph.getTextColors().getColorForState(pressed, 0));
+            assertTrue(glyph.getBackground().isStateful());
+        }
     }
 
     @Test

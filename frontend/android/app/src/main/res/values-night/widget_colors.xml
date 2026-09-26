@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- El widget del entreno, tema oscuro (maqueta aprobada). -->
+<!-- Los widgets y la notificación del entreno, tema oscuro (DESIGN.md). -->
 <resources>
     <color name="widget_bg">#15171A</color>
     <color name="widget_border">#24272C</color>
+    <color name="widget_border_strong">#3A3F46</color>
     <color name="widget_text">#F2F3F5</color>
     <color name="widget_muted">#9BA1A9</color>
     <color name="widget_accent">#FF6A2C</color>
-    <!-- El ámbar como texto (accent-ink en DESIGN.md): el + de los ajustes y
-         «N sin enviar» del 4×2. -->
     <color name="widget_accent_ink">#FF6A2C</color>
     <color name="widget_on_accent">#16181B</color>
+    <color name="widget_danger">#F87171</color>
+    <color name="widget_press">#3A2216</color>
 </resources>
