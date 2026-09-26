@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.9.0: cambiar de ejercicio sin abrir la app.** Fase 5 de
+  `docs/widgets-entreno.md`. En el widget 4×2, junto a `Terminar`, sale
+  **`Otro ejercicio`** (texto apagado). Al tocarlo, el widget enseña hasta cuatro
+  ejercicios en dos filas de dos, cada uno con su marca (`Remo con barra` y debajo
+  `40 kg × 10`; `Dominadas` y `8 reps`; sólo el nombre si nunca se hizo), más
+  **`Nuevo…`** y **`Cancelar`**. Primero los de este entreno que aún no tienen series
+  (los añadidos y los que quedan de «Repetir»), después los ya hechos hoy. Tocar uno lo
+  pone en curso **sin registrar nada**: la notificación, los dos widgets y la tarjeta
+  de Entreno pasan a ese ejercicio, con las series que ya lleve hoy, y el descanso
+  sigue. `Nuevo…` abre Entreno con el campo `Ejercicio` enfocado. `Cancelar` vuelve
+  sin cambiar nada; sin otros ejercicios en el entreno dice
+  `No hay más ejercicios en este entreno.` La notificación gana **`Otro ejercicio`**,
+  un campo de texto (`Ejercicio y serie, como Remo 40x10`): `Remo 40x10`,
+  `Remo 40,5 x 10` o `Remo 10` registran esa serie de Remo y lo dejan en curso; sólo
+  `Remo` cambia sin registrar si es uno de los de la lista, y si no dice
+  `Escríbelo con la serie, como Remo 40x10.` Android enseña tres botones como mucho,
+  así que mientras corre el descanso el tercero sigue siendo `Saltar`, y
+  `Otra serie` entiende también `Remo 40x10`.
 - **APK 0.8.0: widget 4×2 del entreno, con ajuste de peso y reps.** Fase 4 de
   `docs/widgets-entreno.md`. En el selector de widgets de Android aparece un segundo
   widget, «Fitit · Entreno 4×2». Con un entreno en marcha: el ejercicio y su grupo, las
@@ -67,6 +85,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completa.*
 
 ### Changed
+- **APK 0.9.0: sin grupo muscular en la notificación ni en los widgets.** El título
+  pasa de `Press banca · Pecho` a `Press banca`, en la notificación en curso, en el
+  4×1 y en el 4×2.
 - **El APK se llama con su versión** (`fitit-0.7.1.apk`), en la Release y en el
   artefacto de cada PR. Ya no se publica la copia `fitit.apk`: en la carpeta de
   descargas no decía qué versión era. El enlace estable pasa a ser la página de la

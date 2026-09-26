@@ -277,7 +277,7 @@ app). Lo del 4×2 en un ejercicio sin peso se decidió en la fase 4: sin botones
 
 ## Fases
 
-Cinco, cada una un PR y un APK que se instala y se prueba solo. Ninguna deja la app
+Seis, cada una un PR y un APK que se instala y se prueba solo. Ninguna deja la app
 peor que la anterior, y la primera ya la deja mejor: sin el control que no funcionaba.
 La verificación en el teléfono es del product owner (aquí no hay dispositivo); cada fase
 lista lo que hay que comprobar, y no se pasa a la siguiente sin ese visto bueno.
@@ -463,6 +463,97 @@ los ajustes en `SessionControl` (`weight`, `reps`) y sus acciones en `SessionCon
   terminado`, como en la maqueta en claro.
 - **Sin sesión, apilado:** título, día y `Empezar entreno` a lo ancho. En fila, como en
   el 4×1, el título se partía en dos líneas.
+
+### Fase 5 · Cambiar de ejercicio desde fuera (APK 0.9.0)
+
+Levanta la limitación de «Sin sesión» («elegir ejercicio desde un widget es una lista,
+y eso es la app»): la lista es corta y la hace la app, así que el widget sólo la enseña.
+Y el grupo muscular sale de la notificación y de los dos widgets.
+
+```
+┌──────────────────────────────────────────────┐
+│ Press banca                      01:23  ⏭    │
+│ 4 series · 1 sin enviar                      │
+│ [ − ]   32,5 kg   [ + ]    [ − ]  12  [ + ]  │
+│ [ Registrar serie ]  Otro ejercicio Terminar │
+└──────────────────────────────────────────────┘
+        «Otro ejercicio» ↓
+┌──────────────────────────────────────────────┐
+│ [ Remo con barra     ]  [ Dominadas        ] │
+│ [ 40 kg × 10         ]  [ 8 reps           ] │
+│ [ Sentadilla         ]  [ Curl             ] │
+│                         [ 12,5 kg × 12     ] │
+│ [          Nuevo…              ]   Cancelar  │
+└──────────────────────────────────────────────┘
+```
+
+- **Qué se ve:** en la notificación y en los dos widgets, `Press banca` en vez de
+  `Press banca · Pecho`. En el 4×2, `Otro ejercicio` (texto apagado) entre
+  `Registrar serie` y `Terminar`; al tocarlo, hasta cuatro ejercicios con su marca,
+  `Nuevo…` y `Cancelar` (sin ninguno: `No hay más ejercicios en este entreno.`). En la
+  notificación, con el descanso acabado o sin descanso, el tercer botón es
+  `Otro ejercicio`, un campo de texto: `Ejercicio y serie, como Remo 40x10`.
+- **Comprobar:** en un entreno con Press banca registrado y Remo añadido sin series,
+  `Otro ejercicio` → `Remo`: la notificación y los dos widgets dicen `Remo`, con
+  `0 series` y la marca de la última vez, sin registrar nada, y el descanso sigue; al
+  abrir la app, la tarjeta de Remo está arriba y abierta. `Registrar serie` registra
+  Remo. `Otro ejercicio` → `Cancelar` no cambia nada. `Nuevo…` abre Entreno con el
+  teclado en `Ejercicio` (a comprobar: Android puede no sacar el teclado para un foco
+  que no viene de un toque). En la notificación, `Otro ejercicio` con
+  `Peso muerto 100x5` registra esa serie y la tarjeta aparece en la app; con `remo`
+  (minúsculas) cambia a Remo sin registrar; con `Hip thrust` a secas avisa
+  `Escríbelo con la serie, como Remo 40x10.`; durante el descanso, `Otra serie` con
+  `Remo 40x10` también cambia. Tema claro y oscuro.
+
+**Hecho (2026-09-26).** `SessionControl` (candidatos, `switchTo`, `typed`), las
+acciones nuevas en `SessionController`, el estado «eligiendo» en `SessionWidget4x2` y
+`widget_session_4x2.xml`, la acción de `SessionNotification`, `SessionLaunch.ADD`, y en
+la app `candidatesFor` y `followNativeExercise` en `Workout.jsx`. Tests nativos: 132
+(eran 100). Lo que se decidió al construirlo:
+
+- **La lista la hace la app, sin pedir nada nuevo al servidor.** Va en el control
+  (`candidates: [{ exercise, template, count }]`) al registrar, y cuando cambia (añadir
+  un ejercicio, registrar una serie) se vuelve a mandar con `candidates()`, que sólo toca
+  la lista del control de ese entreno: ni la serie, ni el contador, ni el descanso, para
+  no pisar un toque del widget que llegue a la vez. Orden: primero lo de este entreno
+  sin series, en el orden de la pantalla (lo añadido y lo pendiente de «Repetir», que ya
+  son tarjetas sin series); después lo ya hecho hoy, lo más reciente primero. **Los
+  «recientes» son sólo los de este entreno:** los de otros días necesitarían sus marcas,
+  y eso es una petición por ejercicio que el nativo no puede hacer sin red. Para un
+  ejercicio que no está en el entreno está `Nuevo…` o escribirlo en la notificación.
+- **La marca** es la última serie de hoy si la hay, y si no la primera de la última vez
+  (la misma con la que la app rellena la tarjeta). **Sin marca, 10 reps y sin peso**, y
+  el candidato se pinta sólo con su nombre: un peso inventado lo registraría el primer
+  `+1 serie`; sin peso no se miente y se corrige con `Otra serie`. (El 4×2 no enseña
+  botones de kg en un ejercicio sin peso, así que para ponérselo hace falta `Otra serie`
+  o la app.)
+- **Cambiar no es entrenar:** no registra, no mueve el cierre de dos horas y no toca el
+  descanso. El contador es el de las series de ese ejercicio en este entreno. El de antes
+  pasa a la lista, para poder volver.
+- **Rejilla de dos por dos, no cuatro filas.** Cuatro filas de 44 dp más la de
+  `Nuevo…`/`Cancelar` no caben en los ~172 dp útiles del 4×2, y `DESIGN.md` no baja de
+  44. Casillas fijas, sin colecciones (`ListView`), como se pidió; un nombre largo se
+  corta con `…`.
+- **Android pinta tres botones de notificación como mucho**; el cuarto se pierde sin
+  aviso. Con el descanso corriendo el tercero sigue siendo `Saltar` (lo que más se toca
+  entonces), y `Otro ejercicio` ocupa su sitio el resto del tiempo. Para que cambiar se
+  pueda también descansando, **`Otra serie` entiende lo mismo que `Otro ejercicio`**:
+  `35x10` sigue siendo otra serie del ejercicio en curso, y `Remo 40x10` cambia.
+- **El nombre escrito** se guarda tal cual, salvo que coincida sin mayúsculas ni tildes
+  con el ejercicio en curso o con un candidato: entonces vale el suyo, para no partir un
+  ejercicio en dos por una tilde. Un nombre lleva al menos dos letras seguidas, así que
+  `x10` sigue siendo una «Otra serie» mal escrita (`No entendí «x10»…`).
+- **La app sigue al nativo:** si el control cambia de ejercicio fuera, Entreno sube esa
+  tarjeta arriba y la abre, y si no existía (un nombre escrito en la notificación) la
+  pone sin series. Un `+1 serie` del mismo ejercicio no mueve nada. Al entrar en Entreno
+  sin haber registrado nada en esa visita, el primer aviso del nativo sube la tarjeta
+  del control aunque no haya cambiado (la pantalla aún no sabía cuál era).
+- **`Nuevo…`** abre la app con la orden `add` (como `open`, con el entreno) y cierra la
+  lista del widget al llegar; Entreno enfoca `Ejercicio`.
+- **El 4×1 no cambia** salvo el grupo: no tiene sitio para una lista.
+- **A partir de ~300 dp de ancho** `Registrar serie` se corta a `Registrar…`; a esa
+  anchura la fila de peso y reps ya se apretaba antes de esta fase. Visto en render a
+  358 × 200 dp, claro y oscuro; el ancho real del 4×2 en el Xiaomi, a comprobar.
 
 Después, si hace falta: iOS (Live Activities) tiene su propia spec. Y si el Xiaomi
 algún día recibe Android 16, el chip de «Live Updates» sobre la misma notificación.

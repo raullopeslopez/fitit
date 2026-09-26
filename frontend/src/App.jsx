@@ -31,6 +31,9 @@ export default function App() {
   // «Empezar entreno» pulsado en el widget: Días hace lo mismo que su botón en
   // cuanto sabe si hoy ya hay entreno.
   const [startOnArrival, setStartOnArrival] = useState(false)
+  // «Nuevo…» pulsado en el widget 4×2 (fase 5): cuántas veces, para que Entreno
+  // enfoque el campo de añadir cada una, también sobre el mismo entreno.
+  const [focusAdd, setFocusAdd] = useState(0)
   const [showRegister, setShowRegister] = useState(false)
   // Is the backend awake? Only asked once per launch, and only ever seen on the
   // launch that has to wake it.
@@ -65,7 +68,8 @@ export default function App() {
   }, [token])
 
   // Abierta desde el widget o la notificación (docs/widgets-entreno.md, fase 3):
-  // «abre este entreno», o «empieza el de hoy» con la regla de siempre, que es
+  // «abre este entreno», «añade un ejercicio a este entreno» («Nuevo…» del 4×2,
+  // fase 5), o «empieza el de hoy» con la regla de siempre, que es
   // la del botón de Días y no se repite aquí. Sólo con sesión: sin ella la orden
   // espera en el nativo a que entres. En la web no llega nunca.
   useEffect(() => {
@@ -73,6 +77,9 @@ export default function App() {
     return session.onLaunch(({ action, workoutId } = {}) => {
       if (action === 'open' && workoutId) {
         openWorkout(workoutId)
+      } else if (action === 'add' && workoutId) {
+        openWorkout(workoutId)
+        setFocusAdd((n) => n + 1)
       } else if (action === 'start') {
         openWorkout(null)
         setView('days')
@@ -159,6 +166,7 @@ export default function App() {
             workoutId={openWorkoutId}
             initialWorkout={openWorkoutSeed}
             autoRename={openWorkoutAutoRename}
+            focusAdd={focusAdd}
             onExit={() => openWorkout(null)}
           />
         ) : view === 'progress' ? (

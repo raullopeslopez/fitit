@@ -128,6 +128,20 @@ describe('App', () => {
       expect(api.createWorkout).toHaveBeenCalledTimes(1)
     })
 
+    it('«Nuevo…» del 4×2 abre ese entreno con el campo de añadir enfocado (fase 5)', async () => {
+      setToken('tok')
+      api.listDays.mockResolvedValue([])
+      api.getWorkout.mockResolvedValue({ id: 4, date: '2026-07-15', name: 'Legs', sets: [] })
+      render(<App />)
+      await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
+
+      act(() => launch.listener({ action: 'add', workoutId: 4 }))
+
+      const input = await screen.findByLabelText('Ejercicio')
+      await vi.waitFor(() => expect(input).toHaveFocus())
+      expect(api.getWorkout).toHaveBeenCalledWith(4)
+    })
+
     it('sin sesión no escucha: la orden espera a que entres', () => {
       render(<App />)
       expect(launch.listener).toBeNull()
