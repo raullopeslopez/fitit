@@ -84,14 +84,15 @@ final class SessionNotification {
                 .addAction(0, "+1 serie", broadcast(context, SessionController.ACTION_REPEAT, 1));
 
         SessionControl.Rest rest = SessionControl.rest(control, now);
-        if (rest == SessionControl.Rest.RUNNING) {
+        if (rest == SessionControl.Rest.NONE) {
+            builder.setShowWhen(false).setUsesChronometer(false);
+        } else {
+            // Baja hasta el fin del descanso y, pasado, sube desde ahí: lo que
+            // se pasa, no «Descanso terminado».
             builder.setWhen(control.optLong("restEndsAt"))
                     .setShowWhen(true)
                     .setUsesChronometer(true)
-                    .setChronometerCountDown(true);
-        } else {
-            builder.setShowWhen(false).setUsesChronometer(false);
-            if (rest == SessionControl.Rest.OVER) builder.setSubText("Descanso terminado");
+                    .setChronometerCountDown(rest == SessionControl.Rest.RUNNING);
         }
         return builder.build();
     }

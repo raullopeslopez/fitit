@@ -131,6 +131,41 @@ public class SessionWidgetLookTest {
     }
 
     @Test
+    public void overtimeTakesTheSameSlotAsTheCountdown() throws Exception {
+        View root = large(bench(System.currentTimeMillis() - 12_500), 358);
+
+        Rect line = at(root, R.id.widget_line);
+        Rect over = at(root, R.id.widget_over);
+        near("línea → tiempo de más", 11, dp(over.top - line.bottom));
+        near("tiempo de más → bloque", 11, dp(at(root, R.id.widget_block).top - over.bottom));
+        WidgetRender.save(root, WALL_LIGHT, "4x2-pasado-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void overtimeInTheDark() throws Exception {
+        View root = large(bench(System.currentTimeMillis() - 167_500), 358);
+
+        assertEquals(0xFFFF6A2C, ((TextView) root.findViewById(R.id.widget_over)).getCurrentTextColor());
+        WidgetRender.save(root, WALL_DARK, "4x2-pasado-oscuro");
+    }
+
+    @Test
+    public void theFourByOneShowsTheTimeBeforeTheName() throws Exception {
+        int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
+        long now = System.currentTimeMillis();
+        SessionController.publish(context, bench(now + 83_000), now);
+        View resting = WidgetRender.lay(context, widgets.getViewFor(id), 358, 90);
+        assertTrue(at(resting, R.id.widget_clock).right <= at(resting, R.id.widget_exercise).left);
+        WidgetRender.save(resting, WALL_LIGHT, "4x1-descansando-claro");
+
+        SessionController.publish(context, bench(now - 12_500), now);
+        View over = WidgetRender.lay(context, widgets.getViewFor(id), 358, 90);
+        assertTrue(at(over, R.id.widget_over).right <= at(over, R.id.widget_exercise).left);
+        WidgetRender.save(over, WALL_LIGHT, "4x1-pasado-claro");
+    }
+
+    @Test
     @Config(qualifiers = "+night")
     public void inTheDarkItTakesTheDarkColours() throws Exception {
         View root = large(bench(System.currentTimeMillis() + 83_000), 358);

@@ -46,15 +46,17 @@
                     android:textColor="@color/widget_text"
                     android:textSize="30sp" />
 
-                <TextView
-                    android:id="@+id/widget_rest_over"
+                <!-- Pasado de tiempo: accent-ink y hacia arriba, +00:12. -->
+                <Chronometer
+                    android:id="@+id/widget_over"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="10dp"
-                    android:fontFamily="@font/geist_semibold"
-                    android:text="@string/widget_rest_over"
-                    android:textColor="@color/widget_text"
-                    android:textSize="13sp"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:format="+%s"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_accent_ink"
+                    android:textSize="30sp"
                     android:visibility="gone" />
 
                 <TextView

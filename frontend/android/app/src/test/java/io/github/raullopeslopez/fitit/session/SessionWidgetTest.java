@@ -107,13 +107,28 @@ public class SessionWidgetTest {
     }
 
     @Test
-    public void whenTheRestIsOverItSaysSo() throws Exception {
+    public void pastTheRestTheTimeTurnsAmberAndCountsUpWithASign() throws Exception {
+        // DESIGN.md: al llegar a cero, el mismo número pasa a accent-ink y cuenta
+        // hacia arriba con signo, +00:12. No hay «Descanso terminado».
         long now = now();
-        SessionController.publish(context, bench(now - 1), now);
+        SessionController.publish(context, bench(now - 12_500), now);
 
         assertFalse(shown(R.id.widget_clock));
-        assertTrue(shown(R.id.widget_rest_over));
-        assertEquals("Descanso terminado", text(R.id.widget_rest_over));
+        assertTrue(shown(R.id.widget_over));
+        assertOvertime(context, view().findViewById(R.id.widget_over));
+        for (String shownText : texts(view())) {
+            assertFalse(shownText, shownText.contains("Descanso terminado"));
+        }
+    }
+
+    /** El tiempo de más: cuenta hacia arriba desde el fin del descanso, con «+», en ámbar. */
+    static void assertOvertime(Context context, Chronometer over) {
+        assertFalse(over.isCountDown());
+        long since = SystemClock.elapsedRealtime() - over.getBase();
+        assertTrue("desde el fin: " + since, since >= 12_000 && since <= 14_000);
+        assertEquals("+%s", over.getFormat());
+        assertTrue(over.getText().toString(), over.getText().toString().matches("\\+00:1[234]"));
+        assertEquals(context.getColor(R.color.widget_accent_ink), over.getCurrentTextColor());
     }
 
     @Test
@@ -122,7 +137,7 @@ public class SessionWidgetTest {
         SessionController.publish(context, bench(0).put("restSeconds", 0), now);
 
         assertFalse(shown(R.id.widget_clock));
-        assertFalse(shown(R.id.widget_rest_over));
+        assertFalse(shown(R.id.widget_over));
     }
 
     @Test

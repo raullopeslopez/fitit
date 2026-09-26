@@ -230,12 +230,13 @@ public class SessionWidget4x2Test {
     }
 
     @Test
-    public void whenTheRestIsOverItSaysSo() throws Exception {
+    public void pastTheRestTheTimeTurnsAmberAndCountsUpWithASign() throws Exception {
         long now = now();
-        SessionController.publish(context, bench(now - 1), now);
+        SessionController.publish(context, bench(now - 12_500), now);
 
-        assertTrue(shown(R.id.widget_rest_over));
         assertFalse(shown(R.id.widget_clock));
+        assertTrue(shown(R.id.widget_over));
+        SessionWidgetTest.assertOvertime(context, view().findViewById(R.id.widget_over));
     }
 
     @Test

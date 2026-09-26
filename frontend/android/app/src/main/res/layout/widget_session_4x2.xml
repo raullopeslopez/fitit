@@ -99,16 +99,21 @@
                     android:textColor="@color/widget_text"
                     android:textSize="30sp" />
 
-                <TextView
-                    android:id="@+id/widget_rest_over"
+                <!-- Pasado de tiempo: el mismo sitio y la misma cifra, en
+                     accent-ink y contando hacia arriba con signo (+00:12). Otra
+                     vista y no otro color sobre la misma: un color puesto desde
+                     aquí no cambiaría con el tema del sistema. -->
+                <Chronometer
+                    android:id="@+id/widget_over"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="30dp"
                     android:layout_marginTop="11dp"
-                    android:fontFamily="@font/geist_semibold"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:format="+%s"
+                    android:gravity="center_vertical"
                     android:includeFontPadding="false"
-                    android:text="@string/widget_rest_over"
-                    android:textColor="@color/widget_text"
-                    android:textSize="13sp"
+                    android:textColor="@color/widget_accent_ink"
+                    android:textSize="30sp"
                     android:visibility="gone" />
             </LinearLayout>
 

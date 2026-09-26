@@ -130,13 +130,14 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void whenTheRestIsOverItSaysSo() throws Exception {
-        SessionController.publish(context, bench(NOW - 1), NOW);
+    public void pastTheRestTheClockCountsUpFromTheEndOfTheRest() throws Exception {
+        SessionController.publish(context, bench(NOW - 12_000), NOW);
 
         Notification n = shown();
-        assertEquals("Descanso terminado", n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT).toString());
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie"), actions(n));
+        assertNull(n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
+        assertTrue(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
+        assertFalse(n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN));
+        assertEquals(NOW - 12_000, n.when);
     }
 
     @Test
@@ -267,13 +268,14 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void theRestOverAlarmRelabelsTheCard() throws Exception {
+    public void theRestOverAlarmTurnsTheCountdownIntoOvertime() throws Exception {
         SessionController.publish(context, bench(NOW + 1_000), NOW);
 
         tap(SessionController.ACTION_REST_OVER);
 
-        assertEquals("Descanso terminado",
-                shown().extras.getCharSequence(Notification.EXTRA_SUB_TEXT).toString());
+        Notification n = shown();
+        assertFalse(n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN));
+        assertEquals(NOW + 1_000, n.when);
     }
 
     @Test

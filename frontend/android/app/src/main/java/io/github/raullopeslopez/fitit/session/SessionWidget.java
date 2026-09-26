@@ -83,24 +83,40 @@ public class SessionWidget extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
         views.setOnClickPendingIntent(R.id.widget_open,
                 SessionLaunch.open(context, control.optInt("workoutId", -1)));
+        clock(views, R.id.widget_clock, R.id.widget_over, control, now);
+    }
 
+    /**
+     * El tiempo del descanso en dos cronómetros del propio layout, que corren sin
+     * que nadie los repinte: {@code countdown} baja en color de texto hasta el fin
+     * del descanso; pasado, {@code over} sube desde ahí en accent-ink con signo
+     * ({@code +00:12}). El cambio de uno a otro lo hace la alarma del fin del
+     * descanso, que repinta. Sin descanso, ninguno. Lo usan los widgets y la
+     * notificación.
+     */
+    static void clock(RemoteViews views, int countdown, int over, JSONObject control, long now) {
+        long endsAt = control.optLong("restEndsAt");
+        long base = SystemClock.elapsedRealtime() + (endsAt - now);
         switch (SessionControl.rest(control, now)) {
             case RUNNING:
-                long remaining = control.optLong("restEndsAt") - now;
-                views.setChronometer(R.id.widget_clock, SystemClock.elapsedRealtime() + remaining, null, true);
-                views.setChronometerCountDown(R.id.widget_clock, true);
-                views.setViewVisibility(R.id.widget_clock, View.VISIBLE);
-                views.setViewVisibility(R.id.widget_rest_over, View.GONE);
+                views.setChronometer(countdown, base, null, true);
+                views.setChronometerCountDown(countdown, true);
+                views.setViewVisibility(countdown, View.VISIBLE);
+                views.setChronometer(over, SystemClock.elapsedRealtime(), "+%s", false);
+                views.setViewVisibility(over, View.GONE);
                 break;
             case OVER:
-                views.setChronometer(R.id.widget_clock, SystemClock.elapsedRealtime(), null, false);
-                views.setViewVisibility(R.id.widget_clock, View.GONE);
-                views.setViewVisibility(R.id.widget_rest_over, View.VISIBLE);
+                views.setChronometer(countdown, SystemClock.elapsedRealtime(), null, false);
+                views.setViewVisibility(countdown, View.GONE);
+                views.setChronometer(over, base, "+%s", true);
+                views.setChronometerCountDown(over, false);
+                views.setViewVisibility(over, View.VISIBLE);
                 break;
             default:
-                views.setChronometer(R.id.widget_clock, SystemClock.elapsedRealtime(), null, false);
-                views.setViewVisibility(R.id.widget_clock, View.GONE);
-                views.setViewVisibility(R.id.widget_rest_over, View.GONE);
+                views.setChronometer(countdown, SystemClock.elapsedRealtime(), null, false);
+                views.setViewVisibility(countdown, View.GONE);
+                views.setChronometer(over, SystemClock.elapsedRealtime(), "+%s", false);
+                views.setViewVisibility(over, View.GONE);
                 break;
         }
     }

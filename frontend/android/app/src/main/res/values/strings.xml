@@ -19,7 +19,6 @@
     <string name="widget_reps_up">Una rep más</string>
     <string name="widget_idle_title">Sin entreno en curso</string>
     <string name="widget_start">Empezar entreno</string>
-    <string name="widget_rest_over">Descanso terminado</string>
     <string name="title_activity_main">Fitit</string>
     <string name="package_name">io.github.raullopeslopez.fitit</string>
     <string name="custom_url_scheme">io.github.raullopeslopez.fitit</string>
