@@ -1,6 +1,7 @@
 package io.github.raullopeslopez.fitit.session;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -173,6 +174,33 @@ public class QueueDrainerTest {
 
         assertEquals(QueueDrainer.Status.WAIT, outcome.status);
         assertEquals(1, store.queue().size());
+        // Y se apunta: los widgets dicen «Sesión caducada» hasta que la app dé
+        // una sesión nueva (DESIGN.md, «Sesión caducada»).
+        assertTrue(store.sessionExpired());
+    }
+
+    @Test
+    public void aFreshSessionFromTheAppForgetsTheExpiry() throws Exception {
+        queue("tmp-1", 1, 60);
+        http.answer(401, "");
+        drain();
+
+        store.setSession("jwt-new", "https://fitit.example/api", "0.10.0");
+
+        assertFalse(store.sessionExpired());
+        // Las series siguen ahí, esperando a ese token.
+        assertEquals(1, store.queue().size());
+    }
+
+    @Test
+    public void withNoTokenAtAllItIsNotExpired() throws Exception {
+        // Sin token no hubo sesión que caducara: nada que decir en el widget.
+        store.clearToken();
+        queue("tmp-1", 1, 60);
+
+        drain();
+
+        assertFalse(store.sessionExpired());
     }
 
     @Test

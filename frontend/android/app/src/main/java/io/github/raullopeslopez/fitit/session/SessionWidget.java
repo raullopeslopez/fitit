@@ -53,6 +53,7 @@ public class SessionWidget extends AppWidgetProvider {
 
     static RemoteViews views(Context context, JSONObject control, long now) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x1);
+        if (Session.store(context).sessionExpired()) return expired(context, views);
         if (control == null) return idle(context, views);
 
         header(context, views, control, now);
@@ -65,8 +66,24 @@ public class SessionWidget extends AppWidgetProvider {
 
     // Lo que comparten los dos tamaños; los ids se llaman igual en los dos layouts.
 
+    /**
+     * «Sesión caducada»: el servidor rechazó el token. Gana a los demás estados,
+     * porque un +1 ahora encolaría series que no salen. Un botón con borde y sin
+     * relleno, «Abrir Fitit» («Abrir» en el 4×1), que sólo abre la app: no
+     * registra nada, así que no lleva ámbar. Las series siguen en la cola.
+     */
+    static RemoteViews expired(Context context, RemoteViews views) {
+        views.setViewVisibility(R.id.widget_session, View.GONE);
+        views.setViewVisibility(R.id.widget_idle, View.GONE);
+        views.setViewVisibility(R.id.widget_expired, View.VISIBLE);
+        views.setOnClickPendingIntent(R.id.widget_reopen, SessionLaunch.app(context));
+        views.setOnClickPendingIntent(R.id.widget_expired, SessionLaunch.app(context));
+        return views;
+    }
+
     /** Sin sesión: «Sin entreno en curso», el día, y «Empezar entreno». */
     static RemoteViews idle(Context context, RemoteViews views) {
+        views.setViewVisibility(R.id.widget_expired, View.GONE);
         views.setViewVisibility(R.id.widget_session, View.GONE);
         views.setViewVisibility(R.id.widget_idle, View.VISIBLE);
         views.setTextViewText(R.id.widget_idle_date, LocalDate.now().format(DAY));
@@ -77,6 +94,7 @@ public class SessionWidget extends AppWidgetProvider {
 
     /** El ejercicio, que abre la app al tocarlo, y el reloj del descanso. */
     static void header(Context context, RemoteViews views, JSONObject control, long now) {
+        views.setViewVisibility(R.id.widget_expired, View.GONE);
         views.setViewVisibility(R.id.widget_idle, View.GONE);
         views.setViewVisibility(R.id.widget_session, View.VISIBLE);
         // Sólo el ejercicio: el grupo muscular dejó de pintarse en la fase 5.

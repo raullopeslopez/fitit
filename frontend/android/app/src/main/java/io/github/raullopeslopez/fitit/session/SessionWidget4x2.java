@@ -40,6 +40,7 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
     static RemoteViews views(Context context, JSONObject control, long now) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x2);
+        if (Session.store(context).sessionExpired()) return SessionWidget.expired(context, views);
         if (control == null) return SessionWidget.idle(context, views);
 
         SessionWidget.header(context, views, control, now);

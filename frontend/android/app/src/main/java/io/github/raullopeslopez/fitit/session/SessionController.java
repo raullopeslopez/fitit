@@ -35,6 +35,16 @@ public final class SessionController {
         refresh(context, control, now);
     }
 
+    /**
+     * La app entra (o abre con sesión) y da su token: si los widgets decían
+     * «Sesión caducada», vuelven; y la cola que esperaba sale ya.
+     */
+    public static void renew(Context context, String token, String apiBase, String clientVersion) {
+        Session.store(context).setSession(token, apiBase, clientVersion);
+        SessionWidget.updateAll(context);
+        SessionSender.schedule(context);
+    }
+
     /** «Terminar»: fuera la notificación y el control. Las series no se tocan. */
     public static void end(Context context) {
         Session.store(context).clearControl();

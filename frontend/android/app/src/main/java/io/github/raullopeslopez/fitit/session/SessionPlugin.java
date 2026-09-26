@@ -206,9 +206,9 @@ public class SessionPlugin extends Plugin {
             call.reject("token and apiBase are required");
             return;
         }
-        store().setSession(token, apiBase, call.getString("clientVersion"));
-        // Un token nuevo es justo lo que esperaba una cola parada por un 401.
-        SessionSender.schedule(getContext());
+        // Un token nuevo es justo lo que esperaba una cola parada por un 401, y
+        // lo que quita «Sesión caducada» de los widgets.
+        SessionController.renew(getContext(), token, apiBase, call.getString("clientVersion"));
         call.resolve();
     }
 

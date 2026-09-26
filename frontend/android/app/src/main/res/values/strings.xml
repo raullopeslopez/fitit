@@ -19,6 +19,11 @@
     <string name="widget_reps_up">Una rep más</string>
     <string name="widget_idle_title">Sin entreno en curso</string>
     <string name="widget_start">Empezar entreno</string>
+    <!-- Sesión caducada (DESIGN.md): el servidor rechazó el token al enviar. -->
+    <string name="widget_expired_title">Sesión caducada</string>
+    <string name="widget_expired_body">Abre Fitit para volver a entrar. Tus series siguen guardadas.</string>
+    <string name="widget_reopen">Abrir Fitit</string>
+    <string name="widget_reopen_short">Abrir</string>
     <string name="title_activity_main">Fitit</string>
     <string name="package_name">io.github.raullopeslopez.fitit</string>
     <string name="custom_url_scheme">io.github.raullopeslopez.fitit</string>

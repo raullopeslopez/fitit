@@ -43,6 +43,16 @@ public final class SessionLaunch {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    /** Abrir la app sin orden: «Abrir Fitit» de «Sesión caducada», que sólo lleva a entrar. */
+    static PendingIntent app(Context context) {
+        Intent intent = new Intent(context, MainActivity.class)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return PendingIntent.getActivity(context, 32, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
     /**
      * La orden del intent, una sola vez: se quita al leerla, para que recrear la
      * actividad (girar el teléfono) no vuelva a abrir el entreno. Null si no hay.

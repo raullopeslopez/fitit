@@ -32,6 +32,7 @@ public final class SessionStore {
     private static final String CLIENT_VERSION = "client_version";
     private static final String REJECTED = "rejected";
     private static final String CONTROL = "control";
+    private static final String EXPIRED = "expired";
 
     private final SharedPreferences prefs;
     private final TokenCipher cipher;
@@ -124,7 +125,9 @@ public final class SessionStore {
 
     /** El token, cifrado; y a qué servidor y con qué versión hablar. */
     public synchronized void setSession(String token, String apiBase, String clientVersion) {
+        // Una sesión que llega de la app es nueva: lo de «caducada» se olvida.
         SharedPreferences.Editor edit = prefs.edit()
+                .remove(EXPIRED)
                 .putString(API_BASE, apiBase)
                 .putString(CLIENT_VERSION, clientVersion);
         try {
@@ -165,6 +168,20 @@ public final class SessionStore {
      */
     public synchronized void clearToken() {
         prefs.edit().remove(TOKEN).remove(CONTROL).apply();
+    }
+
+    /**
+     * El servidor rechazó el token (401) al vaciar la cola. Queda apuntado hasta
+     * que la app dé una sesión nueva, y los widgets dicen «Sesión caducada»
+     * mientras tanto: si no, el +1 seguiría encolando series que no salen, sin
+     * que nada lo diga.
+     */
+    public synchronized void markExpired() {
+        prefs.edit().putBoolean(EXPIRED, true).apply();
+    }
+
+    public synchronized boolean sessionExpired() {
+        return prefs.getBoolean(EXPIRED, false);
     }
 
     // --- El control del entreno (fase 2) -----------------------------------

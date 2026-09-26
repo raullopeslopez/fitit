@@ -255,6 +255,32 @@ public class SessionWidgetLookTest {
     }
 
     @Test
+    public void sessionExpiredFitsWithItsOutlinedButton() throws Exception {
+        store.markExpired();
+        View root = large(bench(0), 358);
+
+        Rect button = at(root, R.id.widget_reopen);
+        near("alto de Abrir Fitit", 44, dp(button.height()));
+        assertTrue("se sale por abajo", dp(button.bottom) <= 200 - 14 + 0.5f);
+        // Las dos líneas del texto caben sin cortarse.
+        assertEquals(2, ((TextView) root.findViewById(R.id.widget_expired_body)).getLineCount());
+        WidgetRender.save(root, WALL_LIGHT, "4x2-caducada-claro");
+
+        int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
+        SessionWidget.updateAll(context);
+        View small = WidgetRender.lay(context, widgets.getViewFor(id), 358, 90);
+        near("alto de Abrir", 44, dp(at(small, R.id.widget_reopen).height()));
+        WidgetRender.save(small, WALL_LIGHT, "4x1-caducada-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void sessionExpiredInTheDark() throws Exception {
+        store.markExpired();
+        WidgetRender.save(large(bench(0), 358), WALL_DARK, "4x2-caducada-oscuro");
+    }
+
+    @Test
     public void aBodyweightExerciseKeepsOnlyTheRepsRow() throws Exception {
         JSONObject pullUps = bench(0).put("exercise", "Dominadas");
         pullUps.getJSONObject("template").put("weight", JSONObject.NULL);

@@ -267,6 +267,72 @@ public class SessionWidget4x2Test {
         assertEquals(1, store.queue().size());
     }
 
+    // --- Sesión caducada (DESIGN.md, «Estados del 4×2 y el 3×2») --------------
+
+    /** El servidor rechaza el token al vaciar la cola, como lo haría WorkManager. */
+    private void drainIntoA401() {
+        http.answer(401, "");
+        TestWorkerBuilder.from(context, SessionWorker.class, Executors.newSingleThreadExecutor())
+                .build()
+                .doWork();
+    }
+
+    @Test
+    public void aRejectedTokenShowsSessionExpiredAndKeepsTheSets() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+        tap(R.id.widget_log, now + 1_000);
+
+        drainIntoA401();
+
+        assertTrue(shown(R.id.widget_expired));
+        assertFalse(shown(R.id.widget_session));
+        assertFalse(shown(R.id.widget_idle));
+        assertEquals("Sesión caducada", text(R.id.widget_expired_title));
+        assertEquals("Abre Fitit para volver a entrar. Tus series siguen guardadas.",
+                text(R.id.widget_expired_body));
+        assertEquals("Abrir Fitit", text(R.id.widget_reopen));
+        // Las series no se pierden: esperan en la cola al token nuevo.
+        assertEquals(1, store.queue().size());
+        // El 4×1 dice lo mismo, con el botón corto.
+        View smallView = widgets.getViewFor(small);
+        assertEquals(View.VISIBLE, smallView.findViewById(R.id.widget_expired).getVisibility());
+        assertEquals(View.GONE, smallView.findViewById(R.id.widget_session).getVisibility());
+        assertEquals("Sesión caducada",
+                ((TextView) smallView.findViewById(R.id.widget_expired_title)).getText().toString());
+        assertEquals("Abrir",
+                ((TextView) smallView.findViewById(R.id.widget_reopen)).getText().toString());
+    }
+
+    @Test
+    public void abrirFititOpensTheAppWithNoOrder() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+        tap(R.id.widget_log, now + 1_000);
+        drainIntoA401();
+
+        view().findViewById(R.id.widget_reopen).performClick();
+
+        // Sólo abrir: la app pide entrar, y ni abre un entreno ni empieza otro.
+        Intent started = shadowOf((Application) context).getNextStartedActivity();
+        assertNotNull(started);
+        assertNull(started.getStringExtra(SessionLaunch.EXTRA_ACTION));
+    }
+
+    @Test
+    public void aFreshSessionFromTheAppBringsTheWidgetBack() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+        tap(R.id.widget_log, now + 1_000);
+        drainIntoA401();
+
+        SessionController.renew(context, "jwt-new", "https://fitit.example/api", "0.10.0");
+
+        assertFalse(shown(R.id.widget_expired));
+        assertTrue(shown(R.id.widget_session));
+        assertEquals("jwt-new", store.token());
+    }
+
     @Test
     public void withNoSessionItOffersToStartOne() {
         SessionWidget.updateAll(context);
