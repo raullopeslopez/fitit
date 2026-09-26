@@ -10,7 +10,7 @@ import org.json.JSONObject;
 /**
  * Abrir la app con una orden: «abre este entreno» (tocar el ejercicio en el widget
  * o el cuerpo de la notificación), «empieza el de hoy» (Empezar entreno) o «añade
- * un ejercicio a este entreno» («Nuevo…» del 4×2).
+ * un ejercicio a este entreno» («Otro ejercicio» del 4×2).
  *
  * <p>La orden viaja en extras del intent; {@link SessionPlugin} la lee una sola vez
  * y se la pasa a la página, que es quien sabe abrir un entreno o empezar el de
@@ -21,7 +21,7 @@ public final class SessionLaunch {
     public static final String EXTRA_WORKOUT = "fitit_workout";
     public static final String OPEN = "open";
     public static final String START = "start";
-    /** «Nuevo…» del 4×2 (fase 5): abre ese entreno con el campo de añadir ejercicio. */
+    /** «Otro ejercicio» del 4×2: abre ese entreno con el campo de añadir ejercicio. */
     public static final String ADD = "add";
 
     private SessionLaunch() {}

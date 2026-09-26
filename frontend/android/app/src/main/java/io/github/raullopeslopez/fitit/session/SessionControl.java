@@ -23,16 +23,15 @@ import org.json.JSONObject;
  * <pre>
  * { workoutId, exercise, group, template: { exercise_name, reps, weight },
  *   count, restSeconds, restEndsAt, lastSetAt, notice?,
- *   candidates?: [{ exercise, template | null, count }], choosing? }
+ *   candidates?: [{ exercise, template | null, count }] }
  * </pre>
  *
  * <p>{@code restEndsAt} y {@code lastSetAt} en milisegundos; {@code restEndsAt} 0
  * es «sin reloj». {@code notice} es el aviso de una entrada que no se entendió, y
  * dura hasta la siguiente serie. {@code group} lo sigue mandando la app, pero desde
  * la fase 5 no se pinta. {@code candidates} son los ejercicios a los que se puede
- * cambiar sin abrir la app, en el orden en que los ofrece el 4×2 (los publica la
- * app: el nativo no tiene red para elegir), y {@code choosing} es el 4×2 enseñando
- * esa lista. Spec: docs/widgets-entreno.md, «1 · Notificación en curso» y fase 5.
+ * cambiar escribiendo sólo el nombre en la notificación (los publica la app: el
+ * nativo no tiene red para elegir). Spec: docs/widgets-entreno.md, «1 · Notificación en curso» y fase 5.
  */
 public final class SessionControl {
     /** Sin registrar nada durante este tiempo, el control se cierra solo. */
@@ -101,13 +100,12 @@ public final class SessionControl {
         after.put("restEndsAt", restSeconds > 0 ? now + restSeconds * 1000L : 0);
         after.put("lastSetAt", now);
         after.remove("notice");
-        after.remove("choosing");
         return new Step(entry, after);
     }
 
     // --- Cambiar de ejercicio (fase 5) -------------------------------------
 
-    /** Cuántos candidatos caben en el 4×2. */
+    /** Cuántos candidatos cuentan (los que cabían en la lista del 4×2, ya retirada). */
     static final int CANDIDATES = 4;
     /** Lo que repite un candidato sin marca: 10 reps y sin peso (ver {@link #switchTo}). */
     static final int DEFAULT_REPS = 10;
@@ -202,7 +200,6 @@ public final class SessionControl {
         after.put("candidates", candidates);
         after.remove("group");
         after.remove("notice");
-        after.remove("choosing");
         return after;
     }
 
@@ -269,18 +266,6 @@ public final class SessionControl {
         return after;
     }
 
-    /** El 4×2 enseñando la lista de candidatos, o dejando de enseñarla. */
-    public static JSONObject choosing(JSONObject control, boolean on) throws JSONException {
-        JSONObject after = new JSONObject(control.toString());
-        if (on) after.put("choosing", true);
-        else after.remove("choosing");
-        return after;
-    }
-
-    public static boolean isChoosing(JSONObject control) {
-        return control.optBoolean("choosing", false);
-    }
-
     /** Sin mayúsculas, sin tildes y con los espacios de uno en uno: «Remo con barra». */
     static String fold(String name) {
         String decomposed = Normalizer.normalize(name == null ? "" : name, Normalizer.Form.NFD);
@@ -326,7 +311,6 @@ public final class SessionControl {
     private static JSONObject adjusting(JSONObject control) throws JSONException {
         JSONObject after = new JSONObject(control.toString());
         after.remove("notice");
-        after.remove("choosing");
         return after;
     }
 

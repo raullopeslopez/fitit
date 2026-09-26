@@ -73,10 +73,6 @@ public class SessionPlugin extends Plugin {
     private void announceLaunch(Intent intent) {
         JSONObject order = SessionLaunch.take(intent);
         if (order == null) return;
-        // «Nuevo…»: el 4×2 deja la lista, que ya ha hecho su trabajo.
-        if (SessionLaunch.ADD.equals(order.optString("action"))) {
-            SessionController.stopChoosing(getContext(), System.currentTimeMillis());
-        }
         try {
             notifyListeners("launch", JSObject.fromJSONObject(order), true);
         } catch (JSONException e) {

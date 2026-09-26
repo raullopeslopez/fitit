@@ -5,14 +5,11 @@
     <string name="widget_4x1_label">Fitit · Entreno 4×1</string>
     <string name="widget_4x1_description">La serie que toca, el descanso y «+1 serie» sin abrir la app.</string>
     <string name="widget_4x2_label">Fitit · Entreno 4×2</string>
-    <string name="widget_4x2_description">Ajusta peso y reps, registra la serie, cambia de ejercicio, salta el descanso o termina, sin abrir la app.</string>
+    <string name="widget_4x2_description">Ajusta peso y reps, registra la serie, añade un ejercicio, salta el descanso o termina, sin abrir la app.</string>
     <string name="widget_log">Registrar serie</string>
     <string name="widget_end">Terminar</string>
-    <!-- Cambiar de ejercicio desde el 4×2 (fase 5). -->
+    <!-- Añadir un ejercicio desde el 4×2: abre la app. -->
     <string name="widget_other">Otro ejercicio</string>
-    <string name="widget_pick_new">Nuevo…</string>
-    <string name="widget_pick_cancel">Cancelar</string>
-    <string name="widget_pick_empty">No hay más ejercicios en este entreno.</string>
     <string name="widget_skip">Saltar descanso</string>
     <string name="widget_reps_unit">reps</string>
     <string name="widget_weight_down">Menos 2,5 kg</string>

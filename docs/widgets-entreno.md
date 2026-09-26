@@ -555,5 +555,14 @@ la app `candidatesFor` y `followNativeExercise` en `Workout.jsx`. Tests nativos:
   anchura la fila de peso y reps ya se apretaba antes de esta fase. Visto en render a
   358 × 200 dp, claro y oscuro; el ancho real del 4×2 en el Xiaomi, a comprobar.
 
+**Revisado (2026-09-26, APK 0.9.1): el 4×2 sólo crea.** `Otro ejercicio` abre Entreno
+con el campo `Ejercicio` enfocado (la orden `add`, lo que hacía `Nuevo…`). Se retiran
+del widget la rejilla de candidatos, `Nuevo…`, `Cancelar`, el aviso de lista vacía y el
+estado `choosing` del control, con sus acciones (`CHOOSE`, `CHOOSE_CANCEL`, `SWITCH`).
+Lo demás de la fase sigue: la app publica `candidates` y la notificación cambia a uno
+escribiendo sólo su nombre; `switchTo` es ahora sólo de la notificación. El tope de
+cuatro candidatos se queda como estaba, aunque su motivo (lo que cabía en la rejilla) ya
+no existe.
+
 Después, si hace falta: iOS (Live Activities) tiene su propia spec. Y si el Xiaomi
 algún día recibe Android 16, el chip de «Live Updates» sobre la misma notificación.

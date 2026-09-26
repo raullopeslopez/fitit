@@ -455,35 +455,6 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void switchingFromTheWidgetLogsNothingAndTellsTheApp() throws Exception {
-        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
-
-        SessionController.handle(context,
-                new Intent(SessionController.ACTION_SWITCH)
-                        .putExtra(SessionController.EXTRA_EXERCISE, "Curl"),
-                NOW + 5_000);
-
-        assertTrue(store.queue().isEmpty());
-        assertEquals("Curl", store.control().getString("exercise"));
-        assertEquals("12,5 kg × 12 · 3 series",
-                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        assertTrue(heard.contains("changed"));
-    }
-
-    @Test
-    public void choosingAndCancellingOnlyChangeTheWidget() throws Exception {
-        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
-
-        tap(SessionController.ACTION_CHOOSE);
-        assertTrue(SessionControl.isChoosing(store.control()));
-
-        tap(SessionController.ACTION_CHOOSE_CANCEL);
-        assertFalse(SessionControl.isChoosing(store.control()));
-        assertTrue(store.queue().isEmpty());
-        assertEquals("Press banca", store.control().getString("exercise"));
-    }
-
-    @Test
     public void theAppCanRefreshTheCandidatesOfItsOwnWorkout() throws Exception {
         SessionController.publish(context, bench(NOW + 83_000), NOW);
 

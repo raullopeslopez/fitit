@@ -23,7 +23,6 @@ import androidx.work.testing.WorkManagerTestInitHelper;
 import io.github.raullopeslopez.fitit.R;
 import java.util.List;
 import java.util.concurrent.Executors;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -280,156 +279,33 @@ public class SessionWidget4x2Test {
         assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
     }
 
-    // --- Otro ejercicio (fase 5) ----------------------------------------------
-
-    private JSONObject withCandidates(long restEndsAt) throws Exception {
-        return bench(restEndsAt).put("candidates", new JSONArray()
-                .put(SessionControlTest.candidate("Remo", 10, 40.0, 0))
-                .put(SessionControlTest.candidate("Dominadas", 8, null, 0))
-                .put(SessionControlTest.candidate("Sentadilla", null, null, 0))
-                .put(SessionControlTest.candidate("Curl", 12, 12.5, 3)));
-    }
-
-    private static final int[] PICKS = {
-        R.id.widget_pick_0, R.id.widget_pick_1, R.id.widget_pick_2, R.id.widget_pick_3
-    };
-    private static final int[] PICK_NAMES = {
-        R.id.widget_pick_name_0, R.id.widget_pick_name_1, R.id.widget_pick_name_2, R.id.widget_pick_name_3
-    };
-    private static final int[] PICK_MARKS = {
-        R.id.widget_pick_mark_0, R.id.widget_pick_mark_1, R.id.widget_pick_mark_2, R.id.widget_pick_mark_3
-    };
+    // --- Otro ejercicio -------------------------------------------------------
+    // Sólo crea: abre la app con el campo de añadir ejercicio. Cambiar a uno que
+    // ya está en el entreno se hace desde la notificación («remo») o la app.
 
     @Test
     public void otroEjercicioSitsBesideTerminar() throws Exception {
         long now = now();
-        SessionController.publish(context, withCandidates(now - 1), now);
+        SessionController.publish(context, bench(now - 1), now);
 
         assertTrue(shown(R.id.widget_other));
         assertEquals("Otro ejercicio", text(R.id.widget_other));
-        assertFalse(shown(R.id.widget_choose));
     }
 
     @Test
-    public void otroEjercicioListsTheCandidatesWithTheirLastMark() throws Exception {
+    public void otroEjercicioOpensTheAppToAddAnExercise() throws Exception {
         long now = now();
-        SessionController.publish(context, withCandidates(now + 60_000), now);
+        SessionController.publish(context, bench(now + 60_000), now);
 
-        tap(R.id.widget_other, now + 1_000);
-
-        assertTrue(shown(R.id.widget_choose));
-        assertFalse(shown(R.id.widget_session));
-        String[] names = {"Remo", "Dominadas", "Sentadilla", "Curl"};
-        String[] marks = {"40 kg × 10", "8 reps", "", "12,5 kg × 12"};
-        for (int i = 0; i < 4; i++) {
-            assertTrue(shown(PICKS[i]));
-            assertEquals(names[i], text(PICK_NAMES[i]));
-            assertEquals(marks[i], text(PICK_MARKS[i]));
-        }
-        // Sin marca, sólo el nombre.
-        assertFalse(shown(PICK_MARKS[2]));
-        assertEquals("Nuevo…", text(R.id.widget_pick_new));
-        assertEquals("Cancelar", text(R.id.widget_pick_cancel));
-        assertFalse(shown(R.id.widget_pick_empty));
-        // Elegir no registra nada.
-        assertTrue(store.queue().isEmpty());
-    }
-
-    @Test
-    public void tappingACandidateMakesItTheCurrentExerciseWithoutLogging() throws Exception {
-        long now = now();
-        SessionController.publish(context, withCandidates(now + 60_000), now);
-        tap(R.id.widget_other, now + 1_000);
-
-        tap(R.id.widget_pick_1, now + 2_000);
-
-        assertTrue(store.queue().isEmpty());
-        assertTrue(shown(R.id.widget_session));
-        assertFalse(shown(R.id.widget_choose));
-        assertEquals("Dominadas", text(R.id.widget_exercise));
-        assertEquals("0 series", text(R.id.widget_count));
-        assertFalse(shown(R.id.widget_weight_box));
-        assertEquals("8", text(R.id.widget_reps));
-        // El descanso sigue.
-        assertTrue(shown(R.id.widget_clock));
-        // La notificación y el 4×1 lo siguen.
-        assertEquals("Dominadas", notification().extras.getString(Notification.EXTRA_TITLE));
-        View smallView = widgets.getViewFor(small);
-        assertEquals("Dominadas",
-                ((TextView) smallView.findViewById(R.id.widget_exercise)).getText().toString());
-
-        // Y lo siguiente que registra es de Dominadas.
-        tap(R.id.widget_log, now + 3_000);
-        assertEquals("Dominadas",
-                store.head().getJSONObject("payload").getString("exercise_name"));
-        assertEquals("1 serie", text(R.id.widget_count));
-    }
-
-    @Test
-    public void cancelGoesBackWithoutChangingAnything() throws Exception {
-        long now = now();
-        SessionController.publish(context, withCandidates(now - 1), now);
-        tap(R.id.widget_other, now + 1_000);
-
-        tap(R.id.widget_pick_cancel, now + 2_000);
-
-        assertTrue(shown(R.id.widget_session));
-        assertEquals("Press banca", text(R.id.widget_exercise));
-        assertEquals("4 series", text(R.id.widget_count));
-    }
-
-    @Test
-    public void fewerCandidatesLeaveTheirSlotsEmpty() throws Exception {
-        long now = now();
-        JSONObject control = bench(now - 1).put("candidates", new JSONArray()
-                .put(SessionControlTest.candidate("Remo", 10, 40.0, 0)));
-        SessionController.publish(context, control, now);
-
-        tap(R.id.widget_other, now + 1_000);
-
-        assertTrue(shown(R.id.widget_pick_0));
-        assertFalse(shown(R.id.widget_pick_1));
-        assertFalse(shown(R.id.widget_pick_2));
-        assertFalse(shown(R.id.widget_pick_3));
-    }
-
-    @Test
-    public void withNoCandidatesItSaysSoAndOffersNuevo() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now - 1), now);
-
-        tap(R.id.widget_other, now + 1_000);
-
-        assertTrue(shown(R.id.widget_pick_empty));
-        assertEquals("No hay más ejercicios en este entreno.", text(R.id.widget_pick_empty));
-        assertFalse(shown(R.id.widget_pick_0));
-        assertTrue(shown(R.id.widget_pick_new));
-    }
-
-    @Test
-    public void nuevoOpensTheAppToAddAnExercise() throws Exception {
-        long now = now();
-        SessionController.publish(context, withCandidates(now - 1), now);
-        tap(R.id.widget_other, now + 1_000);
-
-        view().findViewById(R.id.widget_pick_new).performClick();
+        view().findViewById(R.id.widget_other).performClick();
 
         Intent started = shadowOf((Application) context).getNextStartedActivity();
         assertNotNull(started);
         assertEquals(SessionLaunch.ADD, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
         assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
-    }
-
-    @Test
-    public void theSmallWidgetHasNoListAndKeepsShowingTheSet() throws Exception {
-        long now = now();
-        SessionController.publish(context, withCandidates(now - 1), now);
-
-        tap(R.id.widget_other, now + 1_000);
-
-        View smallView = widgets.getViewFor(small);
-        assertEquals(View.VISIBLE, smallView.findViewById(R.id.widget_session).getVisibility());
-        assertEquals("32,5 kg × 12",
-                ((TextView) smallView.findViewById(R.id.widget_set)).getText().toString());
+        // No registra nada y el widget sigue enseñando la serie.
+        assertTrue(store.queue().isEmpty());
+        assertTrue(shown(R.id.widget_session));
+        assertEquals("Press banca", text(R.id.widget_exercise));
     }
 }
