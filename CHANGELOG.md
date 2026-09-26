@@ -55,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completa.*
 
 ### Changed
+- **El APK se llama con su versión** (`fitit-0.7.1.apk`), en la Release y en el
+  artefacto de cada PR. Ya no se publica la copia `fitit.apk`: en la carpeta de
+  descargas no decía qué versión era. El enlace estable pasa a ser la página de la
+  última Release, https://github.com/raullopeslopez/fitit/releases/latest (un toque
+  más que la descarga directa de antes).
 - **"Pierna" se parte en Cuádriceps, Femoral y Gemelo.** Un solo cubo mezclaba
   sentadillas, curl femoral y gemelos, así que "Pierna: 20 series" podía ser
   veinte de sentadilla con el gemelo sin tocar — una cifra que no se puede
@@ -73,6 +78,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   control nativo que describe `docs/widgets-entreno.md`.
 
 ### Fixed
+- **«Terminar entreno» dejaba corriendo el descanso de la pantalla** (APK 0.7.1).
+  La notificación se iba y el reloj de Entreno seguía contando. Ahora se para con
+  ella, y también cuando el control termina fuera de la app (el `Terminar` del
+  widget o las dos horas sin series). Un envío de series no lo toca: una sesión
+  sólo de cardio no tiene control y su descanso sigue.
 - **La notificación del entreno no salía en la pantalla de bloqueo** (APK 0.6.0).
   Su canal era de importancia baja para que no sonara, y Android —Xiaomi el
   primero— esconde del bloqueo lo que trata como «silencioso». Ahora el canal es

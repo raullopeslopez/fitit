@@ -1615,8 +1615,12 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
       setWorkout(withQueued)
       if (rejected > 0) refused()
     })
-    return onNativeSend(({ workout: answered, rejected, control }) => {
-      followNativeRest(control)
+    return onNativeSend(({ workout: answered, rejected, control, ended }) => {
+      // Terminado fuera de aquí (el widget, dos horas sin series): el descanso
+      // de la pantalla era el de ese control. Sólo con `ended`: un envío sin
+      // control es una sesión que nunca lo tuvo (sólo cardio), y su reloj sigue.
+      if (ended) endRest()
+      else followNativeRest(control)
       // Sólo este entreno se redibuja con la respuesta; la cola puede llevar
       // series de una sesión de la que ya saliste.
       if (answered?.id === workoutId) {
@@ -2385,6 +2389,9 @@ export default function Workout({ workoutId, onExit, initialWorkout = null, auto
                       className="secondary set-action head-menu-item"
                       onClick={() => {
                         session.end().catch(() => {})
+                        // El descanso en pantalla era el de ese control: si la
+                        // notificación se va, el reloj de aquí también.
+                        endRest()
                         closeMenu()
                       }}
                     >

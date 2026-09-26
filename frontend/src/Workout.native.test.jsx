@@ -275,4 +275,37 @@ describe('Entreno y la notificación en curso', () => {
 
     expect(session.end).toHaveBeenCalled()
   })
+
+  it('«Terminar entreno» para también el descanso de la app', async () => {
+    // Visto en el teléfono (0.6.0): la notificación se iba y el reloj de la
+    // pantalla seguía contando.
+    await addBench()
+    await logBench()
+    expect(await screen.findByRole('timer')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^terminar entreno$/i }))
+
+    await waitFor(() => expect(screen.queryByRole('timer')).not.toBeInTheDocument())
+  })
+
+  it('terminado desde fuera (widget, dos horas sin series), el descanso se para', async () => {
+    await addBench()
+    await logBench()
+    expect(await screen.findByRole('timer')).toBeInTheDocument()
+
+    act(() => changed({ queue: [], control: null, ended: true }))
+
+    await waitFor(() => expect(screen.queryByRole('timer')).not.toBeInTheDocument())
+  })
+
+  it('un envío sin control no toca el descanso (una sesión sólo de cardio no publica control)', async () => {
+    await addBench()
+    await logBench()
+    expect(await screen.findByRole('timer')).toBeInTheDocument()
+
+    act(() => changed({ queue: [], sent: 1, rejected: 0, control: null }))
+
+    expect(screen.getByRole('timer')).toBeInTheDocument()
+  })
 })
