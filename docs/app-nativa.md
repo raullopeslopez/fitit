@@ -92,8 +92,10 @@ navegador directamente.
   los APK lleven la misma firma (actualizar sin desinstalar, y la huella que
   Google reconoce). Es de depuración: no sirve para publicar.
 
-**Descargar:** https://github.com/raullopeslopez/fitit/releases/latest/download/fitit.apk
-— siempre el último. Cada push a `main` que toque el frontend lo recompila y lo
+**Descargar:** https://github.com/raullopeslopez/fitit/releases/latest — la última
+Release, con su APK como `fitit-<versión>.apk` para que en el teléfono se vea cuál es.
+(Hasta la 0.7.0 había también una copia `fitit.apk` con enlace directo fijo; se quitó
+porque en la carpeta de descargas no decía qué versión era.) Cada push a `main` que toque el frontend lo recompila y lo
 publica en la Release de su versión (`android-v<version>`); una versión nueva
 de `package.json` abre una Release nueva. También a mano: Actions → «Android APK»
 → *Run workflow*. En un PR el APK queda como artefacto `fitit-apk` del run.

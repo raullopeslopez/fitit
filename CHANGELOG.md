@@ -55,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completa.*
 
 ### Changed
+- **El APK se llama con su versión** (`fitit-0.7.1.apk`), en la Release y en el
+  artefacto de cada PR. Ya no se publica la copia `fitit.apk`: en la carpeta de
+  descargas no decía qué versión era. El enlace estable pasa a ser la página de la
+  última Release, https://github.com/raullopeslopez/fitit/releases/latest (un toque
+  más que la descarga directa de antes).
 - **"Pierna" se parte en Cuádriceps, Femoral y Gemelo.** Un solo cubo mezclaba
   sentadillas, curl femoral y gemelos, así que "Pierna: 20 series" podía ser
   veinte de sentadilla con el gemelo sin tocar — una cifra que no se puede

@@ -385,6 +385,11 @@ al construirlo, y que hay que mirar en el teléfono:
 - **Los canales del aviso antiguo** (`fitit-sesion`, `fitit-fin-descanso`) se borran al
   publicar: Android los conservaba en Ajustes aunque el código se hubiera ido.
 - **Saltar el descanso en la app lo quita también de la notificación, y al revés.**
+- **Probado en el Xiaomi (2026-09-26): `Otra serie` pide desbloquear.** Android sólo
+  deja escribir en una notificación con el teléfono bloqueado si un ajuste del sistema
+  lo permite, y viene apagado; la app no puede cambiarlo. `+1 serie` y `Saltar` sí van
+  bloqueado. **Decidido:** se queda así (cambiar peso o reps es lo raro), y el ajuste
+  rápido sin teclado es el `−`/`+` del widget 4×2 (fase 4).
 - **Corregido tras probarla (0.7.0): no salía en la pantalla de bloqueo.** El canal era
   de importancia baja para que no sonara, y Android trata esa importancia como
   «silenciosa»: Xiaomi, y otros, no enseñan las silenciosas en el bloqueo. El canal pasa

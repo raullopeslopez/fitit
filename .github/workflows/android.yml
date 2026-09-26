@@ -1,9 +1,10 @@
 name: Android APK
 
-# Compila el APK de Fitit. En un PR lo deja como artefacto del run («fitit-apk»);
-# en `main`, o a mano desde la pestaña Actions, además lo publica como Release:
-# descarga directa del .apk, sin zip y sin sesión, en un enlace que no cambia:
-#   https://github.com/raullopeslopez/fitit/releases/latest/download/fitit.apk
+# Compila el APK de Fitit. En un PR lo deja como artefacto del run
+# («fitit-<versión>»); en `main`, o a mano desde la pestaña Actions, además lo
+# publica como Release, con el APK como `fitit-<versión>.apk`, sin zip y sin
+# sesión. La última siempre está en:
+#   https://github.com/raullopeslopez/fitit/releases/latest
 on:
   workflow_dispatch:
   push:
@@ -51,30 +52,37 @@ jobs:
       - name: Assemble APK
         working-directory: frontend/android
         run: ./gradlew assembleDebug --no-daemon
+      # El APK sale siempre con su versión en el nombre (`fitit-0.7.1.apk`): en
+      # la carpeta de descargas del teléfono tiene que verse cuál es cuál.
+      - name: Name the APK after its version
+        id: apk
+        run: |
+          version=$(node -p "require('./package.json').version")
+          cp android/app/build/outputs/apk/debug/app-debug.apk "fitit-$version.apk"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
-          name: fitit-apk
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: fitit-${{ steps.apk.outputs.version }}
+          path: frontend/fitit-${{ steps.apk.outputs.version }}.apk
           retention-days: 30
-      # Una Release por versión (`android-v0.1.1`), con el APK dos veces: con su
-      # versión en el nombre, y como `fitit.apk`, que es el que sirve el enlace
-      # fijo de arriba. Si la versión no ha cambiado se reemplaza el APK de esa
-      # misma Release: para una Release nueva, sube `version` en package.json
-      # (y `versionCode`/`versionName` en android/app/build.gradle).
+      # Una Release por versión (`android-v0.1.1`) con un solo APK, que lleva la
+      # versión en el nombre. Ya no hay copia con nombre fijo (`fitit.apk`): el
+      # enlace estable es la página de la última Release,
+      #   https://github.com/raullopeslopez/fitit/releases/latest
+      # Si la versión no ha cambiado se reemplaza el APK de esa misma Release:
+      # para una Release nueva, sube `version` en package.json (y
+      # `versionCode`/`versionName` en android/app/build.gradle).
       - name: Publish Release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(node -p "require('./package.json').version")
+          version=${{ steps.apk.outputs.version }}
           tag="android-v$version"
-          apk=android/app/build/outputs/apk/debug/app-debug.apk
-          cp "$apk" "fitit-$version.apk"
-          cp "$apk" fitit.apk
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "fitit-$version.apk" fitit.apk --clobber
+            gh release upload "$tag" "fitit-$version.apk" --clobber
           else
-            gh release create "$tag" "fitit-$version.apk" fitit.apk \
+            gh release create "$tag" "fitit-$version.apk" \
               --target "$GITHUB_SHA" \
               --title "Fitit $version para Android" \
               --notes "APK de Fitit $version. Descárgalo desde el móvil e instálalo encima de la versión anterior." \
