@@ -16,6 +16,7 @@ const plugin = vi.hoisted(() => ({
   end: vi.fn(),
   skipRest: vi.fn(),
   ensureNotifications: vi.fn(),
+  candidates: vi.fn(),
   addListener: vi.fn(),
 }))
 vi.mock('@capacitor/core', () => ({ registerPlugin: vi.fn(() => plugin) }))
@@ -58,6 +59,14 @@ describe('platform/session en el APK', () => {
     expect(plugin.skipRest).toHaveBeenCalled()
     expect(plugin.end).toHaveBeenCalled()
     await expect(session.ensureNotifications()).resolves.toEqual({ granted: true })
+  })
+
+  it('le da los ejercicios a los que se puede cambiar desde fuera (fase 5)', async () => {
+    const candidates = [{ exercise: 'Remo', template: null, count: 0 }]
+
+    await session.candidates(1, candidates)
+
+    expect(plugin.candidates).toHaveBeenCalledWith({ workoutId: 1, candidates })
   })
 
   it('llama al nativo de uno en uno, en el orden en que se pidió', async () => {

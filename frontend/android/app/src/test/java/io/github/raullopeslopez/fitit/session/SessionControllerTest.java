@@ -21,6 +21,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.work.testing.WorkManagerTestInitHelper;
 import java.util.ArrayList;
 import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -104,7 +105,11 @@ public class SessionControllerTest {
     }
 
     private void reply(String typed) {
-        Intent intent = new Intent(SessionController.ACTION_OTHER);
+        reply(SessionController.ACTION_OTHER, typed);
+    }
+
+    private void reply(String action, String typed) {
+        Intent intent = new Intent(action);
         Bundle results = new Bundle();
         results.putCharSequence(SessionController.KEY_OTHER, typed);
         RemoteInput.addResultsToIntent(
@@ -122,7 +127,7 @@ public class SessionControllerTest {
 
         Notification n = shown();
         assertNotNull(n);
-        assertEquals("Press banca · Pecho", n.extras.getString(Notification.EXTRA_TITLE));
+        assertEquals("Press banca", n.extras.getString(Notification.EXTRA_TITLE));
         assertEquals("32,5 kg × 12 · 4 series", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
         assertEquals(List.of("+1 serie", "Otra serie", "Saltar"), actions(n));
         // En curso: deslizar no la quita.
@@ -147,7 +152,7 @@ public class SessionControllerTest {
         Notification n = shown();
         assertEquals("Descanso terminado", n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT).toString());
         assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie", "Otra serie"), actions(n));
+        assertEquals(List.of("+1 serie", "Otra serie", "Otro ejercicio"), actions(n));
     }
 
     @Test
@@ -157,7 +162,7 @@ public class SessionControllerTest {
         Notification n = shown();
         assertNull(n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
         assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie", "Otra serie"), actions(n));
+        assertEquals(List.of("+1 serie", "Otra serie", "Otro ejercicio"), actions(n));
     }
 
     @Test
@@ -286,7 +291,7 @@ public class SessionControllerTest {
 
         Notification n = shown();
         assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie", "Otra serie"), actions(n));
+        assertEquals(List.of("+1 serie", "Otra serie", "Otro ejercicio"), actions(n));
         assertEquals(0, store.control().getLong("restEndsAt"));
         assertTrue(heard.contains("changed"));
     }
@@ -357,5 +362,137 @@ public class SessionControllerTest {
 
         assertTrue(store.queue().isEmpty());
         assertNull(shown());
+    }
+
+    // --- Cambiar de ejercicio (fase 5) ----------------------------------------
+
+    private static JSONObject withCandidates(long restEndsAt) throws Exception {
+        return bench(restEndsAt).put("candidates", new JSONArray()
+                .put(SessionControlTest.candidate("Remo", 10, 40.0, 0))
+                .put(SessionControlTest.candidate("Curl", 12, 12.5, 3)));
+    }
+
+    private Notification.Action action(Notification n, String title) {
+        for (Notification.Action a : n.actions) if (a.title.toString().equals(title)) return a;
+        return null;
+    }
+
+    @Test
+    public void otroEjercicioIsATextFieldThatAsksForTheExerciseAndTheSet() throws Exception {
+        SessionController.publish(context, bench(NOW - 1), NOW);
+
+        Notification.Action other = action(shown(), "Otro ejercicio");
+
+        assertNotNull(other);
+        assertEquals(1, other.getRemoteInputs().length);
+        assertEquals("Ejercicio y serie, como Remo 40x10",
+                other.getRemoteInputs()[0].getLabel().toString());
+    }
+
+    @Test
+    public void whileRestingTheThirdButtonIsSaltar() throws Exception {
+        // Android pinta tres botones como mucho: con el descanso corriendo,
+        // «Saltar» ocupa el sitio de «Otro ejercicio», y «Otra serie» entiende
+        // también «Remo 40x10».
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        assertEquals(List.of("+1 serie", "Otra serie", "Saltar"), actions(shown()));
+    }
+
+    @Test
+    public void anotherExerciseWithASetLogsItAndBecomesTheCurrentOne() throws Exception {
+        SessionController.publish(context, withCandidates(NOW - 1), NOW);
+
+        reply(SessionController.ACTION_OTHER_EXERCISE, "remo 42,5x8");
+
+        assertEquals(1, store.queue().size());
+        JSONObject payload = store.head().getJSONObject("payload");
+        assertEquals("Remo", payload.getString("exercise_name"));
+        assertEquals(42.5, payload.getDouble("weight"), 0);
+        assertEquals(8, payload.getInt("reps"));
+        Notification n = shown();
+        assertEquals("Remo", n.extras.getString(Notification.EXTRA_TITLE));
+        assertEquals("42,5 kg × 8 · 1 serie", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertTrue(heard.contains("changed"));
+    }
+
+    @Test
+    public void otraSerieUnderstandsAnExerciseToo() throws Exception {
+        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
+
+        reply("Curl 15x10");
+
+        assertEquals("Curl", store.head().getJSONObject("payload").getString("exercise_name"));
+        assertEquals("Curl", store.control().getString("exercise"));
+        assertEquals(4, store.control().getInt("count"));
+    }
+
+    @Test
+    public void onlyTheNameOfACandidateSwitchesWithoutLogging() throws Exception {
+        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
+
+        reply(SessionController.ACTION_OTHER_EXERCISE, "Remo");
+
+        assertTrue(store.queue().isEmpty());
+        assertEquals("Remo", shown().extras.getString(Notification.EXTRA_TITLE));
+        assertEquals("40 kg × 10 · 0 series",
+                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        // El descanso sigue corriendo.
+        assertEquals(NOW + 83_000, store.control().getLong("restEndsAt"));
+        assertTrue(heard.contains("changed"));
+    }
+
+    @Test
+    public void onlyANameItDoesNotKnowSaysHowToWriteIt() throws Exception {
+        SessionController.publish(context, withCandidates(NOW - 1), NOW);
+
+        reply(SessionController.ACTION_OTHER_EXERCISE, "Peso muerto");
+
+        assertTrue(store.queue().isEmpty());
+        assertEquals("Press banca", shown().extras.getString(Notification.EXTRA_TITLE));
+        assertEquals("Escríbelo con la serie, como Remo 40x10.",
+                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+    }
+
+    @Test
+    public void switchingFromTheWidgetLogsNothingAndTellsTheApp() throws Exception {
+        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
+
+        SessionController.handle(context,
+                new Intent(SessionController.ACTION_SWITCH)
+                        .putExtra(SessionController.EXTRA_EXERCISE, "Curl"),
+                NOW + 5_000);
+
+        assertTrue(store.queue().isEmpty());
+        assertEquals("Curl", store.control().getString("exercise"));
+        assertEquals("12,5 kg × 12 · 3 series",
+                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertTrue(heard.contains("changed"));
+    }
+
+    @Test
+    public void choosingAndCancellingOnlyChangeTheWidget() throws Exception {
+        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
+
+        tap(SessionController.ACTION_CHOOSE);
+        assertTrue(SessionControl.isChoosing(store.control()));
+
+        tap(SessionController.ACTION_CHOOSE_CANCEL);
+        assertFalse(SessionControl.isChoosing(store.control()));
+        assertTrue(store.queue().isEmpty());
+        assertEquals("Press banca", store.control().getString("exercise"));
+    }
+
+    @Test
+    public void theAppCanRefreshTheCandidatesOfItsOwnWorkout() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        SessionController.candidates(context, 1, new JSONArray()
+                .put(SessionControlTest.candidate("Remo", 10, 40.0, 0)), NOW);
+        assertEquals("Remo", SessionControl.candidates(store.control()).get(0).getString("exercise"));
+
+        // Los de otro entreno no pisan el control de éste.
+        SessionController.candidates(context, 99, new JSONArray(), NOW);
+        assertEquals(1, SessionControl.candidates(store.control()).size());
     }
 }

@@ -20,6 +20,14 @@ public final class SessionController {
     /** El mismo +1, desde el widget: además vibra. */
     public static final String ACTION_WIDGET_REPEAT = PREFIX + "WIDGET_REPEAT";
     public static final String ACTION_OTHER = PREFIX + "OTHER";
+    /** «Otro ejercicio» de la notificación: «Remo 40x10», o sólo «Remo». */
+    public static final String ACTION_OTHER_EXERCISE = PREFIX + "OTHER_EXERCISE";
+    /** «Otro ejercicio» del 4×2: enseña los candidatos; «Cancelar» vuelve. */
+    public static final String ACTION_CHOOSE = PREFIX + "CHOOSE";
+    public static final String ACTION_CHOOSE_CANCEL = PREFIX + "CHOOSE_CANCEL";
+    /** Un candidato del 4×2, con su nombre en {@link #EXTRA_EXERCISE}: pasa a estar en curso. */
+    public static final String ACTION_SWITCH = PREFIX + "SWITCH";
+    public static final String EXTRA_EXERCISE = "fitit_exercise";
     /** Los − y + del widget 4×2: cambian la serie que se repite, no registran. */
     public static final String ACTION_WEIGHT_DOWN = PREFIX + "WEIGHT_DOWN";
     public static final String ACTION_WEIGHT_UP = PREFIX + "WEIGHT_UP";
@@ -88,8 +96,28 @@ public final class SessionController {
                     pulse(context);
                     break;
                 case ACTION_OTHER:
+                case ACTION_OTHER_EXERCISE:
+                    // Los dos campos entienden lo mismo: Android pinta tres
+                    // botones como mucho, y con el descanso corriendo el tercero
+                    // es «Saltar», así que «Otra serie» acepta también «Remo 40x10».
                     other(context, store, control, typed(intent), now);
                     break;
+                case ACTION_CHOOSE:
+                    adjust(context, store, SessionControl.choosing(control, true), now);
+                    break;
+                case ACTION_CHOOSE_CANCEL:
+                    adjust(context, store, SessionControl.choosing(control, false), now);
+                    break;
+                case ACTION_SWITCH: {
+                    JSONObject switched =
+                            SessionControl.switchTo(control, intent.getStringExtra(EXTRA_EXERCISE));
+                    // Un candidato que ya no está (la app publicó otra lista entre
+                    // pintar y tocar): se cierra la lista y no cambia nada.
+                    adjust(context, store,
+                            switched != null ? switched : SessionControl.choosing(control, false), now);
+                    if (switched != null) SessionEvents.changed();
+                    break;
+                }
                 case ACTION_WEIGHT_DOWN:
                     adjust(context, store, SessionControl.weight(control, -1), now);
                     break;
@@ -128,15 +156,47 @@ public final class SessionController {
     private static void other(
             Context context, SessionStore store, JSONObject control, String typed, long now)
             throws JSONException {
-        SessionControl.Parsed parsed =
-                SessionControl.parse(typed, control.getJSONObject("template"));
-        if (parsed.error != null) {
-            control.put("notice", parsed.error);
-            store.saveControl(control);
-            refresh(context, control, now);
+        SessionControl.Step step = SessionControl.typed(control, typed, now);
+        if (step.entry != null) {
+            log(context, store, step, now);
             return;
         }
-        log(context, store, SessionControl.other(control, parsed, now), now);
+        // Nada que registrar: un aviso, o un cambio de ejercicio sin serie.
+        adjust(context, store, step.control, now);
+        if (!step.control.optString("exercise").equals(control.optString("exercise"))) {
+            SessionEvents.changed();
+        }
+    }
+
+    /**
+     * La app publica a qué ejercicios se puede cambiar (al añadir uno, al
+     * registrar): sólo cambia la lista del control en curso, y sólo si es de ese
+     * entreno. No toca la serie, el contador ni el descanso, así que no pisa un
+     * toque del widget que llegase mientras tanto.
+     */
+    public static void candidates(Context context, int workoutId, org.json.JSONArray list, long now) {
+        SessionStore store = Session.store(context);
+        JSONObject control = store.control();
+        if (control == null || control.optInt("workoutId", -1) != workoutId) return;
+        try {
+            control.put("candidates", list);
+        } catch (JSONException e) {
+            return;
+        }
+        store.saveControl(control);
+        SessionWidget.updateAll(context);
+    }
+
+    /** La app se abrió con «Nuevo…»: el 4×2 deja de enseñar la lista. */
+    public static void stopChoosing(Context context, long now) {
+        SessionStore store = Session.store(context);
+        JSONObject control = store.control();
+        if (control == null || !SessionControl.isChoosing(control)) return;
+        try {
+            adjust(context, store, SessionControl.choosing(control, false), now);
+        } catch (JSONException e) {
+            // Sin lista que cerrar.
+        }
     }
 
     /** Un − o + del 4×2: la serie que repetirán los siguientes toques, a la vista en todas partes. */

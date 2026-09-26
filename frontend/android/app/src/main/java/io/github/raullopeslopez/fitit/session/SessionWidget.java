@@ -17,7 +17,7 @@ import org.json.JSONObject;
  * El widget 4×1 de la pantalla de inicio.
  *
  * <pre>
- * Press banca · Pecho                    01:23
+ * Press banca                            01:23
  * 32,5 kg × 12 · 4 series        [ +1 serie ]
  * </pre>
  *
@@ -79,9 +79,8 @@ public class SessionWidget extends AppWidgetProvider {
     static void header(Context context, RemoteViews views, JSONObject control, long now) {
         views.setViewVisibility(R.id.widget_idle, View.GONE);
         views.setViewVisibility(R.id.widget_session, View.VISIBLE);
-        views.setTextViewText(R.id.widget_exercise, control.optString("exercise", ""));
-        String group = control.isNull("group") ? "" : control.optString("group", "");
-        views.setTextViewText(R.id.widget_group, group.isEmpty() ? "" : " · " + group);
+        // Sólo el ejercicio: el grupo muscular dejó de pintarse en la fase 5.
+        views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
         views.setOnClickPendingIntent(R.id.widget_open,
                 SessionLaunch.open(context, control.optInt("workoutId", -1)));
 
