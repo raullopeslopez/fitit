@@ -22,12 +22,6 @@ public final class SessionController {
     public static final String ACTION_OTHER = PREFIX + "OTHER";
     /** «Otro ejercicio» de la notificación: «Remo 40x10», o sólo «Remo». */
     public static final String ACTION_OTHER_EXERCISE = PREFIX + "OTHER_EXERCISE";
-    /** «Otro ejercicio» del 4×2: enseña los candidatos; «Cancelar» vuelve. */
-    public static final String ACTION_CHOOSE = PREFIX + "CHOOSE";
-    public static final String ACTION_CHOOSE_CANCEL = PREFIX + "CHOOSE_CANCEL";
-    /** Un candidato del 4×2, con su nombre en {@link #EXTRA_EXERCISE}: pasa a estar en curso. */
-    public static final String ACTION_SWITCH = PREFIX + "SWITCH";
-    public static final String EXTRA_EXERCISE = "fitit_exercise";
     /** Los − y + del widget 4×2: cambian la serie que se repite, no registran. */
     public static final String ACTION_WEIGHT_DOWN = PREFIX + "WEIGHT_DOWN";
     public static final String ACTION_WEIGHT_UP = PREFIX + "WEIGHT_UP";
@@ -102,22 +96,6 @@ public final class SessionController {
                     // es «Saltar», así que «Otra serie» acepta también «Remo 40x10».
                     other(context, store, control, typed(intent), now);
                     break;
-                case ACTION_CHOOSE:
-                    adjust(context, store, SessionControl.choosing(control, true), now);
-                    break;
-                case ACTION_CHOOSE_CANCEL:
-                    adjust(context, store, SessionControl.choosing(control, false), now);
-                    break;
-                case ACTION_SWITCH: {
-                    JSONObject switched =
-                            SessionControl.switchTo(control, intent.getStringExtra(EXTRA_EXERCISE));
-                    // Un candidato que ya no está (la app publicó otra lista entre
-                    // pintar y tocar): se cierra la lista y no cambia nada.
-                    adjust(context, store,
-                            switched != null ? switched : SessionControl.choosing(control, false), now);
-                    if (switched != null) SessionEvents.changed();
-                    break;
-                }
                 case ACTION_WEIGHT_DOWN:
                     adjust(context, store, SessionControl.weight(control, -1), now);
                     break;
@@ -185,18 +163,6 @@ public final class SessionController {
         }
         store.saveControl(control);
         SessionWidget.updateAll(context);
-    }
-
-    /** La app se abrió con «Nuevo…»: el 4×2 deja de enseñar la lista. */
-    public static void stopChoosing(Context context, long now) {
-        SessionStore store = Session.store(context);
-        JSONObject control = store.control();
-        if (control == null || !SessionControl.isChoosing(control)) return;
-        try {
-            adjust(context, store, SessionControl.choosing(control, false), now);
-        } catch (JSONException e) {
-            // Sin lista que cerrar.
-        }
     }
 
     /** Un − o + del 4×2: la serie que repetirán los siguientes toques, a la vista en todas partes. */

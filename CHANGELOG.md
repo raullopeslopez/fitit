@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **APK 0.9.1: `Otro ejercicio` del widget 4×2 sólo sirve para añadir uno.** Tocarlo
+  abre Entreno con el campo `Ejercicio` enfocado, como hacía `Nuevo…`. Se van la
+  lista de cuatro ejercicios con su marca, `Nuevo…`, `Cancelar` y
+  `No hay más ejercicios en este entreno.` Cambiar a un ejercicio que ya está en el
+  entreno sigue pudiéndose desde la notificación (escribiendo `remo`) o en la app.
+
 ### Added
 - **APK 0.9.0: cambiar de ejercicio sin abrir la app.** Fase 5 de
   `docs/widgets-entreno.md`. En el widget 4×2, junto a `Terminar`, sale

@@ -331,20 +331,9 @@ public class SessionControlTest {
     }
 
     @Test
-    public void eachCandidateSaysItsLastMark() throws Exception {
-        List<JSONObject> list = SessionControl.candidates(withCandidates());
-
-        assertEquals("40 kg × 10", SessionControl.mark(list.get(0)));
-        assertEquals("8 reps", SessionControl.mark(list.get(1)));
-        assertEquals("", SessionControl.mark(list.get(2)));
-        assertEquals("12,5 kg × 12", SessionControl.mark(list.get(3)));
-    }
-
-    @Test
     public void switchingMakesTheCandidateTheCurrentOneAndLogsNothing() throws Exception {
         JSONObject control = withCandidates()
                 .put("restEndsAt", NOW + 30_000)
-                .put("choosing", true)
                 .put("notice", "No entendí");
 
         JSONObject after = SessionControl.switchTo(control, "Remo");
@@ -357,14 +346,14 @@ public class SessionControlTest {
         // El descanso sigue y no cuenta como serie: el cierre de dos horas no se mueve.
         assertEquals(NOW + 30_000, after.getLong("restEndsAt"));
         assertEquals(NOW - 60_000, after.getLong("lastSetAt"));
-        assertFalse(after.has("choosing"));
         assertFalse(after.has("notice"));
         // Y el de antes pasa a ser un candidato, para poder volver.
         List<JSONObject> list = SessionControl.candidates(after);
         assertEquals(4, list.size());
         assertEquals("Press banca", list.get(2).getString("exercise"));
         assertEquals(4, list.get(2).getInt("count"));
-        assertEquals("32,5 kg × 12", SessionControl.mark(list.get(2)));
+        assertEquals(12, list.get(2).getJSONObject("template").getInt("reps"));
+        assertEquals(32.5, list.get(2).getJSONObject("template").getDouble("weight"), 0);
         for (JSONObject c : list) assertFalse("Remo".equals(c.getString("exercise")));
     }
 
@@ -479,14 +468,5 @@ public class SessionControlTest {
         SessionControl.Step wrong = SessionControl.typed(withCandidates(), "12 32", NOW);
         assertNull(wrong.entry);
         assertEquals("No entendí «12 32». Escríbela como 32,5x12.", SessionControl.line(wrong.control));
-    }
-
-    @Test
-    public void choosingIsAStateOfTheWidgetThatASetEnds() throws Exception {
-        JSONObject choosing = SessionControl.choosing(bench(), true);
-
-        assertTrue(SessionControl.isChoosing(choosing));
-        assertFalse(SessionControl.isChoosing(SessionControl.choosing(choosing, false)));
-        assertFalse(SessionControl.isChoosing(SessionControl.repeat(choosing, NOW).control));
     }
 }

@@ -1385,8 +1385,8 @@ export default function Workout({
   onExit,
   initialWorkout = null,
   autoRename = false,
-  // Abierta con «Nuevo…» del widget 4×2 (fase 5): el campo de añadir ejercicio
-  // se lleva el foco. Es un contador y no un sí/no, para que dos «Nuevo…»
+  // Abierta con «Otro ejercicio» del widget 4×2: el campo de añadir ejercicio
+  // se lleva el foco. Es un contador y no un sí/no, para que dos toques
   // seguidos sobre el mismo entreno enfoquen dos veces.
   focusAdd = 0,
 }) {
@@ -1483,7 +1483,7 @@ export default function Workout({
   // itself stops asking after the second no.
   const askedNotifications = useRef(false)
   // El ejercicio del control en curso, tal como lo sabe esta pantalla: el que
-  // publicó al registrar, o el que eligieron fuera (widget, notificación). Sólo
+  // publicó al registrar, o el que eligieron fuera (la notificación). Sólo
   // cuando el de fuera es otro, Entreno sube su tarjeta. Fase 5.
   const controlExercise = useRef(null)
   // Lo último que se le dijo al nativo sobre a qué se puede cambiar, para no
@@ -1516,8 +1516,8 @@ export default function Workout({
     }
   }
 
-  // El ejercicio que se eligió fuera (fase 5): «Otro ejercicio» en el widget o en
-  // la notificación. Su tarjeta sube arriba y se abre, y si no la había (un
+  // El ejercicio que se eligió fuera (fase 5): «Otro ejercicio» en la
+  // notificación. Su tarjeta sube arriba y se abre, y si no la había (un
   // nombre escrito en la notificación) se pone sin series, como al añadirlo
   // aquí. Un +1 del mismo ejercicio no mueve nada: sólo cuando cambia.
   function followNativeExercise(control) {
@@ -1812,15 +1812,15 @@ export default function Workout({
     }
   }
 
-  // A qué ejercicios se puede cambiar sin abrir la app (fase 5): el widget 4×2
-  // los enseña y la notificación los reconoce por su nombre. El nativo no tiene
+  // A qué ejercicios se puede cambiar sin abrir la app (fase 5): la
+  // notificación los reconoce por su nombre. El nativo no tiene
   // red para elegir, así que la lista va hecha desde aquí, sin pedir nada nuevo
   // al servidor —sólo lo que esta pantalla ya tiene—, en este orden:
   //   1. lo de este entreno que aún no tiene series, en el orden de la pantalla
   //      (lo añadido y lo que queda de «Repetir», que también son tarjetas);
   //   2. lo ya hecho en este entreno, lo más reciente primero, para volver.
-  // Sin el ejercicio en curso, sin cardio, y como mucho cuatro, que es lo que
-  // cabe en el widget. La marca es la última serie de hoy si la hay, y si no la
+  // Sin el ejercicio en curso, sin cardio, y como mucho cuatro (lo que cabía en
+  // la lista del widget, ya retirada). La marca es la última serie de hoy si la hay, y si no la
   // primera de la última vez (la misma con la que se rellena la tarjeta). Sin
   // marca, `template: null`: el nativo no inventa un peso.
   function candidatesFor(current) {
@@ -2342,7 +2342,7 @@ export default function Workout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candidateKey])
 
-  // «Nuevo…» en el widget: el campo de añadir, con el foco, en cuanto existe.
+  // «Otro ejercicio» en el widget: el campo de añadir, con el foco, en cuanto existe.
   const loaded = Boolean(workout)
   useEffect(() => {
     if (!focusAdd || !loaded) return
