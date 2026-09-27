@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.10.2: Perfil y Macros en el teléfono.** El APK lleva la web empaquetada, así que
+  la pestaña `Perfil` y el cambio a `Macros` (abajo) sólo llegan al teléfono con un APK
+  nuevo. Sube de número para que no se confunda con el 0.10.1, que no los lleva.
 - **Nueva pestaña `Perfil`: los ajustes salen de Comida, Progreso y Entreno.** La barra
   de abajo pasa a `Días · Progreso · Comida · Perfil`. En Perfil, de arriba abajo:
   - **`Peso`**: la tarjeta de siempre, con el campo `Peso` (antes `Peso de hoy`) y la tendencia. Ya no está en
