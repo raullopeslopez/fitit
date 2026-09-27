@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Nueva pestaña `Perfil`: los ajustes salen de Comida, Progreso y Entreno.** La barra
+  de abajo pasa a `Días · Progreso · Comida · Perfil`. En Perfil, de arriba abajo:
+  - **`Peso`**: la tarjeta de siempre, con `Peso de hoy` y la tendencia. Ya no está en
+    Progreso.
+  - **`Objetivo`**: la propuesta de kcal con `Quiero`, `kg por semana`, `Altura (cm)`,
+    `Año de nacimiento`, `Sexo` y `Pasos al día`.
+  - **`Reparto`**: proteína, hidratos y grasa, con el total derivado. El botón se llama
+    `Guardar reparto` (antes `Guardar objetivos`).
+  - **`Reglas`**: el botón `Tus reglas`.
+  - **`Entreno`**: `Descanso` y `Pantalla activa`, que salen del menú `⋯` de Entreno.
+  - **`Salir`**, al final; la cabecera ya no lo lleva.
+
+  Comida se queda con el registro: desaparece la fila `Objetivo diario`, y la tarjeta
+  de macros sigue comparando con el objetivo fijado en Perfil.
+
 ### Fixed
 - **APK 0.10.1: borrar un entreno ya no deja al widget y a la notificación en él.**
   Antes seguían enseñándolo (`Dominadas · 5 series`) y su `+1` mandaba series a un

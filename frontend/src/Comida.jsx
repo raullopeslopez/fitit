@@ -16,12 +16,10 @@ import {
   recomputeFoodDay,
   scanBarcode,
   searchFoods,
-  setTargets,
 } from './api.js'
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
-import Objetivo from './Objetivo.jsx'
-import Reglas, { Veredictos } from './Reglas.jsx'
+import { Veredictos } from './Reglas.jsx'
 import PlanDelDia, { Semana, lunesDe } from './Plan.jsx'
 import {
   MACROS,
@@ -31,7 +29,6 @@ import {
   formatAmount,
   agruparPorPlato,
   formatMacro,
-  kcalFromMacros,
   macroBar,
   momentForDay,
   previewNutrients,
@@ -117,9 +114,6 @@ export default function Comida() {
   // Van juntas porque un veredicto sin su regla es un id y un estado.
   const [reglas, setReglas] = useState([])
   const [veredictos, setVeredictos] = useState([])
-  // La pantalla de reglas, que ocupa la pantalla entera: leerlas, añadir y
-  // retirar no cabe en el hueco de una hoja.
-  const [reglasOpen, setReglasOpen] = useState(false)
   // El plan de la semana a la que pertenece el día que se está mirando. `null`
   // es «esa semana no se ha generado», que no es lo mismo que «no ha llegado»:
   // la pantalla ofrece generarla.
@@ -146,10 +140,6 @@ export default function Comida() {
   // El filtro que abre el chip de nutrientes desconocidos: sólo las entradas
   // a las que les falta algo, para poder corregirlas sin buscarlas a ojo.
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
-  // El objetivo diario, en su propio cajón — no es del día, es del perfil.
-  const [targetOpen, setTargetOpen] = useState(false)
-  const [targets, setTargets_] = useState({ protein: '', carbs: '', fat: '' })
-  const [savingTarget, setSavingTarget] = useState(false)
   // La última entrada borrada, con un «Deshacer» que vive donde estaba —no
   // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
   const [deleted, setDeleted] = useState(null)
@@ -218,7 +208,6 @@ export default function Comida() {
   const isToday = dayIso === foodDayIso()
   const totals = day?.totals ?? {}
   const note = unknownNote(day?.unknown)
-  const hasTarget = day?.target_kcal != null
   const editingEntry = editing != null ? (day?.entries.find((e) => e.id === editing) ?? null) : null
 
   async function afterWrite() {
@@ -275,33 +264,6 @@ export default function Comida() {
     }
   }
 
-  function openTarget() {
-    const show = (value) => (value != null ? String(value) : '')
-    setTargets_({
-      protein: show(day?.target_protein),
-      carbs: show(day?.target_carbs),
-      fat: show(day?.target_fat),
-    })
-    setTargetOpen(true)
-  }
-
-  async function saveTarget(values) {
-    const parse = (raw) => (String(raw).trim() === '' ? null : Number(String(raw).replace(',', '.')))
-    setSavingTarget(true)
-    try {
-      // Sin kcal: las deriva el servidor del reparto (`atwater_kcal`).
-      await setTargets({
-        protein: parse(values.protein),
-        carbs: parse(values.carbs),
-        fat: parse(values.fat),
-      })
-      setTargetOpen(false)
-      await load(dayIso)
-    } finally {
-      setSavingTarget(false)
-    }
-  }
-
   return (
     <div className="comida">
       <div className="food-daynav">
@@ -334,74 +296,6 @@ export default function Comida() {
           ›
         </button>
       </div>
-
-      {/* El objetivo es del perfil, no del día: se fija una vez y se corrige
-          rara vez, así que vive en un cajón callado como el de las preferencias
-          de Entreno (DESIGN.md: «sticky preferences count as rare actions»),
-          no en un control permanente sobre las cifras que sí cambian a diario.
-          Lo que abre es una hoja, no un panel en línea: es corto y edita algo
-          concreto, que es la forma que le toca. */}
-      <div className="food-target">
-        <button
-          type="button"
-          className="food-target-toggle"
-          aria-expanded={targetOpen}
-          onClick={() => (targetOpen ? setTargetOpen(false) : openTarget())}
-        >
-          <span>Objetivo diario</span>
-          <span className="food-target-summary">
-            {hasTarget ? `${formatMacro(day.target_kcal)} kcal` : 'Sin fijar'}
-          </span>
-        </button>
-      </div>
-
-      {targetOpen && (
-        <div className="sheet-scrim" onClick={() => setTargetOpen(false)}>
-          <div
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Objetivos diarios"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* El asa va aquí, arriba del todo: vivía dentro del formulario de
-                reparto y, al entrar una sección por encima, quedaba en mitad de
-                la hoja — que es donde un asa deja de leerse como un asa. */}
-            <Asa />
-            {/* De dónde salen las kcal, encima del reparto: el objetivo da el
-                total y las reglas lo reparten — son dos capas y se leen en ese
-                orden. */}
-            <Objetivo
-              onAccepted={async () => {
-                await load(dayIso)
-                setTargetOpen(false)
-              }}
-            />
-            <p className="reglas-puerta">
-              <button type="button" className="dish-new" onClick={() => setReglasOpen(true)}>
-                Tus reglas
-              </button>
-            </p>
-            <Objetivos
-              initial={targets}
-              objetivo={day?.target_kcal ?? null}
-              busy={savingTarget}
-              onSave={saveTarget}
-              onCancel={() => setTargetOpen(false)}
-            />
-          </div>
-        </div>
-      )}
-
-      {reglasOpen && (
-        <Reglas
-          onChanged={async () => {
-            await loadSiempre()
-            await load(dayIso)
-          }}
-          onClose={() => setReglasOpen(false)}
-        />
-      )}
 
       {semanaOpen && plan && (
         <Semana
@@ -563,112 +457,6 @@ export default function Comida() {
         </div>
       )}
     </div>
-  )
-}
-
-// Los objetivos diarios: gramos por macro, y las kcal como consecuencia.
-//
-// Antes se fijaban las kcal y la proteína, cada una por su lado, y eso dejaba
-// guardar un total que sus propios macros no daban —2.600 kcal con 160 g de
-// proteína, 300 de hidratos y 80 de grasa son 2.560— con las dos cifras en
-// pantalla y nada que dijera cuál mandaba. Ahora se reparte en gramos y el total
-// sale de ahí: una sola cifra que no se puede contradecir.
-//
-// El total se recalcula al teclear, antes de guardar nada, porque el reparto es
-// justo lo que hay que ver mientras se decide. La cuenta es la misma que hace el
-// servidor al guardar (`atwater_kcal`), y hay una prueba que ata las dos.
-function Objetivos({ initial, objetivo = null, busy, onSave, onCancel }) {
-  const [values, setValues] = useState(initial)
-  const number = (raw) => {
-    const value = Number(String(raw).replace(',', '.'))
-    return String(raw).trim() === '' || !Number.isFinite(value) ? null : value
-  }
-  const macros = {
-    protein: number(values.protein),
-    carbs: number(values.carbs),
-    fat: number(values.fat),
-  }
-  // Sin un solo macro repartido no hay total, y `null` se imprime `—`. Un 0 aquí
-  // diría «tu objetivo es no comer», que es otra afirmación — y además es la que
-  // el servidor se niega a guardar.
-  const derived = Object.values(macros).some((v) => v != null) ? kcalFromMacros(macros) : null
-  const set = (key) => (e) => setValues({ ...values, [key]: e.target.value })
-
-  return (
-    <form
-      className="sheet-body food-goals"
-      onSubmit={(e) => {
-        e.preventDefault()
-        onSave(values)
-      }}
-    >
-      <header className="food-detail-head">
-        <h2 className="food-detail-name">Objetivos diarios</h2>
-        <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
-          Cerrar
-        </button>
-      </header>
-
-      <div className="field">
-        <label htmlFor="target-protein">Proteína (g)</label>
-        <input
-          id="target-protein"
-          inputMode="decimal"
-          placeholder="p. ej. 160"
-          value={values.protein}
-          onChange={set('protein')}
-        />
-      </div>
-      <div className="row">
-        <div className="field stepper-field">
-          <label htmlFor="target-carbs">Hidratos (g)</label>
-          <input
-            id="target-carbs"
-            inputMode="numeric"
-            placeholder="300"
-            value={values.carbs}
-            onChange={set('carbs')}
-          />
-        </div>
-        <div className="field stepper-field">
-          <label htmlFor="target-fat">Grasa (g)</label>
-          <input
-            id="target-fat"
-            inputMode="numeric"
-            placeholder="80"
-            value={values.fat}
-            onChange={set('fat')}
-          />
-        </div>
-      </div>
-
-      {/* Sólo lectura, y por eso no es un campo: es lo que sale de lo de arriba,
-          no otra cosa que decidir. */}
-      <p className="card food-goals-total">
-        <span className="food-detail-label">Total derivado</span>
-        <span className="food-detail-value">{formatMacro(derived)} kcal</span>
-      </p>
-
-      {/* Dos cifras diciendo ser tu objetivo —la aceptada arriba y la que sale
-          de repartir aquí— y nada que dijera cuál manda. Manda la de arriba: el
-          objetivo da el total y esto lo reparte. Así que aquí se dice cuánto
-          falta por repartir, que convierte la contradicción en una cuenta. */}
-      {objetivo != null && derived != null && Math.abs(objetivo - derived) > 1 && (
-        <p className="hint food-goals-gap">
-          Tu objetivo son {formatMacro(objetivo)} kcal:{' '}
-          {derived < objetivo
-            ? `te faltan ${formatMacro(objetivo - derived)} por repartir.`
-            : `te sobran ${formatMacro(derived - objetivo)}.`}
-        </p>
-      )}
-
-      <button type="submit" className="primary btn-full" disabled={busy}>
-        Guardar objetivos
-      </button>
-      <p className="hint food-goals-foot">
-        Las kcal no se teclean: salen de repartir los gramos.
-      </p>
-    </form>
   )
 }
 

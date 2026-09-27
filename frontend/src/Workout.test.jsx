@@ -884,12 +884,10 @@ describe('Workout', () => {
   })
 
   it('does not start a countdown when rest is switched off', async () => {
+    // Rest is chosen in Perfil; Entreno only honours it.
+    localStorage.setItem('fitit_rest_seconds', '0')
     renderWorkout()
     await screen.findByLabelText('Ejercicio')
-    // Rest lives in the header overflow now, under its "Descanso" label.
-    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^sin$/i }))
-    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
 
     await logOneSet()
 
@@ -1903,13 +1901,19 @@ describe('Workout', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('still reaches rest from the header overflow', async () => {
+    // Rest and the screen staying lit are chosen once, in Perfil, with the rest
+    // of what gets set rarely. The overflow keeps only what acts on this session.
+    it('leaves rest and the screen to Perfil', async () => {
       renderWorkout()
       await screen.findByLabelText('Ejercicio')
 
       await openSettings()
-      expect(screen.getByRole('group', { name: /descanso entre series/i })).toBeInTheDocument()
-      // The weight unit used to live beside it. It has no toggle any more.
+      expect(
+        screen.queryByRole('group', { name: /descanso entre series/i }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('group', { name: /pantalla encendida/i }),
+      ).not.toBeInTheDocument()
       expect(screen.queryByRole('group', { name: /^unidad$/i })).not.toBeInTheDocument()
     })
   })
@@ -3038,20 +3042,6 @@ describe('Workout', () => {
       expect(wakelock.holdScreenAwake).toHaveBeenCalled()
       view.unmount()
       expect(release).toHaveBeenCalled()
-    })
-
-    it('lets go the moment it is switched off', async () => {
-      const release = vi.fn()
-      wakelock.holdScreenAwake.mockReturnValue(release)
-      renderWorkout()
-      await screen.findByLabelText('Ejercicio')
-
-      await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
-      const toggle = screen.getByRole('group', { name: /pantalla encendida/i })
-      await userEvent.click(within(toggle).getByRole('button', { name: 'No' }))
-
-      expect(release).toHaveBeenCalled()
-      expect(localStorage.getItem('fitit_screen_awake')).toBe('off')
     })
 
     it('does not take the screen when the session was told not to', async () => {

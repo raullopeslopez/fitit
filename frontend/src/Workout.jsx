@@ -55,7 +55,6 @@ import {
 import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
 import {
-  REST_OPTIONS,
   forgetAddedExercise,
   getAddedExercises,
   getRepeatTemplate,
@@ -64,9 +63,7 @@ import {
   getRestSeconds,
   getRestUntil,
   getScreenAwake,
-  setRestSeconds,
   setRestUntil,
-  setScreenAwake,
 } from './prefs.js'
 import { showKg } from './units.js'
 import { nativeSession, session } from './platform/session.js'
@@ -1461,12 +1458,11 @@ export default function Workout({
   const [newKind, setNewKind] = useState('strength')
   // Rest countdown. `restEndsAt` resumes from storage, so leaving Entreno
   // mid-rest and coming back picks the clock up where it actually is.
-  const [restSeconds, setRestSecondsState] = useState(getRestSeconds)
+  const [restSeconds] = useState(getRestSeconds)
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
-  // The screen staying lit while you are at the rack — a once-a-session choice,
-  // so it lives in the header overflow (DESIGN.md: rare actions don't take
-  // content-weight controls).
-  const [screenAwake, setScreenAwakeState] = useState(getScreenAwake)
+  // The screen staying lit while you are at the rack. Chosen in Perfil with the
+  // rest of what gets set once; read here.
+  const [screenAwake] = useState(getScreenAwake)
   // Counter behind the local ids of sets the server hasn't acknowledged yet.
   // It starts again on every mount, and the queue does not: a set left unsent
   // from the last time the app was open is already `tmp-1`. So the id carries
@@ -1512,19 +1508,6 @@ export default function Workout({
     setRestUntil(until)
     setRestEndsAt(until)
     return until
-  }
-
-  function chooseRestSeconds(seconds) {
-    setRestSeconds(seconds)
-    setRestSecondsState(seconds)
-    // Turning rest off should stop the clock you're looking at, not just the
-    // next one.
-    if (seconds <= 0) endRest()
-  }
-
-  function chooseScreenAwake(on) {
-    setScreenAwake(on)
-    setScreenAwakeState(on)
   }
 
   // Retire the bar the moment it runs out, without waiting for the next tick.
@@ -2375,55 +2358,8 @@ export default function Workout({
               </button>
               {menuOpen && (
                 <div className="head-menu-pop">
-                  {/* Rest is a once-a-session choice and was pinned above every
-                      exercise card, ahead of the thing you came here to do. The
-                      kg/lb toggle that used to sit beside it is gone: a sticky
-                      unit you can flip mid-session corrupts the log. */}
-                  <div className="menu-pref">
-                    <span className="prefs-label">Descanso</span>
-                    <div
-                      className="unit-toggle"
-                      role="group"
-                      aria-label="Descanso entre series"
-                    >
-                      {REST_OPTIONS.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          className="unit-option"
-                          aria-pressed={restSeconds === s}
-                          onClick={() => chooseRestSeconds(s)}
-                        >
-                          {s === 0 ? 'Sin' : `${s}s`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {/* The screen not going dark removes the trip to the pocket
-                      outright while you are standing at the rack. */}
-                  <div className="menu-pref">
-                    <span className="prefs-label">Pantalla activa</span>
-                    <div
-                      className="unit-toggle"
-                      role="group"
-                      aria-label="Mantener la pantalla encendida"
-                    >
-                      {[
-                        [true, 'Sí'],
-                        [false, 'No'],
-                      ].map(([on, label]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="unit-option"
-                          aria-pressed={screenAwake === on}
-                          onClick={() => chooseScreenAwake(on)}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Rest and the screen staying lit are chosen once, in
+                      Perfil; this menu keeps only what acts on this session. */}
                   {/* Only in the APK, in the spot the lock-screen switch used to
                       have: takes the notification in progress away. The sets
                       stay — a session in Fitit is a day, and there is nothing
