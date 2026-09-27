@@ -67,6 +67,8 @@ async def trend(
         kg=resultado.kg,
         weigh_ins=resultado.pesadas,
         up_to=resultado.hasta,
+        # `_pesadas` viene de la más reciente a la más antigua.
+        last_kg=pesadas[0].kg if pesadas else None,
     )
 
 

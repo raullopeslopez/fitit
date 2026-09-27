@@ -6,7 +6,12 @@ import { logBodyWeight, weightTrend } from './api.js'
 
 vi.mock('./api.js')
 
-const trend = (kg, weigh_ins, up_to = '2026-09-18') => ({ kg, weigh_ins, up_to })
+const trend = (kg, weigh_ins, up_to = '2026-09-18', last_kg = null) => ({
+  kg,
+  weigh_ins,
+  up_to,
+  last_kg,
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -14,45 +19,39 @@ beforeEach(() => {
 })
 
 describe('Peso', () => {
-  it('prints the trend, not the last weigh-in', async () => {
-    weightTrend.mockResolvedValue(trend(78.6, 3))
-    render(<Weight />)
-    expect(await screen.findByText('78,6')).toBeInTheDocument()
+  // La cifra grande es lo que marcó la báscula: tras pesarte, un «—» se leía
+  // como que no se había guardado. La tendencia va debajo, en pequeño.
+  it('prints the last weigh-in as the figure, even before there is a trend', async () => {
+    weightTrend.mockResolvedValue(trend(null, 1, '2026-09-18', 101))
+    const { container } = render(<Weight />)
+    expect(await screen.findByText('101')).toBeInTheDocument()
+    expect(container.querySelector('.weight-stamp').textContent).toBe(
+      'ÚLTIMA PESADA · VIE 18 SEP',
+    )
+    expect(container.querySelector('.weight-trend')).toBeNull()
   })
 
-  it('says how many weigh-ins hold the trend up, and when it was measured', async () => {
-    weightTrend.mockResolvedValue(trend(78.6, 3, '2026-09-18'))
+  it('puts the trend under the figure, with how many weigh-ins hold it', async () => {
+    weightTrend.mockResolvedValue(trend(78.6, 3, '2026-09-18', 78.9))
     const { container } = render(<Weight />)
-    await screen.findByText('78,6')
-    const stamp = container.querySelector('.weight-stamp').textContent
-    expect(stamp).toContain('3 PESADAS')
-    expect(stamp).toContain('VIE 18 SEP')
+    expect(await screen.findByText('78,9')).toBeInTheDocument()
+    expect(container.querySelector('.weight-trend').textContent).toBe(
+      'TENDENCIA 78,6 KG · 3 PESADAS',
+    )
   })
 
   // La regla del `NULL`: desconocido se imprime con la misma tinta que una
   // cifra. Pintarlo en `--muted` lo degradaría a decoración.
-  it('prints an em dash for a trend nobody can compute yet, in full ink', async () => {
-    weightTrend.mockResolvedValue(trend(null, 1, '2026-09-18'))
-    const { container } = render(<Weight />)
-    const figure = await screen.findByText('—')
-    expect(figure).toBeInTheDocument()
-    expect(figure.className).not.toContain('muted')
-  })
-
-  it('names the right failure: one weigh-in is not no weigh-ins', async () => {
-    weightTrend.mockResolvedValue(trend(null, 1, '2026-09-18'))
-    render(<Weight />)
-    expect(await screen.findByText(/Una pesada no es una tendencia/)).toBeInTheDocument()
-  })
-
-  it('and says something else when you have never weighed at all', async () => {
+  it('prints an em dash when you have never weighed, in full ink', async () => {
     weightTrend.mockResolvedValue(trend(null, 0, null))
     render(<Weight />)
-    expect(await screen.findByText(/Todav[ií]a no te has pesado/)).toBeInTheDocument()
+    const figure = await screen.findByText('—')
+    expect(figure.className).not.toContain('muted')
+    expect(screen.getByText(/Todav[ií]a no te has pesado/)).toBeInTheDocument()
   })
 
-  it('saves what you type and refreshes the trend', async () => {
-    weightTrend.mockResolvedValueOnce(trend(null, 1)).mockResolvedValue(trend(78.7, 2))
+  it('saves what you type and shows it', async () => {
+    weightTrend.mockResolvedValueOnce(trend(null, 0, null)).mockResolvedValue(trend(78.7, 2, '2026-09-18', 78.9))
     render(<Weight />)
     await screen.findByText('—')
 
@@ -62,7 +61,7 @@ describe('Peso', () => {
     await waitFor(() => expect(logBodyWeight).toHaveBeenCalled())
     // La coma decimal es como se escribe aquí; la API habla en punto.
     expect(logBodyWeight.mock.calls[0][0].kg).toBe(78.9)
-    expect(await screen.findByText('78,7')).toBeInTheDocument()
+    expect(await screen.findByText('78,9')).toBeInTheDocument()
   })
 
   it('does not send a weigh-in that is not a number', async () => {

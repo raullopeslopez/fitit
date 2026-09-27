@@ -70,3 +70,13 @@ def then_trend_count(client, count):
 @then(parsers.parse("my trend is measured up to {on}"))
 def then_trend_up_to(client, on):
     assert _trend(client)["up_to"] == on
+
+
+@then(parsers.parse("my last weigh-in is {kg:g} kg"))
+def then_last_is(client, kg):
+    assert _trend(client)["last_kg"] == kg
+
+
+@then("my last weigh-in is unknown")
+def then_last_unknown(client):
+    assert _trend(client)["last_kg"] is None
