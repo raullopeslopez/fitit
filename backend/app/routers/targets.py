@@ -79,7 +79,15 @@ async def _medido(session: AsyncSession, user_id: int):
     filas = (
         await session.execute(
             select(LogEntry.log_date, func.sum(LogEntry.kcal))
-            .where(LogEntry.user_id == user_id, LogEntry.log_date >= desde)
+            # Hoy no: todavía se está comiendo, y un día a medias cuenta en la
+            # media como uno entero. `date.today()` es la fecha del servidor, no
+            # el día alimentario con su corte de las 04:00 — para excluir el
+            # día en curso basta, salvo un par de horas de madrugada.
+            .where(
+                LogEntry.user_id == user_id,
+                LogEntry.log_date >= desde,
+                LogEntry.log_date < date.today(),
+            )
             .group_by(LogEntry.log_date)
         )
     ).all()
@@ -105,13 +113,10 @@ async def _medido(session: AsyncSession, user_id: int):
     if primera.kg is None or ultima.kg is None:
         # Con una sola pesada por mitad no hay tendencia, y una pesada no es una
         # tendencia. Mejor caer a la fórmula que medir sobre ruido.
-        primera_kg = pesadas[0][1]
-        ultima_kg = pesadas[-1][1]
-    else:
-        primera_kg, ultima_kg = primera.kg, ultima.kg
+        return None
 
     dias = (pesadas[-1][0] - pesadas[0][0]).days or len(por_dia)
-    return gasto_medido(kcal_por_dia=por_dia, dias=dias, delta_kg=ultima_kg - primera_kg)
+    return gasto_medido(kcal_por_dia=por_dia, dias=dias, delta_kg=ultima.kg - primera.kg)
 
 
 @router.get("", response_model=TargetProfileOut)

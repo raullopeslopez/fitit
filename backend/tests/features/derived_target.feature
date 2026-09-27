@@ -34,6 +34,24 @@ Feature: The calories stop being typed
     When I ask what I should eat
     Then it proposes more than 2000 kcal
 
+  # Una pesada suelta mide el agua de ese día. Dos, separadas por tres semanas,
+  # meten ese ruido multiplicado por 7.700 kcal en el gasto: no es una tendencia.
+  Scenario: One weigh-in at each end is not enough to measure
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have eaten 2600 kcal a day for three weeks and only weighed in at the start and the end
+    When I ask what I should eat
+    Then it says the number came from the formula
+
+  # Hoy todavía se está comiendo: contarlo como un día entero baja la media.
+  Scenario: Today's unfinished diary does not count
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have eaten 2600 kcal a day for three weeks and not moved on the scale
+    And today I have only logged 500 kcal so far
+    When I ask what I should eat
+    Then it proposes 2600 kcal
+
   Scenario: Without knowing my body there is no formula either
     Given my goal is to maintain
     When I ask what I should eat
