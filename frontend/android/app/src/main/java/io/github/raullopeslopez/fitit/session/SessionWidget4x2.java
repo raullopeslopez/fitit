@@ -152,9 +152,9 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
     /**
      * Sin entreno, dos pantallas que cambian al tocar los puntitos (DESIGN.md,
-     * «Sin entreno»): empezar, con el último entreno; y los pasos de hoy frente al
-     * objetivo. Sin pasos de hoy sólo hay la primera, y los puntitos no se ven
-     * (invisibles, no fuera: la primera pantalla no se mueve de sitio).
+     * «Sin entreno»): primero los pasos de hoy frente al objetivo; luego empezar,
+     * con el último entreno. Sin pasos de hoy sólo hay la de empezar, y los
+     * puntitos no se ven (invisibles, no fuera: la pantalla no se mueve de sitio).
      */
     static RemoteViews idle(Context context, RemoteViews views, LocalDate today) {
         SessionWidget.idle(context, views);
@@ -166,8 +166,9 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
         IdleSummary.Steps steps = IdleSummary.steps(summary, today);
         boolean second = steps != null && Session.store(context).idlePage() == 1;
-        views.setViewVisibility(R.id.widget_idle_start, second ? View.GONE : View.VISIBLE);
-        views.setViewVisibility(R.id.widget_idle_steps, second ? View.VISIBLE : View.GONE);
+        boolean showSteps = steps != null && !second;
+        views.setViewVisibility(R.id.widget_idle_start, showSteps ? View.GONE : View.VISIBLE);
+        views.setViewVisibility(R.id.widget_idle_steps, showSteps ? View.VISIBLE : View.GONE);
         views.setViewVisibility(R.id.widget_dots, steps == null ? View.INVISIBLE : View.VISIBLE);
         views.setImageViewResource(R.id.widget_dot_1, second ? R.drawable.widget_dot_off : R.drawable.widget_dot_on);
         views.setImageViewResource(R.id.widget_dot_2, second ? R.drawable.widget_dot_on : R.drawable.widget_dot_off);

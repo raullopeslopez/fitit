@@ -413,13 +413,9 @@ public class SessionWidget4x2Test {
     }
 
     @Test
-    public void tappingTheDotsSwitchesToTodaysStepsAndBack() throws Exception {
+    public void withStepsTodayTheyAreTheFirstPageAndTheDotsGoToStart() throws Exception {
         summary(stepsToday(8432, 7910).put("stepsGoal", 10000));
         assertTrue(shown(R.id.widget_dots));
-        assertTrue(shown(R.id.widget_idle_start));
-
-        tapDots();
-
         assertFalse(shown(R.id.widget_idle_start));
         assertTrue(shown(R.id.widget_idle_steps));
         assertEquals("8.432", text(R.id.widget_steps));
@@ -428,19 +424,23 @@ public class SessionWidget4x2Test {
         assertTrue(shown(R.id.widget_steps_bar));
         ProgressBar bar = view().findViewById(R.id.widget_steps_bar);
         assertEquals(843, bar.getProgress());
-        // Y se acuerda: repintar no la devuelve a la primera.
-        SessionWidget.updateAll(context);
-        assertTrue(shown(R.id.widget_idle_steps));
 
         tapDots();
 
         assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_idle_steps));
+        // Y se acuerda: repintar no la devuelve a los pasos.
+        SessionWidget.updateAll(context);
+        assertTrue(shown(R.id.widget_idle_start));
+
+        tapDots();
+
+        assertTrue(shown(R.id.widget_idle_steps));
     }
 
     @Test
     public void aGoalMetFillsTheBarAndStopsThere() throws Exception {
         summary(stepsToday(12000, null).put("stepsGoal", 10000));
-        tapDots();
 
         assertEquals(1000, ((ProgressBar) view().findViewById(R.id.widget_steps_bar)).getProgress());
         // Sin media, la línea no se inventa una.
@@ -450,7 +450,6 @@ public class SessionWidget4x2Test {
     @Test
     public void withNoGoalThereIsNoBarAndNoSlash() throws Exception {
         summary(stepsToday(8432, 7910));
-        tapDots();
 
         assertEquals("8.432", text(R.id.widget_steps));
         assertFalse(shown(R.id.widget_steps_goal));
