@@ -225,13 +225,16 @@ def when_skip(client, respuesta, slot):
 
 
 @when(
-    parsers.parse("I try to confirm the {slot:w} of the last day of the week"),
+    parsers.parse("I try to confirm the {slot:w} of another day of the week"),
     target_fixture="negativa",
 )
 def when_confirm_other_day(client, respuesta, slot):
     from datetime import timedelta
 
-    otro = (_lunes() + timedelta(days=6)).isoformat()
+    # El domingo, salvo que hoy sea domingo: entonces el lunes. Con el domingo
+    # fijo, el escenario fallaba justo el día en que «otro día» era hoy.
+    domingo = (_lunes() + timedelta(days=6)).isoformat()
+    otro = domingo if domingo != _hoy() else _lunes().isoformat()
     entrada = _entrada(respuesta, otro, slot)
     resp = client.patch(f"/plans/entries/{entrada['id']}", json={"status": "done"})
     assert resp.status_code == 422, resp.text
