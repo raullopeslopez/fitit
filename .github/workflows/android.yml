@@ -33,25 +33,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+      # Guarda ~/.gradle entre runs: la distribución de Gradle, las dependencias y
+      # la caché de build. Sin esto cada run empezaba en frío y se iban ~6 min en
+      # bajar y compilar lo mismo que el anterior. Sólo `main` escribe la caché;
+      # los PR la leen.
+      - uses: gradle/actions/setup-gradle@v4
       # Sin setup-android: el runner de ubuntu ya trae el SDK (ANDROID_HOME) y
       # Gradle baja lo que falte. La acción pedía el paquete `tools`, retirado.
       - name: Install deps
         run: npm install
       - name: Build web bundle + sync Android
         run: npm run android:build
-      # Los tests nativos (JUnit + Robolectric, sin emulador). El hook de
-      # pre-commit no los pasa porque necesitan el SDK de Android: éste es su
-      # sitio. Antes de compilar, para que un APK roto por dentro no se publique.
-      - name: Native unit tests
+      # Los tests nativos (JUnit + Robolectric, sin emulador) y el APK, en una sola
+      # llamada a Gradle: dos llamadas eran dos arranques y dos configuraciones del
+      # proyecto. El hook de pre-commit no pasa los tests nativos porque necesitan
+      # el SDK de Android: éste es su sitio. Gradle corre los tests antes de
+      # ensamblar y para si fallan, así que un APK roto por dentro no se publica.
+      - name: Native unit tests + assemble APK
         working-directory: frontend/android
-        run: ./gradlew testDebugUnitTest --no-daemon
-      - name: Assemble APK
-        working-directory: frontend/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew testDebugUnitTest assembleDebug
       # El APK sale siempre con su versión en el nombre (`fitit-0.7.1.apk`): en
       # la carpeta de descargas del teléfono tiene que verse cuál es cuál.
       - name: Name the APK after its version
