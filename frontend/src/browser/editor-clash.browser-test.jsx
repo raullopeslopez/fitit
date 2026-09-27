@@ -21,7 +21,7 @@
 //   salía del orden de tabulación; ella no, con los mismos píxeles ocupados por
 //   el `select` del grupo.
 import { afterEach, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import {
@@ -188,7 +188,7 @@ describe('un choque rechazado no dibuja la fusión', () => {
   })
 })
 
-describe('lo que el panel tapa sale del orden de tabulación', () => {
+describe('lo que la hoja tapa queda fuera de alcance', () => {
   /**
    * Deja la nota escrita y luego vaciada, que es lo que hace nacer la fila de
    * deshacer — la que vive en la tarjeta y sobrevive al cierre del panel.
@@ -214,70 +214,25 @@ describe('lo que el panel tapa sale del orden de tabulación', () => {
     )
   }
 
-  /** El barrido de siempre, con la fila de deshacer en pantalla. */
-  async function sweepWith(panel) {
-    const problems = []
-    for (const y of scrollStops(50)) {
-      await scrollPageTo(y)
-      const panelRect = panel.getBoundingClientRect()
-      if (panelRect.bottom <= 0 || panelRect.top >= window.innerHeight) continue
-      for (const el of pageControls(panel)) {
-        const box = paintedRect(el)
-        if (!box) continue
-        const { state, cross, fraction } = coverage(panelRect, box)
-        if (state === 'clear') continue
-        if (state === 'sliced') {
-          problems.push(
-            `scroll ${y}: PARTIDO ${name(el)} (${cross.height.toFixed(1)} px, ${(fraction * 100).toFixed(1)} %)`,
-          )
-          continue
-        }
-        if (!el.hasAttribute('inert')) {
-          problems.push(`scroll ${y}: TAPADO PERO VIVO ${name(el)}`)
-        }
-      }
-    }
-    return problems
-  }
-
-  it('Entreno · con la fila de deshacer la nota en pantalla, nada queda tapado y vivo', async () => {
-    await mountEntreno()
-    await clearTheNote()
-    const panel = await openEditor(user)
-    expect(await sweepWith(panel)).toEqual([])
-  })
-
-  // En Progreso el panel sí llega a taparla —el disparador vive al pie de un
-  // documento largo, así que el panel tiene que subir su propia altura entera y
-  // su canto de arriba pasa por encima de la fila—. Ahí es donde la regla de la
-  // casa se puede comprobar en lugar de suponerse: **o limpio, o tapado entero
-  // y fuera del orden de tabulación**, y sobre este control en concreto, que es
-  // el que se midió vivo debajo del panel con los píxeles del `select` del
-  // grupo delante.
-  it('Progreso · la fila de deshacer la nota, tapada por el panel, no es tabulable', async () => {
-    await mountProgreso()
-    const undo = await clearTheNote()
-    const panel = await openEditor(user)
-    expect(await sweepWith(panel)).toEqual([])
-
-    let everCovered = false
-    for (const y of scrollStops(50)) {
-      await scrollPageTo(y)
-      const p = panel.getBoundingClientRect()
+  // Con la hoja arriba, lo de detrás —la fila de deshacer incluida— queda
+  // fuera de alcance: ni tabulable ni tocable. Es lo que respalda el
+  // `aria-modal` de la hoja; sin esto sería una promesa sin cumplir.
+  for (const [screenName, mount] of [
+    ['Entreno', mountEntreno],
+    ['Progreso', mountProgreso],
+  ]) {
+    it(`${screenName} · la fila de deshacer la nota queda inerte y tapada bajo la hoja`, async () => {
+      await mount()
+      const undo = await clearTheNote()
+      await openEditor(user)
+      expect(undo.closest('[inert]')).not.toBeNull()
       const r = undo.getBoundingClientRect()
-      const covered = r.left < p.right && r.right > p.left && r.top < p.bottom && r.bottom > p.top
-      if (!covered) continue
-      everCovered = true
-      expect(undo.hasAttribute('inert'), `scroll ${y}: tapada y viva`).toBe(true)
-      // Y sus píxeles pertenecen al panel, no a ella: quien recibe el toque en
-      // su centro es lo que hay delante.
-      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
-      expect(undo.contains(hit)).toBe(false)
-    }
-    // Si un día el panel deja de taparla, esta prueba deja de medir nada y
-    // tiene que decirlo en vez de pasar de largo.
-    expect(everCovered).toBe(true)
-  })
+      if (r.bottom > 0 && r.top < window.innerHeight) {
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+        expect(undo.contains(hit)).toBe(false)
+      }
+    })
+  }
 
   // La otra mitad del mismo defecto: dos vueltas atrás vivas a la vez, con el
   // mismo nombre, distinto alcance y distinta vida. Se quedan las dos —perder
@@ -288,7 +243,11 @@ describe('lo que el panel tapa sale del orden de tabulación', () => {
     await clearTheNote()
     await openEditor(user)
     await openDrawer(user)
-    await user.selectOptions(screen.getByLabelText(`Grupo muscular de ${MAIN}`), 'Pecho')
+    await user.click(
+      within(screen.getByLabelText(`Grupo muscular de ${MAIN}`)).getByRole('radio', {
+        name: 'Pecho',
+      }),
+    )
     await settle()
     expect(screen.queryAllByRole('button', { name: 'Deshacer' })).toHaveLength(0)
     expect(
@@ -298,15 +257,19 @@ describe('lo que el panel tapa sale del orden de tabulación', () => {
   })
 })
 
-describe('Progreso ofrece los mismos cinco actos que Entreno', () => {
-  it('el cajón lleva grupo, nota y borrado en las dos pantallas', async () => {
-    for (const mount of [mountEntreno, mountProgreso]) {
+describe('las dos pantallas llevan grupo, nota y eliminar', () => {
+  // Mismo cajón en las dos, y un «Eliminar» que dice su alcance: en Entreno
+  // quita el ejercicio de la sesión; en Progreso, el ejercicio entero.
+  it('Entreno dice «Eliminar»; Progreso, «Eliminar ejercicio»', async () => {
+    for (const [mount, label] of [
+      [mountEntreno, 'Eliminar'],
+      [mountProgreso, 'Eliminar ejercicio'],
+    ]) {
       await mount()
       await openEditor(user)
-      await openDrawer(user)
       expect(screen.getByLabelText(`Grupo muscular de ${MAIN}`)).toBeInTheDocument()
       expect(screen.getByLabelText(`Nota de ${MAIN}`)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Eliminar ejercicio' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
       await user.keyboard('{Escape}')
       await settle()
     }

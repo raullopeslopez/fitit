@@ -21,7 +21,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import App from '../App.jsx'
-import { MORE_LABEL } from '../ExerciseEditor.jsx'
 import { setOpenWorkout } from '../prefs.js'
 import { settle } from './geometry.js'
 
@@ -449,9 +448,8 @@ export async function openEditor(user) {
   return panel
 }
 
-/** Entra en el segundo paso del panel, que ahora se llama igual en las dos. */
-export async function openDrawer(user) {
-  await user.click(screen.getByRole('button', { name: `${MORE_LABEL} de ${MAIN}` }))
+/** La hoja ya no tiene segundo paso: el grupo, la nota y eliminar están a la vista. */
+export async function openDrawer() {
   await settle()
   return screen.getByRole('dialog')
 }

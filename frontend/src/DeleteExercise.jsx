@@ -123,7 +123,17 @@ export function deleteWarning({ sets, days, from, record }) {
  *   misma razón; que un diálogo la tuviera y el otro no era la asimetría de
  *   siempre, más pequeña.
  */
-export function DeleteConfirm({ name, damage, onCancel, onConfirm }) {
+// `title`, `body` y `confirm` los pone quien quiera el mismo diálogo para otro
+// borrado — quitar un ejercicio de un entreno, en Entreno.
+export function DeleteConfirm({
+  name,
+  damage,
+  onCancel,
+  onConfirm,
+  title = `Eliminar ${name}`,
+  body = null,
+  confirm = 'Sí, eliminar',
+}) {
   const cancelRef = useRef(null)
   const openerRef = useRef(null)
   useEffect(() => {
@@ -163,14 +173,14 @@ export function DeleteConfirm({ name, damage, onCancel, onConfirm }) {
         aria-labelledby="delete-exercise-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="delete-exercise-title">Eliminar {name}</h2>
-        <p className="dialog-body">{deleteWarning(damage)}</p>
+        <h2 id="delete-exercise-title">{title}</h2>
+        <p className="dialog-body">{body ?? deleteWarning(damage)}</p>
         <div className="dialog-actions">
           <button type="button" className="secondary" ref={cancelRef} onClick={onCancel}>
             Cancelar
           </button>
           <button type="button" className="danger" onClick={onConfirm}>
-            Sí, eliminar
+            {confirm}
           </button>
         </div>
       </div>

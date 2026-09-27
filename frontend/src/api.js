@@ -188,6 +188,13 @@ export function deleteExercise(exerciseId) {
   return apiFetch(`/exercises/${exerciseId}`, { method: 'DELETE' })
 }
 
+// Take an exercise out of one workout: that workout's sets for it go, the
+// exercise and its history stay. A different address from `deleteExercise` on
+// purpose, so a dropped parameter can never turn one into the other.
+export function removeExerciseFromWorkout(workoutId, exerciseId) {
+  return apiFetch(`/workouts/${workoutId}/exercises/${exerciseId}`, { method: 'DELETE' })
+}
+
 // Fold a duplicate into the real exercise — its sets move over, then it's gone.
 // The way out of a name typed wrong, which renaming can't fix: the name you
 // want is taken, which is the whole point.

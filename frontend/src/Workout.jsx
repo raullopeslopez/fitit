@@ -1,25 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 
 import {
-  deleteExercise,
   deleteSet,
   deleteWorkout,
   editSet,
   getPreviousMarks,
   getWorkout,
-  listDays,
   listExercises,
   logSet,
   mergeExercise,
   recentlyTrained,
   renameExercise,
+  removeExerciseFromWorkout,
   renameWorkout,
   setExerciseMuscle,
   setExerciseNote,
 } from './api.js'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
-import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
-import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
+import { DeleteConfirm } from './DeleteExercise.jsx'
+import { ExerciseEditor, MusclePicker } from './ExerciseEditor.jsx'
 import {
   daysAgoLabel,
   estimatedOneRm,
@@ -32,7 +31,7 @@ import {
   parseDuration,
   sessionLength,
 } from './format.js'
-import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
+import { muscleColor } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
   cacheMarks,
@@ -174,12 +173,9 @@ function ExerciseCard({
   // cuando no es cosa del padre, que es quien tiene la superficie que sobrevive
   // al cierre del panel. Ver `EditTrouble.jsx`.
   onChangeName,
-  // Borra el ejercicio entero, con todo lo que lleva registrado. Lo tenía sólo
-  // Progreso, y el encargo de este editor nombra cinco actos en las dos
-  // pantallas. Devuelve el daño ya contado (o `null` si no se pudo contar) para
-  // que el diálogo salga con la cifra dentro, no con un hueco que se rellena.
-  onCountDamage,
-  onDeleteExercise,
+  // Quita el ejercicio de este entreno: sus series de hoy y la tarjeta. El
+  // ejercicio y su historial se quedan; borrarlos es cosa de Progreso.
+  onRemoveFromWorkout,
   // Lo que salió mal en la última edición de *este* ejercicio, y lo que se
   // ofrece al respecto. Se pinta encima de la puerta del editor, fuera del
   // panel, porque el panel se desmonta justo cuando llega la respuesta.
@@ -223,8 +219,7 @@ function ExerciseCard({
   // está abierto: se cuenta antes de abrirlo (`clashTrouble` hace lo mismo con
   // el choque), porque una cifra que aparece bajo un botón irreversible medio
   // segundo después de que lo mires es peor que medio segundo de espera.
-  const [deleteDamage, setDeleteDamage] = useState(null)
-  const [counting, setCounting] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen.
   // Absent `previous` means the marks haven't arrived, not that there are none.
@@ -710,71 +705,12 @@ function ExerciseCard({
               e.preventDefault()
               commitName()
             }}
-            // El segundo paso: el grupo y la nota. Ninguno de los dos es lo
-            // que vienes a hacer cuando abres esto —lo que vienes a hacer es
-            // corregir el nombre—, y traerlos al primer panel es lo que hacía
-            // que tapase el formulario de registro entero.
-            // Lo que hay detrás, dicho en el rótulo. En esta pantalla el cajón
-            // lleva el grupo y la nota; en Progreso lleva otra cosa, así que
-            // esto no puede ser una constante del componente.
-            moreLabel={MORE_LABEL}
+            // Debajo del nombre, a la vista: el grupo, la nota y quitarlo del
+            // entreno. En la hoja caben los tres sin tapar el registro — lo tapa
+            // el fondo, no su altura —, así que ya no hay segundo paso.
             more={
               <>
-                {/* Una fila, y la fila es el control — pero la fila dice de qué
-                    campo es.
-
-                    Aquí estuvo el hueco más grande de esta pieza. El rótulo se
-                    había quitado con el argumento de que «decir *Grupo
-                    muscular: Pecho* es decir Pecho dos veces», y eso es falso:
-                    `Grupo` no repite `Pecho`, nombra el campo del que `Pecho`
-                    es el valor. Lo que quedaba nombrando la fila era el punto
-                    de color, y un punto cuyo único contenido es el valor no es
-                    el nombre del campo: es el valor dibujado dos veces. El
-                    glifo de prioridad de la referencia sí nombra su campo,
-                    pero porque es **invariante** —las barras ascendentes dicen
-                    «prioridad» en Urgente y en Baja—; el nuestro cambia con el
-                    valor, así que no puede hacer ese trabajo. La prueba a
-                    ciegas es la de siempre: con `Pecho` dentro, el campo sólo
-                    se adivina leyendo el vocabulario del valor.
-
-                    Vuelve impreso, en una palabra y sin gastar una fila: una
-                    canaleta de rótulos a la izquierda, en Label apagado, con
-                    los valores alineados a su derecha. Es la forma de una hoja
-                    de especificaciones —etiqueta a la izquierda, valor a la
-                    derecha (DESIGN.md)— y es lo que hace que dos filas se lean
-                    como rejilla y no como lista. Sigue entero en la etiqueta
-                    hablada, con el nombre del ejercicio detrás porque en un
-                    superset hay varias tarjetas abiertas a la vez.
-
-                    El punto de color se queda y no duplica el de la cabecera:
-                    cuando este cajón está abierto el panel está tapando la
-                    cabecera, así que el punto no compite con nada. Y colour
-                    rides a mark, never text (DESIGN.md): el nombre del músculo
-                    se queda en tinta. */}
-                <div className="editor-row editor-row-picker">
-                  <label className="editor-row-label" htmlFor={`exgroup-${name}`}>
-                    Grupo
-                  </label>
-                  <span
-                    className={`dot${muscle ? '' : ' dot-new'}`}
-                    aria-hidden="true"
-                    style={{ '--chip': muscleColor(muscle) }}
-                  />
-                  <select
-                    id={`exgroup-${name}`}
-                    className="editor-row-control"
-                    aria-label={`Grupo muscular de ${name}`}
-                    value={muscle ?? ''}
-                    onChange={(e) => applyRetag(e.target.value || null)}
-                  >
-                    <option value="">{UNGROUPED}</option>
-                    {MUSCLE_GROUPS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <MusclePicker name={name} value={muscle} onChange={(m) => applyRetag(m)} />
                 {onChangeNote && (
                   // La nota, en su fila y sin nada que pulsar: se guarda al
                   // volver al nombre, al cerrar el panel y con Intro dentro del
@@ -823,56 +759,48 @@ function ExerciseCard({
                 {lastRetag && (
                   <RetagUndo group={muscle} setCount={setCount} onUndo={undoRetag} />
                 )}
-                {/* La última salida para un duplicado que no quieres conservar.
-                    Estaba sólo en Progreso, y el encargo de este editor dice
-                    «renombre, fusione duplicados, retaguee, anote y borre» en
-                    las dos pantallas. Aquí hace más falta, no menos: el
-                    duplicado se crea escribiendo mal un nombre **en la
-                    sesión**, que es esta pantalla, y mandarte a Progreso a
-                    tirarlo es exactamente el «sin sacarme de la sesión» que el
-                    encargo prohíbe.
+                {/* Quitarlo de *este* entreno. El borrado del ejercicio entero,
+                    con todo su historial, vive en Progreso: es la pantalla a la
+                    que vas a propósito (DESIGN.md), y aquí, a un pulgar de las
+                    series, un toque de más costaba meses de registro. Aquí
+                    «Eliminar» sólo alcanza a la sesión, y por eso le basta la
+                    palabra corta.
 
-                    Rojo como tinta y sin caja, misma clase y mismo texto que
-                    en Progreso: es una acción rara (DESIGN.md) y un botón rojo
-                    relleno al pie del cajón pesaría más que el campo del
-                    nombre, que es lo que de verdad vienes a hacer. La regla de
-                    encima separa las dos escalas — de «cambiar una etiqueta» a
-                    «tirar meses de registro». */}
-                {onDeleteExercise && (
+                    Sin series de hoy no hay nada que perder: sale la tarjeta y
+                    ya está. Con series, se dice cuántas antes. */}
+                {onRemoveFromWorkout && (
                   <button
                     type="button"
                     className="editor-row editor-row-danger delete-exercise"
-                    disabled={counting}
                     onClick={async () => {
-                      // Sin series hoy sólo sale la tarjeta (ver
-                      // `deleteExerciseFor`): no hay historial que tasar, y el
-                      // diálogo contaría uno que no se toca.
+                      setEditorOpen(false)
                       if (sets.length === 0) {
-                        setEditorOpen(false)
-                        await onDeleteExercise(name)
+                        await onRemoveFromWorkout(name)
                         return
                       }
-                      setCounting(true)
-                      const damage = await onCountDamage(name)
-                      setCounting(false)
-                      if (damage) setDeleteDamage(damage)
+                      setConfirmRemove(true)
                     }}
                   >
-                    Eliminar ejercicio
+                    Eliminar
                   </button>
                 )}
               </>
             }
           />
-          {deleteDamage && (
+          {confirmRemove && (
             <DeleteConfirm
               name={name}
-              damage={deleteDamage}
-              onCancel={() => setDeleteDamage(null)}
+              title={`Quitar ${name} de este entreno`}
+              body={`${
+                sets.length === 1
+                  ? 'Se borra su serie de hoy.'
+                  : `Se borran sus ${sets.length} series de hoy.`
+              } El historial de otros días no se toca.`}
+              confirm="Quitar"
+              onCancel={() => setConfirmRemove(false)}
               onConfirm={async () => {
-                setDeleteDamage(null)
-                setEditorOpen(false)
-                await onDeleteExercise(name)
+                setConfirmRemove(false)
+                await onRemoveFromWorkout(name)
               }}
             />
           )}
@@ -1970,70 +1898,32 @@ export default function Workout({
     }
   }
 
-  // ── Borrar el ejercicio entero, desde la sesión ──────────────────────────
-  // El acto que faltaba en esta pantalla. Se crea un duplicado escribiendo mal
-  // un nombre *aquí*, así que mandar a Progreso a tirarlo es exactamente el
-  // «sin sacarme de la sesión» que el encargo prohíbe.
-  //
-  // El daño se cuenta del registro y con la misma función que lo cuenta
-  // Progreso (`damageFromDays`), no con el `set_count` que esta pantalla ya
-  // tiene a mano: la misma frase contada de dos maneras distintas es cómo dos
-  // pantallas acaban tasando el mismo acto con dos precios. Es una petición en
-  // el acto más raro que hay, y sólo al pulsar la fila.
-  //
-  // Sin registro no hay diálogo: el borrado sin cifra sería un «¿seguro?» que
-  // no dice qué se lleva, que es lo que este diálogo vino a quitar.
-  async function damageFor(name) {
-    const log = await listDays().catch(() => null)
-    if (!log) {
-      setError('No se pudo contar lo que se borraría. Inténtalo de nuevo.')
-      return null
-    }
-    return damageFromDays(log, name)
-  }
-
-  async function deleteExerciseFor(name) {
-    const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
-    if (id == null || setsFor(name).length === 0) {
-      // Sin series en esta sesión no hay nada de esta sesión que borrar: la
-      // tarjeta es una nota de que lo añadiste o un hueco de la cola de
-      // «Repetir». Sale de las dos y el ejercicio se queda. Tirarlo entero por
-      // saltártelo hoy era llevarse meses de registro con un toque.
-      forgetAddedExercise(workoutId, name)
-      dropFromRepeatTemplate(workoutId, name)
-      setExercises((list) => list.filter((e) => e.name !== name))
-      return
-    }
-    setError('')
-    try {
-      await deleteExercise(id)
-      // La tarjeta se va con él, y con ella todo lo que esta pantalla lleva
-      // indexado por su nombre. Lo que quede en la bandeja de salida a su
-      // nombre también: mandarlo levantaría otra vez el ejercicio que acabas
-      // de borrar.
-      dropQueuedFor(name)
-      forgetAddedExercise(workoutId, name)
-      // Y de la cola: si no, al reabrir la sesión la plantilla levanta otra
-      // vez una tarjeta de un ejercicio que ya no existe.
-      dropFromRepeatTemplate(workoutId, name)
-      setExercises((list) => list.filter((e) => e.name !== name))
-      setWorkout((w) =>
-        w ? { ...w, sets: w.sets.filter((set) => set.exercise_name !== name) } : w,
-      )
-      setKnown((list) => list.filter((n) => n !== name))
-      const drop = (map) => {
-        if (!(name in map)) return map
-        const { [name]: _gone, ...rest } = map
-        return rest
+  // ── Quitar un ejercicio de esta sesión ───────────────────────────────────
+  // Sólo de esta: sus series de hoy y la tarjeta. El ejercicio, su historial,
+  // su grupo y su nota se quedan, así que nada de lo que esta pantalla lleva
+  // indexado por su nombre —id, grupo, cuenta— se toca. Borrar el ejercicio
+  // entero es de Progreso.
+  async function removeFromWorkoutFor(name) {
+    const onServer = setsFor(name).filter((set) => !set.pending)
+    const id = idByName[name] ?? onServer[0]?.exercise_id
+    if (onServer.length > 0 && id != null) {
+      setError('')
+      try {
+        await removeExerciseFromWorkout(workoutId, id)
+      } catch {
+        setError('No se pudo quitar el ejercicio del entreno.')
+        return
       }
-      setIdByName(drop)
-      setMuscleByName(drop)
-      setNoteByName(drop)
-      setCountByName(drop)
-      setToggled(drop)
-    } catch {
-      setError('No se pudo eliminar el ejercicio.')
     }
+    // Lo que quede en la bandeja de salida también: mandarlo después
+    // devolvería al entreno las series que acabas de quitar.
+    dropQueuedFor(name)
+    forgetAddedExercise(workoutId, name)
+    dropFromRepeatTemplate(workoutId, name)
+    setExercises((list) => list.filter((e) => e.name !== name))
+    setWorkout((w) =>
+      w ? { ...w, sets: w.sets.filter((set) => set.exercise_name !== name) } : w,
+    )
   }
 
   // ── Volver a preguntarle al servidor cómo está la sesión ─────────────────
@@ -2535,8 +2425,7 @@ export default function Workout({
             onChangeMuscle={changeMuscleFor}
             onChangeNote={changeNoteFor}
             onChangeName={changeNameFor}
-            onCountDamage={damageFor}
-            onDeleteExercise={deleteExerciseFor}
+            onRemoveFromWorkout={removeFromWorkoutFor}
             // El aviso va en la tarjeta del ejercicio del que habla, y en
             // ninguna otra: en un superset hay varias abiertas y «no se pudo
             // cambiar el nombre» sin sujeto no dice de cuál.

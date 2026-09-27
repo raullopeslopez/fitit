@@ -43,12 +43,12 @@ async function androidBack() {
   await settle()
 }
 
-// Un toque en cualquier sitio que no sea el panel. `pointerdown` y no `click`,
-// que es lo que el panel escucha: así el mismo toque cierra *y* llega a lo que
-// apuntabas.
+// Un toque en el fondo de la hoja, por encima de ella: el clic de verdad sobre
+// lo que el dedo encuentra ahí, que tiene que ser el fondo.
 async function tapOutside() {
-  const away = document.querySelector('main h1, main h2')
-  away.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+  const top = document.querySelector('.sheet').getBoundingClientRect().top
+  const hit = document.elementFromPoint(window.innerWidth / 2, top / 2)
+  await user.click(hit)
   await settle()
 }
 

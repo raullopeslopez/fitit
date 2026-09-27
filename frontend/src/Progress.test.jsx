@@ -367,18 +367,18 @@ describe('Progress', () => {
     expect(screen.queryByLabelText(/grupo muscular/i)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/nombre de /i)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
-    // El editor abierto es el nombre y nada más: el panel entero cabe en los
-    // 137 px que la tarjeta puede dar sin tapar la gráfica.
-    expect(screen.getByLabelText(/nombre de /i)).toBeInTheDocument()
-    expect(screen.queryByLabelText(/grupo muscular/i)).not.toBeInTheDocument()
-    // El grupo sigue estando, con su nombre escrito en la puerta.
-    await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
-    expect(screen.getByLabelText(/grupo muscular/i)).toBeInTheDocument()
+    // Y en la hoja, todo a la vista y en un solo paso: el nombre, el grupo y
+    // eliminar. La hoja tapa con el fondo, no con su altura.
+    const sheet = screen.getByRole('dialog', { name: /^Editar Press banca$/ })
+    expect(within(sheet).getByLabelText(/nombre de /i)).toBeInTheDocument()
+    expect(within(sheet).getByLabelText(/grupo muscular/i)).toBeInTheDocument()
+    expect(within(sheet).getByRole('button', { name: 'Eliminar ejercicio' })).toBeInTheDocument()
   })
 
-  // Lo mismo que en Entreno, desde el otro lado de la app: abrir el editor deja
-  // el cursor dentro del nombre, con la errata a mano y sin un segundo toque.
-  it('el toque en Editar ejercicio deja el cursor en el nombre', async () => {
+  // Abrir la hoja no levanta el teclado: la hoja es también la del grupo y la
+  // nota, y un teclado arriba taparía justo lo que venías a tocar. El foco entra
+  // en la hoja —quien navega con teclado o lector está dentro—, no en el campo.
+  it('abrir la hoja no levanta el teclado', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
     render(<Progress />)
 
@@ -386,9 +386,7 @@ describe('Progress', () => {
     await charted('Press banca')
 
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
-    const input = screen.getByLabelText(/nombre de /i)
-    expect(document.activeElement).toBe(input)
-    expect(input.selectionStart).toBe('Press banca'.length)
+    expect(document.activeElement).toBe(screen.getByRole('dialog', { name: /^Editar/ }))
   })
 
   // Exportar es «lo más raro de esta pantalla» (DESIGN.md) y venía vestido de
@@ -439,14 +437,13 @@ describe('Progress', () => {
     render(<Progress />)
 
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
     const select = screen.getByLabelText(/grupo muscular/i)
-    expect(select).toHaveValue('Pecho')
+    expect(within(select).getByRole('radio', { name: 'Pecho' })).toBeChecked()
 
-    await userEvent.selectOptions(select, 'Hombro')
+    await userEvent.click(within(select).getByRole('radio', { name: 'Hombro' }))
 
     await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
-    expect(await screen.findByLabelText(/grupo muscular/i)).toHaveValue('Hombro')
+    expect(within(await screen.findByLabelText(/grupo muscular/i)).getByRole('radio', { name: 'Hombro' })).toBeChecked()
   })
 
   // Same guard as the exercise card in Entreno: the group rides on the
@@ -479,7 +476,6 @@ describe('Progress', () => {
       api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
       render(<Progress />)
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-      await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
       return screen.getByLabelText(/grupo muscular/i)
     }
 
@@ -496,7 +492,7 @@ describe('Progress', () => {
       })
       const select = await openCorrector(6)
 
-      await userEvent.selectOptions(select, 'Hombro')
+      await userEvent.click(within(select).getByRole('radio', { name: 'Hombro' }))
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenCalledWith(7, 'Hombro'))
       expect(retagDialog()).not.toBeInTheDocument()
@@ -517,7 +513,7 @@ describe('Progress', () => {
 
       await waitFor(() => expect(api.setExerciseMuscle).toHaveBeenLastCalledWith(7, 'Pecho'))
       expect(retagDialog()).not.toBeInTheDocument()
-      expect(await screen.findByLabelText(/grupo muscular/i)).toHaveValue('Pecho')
+      expect(within(await screen.findByLabelText(/grupo muscular/i)).getByRole('radio', { name: 'Pecho' })).toBeChecked()
     })
   })
 
@@ -603,11 +599,12 @@ describe('Progress', () => {
     await userEvent.type(input, 'Press de banca{Enter}')
 
     await waitFor(() => expect(api.renameExercise).toHaveBeenCalledWith(7, 'Press de banca'))
-    // La tarjeta de detrás pasa a llamarse como acabas de llamarla, y la hoja
-    // sigue abierta con su cabecera diciendo lo mismo: ese es el acuse de
-    // recibo. Cerrarla sería echarte de donde estabas por haber acertado.
+    // Intro es «Hecho» en el teclado de Android: guarda y cierra la hoja. Lo
+    // que conteste el servidor —la tarjeta con el nombre nuevo, o el choque con
+    // uno que ya existe— sale en la tarjeta, y con la hoja arriba lo taparía
+    // el fondo.
     await charted('Press de banca')
-    expect(screen.getByRole('dialog', { name: /^Editar Press de banca$/ })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /^Editar/ })).not.toBeInTheDocument()
   })
 
   it('lets you rename an exercise that has no chart data yet', async () => {
@@ -1931,7 +1928,6 @@ describe('Progress', () => {
     // editor, no en el panel que abres para arreglar una errata.
     async function openMore() {
       await openFixes()
-      await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
     }
 
     beforeEach(() => {
