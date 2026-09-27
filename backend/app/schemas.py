@@ -727,7 +727,7 @@ class BodyWeightOut(BaseModel):
 
 class WeightTrendOut(BaseModel):
     """La media reciente. `kg` es `None` cuando todavía no hay tendencia, y eso
-    es una respuesta: la pantalla imprime `—`, no la última pesada."""
+    es una respuesta: `kg` nunca se rellena con la última pesada."""
 
     kg: float | None = None
     # Cuántas pesadas la sostienen. Una tendencia sobre dos y una sobre veinte
@@ -735,6 +735,10 @@ class WeightTrendOut(BaseModel):
     weigh_ins: int = 0
     # Hasta cuándo está medida. Si es de hace un mes, que lo diga la pantalla.
     up_to: Date | None = None
+    # Lo que marcó la báscula el día `up_to`. Va **al lado** de la tendencia, no
+    # en su lugar: la tarjeta de Perfil lo enseña para que pesarte se vea, y
+    # nada se deriva de él.
+    last_kg: float | None = None
 
 
 # --- Pasos -------------------------------------------------------------------

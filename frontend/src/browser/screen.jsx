@@ -253,7 +253,7 @@ function stubNetwork(catalogue = FOODS) {
     // La tarjeta de peso de Perfil. Sin esta ruta el stub devuelve `[]` y la
     // tarjeta cae —correctamente— en «todavía no te has pesado», que es un
     // estado real pero no el que se quiere medir aquí.
-    [/\/body-weight\/trend$/, { kg: 78.6, weigh_ins: 3, up_to: '2026-09-18' }],
+    [/\/body-weight\/trend$/, { kg: 78.6, weigh_ins: 3, up_to: '2026-09-18', last_kg: 78.9 }],
     // Lo demás que Perfil pide al abrirse: los datos del objetivo y su
     // propuesta. Objetos, no la lista vacía por defecto.
     [/\/targets\/proposal$/, { kcal: 2450, source: 'formula', days: 0, missing: [] }],
@@ -415,7 +415,7 @@ export async function mountPerfil() {
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Perfil$/ }, { timeout: 5000 }))
   await screen.findByLabelText('Quiero', {}, { timeout: 5000 })
-  await vi.waitFor(() => expect(document.querySelector('.weight-kg')?.textContent).toBe('78,6'), {
+  await vi.waitFor(() => expect(document.querySelector('.weight-kg')?.textContent).toBe('78,9'), {
     timeout: 5000,
   })
   await settle()

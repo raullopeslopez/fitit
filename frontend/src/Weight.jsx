@@ -67,32 +67,38 @@ export default function Weight({ today = new Date(), onSaved }) {
     }
   }
 
-  const kg = trend?.kg
+  const ultima = trend?.last_kg
+  const media = trend?.kg
   const pesadas = trend?.weigh_ins ?? 0
 
   return (
     <div className="card weight-card">
       <h2>Peso</h2>
 
-      {/* La cifra es la tendencia, nunca la última pesada: el peso oscila más
-          de un kilo por agua, y pintar la última cifra invita a leer como un
-          cambio lo que es una cena. El guion va con la misma tinta que un
-          número — desconocido es un dato, no una ausencia decorativa. */}
+      {/* La cifra es lo que marcó la báscula: tras pesarte, un «—» se leía como
+          que no se había guardado. La tendencia —de la que sale Objetivo— va
+          debajo, en pequeño, porque el peso oscila más de un kilo por agua y
+          la última cifra sola invita a leer como un cambio lo que es una cena.
+          El guion va con la misma tinta que un número: desconocido es un dato,
+          no una ausencia decorativa. */}
       <p className="weight-figure">
-        <span className="weight-kg">{kg == null ? '—' : conComa(kg)}</span>
-        {kg != null && <span className="weight-unit">kg</span>}
+        <span className="weight-kg">{ultima == null ? '—' : conComa(ultima)}</span>
+        {ultima != null && <span className="weight-unit">kg</span>}
       </p>
 
-      {kg != null ? (
-        <p className="weight-stamp">
-          {`TENDENCIA · ${pesadas} PESADAS · ${formatDayShort(trend.up_to, today)}`}
-        </p>
+      {ultima != null ? (
+        <>
+          <p className="weight-stamp">
+            {`ÚLTIMA PESADA · ${formatDayShort(trend.up_to, today)}`}
+          </p>
+          {media != null && (
+            <p className="weight-stamp weight-trend">
+              {`TENDENCIA ${conComa(media)} KG · ${pesadas} PESADAS`}
+            </p>
+          )}
+        </>
       ) : (
-        <p className="weight-empty">
-          {pesadas === 0
-            ? 'Todavía no te has pesado.'
-            : 'Una pesada no es una tendencia. Pésate otro día y aparece.'}
-        </p>
+        <p className="weight-empty">Todavía no te has pesado.</p>
       )}
 
       <form className="weight-form" onSubmit={guardar}>

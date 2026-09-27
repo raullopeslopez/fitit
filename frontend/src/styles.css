@@ -5300,6 +5300,10 @@ button.draft-save {
 }
 /* Prosa, así que no baja de la escala legible: «una pesada» y «ninguna» son
    fallos distintos y cada uno se nombra por su nombre. */
+/* Dos sellos seguidos: el de la última pesada se pega al de la tendencia. */
+.weight-stamp:has(+ .weight-trend) {
+  margin-bottom: 0.2rem;
+}
 .weight-empty {
   font-size: 0.85rem;
   color: var(--muted);
