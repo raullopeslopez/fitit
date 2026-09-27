@@ -8,6 +8,7 @@ import {
   clearQueued,
   dropQueued,
   enqueueSet,
+  forgetWorkout,
   queuedFor,
   readQueue,
   renameQueued,
@@ -196,6 +197,38 @@ describe('the workout cache', () => {
   it('treats a corrupt cache as an empty one', () => {
     localStorage.setItem('fitit_workout_cache', '<<<')
 
+    expect(cachedWorkout(1)).toBeNull()
+  })
+})
+
+// Un entreno borrado no deja nada detrás: ni series por enviar, que el servidor
+// rechazaría con un 404, ni la copia que haría pasar el entreno por vivo al
+// abrirlo sin red.
+describe('forgetting a deleted workout', () => {
+  beforeEach(() => localStorage.clear())
+
+  const set = (tmpId, workoutId) => ({
+    tmpId,
+    workoutId,
+    payload: { exercise_name: 'Bench Press', reps: 8, weight: 60 },
+  })
+
+  it("drops its unsent sets and keeps every other workout's", () => {
+    enqueueSet(set('tmp-1', 1))
+    enqueueSet(set('tmp-2', 2))
+    enqueueSet(set('tmp-3', 1))
+
+    forgetWorkout(1)
+
+    expect(readQueue().map((e) => e.tmpId)).toEqual(['tmp-2'])
+  })
+
+  it('drops its cached copy, and only its own', () => {
+    cacheWorkout({ id: 1, sets: [] })
+    forgetWorkout(2)
+    expect(cachedWorkout(1)).not.toBeNull()
+
+    forgetWorkout(1)
     expect(cachedWorkout(1)).toBeNull()
   })
 })

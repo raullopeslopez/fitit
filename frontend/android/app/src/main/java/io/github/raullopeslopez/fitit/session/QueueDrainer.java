@@ -19,6 +19,10 @@ import org.json.JSONObject;
  *       su sitio, porque {@code set_index} se asigna al llegar.
  *   <li>401: se para y espera a un token nuevo; reintentar con el mismo no sirve.
  *       Lo apunta ({@link SessionStore#markExpired()}) para que los widgets lo digan.
+ *   <li>404: el entreno ya no existe (borrado en la app, en la web, en otro
+ *       móvil). Se cuenta como rechazada y se van con ella las demás series de
+ *       ese entreno y, si era el suyo, el control: el widget no puede seguir
+ *       ofreciendo un +1 a un entreno que no está.
  *   <li>Otro 4xx: el servidor la juzgó y la rechazó. Sale de la cola y se cuenta,
  *       o bloquearía todo lo de detrás para siempre.
  * </ul>
@@ -59,12 +63,16 @@ public final class QueueDrainer {
         public final int rejected;
         /** El entreno con el que contestó el servidor al último envío, o null. */
         public final JSONObject lastWorkout;
+        /** Un 404 se llevó el entreno del control: hay que quitar la notificación. */
+        public final boolean controlEnded;
 
-        Outcome(Status status, int sent, int rejected, JSONObject lastWorkout) {
+        Outcome(Status status, int sent, int rejected, JSONObject lastWorkout,
+                boolean controlEnded) {
             this.status = status;
             this.sent = sent;
             this.rejected = rejected;
             this.lastWorkout = lastWorkout;
+            this.controlEnded = controlEnded;
         }
     }
 
@@ -80,14 +88,17 @@ public final class QueueDrainer {
         int sent = 0;
         int rejected = 0;
         JSONObject lastWorkout = null;
+        boolean controlEnded = false;
         for (;;) {
             JSONObject entry = store.head();
-            if (entry == null) return new Outcome(Status.DONE, sent, rejected, lastWorkout);
+            if (entry == null) {
+                return new Outcome(Status.DONE, sent, rejected, lastWorkout, controlEnded);
+            }
 
             String token = store.token();
             String apiBase = store.apiBase();
             if (token == null || apiBase == null) {
-                return new Outcome(Status.WAIT, sent, rejected, lastWorkout);
+                return new Outcome(Status.WAIT, sent, rejected, lastWorkout, controlEnded);
             }
 
             String tmpId = entry.optString("tmpId");
@@ -109,7 +120,7 @@ public final class QueueDrainer {
             try {
                 response = http.post(url, headers, payload.toString());
             } catch (IOException e) {
-                return new Outcome(Status.RETRY, sent, rejected, lastWorkout);
+                return new Outcome(Status.RETRY, sent, rejected, lastWorkout, controlEnded);
             }
 
             int status = response.status;
@@ -120,9 +131,16 @@ public final class QueueDrainer {
                 if (workout != null) lastWorkout = workout;
             } else if (status == 401) {
                 store.markExpired();
-                return new Outcome(Status.WAIT, sent, rejected, lastWorkout);
+                return new Outcome(Status.WAIT, sent, rejected, lastWorkout, controlEnded);
             } else if (status >= 500 || status == 429 || status == 408) {
-                return new Outcome(Status.RETRY, sent, rejected, lastWorkout);
+                return new Outcome(Status.RETRY, sent, rejected, lastWorkout, controlEnded);
+            } else if (status == 404) {
+                // Primero ésta por su tmpId: si no trajera workoutId, olvidar el
+                // entreno no la sacaría y la cola daría vueltas sobre ella.
+                store.drop(tmpId);
+                store.recordRejected();
+                rejected++;
+                if (store.forgetWorkout(entry.optInt("workoutId"))) controlEnded = true;
             } else {
                 store.drop(tmpId);
                 store.recordRejected();

@@ -10,7 +10,7 @@ import {
   sessionMinutes,
 } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
-import { cacheBootSummary } from './offline.js'
+import { cacheBootSummary, forgetWorkout } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
 import { CtaLabelSkeleton, DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
 import { STEPS_SYNCED, formatSteps, stepsByDate } from './steps.js'
@@ -272,10 +272,18 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     closeSheets()
     try {
       await deleteDay(id)
-      setDays((list) => list.filter((d) => d.id !== id))
-    } catch {
-      setError('No se pudo borrar ese día.')
+    } catch (err) {
+      // Already gone is what deleting asked for, not a failure to report.
+      if (err?.status !== 404) {
+        setError('No se pudo borrar ese día.')
+        return
+      }
     }
+    // Its workouts went with it: nothing the phone kept of them is owed to
+    // anyone, and in the APK the widget may still be pointing at one.
+    const gone = days.find((d) => d.id === id)
+    gone?.workouts.forEach((w) => forgetWorkout(w.id))
+    setDays((list) => list.filter((d) => d.id !== id))
   }
 
   // No session name on the button. The row already says which session is open —

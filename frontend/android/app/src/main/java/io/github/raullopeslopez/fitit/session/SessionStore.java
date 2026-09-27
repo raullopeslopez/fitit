@@ -103,6 +103,23 @@ public final class SessionStore {
         write(left);
     }
 
+    /**
+     * Un entreno borrado: sus series sin enviar sólo ganarían un 404, y si el
+     * control era suyo, se va con él. Devuelve si el control era suyo, para que
+     * quien llama quite también la notificación y repinte los widgets.
+     */
+    public synchronized boolean forgetWorkout(int workoutId) {
+        List<JSONObject> left = new ArrayList<>();
+        for (JSONObject e : queue()) {
+            if (e.optInt("workoutId", -1) != workoutId) left.add(e);
+        }
+        write(left);
+        JSONObject control = control();
+        if (control == null || control.optInt("workoutId", -1) != workoutId) return false;
+        clearControl();
+        return true;
+    }
+
     /** Un ejercicio renombrado: la cola lo nombra por su texto, y el servidor también. */
     public synchronized void rename(String from, String to) throws JSONException {
         List<JSONObject> entries = queue();

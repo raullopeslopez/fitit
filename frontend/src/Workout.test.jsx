@@ -3080,6 +3080,55 @@ describe('Workout', () => {
     expect(onExit).toHaveBeenCalled()
   })
 
+  // Borrado, un entreno no deja nada detrás: ni series por enviar a un entreno
+  // que ya no existe, ni la copia que lo volvería a enseñar al abrirlo.
+  // (Las series sin enviar las cubre forgetWorkout en offline.test.js.)
+  it('leaves no cached copy behind', async () => {
+    const onExit = vi.fn()
+    api.deleteWorkout.mockResolvedValue(null)
+    renderWorkout({ onExit })
+    await screen.findByLabelText('Ejercicio')
+
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar entreno' }))
+    await userEvent.click(screen.getByRole('button', { name: /sí, borrar/i }))
+
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(localStorage.getItem('fitit_workout_cache')).toBeNull()
+  })
+
+  // Lo que se quería era que no estuviera, y no está: borrado en otro sitio, o
+  // abierto desde un widget que aún lo creía vivo. No es un error que enseñar.
+  it('takes a workout that is already gone as deleted', async () => {
+    const onExit = vi.fn()
+    api.deleteWorkout.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }))
+    renderWorkout({ onExit })
+    await screen.findByLabelText('Ejercicio')
+
+    await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar entreno' }))
+    await userEvent.click(screen.getByRole('button', { name: /sí, borrar/i }))
+
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(screen.queryByText(/no se pudo borrar el entreno/i)).not.toBeInTheDocument()
+  })
+
+  // La copia es para cuando no hay red, no para contradecir al servidor: si dice
+  // que el entreno no existe, no existe, y no se enseña uno fantasma.
+  it('does not stand a deleted workout back up from the cache', async () => {
+    const onExit = vi.fn()
+    localStorage.setItem(
+      'fitit_workout_cache',
+      JSON.stringify(workoutWith(benchSet({ id: 5, reps: 8, weight: 60 }))),
+    )
+    api.getWorkout.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }))
+    renderWorkout({ onExit })
+
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(screen.queryByText(/60 kg x 8/)).not.toBeInTheDocument()
+    expect(localStorage.getItem('fitit_workout_cache')).toBeNull()
+  })
+
   // Dominadas, fondos, abdominales: the weight field is empty because there is
   // no weight, not because it is zero. Spec:
   // backend/tests/features/bodyweight_set.feature

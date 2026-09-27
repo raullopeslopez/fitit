@@ -33,6 +33,8 @@ export const session = {
   adopt: (entries) => run(() => FititSession.adopt({ entries })),
   drop: (tmpId) => run(() => FititSession.drop({ tmpId })),
   dropFor: (name) => run(() => FititSession.dropFor({ name })),
+  // Un entreno borrado: sus series sin enviar y, si era el suyo, el control.
+  forget: (workoutId) => run(() => FititSession.forget({ workoutId })),
   rename: (from, to) => run(() => FititSession.rename({ from, to })),
   snapshot: () => run(() => FititSession.snapshot()),
   flush: () => run(() => FititSession.flush()),

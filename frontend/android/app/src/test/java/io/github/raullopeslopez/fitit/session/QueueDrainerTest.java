@@ -220,6 +220,41 @@ public class QueueDrainerTest {
     }
 
     @Test
+    public void aWorkoutGoneFromTheServerTakesItsSetsAndItsControlWithIt() throws Exception {
+        // Borrado desde la web u otro móvil con el widget aún en él: el primer
+        // 404 dice que el entreno no existe, y no hay por qué preguntar por cada
+        // serie. El control se va, para que el widget deje de ofrecer el +1.
+        store.saveControl(new JSONObject().put("workoutId", 1).put("exercise", "Bench Press"));
+        queue("tmp-1", 1, 60);
+        queue("tmp-2", 2, 62.5);
+        queue("tmp-3", 1, 65);
+        http.answer(404, "{\"detail\":\"workout not found\"}").answer(201, WORKOUT);
+
+        QueueDrainer.Outcome outcome = drain();
+
+        assertEquals(QueueDrainer.Status.DONE, outcome.status);
+        assertEquals(2, http.urls.size());
+        assertTrue(http.urls.get(1).endsWith("/workouts/2/sets"));
+        assertEquals(1, outcome.sent);
+        assertEquals(1, outcome.rejected);
+        assertTrue(outcome.controlEnded);
+        assertTrue(store.queue().isEmpty());
+        assertNull(store.control());
+    }
+
+    @Test
+    public void aGoneWorkoutThatIsNotTheControlsLeavesTheControl() throws Exception {
+        store.saveControl(new JSONObject().put("workoutId", 2).put("exercise", "Bench Press"));
+        queue("tmp-1", 1, 60);
+        http.answer(404, "{\"detail\":\"workout not found\"}");
+
+        QueueDrainer.Outcome outcome = drain();
+
+        assertFalse(outcome.controlEnded);
+        assertEquals(2, store.control().getInt("workoutId"));
+    }
+
+    @Test
     public void withNoTokenNothingIsSentAndNothingIsLost() throws Exception {
         store.clearToken();
         queue("tmp-1", 1, 60);
