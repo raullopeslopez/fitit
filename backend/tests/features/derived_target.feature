@@ -49,6 +49,25 @@ Feature: The calories stop being typed
     When I accept what it proposes
     Then my daily target is what it proposed
 
+  # Las kcal dicen cuánto; los macros, cómo se reparten. Salen del mismo sitio
+  # para que no haya dos cifras que se contradigan: 2 g de proteína por kilo de
+  # peso, un cuarto de las kcal en grasa y el resto en hidratos.
+  Scenario: The proposal comes with its macros
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    When I ask what I should eat
+    Then it proposes 156 g of protein
+    And it proposes a quarter of the calories as fat
+    And it proposes the rest as carbohydrates
+
+  Scenario: Accepting the calories sets their macros too
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    When I ask what I should eat
+    And I accept what it proposes
+    Then my macro targets are the ones it proposed
+    And my daily target is what it proposed
+
   # §31: congelar el objetivo por día deja de ser opcional en cuanto se deriva.
   Scenario: Today's target is frozen, so tomorrow's change does not rewrite today
     Given I am a 35 year old man, 178 cm, weighing 78 kg

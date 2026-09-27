@@ -95,7 +95,7 @@ export default function Weight({ today = new Date() }) {
 
       <form className="weight-form" onSubmit={guardar}>
         <label className="weight-label" htmlFor="weight-kg">
-          Peso de hoy
+          Peso
         </label>
         <div className="weight-row">
           <input

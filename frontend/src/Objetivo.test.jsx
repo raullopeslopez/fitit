@@ -84,6 +84,25 @@ describe('Objetivo', () => {
     await waitFor(() => expect(getTargetProposal).toHaveBeenCalledTimes(2))
   })
 
+  // Las kcal dicen cuánto; los macros, cómo. Se ven antes de aceptar, porque
+  // aceptar fija los dos.
+  it('con la propuesta van sus macros', async () => {
+    getTargetProposal.mockResolvedValue({
+      kcal: 2600,
+      source: 'formula',
+      days: 0,
+      missing: [],
+      protein: 156,
+      fat: 72,
+      carbs: 332,
+    })
+    render(<Objetivo onAccepted={() => {}} />)
+
+    expect(
+      await screen.findByText('Proteína 156 g · Hidratos 332 g · Grasa 72 g'),
+    ).toBeInTheDocument()
+  })
+
   describe('Pasos al día', () => {
     beforeEach(() => {
       getTargetProposal.mockResolvedValue({ kcal: 2600, source: 'measured', days: 21, missing: [] })

@@ -38,14 +38,14 @@ describe('Perfil', () => {
   it('reúne el peso, el objetivo, el reparto, las reglas y Entreno', async () => {
     renderPerfil()
 
-    for (const name of ['Peso', 'Objetivo', 'Reparto', 'Reglas', 'Entreno']) {
+    for (const name of ['Peso', 'Objetivo', 'Macros', 'Reglas', 'Entreno']) {
       expect(await screen.findByRole('heading', { name })).toBeInTheDocument()
     }
     expect(screen.getByRole('button', { name: 'Tus reglas' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^salir$/i })).toBeInTheDocument()
   })
 
-  describe('el reparto', () => {
+  describe('los macros', () => {
     it('abre con los gramos del perfil, y las kcal salen de ellos', async () => {
       renderPerfil()
 
@@ -55,6 +55,44 @@ describe('Perfil', () => {
       // Las kcal no son una entrada: 4·160 + 4·300 + 9·80 = 2.560.
       expect(screen.queryByLabelText('Kcal al día')).toBeNull()
       expect(screen.getByText('2560 kcal')).toBeInTheDocument()
+    })
+
+    it('dice qué son', async () => {
+      renderPerfil()
+
+      expect(
+        await screen.findByText('Cuántos gramos de proteína, hidratos y grasa suman tus kcal.'),
+      ).toBeInTheDocument()
+    })
+
+    // Aceptar la propuesta fija las kcal y sus macros (backend,
+    // derived_target.feature): la tarjeta tiene que enseñar los nuevos.
+    it('al aceptar la propuesta, trae los macros nuevos', async () => {
+      api.getTargetProposal.mockResolvedValue({
+        kcal: 2450,
+        source: 'formula',
+        days: 0,
+        missing: [],
+        protein: 157,
+        fat: 68,
+        carbs: 302,
+      })
+      api.acceptTarget.mockResolvedValue({})
+      renderPerfil()
+      expect(await screen.findByLabelText('Proteína (g)')).toHaveValue('160')
+
+      api.getMe.mockResolvedValue({
+        ...YO,
+        objetivo_kcal: 2450,
+        objetivo_proteina: 157,
+        objetivo_grasa: 68,
+        objetivo_hidratos: 302,
+      })
+      await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+
+      await waitFor(() => expect(screen.getByLabelText('Proteína (g)')).toHaveValue('157'))
+      expect(screen.getByLabelText('Hidratos (g)')).toHaveValue('302')
+      expect(screen.getByLabelText('Grasa (g)')).toHaveValue('68')
     })
 
     it('el total se recalcula al teclear, antes de guardar nada', async () => {
@@ -73,7 +111,7 @@ describe('Perfil', () => {
 
       await userEvent.clear(proteina)
       await userEvent.type(proteina, '170')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar reparto' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar macros' }))
 
       await waitFor(() =>
         expect(api.setTargets).toHaveBeenCalledWith({ protein: 170, carbs: 300, fat: 80 }),
@@ -89,7 +127,7 @@ describe('Perfil', () => {
       }
       // Sin un solo macro repartido no hay total: una raya, nunca un 0.
       expect(screen.getByText('— kcal')).toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar reparto' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar macros' }))
 
       await waitFor(() =>
         expect(api.setTargets).toHaveBeenCalledWith({ protein: null, carbs: null, fat: null }),

@@ -5592,6 +5592,13 @@ button.draft-save {
 .objetivo {
   margin-bottom: 1.1rem;
 }
+.objetivo-macros {
+  margin: 0.35rem 0 0.9rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--text);
+}
 .objetivo-figure {
   display: flex;
   align-items: baseline;
@@ -5645,6 +5652,10 @@ button.draft-save {
    ritmo de siempre (`.card` trae su margen), y «Salir» al final, callado. */
 .perfil-card .objetivo {
   margin-bottom: 0;
+}
+/* Qué es la tarjeta, en una línea, entre el título y el primer campo. */
+.perfil-hint {
+  margin: -0.3rem 0 0.8rem;
 }
 /* Las preferencias de Entreno eran filas de un menú; aquí son el contenido de
    la tarjeta, así que no llevan el sangrado del menú ni la raya final. */

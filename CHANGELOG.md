@@ -10,12 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Nueva pestaña `Perfil`: los ajustes salen de Comida, Progreso y Entreno.** La barra
   de abajo pasa a `Días · Progreso · Comida · Perfil`. En Perfil, de arriba abajo:
-  - **`Peso`**: la tarjeta de siempre, con `Peso de hoy` y la tendencia. Ya no está en
+  - **`Peso`**: la tarjeta de siempre, con el campo `Peso` (antes `Peso de hoy`) y la tendencia. Ya no está en
     Progreso.
   - **`Objetivo`**: la propuesta de kcal con `Quiero`, `kg por semana`, `Altura (cm)`,
     `Año de nacimiento`, `Sexo` y `Pasos al día`.
-  - **`Reparto`**: proteína, hidratos y grasa, con el total derivado. El botón se llama
-    `Guardar reparto` (antes `Guardar objetivos`).
+  - **`Macros`** (antes `Reparto`): `Cuántos gramos de proteína, hidratos y grasa suman
+    tus kcal.` Proteína, hidratos y grasa con el total derivado; el botón es `Guardar
+    macros` (antes `Guardar objetivos`). **Ya no hay que teclearlos:** la propuesta de
+    Objetivo trae sus gramos (`Proteína 156 g · Hidratos 332 g · Grasa 72 g`, con 2 g de
+    proteína por kilo de peso, un 25 % de las kcal en grasa y el resto en hidratos) y
+    `Aceptar` fija las kcal y los gramos a la vez. Aquí se retocan si hace falta. El
+    aviso `te faltan N por repartir` sólo sale a partir de 10 kcal de diferencia: por
+    debajo es el redondeo de los gramos.
   - **`Reglas`**: el botón `Tus reglas`.
   - **`Entreno`**: `Descanso` y `Pantalla activa`, que salen del menú `⋯` de Entreno.
   - **`Salir`**, al final; la cabecera ya no lo lleva.

@@ -196,3 +196,41 @@ def test_gramos_por_racion_with_unknown_servings_is_unknown():
 def test_gramos_por_racion_refuses_nonsense_servings(servings):
     with pytest.raises(ValueError):
         gramos_por_racion(500, servings)
+
+
+# --- El reparto de unas kcal en macros ---------------------------------------
+# 2 g de proteína por kilo, un cuarto de las kcal en grasa y el resto en
+# hidratos (targets: la propuesta y aceptarla). Gramos enteros: es lo que se
+# teclea y lo que se lee en Comida.
+
+
+def test_reparto_por_peso_y_kcal():
+    from app.nutrition import reparto_macros
+
+    # 2·78 = 156 g de proteína; 2600·0,25/9 = 72 g de grasa;
+    # (2600 − 4·156 − 9·72)/4 = 332 g de hidratos.
+    assert reparto_macros(kcal=2600, kg=78) == {"protein": 156, "fat": 72, "carbs": 332}
+
+
+def test_reparto_suma_las_kcal_salvo_el_redondeo():
+    from app.nutrition import atwater_kcal, reparto_macros
+
+    m = reparto_macros(kcal=2450, kg=78.4)
+    total = atwater_kcal(protein=m["protein"], fat=m["fat"], carbs=m["carbs"])
+    assert abs(total - 2450) <= 6
+
+
+def test_sin_peso_no_hay_reparto():
+    # Sin peso no hay proteína por kilo, y un reparto sin proteína sería
+    # inventarla. `None`, no ceros.
+    from app.nutrition import reparto_macros
+
+    assert reparto_macros(kcal=2600, kg=None) is None
+    assert reparto_macros(kcal=None, kg=78) is None
+
+
+def test_los_hidratos_nunca_bajan_de_cero():
+    # Poco comer y mucho peso: la proteína y la grasa ya se comen las kcal.
+    from app.nutrition import reparto_macros
+
+    assert reparto_macros(kcal=1200, kg=150)["carbs"] == 0

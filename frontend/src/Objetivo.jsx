@@ -134,6 +134,13 @@ export default function Objetivo({ onAccepted }) {
         {kcal != null && <span className="objetivo-unit">kcal</span>}
       </p>
       <Procedencia source={propuesta?.source} days={propuesta?.days ?? 0} />
+      {/* Cómo se reparten esas kcal. Se ve antes de aceptar porque aceptar fija
+          las dos cosas: las kcal y estos gramos. */}
+      {kcal != null && propuesta?.protein != null && (
+        <p className="objetivo-macros">
+          {`Proteína ${propuesta.protein} g · Hidratos ${propuesta.carbs} g · Grasa ${propuesta.fat} g`}
+        </p>
+      )}
 
       {/* Un resultado vacío nombra el fallo correcto: qué falta, por su nombre,
           en vez de una cifra inventada con una media. */}
