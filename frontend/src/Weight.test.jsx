@@ -56,7 +56,7 @@ describe('Peso', () => {
     render(<Weight />)
     await screen.findByText('—')
 
-    await userEvent.type(screen.getByLabelText(/Peso de hoy/), '78,9')
+    await userEvent.type(screen.getByLabelText('Peso'), '78,9')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(logBodyWeight).toHaveBeenCalled())

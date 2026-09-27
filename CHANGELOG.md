@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Nueva pestaña `Perfil`: los ajustes salen de Comida, Progreso y Entreno.** La barra
   de abajo pasa a `Días · Progreso · Comida · Perfil`. En Perfil, de arriba abajo:
-  - **`Peso`**: la tarjeta de siempre, con `Peso de hoy` y la tendencia. Ya no está en
+  - **`Peso`**: la tarjeta de siempre, con el campo `Peso` (antes `Peso de hoy`) y la tendencia. Ya no está en
     Progreso.
   - **`Objetivo`**: la propuesta de kcal con `Quiero`, `kg por semana`, `Altura (cm)`,
     `Año de nacimiento`, `Sexo` y `Pasos al día`.
