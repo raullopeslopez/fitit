@@ -26,6 +26,16 @@
      crema no se ve (1,37). */
   --ring: rgba(0, 97, 239, 0.35);
   --focus: #0061ef;
+  /* Botones, como Headspace: la acción corriente es una píldora carbón con
+     texto blanco (13,94); la ÚNICA acción clave de cada pantalla —registrar la
+     serie, empezar o continuar el entreno— va en su azul (blanco encima 5,31).
+     El amarillo deja de ser botón: es un destacado. */
+  --action: #2d2c2b;
+  --action-hover: #44423f;
+  --on-action: #ffffff;
+  --key: #0061ef;
+  --key-hover: #0052cc;
+  --on-key: #ffffff;
   /* Headspace: tarjetas de 16 px, controles redondeados, botones en píldora. */
   --radius: 16px;
   --radius-control: 12px;
@@ -44,11 +54,15 @@
   --m-biceps: #1baf7a;
   --m-triceps: #4a3aa7;
   --m-core: #e34948;
-  /* Headspace usa Apercu (propietaria). DM Sans es la geométrica libre más
-     cercana; Geist Mono se queda para las cifras, como haría Apercu Mono. */
-  --font-display: 'DM Sans', system-ui, sans-serif;
-  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
+  /* Headspace usa Apercu (propietaria). Figtree es la geométrica libre más
+     cercana que además trae cifras tabulares (DM Sans no las tiene), y es la
+     única familia de la app. */
+  --font-display: 'Figtree', system-ui, sans-serif;
+  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Headspace usa una sola familia, también para las cifras. El nombre del
+     token se queda por no reescribir 87 reglas: hoy es «la fuente de los
+     datos», y las columnas siguen alineadas por las cifras tabulares de body. */
+  --font-mono: 'Figtree', system-ui, sans-serif;
   /* Let native controls (date picker, scrollbars) follow the theme. */
   color-scheme: light dark;
 }
@@ -75,6 +89,12 @@
     --border: #3a3836;
     --ring: rgba(255, 206, 0, 0.35);
     --focus: #ffce00;
+    /* En oscuro la píldora carbón desaparecería: se invierte a crema con
+       tinta carbón (12,78). El azul se queda (5,31 con blanco; 3,31 contra el
+       fondo como relleno). */
+    --action: #f9f4f2;
+    --action-hover: #e2ded9;
+    --on-action: #2d2c2b;
     --shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
     /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
     --m-pecho: #3987e5;
@@ -99,6 +119,9 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   line-height: 1.5;
+  /* Con una sola familia proporcional, las columnas de kg, reps y kcal se
+     alinean por las cifras tabulares, no por una monoespaciada. */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -113,7 +136,7 @@ button {
 
 h1 {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.03em;
@@ -121,11 +144,12 @@ h1 {
 }
 h2 {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   text-wrap: balance;
   margin: 0 0 0.6rem;
-  letter-spacing: -0.01em;
+  /* Headspace: todo titular a −0,03em, sin excepción. */
+  letter-spacing: -0.03em;
 }
 
 .container {
@@ -182,7 +206,7 @@ h2 {
      for; the 44px target already governs the box, so the type grows and nothing
      moves. */
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   min-height: 44px;
   padding: 0.4rem 0.25rem;
 }
@@ -229,8 +253,8 @@ h2 {
      anything with a lowercase letter in it. The bar does not grow: `min-height`
      is 56px and the stack (8 + 16 icon + 1.6 gap + 15.4 caption + 8) comes to
      49px, so the extra 1.28px is spent inside slack the box already had. */
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   min-height: 56px;
   padding: 0.5rem 0;
 }
@@ -315,13 +339,13 @@ h2 {
 }
 .rest-label {
   color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 .rest-num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 500;
 }
 /* A 2px seam rather than a progress bar — it reads at a glance from the rack
@@ -383,8 +407,8 @@ h2 {
 }
 .workout-title strong {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -392,7 +416,7 @@ h2 {
 }
 .workout-date {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -457,7 +481,7 @@ h2 {
    there is nothing to tap until it is changed there. */
 .menu-note {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* The repeat sits beside the log button, so it reads as part of the same act.
@@ -479,7 +503,7 @@ h2 {
 .exercise-note {
   margin: 0.1rem 0 0.4rem;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-style: italic;
   line-height: 1.35;
 }
@@ -559,7 +583,7 @@ button.workout-title:active:not(:disabled) {
 .search-results .set-row {
   width: 100%;
   font-family: var(--font-body);
-  font-weight: 600;
+  font-weight: 500;
 }
 /* The create row is the exception in the list, not one more result: lighter
    than the names above it so the eye still lands on what you already lift. */
@@ -774,15 +798,15 @@ button.workout-title:active:not(:disabled) {
    a value invented for this one rule. */
 .week-label {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.14em;
   color: var(--text);
 }
 .week-totals {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -803,7 +827,7 @@ button.workout-title:active:not(:disabled) {
   flex: none;
   font-family: var(--font-mono);
   /* Micro: `VIE · DESCANSO` is a stamp on a hairline, not prose. */
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.1em;
   color: var(--accent-ink);
 }
@@ -838,7 +862,7 @@ button.workout-title:active:not(:disabled) {
    which scale you were reading. */
 .day-block {
   display: grid;
-  grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+  grid-template-columns: 3.8rem minmax(0, 1fr) auto;
   column-gap: 0.7rem;
   align-items: center;
   padding: 15px 0 11px;
@@ -865,10 +889,13 @@ button.workout-title:active:not(:disabled) {
   margin: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25;
-  letter-spacing: 0.06em;
+  /* `DOM 30` es una unidad: con la sans de Headspace a 14 px y el tracking abierto de la
+     monoespaciada se partía en tres líneas dentro del canalón. */
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   color: var(--muted);
 }
 /* "Which day" is the half you read; the month is the half you already know.
@@ -881,7 +908,7 @@ button.workout-title:active:not(:disabled) {
   margin: 0.35rem 0 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   letter-spacing: 0.02em;
   color: var(--muted);
 }
@@ -951,7 +978,7 @@ button.workout-title:active:not(:disabled) {
      Grotesk here, Geist there — instead of by 1.1px. Snapping down also can
      only free space above the fold, never eat it, which matters on a screen
      whose CTA is pinned. */
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -997,8 +1024,8 @@ button.workout-title:active:not(:disabled) {
   box-shadow: inset 0 0 0 1px var(--accent);
   color: var(--accent-ink);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0.08em;
 }
@@ -1021,7 +1048,7 @@ button.workout-title:active:not(:disabled) {
   flex: none;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 400;
   color: var(--muted);
 }
@@ -1060,7 +1087,7 @@ button.workout-title:active:not(:disabled) {
 .day-parts {
   flex: 1;
   min-width: 0;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1084,7 +1111,7 @@ button.workout-title:active:not(:disabled) {
   flex: none;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--text);
 }
 /* Micro: `SER` is the unit on a tabular figure — the case the step exists for.
@@ -1093,7 +1120,7 @@ button.workout-title:active:not(:disabled) {
    it is an inline box smaller than its parent's, so the right column DESIGN.md
    aligned does not move. */
 .day-count-unit {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
@@ -1175,8 +1202,8 @@ button.workout-title:active:not(:disabled) {
   background: transparent;
   color: var(--muted);
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
   text-align: center;
   cursor: pointer;
 }
@@ -1235,7 +1262,7 @@ button.workout-title:active:not(:disabled) {
   background: var(--surface-raised);
   color: var(--text);
   font: inherit;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 .sheet-item:last-child {
@@ -1300,8 +1327,8 @@ button.workout-title:active:not(:disabled) {
   min-width: 0;
   min-height: 44px;
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   letter-spacing: -0.01em;
   padding: 0;
   border: 0;
@@ -1369,8 +1396,8 @@ button.editor-row {
   flex: none;
   width: 3.4rem;
   font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   letter-spacing: 0.01em;
   color: var(--muted);
   cursor: pointer;
@@ -1470,7 +1497,7 @@ button.editor-row-danger {
   margin: 0.5rem -0.5rem 0;
   border-top: 1px solid color-mix(in srgb, var(--text) 17%, transparent);
   color: var(--danger);
-  font-weight: 600;
+  font-weight: 700;
 }
 /* La vuelta: flecha apagada, nombre en tinta, y el nombre se recorta antes de
    empujar al aspa. */
@@ -1552,7 +1579,7 @@ button.editor-row-danger {
    36 px son de la fila de filtros, no de un control de la hoja. */
 .chip.muscle-pick {
   min-height: 44px;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .muscle-pick .dot {
   width: 10px;
@@ -1574,7 +1601,7 @@ button.editor-row-danger {
 }
 .link-row > span:first-child {
   flex: 1;
-  font-weight: 600;
+  font-weight: 500;
 }
 .link-row::after {
   content: '›';
@@ -1656,7 +1683,7 @@ button.editor-row-danger {
    not a control you come back to. */
 .recent-note {
   margin: 0 0 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.45;
 }
@@ -1683,8 +1710,8 @@ button.editor-row-danger {
   display: inline-block;
   margin-bottom: 0.55rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1709,8 +1736,8 @@ button.editor-row-danger {
 
 label {
   display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
@@ -1747,7 +1774,7 @@ select:focus {
    navegador pone `buttonface`/`buttontext` si no. */
 button {
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   min-height: 44px;
   cursor: pointer;
   border: none;
@@ -1764,11 +1791,17 @@ button {
    defecto. Tinta casi negra sobre el ámbar, nunca blanca — DESIGN.md: el
    blanco sobre ámbar no pasa AA (3,70 en claro, 2,86 en oscuro). */
 button.primary {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--action);
+  color: var(--on-action);
   /* Headspace: la acción es una píldora con un escalón de 2 px debajo. */
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow);
+}
+/* La acción clave de la pantalla: `btn-log` ya marcaba el toque por el que
+   se mide la app (registrar la serie, empezar o continuar el entreno). */
+button.primary.btn-log {
+  background: var(--key);
+  color: var(--on-key);
 }
 /* Gated on actually having a pointer. Touch browsers leave :hover stuck on the
    last thing you tapped, so on a phone this repainted whatever you just pressed
@@ -1776,7 +1809,10 @@ button.primary {
    something else. Hover is a mouse idea; this app is used one-handed. */
 @media (hover: hover) {
   button.primary:hover:not(:disabled) {
-    background: var(--accent-hover);
+    background: var(--action-hover);
+  }
+  button.primary.btn-log:hover:not(:disabled) {
+    background: var(--key-hover);
   }
   /* Lo que queda aquí ya no excluye nada: son los tres hovers que *hacen* algo,
      y cada uno sigue estando por una razón propia. La lista de exclusiones que
@@ -1870,7 +1906,7 @@ button.set-action {
    below it looking like more of the same. (It also failed AA at 3.70.) */
 .target-label {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1886,8 +1922,10 @@ button.set-action {
   letter-spacing: -0.02em;
 }
 .target-today {
-  font-size: 2.6rem;
-  font-weight: 500;
+  font-size: 2.5rem;
+  /* Headspace: a partir de 40 px, 700 y −0,03em. */
+  font-weight: 700;
+  letter-spacing: -0.03em;
   color: var(--text);
 }
 /* The reps ride beside the weight at reading size: "82.5" is the figure you
@@ -1902,7 +1940,7 @@ button.set-action {
   margin-top: 0.35rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.6;
 }
@@ -1930,7 +1968,7 @@ button.set-action {
   border-radius: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 500;
   background: transparent;
 }
@@ -1971,8 +2009,8 @@ button.set-action {
   margin-bottom: 1rem;
 }
 .prefs-label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--muted);
 }
 .unit-toggle {
@@ -1990,12 +2028,12 @@ button.set-action {
   border-radius: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 .unit-option[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--action);
+  color: var(--on-action);
 }
 .unit-option:not([aria-pressed='true']):hover {
   background: color-mix(in srgb, var(--text) 5%, transparent);
@@ -2023,7 +2061,7 @@ button.set-action {
   border-radius: var(--radius);
   padding: 0.6rem 0.8rem;
   margin: 0 0 1rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 /* ── La pantalla que sustituye a la pantalla negra ─────────────────────────
@@ -2051,8 +2089,8 @@ button.set-action {
      velo. Lo que dice «esto es un aviso» es la caja: el velo y el borde. */
   margin: 0 0 0.35rem;
   color: var(--text);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 /* La frase que contesta «¿he perdido la sesión?». En tinta normal y no en el
    rojo del título: es una tranquilidad, no parte del aviso, y pintarla de rojo
@@ -2079,7 +2117,7 @@ button.set-action {
      Lo que la mantiene en segundo plano es el cuerpo y la caja, no el apagado. */
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -2117,7 +2155,7 @@ button.set-action {
 }
 .set-index {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-family: var(--font-mono);
 }
 /* The badge on the set that broke the record. Amber outline, not a fill — the
@@ -2131,8 +2169,8 @@ button.set-action {
   background: color-mix(in srgb, var(--pr) 12%, transparent);
   color: var(--pr);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   vertical-align: 0.1em;
 }
@@ -2142,7 +2180,7 @@ button.set-action {
   margin-top: 0.5rem;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   letter-spacing: 0.02em;
 }
 
@@ -2177,7 +2215,7 @@ button.set-action {
 }
 .set-summary {
   margin: 0.6rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -2185,7 +2223,7 @@ button.set-action {
 .set-note {
   flex-basis: 100%;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-style: italic;
 }
 /* Stating which unit a block was logged in, and offering the fix. A correction
@@ -2202,7 +2240,7 @@ button.set-action {
   background: none;
   color: var(--muted);
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   text-align: left;
   cursor: pointer;
 }
@@ -2219,7 +2257,7 @@ button.set-action {
 }
 .set-action {
   padding: 0.25rem 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .set-edit {
   display: flex;
@@ -2268,8 +2306,8 @@ button.set-action {
   border: 1px solid var(--border);
   border-radius: 9999px;
   color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   min-height: 36px;
   padding: 0.35rem 0.8rem;
 }
@@ -2324,8 +2362,8 @@ button.set-action {
 }
 .card-name {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 /* Folded, the row still has to answer "did I do this, and what did I hit" —
@@ -2334,7 +2372,7 @@ button.set-action {
   margin-left: auto;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* The headline figure of the row — the working weight (or, for cardio, the
@@ -2350,8 +2388,8 @@ button.set-action {
    peak set" without competing with the weight it labels. */
 .card-digest .d-tope {
   font-family: var(--font-body);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2398,8 +2436,8 @@ button.set-action {
   align-items: center;
   gap: 0.3rem;
   font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--muted);
 }
@@ -2446,7 +2484,7 @@ button.set-action {
 }
 .edit-trouble-text {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 /* La fila de salidas. `wrap` porque `Fusionar` + `Cambiar el nombre` no siempre
@@ -2509,8 +2547,8 @@ button.set-action {
   background: var(--danger);
   color: var(--on-danger);
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
 }
 @media (hover: hover) {
@@ -2527,8 +2565,8 @@ button.set-action {
   background: none;
   color: var(--accent-ink);
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
 }
 /* Dentro de la caja roja el ámbar no tiene nada que hacer: el suelo de
@@ -2557,7 +2595,7 @@ button.set-action {
   flex-wrap: wrap;
   margin: 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .retag-undo-action {
   min-height: 44px;
@@ -2566,8 +2604,8 @@ button.set-action {
   background: none;
   color: var(--accent-ink);
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
 }
 @media (hover: hover) {
@@ -2584,7 +2622,7 @@ button.set-action {
 }
 .chart-caption {
   margin: 0.2rem 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .chart-caption.muted {
   color: var(--muted);
@@ -2595,18 +2633,18 @@ button.set-action {
 .chart-point-label {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 400;
   fill: var(--muted);
 }
 .chart-point-label.is-last {
-  font-weight: 600;
+  font-weight: 500;
   fill: var(--text);
 }
 .chart-tick {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   fill: var(--muted);
@@ -2619,7 +2657,7 @@ button.set-action {
    file for one idea. */
 .hint {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   margin: 0.9rem 0 0;
 }
 
@@ -2676,8 +2714,8 @@ button.set-action {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--text);
   white-space: nowrap;
@@ -2718,8 +2756,8 @@ button.set-action {
 .rhythm-weeks {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--text);
 }
 /* Anchored to the day the run starts on, not centred over it. A month or a week
@@ -2752,7 +2790,7 @@ button.set-action {
   justify-self: end;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* On a 390px phone the days come out around 10px each, which is the size this
@@ -2765,11 +2803,11 @@ button.set-action {
     column-gap: 6px;
   }
   .rhythm-name {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     gap: 4px;
   }
   .rhythm-since {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
   }
   .rhythm-day.is-week-start {
     margin-left: 2px;
@@ -2834,7 +2872,7 @@ button.set-action {
 .sum-seg .chip {
   min-height: 44px;
   padding: 0.15rem 0.9rem;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   cursor: pointer;
 }
 /* The header's small print, in two registers. It was `.hint` — 0.9rem (14.4px),
@@ -2843,7 +2881,7 @@ button.set-action {
    only. */
 .sum-sub {
   margin: 0.15rem 0 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* The denominator of everything below: `Día 1 de 7`, `1.6 semanas`. Ink,
@@ -2900,7 +2938,7 @@ button.set-action {
 /* DESIGN.md Label, 0.8rem — the smallest size the scale defines. These were
    0.62rem (9.92px), off the bottom of it. */
 .sum-collab {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   text-align: right;
   white-space: nowrap;
@@ -2915,7 +2953,7 @@ button.set-action {
 .sum-zonelab {
   position: absolute;
   bottom: 0.3rem;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   text-align: center;
   white-space: nowrap;
@@ -2969,7 +3007,7 @@ button.set-action {
    identity and has to be legible at arm's length — but no longer bold, and no
    longer the largest thing on the row. */
 .sum-name {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
@@ -2992,7 +3030,7 @@ button.set-action {
      list is scanned by, which is the one thing nine stacked rows have to keep
      (DESIGN.md: "una fila de sesión son dos líneas de altura constante"). */
   line-height: 1.1rem;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -3139,7 +3177,7 @@ button.set-action {
    the app is in a position to name. */
 .sum-shortweek {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--text);
   line-height: 1.45;
 }
@@ -3167,8 +3205,8 @@ button.set-action {
   /* Meta — which is what the comment above already claimed. It shipped at
      0.82rem against `.sum-shortweek`'s 0.85rem, so "the size the short-week
      line uses" was off by half a pixel and off the scale besides. */
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--text);
   line-height: 1.45;
 }
@@ -3176,7 +3214,7 @@ button.set-action {
   margin: 0.3rem 0 0;
   /* Label: still a step under the sentence above it, but a sentence itself, and
      DESIGN.md puts the floor for prose at 12.8px. */
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 /* Last week's shortfalls, the one actionable thing a blank Monday can hold.
    Wrapping row of name+dot pairs, spaced rather than punctuated — the day list
@@ -3193,7 +3231,7 @@ button.set-action {
      at 0.74 / 0.78 / 0.74rem — a 0.64px spread nobody can see, three
      declarations spent on a hierarchy that colour and weight were already
      carrying (`--muted` label, 600 name). One size, and the two overrides go. */
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--text);
   line-height: 1.5;
 }
@@ -3206,7 +3244,7 @@ button.set-action {
   gap: 0.3rem;
 }
 .sum-owed-name {
-  font-weight: 600;
+  font-weight: 700;
 }
 .sum-owed-more {
   color: var(--muted);
@@ -3254,8 +3292,8 @@ button.set-action {
   white-space: nowrap;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
   color: var(--text);
@@ -3265,7 +3303,7 @@ button.set-action {
 .sum-rest,
 .sum-ref {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 /* The deload switch sits directly under the reference line it replaces, since
@@ -3300,8 +3338,8 @@ button.set-action {
   flex: none;
   width: 1.7rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -3330,7 +3368,7 @@ button.set-action {
   background: color-mix(in srgb, var(--text) 5%, transparent);
   border: 1px solid var(--border);
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* A folded exercise shows what you already did to it today — the sets as chips,
@@ -3356,7 +3394,7 @@ button.set-action {
   min-height: 44px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 400;
   padding: 0 0.6rem;
   border-radius: var(--radius-control);
@@ -3402,8 +3440,8 @@ button.set-chip:active:not(:disabled) {
   margin-bottom: 0;
 }
 .cold-kicker {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -3419,7 +3457,7 @@ button.set-chip:active:not(:disabled) {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   text-wrap: pretty;
 }
 /* El color de músculo va en la marca, nunca en el texto (DESIGN.md). */
@@ -3446,14 +3484,15 @@ button.set-chip:active:not(:disabled) {
 .cold-stat-value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 2.6rem;
-  font-weight: 500;
+  font-size: 2.5rem;
+  /* Headspace: a partir de 40 px, 700 y −0,03em. */
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--text);
 }
 .cold-stat-label {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -3537,7 +3576,7 @@ button.set-chip:active:not(:disabled) {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -3601,7 +3640,7 @@ button.set-chip:active:not(:disabled) {
   gap: 0.75rem;
   margin-top: 1rem;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .google-signin-or::before,
 .google-signin-or::after {
@@ -3713,8 +3752,8 @@ button.set-chip:active:not(:disabled) {
   gap: 0.5rem;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -3727,8 +3766,8 @@ button.set-chip:active:not(:disabled) {
   border: 1px solid var(--border);
   border-radius: 9999px;
   font-family: var(--font-body);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   /* No crece la fila: `.food-daystamp` lo centra, y el sello es más bajo que el
@@ -3740,7 +3779,7 @@ button.set-chip:active:not(:disabled) {
   min-width: 44px;
   min-height: 44px;
   font-family: var(--font-mono);
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 .food-daystep:disabled {
@@ -3761,8 +3800,8 @@ button.set-chip:active:not(:disabled) {
    ya no se pregunta, se corrige. */
 .food-slot-label {
   display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
@@ -3777,7 +3816,7 @@ button.set-chip:active:not(:disabled) {
 }
 .food-group-title {
   margin: 0 0 0.2rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -3805,14 +3844,14 @@ button.set-chip:active:not(:disabled) {
 }
 .food-entry-amount {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   white-space: nowrap;
 }
 .food-entry-protein {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--text);
   white-space: nowrap;
@@ -3821,7 +3860,7 @@ button.set-chip:active:not(:disabled) {
 .food-editor-name,
 .food-amount-name {
   margin: 0 0 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 .food-editor-actions {
   display: flex;
@@ -3849,8 +3888,8 @@ button.set-chip:active:not(:disabled) {
 }
 .food-portions legend {
   padding: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--muted);
 }
 /* Dos renglones y no uno: a 430 px, nombre + gramos + «Por defecto» + «Quitar»
@@ -3870,8 +3909,8 @@ button.set-chip:active:not(:disabled) {
   align-items: center;
   gap: 0.35rem;
   margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--muted);
 }
 .food-portion > .link-btn {
@@ -3934,8 +3973,8 @@ button.set-chip:active:not(:disabled) {
 }
 .food-screen-slot {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 /* Una sola columna que rueda entera, con el pie dentro. Lo que antes tenía que
@@ -3987,7 +4026,7 @@ button.set-chip:active:not(:disabled) {
    dato no es un progreso. El color tampoco puede ser nunca el único canal. */
 .food-result-meta {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   overflow: hidden;
@@ -3996,7 +4035,7 @@ button.set-chip:active:not(:disabled) {
 }
 .food-result-protein {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -4032,7 +4071,7 @@ button.set-chip:active:not(:disabled) {
 }
 .food-frequent-grams {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   white-space: nowrap;
@@ -4053,11 +4092,11 @@ button.set-chip:active:not(:disabled) {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 .food-camera-sub {
   margin: 0.2rem 0 0;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 /* El disparador de verdad es el `input`; el `label` lo envuelve para tener
    aspecto de control y seguir siendo el control. El input se esconde sin
@@ -4077,7 +4116,7 @@ button.set-chip:active:not(:disabled) {
      comida: es la acción de esta tarjeta, no la de la pantalla. La acción de la
      pantalla es el buscador de arriba —la mayoría de las veces el alimento ya
      está—, y un botón macizo aquí abajo diría lo contrario. */
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent-ink);
 }
 .food-camera-shoot input[type='file'] {
@@ -4142,18 +4181,18 @@ button.set-chip:active:not(:disabled) {
 .food-origin-count {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   white-space: nowrap;
 }
 .food-origin-column {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .food-origin-how {
   margin: 0.2rem 0 0;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* Los avisos van a sangre, hasta el canto de la tarjeta: son el pie del bloque,
@@ -4208,7 +4247,7 @@ button.set-chip:active:not(:disabled) {
   margin: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   line-height: 2;
 }
 /* Una fila que no respalda ningún campo —«de las cuales saturadas»— se apaga
@@ -4244,7 +4283,7 @@ button.set-chip:active:not(:disabled) {
 }
 .food-confirm-title {
   margin: 0 0 0.5rem;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
 }
 /* El impacto, en tinta y no en `--muted`: es la información con la que se toma
    la decisión, no una nota al pie. */
@@ -4300,7 +4339,7 @@ button.set-chip:active:not(:disabled) {
 .food-summary-kcal {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .food-summary-slot {
@@ -4309,7 +4348,7 @@ button.set-chip:active:not(:disabled) {
   justify-content: space-between;
   gap: 0.5rem;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .food-summary-slot + .food-summary-slot {
   margin-top: 0.45rem;
@@ -4327,7 +4366,7 @@ button.set-chip:active:not(:disabled) {
 }
 .food-detail-name {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
 }
 /* Lo que rinde el alimento antes de que decidas cuánto: la cifra con la que se
    compara mentalmente todo lo que viene debajo. */
@@ -4335,7 +4374,7 @@ button.set-chip:active:not(:disabled) {
   margin: 0 0 1rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .food-detail .stepper-input {
@@ -4352,7 +4391,7 @@ button.set-chip:active:not(:disabled) {
   justify-content: space-between;
   gap: 0.5rem;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .food-detail-row + .food-detail-row {
   margin-top: 0.45rem;
@@ -4445,8 +4484,8 @@ button.set-chip:active:not(:disabled) {
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -4484,14 +4523,14 @@ button.idea-to-dish > span {
 .idea-name {
   font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 /* De dónde sale, en mono y en muted, como la procedencia de un alimento. */
 .idea-source {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4513,15 +4552,15 @@ button.idea-to-dish > span {
   color: var(--text);
 }
 .idea-min small {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--muted);
   margin-left: 0.2em;
 }
 .idea-method {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -4529,8 +4568,8 @@ button.idea-to-dish > span {
 /* Lo recién encontrado: un sello, no un color. El ámbar es de la acción. */
 .idea-new {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -4555,7 +4594,7 @@ button.idea-to-dish > span {
 }
 .ideas-lead {
   margin: 0 0 0.85rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* La lista termina donde empieza el fundido, no debajo de la barra. */
@@ -4595,7 +4634,7 @@ button.idea-to-dish > span {
 /* `button.` delante porque `button.secondary` fija 36px y gana a una clase sola. */
 button.ideas-more {
   min-height: 44px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .ideas-status {
   margin: 0.5rem 0 0;
@@ -4604,7 +4643,7 @@ button.ideas-more {
   line-height: 1.5;
   min-height: 1.5em;
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
@@ -4624,7 +4663,7 @@ button.ideas-more {
   gap: 0.4rem;
   margin: 0.75rem 0 0.35rem;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .draft-saved-tick {
   color: var(--text);
@@ -4633,13 +4672,13 @@ button.ideas-more {
 }
 .draft-saved-name {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   line-height: 1.3;
   color: var(--text);
 }
 .draft-hint {
   margin: 0.35rem 0 0;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .draft-eyebrow {
@@ -4662,14 +4701,14 @@ button.ideas-more {
 .draft-line-food {
   margin: 0;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
 }
 /* Lo que dice la receta, debajo: la procedencia en mono, como en las ideas. */
 .draft-line-text {
   margin: 0.1rem 0 0;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -4679,7 +4718,7 @@ button.ideas-more {
   gap: 0.3rem;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--muted);
 }
@@ -4716,8 +4755,8 @@ button.draft-choice {
 }
 .draft-macro dt {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -4726,7 +4765,7 @@ button.draft-choice {
   margin: 0.15rem 0 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--text);
 }
@@ -4747,12 +4786,12 @@ button.draft-choice {
 }
 .new-dish-notice {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--text);
 }
 button.draft-save {
   min-height: 44px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .ideas-status.draft-error {
   color: var(--danger);
@@ -4804,7 +4843,7 @@ button.draft-save {
   gap: 0.4rem;
   height: 48px;
   padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 /* Es un `label` sobre un `input[type=file]`, no un `button`: el disparador de
    verdad es el input, y envolverlo es lo que deja que el control tenga aspecto
@@ -4818,12 +4857,12 @@ button.draft-save {
   justify-content: center;
   gap: 0.4rem;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-pill);
   padding: 0.7rem 1rem;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--action);
+  color: var(--on-action);
 }
 .food-escalada-shoot input[type='file'] {
   height: 0;
@@ -4890,13 +4929,15 @@ button.draft-save {
 .food-macros-number {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 2.6rem;
+  font-size: 2.5rem;
+  /* Headspace: a partir de 40 px, 700 y −0,03em. */
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 0.9;
-  letter-spacing: -0.02em;
   color: var(--accent-ink);
 }
 .food-macros-number.is-closed {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   color: var(--pr);
 }
 .card-eyebrow.is-closed {
@@ -4927,13 +4968,13 @@ button.draft-save {
   margin: 0 0 0.3rem;
 }
 .food-macro-label {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .food-macro-value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--text);
   white-space: nowrap;
 }
@@ -4981,7 +5022,7 @@ button.draft-save {
   margin: 0.85rem 0 0;
   padding-top: 0.7rem;
   border-top: 1px solid var(--border);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .food-macros-kcal-value {
@@ -5010,12 +5051,12 @@ button.draft-save {
 .food-slot-name {
   font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 .food-slot-meta {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -5035,7 +5076,7 @@ button.draft-save {
   min-height: 44px;
   padding: 0 1rem;
   color: var(--accent-ink);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 /* Los huecos: dos por fila, en `dashed` y sin sombra. Una tarjeta que todavía
@@ -5061,7 +5102,7 @@ button.draft-save {
 }
 .food-blank-add {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
@@ -5187,8 +5228,8 @@ button.draft-save {
   border: 0;
   background: var(--danger);
   color: var(--on-danger);
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.875rem;
 }
 .food-entry-swipe > .food-entry {
   position: relative;
@@ -5228,8 +5269,8 @@ button.draft-save {
    con la tinta de una cifra. */
 .food-label-warn {
   color: var(--text);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   margin: 0 0 0.6rem;
 }
 
@@ -5243,7 +5284,7 @@ button.draft-save {
 .food-label-rows li {
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -5264,8 +5305,8 @@ button.draft-save {
 }
 .weight-kg {
   font-family: var(--font-mono);
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
@@ -5279,8 +5320,8 @@ button.draft-save {
    cuándo está medida, para que una tendencia de hace un mes lo diga. */
 .weight-stamp {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -5289,7 +5330,7 @@ button.draft-save {
 /* Prosa, así que no baja de la escala legible: «una pesada» y «ninguna» son
    fallos distintos y cada uno se nombra por su nombre. */
 .weight-empty {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
   margin: 0 0 0.9rem;
   max-width: 34ch;
@@ -5308,7 +5349,7 @@ button.draft-save {
   flex: none;
 }
 .weight-error {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--danger);
   margin: 0.5rem 0 0;
 }
@@ -5325,8 +5366,8 @@ button.draft-save {
 /* Micro: mayúsculas espaciadas que titulan un bloque, no una frase que se lee. */
 .food-dish-name {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -5383,7 +5424,7 @@ button.draft-save {
   color: var(--muted);
 }
 .dish-error {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--danger);
   margin: 0.6rem 0 0;
 }
@@ -5418,11 +5459,11 @@ button.draft-save {
 .propose-missing {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .propose-note {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
   margin: 0.5rem 0 0;
   max-width: 40ch;
@@ -5438,7 +5479,7 @@ button.draft-save {
   margin: 0.35rem 0 0.9rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--text);
 }
 .objetivo-figure {
@@ -5449,8 +5490,8 @@ button.draft-save {
 }
 .objetivo-kcal {
   font-family: var(--font-mono);
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
@@ -5463,15 +5504,15 @@ button.draft-save {
 .objetivo-fuente {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 0.6rem;
 }
 .objetivo-falta {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
   margin: 0 0 0.7rem;
   max-width: 40ch;
@@ -5533,8 +5574,8 @@ button.draft-save {
 }
 .regla-dureza {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -5544,11 +5585,11 @@ button.draft-save {
   grid-column: 2;
   grid-row: 1 / span 2;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   padding: 0.5rem 0 0.5rem 0.5rem;
 }
 .regla-vacio {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .reglas-nueva {
@@ -5570,7 +5611,7 @@ button.draft-save {
   display: flex;
   justify-content: space-between;
   gap: 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   border-left: 2px solid var(--border);
   padding-left: 0.6rem;
 }
@@ -5582,7 +5623,7 @@ button.draft-save {
 }
 .veredicto-estado {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -5622,7 +5663,7 @@ button.draft-save {
   grid-row: 2;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 /* Lo dicho se dice con la tinta de una cifra, no en `--muted`: es un dato del
@@ -5631,8 +5672,8 @@ button.draft-save {
   grid-column: 2;
   grid-row: 1;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -5664,13 +5705,13 @@ button.draft-save {
 }
 .plan-saltar {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   min-height: 44px;
 }
 .plan-ver {
   align-self: flex-start;
   color: var(--accent-ink);
-  font-weight: 600;
+  font-weight: 500;
 }
 .plan-dia {
   margin-bottom: 1.4rem;
@@ -5679,8 +5720,8 @@ button.draft-save {
    del hueco. En mono y mayúsculas los dos, el ojo no distinguía cuál mandaba. */
 .plan-dia-nombre {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 500;
   color: var(--text);
   margin: 0 0 0.6rem;
   display: flex;
@@ -5689,8 +5730,8 @@ button.draft-save {
 }
 .plan-dia-hoy {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-ink);
@@ -5728,7 +5769,7 @@ button.draft-save {
 .plan-sustituto-kcal {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .plan-adherencia {
@@ -5748,7 +5789,7 @@ button.draft-save {
   width: 100%;
   text-align: left;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   min-height: 44px;
 }
 
@@ -5788,15 +5829,15 @@ button.draft-save {
   flex: none;
   width: 2.6rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text);
 }
 .poner-slot {
   flex: none;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
 }
 .poner-sep {

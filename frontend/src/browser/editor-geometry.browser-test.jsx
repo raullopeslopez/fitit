@@ -152,9 +152,10 @@ for (const [screenName, mount, deleteLabel] of [
 // se escribió: ámbar bajo el puntero con la tinta clara encima, 3,33:1.
 //
 // La invariante no nombra ningún selector, así que no se queda vieja: **si un
-// botón acaba pintado con el relleno de la marca, su letra tiene que ser la
-// tinta que se lee encima de él** (`--on-accent`, que DESIGN.md fija en casi
-// negro precisamente porque el blanco sobre ámbar no pasa AA). Un CTA nuevo lo
+// botón acaba pintado con un relleno de la marca, su letra tiene que ser la
+// tinta que se lee encima de ese relleno**. Desde Headspace hay tres: el
+// amarillo (`--on-accent`, carbón), la píldora de acción (`--on-action`) y el
+// azul de la acción clave (`--on-key`). Un CTA nuevo lo
 // cumple sin enterarse; un control de texto que hereda el relleno por accidente
 // no puede cumplirlo, porque su letra es `--text`, `--muted` o `--danger`.
 //
@@ -192,15 +193,22 @@ describe('Ningún botón hereda un relleno que no pidió', () => {
   /**
    * Pasa el puntero por cada botón de `root` y mira el color **realmente
    * pintado**, ya compuesto por el navegador. Devuelve las infracciones, cuántos
-   * botones llegó a mirar y cuántos salieron ámbar — este último es el que
+   * botones llegó a mirar y cuántos salieron con relleno de marca — este último es el que
    * impide que la prueba pase por no haber encontrado un solo CTA que mirar.
    */
   async function hoverAudit(paso, root = document) {
-    const fills = [tokenRgb('--accent'), tokenRgb('--accent-hover')]
-    const ink = tokenRgb('--on-accent')
+    const families = [
+      ['--accent', '--accent-hover', '--on-accent'],
+      ['--action', '--action-hover', '--on-action'],
+      ['--key', '--key-hover', '--on-key'],
+    ].map(([fill, hover, ink]) => ({
+      fills: [tokenRgb(fill), tokenRgb(hover)],
+      ink: tokenRgb(ink),
+      name: ink,
+    }))
     const fails = []
     let seen = 0
-    let amber = 0
+    let filled = 0
     const buttons = [...root.querySelectorAll('button')].filter((b) => isVisible(b) && !b.disabled)
     for (const b of buttons) {
       if (!b.isConnected) continue
@@ -216,18 +224,19 @@ describe('Ningún botón hereda un relleno que no pidió', () => {
       await settle()
       seen += 1
       const bg = backdropOf(b)
-      if (!fills.some((f) => near(f, bg))) continue
-      amber += 1
+      const family = families.find(({ fills }) => fills.some((f) => near(f, bg)))
+      if (!family) continue
+      filled += 1
       const fg = parseColor(getComputedStyle(b).color)
-      if (!near(ink, fg)) {
+      if (!near(family.ink, fg)) {
         fails.push(
           `${paso}: «${label(b)}» (.${b.className || 'sin clase'}) se pinta ` +
             `rgb(${bg.slice(0, 3).map(Math.round).join(' ')}) con la letra en ` +
-            `rgb(${fg.slice(0, 3).map(Math.round).join(' ')}), que no es --on-accent`,
+            `rgb(${fg.slice(0, 3).map(Math.round).join(' ')}), que no es ${family.name}`,
         )
       }
     }
-    return { fails, seen, amber }
+    return { fails, seen, filled }
   }
 
   for (const theme of ['dark', 'light']) {
@@ -241,10 +250,10 @@ describe('Ningún botón hereda un relleno que no pidió', () => {
       await settle()
       forceTheme(theme)
       const undo = freezeTransitions()
-      const { fails, seen, amber } = await hoverAudit('Días')
+      const { fails, seen, filled } = await hoverAudit('Días')
       undo()
       expect(seen).toBeGreaterThan(8)
-      expect(amber).toBeGreaterThan(0)
+      expect(filled).toBeGreaterThan(0)
       expect(fails).toEqual([])
     })
 
@@ -260,7 +269,7 @@ describe('Ningún botón hereda un relleno que no pidió', () => {
       const cajon = await hoverAudit('editor · cajón', screen.getByRole('dialog'))
       undo()
       expect(suelto.seen).toBeGreaterThan(12)
-      expect(suelto.amber).toBeGreaterThan(0)
+      expect(suelto.filled).toBeGreaterThan(0)
       // Cuatro: el aspa y `Grupo y nota` en el primer paso, la vuelta y el
       // aspa en el cajón. Eran seis mientras hubo `Guardar nombre` y
       // `Guardar nota`; el suelo baja con ellos porque lo que este número

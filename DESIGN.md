@@ -55,8 +55,8 @@ los tamaños mínimos). Es la fuente; lo que se sirve se genera desde ahí.
 - **Qué versión a qué tamaño.** 4×4 hasta 24 px; por debajo, 3×3; a 16 px, el
   favicon 2×2. El lockup del header cae en la banda de 20 px, así que lleva la
   3×3 — la 4×4 ahí es una mancha de puntos.
-- **El nombre va en una sola caja y una sola tinta:** `fitit`, DM Sans 700,
-  tracking −0.055em. DM Sans dibuja más grande que la Space Grotesk anterior: en los
+- **El nombre va en una sola caja y una sola tinta:** `fitit`, Figtree 700,
+  tracking −0.055em. Figtree dibuja más grande que la Space Grotesk anterior: en los
   lockups va a 70 u (horizontal) y 54 u (vertical), para que el nombre mida dos tercios
   de la retícula como antes. Sin la I capital que llevaba antes: echoaba la mancuerna y
   la mancuerna ya no está.
@@ -67,30 +67,40 @@ los tamaños mínimos). Es la fuente; lo que se sirve se genera desde ahí.
   cambia la marca, se vuelve a correr.
 
 ## Typography
-Headspace usa Apercu, que es propietaria. **DM Sans** es la geométrica libre más cercana
-(redonda, humanista, buena en pesos bajos) y hace los dos papeles. Las cifras se quedan
-en Geist Mono: es lo que haría Apercu Mono, y la lectura de instrumento es lo único que
-esta app no negocia.
-- **Display/Hero:** DM Sans — headings, workout names. Weights 600/700, tracking -0.01 to -0.03em.
-- **Body/UI:** DM Sans — labels, buttons, running text. Weight 400/600.
-- **Data/Numbers:** **Geist Mono** — weight, reps, estimated 1RM, dates. Always
-  `font-variant-numeric: tabular-nums`. This is the signature: the log reads like an
-  instrument readout, not a feed.
-- **Code:** Geist Mono (same as data).
-- **Loading:** `https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Geist+Mono:wght@400;500;600&display=swap`
-- **Scale** (16px root):
-  | Role | Size | Weight | Font | Tracking |
-  |------|------|--------|------|----------|
-  | Display figure | 2.6rem / 41.6px | 400 | Geist Mono | -0.02em, tabular-nums |
-  | Hero (h1) | 1.6rem / 25.6px | 700 | DM Sans | -0.03em |
-  | Title (h2) | 1.15rem / 18.4px | 600 | DM Sans | -0.01em |
-  | Body | 1rem / 16px | 400 | DM Sans | 0 |
-  | Data (numbers) | 1rem / 16px | 500 | Geist Mono | 0, tabular-nums |
-  | Big stat (PR/1RM) | 1.4rem / 22.4px | 600 | Geist Mono | 0, tabular-nums |
-  | Meta/small | 0.85rem / 13.6px | 400 | DM Sans | 0 |
-  | Label | 0.8rem / 12.8px | 600 | DM Sans | 0.01em |
-  | Micro (stamp) | 0.7rem / 11.2px | 600 | Geist Mono | 0.06–0.14em, uppercase |
-- **Below Label there is exactly one step, and it is not for reading.** The stylesheet had
+Headspace usa **una sola familia**, Apercu (propietaria, pesos 400/500/700), con una
+escala de base 15 px y proporción 1,2 («Minor Third»), y todos los titulares a
+−0,03em. Aquí se sigue entera, **cifras incluidas** (decisión del 2026-09-27).
+- **Familia:** **Figtree** — la geométrica libre más cercana a Apercu que además trae
+  cifras tabulares (`tnum`), y Google Fonts las conserva al servirla. Figtree, la primera
+  elección, no las tiene ni en su fuente completa, y con ella las columnas de kg no
+  cuadraban. Figtree hace títulos, texto, etiquetas y números. No hay monoespaciada.
+- **Pesos:** sólo **400 / 500 / 700**, como Headspace. 700 para títulos, nombres,
+  botones y cifras destacadas; 500 para etiquetas y sellos; 400 para texto corrido.
+  No existe el 600.
+- **Números:** Figtree con `font-variant-numeric: tabular-nums` puesto en `body`, así
+  que toda cifra de la app tiene ancho fijo y las columnas de kg, reps y kcal siguen
+  alineadas sin monoespaciada. El token `--font-mono` sigue existiendo y apunta a
+  Figtree: hoy significa «la fuente de los datos». **Si alguna vez se cambia la familia,
+  comprobar antes que tiene `tnum`**: sin él, `tabular-nums` no hace nada y no avisa.
+- **Titulares:** siempre 700 y −0,03em. Headspace lo lista como la regla que no se
+  negocia; tracking 0 o positivo en un titular es un error.
+- **Loading:** `https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap`
+- **Scale** (16px root), redondeada a los tamaños que Headspace usa de verdad (12,
+  14, 16, 18, 20, 24, 40):
+  | Role | Size | Weight | Tracking |
+  |------|------|--------|----------|
+  | Display figure | 2.5rem / 40px | 700 | -0.03em |
+  | Hero (h1) | 1.5rem / 24px | 700 | -0.03em |
+  | Big stat (PR/1RM) | 1.25rem / 20px | 700 | -0.02em |
+  | Title (h2) | 1.125rem / 18px | 700 | -0.03em |
+  | Body | 1rem / 16px | 400 | 0 |
+  | Data (numbers) | 1rem / 16px | 500 | 0 |
+  | Meta/small y Label | 0.875rem / 14px | 400 / 500 | 0 |
+  | Micro (stamp) | 0.75rem / 12px | 500 | 0.06–0.14em, uppercase |
+  Meta y Label comparten tamaño y se distinguen por peso: Headspace no tiene nada
+  entre 12 y 14. `frontend/src/typeScale.test.js` vigila esta tabla.
+- **Below Label (14px) there is exactly one step, and it is not for reading.** (Los
+  tamaños citados abajo son los de la escala anterior; la regla no ha cambiado.) The stylesheet had
   drifted to nine distinct sizes under 12.8px — 12.48, 12.0, 11.84, 11.52, 11.2, 11.0,
   10.88, 10.5, 10.4 — which is not a scale, it is the absence of one. Two different things
   were hiding in that drift, and they want opposite answers:
@@ -140,6 +150,19 @@ esta app no negocia.
   en `--accent-ink`.
 - **Focus:** `--focus`, azul de Headspace `#0061EF` en claro (4,87 sobre crema) y el
   amarillo en oscuro. Un anillo amarillo sobre crema no se ve.
+- **Botones (2026-09-27, como Headspace):** el amarillo **no es un botón**; es un
+  destacado (`● EN CURSO`, la celda del logo, las barras de progreso, el filete de
+  hoy). Headspace lo usa «con moderación, como puntuación».
+  - **Acción corriente** (`button.primary`, el selector kg/lb pulsado, el disparador
+    de la cámara): píldora `--action` carbón `#2D2C2B` con texto blanco (13,94) y la
+    sombra de escalón de 2 px. En oscuro se invierte: píldora crema `#F9F4F2` con
+    tinta carbón (12,78).
+  - **Acción clave** — una por pantalla, la que se mide en toques:
+    `button.primary.btn-log` (`Registrar serie`, `Empezar entreno` /
+    `Continuar entreno`): `--key`, azul de Headspace `#0061EF`, texto blanco (5,31);
+    hover `#0052CC`. El mismo azul en los dos temas.
+  - En el widget de Android, el `+1` y `Empezar entreno` son la acción clave y van en
+    el mismo azul (`widget_key`).
 - **PR / record:** el naranja del punto del logo de Headspace (`#F47D31`).
   - dark: `#F47D31` tal cual — 5,20 en el peor caso.
   - light: `#A8400A` — el mismo naranja bajado hasta pasar como texto (5,66 sobre crema,
@@ -290,7 +313,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   deuteranopia, Comida y Cena caen a 0,01 de distancia en oklab: el mismo color.
   Es el precio de la misma luminosidad, y es el precio correcto porque **aquí el
   color no identifica** — el nombre de la comida está escrito en la tarjeta, en
-  DM Sans a 16 px, y el tono sólo sirve para barrer. Es justo al revés que
+  Figtree a 16 px, y el tono sólo sirve para barrer. Es justo al revés que
   «Color por músculo», donde el dot acompaña al nombre pero también viaja solo, y
   por eso aquella sí va escalonada en luminosidad y ésta no. Escalonar ésta
   arreglaría el daltonismo y costaría que las cuatro dejasen de leerse como una
@@ -314,7 +337,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   use case — do not add multi-column dashboards).
 - **Grid:** one column. Content max-width **480px**, centered.
 - **Touch targets:** minimum 44px on all interactive controls (one-handed, gym use).
-- **Set list = spec sheet:** numbers right-aligned, Geist Mono, tabular. Exercise/label
+- **Set list = spec sheet:** numbers right-aligned, Figtree with tabular figures. Exercise/label
   left, values right.
 - **Newest first, everywhere.** Days, workouts within a day, exercises within a workout.
   The thing you are doing now is the thing at the top. Order is settled on load and then
@@ -324,7 +347,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   is the control (full width, 44px), not a small chevron you have to aim at one-handed.
 - **A folded row still answers "what did I do here":** exercise name alone on the left; the
   muscle tag rides the top-right (not glued to the name), with the digest right below it —
-  a tidy right column. The digest is Geist Mono, always shaped `N series · [tope] weight ×
+  a tidy right column. The digest is Figtree tabular, always shaped `N series · [tope] weight ×
   reps`. It names one *real*
   working set, never decoupled reps/weight ranges (with `4 × 8–12 · 50–60 kg` you can't
   tell which weight went with which reps). When every set matched, that set speaks for all
@@ -468,7 +491,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   date stays in ink. The attention it freed goes to the one state the list could not
   express: `● EN CURSO` on the session still running, in the slot the duration would take.
   The two are mutually exclusive by construction — an open session has no length to report.
-- **Dates are data**, so the day list stamps them in Geist Mono, uppercase, no comma
+- **Dates are data**, so the day list stamps them in Figtree tabular, uppercase, no comma
   (`JUE 16 JUL`), and drops the year when it's the current one. Prose dates
   (`jue, 16 jul 2026`) stay inside a workout, where there's one of them.
 - **The session may reach outside the app, but only where it is already running.** The
@@ -536,7 +559,7 @@ Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widge
     usuario. El 4×1 se queda como está salvo el
   botón, que dice sólo `+1`. Toques de 44 dp como mínimo, siempre, aunque el icono sea menor.
 - **Tipos y color.** Nombre del ejercicio en Geist 600 15sp; lo secundario en Geist 13sp
-  `--muted`; toda cifra en Geist Mono con tabulares. Colores de `widget_colors.xml`, que
+  `--muted`; toda cifra en Figtree con cifras tabulares. Colores de `widget_colors.xml`, que
   son los de este documento; claro y oscuro los elige el sistema.
 - **Nada que se deslice a los lados.** El launcher se queda ese gesto para cambiar de página;
   un widget no lo recibe. Lo que cambia de pantalla se **toca**.
@@ -549,7 +572,7 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   `--text`; inactivo: 7 × 7 en `--border-strong`) de 44 dp de alto; tocarla cambia de
   pantalla y el widget recuerda en cuál está.
   - Pantalla 1: sello `PASOS HOY` con el icono de pisadas en `--accent-ink`; `8.432` en
-    Geist Mono 40sp seguido de `/ 10.000` en Mono 15sp `--muted`; una barra de 8 dp,
+    Figtree tabular 40sp seguido de `/ 10.000` en Mono 15sp `--muted`; una barra de 8 dp,
     `--accent` sobre `--border`, que se llena hasta el objetivo; y `Media semanal: 7.910`.
     La barra dibuja un dato, no un tiempo: se repinta cuando cambian los pasos, nunca cada
     segundo. Sin objetivo fijado no hay barra ni `/ 10.000`.
@@ -558,7 +581,7 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
 - **Entrenando.** Arriba, en una línea: `Press banca` (600, `--text`) `· 4 series`
   (`--muted`), y Terminar a la derecha. Debajo, el **bloque de ajuste**. Nada más.
 - **Descansando.** Entre la línea del ejercicio y el bloque aparece el tiempo, `01:23` en
-  Geist Mono 30sp, alineado a la izquierda y **centrado en su hueco**: 11 dp arriba y 11
+  Figtree tabular 30sp, alineado a la izquierda y **centrado en su hueco**: 11 dp arriba y 11
   abajo (medido; antes quedaba a 2 dp del nombre y 20 del bloque y parecía pegado).
 - **Pasado de tiempo.** Al llegar a cero, el mismo número pasa a `--accent-ink` y cuenta
   hacia arriba con signo: `+00:12`, `+02:47`. No hay botón de saltar en ningún sitio:
@@ -578,7 +601,7 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   1 dp `--border` entre filas. Dos filas de **48 dp**, así que el bloque mide lo mismo que
   dos ajustes sueltos con su hueco (44 + 8 + 44 = 96). Menos cajas que compitan: se pasó de
   siete cajas con borde a cuatro.
-- **`+1`**: 60 dp de ancho y todo el alto del bloque, relleno `--accent`, `+1` en Geist Mono
+- **`+1`**: 60 dp de ancho y todo el alto del bloque, relleno `--accent`, `+1` en Figtree tabular
   600 20sp `--on-accent`. Dice sólo `+1`: el botón no repite la serie, que ya está escrita
   en los ajustes a su izquierda.
 - **`−` y `+`**: glifos en `--text` (no acento: el acento es del `+1`), zona de toque de 44 dp.
@@ -634,6 +657,8 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-27 | Figtree sustituye a DM Sans | Con «números incluidos», las cifras tienen que alinear en columna sin monoespaciada, y DM Sans no tiene `tnum` (comprobado en la fuente de Google Fonts y en la completa del repositorio): «111,5» y «102,5» no cuadraban. Entre Figtree, Plus Jakarta Sans, Onest y Outfit —todas con `tnum`— el usuario eligió Figtree, la más cercana a Apercu. Cambia en la app, la página de privacidad, los lockups de `brand/` y las fuentes de los widgets de Android (Geist, Geist Mono y Space Grotesk salen del APK). |
+| 2026-09-27 | Tipografía y botones de Headspace, enteros | El usuario: la tipografía «no encaja». La ficha de Refero sí la define: una sola familia (Apercu, 400/500/700), escala de base 15 px ×1,2, titulares a −0,03em. Se sigue entera, cifras incluidas: DM Sans en todo, `tabular-nums` en `body`, fuera Geist Mono y el peso 600, escala redondeada a 12/14/16/18/20/24/40. Y los botones como Headspace: píldora carbón para la acción corriente, azul `#0061EF` sólo para la acción clave (`.btn-log`), amarillo sólo como destacado. |
 | 2026-09-27 | Headspace sustituye a tinta y ámbar: paleta, tipografía, radios y marca | Elegido por el usuario entre los cinco estilos de salud de Refero (Eight Sleep, Ease Health, Oura, August Health, Headspace). Crema `#F9F4F2`, carbón `#2D2C2B`, acento amarillo `#FFCE00` con `--accent-ink` ocre `#7D5C00` para texto, récord en el naranja del logo (`#A8400A` / `#F47D31`), foco azul `#0061EF`, oscuro derivado en carbón cálido. DM Sans sustituye a Space Grotesk y Geist (Apercu no es libre); Geist Mono se queda en las cifras. Tarjetas de 16px, controles de 12px, botones en píldora, sombra de escalón de 2px. La marca pasa a amarillo; el icono de app queda en carbón porque la celda amarilla sobre crema no se ve (1,37). La tesis de uso no cambia. Queda abierto Hombro, demasiado cerca del nuevo acento. |
 | 2026-09-17 | Color por comida, y un solo borde izquierdo por tarjeta | **Segunda excepción categórica**, aprobada por el usuario: las cuatro comidas llevan tono propio (`--slot-*`, cuatro matices en oklch a igual L y C) para poder barrer la lista sin leerla. La frontera es que el tono sea **marca y nunca dato** —velo de la banda del nombre al 20 %, punto de 7 px y filete; ni una cifra, ni una barra, ni el héroe—, y de ahí sale que su suelo de contraste sea 3:1 y no 4,5. No es una rebaja: se barrió L y C en los dos temas y **no hay ninguna luminosidad que pase AA como texto y siga por debajo del ámbar**, así que teñir el subtotal habría costado un segundo acento. La paleta suspende a propósito la validación de daltonismo —Comida y Cena son el mismo color con deuteranopia— porque el nombre va escrito al lado y el tono no identifica; es la diferencia con «Color por músculo», cuyos dots sí viajan solos y por eso van escalonados. El montón «Sin asignar» se queda sin tono y sin `data-slot`: no es una comida que elegiste. **Y el alineamiento:** la fila de un alimento heredaba el `padding: .55rem .2rem` de `.link-row`, de cuando vivía suelta sobre la página, así que dentro de una tarjeta había tres sangrías —cabecera y «+ Añadir» a 1rem del canto, el nombre del alimento a 0,2rem— y la que se quedaba fuera era justo la columna que se barre. `padding-inline: 1rem` y las tres coinciden; el vertical no se toca, que lo gobierna el objetivo de 44 px. `comida.browser-test.jsx` mide las dos cosas sobre el color realmente pintado y sobre la caja realmente maquetada: que el velo se ve (>1,18 contra el cuerpo de la tarjeta) sin leerse como otra superficie (<1,6), que el punto pasa 3:1 y se queda por debajo de `--accent-ink`, que el rótulo sigue pasando AA sobre su propio velo, y que la tarjeta tiene un solo borde izquierdo. |
 | 2026-08-31 | Tercera pestaña: `Comida`, y una raya que no es un cero | La app pasa de dos pantallas a tres. `Comida` entra en la barra inferior con caption a Label como las otras dos (56px de `min-height`, la barra no crece) y el isotipo `◒` en mono — se probó `◗`, que a 1rem se pinta como una astilla y no se ve. La pantalla es un instrumento como Progreso: total del día en display mono sobre la superficie *hero* (es lo que la pantalla mide), cuatro macros en rejilla con rótulo Micro, y sello de fecha mono entre dos pasos de día. **La decisión propia de esta pantalla es la raya.** Un nutriente que nadie ha medido vale `null`, no `0`, y en pantalla se imprime `—` **con la tinta de una cifra, no con `--muted`**: en muted se lee como «aquí no hay nada», que es lo contrario de lo que dice. Y como una raya sola sigue siendo ambigua, la tarjeta lleva pie: `— no es cero: 1 entrada sin fibra.` — que además señala cuántas entradas hay que corregir para que aparezca el número. `comida.browser-test.jsx` mide las dos mitades que jsdom no puede: que la raya se pinta con el mismo color y la misma altura de línea que la cifra de al lado, y que el pie pasa AA (4,5) en los dos temas sobre el color realmente pintado. La CTA `Añadir alimento` va al pie de la lista y **no** fija como la de Días: allí es `Continuar entreno` y la quieres a mano a mitad de sesión; aquí registras al terminar de comer, y una barra fija gasta 60px permanentes por un gesto que no interrumpe nada. Y `.comida` reserva 7rem de pie sobre las 4,5rem de `.container`: los paneles se abren al final de la lista, así que sin ese recorrido «Crear …» y «Cancelar» quedaban 24px debajo de la barra justo cuando hacen falta — medido, no estimado. |

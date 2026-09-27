@@ -9,6 +9,9 @@
     <color name="widget_accent">#FFCE00</color>
     <color name="widget_accent_ink">#FFCE00</color>
     <color name="widget_on_accent">#2D2C2B</color>
+    <!-- La acción clave (+1, Empezar entreno), en el azul de Headspace como en la app. -->
+    <color name="widget_key">#0061EF</color>
+    <color name="widget_on_key">#FFFFFF</color>
     <color name="widget_danger">#F87171</color>
     <color name="widget_press">#3D3515</color>
 </resources>

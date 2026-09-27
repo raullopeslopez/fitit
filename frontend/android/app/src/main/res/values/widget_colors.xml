@@ -14,6 +14,9 @@
          pasado, el glifo pulsado. -->
     <color name="widget_accent_ink">#7D5C00</color>
     <color name="widget_on_accent">#2D2C2B</color>
+    <!-- La acción clave (+1, Empezar entreno), en el azul de Headspace como en la app. -->
+    <color name="widget_key">#0061EF</color>
+    <color name="widget_on_key">#FFFFFF</color>
     <!-- Terminar: rojo porque no se deshace (danger en DESIGN.md). -->
     <color name="widget_danger">#CE1F1F</color>
     <!-- La zona de un − o + mientras se pulsa: suave, no sólida, para que el + de

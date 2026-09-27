@@ -20,7 +20,7 @@ El crecimiento fluye siempre hacia la esquina superior derecha.
 | fitit-favicon.svg | 2×2 para 16–32 px |
 | *.png | los mismos lockups rasterizados a 4× (sin dependencia de la fuente) |
 
-Los SVG de lockup llevan el nombre como texto en DM Sans 700 (tracking
+Los SVG de lockup llevan el nombre como texto en Figtree 700 (tracking
 −0.055 em). Si el destino no tiene la fuente, usa los PNG o convierte el texto
 a curvas antes de enviarlo a imprenta.
 

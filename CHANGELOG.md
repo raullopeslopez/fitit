@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Tipografía y botones de Headspace.** Una sola fuente, Figtree, también para los
+  números, que siguen alineados en columna (y en los widgets de Android). Titulares más apretados, escala de 12 a 40
+  px y sin seminegrita. Los botones pasan a píldora carbón («Añadir ejercicio»,
+  «Guardar»); sólo la acción clave de cada pantalla, «Registrar serie» y «Empezar» /
+  «Continuar entreno», va en azul. El amarillo deja de ser botón y queda para los
+  destacados. En el widget de Android, el `+1` y «Empezar entreno» también van en azul.
 - **La app cambia de piel: estilo Headspace.** Fondo crema cálido, tinta carbón y un único
   acento amarillo en lugar de papel, tinta y ámbar. Los botones principales pasan a píldora,
-  las tarjetas a 16 px de radio y la sombra a un escalón de 2 px. DM Sans sustituye a Space
-  Grotesk y Geist; las cifras siguen en Geist Mono. El texto de acento («+ Añadir a
+  las tarjetas a 16 px de radio y la sombra a un escalón de 2 px. El texto de acento («+ Añadir a
   desayuno», la pestaña activa) va en ocre para poder leerse sobre claro, y el foco del
   teclado en azul. El tema oscuro pasa a carbón cálido con el mismo amarillo. La marca, el
   icono de la app, el favicon, los iconos de Android y los widgets pasan al amarillo.

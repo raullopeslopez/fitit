@@ -14,7 +14,7 @@ const css = readFileSync(resolve(SRC, 'styles.css'), 'utf8')
 
 // DESIGN.md → Typography → Scale. `2.6rem` es la cifra del día: una por
 // pantalla, la que se lee de lejos (objetivo de hoy, kcal, la del arranque en frío).
-const SCALE = new Set(['2.6rem', '1.6rem', '1.4rem', '1.15rem', '1rem', '0.85rem', '0.8rem', '0.7rem'])
+const SCALE = new Set(['2.5rem', '1.5rem', '1.25rem', '1.125rem', '1rem', '0.875rem', '0.75rem'])
 
 // Glifos: se dimensionan como iconos, no como texto. Un chevron, una × o un
 // ✓ no tienen «tamaño de lectura», tienen el del hueco que ocupan.
@@ -54,7 +54,7 @@ describe('escala tipográfica', () => {
   it('por debajo de Label sólo hay Micro, y Micro no se usa para prosa en minúscula', () => {
     const rem = (v) => parseFloat(v)
     const bajo = blocks()
-      .filter((b) => !GLYPHS.has(b.selector) && rem(b.size) < 0.8 && b.size !== '0.7rem')
+      .filter((b) => !GLYPHS.has(b.selector) && rem(b.size) < 0.875 && b.size !== '0.75rem')
       .map((b) => `${b.size}  ${b.selector}`)
     expect(bajo).toEqual([])
   })
@@ -77,7 +77,7 @@ describe('escala tipográfica', () => {
 
   it('Micro sólo lo llevan sellos: en mayúsculas por la hoja, o por su texto', () => {
     const prosa = blocks()
-      .filter((b) => b.size === '0.7rem' && !/uppercase/.test(b.body))
+      .filter((b) => b.size === '0.75rem' && !/uppercase/.test(b.body))
       .filter((b) => !STAMPS_BY_CONTENT.has(b.selector))
       .map((b) => b.selector)
     expect(prosa).toEqual([])
