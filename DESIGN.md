@@ -483,8 +483,18 @@ Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widge
   pantalla— va apagado. Es la misma regla del ámbar de la app, llevada a donde el usuario
   mira de reojo entre series: un único color de acento se encuentra sin buscarlo; dos se
   anulan (congestión visual, Rosenholtz). Máximo tres bloques de información a la vista.
-- **Tamaños.** 4×2 (358 × 200 dp en el Xiaomi del usuario) y 3×2 (≈270 dp de ancho, a
-  medir en el launcher real), con el mismo diseño. El 4×1 se queda como está salvo el
+- **Tamaños.** 4×2 (358 dp de ancho) y 3×2 (≈253 dp medidos en el launcher del Xiaomi
+  del usuario; se había diseñado a ≈270), con el mismo diseño. **El alto de dos filas no
+  es 200 dp**: en ese launcher es ≈176, y a esa altura el diseño de abajo perdía la fila
+  de reps. Por eso hay dos medidas del mismo diseño, y la elige el alto que da el
+  launcher:
+  - **200 dp o más (≥ 190):** lo que se describe abajo, con el tiempo debajo del nombre.
+  - **Compacto (< 190):** el tiempo sube a la línea del nombre, a la derecha, en Mono
+    24sp (a 30 no cabía ni `Press banca` en 253 dp); las filas del bloque bajan a 44 dp
+    —el mínimo de toque— con 8 dp encima, y los márgenes de arriba y abajo a 10 dp.
+    Estrecho además (< 300 dp), mientras corre el tiempo se quita `· 4 series`: el
+    nombre entero pesa más que el número. Se aprobó el 2026-09-27 sobre la captura del
+    usuario. El 4×1 se queda como está salvo el
   botón, que dice sólo `+1`. Toques de 44 dp como mínimo, siempre, aunque el icono sea menor.
 - **Tipos y color.** Nombre del ejercicio en Geist 600 15sp; lo secundario en Geist 13sp
   `--muted`; toda cifra en Geist Mono con tabulares. Colores de `widget_colors.xml`, que

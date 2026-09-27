@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **APK 0.10.1: borrar un entreno ya no deja al widget y a la notificación en él.**
+  Antes seguían enseñándolo (`Dominadas · 5 series`) y su `+1` mandaba series a un
+  entreno que ya no existía, que se perdían sin aviso; tocar el widget abría en la app
+  una copia del entreno borrado, y borrarlo decía `No se pudo borrar el entreno.`
+  Ahora, al borrar el entreno (menú de Entreno) o su día (Días), si el widget y la
+  notificación estaban en él vuelven a `Sin entreno en curso` y la notificación se va;
+  sus series sin enviar se descartan. Si se borra desde otro sitio (la web, otro
+  móvil), el primer `+1` que el servidor rechaza hace lo mismo. Un entreno que ya no
+  existe no se vuelve a enseñar desde la copia del móvil: se vuelve a Días. Y borrar
+  algo que ya estaba borrado no da error.
+- **APK 0.10.1: el widget 3×2 y el 4×2 caben en launchers de menos alto.** El diseño
+  pedía 200 dp de alto y dos filas del launcher del Xiaomi dan ≈176: se cortaba la fila
+  de reps del bloque. Por debajo de 190 dp el widget se compacta: descansando, el tiempo
+  sube a la línea del nombre, a la derecha (y en el 3×2 se quita `· 4 series` mientras
+  dura, para que quepa el nombre); las filas del bloque bajan a 44 dp y los márgenes a
+  10. Con alto de sobra, igual que antes.
+
 ### Changed
 - **APK 0.10.0: widgets y notificación del entreno rediseñados.** Fase 6 de
   `docs/widgets-entreno.md`, con el diseño de `DESIGN.md` («Fuera de la app»).
