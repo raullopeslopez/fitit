@@ -32,6 +32,7 @@ import {
   sessionLength,
 } from './format.js'
 import { muscleColor } from './muscles.js'
+import { lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
   cacheMarks,
@@ -220,6 +221,15 @@ function ExerciseCard({
   // el choque), porque una cifra que aparece bajo un botón irreversible medio
   // segundo después de que lo mires es peor que medio segundo de espera.
   const [confirmRemove, setConfirmRemove] = useState(false)
+  // ── ¿Cuántas te quedaban? ─────────────────────────────────────────────────
+  // Se pregunta sólo después de registrar aquí, nunca al abrir una sesión
+  // vieja, y siempre por la última serie: es la que dice cómo acabaste y la
+  // que lee el objetivo de la próxima vez. No contestar no rompe nada.
+  const [askRir, setAskRir] = useState(false)
+  // La respuesta espera a que la serie tenga id de servidor: recién registrada
+  // vive en la cola con un `tmp-N` contra el que no se puede corregir. Si la app
+  // se cierra antes de que llegue, la respuesta se pierde; la serie no.
+  const [rirAnswer, setRirAnswer] = useState(null)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen.
   // Absent `previous` means the marks haven't arrived, not that there are none.
@@ -375,11 +385,14 @@ function ExerciseCard({
       await onLogSet(name, {
         reps: valid.reps,
         weight: valid.weight,
-        // Neither is asked for while logging any more. A set can still carry a
-        // note, written afterwards from the row itself; nothing writes an RPE.
+        // Neither is asked for while logging. The RIR is asked right after,
+        // below the form, and lands on the set as RPE; the note is written
+        // afterwards from the row itself.
         rpe: null,
         note: null,
       })
+      setAskRir(true)
+      setRirAnswer(null)
     } catch {
       setError('No se pudo registrar la serie.')
     }
@@ -396,6 +409,8 @@ function ExerciseCard({
         rpe: null,
         note: null,
       })
+      setAskRir(true)
+      setRirAnswer(null)
     } catch {
       setError('No se pudo registrar la serie.')
     }
@@ -422,8 +437,8 @@ function ExerciseCard({
       await onEditSet(set, {
         reps: valid.reps,
         weight: valid.weight,
-        // Left as it was found. Nothing in the app writes an RPE any more, but
-        // a set logged back when the field existed keeps the one it carries.
+        // Left as it was found: correcting reps doesn't change how many were
+        // left, and only the RIR question writes it.
         rpe: set.rpe ?? null,
         note: editNote.trim() || null,
       })
@@ -465,6 +480,40 @@ function ExerciseCard({
   // today. `last_date` comes from the same Day the backend used to pick this
   // workout, so the label and the selection can no longer disagree.
   const lastWhen = previous?.last_date ? daysAgoLabel(previous.last_date) : null
+  // El paso siguiente a esa marca. La regla y su porqué viven en progression.js.
+  const target = lastTop ? nextTarget(lastTop, lastRir(previous.sets)) : null
+  const targetWhy = {
+    rep: 'a 1–2 del fallo',
+    top: 'llegaste a 12',
+    reserve: 'sobraron 3+',
+  }
+  const targetFigure = target
+    ? target.weight == null
+      ? `${target.reps} reps`
+      : `${showKg(target.weight)} kg × ${target.reps}`
+    : null
+
+  const latestSet = sets[sets.length - 1]
+  const latestIndex = sets.length - 1
+  const shownRir =
+    rirAnswer?.index === latestIndex ? rirAnswer.rir : rpeToRir(latestSet?.rpe)
+
+  // Manda la respuesta en cuanto la serie existe en el servidor. Una sola vez
+  // por respuesta: `sent` evita reenviarla con cada render que traiga la fila.
+  useEffect(() => {
+    if (!rirAnswer || rirAnswer.sent) return
+    const set = sets[rirAnswer.index]
+    if (!set || set.pending) return
+    setRirAnswer({ ...rirAnswer, sent: true })
+    Promise.resolve(
+      onEditSet(set, {
+        reps: set.reps,
+        weight: set.weight,
+        rpe: rirToRpe(rirAnswer.rir),
+        note: set.note ?? null,
+      }),
+    ).catch(() => setError('No se pudo guardar cuántas te quedaban.'))
+  }, [rirAnswer, sets, onEditSet])
   // What a folded card still has to answer: did I do this, and what did I hit.
   // It names one real working set — not decoupled reps/weight ranges, where you
   // couldn't tell which weight went with which reps. When every set matched,
@@ -846,6 +895,14 @@ function ExerciseCard({
           </div>
           {/* Says why no record can fire, once, quietly. Without it a set that
               plainly beat the number above looks like a bug. */}
+          {/* Dos bloques que no se parten: a 430 px la línea entera no
+              siempre cabe, y cortada por dentro dejaba «más» sola debajo. */}
+          {target && (
+            <div className="target-next">
+              <span>{`Objetivo · ${targetFigure}`}</span>{' '}
+              <span>{`· ${targetWhy[target.reason]}`}</span>
+            </div>
+          )}
           {previous?.stale && (
             <div className="target-stale">Marcas guardadas · sin conexión</div>
           )}
@@ -942,6 +999,26 @@ function ExerciseCard({
           )}
         </div>
       </form>
+
+      {askRir && latestSet?.reps != null && (
+        <div className="rir-ask" role="group" aria-label="¿Cuántas te quedaban?">
+          <span className="rir-label">¿Cuántas te quedaban?</span>
+          {[0, 1, 2, 3].map((rir) => (
+            <button
+              key={rir}
+              type="button"
+              className={`chip rir-chip${shownRir === rir ? ' is-active' : ''}`}
+              aria-pressed={shownRir === rir}
+              aria-label={String(rir)}
+              onClick={() => {
+                if (shownRir !== rir) setRirAnswer({ index: latestIndex, rir })
+              }}
+            >
+              {rir === 3 ? '3+' : rir}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="alert">

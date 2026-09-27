@@ -1910,6 +1910,40 @@ button.set-action {
   font-size: 1rem;
   color: var(--muted);
 }
+/* El paso siguiente a la marca. En tinta y no apagado: es lo único del bloque
+   que dice qué hacer. Tamaño Meta, para que no compita con la cifra grande. */
+.target-next {
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.target-next > span {
+  white-space: nowrap;
+}
+/* ¿Cuántas te quedaban? Una fila tras registrar, con los chips a 44 px. El
+   activo va en tinta, no en ámbar: contestar no es un récord ni una llamada a
+   la acción. */
+.rir-ask {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0;
+}
+.rir-label {
+  margin-right: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.chip.rir-chip {
+  --chip: var(--text);
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 .target-meta {
   margin-top: 0.35rem;
   font-family: var(--font-mono);
