@@ -340,6 +340,12 @@ export function deleteFoodEntry(entryId) {
 // Las kcal no viajan: son consecuencia del reparto y las deriva el servidor con
 // `atwater_kcal`. Mandarlas dejaba guardar un total que sus propios macros no
 // daban, y dos cifras contradictorias sin nada que dijera cuál manda.
+// Tu usuario, con el objetivo diario fijado (kcal y reparto). `null` es «sin
+// fijar», nunca cero.
+export function getMe() {
+  return apiFetch('/auth/me')
+}
+
 export function setTargets({ protein = null, carbs = null, fat = null }) {
   return apiFetch('/auth/me', {
     method: 'PATCH',

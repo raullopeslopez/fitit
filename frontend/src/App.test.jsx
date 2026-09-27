@@ -30,6 +30,14 @@ vi.mock('./offline.js', async (original) => ({
   stopNativeQueue: vi.fn(),
 }))
 
+// Lo que Perfil pide al abrirse, con respuestas tranquilas.
+function stubPerfil() {
+  api.getMe.mockResolvedValue({ id: 1, username: 'raul' })
+  api.weightTrend.mockResolvedValue({ kg: null, weigh_ins: 0, up_to: null })
+  api.getTargetProfile.mockResolvedValue({})
+  api.getTargetProposal.mockResolvedValue(null)
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -62,8 +70,11 @@ describe('App', () => {
 
     it('se lo quita al salir', async () => {
       setToken('tok')
+      stubPerfil()
       render(<App />)
 
+      // «Salir» vive en Perfil, al final: es lo más raro que se hace.
+      await userEvent.click(await screen.findByRole('button', { name: 'Perfil' }))
       await userEvent.click(await screen.findByRole('button', { name: /^salir$/i }))
 
       expect(offline.stopNativeQueue).toHaveBeenCalled()
@@ -195,6 +206,25 @@ describe('App', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Días' }))
     expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+  })
+
+  // Cuarta pestaña: lo que se fija una vez (objetivo, reparto, reglas, peso,
+  // preferencias de Entreno) sale de Comida y de Entreno y vive aquí.
+  it('Perfil es la cuarta pestaña, y la cabecera ya no lleva «Salir»', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    stubPerfil()
+    render(<App />)
+
+    const nav = await screen.findByRole('navigation', { name: 'Navegación principal' })
+    expect(
+      [...nav.querySelectorAll('button')].map((b) => b.lastChild.textContent.trim()),
+    ).toEqual(['Días', 'Progreso', 'Comida', 'Perfil'])
+    expect(screen.queryByRole('button', { name: /^salir$/i })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Perfil' }))
+    expect(await screen.findByRole('heading', { name: 'Reparto' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Perfil' })).toHaveAttribute('aria-current', 'page')
   })
 
   // Reopening the app between sets used to land on Días — a tap and a fetch

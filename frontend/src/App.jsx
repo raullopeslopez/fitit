@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import ColdStart from './ColdStart.jsx'
 import Comida from './Comida.jsx'
+import Perfil from './Perfil.jsx'
 import Days from './Days.jsx'
 import Login from './Login.jsx'
 import Progress from './Progress.jsx'
@@ -142,16 +143,12 @@ export default function App() {
   const daysActive = view === 'days'
   const progressActive = view === 'progress' && !openWorkoutId
   const foodActive = view === 'food' && !openWorkoutId
+  const profileActive = view === 'profile' && !openWorkoutId
 
   return (
     <div className="container">
       <header className="app-header">
         <Wordmark />
-        {/* Salir is a rare action. Framed, it was the second-loudest thing on
-            the screen you open mid-set; it reads as a quiet text link now. */}
-        <button type="button" className="link-btn" onClick={handleLogout}>
-          Salir
-        </button>
       </header>
       <main className="app-main">
         {openWorkoutId ? (
@@ -165,6 +162,10 @@ export default function App() {
           <Progress />
         ) : view === 'food' ? (
           <Comida />
+        ) : view === 'profile' ? (
+          // Lo que se fija una vez: objetivo, reparto, reglas, peso y las
+          // preferencias de Entreno. «Salir» vive al final, no en la cabecera.
+          <Perfil onLogout={handleLogout} />
         ) : (
           <Days
             onOpenWorkout={openWorkout}
@@ -201,6 +202,15 @@ export default function App() {
         >
           <span className="tab-icon" aria-hidden="true">◒</span>
           Comida
+        </button>
+        <button
+          type="button"
+          className={`tab${profileActive ? ' is-active' : ''}`}
+          aria-current={profileActive ? 'page' : undefined}
+          onClick={() => go('profile')}
+        >
+          <span className="tab-icon" aria-hidden="true">◍</span>
+          Perfil
         </button>
       </nav>
     </div>

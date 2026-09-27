@@ -4994,51 +4994,6 @@ button.draft-save {
   cursor: default;
 }
 
-/* El objetivo diario: un cajón callado, como las preferencias fijas de
-   Entreno (`.head-menu-pop`/`.menu-pref`) — se fija una vez y se corrige rara
-   vez, así que no se queda abierto sobre las cifras que sí cambian a diario. */
-.food-target {
-  margin: 0.2rem 0 0.9rem;
-}
-.food-target-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-.food-target-toggle::after {
-  content: '›';
-  color: var(--muted);
-  font-size: 1.25rem;
-  line-height: 1;
-  transition: transform 0.15s ease;
-}
-.food-target-toggle[aria-expanded='true']::after {
-  transform: rotate(90deg);
-}
-.food-target-summary {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-}
-.food-target-panel {
-  margin-top: 0.5rem;
-  padding: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
 /* ------------------------------------------------------------------ *
  * Comida: la tarjeta de macros, y el contrato de color.
  *
@@ -5685,10 +5640,28 @@ button.draft-save {
   justify-content: flex-end;
   margin: 0.4rem 0 0.2rem;
 }
-.reglas-puerta {
-  margin: 0 0 1rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.6rem;
+/* --- Perfil ---------------------------------------------------------------
+   Lo que se fija una vez (DESIGN.md, «Perfil»): tarjetas apiladas con el
+   ritmo de siempre (`.card` trae su margen), y «Salir» al final, callado. */
+.perfil-card .objetivo {
+  margin-bottom: 0;
+}
+/* Las preferencias de Entreno eran filas de un menú; aquí son el contenido de
+   la tarjeta, así que no llevan el sangrado del menú ni la raya final. */
+.perfil-card .menu-pref {
+  padding: 0.3rem 0 0.7rem;
+}
+.perfil-card .menu-pref + .menu-pref {
+  padding-top: 0.7rem;
+}
+.perfil-card .menu-pref:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.perfil-salir {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0 1.5rem;
 }
 
 /* --- Reglas ---------------------------------------------------------------- */

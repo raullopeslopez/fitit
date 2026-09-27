@@ -14,12 +14,12 @@
 import { expect, test } from 'vitest'
 
 import { settle } from './geometry.js'
-import { mountProgreso } from './screen.jsx'
+import { mountPerfil } from './screen.jsx'
 
 const rgb = (el) => getComputedStyle(el).color
 
 test('la cifra del peso lleva la tinta de la pantalla, no la de una nota', async () => {
-  const { container, restore } = await mountProgreso()
+  const { container, restore } = await mountPerfil()
   try {
     await settle()
     const figura = container.querySelector('.weight-kg')
@@ -37,7 +37,7 @@ test('la cifra del peso lleva la tinta de la pantalla, no la de una nota', async
 })
 
 test('la tarjeta cabe en el móvil y el botón se puede tocar', async () => {
-  const { container, restore } = await mountProgreso()
+  const { container, restore } = await mountPerfil()
   try {
     await settle()
     const card = container.querySelector('.weight-card')

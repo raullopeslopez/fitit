@@ -1813,7 +1813,18 @@ describe('Comida', () => {
       const macros = await screen.findByTestId('food-macros')
       expect(within(macros).getByText('Llevas')).toBeInTheDocument()
       expect(within(macros).queryByText('Te falta')).not.toBeInTheDocument()
-      expect(screen.getByText('Sin fijar')).toBeInTheDocument()
+    })
+
+    // Comida es registro: el objetivo, el reparto y las reglas se fijan en
+    // Perfil (Perfil.test.jsx). Aquí sólo se comparan con lo comido.
+    it('no ofrece fijar el objetivo, el reparto ni las reglas', async () => {
+      api.getFoodDay.mockResolvedValue(objetivo())
+      render(<Comida />)
+      await screen.findByTestId('food-macros')
+
+      expect(screen.queryByRole('button', { name: /objetivo diario/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Tus reglas' })).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Proteína (g)')).not.toBeInTheDocument()
     })
 
     it('con objetivo, la cifra grande pasa a ser lo que falta de proteína', async () => {
@@ -1910,79 +1921,6 @@ describe('Comida', () => {
         return el
       })
       expect(close).toHaveTextContent('Te faltan 154 g de proteína para cerrar el día.')
-    })
-
-    it('los cuatro macros se fijan en gramos, y las kcal salen de ellos', async () => {
-      api.getFoodDay.mockResolvedValue(objetivo())
-      api.setTargets.mockResolvedValue({})
-      render(<Comida />)
-      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      // Las kcal no son una entrada: son la consecuencia de repartir gramos, y
-      // teclearlas aparte permitía fijar un total que sus propios macros no dan.
-      expect(screen.queryByLabelText('Kcal al día')).toBeNull()
-      expect(screen.getByLabelText('Proteína (g)')).toHaveValue('160')
-      expect(screen.getByLabelText('Hidratos (g)')).toHaveValue('300')
-      expect(screen.getByLabelText('Grasa (g)')).toHaveValue('80')
-      // 4·160 + 4·300 + 9·80 = 2.560
-      expect(screen.getByText('2560 kcal')).toBeInTheDocument()
-    })
-
-    it('el total se recalcula al teclear, antes de guardar nada', async () => {
-      api.getFoodDay.mockResolvedValue(objetivo())
-      render(<Comida />)
-      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      await userEvent.clear(screen.getByLabelText('Grasa (g)'))
-      await userEvent.type(screen.getByLabelText('Grasa (g)'), '60')
-      // 4·160 + 4·300 + 9·60 = 2.380. Sin esto habría que guardar para saber en
-      // qué te has metido.
-      expect(screen.getByText('2380 kcal')).toBeInTheDocument()
-    })
-
-    it('guarda los tres macros, y no manda unas kcal que no ha fijado nadie', async () => {
-      api.getFoodDay.mockResolvedValue(objetivo())
-      api.setTargets.mockResolvedValue({})
-      render(<Comida />)
-      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      await userEvent.clear(screen.getByLabelText('Proteína (g)'))
-      await userEvent.type(screen.getByLabelText('Proteína (g)'), '170')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
-      await waitFor(() =>
-        expect(api.setTargets).toHaveBeenCalledWith({ protein: 170, carbs: 300, fat: 80 }),
-      )
-    })
-
-    it('abre con los valores actuales y los guarda', async () => {
-      api.getFoodDay.mockResolvedValue(objetivo())
-      api.setTargets.mockResolvedValue({})
-      render(<Comida />)
-      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      expect(screen.getByLabelText('Proteína (g)')).toHaveValue('160')
-      await userEvent.clear(screen.getByLabelText('Hidratos (g)'))
-      await userEvent.type(screen.getByLabelText('Hidratos (g)'), '250')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
-      await waitFor(() =>
-        expect(api.setTargets).toHaveBeenCalledWith({ protein: 160, carbs: 250, fat: 80 }),
-      )
-    })
-
-    it('dejar los campos en blanco borra el objetivo', async () => {
-      api.getFoodDay.mockResolvedValue(objetivo())
-      api.setTargets.mockResolvedValue({})
-      render(<Comida />)
-      await userEvent.click(await screen.findByRole('button', { name: /Objetivo diario/ }))
-      for (const campo of ['Proteína (g)', 'Hidratos (g)', 'Grasa (g)']) {
-        await userEvent.clear(screen.getByLabelText(campo))
-      }
-      // Sin un solo macro repartido no hay total, y se dice con una raya. Un 0
-      // aquí diría «tu objetivo es no comer», que es otra afirmación — y además
-      // es la que el servidor se niega a guardar.
-      expect(screen.getByText('— kcal')).toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar objetivos' }))
-      // Los tres en `null`: aquí vaciar es una instrucción («bórralo»), no «no
-      // lo toques».
-      await waitFor(() =>
-        expect(api.setTargets).toHaveBeenCalledWith({ protein: null, carbs: null, fat: null }),
-      )
     })
   })
 
