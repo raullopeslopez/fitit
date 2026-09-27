@@ -21,6 +21,11 @@ function benchSet(overrides = {}) {
   }
 }
 
+// The next-step line under the last mark, read whole: it's two spans so it
+// wraps at the separator rather than mid-phrase.
+const findTarget = () =>
+  screen.findByText((_, el) => el?.classList.contains('target-next') ?? false)
+
 function renderWorkout(props = {}) {
   return render(<Workout workoutId={1} onExit={() => {}} {...props} />)
 }
@@ -504,6 +509,78 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
     expect(await screen.findByText(/última vez/i)).toBeInTheDocument()
+  })
+
+  // La marca dice dónde estabas; el objetivo, el paso siguiente. Sin RIR
+  // registrado, progresión doble: mismo peso, una rep más.
+  it('names the next step under the last mark', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ id: 5, reps: 8, weight: 60 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    expect(await findTarget()).toHaveTextContent('Objetivo · 60 kg × 9 · a 1–2 del fallo')
+  })
+
+  it('moves the weight up when the last session ended with 3 or more in reserve', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [
+        benchSet({ id: 5, set_index: 0, reps: 8, weight: 60 }),
+        benchSet({ id: 6, set_index: 1, reps: 8, weight: 60, rpe: 7 }),
+      ],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    expect(await findTarget()).toHaveTextContent('Objetivo · 62.5 kg × 8 · sobraron 3+')
+  })
+
+  it('asks how many were left after a set and stores the answer as RPE', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ id: 6 })],
+    })
+    api.editSet.mockResolvedValue(benchSet({ id: 6, rpe: 8 }))
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    // Nothing to answer before there is a set.
+    expect(screen.queryByText('¿Cuántas te quedaban?')).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /^registrar/i }))
+    await screen.findByText('60 kg x 8')
+
+    const group = screen.getByRole('group', { name: '¿Cuántas te quedaban?' })
+    await userEvent.click(within(group).getByRole('button', { name: '2' }))
+
+    await waitFor(() =>
+      expect(api.editSet).toHaveBeenCalledWith(6, {
+        exercise_name: 'Bench Press',
+        reps: 8,
+        weight: 60,
+        rpe: 8,
+        note: null,
+      }),
+    )
+    expect(within(group).getByRole('button', { name: '2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   // "Última vez · hace 3 días" was read off the set's `created_at`, which is
