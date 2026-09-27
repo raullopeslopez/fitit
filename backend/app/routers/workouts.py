@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,7 @@ from ..models import Day, Exercise, SetEntry, Workout
 from ..muscles import group_for, secondaries_for
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
 from ..session_length import session_length
+from .exercises import _get_owned_exercise, _reindex
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -363,4 +365,32 @@ async def delete_set(
     """Remove a logged set. Spec: tests/features/correct_set.feature"""
     set_entry = await _get_owned_set(session, set_id, user_id)
     await session.delete(set_entry)
+    await session.commit()
+
+
+@router.delete("/{workout_id}/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_exercise_from_workout(
+    workout_id: int,
+    exercise_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Take an exercise out of one workout: that workout's sets for it go, the
+    exercise and its sets everywhere else stay.
+
+    Skipping a lift today is not deleting it — that one is `DELETE
+    /exercises/{id}`, a different resource at a different address, so a lost
+    parameter can never turn this into the other. Idempotent: with nothing left
+    to remove it still answers 204, so a retry from the offline queue is not an
+    error. Spec: tests/features/remove_exercise_from_workout.feature
+    """
+    await _get_owned_workout(session, workout_id, user_id)
+    await _get_owned_exercise(session, exercise_id, user_id)
+    await session.execute(
+        sql_delete(SetEntry).where(
+            SetEntry.workout_id == workout_id, SetEntry.exercise_id == exercise_id
+        )
+    )
+    await session.flush()
+    await _reindex(session, {workout_id})
     await session.commit()
