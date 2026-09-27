@@ -1270,18 +1270,6 @@ button.workout-title:active:not(:disabled) {
    cara de display y el cuerpo del nombre de un ejercicio en cualquier otra
    pantalla, y lo que lo delata como editable es el marco, no una palabra
    encima. */
-/* El nombre guardado, y sólo cuando el panel se ha llevado por delante el
-   único sitio de la pantalla que lo decía. Rótulo apagado a 12,8 px, que es el
-   escalón más pequeño que DESIGN.md deja para algo que se lee como palabras —
-   Micro es sólo para marcas en versales, y un nombre de ejercicio no lo es. */
-.editor-context {
-  margin: 0 0 0.35rem;
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--muted);
-}
 /* La fila del nombre es una fila de la rejilla como las demás: el campo *es* el
    titular, así que se pinta como un titular y no como un formulario. El marco
    que llevaba antes hacía de aviso «esto se edita», y ese aviso ya lo da algo
@@ -1342,53 +1330,8 @@ button.workout-title:active:not(:disabled) {
   outline: none;
   box-shadow: none;
 }
-/* La fila que confirma. `Guardar nombre` se lleva el ancho porque es lo que
-   vienes a hacer; la puerta al segundo paso va detrás, con el mismo `›` que
-   toda puerta de la casa y sin gastar una fila propia — una tercera fila aquí
-   son 52 px que el presupuesto no tiene. */
-.editor-commit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
 
-.editor-more {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 44px;
-  padding: 0.5rem 0.3rem 0.5rem 0.6rem;
-  background: none;
-  color: var(--text);
-}
-.editor-more::after {
-  content: '›';
-  color: var(--muted);
-  font-size: 1.25rem;
-  line-height: 1;
-  transition: transform 0.15s ease;
-}
 
-.editor-more:active:not(:disabled) {
-  background: color-mix(in srgb, var(--text) 8%, transparent);
-  transform: none;
-}
-/* ── El segundo paso ──────────────────────────────────────────────────────
-   Ya no es un pliegue debajo del primero: es la otra cara del panel. La regla
-   que lo separaba del nombre sobra cuando el nombre no está, y el margen
-   también: el panel entero es este paso mientras dura.
-
-   Sin `gap`. La referencia pone sus filas de 24 px en un paso de 32, o sea 8
-   de aire; nuestras filas miden 44 porque DESIGN.md pone ahí el suelo de lo
-   que se toca, y con 8 más entre cada dos el cajón se comía la fila de peso y
-   reps de Entreno por 8,5 px. Filas de 44 pegadas: es lo que hace una lista de
-   propiedades, y sin cromo alrededor no hay nada que se toque con nada. */
-.editor-more-pane {
-  display: flex;
-  flex-direction: column;
-}
 
 /* ── La rejilla: una propiedad es una fila, y la fila es el control ───────
    Cero cromo. Ni caja, ni borde, ni fondo de campo, ni un rótulo a la
@@ -1490,28 +1433,16 @@ select.editor-row-control {
   border-color: transparent;
   box-shadow: none;
 }
-.editor-row-picker:focus-within,
 .editor-row-note:focus-within {
   background: color-mix(in srgb, var(--text) 6%, transparent);
   box-shadow: 0 0 0 3px var(--ring);
 }
-button.editor-row:focus-visible,
-button.editor-back:focus-visible {
+button.editor-row:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--ring);
 }
 .editor-row:active:not(:disabled) {
   background: color-mix(in srgb, var(--text) 8%, transparent);
-}
-/* Una fila que abre una lista lleva el `›` de todas las puertas de la casa. El
-   `select` es nativo a propósito (ver el comentario del componente), así que el
-   glifo va en la fila y no dentro del control. */
-.editor-row-picker::after {
-  content: '›';
-  flex: none;
-  color: var(--muted);
-  font-size: 1.25rem;
-  line-height: 1;
 }
 /* La confirmación de la nota, dentro de su propia fila para no costar otra.
    ── Y apagada hasta que haya algo que confirmar ──────────────────────────
@@ -1561,39 +1492,6 @@ button.editor-row-danger {
 .editor-row-back {
   gap: 0;
 }
-button.editor-back {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 44px;
-  padding: 0 0.25rem 0 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  text-align: left;
-}
-.editor-back-arrow {
-  flex: none;
-  color: var(--muted);
-  font-size: 1.1rem;
-  line-height: 1;
-}
-.editor-back-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-button.editor-back:active:not(:disabled) {
-  background: color-mix(in srgb, var(--text) 8%, transparent);
-  transform: none;
-}
 /* 44 px reales, y el margen negativo se los come del padding de la hoja para
    que la aspa quede ópticamente alineada con el borde sin encoger el blanco. */
 .editor-close {
@@ -1619,80 +1517,61 @@ button.editor-back:active:not(:disabled) {
   }
 }
 
-/* ── La caja: el panel en sitio ───────────────────────────────────────────
-   Fue la caja rival y se quedó con el sitio. Dos críticos independientes
-   dijeron lo mismo sin hablarse: una hoja modal que apaga el 62,8 % de la
-   pantalla es demasiada ceremonia para arreglar una errata, y lo que tapa es
-   justo el registro que estás corrigiendo. El panel nace del propio botón,
-   dentro de la tarjeta, y no apaga nada.
-
-   El hueco existe para que el panel tenga desde dónde colgar sin ocupar
-   flujo: `position: relative` y altura cero, así que `absolute` se mide desde
-   la puerta y la columna de contenido no se mueve ni un píxel — la misma
-   promesa que daba la hoja, por otro camino. La única altura que el hueco
-   llega a tener se la pone el componente, y sólo para lo que el panel
-   sobresale por debajo de su propia tarjeta (Progreso, donde el botón es el
-   último hijo y debajo no hay documento al que desplazarse). Crecer por
-   debajo de la tarjeta no mueve nada de lo que estabas mirando. */
-.editor-inplace-slot {
-  position: relative;
+/* ── La caja: una hoja desde abajo ─────────────────────────────────────────
+   Fue un panel en sitio, dentro de la tarjeta y sin apagar nada, y para eso
+   medía la página en cada scroll. En la APK esa medida peleaba con el sistema
+   (el selector nativo del grupo cambiaba el viewport, el panel se recolocaba y
+   el selector parpadeaba). Ahora es la hoja de la casa —`.sheet-scrim` y
+   `.sheet`, las de Días y Comida— y no mide nada. Esto sólo añade el asa que se
+   arrastra y la vuelta a su sitio cuando la sueltas antes del umbral. */
+.editor-sheet {
+  padding-top: 0;
+  transition: transform 150ms ease-out;
 }
-/* ── Por qué llega hasta el canto de la tarjeta y no hasta el del texto ────
-   El hueco vive en la caja de contenido, y ahí el panel medía 357,6 px contra
-   los 396,4 de la caja de relleno. Los 19,2 px de diferencia por lado no son
-   aire: `.muscle-chips` se sangra exactamente hasta ese canto a propósito
-   —«medio chip cortado dice que hay más»—, así que el canto *vertical* del
-   panel caía dentro del último chip. Medido en Progreso a 430×932: el chip
-   «Tríceps» partido 41 de sus 60,2 px de ancho, dejando una astilla viva de
-   19,2 px, **en 28 de las paradas del barrido**. Y un canto opaco cruzando un
-   control no se lee como tapado, se lee como roto — la regla de la casa, la
-   misma por la que el panel no parte filas por arriba ni por abajo. Subir o
-   bajar no lo arregla, porque esto no lo cruza un canto horizontal: entre el
-   pie del carrusel y el techo de la gráfica hay 64 px y el cajón mide 166.
-   Lo que lo arregla es que el panel llegue donde llega lo que tapa.
-
-   Y además dice mejor lo que es: «no es una capa de la pantalla, es una capa
-   de la tarjeta». Una capa de la tarjeta es del ancho de la tarjeta. */
-.editor-inplace {
-  position: absolute;
-  top: 0;
-  left: calc(-1 * var(--card-pad-x, 0px));
-  right: calc(-1 * var(--card-pad-x, 0px));
-  /* Por encima de lo que tapa y por debajo de la hoja (40) y de las barras
-     fijas: esto no es una capa de la pantalla, es una capa de la tarjeta. */
-  z-index: 3;
-  padding: 1rem;
-  /* Opaco a propósito: debajo hay una lista de series y un formulario, y una
-     transparencia aquí serían dos textos en el mismo sitio. `--surface-raised`
-     limpio, sin el baño ámbar del 7 % que lleva la tarjeta hero, así que el
-     panel se lee como un plano distinto sin necesidad de sombra. */
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  /* La regla de la casa para el relieve en oscuro: no hay luz que proyecte
-     sombra, así que el canto de arriba la recoge. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
-  animation: editor-unfold 150ms ease-out;
-  /* El componente sube el panel cuando no cabe entre el botón y el borde útil
-     —la barra de pestañas, o el teclado— y le pone aquí el alto que queda. Si
-     ni subiendo cabe, lo que sobra se desplaza dentro del panel en vez de
-     salirse por arriba; `overscroll-behavior` para que llegar al final no siga
-     arrastrando la tarjeta que hay debajo. */
-  overflow-y: auto;
-  overscroll-behavior: contain;
+/* 24 px de alto para un asa de 4: se agarra con el pulgar, no con la uña. */
+.editor-sheet-grab {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 24px;
+  margin: 0 -1rem 0.25rem;
+  touch-action: none;
+  cursor: grab;
 }
-/* Baja desde la puerta, no sube desde el pulgar: aquí el origen del gesto es
-   el botón que acabas de tocar, que está justo encima. */
-@keyframes editor-unfold {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
+.editor-sheet-grab .sheet-grip {
+  margin: 0;
+}
+.sheet-body {
+  margin-top: 0.5rem;
 }
 @media (prefers-reduced-motion: reduce) {
-  .editor-inplace {
-    animation: none;
+  .editor-sheet {
+    transition: none;
   }
+}
+/* El grupo: diez fichas a la vista, en varias líneas. Dentro de la hoja hay
+   sitio, y un grupo que se desliza escondería los que no caben. */
+.editor-row-muscle {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.muscle-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+/* `.chip` va más abajo en la hoja y ganaría con la misma especificidad: sus
+   36 px son de la fila de filtros, no de un control de la hoja. */
+.chip.muscle-pick {
+  min-height: 44px;
+  font-size: 0.85rem;
+}
+.muscle-pick .dot {
+  width: 10px;
+  height: 10px;
 }
 .link-row {
   width: 100%;
@@ -1926,7 +1805,6 @@ button.primary {
      contestan al dedo: un velo, no un relleno. */
   button.set-row:hover:not(:disabled),
   button.editor-row:hover:not(:disabled),
-  button.editor-back:hover:not(:disabled),
   button.workout-title:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }

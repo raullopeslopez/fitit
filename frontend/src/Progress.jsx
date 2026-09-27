@@ -12,7 +12,7 @@ import {
 import { downloadCsv } from './csv.js'
 import { deloadWeeks, toggleDeload } from './deload.js'
 import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
-import { ExerciseEditor, MORE_LABEL } from './ExerciseEditor.jsx'
+import { ExerciseEditor, MusclePicker } from './ExerciseEditor.jsx'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
@@ -1505,50 +1505,16 @@ export default function Progress() {
                 e.preventDefault()
                 renameCurrent(current.id, nameDraft)
               }}
-              // El segundo paso. Reetiquetar y borrar son exactamente lo que
-              // DESIGN.md llama acciones raras, y traerlas al primer panel es
-              // lo que lo hacía medir 294 px en una tarjeta que da 137.
-              //
-              // El rótulo dice lo que hay dentro, y ahora dentro hay lo mismo
-              // en las dos pantallas: el grupo, la nota y el borrado. Que
-              // pusiera `Grupo y eliminar` aquí y `Grupo y nota` allí era la
-              // señal de que no era un editor sino dos.
-              moreLabel={MORE_LABEL}
+              // Debajo del nombre, a la vista: el grupo, la nota y el borrado.
+              // Aquí «Eliminar ejercicio» sí es el ejercicio entero: Progreso es
+              // la pantalla a la que vienes a propósito (DESIGN.md).
               more={
                 <>
-                  {/* Una fila, y la fila es el control: el rótulo del campo en
-                      la canaleta, el punto del músculo, su nombre en tinta y el
-                      `›` de las puertas. El rótulo había desaparecido con el
-                      argumento de que repetía el valor, y no lo repite: `Grupo`
-                      no dice `Pecho`, dice de qué es `Pecho` el valor. El punto
-                      de color tampoco lo decía —cambia con el valor, así que es
-                      el valor pintado dos veces y no el nombre del campo—. Ver
-                      el razonamiento entero en `Workout.jsx`, que es donde esta
-                      rejilla tiene tres filas. */}
-                  <div className="editor-row editor-row-picker">
-                    <label className="editor-row-label" htmlFor="muscle-select">
-                      Grupo
-                    </label>
-                    <span
-                      className={`dot${current.muscle_group ? '' : ' dot-new'}`}
-                      aria-hidden="true"
-                      style={{ '--chip': muscleColor(current.muscle_group) }}
-                    />
-                    <select
-                      id="muscle-select"
-                      className="editor-row-control"
-                      aria-label={`Grupo muscular de ${current.name}`}
-                      value={current.muscle_group ?? ''}
-                      onChange={(e) => applyRetag(e.target.value || null)}
-                    >
-                      <option value="">{UNGROUPED}</option>
-                      {MUSCLE_GROUPS.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <MusclePicker
+                    name={current.name}
+                    value={current.muscle_group}
+                    onChange={(m) => applyRetag(m)}
+                  />
                   {/* La nota permanente, en su fila y sin nada que pulsar: se
                       guarda al volver al nombre, al cerrar el panel y con Intro
                       dentro del propio campo. Misma fila, mismo rótulo y mismo
