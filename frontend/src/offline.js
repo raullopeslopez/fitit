@@ -97,6 +97,20 @@ export function dropQueuedFor(name) {
   if (left.length !== entries.length) writeQueue(left)
 }
 
+// A workout deleted — here, from Días, or found gone on the server. Nothing it
+// left behind is owed to anyone: its unsent sets would only earn a 404, and its
+// cached copy is what would stand it back up as a live session the next time it
+// is opened. In the APK the native side holds more than the copy knows about (a
+// +1 from the widget) and the control the widget and the notification show, so
+// it is told to forget the workout too.
+export function forgetWorkout(workoutId) {
+  if (nativeSession()) session.forget(workoutId).then(adoptNativeQueue).catch(() => {})
+  const entries = readQueue()
+  const left = entries.filter((e) => e.workoutId !== workoutId)
+  if (left.length !== entries.length) writeQueue(left)
+  if (cachedWorkout(workoutId)) storage.removeItem(WORKOUT_KEY)
+}
+
 // ---------------------------------------------------------------------------
 // En el APK la cola la tiene el nativo, y la envía él con la app abierta o
 // cerrada (docs/widgets-entreno.md, fase 1). `fitit_outbox` pasa a ser una copia

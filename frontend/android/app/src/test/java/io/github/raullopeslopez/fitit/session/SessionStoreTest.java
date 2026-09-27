@@ -3,6 +3,7 @@ package io.github.raullopeslopez.fitit.session;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -164,6 +165,30 @@ public class SessionStoreTest {
         store.dropFor("Bench Press");
 
         assertEquals(List.of("tmp-2"), tmpIds(store.queue()));
+    }
+
+    @Test
+    public void forgetsEverySetOfADeletedWorkoutAndOnlyThose() throws Exception {
+        // Un entreno borrado: sus series sólo ganarían un 404. Las de otro
+        // entreno siguen debiéndose al servidor.
+        store.enqueue(bench("tmp-1", 60));
+        store.enqueue(bench("tmp-2", 65).put("workoutId", 2));
+        store.enqueue(bench("tmp-3", 70));
+
+        store.forgetWorkout(1);
+
+        assertEquals(List.of("tmp-2"), tmpIds(store.queue()));
+    }
+
+    @Test
+    public void forgettingTheWorkoutOfTheControlEndsTheControl() throws Exception {
+        store.saveControl(new JSONObject().put("workoutId", 1).put("exercise", "Press banca"));
+
+        assertFalse(store.forgetWorkout(2));
+        assertNotNull(store.control());
+
+        assertTrue(store.forgetWorkout(1));
+        assertNull(store.control());
     }
 
     @Test

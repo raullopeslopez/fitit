@@ -175,6 +175,18 @@ public class SessionPlugin extends Plugin {
         call.resolve(queueOnly());
     }
 
+    /** Un entreno borrado en la app: sus series y, si era el suyo, el control. */
+    @PluginMethod
+    public void forget(PluginCall call) {
+        Integer workoutId = call.getInt("workoutId");
+        if (workoutId == null) {
+            call.reject("workoutId is required");
+            return;
+        }
+        SessionController.forget(getContext(), workoutId);
+        call.resolve(queueOnly());
+    }
+
     @PluginMethod
     public void rename(PluginCall call) {
         try {

@@ -29,6 +29,9 @@ public final class SessionWorker extends Worker {
     public Result doWork() {
         QueueDrainer.Outcome outcome =
                 new QueueDrainer(Session.store(getApplicationContext()), Session.http()).drain();
+        // El entreno del control ya no existe: fuera la notificación y sus
+        // alarmas (end también repinta los widgets).
+        if (outcome.controlEnded) SessionController.end(getApplicationContext());
         // Lo enviado deja de contar como «sin enviar» en el widget 4×2.
         SessionWidget.updateAll(getApplicationContext());
         SessionEvents.publish(outcome);

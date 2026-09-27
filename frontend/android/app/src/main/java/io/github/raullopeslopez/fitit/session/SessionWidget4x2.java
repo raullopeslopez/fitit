@@ -3,6 +3,9 @@ package io.github.raullopeslopez.fitit.session;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
+import android.os.Build;
+import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 import io.github.raullopeslopez.fitit.R;
@@ -35,13 +38,55 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         render(context, manager, ids);
     }
 
+    /** El launcher cambió su tamaño (al ponerlo, al estirarlo): se repinta a su medida. */
+    @Override
+    public void onAppWidgetOptionsChanged(
+            Context context, AppWidgetManager manager, int id, Bundle options) {
+        render(context, manager, new int[] {id});
+    }
+
+    /**
+     * Cuánto sitio le dio el launcher (DESIGN.md, «Tamaños»). El diseño aprobado
+     * pide 200 dp de alto; dos filas de launcher pueden dar menos (≈176 en el
+     * Xiaomi del usuario) y el bloque perdía la fila de reps por abajo. Por
+     * debajo de {@link #TALL}, compacto: el tiempo sube a la línea del nombre, las
+     * filas del bloque bajan a 44 dp (el mínimo de toque) y los márgenes a 10.
+     * Estrecho además ({@link #WIDE}), descansando se quita « · 4 series» para
+     * que quepa el nombre. Sin tamaño (un launcher que no lo dice), el de siempre.
+     */
+    enum Fit {
+        FULL, COMPACT, NARROW;
+
+        static final int TALL = 190;
+        static final int WIDE = 300;
+
+        /** En vertical, que es como se usa: ancho mínimo × alto máximo. */
+        static Fit of(Bundle options) {
+            int height = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
+            int width = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
+            if (height <= 0 || height >= TALL) return FULL;
+            return width > 0 && width < WIDE ? NARROW : COMPACT;
+        }
+    }
+
     static void render(Context context, AppWidgetManager manager, int[] ids) {
-        RemoteViews views = views(context, Session.store(context).control(), System.currentTimeMillis());
-        for (int id : ids) manager.updateAppWidget(id, views);
+        JSONObject control = Session.store(context).control();
+        long now = System.currentTimeMillis();
+        for (int id : ids) {
+            Fit fit = Fit.of(manager.getAppWidgetOptions(id));
+            manager.updateAppWidget(id, views(context, control, now, fit));
+        }
     }
 
     static RemoteViews views(Context context, JSONObject control, long now) {
+        return views(context, control, now, Fit.FULL);
+    }
+
+    static RemoteViews views(Context context, JSONObject control, long now, Fit fit) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x2);
+        // Los márgenes de siempre; el compacto los aprieta más abajo (fit). Sin
+        // entreno o caducada caben igual, y no deben heredar los de un compacto.
+        padding(context, views, 14);
         if (Session.store(context).sessionExpired()) return SessionWidget.expired(context, views);
         if (control == null) return idle(context, views, LocalDate.now());
 
@@ -53,6 +98,7 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         views.setViewVisibility(R.id.widget_unsent, unsent.isEmpty() ? View.GONE : View.VISIBLE);
 
         block(views, control);
+        fit(context, views, control, now, fit);
 
         SessionNotification.tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         SessionNotification.tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
@@ -61,6 +107,47 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         SessionNotification.tap(context, views, R.id.widget_log, SessionController.ACTION_WIDGET_REPEAT, 21);
         SessionNotification.tap(context, views, R.id.widget_end, SessionController.ACTION_END, 34);
         return views;
+    }
+
+    /**
+     * Lo que cambia con el tamaño. Todo se pone en los dos sentidos: al repintar,
+     * Android reaplica sobre la vista que ya había, y un compacto de antes dejaría
+     * sus márgenes y su reloj a un widget que ahora es alto.
+     */
+    static void fit(Context context, RemoteViews views, JSONObject control, long now, Fit fit) {
+        boolean compact = fit != Fit.FULL;
+        if (compact) padding(context, views, 10);
+
+        if (compact) {
+            views.setViewVisibility(R.id.widget_clock, View.GONE);
+            views.setViewVisibility(R.id.widget_over, View.GONE);
+            SessionWidget.clock(views, R.id.widget_clock_inline, R.id.widget_over_inline, control, now);
+        } else {
+            views.setViewVisibility(R.id.widget_clock_inline, View.GONE);
+            views.setViewVisibility(R.id.widget_over_inline, View.GONE);
+        }
+        boolean resting = SessionControl.rest(control, now) != SessionControl.Rest.NONE;
+        views.setViewVisibility(R.id.widget_count,
+                fit == Fit.NARROW && resting ? View.GONE : View.VISIBLE);
+
+        // Los márgenes y los altos sólo se tocan desde Android 12; antes, el
+        // compacto se queda en el reloj arriba y los márgenes de 10, que es lo
+        // que más alto ahorra.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            float row = compact ? 44 : 48;
+            views.setViewLayoutHeight(R.id.widget_weight_box, row, TypedValue.COMPLEX_UNIT_DIP);
+            views.setViewLayoutHeight(R.id.widget_reps_box, row, TypedValue.COMPLEX_UNIT_DIP);
+            views.setViewLayoutMargin(R.id.widget_block, RemoteViews.MARGIN_TOP,
+                    compact ? 8 : 11, TypedValue.COMPLEX_UNIT_DIP);
+        }
+    }
+
+    /** 16 dp a los lados siempre; arriba y abajo, {@code edge}. */
+    private static void padding(Context context, RemoteViews views, int edge) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int side = Math.round(16 * density);
+        int vertical = Math.round(edge * density);
+        views.setViewPadding(R.id.widget_root, side, vertical, side, vertical);
     }
 
     /**

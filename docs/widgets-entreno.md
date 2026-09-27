@@ -658,3 +658,38 @@ construirlo:
 
 Después, si hace falta: iOS (Live Activities) tiene su propia spec. Y si el Xiaomi
 algún día recibe Android 16, el chip de «Live Updates» sobre la misma notificación.
+
+### 0.10.1 · Lo que salió en el teléfono (APK 0.10.1)
+
+Dos fallos de la primera prueba en el Xiaomi (2026-09-27), con las capturas del usuario.
+
+- **Borrar el entreno no llegaba al nativo.** Borrar (menú de Entreno o `Borrar día`)
+  sólo se lo decía al servidor; el único que limpiaba el control era `Terminar`. El
+  widget y la notificación seguían en el entreno borrado, su `+1` recibía 404 y la serie
+  se tiraba sin aviso; tocar el widget abría la app en ese entreno, que al recibir 404
+  tiraba de la copia de `fitit_workout_cache` —pensada para cuando no hay red— y
+  enseñaba un entreno fantasma que al borrarlo daba `No se pudo borrar el entreno.`
+  Ahora:
+  - `forgetWorkout()` (offline.js) y `FititSession.forget` (nativo): borrar un entreno o
+    su día tira sus series sin enviar, su copia, y el control si era el suyo (la
+    notificación se va y los widgets vuelven a `Sin entreno en curso`). Lo pide la app
+    en el nativo porque las series de un `+1` del widget sólo están en su cola.
+  - El envío nativo trata un 404 como «el entreno ya no existe» (en
+    `POST /workouts/{id}/sets` no hay otro 404): tira las demás series de ese entreno y,
+    si era el del control, lo termina. Cubre el entreno borrado desde la web u otro móvil.
+  - La copia del entreno sólo se usa sin red o con el servidor caído, nunca contra un
+    404; y borrar algo que ya no existe cuenta como borrado.
+- **Dos filas del launcher miden ≈176 dp, no 200.** El 3×2 mide ≈253 × 176 dp en ese
+  launcher (medido sobre la captura, tomando el `+1` de 60 dp como regla), y el bloque
+  perdía la fila de reps por abajo: descansando pedía ≈198 dp. El widget lee su tamaño
+  de las opciones del launcher (`OPTION_APPWIDGET_MAX_HEIGHT` y `MIN_WIDTH`, en vertical)
+  y por debajo de 190 dp se compacta (DESIGN.md, «Tamaños»): ≈163 dp. Se eligieron las
+  opciones y no `RemoteViews` por tamaños de Android 12 para que funcione en todas las
+  versiones y los tests que ya había sigan viendo el diseño alto; lo que depende de
+  Android 12 (altos y márgenes desde código) en versiones anteriores se queda en reloj
+  arriba y márgenes de 10.
+- **Comprobar en el teléfono:** el 3×2 y el 4×2 descansando y sin descansar (el bloque
+  entero, con el marco de abajo); `Press banca` y `Dominadas` enteros al lado del
+  tiempo; borrar el entreno en curso desde el menú de Entreno y desde Días (la
+  notificación se va, el widget vuelve a `Sin entreno en curso`); borrar desde la web
+  con el widget en ese entreno y tocar su `+1`.

@@ -1,6 +1,7 @@
 package io.github.raullopeslopez.fitit.session;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -10,6 +11,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import androidx.test.core.app.ApplicationProvider;
@@ -75,6 +77,30 @@ public class SessionWidgetLookTest {
         int id = widgets.createWidget(SessionWidget4x2.class, R.layout.widget_session_4x2);
         SessionController.publish(context, control, System.currentTimeMillis());
         return WidgetRender.lay(context, widgets.getViewFor(id), width, 200);
+    }
+
+    /**
+     * El widget al tamaño que le da el launcher, que se lo dice en sus opciones
+     * (en vertical, ancho mínimo × alto máximo). Sin opciones, el de siempre.
+     */
+    private View placed(JSONObject control, float width, float height) {
+        int id = widgets.createWidget(SessionWidget3x2.class, R.layout.widget_session_4x2);
+        Bundle options = new Bundle();
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, Math.round(width));
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, Math.round(height));
+        AppWidgetManager.getInstance(context).updateAppWidgetOptions(id, options);
+        SessionController.publish(context, control, System.currentTimeMillis());
+        return WidgetRender.lay(context, widgets.getViewFor(id), width, height);
+    }
+
+    private static boolean shown(View root, int id) {
+        View v = root.findViewById(id);
+        return v != null && v.getVisibility() == View.VISIBLE;
+    }
+
+    private static boolean cut(View root, int id) {
+        TextView text = root.findViewById(id);
+        return text.getLayout() != null && text.getLayout().getEllipsisCount(0) > 0;
     }
 
     private Rect at(View root, int id) {
@@ -437,5 +463,62 @@ public class SessionWidgetLookTest {
         Rect plusOne = at(root, R.id.widget_repeat);
         assertTrue("alto del +1: " + dp(plusOne.height()), dp(plusOne.height()) >= 44 - 0.5f);
         WidgetRender.save(root, WALL_LIGHT, "4x1-entrenando-claro");
+    }
+
+    // --- Compacto: dos filas de launcher más bajas que los 200 dp del diseño -----
+    // En el Xiaomi del usuario el 3×2 mide ≈253 × 176 dp (medido en su captura del
+    // 2026-09-27): el bloque perdía la fila de reps por abajo. Por debajo de 190 dp
+    // de alto, el tiempo sube a la línea del nombre y el bloque aprieta sus filas.
+
+    @Test
+    public void inTheUsersLauncherTheWholeBlockFitsWhileResting() throws Exception {
+        View root = placed(bench(System.currentTimeMillis() + 83_000), 253, 176);
+
+        Rect block = at(root, R.id.widget_block);
+        assertTrue("el bloque se sale por abajo: " + dp(block.bottom) + " > 176",
+                block.bottom <= root.getHeight());
+        near("fila de kg", 44, dp(at(root, R.id.widget_weight_box).height()));
+        near("fila de reps", 44, dp(at(root, R.id.widget_reps_box).height()));
+        // El tiempo, en la línea del nombre y a su derecha; el de debajo no está.
+        assertFalse(shown(root, R.id.widget_clock));
+        assertTrue(shown(root, R.id.widget_clock_inline));
+        Rect clock = at(root, R.id.widget_clock_inline);
+        Rect name = at(root, R.id.widget_exercise);
+        assertTrue(clock.left >= name.right);
+        assertTrue(clock.bottom <= block.top);
+        uncut(root, R.id.widget_clock_inline);
+        // Estrecho y descansando: el nombre entero antes que el número de series.
+        assertFalse(cut(root, R.id.widget_exercise));
+        assertFalse(shown(root, R.id.widget_count));
+        WidgetRender.save(root, WALL_DARK, "3x2-compacto-descansando-oscuro");
+    }
+
+    @Test
+    public void compactAndNotRestingKeepsTheSeriesCount() throws Exception {
+        View root = placed(bench(0), 253, 176);
+
+        assertTrue(at(root, R.id.widget_block).bottom <= root.getHeight());
+        assertTrue(shown(root, R.id.widget_count));
+        assertFalse(shown(root, R.id.widget_clock_inline));
+        WidgetRender.save(root, WALL_DARK, "3x2-compacto-oscuro");
+    }
+
+    @Test
+    public void compactButWideKeepsTheSeriesCountWhileResting() throws Exception {
+        View root = placed(bench(System.currentTimeMillis() + 83_000), 358, 176);
+
+        assertTrue(at(root, R.id.widget_block).bottom <= root.getHeight());
+        assertTrue(shown(root, R.id.widget_clock_inline));
+        assertTrue(shown(root, R.id.widget_count));
+        assertFalse(cut(root, R.id.widget_exercise));
+    }
+
+    @Test
+    public void tallEnoughItIsTheApprovedDesign() throws Exception {
+        View root = placed(bench(System.currentTimeMillis() + 83_000), 270, 200);
+
+        assertTrue(shown(root, R.id.widget_clock));
+        assertFalse(shown(root, R.id.widget_clock_inline));
+        near("fila de kg", 48, dp(at(root, R.id.widget_weight_box).height()));
     }
 }

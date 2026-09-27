@@ -2,8 +2,13 @@ package io.github.raullopeslopez.fitit.session;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
+import android.Manifest;
+import android.app.Application;
+import android.app.NotificationManager;
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.ListenableWorker;
@@ -69,6 +74,25 @@ public class SessionWorkerTest {
         assertEquals(1, heard.size());
         assertEquals(1, heard.get(0).sent);
         assertNotNull(heard.get(0).lastWorkout);
+    }
+
+    @Test
+    public void aWorkoutGoneFromTheServerTakesTheCardAway() throws Exception {
+        shadowOf((Application) context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS);
+        SessionController.publish(context, new JSONObject()
+                .put("workoutId", 1)
+                .put("exercise", "Bench Press")
+                .put("template", new JSONObject()
+                        .put("exercise_name", "Bench Press").put("reps", 8).put("weight", 60))
+                .put("count", 4), System.currentTimeMillis());
+        NotificationManager notifications = context.getSystemService(NotificationManager.class);
+        assertEquals(1, shadowOf(notifications).getAllNotifications().size());
+        http.answer(404, "{\"detail\":\"workout not found\"}");
+
+        run();
+
+        assertNull(store.control());
+        assertTrue(shadowOf(notifications).getAllNotifications().isEmpty());
     }
 
     @Test

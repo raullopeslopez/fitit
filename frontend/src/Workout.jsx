@@ -44,6 +44,7 @@ import {
   dropQueuedFor,
   enqueueSet,
   flushNatively,
+  forgetWorkout,
   onNativeSend,
   queuedFor,
   readQueue,
@@ -1547,11 +1548,21 @@ export default function Workout({
         return w
       })
       .catch((err) => {
+        // Gone, not unreachable: deleted from Días, from another device, or
+        // opened from a widget that still thought it was live. The cache is for
+        // no signal, never for contradicting the server — standing the copy up
+        // here is what showed a workout that could no longer be deleted.
+        if (err?.status === 404) {
+          forgetWorkout(workoutId)
+          onExit()
+          return null
+        }
         const cached = cachedWorkout(workoutId)
         if (cached) return cached
         throw err
       })
       .then(async (w) => {
+        if (!w) return
         // The queued sets are folded back in before anything reads the workout,
         // so a card whose only sets are still unsent doesn't vanish on reload.
         const full = withQueued(w)
@@ -2239,10 +2250,15 @@ export default function Workout({
     setError('')
     try {
       await deleteWorkout(workout.id)
-      onExit()
-    } catch {
-      setError('No se pudo borrar el entreno.')
+    } catch (err) {
+      // Already gone is what deleting asked for, not a failure to report.
+      if (err?.status !== 404) {
+        setError('No se pudo borrar el entreno.')
+        return
+      }
     }
+    forgetWorkout(workout.id)
+    onExit()
   }
 
   const setsFor = (name) =>

@@ -8,6 +8,7 @@ const session = vi.hoisted(() => ({
   adopt: vi.fn(),
   drop: vi.fn(),
   dropFor: vi.fn(),
+  forget: vi.fn(),
   rename: vi.fn(),
   snapshot: vi.fn(),
   flush: vi.fn(),
@@ -21,6 +22,7 @@ import {
   checkInNativeQueue,
   dropQueuedFor,
   enqueueSet,
+  forgetWorkout,
   onNativeSend,
   readQueue,
   renameQueued,
@@ -109,6 +111,21 @@ describe('la cola en el APK', () => {
 
     expect(session.rename).toHaveBeenCalledWith('Bench Press', 'Press banca')
     expect(session.dropFor).toHaveBeenCalledWith('Press banca')
+  })
+
+  it('un entreno borrado se olvida también en el nativo', async () => {
+    // El nativo tiene series que la copia no ve (un +1 del widget) y el control
+    // del widget y la notificación: las dos cosas son suyas de quitar.
+    localStorage.setItem(
+      'fitit_outbox',
+      JSON.stringify([bench('t-1'), { ...bench('t-2'), workoutId: 2 }]),
+    )
+    session.forget.mockResolvedValue({ queue: [{ ...bench('t-2'), workoutId: 2 }] })
+
+    forgetWorkout(1)
+
+    expect(session.forget).toHaveBeenCalledWith(1)
+    expect(readQueue().map((e) => e.tmpId)).toEqual(['t-2'])
   })
 
   it('al entrar le da el token y le entrega la cola que la página tenía', async () => {

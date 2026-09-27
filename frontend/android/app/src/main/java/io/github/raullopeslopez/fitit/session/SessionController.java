@@ -49,6 +49,20 @@ public final class SessionController {
         SessionSender.schedule(context);
     }
 
+    /**
+     * Un entreno borrado en la app: sus series sin enviar se tiran y, si era el
+     * del control, la notificación y los widgets vuelven a «sin entreno». Borrar
+     * otro entreno no toca el que está en curso.
+     */
+    public static void forget(Context context, int workoutId) {
+        if (Session.store(context).forgetWorkout(workoutId)) {
+            end(context);
+        } else {
+            // Las series tiradas dejan de contar como «sin enviar».
+            SessionWidget.updateAll(context);
+        }
+    }
+
     /** «Terminar»: fuera la notificación y el control. Las series no se tocan. */
     public static void end(Context context) {
         Session.store(context).clearControl();

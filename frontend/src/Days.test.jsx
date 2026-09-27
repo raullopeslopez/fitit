@@ -442,6 +442,41 @@ describe('Days', () => {
     expect(screen.queryByText('Legs')).not.toBeInTheDocument()
   })
 
+  // Sus entrenos se van con él, y con ellos lo que el móvil guardaba de cada
+  // uno: la copia que lo enseñaría como vivo al abrirlo desde un widget.
+  it('forgets the workouts of a deleted day', async () => {
+    localStorage.setItem('fitit_workout_cache', JSON.stringify({ id: 4, sets: [] }))
+    api.deleteDay.mockResolvedValue(null)
+    api.listDays.mockResolvedValue([
+      { id: 7, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+    await screen.findByText('Legs')
+
+    await longPressDay(container)
+    await userEvent.click(await screen.findByRole('button', { name: /^borrar día$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /sí, borrar día/i }))
+
+    await waitFor(() => expect(screen.queryByText('Legs')).not.toBeInTheDocument())
+    expect(localStorage.getItem('fitit_workout_cache')).toBeNull()
+  })
+
+  it('takes a day that is already gone as deleted', async () => {
+    api.deleteDay.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }))
+    api.listDays.mockResolvedValue([
+      { id: 7, date: '2026-07-15', workouts: [{ id: 4, name: 'Legs', sets: [] }] },
+    ])
+    const { container } = render(<Days onOpenWorkout={() => {}} />)
+    await screen.findByText('Legs')
+
+    await longPressDay(container)
+    await userEvent.click(await screen.findByRole('button', { name: /^borrar día$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /sí, borrar día/i }))
+
+    await waitFor(() => expect(screen.queryByText('Legs')).not.toBeInTheDocument())
+    expect(screen.queryByText(/no se pudo borrar ese día/i)).not.toBeInTheDocument()
+  })
+
   // A tap is not a press: opening a session is the thing this row does forty
   // times a week, and it must survive the gesture that reaches the sheet.
   it('opens the session on a tap, not the delete sheet', async () => {

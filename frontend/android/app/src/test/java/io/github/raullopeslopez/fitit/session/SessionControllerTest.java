@@ -400,6 +400,33 @@ public class SessionControllerTest {
     }
 
     @Test
+    public void deletingTheWorkoutInProgressTakesTheCardAndItsSetsAway() throws Exception {
+        // Borrado en la app: la notificación y los widgets no pueden seguir
+        // ofreciendo un +1 a un entreno que ya no existe.
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+        tap(SessionController.ACTION_REPEAT);
+
+        SessionController.forget(context, 1);
+
+        assertNull(shown());
+        assertNull(store.control());
+        assertTrue(store.queue().isEmpty());
+        assertTrue(alarms.getScheduledAlarms().isEmpty());
+    }
+
+    @Test
+    public void deletingAnotherWorkoutLeavesTheCardAlone() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+        tap(SessionController.ACTION_REPEAT);
+
+        SessionController.forget(context, 2);
+
+        assertNotNull(shown());
+        assertNotNull(store.control());
+        assertEquals(1, store.queue().size());
+    }
+
+    @Test
     public void aTapWithNoSessionClearsAStaleCard() throws Exception {
         SessionController.publish(context, bench(NOW + 83_000), NOW);
         store.clearControl();
