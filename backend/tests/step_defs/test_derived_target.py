@@ -42,21 +42,46 @@ def given_maintain(client):
 )
 def given_eaten_flat(client, kcal):
     _comer(client, kcal, dias=21)
-    _pesar(client, 78, (date.today() - timedelta(days=20)).isoformat())
-    _pesar(client, 78, date.today().isoformat())
+    _pesar_extremos(client, 78, 78)
 
 
 @given(parsers.parse("I have eaten {kcal:d} kcal a day for three weeks and lost {lost:g} kg"))
 def given_eaten_lost(client, kcal, lost):
     _comer(client, kcal, dias=21)
-    _pesar(client, 78 + lost, (date.today() - timedelta(days=20)).isoformat())
+    _pesar_extremos(client, 78 + lost, 78)
+
+
+@given(
+    parsers.parse(
+        "I have eaten {kcal:d} kcal a day for three weeks "
+        "and only weighed in at the start and the end"
+    )
+)
+def given_eaten_two_weigh_ins(client, kcal):
+    _comer(client, kcal, dias=21)
+    _pesar(client, 78, (date.today() - timedelta(days=20)).isoformat())
     _pesar(client, 78, date.today().isoformat())
 
 
-def _comer(client, kcal_dia, *, dias):
-    """Un alimento de 100 kcal/100 g, registrado cada día de la ventana."""
+@given(parsers.parse("today I have only logged {kcal:d} kcal so far"))
+def given_today_partial(client, kcal):
+    _comer(client, kcal, dias=1, desde=0)
+
+
+def _pesar_extremos(client, al_principio, al_final):
+    """Dos pesadas en cada extremo de la ventana: lo mínimo para que cada mitad
+    tenga tendencia."""
+    for atras in (20, 19):
+        _pesar(client, al_principio, (date.today() - timedelta(days=atras)).isoformat())
+    for atras in (1, 0):
+        _pesar(client, al_final, (date.today() - timedelta(days=atras)).isoformat())
+
+
+def _comer(client, kcal_dia, *, dias, desde=1):
+    """Un alimento de 100 kcal/100 g, registrado cada día desde hace `desde`
+    días hacia atrás. Por defecto empieza ayer: hoy es un día sin terminar."""
     food = client.post("/foods", json={"name": "Comida de prueba", "kcal_100g": 100}).json()
-    for atras in range(dias):
+    for atras in range(desde, desde + dias):
         momento = datetime.now(UTC).replace(hour=12) - timedelta(days=atras)
         resp = client.post(
             "/food-log",
