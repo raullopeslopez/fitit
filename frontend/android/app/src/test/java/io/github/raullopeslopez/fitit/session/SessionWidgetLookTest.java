@@ -324,42 +324,50 @@ public class SessionWidgetLookTest {
                 .put("stepsGoal", goal ? (Object) 10000 : JSONObject.NULL));
     }
 
+    /** `/ 10.000` va a la línea base de la cifra: su fila no puede cortarle el pie. */
+    private void goalUncut(View root) {
+        View goal = root.findViewById(R.id.widget_steps_goal);
+        View row = (View) goal.getParent();
+        assertTrue("«/ 10.000» se corta por abajo", goal.getBottom() <= row.getHeight());
+    }
+
     @Test
     public void idleTwoPagesWithTheDotsAtTheBottom() throws Exception {
         idleSummary(true);
+        // Primero los pasos.
         View first = idle(358);
         Rect dots = at(first, R.id.widget_dots);
         near("toque de los puntitos", 44, dp(dots.height()));
         // Se meten 12 dp en el margen de abajo: los puntitos, a 24 del borde, como
         // en la vista previa (fila de 20 px pegada al padding de 14).
         near("puntitos al borde", 24, 200 - dp(dots.centerY()));
-        near("botón a lo ancho", 358 - 32, dp(at(first, R.id.widget_start).width()));
-        WidgetRender.save(first, WALL_LIGHT, "4x2-sin-entreno-1-claro");
+        Rect bar = at(first, R.id.widget_steps_bar);
+        near("barra", 8, dp(bar.height()));
+        uncut(first, R.id.widget_steps);
+        goalUncut(first);
+        // Nada se monta: la cifra termina antes de la barra, y la barra antes de la media.
+        assertTrue(digits(first, R.id.widget_steps).bottom <= bar.top);
+        assertTrue(bar.bottom <= at(first, R.id.widget_steps_week_line).top);
+        assertTrue(at(first, R.id.widget_steps_week_line).bottom <= dots.top + WidgetRender.px(context, 12));
+        WidgetRender.save(first, WALL_LIGHT, "4x2-sin-entreno-1-pasos-claro");
 
         store.flipIdlePage();
         View second = idle(358);
-        Rect bar = at(second, R.id.widget_steps_bar);
-        near("barra", 8, dp(bar.height()));
-        uncut(second, R.id.widget_steps);
-        // Nada se monta: la cifra termina antes de la barra, y la barra antes de la media.
-        assertTrue(digits(second, R.id.widget_steps).bottom <= bar.top);
-        assertTrue(bar.bottom <= at(second, R.id.widget_steps_week_line).top);
-        assertTrue(at(second, R.id.widget_steps_week_line).bottom <= dots.top + WidgetRender.px(context, 12));
-        WidgetRender.save(second, WALL_LIGHT, "4x2-sin-entreno-2-claro");
+        near("botón a lo ancho", 358 - 32, dp(at(second, R.id.widget_start).width()));
+        WidgetRender.save(second, WALL_LIGHT, "4x2-sin-entreno-2-empezar-claro");
     }
 
     @Test
     @Config(qualifiers = "+night")
     public void idleStepsInTheDarkAndWithNoGoal() throws Exception {
         idleSummary(true);
+        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-1-pasos-oscuro");
         store.flipIdlePage();
-        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-2-oscuro");
-        store.flipIdlePage();
-        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-1-oscuro");
+        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-2-empezar-oscuro");
 
         idleSummary(false);
         store.flipIdlePage();
-        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-2-sin-objetivo-oscuro");
+        WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-1-pasos-sin-objetivo-oscuro");
     }
 
     // --- El 3×2, a ≈270 dp (DESIGN.md, «Tamaños») -------------------------------
@@ -414,14 +422,15 @@ public class SessionWidgetLookTest {
     public void theThreeByTwoWithNoWorkoutAndExpired() throws Exception {
         idleSummary(true);
         View first = mid(null);
-        whole(first, R.id.widget_idle_date);
-        WidgetRender.save(first, WALL_LIGHT, "3x2-sin-entreno-1-claro");
+        assertTrue("la cifra y el objetivo caben en la línea",
+                at(first, R.id.widget_steps_goal).right <= at(first, R.id.widget_idle_steps).right);
+        goalUncut(first);
+        WidgetRender.save(first, WALL_LIGHT, "3x2-sin-entreno-1-pasos-claro");
 
         store.flipIdlePage();
         View second = mid(null);
-        assertTrue("la cifra y el objetivo caben en la línea",
-                at(second, R.id.widget_steps_goal).right <= at(second, R.id.widget_idle_steps).right);
-        WidgetRender.save(second, WALL_LIGHT, "3x2-sin-entreno-2-claro");
+        whole(second, R.id.widget_idle_date);
+        WidgetRender.save(second, WALL_LIGHT, "3x2-sin-entreno-2-empezar-claro");
 
         store.markExpired();
         View expired = mid(null);

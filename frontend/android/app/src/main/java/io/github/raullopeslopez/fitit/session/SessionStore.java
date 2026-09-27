@@ -34,7 +34,7 @@ public final class SessionStore {
     private static final String CONTROL = "control";
     private static final String EXPIRED = "expired";
     private static final String SUMMARY = "summary";
-    private static final String IDLE_PAGE = "idle_page";
+    private static final String IDLE_PAGE = "idle_page_steps_first";
 
     private final SharedPreferences prefs;
     private final TokenCipher cipher;
@@ -255,7 +255,11 @@ public final class SessionStore {
         }
     }
 
-    /** La pantalla del widget sin entreno: 0, empezar; 1, pasos. Se recuerda. */
+    /**
+     * La pantalla del widget sin entreno: 0, pasos; 1, empezar. Se recuerda. La
+     * clave cambió al poner los pasos delante: con la vieja, quien los estaba
+     * mirando habría caído en «empezar».
+     */
     public synchronized int idlePage() {
         return prefs.getInt(IDLE_PAGE, 0);
     }

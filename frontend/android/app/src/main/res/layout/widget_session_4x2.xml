@@ -188,7 +188,7 @@
             android:layout_height="0dp"
             android:layout_weight="1">
 
-            <!-- Pantalla 1: «Sin entreno en curso» / «Último: hace 2 días · Pierna»
+            <!-- Pantalla 2 (la 1 si no hay pasos de hoy): «Sin entreno en curso» / «Último: hace 2 días · Pierna»
                  y el botón ámbar, el único relleno de la superficie. -->
             <LinearLayout
                 android:id="@+id/widget_idle_start"
@@ -239,7 +239,7 @@
                     android:layout_weight="1" />
             </LinearLayout>
 
-            <!-- Pantalla 2: los pasos de hoy frente al objetivo, y la media de la
+            <!-- Pantalla 1: los pasos de hoy frente al objetivo, y la media de la
                  semana. La barra dibuja un dato, no un tiempo: se repinta cuando
                  cambian los pasos, nunca cada segundo. -->
             <LinearLayout
@@ -274,8 +274,9 @@
                 </LinearLayout>
 
                 <!-- La cifra en Mono 40sp. Su caja es la línea entera de la fuente
-                     (1,3 em) para no cortarle el pie; el aire de más (6 dp por
-                     lado) se descuenta con márgenes, como el tiempo. -->
+                     (1,3 em) para no cortarle el pie; arriba se descuenta el aire
+                     de más con un margen, abajo no: `/ 10.000` va alineado a la
+                     línea base y un margen negativo le cortaba la mitad. -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -287,7 +288,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="-6dp"
-                        android:layout_marginBottom="-6dp"
                         android:fontFamily="@font/geist_mono_medium"
                         android:includeFontPadding="false"
                         android:maxLines="1"
