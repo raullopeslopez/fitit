@@ -17,13 +17,24 @@
   action wins, every time.
 
 ## Aesthetic Direction
-- **Direction:** Industrial / utilitarian with editorial numeric hierarchy.
+- **Referencia (2026-09-27):** el sistema de Headspace tal y como lo recoge Refero Styles
+  (https://styles.refero.design/style/035a098b-5a27-48a3-8a3a-c68a698e3eab) —
+  «Sunlit wellness retreat on warm paper». Elegido por el dueño del producto; sustituye a
+  la dirección industrial de tinta y ámbar. Lo que se toma: la paleta (crema, carbón
+  cálido, un sol amarillo), la geométrica redonda, las tarjetas de 16 px con borde cálido,
+  los botones en píldora y la sombra de escalón de 2 px. Lo que **no** cambia: la tesis de
+  uso de arriba. Sigue siendo una app que se usa con una mano entre series, y cada regla de
+  densidad, orden y toques de este documento sigue en pie.
+- **Direction:** cálida y clara, con jerarquía numérica editorial. Las cifras siguen
+  mandando; lo que cambia es la temperatura, no la jerarquía.
 - **Decoration level:** minimal → intentional (type and numbers do the work; one subtle
   ruled-line "logbook" texture allowed, nothing more).
-- **Mood:** Precise, confident, zero filler. Feels like a tool a serious lifter reaches
-  for between sets, not a brand trying to be liked.
+- **Mood:** tranquilo, optimista y accesible, sin dejar de ser preciso. Papel cálido y un
+  solo color que se enciende cuando pasa algo.
 - **Anti-slop:** no purple/violet gradients, no 3-column icon-in-circle grids, no gradient
-  CTAs, no decorative blobs, no generic "health green" as identity.
+  CTAs, no decorative blobs, no generic "health green" as identity. De Headspace no se
+  toman sus ilustraciones de personajes ni sus bloques de color a sangre: aquí no hay
+  marketing que ilustrar.
 
 ## Marca
 El kit vive en `brand/` (SVG, PNG y su propio `README.md` con la regla, el aire y
@@ -31,17 +42,23 @@ los tamaños mínimos). Es la fuente; lo que se sirve se genera desde ahí.
 
 - **El isotipo es "la celda".** Retícula de cuadrados que crecen hacia la esquina
   superior derecha; la de arriba a la derecha llega al 100 % y es la única en
-  ámbar. Es la misma idea que la app ya dibuja en cada pantalla —progresión que
+  amarillo. Es la misma idea que la app ya dibuja en cada pantalla —progresión que
   se lee de un vistazo— y no una mancuerna, que es lo que dibuja todo el sector.
-- **Tinta y ámbar, nunca más.** Sin degradados, sin sombras, sin segunda tinta.
+- **Tinta y amarillo, nunca más.** Sin degradados, sin sombras, sin segunda tinta.
   Los valores del kit son exactamente los tokens de este documento (`--text` /
   `--accent` en cada tema), así que la marca en pantalla se pinta con tokens y no
-  con hex: `currentColor` para la tinta, `var(--accent)` para la celda ámbar.
+  con hex: `currentColor` para la tinta, `var(--accent)` para la celda amarilla.
+- **La celda amarilla necesita tinta al lado o fondo oscuro.** Sobre el crema el
+  amarillo da 1,37: la marca se lee porque los otros quince cuadrados son carbón, no
+  por la celda. Por eso el icono de app va en carbón con la retícula en crema (la
+  celda da 9,35 ahí), y la celda nunca va sola sobre claro.
 - **Qué versión a qué tamaño.** 4×4 hasta 24 px; por debajo, 3×3; a 16 px, el
   favicon 2×2. El lockup del header cae en la banda de 20 px, así que lleva la
   3×3 — la 4×4 ahí es una mancha de puntos.
-- **El nombre va en una sola caja y una sola tinta:** `fitit`, Space Grotesk 700,
-  tracking −0.055em. Sin la I capital que llevaba antes: echoaba la mancuerna y
+- **El nombre va en una sola caja y una sola tinta:** `fitit`, DM Sans 700,
+  tracking −0.055em. DM Sans dibuja más grande que la Space Grotesk anterior: en los
+  lockups va a 70 u (horizontal) y 54 u (vertical), para que el nombre mida dos tercios
+  de la retícula como antes. Sin la I capital que llevaba antes: echoaba la mancuerna y
   la mancuerna ya no está.
 - **Aire mínimo alrededor = una celda** (21 % del isotipo). El lockup horizontal
   no baja de 96 px de ancho.
@@ -50,25 +67,28 @@ los tamaños mínimos). Es la fuente; lo que se sirve se genera desde ahí.
   cambia la marca, se vuelve a correr.
 
 ## Typography
-All three faces are free (Google Fonts) and share an engineered/technical feel.
-- **Display/Hero:** Space Grotesk — headings, workout names. Weights 600/700, tracking -0.01 to -0.03em.
-- **Body/UI:** Geist — labels, buttons, running text. Weight 400/600.
+Headspace usa Apercu, que es propietaria. **DM Sans** es la geométrica libre más cercana
+(redonda, humanista, buena en pesos bajos) y hace los dos papeles. Las cifras se quedan
+en Geist Mono: es lo que haría Apercu Mono, y la lectura de instrumento es lo único que
+esta app no negocia.
+- **Display/Hero:** DM Sans — headings, workout names. Weights 600/700, tracking -0.01 to -0.03em.
+- **Body/UI:** DM Sans — labels, buttons, running text. Weight 400/600.
 - **Data/Numbers:** **Geist Mono** — weight, reps, estimated 1RM, dates. Always
   `font-variant-numeric: tabular-nums`. This is the signature: the log reads like an
   instrument readout, not a feed.
 - **Code:** Geist Mono (same as data).
-- **Loading:** `https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap`
+- **Loading:** `https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Geist+Mono:wght@400;500;600&display=swap`
 - **Scale** (16px root):
   | Role | Size | Weight | Font | Tracking |
   |------|------|--------|------|----------|
   | Display figure | 2.6rem / 41.6px | 400 | Geist Mono | -0.02em, tabular-nums |
-  | Hero (h1) | 1.6rem / 25.6px | 700 | Space Grotesk | -0.03em |
-  | Title (h2) | 1.15rem / 18.4px | 600 | Space Grotesk | -0.01em |
-  | Body | 1rem / 16px | 400 | Geist | 0 |
+  | Hero (h1) | 1.6rem / 25.6px | 700 | DM Sans | -0.03em |
+  | Title (h2) | 1.15rem / 18.4px | 600 | DM Sans | -0.01em |
+  | Body | 1rem / 16px | 400 | DM Sans | 0 |
   | Data (numbers) | 1rem / 16px | 500 | Geist Mono | 0, tabular-nums |
   | Big stat (PR/1RM) | 1.4rem / 22.4px | 600 | Geist Mono | 0, tabular-nums |
-  | Meta/small | 0.85rem / 13.6px | 400 | Geist | 0 |
-  | Label | 0.8rem / 12.8px | 600 | Geist | 0.01em |
+  | Meta/small | 0.85rem / 13.6px | 400 | DM Sans | 0 |
+  | Label | 0.8rem / 12.8px | 600 | DM Sans | 0.01em |
   | Micro (stamp) | 0.7rem / 11.2px | 600 | Geist Mono | 0.06–0.14em, uppercase |
 - **Below Label there is exactly one step, and it is not for reading.** The stylesheet had
   drifted to nine distinct sizes under 12.8px — 12.48, 12.0, 11.84, 11.52, 11.2, 11.0,
@@ -100,42 +120,49 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
   (`.chart-point-label`, `.chart-tick`), where the test can see it.
 
 ## Color
-- **Approach:** restrained — monochrome instrument palette + a single "effort" accent.
-  Color is rare and meaningful. Dark-first (gyms, night, OLED); full light mode too.
-- **Accent (amber "effort"):** brand, CTAs, active/focus, links. Replaces the old
-  generic health-green. Amber = heat, chalk-and-iron, the burn.
-  - dark: `#FF6A2C` · light: `#E4571B`
-- **Text on the amber fill:** near-black ink (`--on-accent` `#16181B`), not white. White on
-  amber fails AA (3.70 light, 2.86 dark); ink passes both (5.8 / 6.23) and reads industrial.
-- **Amber *as text*** (links, active tab, badges, the stepper `+`) goes deeper on light so it
-  clears AA on paper: `--accent-ink` `#C2440F` (light) / `#FF6A2C` (dark). Fills, borders and the
-  record keep `--accent`.
-- **PR / record:** the earned moment only, and it is **not one colour**. Since 2026-07-26
-  it is spent on the `PR peso` label and the summary deltas — the glow and the highlight
-  behind the headline number are gone with the readout they sat on.
-  - dark: `#FFA733` (accent at full intensity) — brighter than the accent.
-  - light: `#A83208` — *deeper* than the accent.
-  - Why they differ: on paper you cannot get louder than the accent by going brighter.
-    `#FFA733` scores **1.94** on white, under the 3.0 floor for large text. The range
-    above `#E4571B` collapses toward white, so on light the record goes hotter-iron
-    rather than brighter-flame. Verified worst case across every `--pr` use: **5.35**.
-  - Same reason the treatment differs: a 24px amber glow is invisible on white. Dark
-    emits light; paper takes ink.
+- **Approach:** restrained — papel cálido, tinta carbón y un solo acento. Color is rare and
+  meaningful. Light-first desde Headspace (que no tiene tema oscuro); el oscuro se deriva.
+- **Accent (amarillo «sol», Headspace Sunbeam):** brand, CTAs, active states. Sustituye al
+  ámbar el 2026-09-27.
+  - dark: `#FFCE00` · light: `#FFCE00` (el mismo en los dos temas).
+  - **Como relleno sobre claro no tiene forma propia:** contra el crema da 1,37 y contra
+    blanco 1,49. Un botón amarillo se reconoce por su texto en tinta y su sombra de
+    escalón, no por el contraste de su silueta. Las barras de progreso sobre claro son
+    el sitio donde más se nota: si alguna deja de leerse, el arreglo es un borde en
+    `--border`, no oscurecer el amarillo.
+- **Text on the yellow fill:** tinta carbón (`--on-accent` `#2D2C2B`), nunca blanco. El
+  blanco da 1,5; la tinta da 9,35 (10,05 sobre el hover claro `#FFD83D`, 7,45 sobre el
+  hover oscuro `#E6B800`).
+- **Yellow *as text*** (links, pestaña activa, «+ Añadir a …», badges) no se puede leer
+  sobre claro, así que baja a ocre: `--accent-ink` `#7D5C00` (light, 5,66 sobre crema,
+  6,17 sobre blanco) / `#FFCE00` (dark, 9,35 en el peor caso). Fills, borders and the
+  record keep `--accent`. **Ningún `color:` lleva `var(--accent)`**: el texto siempre va
+  en `--accent-ink`.
+- **Focus:** `--focus`, azul de Headspace `#0061EF` en claro (4,87 sobre crema) y el
+  amarillo en oscuro. Un anillo amarillo sobre crema no se ve.
+- **PR / record:** el naranja del punto del logo de Headspace (`#F47D31`).
+  - dark: `#F47D31` tal cual — 5,20 en el peor caso.
+  - light: `#A8400A` — el mismo naranja bajado hasta pasar como texto (5,66 sobre crema,
+    6,17 sobre blanco).
+  - Es el único segundo tono cálido de la hoja y sólo aparece en el récord.
 - **The accent is never spent on static labels.** A label that never changes wearing the
   effort colour leaves the record beneath it looking like more of the same. Labels are
-  muted; amber means something happened.
-- **Neutrals (dark, default):**
-  - bg `#0B0C0E` · surface `#15171A` · surface-raised `#1D2024`
-  - text `#F2F3F5` · muted `#9BA1A9` · border `#24272C`
-- **Neutrals (light — warm "paper", not cold):**
-  - bg `#F4F2EE` · surface `#FFFFFF` · surface-raised `#FFFFFF`
-  - text `#16181B` · muted `#616875` · border `#E6E2DA`
+  muted; the accent means something happened.
+- **Neutrals (light, Headspace):**
+  - bg `#F9F4F2` (Page Cream) · surface `#FFFFFF` · surface-raised `#FFFFFF`
+  - text `#2D2C2B` (Charcoal Ink, 12,78 sobre crema) · muted `#63605D` (5,73 / 6,25) ·
+    border `#E2DED9`
+- **Neutrals (dark, derivado — carbón cálido, no negro azulado):**
+  - bg `#1A1918` · surface `#242321` · surface-raised `#2D2C2A`
+  - text `#F9F4F2` · muted `#A8A39D` (7,01 / 6,27 / 5,57) · border `#3A3836`
 - **Semantic:**
   - **There is no success or warning hue.** Both were listed here and neither was ever
     a token: a saved set confirms in `--text`, and nothing in the app warns without being
     either destructive (`--danger`) or a note (`--muted`). A green tick would be a second
     accent on the one screen whose accent means effort. Add one only with a use for it.
-  - error / destructive: dark `#F87171` / light `#CE1F1F` (true red reserved for destructive)
+  - error / destructive: dark `#F87171` / light `#CE1F1F` (true red reserved for destructive).
+    Con los fondos de Headspace: light 5,01 sobre crema / 5,47 sobre blanco; dark 6,35 /
+    5,68 / 5,04 sobre bg / surface / raised.
     - Measured on the surface it is actually painted on, hover veil included. The old
       pair failed AA in **both** themes: dark `#EF4444` gave 4.345 on `--surface-raised`
       and 3.676 under the 6% `--text` hover wash; light `#DC2626` gave 4.319 on warm
@@ -143,16 +170,20 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
       the floor is 4.5, not 3. The new pair: dark 5.911 at rest / 5.001 on hover;
       light 5.469 on white, 4.891 on paper, 4.842 on hover.
   - info: muted text, no dedicated hue
-- **Focus ring:** `color-mix(in srgb, <accent> 30%, transparent)`, 3px.
-- **Dark mode strategy:** dark is the primary surface (design here first); light is a
-  warm-paper inversion, reduce accent saturation ~10% for contrast on light.
+- **Focus ring:** `--ring` — azul al 35 % en claro, amarillo al 35 % en oscuro, 3px.
+- **Dark mode strategy:** el claro es el de referencia (Headspace no tiene oscuro). El
+  oscuro es carbón cálido con el mismo amarillo y la misma tinta encima.
 - **Contrast:** text on bg and accent-on-surface must pass WCAG AA (4.5:1 body, 3:1 large).
 
 ### Color por músculo (categorical — deliberate exception)
 Explicit, user-approved exception to "one accent only": muscle groups get a full
 categorical palette so Progreso can be organized and read by muscle. Scope rules:
-- **For data encoding only**, never for brand/CTA/state. Amber stays the sole
+- **For data encoding only**, never for brand/CTA/state. The accent stays the sole
   brand/effort/PR accent and is **not** in this palette (so "record" keeps meaning).
+- **Pendiente desde el cambio a Headspace:** Hombro (`#EDA100` / `#C98500`) es un
+  amarillo-ocre y ahora queda cerca del acento `#FFCE00`. La paleta no se ha tocado
+  porque cambiar un tono reabre la validación de daltonismo de todo el juego; hay que
+  decidir si se mueve Hombro y volver a correr `validate_palette.js`.
 - **Color rides a mark, not text.** A muscle is shown as a colored dot/line beside
   its name; labels/values stay in ink. Color is never the only cue.
 - **Fixed 9-group set**, assigned in canonical order (below). A colour per
@@ -229,9 +260,9 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   que el tono pinta. No es una rebaja: es la consecuencia de la regla anterior.
   Si el tono tiñera el subtotal habría que subirlo hasta pasar AA como texto
   sobre las dos superficies, y **no existe ninguna luminosidad que haga eso y
-  siga por debajo del ámbar** — medido barriendo L y C en los dos temas. O el
+  siga por debajo del acento** — medido barriendo L y C en los dos temas. O el
   tono se calla, o hay dos colores peleándose por decir qué importa.
-- **El ámbar sigue mandando.** Ningún tono llega al contraste de `--accent-ink`
+- **El acento sigue mandando.** Ningún tono llega al contraste de `--accent-ink`
   contra su superficie. Es la línea que separa «marca de categoría» de «segundo
   acento», y `comida.browser-test.jsx` la mide en los dos temas.
 - **El montón «Sin asignar» no lleva tono.** No es una comida que elegiste, es lo
@@ -251,22 +282,30 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
 
   Misma luminosidad y misma croma; sólo cambia el matiz. **Un único juego para
   los dos temas**, que no lo tiene ningún otro color de esta hoja, y sale porque
-  la banda entera cabe bajo el ámbar por los dos lados: 4,31–5,22 contra la
-  tarjeta oscura (acento 6,29) y 3,36–4,17 contra la clara (`--accent-ink` 5,09).
+  la banda entera cabe bajo el acento por los dos lados: 3,77–4,19 contra la
+  tarjeta oscura `#242321` (`--accent-ink` 10,53) y 3,75–4,17 contra la clara
+  (`--accent-ink` 6,17). Cifras de la paleta Headspace, 2026-09-27.
 
   **Esta paleta no pasa la validación de daltonismo, y es a propósito.** Con
   deuteranopia, Comida y Cena caen a 0,01 de distancia en oklab: el mismo color.
   Es el precio de la misma luminosidad, y es el precio correcto porque **aquí el
   color no identifica** — el nombre de la comida está escrito en la tarjeta, en
-  Space Grotesk a 16 px, y el tono sólo sirve para barrer. Es justo al revés que
+  DM Sans a 16 px, y el tono sólo sirve para barrer. Es justo al revés que
   «Color por músculo», donde el dot acompaña al nombre pero también viaja solo, y
   por eso aquella sí va escalonada en luminosidad y ésta no. Escalonar ésta
   arreglaría el daltonismo y costaría que las cuatro dejasen de leerse como una
   familia; además, en tema claro no existe un juego escalonado que además esquive
-  el ámbar, `--pr` y `--danger` —se buscó y no hay ninguno—.
+  el acento, `--pr` y `--danger` —se buscó y no hay ninguno—.
 
 ## Spacing
 - **Base unit:** 4px.
+- **Radius (Headspace):** tarjetas `--radius` 16px; controles (inputs, steppers, chips)
+  `--radius-control` 12px; botones `button.primary` y `button.secondary` en píldora
+  (`--radius-pill` 999px). Los controles densos del registro no van en píldora: el
+  stepper y el `+1` necesitan esquinas para encajar en su bloque.
+- **Sombra:** una sola, `--shadow`, un escalón de 2px sin difuminar
+  (`0 2px 0 rgba(65, 61, 69, 0.12)` en claro). Va en la acción primaria y en las
+  tarjetas elevadas; nada lleva sombra difusa.
 - **Density:** comfortable-compact — data rows tighter, cards breathe.
 - **Scale:** 2xs(2) xs(4) sm(8) md(12) lg(16) xl(24) 2xl(32) 3xl(48) 4xl(64).
 
@@ -294,7 +333,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   the whole exercise (`4 series · tope 60 kg × 8`). Full per-set detail is one tap away in
   the open card. Cardio reports time, not reps. **Emphasis is by hierarchy, not colour:**
   the headline figure — the working weight (cardio: the time) — is lifted to ink while the
-  count, `tope` tag and `× reps` stay muted, so the number reads first. Amber is never
+  count, `tope` tag and `× reps` stay muted, so the number reads first. The accent is never
   spent here; it belongs to the PR alone.
 - **One number per idea, and it has to be a number you lift.** The headline on an open
   card is `Última vez · hace 3 días` over the heaviest set of that session — `82.5` large,
@@ -304,7 +343,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   for a moment and leaves nothing behind; the label survives a reload.
 - **Three surfaces, so a screen of cards says which one you're in.** *hero* (the exercise
   you're logging: `--surface-raised` under a 7% accent wash, border at 26% accent — the
-  only card wearing amber, and only as a wash), *raised* (the one card a screen is about),
+  only card wearing the accent, and only as a wash), *raised* (the one card a screen is about),
   *quiet* (already done — sunk toward the background rather than framed). On dark every
   card takes `inset 0 1px 0 rgba(255,255,255,.045)`: there's no light to cast a shadow, so
   the top edge catches it instead.
@@ -410,7 +449,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
 - **The list is cut into weeks, and the days you didn't train are drawn.** A week is the
   unit a lifter plans in, and "how much have I done this week" was answerable only by
   counting rows. A mono rule per week — `ESTA SEMANA` in ink, `3 DÍAS · 50 SERIES` muted,
-  no surface, one line of type — turns a scroll into a report. Rest days get a dashed amber
+  no surface, one line of type — turns a scroll into a report. Rest days get a dashed accent
   hairline with a mono label (`VIE · DESCANSO`, or `4 DÍAS SIN ENTRENAR` for a run), and
   **only inside the current week**: a gap you can still act on is information, a gap in
   March is decoration. Their own rule stays at `--border`, weaker than a day's, because a
@@ -478,9 +517,9 @@ de arriba; esto es la app nativa. Especificación y fases: `docs/widgets-entreno
 Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widgets-20260926/`
 (`preview-v9` a `v17`).
 
-- **Tesis: una serie, un toque.** Cada superficie tiene **un solo relleno ámbar**, el toque
+- **Tesis: una serie, un toque.** Cada superficie tiene **un solo relleno de acento**, el toque
   que registra (`+1`) o el que empieza (`Empezar entreno`). Lo raro —terminar, cambiar de
-  pantalla— va apagado. Es la misma regla del ámbar de la app, llevada a donde el usuario
+  pantalla— va apagado. Es la misma regla del acento de la app, llevada a donde el usuario
   mira de reojo entre series: un único color de acento se encuentra sin buscarlo; dos se
   anulan (congestión visual, Rosenholtz). Máximo tres bloques de información a la vista.
 - **Tamaños.** 4×2 (358 dp de ancho) y 3×2 (≈253 dp medidos en el launcher del Xiaomi
@@ -515,7 +554,7 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
     La barra dibuja un dato, no un tiempo: se repinta cuando cambian los pasos, nunca cada
     segundo. Sin objetivo fijado no hay barra ni `/ 10.000`.
   - Pantalla 2 (la única si no hay pasos de hoy): `Sin entreno en curso` /
-    `Último: hace 2 días · Pierna` y el botón ámbar `Empezar entreno` a lo ancho.
+    `Último: hace 2 días · Pierna` y el botón de acento `Empezar entreno` a lo ancho.
 - **Entrenando.** Arriba, en una línea: `Press banca` (600, `--text`) `· 4 series`
   (`--muted`), y Terminar a la derecha. Debajo, el **bloque de ajuste**. Nada más.
 - **Descansando.** Entre la línea del ejercicio y el bloque aparece el tiempo, `01:23` en
@@ -523,15 +562,15 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   abajo (medido; antes quedaba a 2 dp del nombre y 20 del bloque y parecía pegado).
 - **Pasado de tiempo.** Al llegar a cero, el mismo número pasa a `--accent-ink` y cuenta
   hacia arriba con signo: `+00:12`, `+02:47`. No hay botón de saltar en ningún sitio:
-  registrar ya empieza la serie aunque quede descanso. **No se añade un amarillo**: no hay
-  tono de aviso en el sistema a propósito y el ámbar ya significa «ha pasado algo»; además
-  un amarillo sobre blanco no se lee. Contraste medido del ámbar como texto: 5,09 en claro
-  y 6,29 en oscuro.
+  registrar ya empieza la serie aunque quede descanso. **No se añade un tono de aviso**: no
+  lo hay en el sistema a propósito y el acento ya significa «ha pasado algo». Como texto va
+  en `--accent-ink`, el ocre, porque el amarillo sobre blanco no se lee: 6,17 en claro y
+  10,53 en oscuro.
 - **Sin enviar.** La línea del ejercicio dice `5 series · 1 sin enviar`, con `1 sin enviar`
   en `--accent-ink`. Se va sola al llegar las series al servidor.
 - **Sesión caducada.** `Sesión caducada` / `Abre Fitit para volver a entrar. Tus series
   siguen guardadas.` y un botón con borde, **sin relleno**, `Abrir Fitit`: no registra nada,
-  así que no lleva ámbar.
+  así que no lleva acento.
 
 ### El bloque de ajuste
 - **Una sola pieza**: los dos ajustes (`− 32,5 kg +`, `− 12 reps +`) apilados y el `+1` como
@@ -542,7 +581,7 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
 - **`+1`**: 60 dp de ancho y todo el alto del bloque, relleno `--accent`, `+1` en Geist Mono
   600 20sp `--on-accent`. Dice sólo `+1`: el botón no repite la serie, que ya está escrita
   en los ajustes a su izquierda.
-- **`−` y `+`**: glifos en `--text` (no ámbar: el ámbar es del `+1`), zona de toque de 44 dp.
+- **`−` y `+`**: glifos en `--text` (no acento: el acento es del `+1`), zona de toque de 44 dp.
   **Al pulsar**, su zona se tiñe (`#FBE6DC` claro / `#3A2216` oscuro) y el glifo pasa a
   `--accent-ink`. Suave y no sólido: sólido, el `+` de los kilos se fundía con el `+1` de al
   lado. Riesgo conocido: el `+` de los kilos está pegado al `+1`; si en uso real un toque
@@ -555,7 +594,7 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
 ### El 4×1
 Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Press banca` /
 `32,5 kg × 12 · 4 series` y `+1`; descansando, el tiempo a la izquierda en Mono 30sp;
-`Sesión caducada` + `Abrir`. El pasado de tiempo sigue la misma regla del ámbar.
+`Sesión caducada` + `Abrir`. El pasado de tiempo sigue la misma regla del acento.
 
 ### La notificación del entreno
 - **Diseño propio, no plantilla.** Cabecera y marco los pone Android (`Fitit · Entreno`);
@@ -579,7 +618,7 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
 - **Approach:** minimal-functional. One expressive moment only: the PR.
 - **Easing:** enter `ease-out` · exit `ease-in` · move `ease-in-out`.
 - **Duration:** micro 80ms · short 150ms · medium 250ms · long 400ms.
-- **PR celebration:** amber pulse + count-up on the number (~400ms). Everything else is
+- **PR celebration:** accent pulse + count-up on the number (~400ms). Everything else is
   instant and quiet — the user is mid-workout.
 - **Respect `prefers-reduced-motion`:** drop the PR animation to a static state.
 
@@ -595,6 +634,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-27 | Headspace sustituye a tinta y ámbar: paleta, tipografía, radios y marca | Elegido por el usuario entre los cinco estilos de salud de Refero (Eight Sleep, Ease Health, Oura, August Health, Headspace). Crema `#F9F4F2`, carbón `#2D2C2B`, acento amarillo `#FFCE00` con `--accent-ink` ocre `#7D5C00` para texto, récord en el naranja del logo (`#A8400A` / `#F47D31`), foco azul `#0061EF`, oscuro derivado en carbón cálido. DM Sans sustituye a Space Grotesk y Geist (Apercu no es libre); Geist Mono se queda en las cifras. Tarjetas de 16px, controles de 12px, botones en píldora, sombra de escalón de 2px. La marca pasa a amarillo; el icono de app queda en carbón porque la celda amarilla sobre crema no se ve (1,37). La tesis de uso no cambia. Queda abierto Hombro, demasiado cerca del nuevo acento. |
 | 2026-09-17 | Color por comida, y un solo borde izquierdo por tarjeta | **Segunda excepción categórica**, aprobada por el usuario: las cuatro comidas llevan tono propio (`--slot-*`, cuatro matices en oklch a igual L y C) para poder barrer la lista sin leerla. La frontera es que el tono sea **marca y nunca dato** —velo de la banda del nombre al 20 %, punto de 7 px y filete; ni una cifra, ni una barra, ni el héroe—, y de ahí sale que su suelo de contraste sea 3:1 y no 4,5. No es una rebaja: se barrió L y C en los dos temas y **no hay ninguna luminosidad que pase AA como texto y siga por debajo del ámbar**, así que teñir el subtotal habría costado un segundo acento. La paleta suspende a propósito la validación de daltonismo —Comida y Cena son el mismo color con deuteranopia— porque el nombre va escrito al lado y el tono no identifica; es la diferencia con «Color por músculo», cuyos dots sí viajan solos y por eso van escalonados. El montón «Sin asignar» se queda sin tono y sin `data-slot`: no es una comida que elegiste. **Y el alineamiento:** la fila de un alimento heredaba el `padding: .55rem .2rem` de `.link-row`, de cuando vivía suelta sobre la página, así que dentro de una tarjeta había tres sangrías —cabecera y «+ Añadir» a 1rem del canto, el nombre del alimento a 0,2rem— y la que se quedaba fuera era justo la columna que se barre. `padding-inline: 1rem` y las tres coinciden; el vertical no se toca, que lo gobierna el objetivo de 44 px. `comida.browser-test.jsx` mide las dos cosas sobre el color realmente pintado y sobre la caja realmente maquetada: que el velo se ve (>1,18 contra el cuerpo de la tarjeta) sin leerse como otra superficie (<1,6), que el punto pasa 3:1 y se queda por debajo de `--accent-ink`, que el rótulo sigue pasando AA sobre su propio velo, y que la tarjeta tiene un solo borde izquierdo. |
 | 2026-08-31 | Tercera pestaña: `Comida`, y una raya que no es un cero | La app pasa de dos pantallas a tres. `Comida` entra en la barra inferior con caption a Label como las otras dos (56px de `min-height`, la barra no crece) y el isotipo `◒` en mono — se probó `◗`, que a 1rem se pinta como una astilla y no se ve. La pantalla es un instrumento como Progreso: total del día en display mono sobre la superficie *hero* (es lo que la pantalla mide), cuatro macros en rejilla con rótulo Micro, y sello de fecha mono entre dos pasos de día. **La decisión propia de esta pantalla es la raya.** Un nutriente que nadie ha medido vale `null`, no `0`, y en pantalla se imprime `—` **con la tinta de una cifra, no con `--muted`**: en muted se lee como «aquí no hay nada», que es lo contrario de lo que dice. Y como una raya sola sigue siendo ambigua, la tarjeta lleva pie: `— no es cero: 1 entrada sin fibra.` — que además señala cuántas entradas hay que corregir para que aparezca el número. `comida.browser-test.jsx` mide las dos mitades que jsdom no puede: que la raya se pinta con el mismo color y la misma altura de línea que la cifra de al lado, y que el pie pasa AA (4,5) en los dos temas sobre el color realmente pintado. La CTA `Añadir alimento` va al pie de la lista y **no** fija como la de Días: allí es `Continuar entreno` y la quieres a mano a mitad de sesión; aquí registras al terminar de comer, y una barra fija gasta 60px permanentes por un gesto que no interrumpe nada. Y `.comida` reserva 7rem de pie sobre las 4,5rem de `.container`: los paneles se abren al final de la lista, así que sin ese recorrido «Crear …» y «Cancelar» quedaban 24px debajo de la barra justo cuando hacen falta — medido, no estimado. |
 | 2026-07-18 | Initial design system created | /design-consultation, from design knowledge (no competitor research). Formalizes the implicit styles.css system and gives Fitit an identity. |

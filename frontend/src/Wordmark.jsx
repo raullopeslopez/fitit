@@ -5,8 +5,8 @@
    de tinta con el tema, y un PNG no puede. La tinta es `currentColor` (hereda
    el color del <h1>, que ya es --text en claro y en oscuro) y la celda de
    arriba a la derecha —la única al 100 %, la que marca hacia dónde crece— es
-   --accent, el mismo ámbar del sistema. Por eso el kit y la app comparten
-   valores: #16181b/#e4571b en claro, #f2f3f5/#ff6a2c en oscuro. */
+   --accent, el mismo amarillo del sistema. Por eso el kit y la app comparten
+   valores: #2d2c2b/#ffce00 en claro, #f9f4f2/#ffce00 en oscuro. */
 
 /* Va la retícula 3×3, no la 4×4 del isotipo grande: el kit pone el suelo de la
    4×4 en 24 px y aquí el isotipo mide 20. A ese tamaño sus cuadrados más

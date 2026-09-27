@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none">
   <!-- brand/fitit-favicon.svg (retícula 2×2, la que aguanta 16 px) con la tinta
-       atada al tema: en una barra de pestañas oscura el #16181b del kit
+       atada al tema: en una barra de pestañas oscura el #2d2c2b del kit
        desaparecería, así que ahí pasa a la tinta clara. El ámbar no cambia. -->
   <style>
-    .tinta { fill: #16181b }
-    @media (prefers-color-scheme: dark) { .tinta { fill: #f2f3f5 } }
+    .tinta { fill: #2d2c2b }
+    @media (prefers-color-scheme: dark) { .tinta { fill: #f9f4f2 } }
   </style>
   <rect class="tinta" x="1.13" y="1.13" width="6.75" height="6.75"></rect>
-  <rect x="11" y="0" width="9" height="9" fill="#e4571b"></rect>
+  <rect x="11" y="0" width="9" height="9" fill="#ffce00"></rect>
   <rect class="tinta" x="2.25" y="13.25" width="4.5" height="4.5"></rect>
   <rect class="tinta" x="12.13" y="12.13" width="6.75" height="6.75"></rect>
 </svg>

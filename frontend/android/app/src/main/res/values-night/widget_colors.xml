@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Los widgets y la notificación del entreno, tema oscuro (DESIGN.md). -->
 <resources>
-    <color name="widget_bg">#15171A</color>
-    <color name="widget_border">#24272C</color>
-    <color name="widget_border_strong">#3A3F46</color>
-    <color name="widget_text">#F2F3F5</color>
-    <color name="widget_muted">#9BA1A9</color>
-    <color name="widget_accent">#FF6A2C</color>
-    <color name="widget_accent_ink">#FF6A2C</color>
-    <color name="widget_on_accent">#16181B</color>
+    <color name="widget_bg">#242321</color>
+    <color name="widget_border">#3A3836</color>
+    <color name="widget_border_strong">#4A4744</color>
+    <color name="widget_text">#F9F4F2</color>
+    <color name="widget_muted">#A8A39D</color>
+    <color name="widget_accent">#FFCE00</color>
+    <color name="widget_accent_ink">#FFCE00</color>
+    <color name="widget_on_accent">#2D2C2B</color>
     <color name="widget_danger">#F87171</color>
-    <color name="widget_press">#3A2216</color>
+    <color name="widget_press">#3D3515</color>
 </resources>

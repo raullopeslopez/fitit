@@ -6,12 +6,12 @@
     <title>Privacidad · Fitit</title>
     <meta name="description" content="Qué datos guarda Fitit, dónde viven y cómo borrarlos." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b0c0e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f9f4f2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1918" media="(prefers-color-scheme: dark)" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Geist:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -19,21 +19,21 @@
          cuando el sistema lo pide. Esta página se sirve fuera del bundle de
          React, así que los lleva encima en vez de importarlos. */
       :root {
-        --bg: #f4f2ee;
+        --bg: #f9f4f2;
         --surface: #ffffff;
-        --fg: #15171a;
-        --muted: #616875;
-        --border: #e6e2da;
-        --accent: #e4571b;
+        --fg: #2d2c2b;
+        --muted: #63605d;
+        --border: #e2ded9;
+        --accent: #7d5c00; /* --accent-ink: aquí el acento sólo es texto */
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #0b0c0e;
-          --surface: #15171a;
-          --fg: #f2f3f5;
-          --muted: #9ba1a9;
-          --border: #24272c;
-          --accent: #ff6a2c;
+          --bg: #1a1918;
+          --surface: #242321;
+          --fg: #f9f4f2;
+          --muted: #a8a39d;
+          --border: #3a3836;
+          --accent: #ffce00;
         }
       }
       * {
@@ -44,7 +44,7 @@
         padding: 2rem 1rem 4rem;
         background: var(--bg);
         color: var(--fg);
-        font-family: Geist, system-ui, -apple-system, sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
         line-height: 1.6;
       }
       main {
@@ -57,7 +57,7 @@
       }
       h1,
       h2 {
-        font-family: 'Space Grotesk', Geist, system-ui, sans-serif;
+        font-family: 'DM Sans', system-ui, sans-serif;
         line-height: 1.25;
       }
       h1 {

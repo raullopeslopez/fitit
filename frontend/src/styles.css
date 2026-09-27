@@ -1,58 +1,40 @@
 :root {
-  /* Light: warm "paper" instrument, amber "effort" accent. See DESIGN.md. */
-  --bg: #f4f2ee;
+  /* Light: Headspace — crema cálido, tinta carbón, un sol amarillo. See DESIGN.md. */
+  --bg: #f9f4f2;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --text: #16181b;
-  /* #6b7280 was 4.32 on the paper bg (passes on white cards at 4.83, fails on
-     the page background: tab labels, streak line, hints). #616875 is 5.01 on
-     paper / 5.61 on white and still reads clearly muted. */
-  --muted: #616875;
-  --accent: #e4571b;
-  /* En claro el hover aclara, no oscurece. Este token valía `#c2440f` — byte a
-     byte el mismo valor que `--accent-ink`, o sea un color diseñado para ser
-     *texto sobre papel* reutilizado como *relleno debajo de texto*. Con
-     `--on-accent` encima medía 3.50 y suspendía AA; el propio `--accent` da
-     4.81, así que oscurecer al pasar el dedo se comía el poco margen que había.
-     `#f06a2e` da 5.76 y además es la dirección que un hover tiene sobre fondo
-     claro. Tercera vez en esta hoja que un token se valida contra la superficie
-     equivocada — ver `--danger` y el rojo comprobado contra blanco en vez de
-     contra el papel. */
-  --accent-hover: #f06a2e;
-  /* Text/glyphs sitting ON the amber fill. White text fails AA on amber (3.70
-     light, 2.86 dark); this near-black ink passes both (5.8 / 6.23). One value
-     for both themes — the accent is bright enough in each. See DESIGN.md. */
-  --on-accent: #16181b;
-  /* Amber used AS text (not a fill) has to go deeper than the accent to clear
-     AA on paper: #e4571b is only 3.2–3.7 on the light background, #c2440f is
-     4.5+. On dark, amber text already passes (6.3+), so dark keeps the accent. */
-  --accent-ink: #c2440f;
-  /* The record colour can't be the dark glow (#FFA733 scores 1.94 on white,
-     under the 3.0 floor). On paper you can't get louder than the accent by
-     going brighter, so the record goes deeper: hotter iron, not brighter
-     flame. Worst case across every --pr use is 5.35. See DESIGN.md. */
-  --pr: #a83208;
-  /* Rojo destructivo. Se comprobó siempre contra blanco puro (4,829) y el
-     fondo de tema claro de DESIGN.md es papel cálido `#F4F2EE`: sobre papel
-     `#DC2626` daba **4,319**, y con el velo de `:hover` (6 % de `--text`)
-     **4,276** — suspendiendo por debajo del suelo de 4,5, y peor al pasar el
-     dedo que en reposo. `#CE1F1F` pasa en los tres sitios: 5,469 sobre
-     blanco, 4,891 sobre papel, 4,842 en hover. */
+  --text: #2d2c2b;
+  /* Gris cálido de Headspace (#63605d): 5,73 sobre crema, 6,25 sobre blanco. */
+  --muted: #63605d;
+  --accent: #ffce00;
+  /* Sobre fondo claro el hover aclara: #ffd83d con la tinta encima da 10,05. */
+  --accent-hover: #ffd83d;
+  /* Lo que va ENCIMA del amarillo. El blanco suspende (1,5); la tinta carbón
+     da 9,35 en claro y en oscuro, así que es un solo valor para los dos temas. */
+  --on-accent: #2d2c2b;
+  /* El amarillo COMO TEXTO no se puede leer sobre crema (1,37). Para letras se
+     baja a ocre: #7d5c00 da 5,66 sobre crema y 6,17 sobre blanco. */
+  --accent-ink: #7d5c00;
+  /* El récord toma el naranja del punto del logo de Headspace (#f47d31), bajado
+     hasta pasar como texto: #a8400a da 5,66 sobre crema y 6,17 sobre blanco. */
+  --pr: #a8400a;
+  /* Rojo destructivo: 5,01 sobre crema, 5,47 sobre blanco. */
   --danger: #ce1f1f;
-  /* La tinta que va *encima* del rojo, como `--on-accent` va encima del
-     ámbar. Los dos temas no pueden compartirla: sobre `#CE1F1F` el blanco da
-     5,469 y la tinta oscura 3,25; sobre el `#F87171` de oscuro es al revés,
-     2,77 el blanco y 7,08 la tinta. Un rojo claro pide tinta oscura, igual
-     que el ámbar. */
   --on-danger: #ffffff;
-  --border: #e6e2da;
-  --ring: rgba(228, 87, 27, 0.25);
-  --radius: 8px;
-  --radius-control: 6px;
-  --shadow: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --border: #e2ded9;
+  /* El foco va en el azul de Headspace (#0061ef): un anillo amarillo sobre
+     crema no se ve (1,37). */
+  --ring: rgba(0, 97, 239, 0.35);
+  --focus: #0061ef;
+  /* Headspace: tarjetas de 16 px, controles redondeados, botones en píldora. */
+  --radius: 16px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
+  /* La única sombra de Headspace: un escalón de 2 px, sin difuminar. */
+  --shadow: 0 2px 0 rgba(65, 61, 69, 0.12);
   /* Muscle-group palette (categorical, per DESIGN.md "Color por músculo").
      Validated colorblind-safe on the adjacent pairlist against the light chart
-     surface (#fff); amber stays reserved for effort/PR so it's not in this set. */
+     surface (#fff); the accent stays reserved for effort/PR so it's not in this set. */
   --m-pecho: #2a78d6;
   --m-espalda: #008300;
   --m-cuadriceps: #e87ba4;
@@ -62,8 +44,10 @@
   --m-biceps: #1baf7a;
   --m-triceps: #4a3aa7;
   --m-core: #e34948;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-body: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Headspace usa Apercu (propietaria). DM Sans es la geométrica libre más
+     cercana; Geist Mono se queda para las cifras, como haría Apercu Mono. */
+  --font-display: 'DM Sans', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
   /* Let native controls (date picker, scrollbars) follow the theme. */
   color-scheme: light dark;
@@ -71,26 +55,27 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Dark-first instrument surface — the design's primary target. */
-    --bg: #0b0c0e;
-    --surface: #15171a;
-    --surface-raised: #1d2024;
-    --text: #f2f3f5;
-    --muted: #9ba1a9;
-    --accent: #ff6a2c;
-    --accent-hover: #e4571b;
-    /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
-    --accent-ink: #ff6a2c;
-    --pr: #ffa733;
-    /* `#EF4444` daba 4,345 sobre `--surface-raised` y 3,676 con el velo de
-       `:hover`: suspendía en reposo y suspendía más al tocarlo. 16 px a 600
-       no es «texto grande» para WCAG, así que el suelo es 4,5 y no 3.
-       `#F87171`: 5,911 en reposo, 5,001 en hover. */
+    /* Headspace no tiene tema oscuro; éste se deriva: carbón cálido en vez de
+       negro azulado, el mismo amarillo y la misma tinta encima. */
+    --bg: #1a1918;
+    --surface: #242321;
+    --surface-raised: #2d2c2a;
+    --text: #f9f4f2;
+    /* 7,01 / 6,27 / 5,57 sobre bg / surface / raised. */
+    --muted: #a8a39d;
+    --accent: #ffce00;
+    --accent-hover: #e6b800;
+    /* En oscuro el amarillo ya se lee como texto (9,35 en el peor caso). */
+    --accent-ink: #ffce00;
+    /* El naranja del logo tal cual: 5,20 en el peor caso. */
+    --pr: #f47d31;
+    /* 6,35 / 5,68 / 5,04 sobre bg / surface / raised. */
     --danger: #f87171;
-    --on-danger: #0b0c0e;
-    --border: #24272c;
-    --ring: rgba(255, 106, 44, 0.3);
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --on-danger: #1a1918;
+    --border: #3a3836;
+    --ring: rgba(255, 206, 0, 0.35);
+    --focus: #ffce00;
+    --shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
     /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
     --m-pecho: #3987e5;
     --m-espalda: #008300;
@@ -1689,9 +1674,8 @@ button.editor-row-danger {
 }
 @media (prefers-color-scheme: light) {
   .card-raised {
-    box-shadow:
-      0 4px 14px rgba(16, 24, 40, 0.09),
-      0 1px 2px rgba(16, 24, 40, 0.05);
+    /* Headspace no difumina: un escalón de 2 px y el borde cálido. */
+    box-shadow: 0 2px 0 rgba(65, 61, 69, 0.12);
   }
 }
 /* A card's kicker: what this card is, in the smallest type on the screen. */
@@ -1782,6 +1766,9 @@ button {
 button.primary {
   background: var(--accent);
   color: var(--on-accent);
+  /* Headspace: la acción es una píldora con un escalón de 2 px debajo. */
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow);
 }
 /* Gated on actually having a pointer. Touch browsers leave :hover stuck on the
    last thing you tapped, so on a phone this repainted whatever you just pressed
@@ -1817,7 +1804,7 @@ button:active:not(:disabled) {
   transform: translateY(1px);
 }
 button:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 button:disabled {
@@ -1828,6 +1815,7 @@ button.secondary {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
   min-height: 36px;
   padding: 0.4rem 0.75rem;
 }
@@ -4013,7 +4001,7 @@ button.set-chip:active:not(:disabled) {
   white-space: nowrap;
 }
 .food-create .food-result-name {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .food-search-note {
   margin: 0;
@@ -4090,7 +4078,7 @@ button.set-chip:active:not(:disabled) {
      pantalla es el buscador de arriba —la mayoría de las veces el alimento ya
      está—, y un botón macizo aquí abajo diría lo contrario. */
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .food-camera-shoot input[type='file'] {
   height: 0;
@@ -4382,7 +4370,7 @@ button.set-chip:active:not(:disabled) {
    el único dato de esta hoja que lleva color. El resto va en tinta — aquí el
    color no clasifica, señala a dónde mirar. */
 .food-detail-row.is-lead .food-detail-value {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .food-detail-total {
   margin-top: 0.7rem;
@@ -5046,7 +5034,7 @@ button.draft-save {
   width: 100%;
   min-height: 44px;
   padding: 0 1rem;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 0.85rem;
 }
 

@@ -18,7 +18,7 @@ import {
 // pintado». Suena a nada y es exactamente el defecto: sin barrera, una
 // excepción en un render o en un efecto de layout desmontaba el árbol entero y
 // dejaba `<div id="root">` vacío. Lo que se veía entonces no era un error: era
-// el fondo del tema a pantalla completa. En oscuro, `--bg` es `#0B0C0E`.
+// el fondo del tema a pantalla completa. En oscuro, `--bg` es `#1A1918`.
 //
 // jsdom no puede decidir esto. Allí no hay pintado, `getComputedStyle` no
 // resuelve `var()` y el contraste de un texto sobre la superficie que de verdad

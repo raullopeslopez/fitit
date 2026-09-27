@@ -4,19 +4,19 @@
      tema del sistema. -->
 <resources>
     <color name="widget_bg">#FFFFFF</color>
-    <color name="widget_border">#E6E2DA</color>
+    <color name="widget_border">#E2DED9</color>
     <!-- El marco del bloque de ajuste y los puntitos apagados. -->
-    <color name="widget_border_strong">#C9C3B8</color>
-    <color name="widget_text">#16181B</color>
-    <color name="widget_muted">#616875</color>
-    <color name="widget_accent">#E4571B</color>
-    <!-- El ámbar como texto (accent-ink en DESIGN.md): «1 sin enviar», el tiempo
+    <color name="widget_border_strong">#C6C1B9</color>
+    <color name="widget_text">#2D2C2B</color>
+    <color name="widget_muted">#63605D</color>
+    <color name="widget_accent">#FFCE00</color>
+    <!-- El amarillo como texto (accent-ink en DESIGN.md): «1 sin enviar», el tiempo
          pasado, el glifo pulsado. -->
-    <color name="widget_accent_ink">#C2440F</color>
-    <color name="widget_on_accent">#16181B</color>
+    <color name="widget_accent_ink">#7D5C00</color>
+    <color name="widget_on_accent">#2D2C2B</color>
     <!-- Terminar: rojo porque no se deshace (danger en DESIGN.md). -->
     <color name="widget_danger">#CE1F1F</color>
     <!-- La zona de un − o + mientras se pulsa: suave, no sólida, para que el + de
          los kilos no se funda con el +1 de al lado. -->
-    <color name="widget_press">#FBE6DC</color>
+    <color name="widget_press">#FFF5CC</color>
 </resources>

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **La app cambia de piel: estilo Headspace.** Fondo crema cálido, tinta carbón y un único
+  acento amarillo en lugar de papel, tinta y ámbar. Los botones principales pasan a píldora,
+  las tarjetas a 16 px de radio y la sombra a un escalón de 2 px. DM Sans sustituye a Space
+  Grotesk y Geist; las cifras siguen en Geist Mono. El texto de acento («+ Añadir a
+  desayuno», la pestaña activa) va en ocre para poder leerse sobre claro, y el foco del
+  teclado en azul. El tema oscuro pasa a carbón cálido con el mismo amarillo. La marca, el
+  icono de la app, el favicon, los iconos de Android y los widgets pasan al amarillo.
 - **APK 0.10.4: el editor del ejercicio es una hoja, y «Eliminar» en Entreno sólo quita
   de la sesión.** `Editar ejercicio` sube una hoja desde abajo con el nombre, el grupo en
   fichas (se acaba el selector que parpadeaba), la nota y `Eliminar`. En Entreno,

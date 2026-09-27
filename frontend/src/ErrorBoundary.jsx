@@ -10,8 +10,8 @@ import { Component } from 'react'
  * sola barrera, así que lo que quedaba después de cualquier fallo era
  * `<div id="root">` vacío: sin mensaje, sin control y sin pista de qué había
  * pasado. Y como `body` lleva el fondo del tema, en oscuro eso no se lee como
- * «se ha roto» — se lee como que el teléfono se ha apagado. `--bg` en oscuro es
- * `#0B0C0E`.
+ * «se ha roto» — se lee como que el teléfono se ha apagado. `--bg` en oscuro era
+ * entonces `#0B0C0E` (hoy `#1A1918`, igual de oscuro).
  *
  * Medido en Chromium a 430×932, abriendo `Editar ejercicio` con una API de
  * geometría rota: `root.children.length` a 0, `body.innerText` a cero
