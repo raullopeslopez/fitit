@@ -123,6 +123,36 @@
                     android:visibility="gone" />
             </LinearLayout>
 
+            <!-- Compacto (widget de menos de 190 dp de alto, SessionWidget4x2.Fit):
+                 el tiempo sube aquí, a la derecha del nombre, como en el 4×1, y
+                 el de debajo se va. A 24sp y no a 30: en un 3×2 de ≈253 dp, a 30
+                 no dejaba sitio ni a «Press banca». Mismo par de cronómetros:
+                 baja en color de texto; pasado, sube en accent-ink con signo. -->
+            <Chronometer
+                android:id="@+id/widget_clock_inline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/geist_mono_medium"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:textColor="@color/widget_text"
+                android:textSize="24sp"
+                android:visibility="gone" />
+
+            <Chronometer
+                android:id="@+id/widget_over_inline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/geist_mono_medium"
+                android:format="+%s"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:textColor="@color/widget_accent_ink"
+                android:textSize="24sp"
+                android:visibility="gone" />
+
             <!-- Terminar: el aro rojo con ■, arriba a la derecha, 44 dp de toque. -->
             <ImageView
                 android:id="@+id/widget_end"
