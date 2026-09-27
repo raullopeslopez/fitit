@@ -1918,8 +1918,6 @@ button.set-action {
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
   color: var(--text);
-}
-.target-next > span {
   white-space: nowrap;
 }
 /* ¿Cuántas te quedaban? Una fila tras registrar, con los chips a 44 px. El
