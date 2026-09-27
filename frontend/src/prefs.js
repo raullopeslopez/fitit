@@ -99,6 +99,13 @@ export function getRepeatTemplate(workoutId) {
   }
 }
 
+// Skipping one from the queue. Without it the card is back the next time the
+// workout opens, because the template is exactly what stands it up again.
+export function dropFromRepeatTemplate(workoutId, name) {
+  const names = getRepeatTemplate(workoutId)
+  if (names?.includes(name)) setRepeatTemplate(workoutId, names.filter((n) => n !== name))
+}
+
 // Exercises added to a workout that have no sets yet. The cards are rebuilt on
 // every entry from the logged sets and the repeat template, and an exercise
 // with neither was simply gone: add it, leave the app before its first set,
