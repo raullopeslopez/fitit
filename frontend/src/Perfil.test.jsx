@@ -10,15 +10,6 @@ vi.mock('./widgetSummary.js', () => ({ publishStepsGoal: vi.fn() }))
 // Perfil reúne lo que se fija una vez y se corrige rara vez: el peso, de dónde
 // salen las calorías, cómo se reparten, las reglas y las preferencias de
 // Entreno. Comida se queda sólo con el registro.
-const YO = {
-  id: 1,
-  username: 'raul',
-  objetivo_kcal: 2560,
-  objetivo_proteina: 160,
-  objetivo_hidratos: 300,
-  objetivo_grasa: 80,
-}
-
 function renderPerfil(props = {}) {
   return render(<Perfil onLogout={() => {}} {...props} />)
 }
@@ -27,8 +18,6 @@ describe('Perfil', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     localStorage.clear()
-    api.getMe.mockResolvedValue(YO)
-    api.setTargets.mockResolvedValue(YO)
     api.weightTrend.mockResolvedValue({ kg: null, weigh_ins: 0, up_to: null })
     api.getTargetProfile.mockResolvedValue({})
     api.getTargetProposal.mockResolvedValue(null)
@@ -38,109 +27,36 @@ describe('Perfil', () => {
   it('reúne el peso, el objetivo, el reparto, las reglas y Entreno', async () => {
     renderPerfil()
 
-    for (const name of ['Peso', 'Objetivo', 'Macros', 'Reglas', 'Entreno']) {
+    for (const name of ['Peso', 'Objetivo', 'Reglas', 'Entreno']) {
       expect(await screen.findByRole('heading', { name })).toBeInTheDocument()
     }
     expect(screen.getByRole('button', { name: 'Tus reglas' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^salir$/i })).toBeInTheDocument()
   })
 
-  describe('los macros', () => {
-    it('abre con los gramos del perfil, y las kcal salen de ellos', async () => {
-      renderPerfil()
+  // Los macros no se deciden aquí: aceptar la propuesta de Objetivo fija las
+  // kcal y sus gramos (derived_target.feature). No hay tarjeta que teclear.
+  it('no hay tarjeta de macros que rellenar', async () => {
+    renderPerfil()
+    await screen.findByRole('heading', { name: 'Objetivo' })
 
-      expect(await screen.findByLabelText('Proteína (g)')).toHaveValue('160')
-      expect(screen.getByLabelText('Hidratos (g)')).toHaveValue('300')
-      expect(screen.getByLabelText('Grasa (g)')).toHaveValue('80')
-      // Las kcal no son una entrada: 4·160 + 4·300 + 9·80 = 2.560.
-      expect(screen.queryByLabelText('Kcal al día')).toBeNull()
-      expect(screen.getByText('2560 kcal')).toBeInTheDocument()
-    })
+    expect(screen.queryByRole('heading', { name: 'Macros' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Proteína (g)')).not.toBeInTheDocument()
+  })
 
-    it('dice qué son', async () => {
-      renderPerfil()
+  // La propuesta sale de tu peso: una pesada nueva la cambia, y verla sin salir
+  // de Perfil es lo que dice si toca pulsar «Aceptar».
+  it('al guardar un peso, la propuesta se vuelve a pedir', async () => {
+    api.logBodyWeight.mockResolvedValue({ id: 1, measured_on: '2026-09-27', kg: 80 })
+    api.getTargetProposal.mockResolvedValue({ kcal: 2450, source: 'formula', days: 0, missing: [] })
+    renderPerfil()
+    await screen.findByText('2450')
+    api.getTargetProposal.mockResolvedValue({ kcal: 2480, source: 'formula', days: 0, missing: [] })
 
-      expect(
-        await screen.findByText('Cuántos gramos de proteína, hidratos y grasa suman tus kcal.'),
-      ).toBeInTheDocument()
-    })
+    await userEvent.type(screen.getByLabelText('Peso'), '80')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
-    // Aceptar la propuesta fija las kcal y sus macros (backend,
-    // derived_target.feature): la tarjeta tiene que enseñar los nuevos.
-    it('al aceptar la propuesta, trae los macros nuevos', async () => {
-      api.getTargetProposal.mockResolvedValue({
-        kcal: 2450,
-        source: 'formula',
-        days: 0,
-        missing: [],
-        protein: 157,
-        fat: 68,
-        carbs: 302,
-      })
-      api.acceptTarget.mockResolvedValue({})
-      renderPerfil()
-      expect(await screen.findByLabelText('Proteína (g)')).toHaveValue('160')
-
-      api.getMe.mockResolvedValue({
-        ...YO,
-        objetivo_kcal: 2450,
-        objetivo_proteina: 157,
-        objetivo_grasa: 68,
-        objetivo_hidratos: 302,
-      })
-      await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
-
-      await waitFor(() => expect(screen.getByLabelText('Proteína (g)')).toHaveValue('157'))
-      expect(screen.getByLabelText('Hidratos (g)')).toHaveValue('302')
-      expect(screen.getByLabelText('Grasa (g)')).toHaveValue('68')
-    })
-
-    it('el total se recalcula al teclear, antes de guardar nada', async () => {
-      renderPerfil()
-      const grasa = await screen.findByLabelText('Grasa (g)')
-
-      await userEvent.clear(grasa)
-      await userEvent.type(grasa, '60')
-
-      expect(screen.getByText('2380 kcal')).toBeInTheDocument()
-    })
-
-    it('guarda los tres macros, y no manda unas kcal que no ha fijado nadie', async () => {
-      renderPerfil()
-      const proteina = await screen.findByLabelText('Proteína (g)')
-
-      await userEvent.clear(proteina)
-      await userEvent.type(proteina, '170')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar macros' }))
-
-      await waitFor(() =>
-        expect(api.setTargets).toHaveBeenCalledWith({ protein: 170, carbs: 300, fat: 80 }),
-      )
-    })
-
-    it('dejar los campos en blanco borra el reparto', async () => {
-      renderPerfil()
-      await screen.findByLabelText('Proteína (g)')
-
-      for (const campo of ['Proteína (g)', 'Hidratos (g)', 'Grasa (g)']) {
-        await userEvent.clear(screen.getByLabelText(campo))
-      }
-      // Sin un solo macro repartido no hay total: una raya, nunca un 0.
-      expect(screen.getByText('— kcal')).toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar macros' }))
-
-      await waitFor(() =>
-        expect(api.setTargets).toHaveBeenCalledWith({ protein: null, carbs: null, fat: null }),
-      )
-    })
-
-    it('sin reparto fijado, los campos salen vacíos y no en cero', async () => {
-      api.getMe.mockResolvedValue({ id: 1, username: 'raul' })
-      renderPerfil()
-
-      expect(await screen.findByLabelText('Proteína (g)')).toHaveValue('')
-      expect(screen.getByText('— kcal')).toBeInTheDocument()
-    })
+    expect(await screen.findByText('2480')).toBeInTheDocument()
   })
 
   it('«Tus reglas» abre las reglas, y se cierran', async () => {

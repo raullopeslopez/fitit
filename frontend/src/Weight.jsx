@@ -23,7 +23,7 @@ export function aNumero(texto) {
   return /^\d+(\.\d+)?$/.test(limpio) ? Number(limpio) : null
 }
 
-export default function Weight({ today = new Date() }) {
+export default function Weight({ today = new Date(), onSaved }) {
   const [trend, setTrend] = useState(null)
   const [texto, setTexto] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -58,6 +58,8 @@ export default function Weight({ today = new Date() }) {
       saveWeightToHealth(kg)
       setTexto('')
       await refrescar()
+      // Lo que depende de tu peso (la propuesta de Objetivo) se entera aquí.
+      onSaved?.()
     } catch {
       setError('No se ha podido guardar. Inténtalo otra vez.')
     } finally {
