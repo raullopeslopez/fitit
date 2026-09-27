@@ -82,7 +82,7 @@ Feature: The week, generated
   Scenario: A day that is not the one I am living is not confirmed
     Given a repertoire of 12 dishes
     When I generate this week
-    And I try to confirm the comida of the last day of the week
+    And I try to confirm the comida of another day of the week
     Then it says that is not today
 
   Scenario: Every meal of the plan says what it adds up to
