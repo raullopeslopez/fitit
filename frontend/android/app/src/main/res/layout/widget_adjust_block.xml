@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El bloque de ajuste (DESIGN.md, «El bloque de ajuste»): una sola pieza con las
+     dos filas de 48 dp apiladas (− 32,5 kg +, − 12 reps +) y el +1 como su extremo
+     derecho, 60 dp de ancho y todo el alto. Marco común de 1 dp border-strong y
+     radio 14, filete de 1 dp border entre filas. Lo incluyen el 4×2, el 3×2 y la
+     notificación desplegada, con los mismos ids. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_block"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/widget_block"
+    android:orientation="horizontal"
+    android:padding="1dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Sin peso (dominadas) esta fila y el filete se esconden. -->
+        <LinearLayout
+            android:id="@+id/widget_weight_box"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_weight_down"
+                android:layout_width="44dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_zone_top_start"
+                android:contentDescription="@string/widget_weight_down"
+                android:fontFamily="@font/geist_mono_medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="−"
+                android:textColor="@color/widget_glyph"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_weight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="32,5"
+                    android:textColor="@color/widget_text"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:fontFamily="@font/geist_regular"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_weight_unit"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_weight_up"
+                android:layout_width="44dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_zone"
+                android:contentDescription="@string/widget_weight_up"
+                android:fontFamily="@font/geist_mono_medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="+"
+                android:textColor="@color/widget_glyph"
+                android:textSize="20sp" />
+        </LinearLayout>
+
+        <!-- FrameLayout y no View: un widget sólo admite las vistas de RemoteViews. -->
+        <FrameLayout
+            android:id="@+id/widget_divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/widget_border" />
+
+        <LinearLayout
+            android:id="@+id/widget_reps_box"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_reps_down"
+                android:layout_width="44dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_zone_bottom_start"
+                android:contentDescription="@string/widget_reps_down"
+                android:fontFamily="@font/geist_mono_medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="−"
+                android:textColor="@color/widget_glyph"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_reps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="12"
+                    android:textColor="@color/widget_text"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:fontFamily="@font/geist_regular"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_reps_unit"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_reps_up"
+                android:layout_width="44dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_zone"
+                android:contentDescription="@string/widget_reps_up"
+                android:fontFamily="@font/geist_mono_medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="+"
+                android:textColor="@color/widget_glyph"
+                android:textSize="20sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- El +1: el único relleno ámbar. Dice sólo +1: la serie ya está escrita a
+         su izquierda. -->
+    <TextView
+        android:id="@+id/widget_log"
+        android:layout_width="60dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_plus_one"
+        android:contentDescription="@string/widget_log"
+        android:fontFamily="@font/geist_mono_semibold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/widget_plus_one"
+        android:textColor="@color/widget_on_accent"
+        android:textSize="20sp" />
+</LinearLayout>

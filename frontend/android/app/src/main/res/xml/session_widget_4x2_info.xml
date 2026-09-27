@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4×2: ajusta peso y reps, registra, salta el descanso y termina. Igual que el
-     4×1, sin actualización periódica. -->
+<!-- 4×2: ajusta peso y reps, registra y termina; sin entreno, dos pantallas. Igual
+     que el 4×1, sin actualización periódica. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="110dp"

@@ -14,6 +14,7 @@ import { cacheBootSummary } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
 import { CtaLabelSkeleton, DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
 import { STEPS_SYNCED, formatSteps, stepsByDate } from './steps.js'
+import { publishLastWorkout } from './widgetSummary.js'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -125,6 +126,8 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
         // asleep. Written here because this is the one place the whole log
         // passes through, and read on a launch where nothing has arrived yet.
         cacheBootSummary(buildBootSummary(loaded))
+        // Y el widget de Android sin entreno: «Último: hace 2 días · Pierna».
+        publishLastWorkout(loaded)
       })
       .catch(() => setError('No se pudieron cargar tus días.'))
   }, [])

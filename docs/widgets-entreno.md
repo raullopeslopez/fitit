@@ -564,5 +564,97 @@ escribiendo sólo su nombre; `switchTo` es ahora sólo de la notificación. El t
 cuatro candidatos se queda como estaba, aunque su motivo (lo que cabía en la rejilla) ya
 no existe.
 
+### Fase 6 · Rediseño de widgets y notificación (APK 0.10.0)
+
+Las superficies de las fases 2–5 funcionaban, pero cada una había crecido por su lado:
+siete cajas con borde en el 4×2, tres botones del sistema en la notificación, un
+`Descanso terminado` que sustituía al número. El diseño aprobado está en `DESIGN.md`,
+«Fuera de la app: widgets y notificación nativa (APK)», con sus vistas previas (v9–v17).
+Tesis: **una serie, un toque**, con un solo relleno ámbar por superficie.
+
+```
+┌──────────────────────────────────────────────┐   ┌──────────────────────────────┐
+│ Press banca · 4 series                 (■)   │   │ Sin entreno en curso         │
+│ 01:23                                        │   │ Último: hace 2 días · Pierna │
+│ ┌───────────────────────────────┬──────┐     │   │ [     Empezar entreno      ] │
+│ │ −        32,5 kg          +   │      │     │   │            ━ ·               │
+│ ├───────────────────────────────┤  +1  │     │   └──────────────────────────────┘
+│ │ −        12 reps          +   │      │     │    tocar los puntitos ↓
+│ └───────────────────────────────┴──────┘     │   ┌──────────────────────────────┐
+└──────────────────────────────────────────────┘   │ PASOS HOY                    │
+                                                   │ 8.432 / 10.000               │
+Notificación desplegada: la misma línea, el tiempo │ ████████████████░░░          │
+en Mono 34sp y el mismo bloque. Cerrada:           │ Media semanal: 7.910         │
+Press banca / 32,5 kg × 12 · 4 series  +  01:23    │            · ━               │
+                                                   └──────────────────────────────┘
+```
+
+- **Qué se ve:** el 4×2 con una sola línea arriba y `Terminar` como aro rojo con ■; el
+  tiempo debajo en Mono 30sp; el **bloque de ajuste** (dos filas de 48 dp, `+1` de 60 dp
+  como su extremo). Pasado el descanso, el mismo número en ámbar contando hacia arriba,
+  `+00:12`. La notificación con diseño propio y sin botones del sistema. Sin entreno, dos
+  pantallas. `Sesión caducada` cuando el servidor rechaza el token. Un tercer widget en
+  el selector, «Fitit · Entreno 3×2».
+- **Comprobar en el teléfono:** el ancho real del 3×2 en el launcher del Xiaomi (se
+  diseñó a ≈270 dp); que la notificación cerrada con el tiempo de 34sp cabe en la fila de
+  HyperOS sin recortarse; los puntitos cambian de pantalla y el widget la recuerda tras
+  reiniciar; pasada la medianoche, `hace 2 días` pasa a 3 y los pasos de ayer desaparecen;
+  con el token caducado (o `Salir` en otro dispositivo si revoca), el widget dice
+  `Sesión caducada` y al volver a entrar recupera el entreno y envía la cola.
+
+**Hecho (2026-09-27).** En siete cambios, uno por pieza. Tests nativos: 127 (eran 122
+antes de la fase; se fueron 33 que sólo cubrían lo retirado y entraron 38). Lo que se decidió al
+construirlo:
+
+- **Se retira escribir desde fuera de la app** (`Otra serie`, `Otro ejercicio` de la
+  notificación, con su `Remo 40x10`), **`⏭` saltar** y el `Otro ejercicio` del 4×2.
+  Android sólo deja campos de texto en sus propios botones, y el bloque ocupa ese sitio.
+  Una serie distinta se ajusta con `−`/`+`; otro ejercicio, en la app. Saltar el descanso
+  sigue en la app, y la notificación quita su reloj cuando se salta ahí.
+- **El bloque de ajuste es un layout propio** (`widget_adjust_block.xml`) que incluyen el
+  4×2, el 3×2 y la notificación desplegada, con los mismos ids. El pulsado (`#FBE6DC` /
+  `#3A2216` y glifo en accent-ink) va en selectores de color y de fondo, que RemoteViews
+  sí admite. El filete entre filas es un `FrameLayout` y no un `View`: un `View` suelto
+  rompía el widget («Problema al cargar»).
+- **El tiempo son dos cronómetros del layout**, uno que baja en color de texto y otro que
+  sube con formato `+%s` en accent-ink, y la alarma de fin de descanso cambia de uno a
+  otro. No un color puesto desde el código: no seguiría al tema del sistema cuando el
+  launcher repinta. Lo comparten los widgets y la notificación.
+- **La caja del tiempo es la línea entera de la fuente.** Con la caja del tamaño del
+  texto (30 dp para 30sp, como el `line-height` de la vista previa), Geist Mono, que mide
+  1,3 em, se alineaba arriba y perdía el pie del 0 y del 3. Los 11 dp de `DESIGN.md` se
+  miden desde la franja de la cifra y el aire de más se descuenta con márgenes negativos.
+  Igual con los pasos (40sp).
+- **Notificación con `DecoratedCustomViewStyle`:** cabecera y marco de Android, el resto
+  nuestro. Renuncia consciente: no puede ser «Live Update». Título y texto se siguen
+  rellenando para el lector de pantalla y los relojes. El `+1` de la notificación no vibra;
+  sólo el del widget.
+- **`Sesión caducada`:** el 401 al vaciar la cola se apunta en `SessionStore` (sobrevive a
+  reinicios) y gana a los demás estados del widget; `Abrir Fitit` abre la app sin orden.
+  Se quita cuando la app da una sesión (`setSession`, que ahora pasa por
+  `SessionController.renew` y repinta). Sin token no hubo sesión que caducara y no se dice
+  nada. La notificación no cambia: lo que registre espera en la cola igual. El 4×1 dice
+  sólo `Sesión caducada` y `Abrir`: la frase entera no cabe en su línea.
+- **Sin entreno, los datos los da la app** (`widgetSummary.js` → `FititSession.summary`),
+  en piezas que el nativo junta: Días al cargar la lista (`lastWorkout`: el día más
+  reciente con series y hasta dos grupos, de más a menos series), la lectura de pasos al
+  terminar (`steps`: hoy y la media de los siete días anteriores, sólo de los que tienen
+  cifra; se publica antes de subirlos, así que vale sin red) y Objetivo al guardar
+  (`stepsGoal`). **El día se compara al pintar**: una alarma a medianoche sin despertar
+  al teléfono repinta, para que `hace 2 días` pase a 3 y unos pasos de ayer no se enseñen
+  como de hoy. La pantalla es una para todos los widgets, no una por widget. Cerrar
+  sesión borra el resumen.
+- **Los puntitos quedan invisibles, no fuera,** cuando no hay pasos de hoy: la pantalla 1
+  no se mueve de sitio. La barra es un `ProgressBar` con un `layer-list` escalado (no
+  recortado), para que el extremo lleno también sea redondo.
+- **Objetivo → `Pasos al día`** (`steps_goal` de `/targets`): vacío es null, `10.000` son
+  diez mil, y fuera de 1.000–100.000 dice `Entre 1.000 y 100.000 pasos.` en vez de mandar
+  algo que el servidor rechazaría.
+- **El 3×2 no tiene layout propio:** `SessionWidget3x2` hereda del 4×2. Un test de
+  aspecto lo infla a 270 × 200 dp y comprueba que no se pierde ninguna medida del 4×2.
+- **Cómo se miró:** `SessionWidgetLookTest` infla los layouts de verdad (Robolectric con
+  gráficos nativos), mide lo que `DESIGN.md` fija y, con `FITIT_RENDER_DIR`, guarda un PNG
+  por estado, claro y oscuro, para compararlo con las vistas previas.
+
 Después, si hace falta: iOS (Live Activities) tiene su propia spec. Y si el Xiaomi
 algún día recibe Android 16, el chip de «Live Updates» sobre la misma notificación.

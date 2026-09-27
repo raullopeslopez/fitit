@@ -6,28 +6,37 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.widget.RemoteViews;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.app.RemoteInput;
 import io.github.raullopeslopez.fitit.R;
 import org.json.JSONObject;
 
 /**
- * La notificación en curso: pantalla de bloqueo y bandeja.
+ * La notificación en curso: pantalla de bloqueo y bandeja. Diseño propio dentro
+ * del marco de Android (DESIGN.md, «La notificación del entreno»; N4 en la vista
+ * previa v17):
  *
  * <pre>
- * Fitit · Press banca
- * 32,5 kg × 12 · 4 series                    01:23
- * [ +1 serie ]   [ Otra serie ]   [ Saltar ]            (descansando)
- * [ +1 serie ]   [ Otra serie ]   [ Otro ejercicio ]    (sin descanso)
+ * Fitit · Entreno                                  (lo pone Android)
+ * Press banca                                  01:23      cerrada
+ * 32,5 kg × 12 · 4 series
+ *
+ * Press banca · 4 series                                  desplegada
+ * 01:23
+ * [ −  32,5 kg  + |    ]
+ * [ −  12 reps  + | +1 ]
  * </pre>
  *
- * <p>La cuenta atrás es el cronómetro de la propia notificación: nadie la reescribe
- * cada segundo. Al acabar, la alarma de fin de descanso la repinta con «Descanso
- * terminado» y sin «Saltar». Canal silencioso: ni suena ni vibra. Plantilla
- * estándar, con la fuente del sistema (la spec dejaba las fuentes propias como
- * riesgo en la capa de Xiaomi). Spec: docs/widgets-entreno.md, «1 · Notificación
- * en curso».
+ * <p>Sin botones del sistema: el bloque de ajuste ocupa su sitio, y con ellos se
+ * fue escribir desde fuera de la app (Android sólo deja campos de texto en sus
+ * botones). Renuncia consciente: con diseño propio no puede ser «Live Update», así
+ * que no sube a la isla de HyperOS ni al chip de la barra de estado.
+ *
+ * <p>El tiempo son los cronómetros del propio layout, como en el widget: nadie lo
+ * reescribe cada segundo. Baja en color de texto y, pasado el descanso, sube en
+ * accent-ink con signo; el cambio lo hace la alarma de fin de descanso. Canal
+ * silencioso: ni suena ni vibra (sólo vibra el +1 del widget).
  */
 final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
@@ -65,7 +74,7 @@ final class SessionNotification {
         // vibración en el canal, y `setSilent` en cada aviso: sigue sin sonar.
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL, "Entreno en curso", NotificationManager.IMPORTANCE_DEFAULT);
-        channel.setDescription("La serie que toca y el descanso, con botones para registrar sin abrir la app.");
+        channel.setDescription("La serie que toca y el descanso, con peso y reps para ajustar y registrar sin abrir la app.");
         channel.setSound(null, null);
         channel.enableVibration(false);
         channel.setShowBadge(false);
@@ -74,67 +83,58 @@ final class SessionNotification {
     }
 
     private static Notification build(Context context, JSONObject control, long now) {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL)
+        return new NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_fitit)
+                // Título y texto no se pintan (manda el diseño propio), pero los
+                // leen el lector de pantalla y quien no sabe pintarlo (un reloj).
                 .setContentTitle(SessionControl.title(control))
                 .setContentText(SessionControl.line(control))
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(collapsed(context, control, now))
+                .setCustomBigContentView(expanded(context, control, now))
+                // El tiempo grande es el nuestro: la cabecera no pinta otro.
+                .setShowWhen(false)
                 .setOngoing(true)
                 .setSilent(true)
                 .setOnlyAlertOnce(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(SessionLaunch.open(context, control.optInt("workoutId", -1)))
-                .addAction(0, "+1 serie", broadcast(context, SessionController.ACTION_REPEAT, 1, false))
-                .addAction(otherSet(context));
-
-        SessionControl.Rest rest = SessionControl.rest(control, now);
-        if (rest == SessionControl.Rest.RUNNING) {
-            builder.setWhen(control.optLong("restEndsAt"))
-                    .setShowWhen(true)
-                    .setUsesChronometer(true)
-                    .setChronometerCountDown(true)
-                    .addAction(0, "Saltar", broadcast(context, SessionController.ACTION_SKIP, 3, false));
-        } else {
-            // Android pinta tres botones como mucho (el cuarto se pierde sin
-            // aviso): el tercero es «Saltar» mientras corre el descanso y «Otro
-            // ejercicio» el resto del tiempo. «Otra serie» entiende también
-            // «Remo 40x10», así que cambiar se puede siempre.
-            builder.setShowWhen(false).setUsesChronometer(false).addAction(otherExercise(context));
-            if (rest == SessionControl.Rest.OVER) builder.setSubText("Descanso terminado");
-        }
-        return builder.build();
-    }
-
-    /** «Otro ejercicio»: el nombre y la serie, como «Remo 40x10», o sólo el nombre. */
-    private static NotificationCompat.Action otherExercise(Context context) {
-        RemoteInput input = new RemoteInput.Builder(SessionController.KEY_OTHER)
-                .setLabel("Ejercicio y serie, como Remo 40x10")
-                .build();
-        return new NotificationCompat.Action.Builder(
-                        0, "Otro ejercicio",
-                        broadcast(context, SessionController.ACTION_OTHER_EXERCISE, 4, true))
-                .addRemoteInput(input)
-                .setAllowGeneratedReplies(false)
                 .build();
     }
 
-    /** «Otra serie»: el campo de texto de la notificación, como contestar un mensaje. */
-    private static NotificationCompat.Action otherSet(Context context) {
-        RemoteInput input = new RemoteInput.Builder(SessionController.KEY_OTHER)
-                .setLabel("Peso x reps, como 32,5x12")
-                .build();
-        // Mutable: Android escribe lo tecleado dentro del intent.
-        return new NotificationCompat.Action.Builder(
-                        0, "Otra serie", broadcast(context, SessionController.ACTION_OTHER, 2, true))
-                .addRemoteInput(input)
-                .setAllowGeneratedReplies(false)
-                .build();
+    /** Cerrada: el ejercicio y la serie a la izquierda, el tiempo a la derecha. */
+    private static RemoteViews collapsed(Context context, JSONObject control, long now) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.notification_session);
+        views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
+        views.setTextViewText(R.id.widget_set, SessionControl.set(control));
+        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, control, now);
+        return views;
     }
 
-    static PendingIntent broadcast(Context context, String action, int code, boolean mutable) {
+    /** Desplegada: la línea, el tiempo y el bloque de ajuste del widget. */
+    private static RemoteViews expanded(Context context, JSONObject control, long now) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.notification_session_big);
+        views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
+        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, control, now);
+        SessionWidget4x2.block(views, control);
+        tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
+        tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
+        tap(context, views, R.id.widget_reps_down, SessionController.ACTION_REPS_DOWN, 32);
+        tap(context, views, R.id.widget_reps_up, SessionController.ACTION_REPS_UP, 33);
+        // El +1 de aquí no vibra: sólo el del widget, como se pidió.
+        tap(context, views, R.id.widget_log, SessionController.ACTION_REPEAT, 1);
+        return views;
+    }
+
+    static void tap(Context context, RemoteViews views, int id, String action, int code) {
+        views.setOnClickPendingIntent(id, broadcast(context, action, code));
+    }
+
+    static PendingIntent broadcast(Context context, String action, int code) {
         Intent intent = new Intent(context, SessionActionReceiver.class).setAction(action);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT
-                | (mutable ? PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_IMMUTABLE);
-        return PendingIntent.getBroadcast(context, code, intent, flags);
+        return PendingIntent.getBroadcast(context, code, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
-
 }

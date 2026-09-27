@@ -206,9 +206,9 @@ public class SessionPlugin extends Plugin {
             call.reject("token and apiBase are required");
             return;
         }
-        store().setSession(token, apiBase, call.getString("clientVersion"));
-        // Un token nuevo es justo lo que esperaba una cola parada por un 401.
-        SessionSender.schedule(getContext());
+        // Un token nuevo es justo lo que esperaba una cola parada por un 401, y
+        // lo que quita «Sesión caducada» de los widgets.
+        SessionController.renew(getContext(), token, apiBase, call.getString("clientVersion"));
         call.resolve();
     }
 
@@ -235,18 +235,18 @@ public class SessionPlugin extends Plugin {
     }
 
     /**
-     * A qué ejercicios se puede cambiar desde el 4×2 (fase 5), cuando cambia la
-     * lista en la app: sólo la lista del control de ese entreno, nada más.
+     * Lo que enseña el widget sin entreno (último entreno, pasos de hoy, objetivo),
+     * en piezas que se juntan con lo que ya había. Ver widgetSummary.js.
      */
     @PluginMethod
-    public void candidates(PluginCall call) {
-        Integer workoutId = call.getInt("workoutId");
-        JSArray list = call.getArray("candidates", new JSArray());
-        if (workoutId == null) {
-            call.reject("workoutId is required");
+    public void summary(PluginCall call) {
+        JSObject summary = call.getObject("summary");
+        if (summary == null) {
+            call.reject("summary is required");
             return;
         }
-        SessionController.candidates(getContext(), workoutId, list, System.currentTimeMillis());
+        store().mergeSummary(summary);
+        SessionWidget.updateAll(getContext());
         call.resolve();
     }
 

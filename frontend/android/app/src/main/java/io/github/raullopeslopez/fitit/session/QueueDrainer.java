@@ -18,6 +18,7 @@ import org.json.JSONObject;
  *   <li>Sin red, 5xx, 429, 408: se para y pide reintento. Lo de detrás conserva
  *       su sitio, porque {@code set_index} se asigna al llegar.
  *   <li>401: se para y espera a un token nuevo; reintentar con el mismo no sirve.
+ *       Lo apunta ({@link SessionStore#markExpired()}) para que los widgets lo digan.
  *   <li>Otro 4xx: el servidor la juzgó y la rechazó. Sale de la cola y se cuenta,
  *       o bloquearía todo lo de detrás para siempre.
  * </ul>
@@ -118,6 +119,7 @@ public final class QueueDrainer {
                 JSONObject workout = parse(response.body);
                 if (workout != null) lastWorkout = workout;
             } else if (status == 401) {
+                store.markExpired();
                 return new Outcome(Status.WAIT, sent, rejected, lastWorkout);
             } else if (status >= 500 || status == 429 || status == 408) {
                 return new Outcome(Status.RETRY, sent, rejected, lastWorkout);

@@ -1,5 +1,6 @@
-import { getSteps, putSteps } from './api.js'
+import { getSteps, getTargetProfile, putSteps } from './api.js'
 import { ensureHealthAccess, healthSupported, readDailySteps } from './platform/health.js'
+import { publishSteps, publishStepsGoal } from './widgetSummary.js'
 
 // Los pasos del teléfono, subidos a Fitit. Corre al abrir la app y cada vez que
 // vuelve a primer plano (App.jsx), como mucho una vez cada cinco minutos: los
@@ -24,6 +25,13 @@ export function syncSteps({ now = Date.now(), force = false } = {}) {
       if (!(await ensureHealthAccess())) return false
       const days = await readDailySteps(30)
       if (days.length === 0) return false
+      // El widget de Android los enseña (DESIGN.md, «Sin entreno»). Antes de
+      // subirlos: salen del teléfono, y sin red también valen. El objetivo, a
+      // su aire; si no llega, el widget se queda con el que tenía.
+      publishSteps(days)
+      getTargetProfile()
+        .then((profile) => publishStepsGoal(profile?.steps_goal))
+        .catch(() => {})
       await putSteps(days)
       last = now
       window.dispatchEvent(new Event(STEPS_SYNCED))

@@ -32,6 +32,9 @@ public final class SessionStore {
     private static final String CLIENT_VERSION = "client_version";
     private static final String REJECTED = "rejected";
     private static final String CONTROL = "control";
+    private static final String EXPIRED = "expired";
+    private static final String SUMMARY = "summary";
+    private static final String IDLE_PAGE = "idle_page";
 
     private final SharedPreferences prefs;
     private final TokenCipher cipher;
@@ -124,7 +127,9 @@ public final class SessionStore {
 
     /** El token, cifrado; y a qué servidor y con qué versión hablar. */
     public synchronized void setSession(String token, String apiBase, String clientVersion) {
+        // Una sesión que llega de la app es nueva: lo de «caducada» se olvida.
         SharedPreferences.Editor edit = prefs.edit()
+                .remove(EXPIRED)
                 .putString(API_BASE, apiBase)
                 .putString(CLIENT_VERSION, clientVersion);
         try {
@@ -164,7 +169,22 @@ public final class SessionStore {
      * notificación de alguien que ya no está). Las series no, igual que en la web.
      */
     public synchronized void clearToken() {
-        prefs.edit().remove(TOKEN).remove(CONTROL).apply();
+        // El resumen del widget (pasos, último entreno) es de quien estaba dentro.
+        prefs.edit().remove(TOKEN).remove(CONTROL).remove(SUMMARY).apply();
+    }
+
+    /**
+     * El servidor rechazó el token (401) al vaciar la cola. Queda apuntado hasta
+     * que la app dé una sesión nueva, y los widgets dicen «Sesión caducada»
+     * mientras tanto: si no, el +1 seguiría encolando series que no salen, sin
+     * que nada lo diga.
+     */
+    public synchronized void markExpired() {
+        prefs.edit().putBoolean(EXPIRED, true).apply();
+    }
+
+    public synchronized boolean sessionExpired() {
+        return prefs.getBoolean(EXPIRED, false);
     }
 
     // --- El control del entreno (fase 2) -----------------------------------
@@ -187,6 +207,44 @@ public final class SessionStore {
 
     public synchronized void clearControl() {
         prefs.edit().remove(CONTROL).apply();
+    }
+
+    // --- Sin entreno: lo que enseña el widget (IdleSummary) -----------------
+
+    /**
+     * Una o más piezas del resumen ({@code lastWorkout}, {@code steps},
+     * {@code stepsGoal}) sobre las que ya había: cada lectura de la app trae sólo
+     * lo suyo. Un null borra esa pieza.
+     */
+    public synchronized void mergeSummary(JSONObject part) {
+        JSONObject summary = summary();
+        java.util.Iterator<String> keys = part.keys();
+        try {
+            while (keys.hasNext()) {
+                String key = keys.next();
+                summary.put(key, part.get(key));
+            }
+        } catch (JSONException e) {
+            return;
+        }
+        prefs.edit().putString(SUMMARY, summary.toString()).apply();
+    }
+
+    public synchronized JSONObject summary() {
+        try {
+            return new JSONObject(prefs.getString(SUMMARY, "{}"));
+        } catch (JSONException e) {
+            return new JSONObject();
+        }
+    }
+
+    /** La pantalla del widget sin entreno: 0, empezar; 1, pasos. Se recuerda. */
+    public synchronized int idlePage() {
+        return prefs.getInt(IDLE_PAGE, 0);
+    }
+
+    public synchronized void flipIdlePage() {
+        prefs.edit().putInt(IDLE_PAGE, idlePage() == 0 ? 1 : 0).apply();
     }
 
     // --- Series rechazadas -------------------------------------------------

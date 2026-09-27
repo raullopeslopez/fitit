@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El puntito de la pantalla que se ve: una pastilla de 18 × 7 en color de texto. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <size android:width="18dp" android:height="7dp" />
+    <solid android:color="@color/widget_text" />
+    <corners android:radius="4dp" />
+</shape>

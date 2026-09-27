@@ -58,3 +58,26 @@ Feature: The calories stop being typed
     And today's diary has been read
     When I accept a target of 1900 kcal instead
     Then what today's diary says I was aiming for has not moved
+
+  # El widget de Android enseña pasos de hoy contra una meta. Nadie la ha
+  # fijado nunca por defecto: sin ella no hay barra que pintar.
+  Scenario: A daily steps goal starts unset
+    When I ask for my profile
+    Then my daily steps goal is not set
+
+  Scenario: Setting a daily steps goal
+    When I set my daily steps goal to 10000
+    Then my daily steps goal is 10000
+
+  Scenario: Clearing a daily steps goal
+    Given I set my daily steps goal to 10000
+    When I clear my daily steps goal
+    Then my daily steps goal is not set
+
+  Scenario: A daily steps goal below the floor is rejected
+    When I try to set my daily steps goal to 500
+    Then it is rejected
+
+  Scenario: A daily steps goal above the ceiling is rejected
+    When I try to set my daily steps goal to 200000
+    Then it is rejected

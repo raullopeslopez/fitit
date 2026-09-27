@@ -3,6 +3,8 @@ package io.github.raullopeslopez.fitit.session;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.json.JSONObject;
 
 /**
@@ -35,11 +37,26 @@ final class SessionAlarms {
         alarms.cancel(expire(context));
     }
 
+    /**
+     * Repintar los widgets a medianoche, para lo que depende del día (IdleSummary).
+     * Sin despertar al teléfono: si duerme, lo verá quien lo desbloquee, y es
+     * entonces cuando repinta.
+     */
+    static void armDay(Context context, long now) {
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        if (alarms == null) return;
+        ZoneId zone = ZoneId.systemDefault();
+        long midnight = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+                .plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
+        alarms.set(AlarmManager.RTC, midnight,
+                SessionNotification.broadcast(context, SessionController.ACTION_DAY, 12));
+    }
+
     private static PendingIntent restOver(Context context) {
-        return SessionNotification.broadcast(context, SessionController.ACTION_REST_OVER, 10, false);
+        return SessionNotification.broadcast(context, SessionController.ACTION_REST_OVER, 10);
     }
 
     private static PendingIntent expire(Context context) {
-        return SessionNotification.broadcast(context, SessionController.ACTION_EXPIRE, 11, false);
+        return SessionNotification.broadcast(context, SessionController.ACTION_EXPIRE, 11);
     }
 }

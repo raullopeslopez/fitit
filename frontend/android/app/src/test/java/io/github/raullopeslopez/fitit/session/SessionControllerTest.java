@@ -15,13 +15,17 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
-import androidx.core.app.RemoteInput;
+import android.os.SystemClock;
+import android.os.Vibrator;
+import android.view.View;
+import android.widget.Chronometer;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.testing.WorkManagerTestInitHelper;
+import io.github.raullopeslopez.fitit.R;
 import java.util.ArrayList;
 import java.util.List;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -31,9 +35,10 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowAlarmManager;
 
-// La notificación en curso y sus tres botones, de punta a punta sin teléfono:
-// lo que Entreno publica, lo que enseña Android y lo que hace cada toque.
-// Spec: docs/widgets-entreno.md, «1 · Notificación en curso» y «Comportamiento».
+// La notificación en curso, de punta a punta sin teléfono: lo que Entreno
+// publica, lo que enseña Android y lo que hace cada toque. Spec:
+// docs/widgets-entreno.md («Comportamiento», fase 6) y DESIGN.md («La notificación
+// del entreno»).
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class SessionControllerTest {
@@ -104,22 +109,26 @@ public class SessionControllerTest {
         SessionController.handle(context, new Intent(action), NOW + 5_000);
     }
 
-    private void reply(String typed) {
-        reply(SessionController.ACTION_OTHER, typed);
+    /** La notificación cerrada, inflada como la pintaría Android. */
+    private View collapsed() {
+        return shown().contentView.apply(context, new FrameLayout(context));
     }
 
-    private void reply(String action, String typed) {
-        Intent intent = new Intent(action);
-        Bundle results = new Bundle();
-        results.putCharSequence(SessionController.KEY_OTHER, typed);
-        RemoteInput.addResultsToIntent(
-                new RemoteInput[] {new RemoteInput.Builder(SessionController.KEY_OTHER).build()},
-                intent,
-                results);
-        SessionController.handle(context, intent, NOW + 5_000);
+    /** Y desplegada. */
+    private View expanded() {
+        return shown().bigContentView.apply(context, new FrameLayout(context));
     }
 
-    // --- Lo que se ve ---------------------------------------------------------
+    private static String text(View root, int id) {
+        return ((TextView) root.findViewById(id)).getText().toString();
+    }
+
+    private static boolean visible(View root, int id) {
+        View v = root.findViewById(id);
+        return v != null && v.getVisibility() == View.VISIBLE;
+    }
+
+    // --- Lo que se ve (N4: diseño propio, DESIGN.md «La notificación») --------
 
     @Test
     public void entrenoPublishesAndTheCardAppears() throws Exception {
@@ -127,42 +136,111 @@ public class SessionControllerTest {
 
         Notification n = shown();
         assertNotNull(n);
+        // Título y texto siguen ahí para quien no pinta el diseño propio (lector
+        // de pantalla, relojes).
         assertEquals("Press banca", n.extras.getString(Notification.EXTRA_TITLE));
         assertEquals("32,5 kg × 12 · 4 series", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        assertEquals(List.of("+1 serie", "Otra serie", "Saltar"), actions(n));
         // En curso: deslizar no la quita.
         assertTrue((n.flags & Notification.FLAG_ONGOING_EVENT) != 0);
         assertEquals(Notification.VISIBILITY_PUBLIC, n.visibility);
     }
 
     @Test
-    public void theCountdownIsTheNotificationsOwnClock() throws Exception {
+    public void itIsOurOwnDesignInsideTheSystemFrameWithNoSystemButtons() throws Exception {
         SessionController.publish(context, bench(NOW + 83_000), NOW);
 
         Notification n = shown();
-        assertTrue(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertTrue(n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN));
-        assertEquals(NOW + 83_000, n.when);
+        // Cabecera y marco los pone Android; lo de en medio es nuestro.
+        assertEquals("android.app.Notification$DecoratedCustomViewStyle",
+                n.extras.getString(Notification.EXTRA_TEMPLATE));
+        assertEquals(R.layout.notification_session, n.contentView.getLayoutId());
+        assertEquals(R.layout.notification_session_big, n.bigContentView.getLayoutId());
+        // Sin botones del sistema: ni +1 serie, ni Otra serie, ni Otro ejercicio.
+        assertEquals(List.of(), actions(n));
+        // El tiempo es el nuestro, grande; la cabecera no repite otro reloj.
+        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
     }
 
     @Test
-    public void whenTheRestIsOverItSaysSoAndSkipGoes() throws Exception {
+    public void collapsedItIsTheExerciseTheSetAndTheTimeOnTheRight() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        View root = collapsed();
+        assertEquals("Press banca", text(root, R.id.widget_exercise));
+        assertEquals("32,5 kg × 12", text(root, R.id.widget_set));
+        assertEquals(" · 4 series", text(root, R.id.widget_count));
+        Chronometer clock = root.findViewById(R.id.widget_clock);
+        assertTrue(visible(root, R.id.widget_clock));
+        assertTrue(clock.isCountDown());
+        long remaining = clock.getBase() - SystemClock.elapsedRealtime();
+        assertEquals(83_000, remaining, 1_000);
+        assertFalse(visible(root, R.id.widget_over));
+    }
+
+    @Test
+    public void expandedItCarriesTheSameAdjustBlockAsTheWidget() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        View root = expanded();
+        assertEquals("Press banca", text(root, R.id.widget_exercise));
+        assertEquals(" · 4 series", text(root, R.id.widget_count));
+        assertTrue(visible(root, R.id.widget_clock));
+        assertTrue(visible(root, R.id.widget_block));
+        assertEquals("32,5", text(root, R.id.widget_weight));
+        assertEquals("12", text(root, R.id.widget_reps));
+        assertEquals("+1", text(root, R.id.widget_log));
+    }
+
+    @Test
+    public void theExpandedBlockAdjustsAndLogsWithoutVibrating() throws Exception {
         SessionController.publish(context, bench(NOW - 1), NOW);
 
-        Notification n = shown();
-        assertEquals("Descanso terminado", n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT).toString());
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie", "Otra serie", "Otro ejercicio"), actions(n));
+        tapIn(expanded(), R.id.widget_weight_up);
+        assertTrue(store.queue().isEmpty());
+        assertEquals("35", text(expanded(), R.id.widget_weight));
+
+        tapIn(expanded(), R.id.widget_log);
+        assertEquals(1, store.queue().size());
+        assertEquals(35, store.head().getJSONObject("payload").getDouble("weight"), 0);
+        assertEquals(" · 5 series", text(expanded(), R.id.widget_count));
+        // Sólo el widget vibra.
+        assertFalse(shadowOf(context.getSystemService(Vibrator.class)).isVibrating());
+    }
+
+    // Toca una vista de la notificación y entrega lo que emitió, como Android.
+    private void tapIn(View root, int id) {
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        root.findViewById(id).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals("la vista emite una acción", seen + 1, sent.size());
+        SessionController.handle(context, sent.get(sent.size() - 1), NOW + 5_000);
     }
 
     @Test
-    public void withRestOffThereIsNoClockAndNoSkip() throws Exception {
+    public void pastTheRestTheTimeTurnsAmberAndCountsUpWithASign() throws Exception {
+        SessionController.publish(context, bench(NOW - 12_000), NOW);
+
+        for (View root : new View[] {collapsed(), expanded()}) {
+            assertFalse(visible(root, R.id.widget_clock));
+            assertTrue(visible(root, R.id.widget_over));
+            Chronometer over = root.findViewById(R.id.widget_over);
+            assertFalse(over.isCountDown());
+            assertEquals(12_000, SystemClock.elapsedRealtime() - over.getBase(), 1_000);
+            assertEquals("+%s", over.getFormat());
+            assertEquals(context.getColor(R.color.widget_accent_ink), over.getCurrentTextColor());
+        }
+        assertNull(shown().extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
+    }
+
+    @Test
+    public void withRestOffThereIsNoClock() throws Exception {
         SessionController.publish(context, bench(0).put("restSeconds", 0), NOW);
 
-        Notification n = shown();
-        assertNull(n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie", "Otra serie", "Otro ejercicio"), actions(n));
+        for (View root : new View[] {collapsed(), expanded()}) {
+            assertFalse(visible(root, R.id.widget_clock));
+            assertFalse(visible(root, R.id.widget_over));
+        }
     }
 
     @Test
@@ -234,7 +312,8 @@ public class SessionControllerTest {
         // La notificación se actualiza en sitio: una serie más y reloj nuevo.
         Notification n = shown();
         assertEquals("32,5 kg × 12 · 5 series", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        assertEquals(NOW + 5_000 + 90_000, n.when);
+        Chronometer clock = collapsed().findViewById(R.id.widget_clock);
+        assertEquals(90_000, clock.getBase() - SystemClock.elapsedRealtime(), 1_000);
         // Y la app, si está abierta, se entera.
         assertTrue(heard.contains("changed"));
     }
@@ -250,50 +329,16 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void anotherSetLogsWhatWasTypedAndRepeatsItNext() throws Exception {
-        SessionController.publish(context, bench(NOW - 1), NOW);
-
-        reply("35x10");
-        tap(SessionController.ACTION_REPEAT);
-
-        assertEquals(2, store.queue().size());
-        JSONObject second = store.queue().get(1).getJSONObject("payload");
-        assertEquals(35, second.getDouble("weight"), 0);
-        assertEquals(10, second.getInt("reps"));
-    }
-
-    @Test
-    public void anotherSetWithACommaIsUnderstood() throws Exception {
-        SessionController.publish(context, bench(NOW - 1), NOW);
-
-        reply("32,5x8");
-
-        assertEquals(8, store.head().getJSONObject("payload").getInt("reps"));
-    }
-
-    @Test
-    public void anEntryItCannotReadLogsNothingAndSaysWhy() throws Exception {
-        SessionController.publish(context, bench(NOW - 1), NOW);
-
-        reply("12 32");
-
-        assertTrue(store.queue().isEmpty());
-        assertEquals(
-                "No entendí «12 32». Escríbela como 32,5x12.",
-                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-    }
-
-    @Test
-    public void skipTakesTheClockAway() throws Exception {
+    public void skippingTheRestInTheAppTakesTheClockAway() throws Exception {
+        // Fuera de la app ya no hay botón de saltar; en la app sí, y la
+        // notificación lo sigue para que no haya dos relojes distintos.
         SessionController.publish(context, bench(NOW + 83_000), NOW);
 
-        tap(SessionController.ACTION_SKIP);
+        SessionController.skipRest(context, NOW + 5_000);
 
-        Notification n = shown();
-        assertFalse(n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER));
-        assertEquals(List.of("+1 serie", "Otra serie", "Otro ejercicio"), actions(n));
+        assertFalse(visible(collapsed(), R.id.widget_clock));
+        assertFalse(visible(expanded(), R.id.widget_clock));
         assertEquals(0, store.control().getLong("restEndsAt"));
-        assertTrue(heard.contains("changed"));
     }
 
     @Test
@@ -308,13 +353,14 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void theRestOverAlarmRelabelsTheCard() throws Exception {
+    public void theRestOverAlarmTurnsTheCountdownIntoOvertime() throws Exception {
         SessionController.publish(context, bench(NOW + 1_000), NOW);
 
         tap(SessionController.ACTION_REST_OVER);
 
-        assertEquals("Descanso terminado",
-                shown().extras.getCharSequence(Notification.EXTRA_SUB_TEXT).toString());
+        // La alarma repinta: el reloj que bajaba se va y aparece el que sube.
+        assertFalse(visible(collapsed(), R.id.widget_clock));
+        assertTrue(visible(collapsed(), R.id.widget_over));
     }
 
     @Test
@@ -362,108 +408,5 @@ public class SessionControllerTest {
 
         assertTrue(store.queue().isEmpty());
         assertNull(shown());
-    }
-
-    // --- Cambiar de ejercicio (fase 5) ----------------------------------------
-
-    private static JSONObject withCandidates(long restEndsAt) throws Exception {
-        return bench(restEndsAt).put("candidates", new JSONArray()
-                .put(SessionControlTest.candidate("Remo", 10, 40.0, 0))
-                .put(SessionControlTest.candidate("Curl", 12, 12.5, 3)));
-    }
-
-    private Notification.Action action(Notification n, String title) {
-        for (Notification.Action a : n.actions) if (a.title.toString().equals(title)) return a;
-        return null;
-    }
-
-    @Test
-    public void otroEjercicioIsATextFieldThatAsksForTheExerciseAndTheSet() throws Exception {
-        SessionController.publish(context, bench(NOW - 1), NOW);
-
-        Notification.Action other = action(shown(), "Otro ejercicio");
-
-        assertNotNull(other);
-        assertEquals(1, other.getRemoteInputs().length);
-        assertEquals("Ejercicio y serie, como Remo 40x10",
-                other.getRemoteInputs()[0].getLabel().toString());
-    }
-
-    @Test
-    public void whileRestingTheThirdButtonIsSaltar() throws Exception {
-        // Android pinta tres botones como mucho: con el descanso corriendo,
-        // «Saltar» ocupa el sitio de «Otro ejercicio», y «Otra serie» entiende
-        // también «Remo 40x10».
-        SessionController.publish(context, bench(NOW + 83_000), NOW);
-
-        assertEquals(List.of("+1 serie", "Otra serie", "Saltar"), actions(shown()));
-    }
-
-    @Test
-    public void anotherExerciseWithASetLogsItAndBecomesTheCurrentOne() throws Exception {
-        SessionController.publish(context, withCandidates(NOW - 1), NOW);
-
-        reply(SessionController.ACTION_OTHER_EXERCISE, "remo 42,5x8");
-
-        assertEquals(1, store.queue().size());
-        JSONObject payload = store.head().getJSONObject("payload");
-        assertEquals("Remo", payload.getString("exercise_name"));
-        assertEquals(42.5, payload.getDouble("weight"), 0);
-        assertEquals(8, payload.getInt("reps"));
-        Notification n = shown();
-        assertEquals("Remo", n.extras.getString(Notification.EXTRA_TITLE));
-        assertEquals("42,5 kg × 8 · 1 serie", n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        assertTrue(heard.contains("changed"));
-    }
-
-    @Test
-    public void otraSerieUnderstandsAnExerciseToo() throws Exception {
-        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
-
-        reply("Curl 15x10");
-
-        assertEquals("Curl", store.head().getJSONObject("payload").getString("exercise_name"));
-        assertEquals("Curl", store.control().getString("exercise"));
-        assertEquals(4, store.control().getInt("count"));
-    }
-
-    @Test
-    public void onlyTheNameOfACandidateSwitchesWithoutLogging() throws Exception {
-        SessionController.publish(context, withCandidates(NOW + 83_000), NOW);
-
-        reply(SessionController.ACTION_OTHER_EXERCISE, "Remo");
-
-        assertTrue(store.queue().isEmpty());
-        assertEquals("Remo", shown().extras.getString(Notification.EXTRA_TITLE));
-        assertEquals("40 kg × 10 · 0 series",
-                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-        // El descanso sigue corriendo.
-        assertEquals(NOW + 83_000, store.control().getLong("restEndsAt"));
-        assertTrue(heard.contains("changed"));
-    }
-
-    @Test
-    public void onlyANameItDoesNotKnowSaysHowToWriteIt() throws Exception {
-        SessionController.publish(context, withCandidates(NOW - 1), NOW);
-
-        reply(SessionController.ACTION_OTHER_EXERCISE, "Peso muerto");
-
-        assertTrue(store.queue().isEmpty());
-        assertEquals("Press banca", shown().extras.getString(Notification.EXTRA_TITLE));
-        assertEquals("Escríbelo con la serie, como Remo 40x10.",
-                shown().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
-    }
-
-    @Test
-    public void theAppCanRefreshTheCandidatesOfItsOwnWorkout() throws Exception {
-        SessionController.publish(context, bench(NOW + 83_000), NOW);
-
-        SessionController.candidates(context, 1, new JSONArray()
-                .put(SessionControlTest.candidate("Remo", 10, 40.0, 0)), NOW);
-        assertEquals("Remo", SessionControl.candidates(store.control()).get(0).getString("exercise"));
-
-        // Los de otro entreno no pisan el control de éste.
-        SessionController.candidates(context, 99, new JSONArray(), NOW);
-        assertEquals(1, SessionControl.candidates(store.control()).size());
     }
 }

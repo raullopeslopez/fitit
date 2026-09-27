@@ -20,8 +20,13 @@ import android.widget.TextView;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.testing.TestWorkerBuilder;
 import androidx.work.testing.WorkManagerTestInitHelper;
+import android.app.AlarmManager;
+import android.widget.ProgressBar;
 import io.github.raullopeslopez.fitit.R;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import org.json.JSONArray;
 import java.util.concurrent.Executors;
 import org.json.JSONObject;
 import org.junit.After;
@@ -122,15 +127,23 @@ public class SessionWidget4x2Test {
         for (String shownText : SessionWidgetTest.texts(view())) {
             assertFalse(shownText, shownText.contains("Pecho"));
         }
-        assertEquals("4 series", text(R.id.widget_count));
+        // Una línea: «Press banca · 4 series».
+        assertEquals(" · 4 series", text(R.id.widget_count));
         assertFalse(shown(R.id.widget_unsent));
-        assertEquals("32,5 kg", text(R.id.widget_weight));
+        assertEquals("32,5", text(R.id.widget_weight));
         assertEquals("12", text(R.id.widget_reps));
-        assertEquals("Registrar serie", text(R.id.widget_log));
-        assertEquals("Terminar", text(R.id.widget_end));
+        // El +1 no repite la serie: ya está escrita en los ajustes de al lado.
+        assertEquals("+1", text(R.id.widget_log));
+        // Terminar es un aro con ■: sin texto, con nombre para el lector de pantalla.
+        assertTrue(shown(R.id.widget_end));
+        assertEquals("Terminar entreno", view().findViewById(R.id.widget_end).getContentDescription());
         assertTrue(shown(R.id.widget_clock));
-        assertTrue(shown(R.id.widget_skip));
-        assertEquals("Saltar descanso", view().findViewById(R.id.widget_skip).getContentDescription());
+        // Ni saltar el descanso ni «Otro ejercicio»: añadir o cambiar de
+        // ejercicio se hace dentro de la app (DESIGN.md, «Fuera de la app»).
+        for (String shownText : SessionWidgetTest.texts(view())) {
+            assertFalse(shownText, shownText.contains("Otro ejercicio"));
+        }
+        assertEquals(0, SessionWidgetTest.described(view(), "Saltar descanso"));
     }
 
     @Test
@@ -143,14 +156,14 @@ public class SessionWidget4x2Test {
 
         // Ajustar no registra: sólo cambia la serie que está a la vista.
         assertTrue(store.queue().isEmpty());
-        assertEquals("37,5 kg", text(R.id.widget_weight));
-        assertEquals("4 series", text(R.id.widget_count));
+        assertEquals("37,5", text(R.id.widget_weight));
+        assertEquals(" · 4 series", text(R.id.widget_count));
 
         tap(R.id.widget_log, now + 3_000);
 
         assertEquals(1, store.queue().size());
         assertEquals(37.5, store.queue().get(0).getJSONObject("payload").getDouble("weight"), 0);
-        assertEquals("5 series", text(R.id.widget_count));
+        assertEquals(" · 5 series", text(R.id.widget_count));
         // Y es lo que repite desde ahora la notificación, y el 4×1.
         assertEquals("37,5 kg × 12 · 5 series",
                 notification().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
@@ -180,8 +193,26 @@ public class SessionWidget4x2Test {
         tap(R.id.widget_weight_down, now + 1_000);
         tap(R.id.widget_reps_down, now + 2_000);
 
-        assertEquals("30 kg", text(R.id.widget_weight));
+        assertEquals("30", text(R.id.widget_weight));
         assertEquals("11", text(R.id.widget_reps));
+    }
+
+    @Test
+    public void theGlyphsAreTextColouredAndTurnAmberWhilePressed() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+
+        int[] pressed = {android.R.attr.state_pressed, android.R.attr.state_enabled};
+        for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
+                R.id.widget_reps_down, R.id.widget_reps_up}) {
+            TextView glyph = view().findViewById(id);
+            // En reposo, color de texto: el ámbar es sólo del +1.
+            assertEquals(context.getColor(R.color.widget_text), glyph.getTextColors().getDefaultColor());
+            // Al pulsar, el glifo pasa a accent-ink y su zona se tiñe.
+            assertEquals(context.getColor(R.color.widget_accent_ink),
+                    glyph.getTextColors().getColorForState(pressed, 0));
+            assertTrue(glyph.getBackground().isStateful());
+        }
     }
 
     @Test
@@ -204,25 +235,13 @@ public class SessionWidget4x2Test {
     }
 
     @Test
-    public void skipIsThereOnlyWhileResting() throws Exception {
+    public void pastTheRestTheTimeTurnsAmberAndCountsUpWithASign() throws Exception {
         long now = now();
-        SessionController.publish(context, bench(now + 60_000), now);
+        SessionController.publish(context, bench(now - 12_500), now);
 
-        tap(R.id.widget_skip, now + 1_000);
-
-        assertEquals(0, store.control().getLong("restEndsAt"));
         assertFalse(shown(R.id.widget_clock));
-        assertFalse(shown(R.id.widget_skip));
-    }
-
-    @Test
-    public void whenTheRestIsOverItSaysSo() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now - 1), now);
-
-        assertTrue(shown(R.id.widget_rest_over));
-        assertFalse(shown(R.id.widget_clock));
-        assertFalse(shown(R.id.widget_skip));
+        assertTrue(shown(R.id.widget_over));
+        SessionWidgetTest.assertOvertime(context, view().findViewById(R.id.widget_over));
     }
 
     @Test
@@ -253,6 +272,72 @@ public class SessionWidget4x2Test {
         assertEquals(1, store.queue().size());
     }
 
+    // --- Sesión caducada (DESIGN.md, «Estados del 4×2 y el 3×2») --------------
+
+    /** El servidor rechaza el token al vaciar la cola, como lo haría WorkManager. */
+    private void drainIntoA401() {
+        http.answer(401, "");
+        TestWorkerBuilder.from(context, SessionWorker.class, Executors.newSingleThreadExecutor())
+                .build()
+                .doWork();
+    }
+
+    @Test
+    public void aRejectedTokenShowsSessionExpiredAndKeepsTheSets() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+        tap(R.id.widget_log, now + 1_000);
+
+        drainIntoA401();
+
+        assertTrue(shown(R.id.widget_expired));
+        assertFalse(shown(R.id.widget_session));
+        assertFalse(shown(R.id.widget_idle));
+        assertEquals("Sesión caducada", text(R.id.widget_expired_title));
+        assertEquals("Abre Fitit para volver a entrar. Tus series siguen guardadas.",
+                text(R.id.widget_expired_body));
+        assertEquals("Abrir Fitit", text(R.id.widget_reopen));
+        // Las series no se pierden: esperan en la cola al token nuevo.
+        assertEquals(1, store.queue().size());
+        // El 4×1 dice lo mismo, con el botón corto.
+        View smallView = widgets.getViewFor(small);
+        assertEquals(View.VISIBLE, smallView.findViewById(R.id.widget_expired).getVisibility());
+        assertEquals(View.GONE, smallView.findViewById(R.id.widget_session).getVisibility());
+        assertEquals("Sesión caducada",
+                ((TextView) smallView.findViewById(R.id.widget_expired_title)).getText().toString());
+        assertEquals("Abrir",
+                ((TextView) smallView.findViewById(R.id.widget_reopen)).getText().toString());
+    }
+
+    @Test
+    public void abrirFititOpensTheAppWithNoOrder() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+        tap(R.id.widget_log, now + 1_000);
+        drainIntoA401();
+
+        view().findViewById(R.id.widget_reopen).performClick();
+
+        // Sólo abrir: la app pide entrar, y ni abre un entreno ni empieza otro.
+        Intent started = shadowOf((Application) context).getNextStartedActivity();
+        assertNotNull(started);
+        assertNull(started.getStringExtra(SessionLaunch.EXTRA_ACTION));
+    }
+
+    @Test
+    public void aFreshSessionFromTheAppBringsTheWidgetBack() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now - 1), now);
+        tap(R.id.widget_log, now + 1_000);
+        drainIntoA401();
+
+        SessionController.renew(context, "jwt-new", "https://fitit.example/api", "0.10.0");
+
+        assertFalse(shown(R.id.widget_expired));
+        assertTrue(shown(R.id.widget_session));
+        assertEquals("jwt-new", store.token());
+    }
+
     @Test
     public void withNoSessionItOffersToStartOne() {
         SessionWidget.updateAll(context);
@@ -266,6 +351,170 @@ public class SessionWidget4x2Test {
         assertEquals(SessionLaunch.START, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
     }
 
+    // --- Sin entreno: dos pantallas (DESIGN.md, «Sin entreno») ---------------
+
+    private static String day(int ago) {
+        return LocalDate.now().minusDays(ago).toString();
+    }
+
+    private void summary(JSONObject part) throws Exception {
+        store.mergeSummary(part);
+        SessionWidget.updateAll(context);
+    }
+
+    private static JSONObject last(int ago, String... groups) throws Exception {
+        JSONArray names = new JSONArray();
+        for (String g : groups) names.put(g);
+        return new JSONObject().put("lastWorkout",
+                new JSONObject().put("date", day(ago)).put("groups", names));
+    }
+
+    private static JSONObject stepsToday(int today, Integer weekAverage) throws Exception {
+        return new JSONObject().put("steps", new JSONObject()
+                .put("date", day(0))
+                .put("today", today)
+                .put("weekAverage", weekAverage == null ? JSONObject.NULL : weekAverage));
+    }
+
+    // Toca los puntitos y entrega lo que emitió, como Android.
+    private void tapDots() {
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        view().findViewById(R.id.widget_dots).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals("los puntitos emiten una acción", seen + 1, sent.size());
+        SessionController.handle(context, sent.get(sent.size() - 1), now());
+    }
+
+    @Test
+    public void pageOneSaysWhenAndWhatTheLastWorkoutWas() throws Exception {
+        summary(last(2, "Cuádriceps", "Glúteo"));
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertEquals("Sin entreno en curso", text(R.id.widget_idle_title));
+        assertEquals("Último: hace 2 días · Cuádriceps, Glúteo", text(R.id.widget_idle_date));
+        assertEquals("Empezar entreno", text(R.id.widget_start));
+
+        summary(last(1, "Pecho"));
+        assertEquals("Último: ayer · Pecho", text(R.id.widget_idle_date));
+
+        summary(last(0));
+        assertEquals("Último: hoy", text(R.id.widget_idle_date));
+    }
+
+    @Test
+    public void withNoStepsThereIsOnlyPageOneAndNoDots() throws Exception {
+        store.flipIdlePage();
+        SessionWidget.updateAll(context);
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_idle_steps));
+        assertFalse(shown(R.id.widget_dots));
+    }
+
+    @Test
+    public void tappingTheDotsSwitchesToTodaysStepsAndBack() throws Exception {
+        summary(stepsToday(8432, 7910).put("stepsGoal", 10000));
+        assertTrue(shown(R.id.widget_dots));
+        assertTrue(shown(R.id.widget_idle_start));
+
+        tapDots();
+
+        assertFalse(shown(R.id.widget_idle_start));
+        assertTrue(shown(R.id.widget_idle_steps));
+        assertEquals("8.432", text(R.id.widget_steps));
+        assertEquals("/ 10.000", text(R.id.widget_steps_goal));
+        assertEquals("7.910", text(R.id.widget_steps_week));
+        assertTrue(shown(R.id.widget_steps_bar));
+        ProgressBar bar = view().findViewById(R.id.widget_steps_bar);
+        assertEquals(843, bar.getProgress());
+        // Y se acuerda: repintar no la devuelve a la primera.
+        SessionWidget.updateAll(context);
+        assertTrue(shown(R.id.widget_idle_steps));
+
+        tapDots();
+
+        assertTrue(shown(R.id.widget_idle_start));
+    }
+
+    @Test
+    public void aGoalMetFillsTheBarAndStopsThere() throws Exception {
+        summary(stepsToday(12000, null).put("stepsGoal", 10000));
+        tapDots();
+
+        assertEquals(1000, ((ProgressBar) view().findViewById(R.id.widget_steps_bar)).getProgress());
+        // Sin media, la línea no se inventa una.
+        assertFalse(shown(R.id.widget_steps_week_line));
+    }
+
+    @Test
+    public void withNoGoalThereIsNoBarAndNoSlash() throws Exception {
+        summary(stepsToday(8432, 7910));
+        tapDots();
+
+        assertEquals("8.432", text(R.id.widget_steps));
+        assertFalse(shown(R.id.widget_steps_goal));
+        assertFalse(shown(R.id.widget_steps_bar));
+    }
+
+    @Test
+    public void yesterdaysStepsAreNotTodays() throws Exception {
+        // Pasada la medianoche, lo que se leyó ayer no son «pasos hoy».
+        summary(new JSONObject().put("steps",
+                new JSONObject().put("date", day(1)).put("today", 8432)));
+        store.flipIdlePage();
+        SessionWidget.updateAll(context);
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_dots));
+    }
+
+    @Test
+    public void atMidnightTheWidgetsRepaintThemselves() throws Exception {
+        summary(last(2));
+
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        long midnight = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault())
+                .toInstant().toEpochMilli();
+        boolean armed = false;
+        for (org.robolectric.shadows.ShadowAlarmManager.ScheduledAlarm alarm
+                : shadowOf(alarms).getScheduledAlarms()) {
+            if (alarm.triggerAtTime == midnight) armed = true;
+        }
+        assertTrue("hay una alarma a medianoche", armed);
+
+        // Y la alarma repinta aunque no haya entreno: «hace 2 días» pasa a 3.
+        SessionController.handle(context, new Intent(SessionController.ACTION_DAY), now());
+        assertTrue(shown(R.id.widget_idle_start));
+        assertEquals("Último: hace 2 días", text(R.id.widget_idle_date));
+    }
+
+    // --- El 3×2: el mismo widget, más estrecho (DESIGN.md, «Tamaños») ----------
+
+    @Test
+    public void theThreeByTwoIsTheSameWidgetAndLogsTheSame() throws Exception {
+        int mid = widgets.createWidget(SessionWidget3x2.class, R.layout.widget_session_4x2);
+        long now = now();
+        SessionController.publish(context, bench(now + 83_000), now);
+
+        View three = widgets.getViewFor(mid);
+        assertEquals("Press banca", ((TextView) three.findViewById(R.id.widget_exercise)).getText().toString());
+        assertEquals("32,5", ((TextView) three.findViewById(R.id.widget_weight)).getText().toString());
+        assertEquals("+1", ((TextView) three.findViewById(R.id.widget_log)).getText().toString());
+
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        three.findViewById(R.id.widget_log).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals(seen + 1, sent.size());
+        SessionController.handle(context, sent.get(sent.size() - 1), now + 1_000);
+
+        assertEquals(1, store.queue().size());
+        // Y lo repinta el mismo updateAll que a los otros dos.
+        assertEquals(" · 5 series", ((TextView) widgets.getViewFor(mid)
+                .findViewById(R.id.widget_count)).getText().toString());
+    }
+
     @Test
     public void tappingTheExerciseOpensThatWorkout() throws Exception {
         long now = now();
@@ -277,35 +526,5 @@ public class SessionWidget4x2Test {
         assertNotNull(started);
         assertEquals(SessionLaunch.OPEN, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
         assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
-    }
-
-    // --- Otro ejercicio -------------------------------------------------------
-    // Sólo crea: abre la app con el campo de añadir ejercicio. Cambiar a uno que
-    // ya está en el entreno se hace desde la notificación («remo») o la app.
-
-    @Test
-    public void otroEjercicioSitsBesideTerminar() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now - 1), now);
-
-        assertTrue(shown(R.id.widget_other));
-        assertEquals("Otro ejercicio", text(R.id.widget_other));
-    }
-
-    @Test
-    public void otroEjercicioOpensTheAppToAddAnExercise() throws Exception {
-        long now = now();
-        SessionController.publish(context, bench(now + 60_000), now);
-
-        view().findViewById(R.id.widget_other).performClick();
-
-        Intent started = shadowOf((Application) context).getNextStartedActivity();
-        assertNotNull(started);
-        assertEquals(SessionLaunch.ADD, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
-        assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
-        // No registra nada y el widget sigue enseñando la serie.
-        assertTrue(store.queue().isEmpty());
-        assertTrue(shown(R.id.widget_session));
-        assertEquals("Press banca", text(R.id.widget_exercise));
     }
 }

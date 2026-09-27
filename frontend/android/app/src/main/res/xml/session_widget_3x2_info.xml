@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3×2: el mismo widget que el 4×2 (ajusta, registra, termina; sin entreno, dos
+     pantallas), en tres columnas. Igual que los otros, sin actualización periódica:
+     lo repinta la app, cada toque y la alarma de medianoche. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_session_4x2"
+    android:previewLayout="@layout/widget_session_4x2"
+    android:description="@string/widget_3x2_description"
+    android:widgetCategory="home_screen" />

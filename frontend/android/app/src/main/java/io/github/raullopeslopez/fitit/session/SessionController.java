@@ -2,37 +2,34 @@ package io.github.raullopeslopez.fitit.session;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import androidx.core.app.RemoteInput;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Lo que pasa con cada toque de la notificación, y cuando Entreno publica o
- * termina el control. Todo pasa por aquí para que la notificación, las alarmas y
- * la app nunca cuenten cosas distintas.
+ * Lo que pasa con cada toque de la notificación y los widgets, y cuando Entreno
+ * publica o termina el control. Todo pasa por aquí para que la notificación, las
+ * alarmas y la app nunca cuenten cosas distintas.
  */
 public final class SessionController {
     private static final String PREFIX = "io.github.raullopeslopez.fitit.session.";
     public static final String ACTION_REPEAT = PREFIX + "REPEAT";
     /** El mismo +1, desde el widget: además vibra. */
     public static final String ACTION_WIDGET_REPEAT = PREFIX + "WIDGET_REPEAT";
-    public static final String ACTION_OTHER = PREFIX + "OTHER";
-    /** «Otro ejercicio» de la notificación: «Remo 40x10», o sólo «Remo». */
-    public static final String ACTION_OTHER_EXERCISE = PREFIX + "OTHER_EXERCISE";
-    /** Los − y + del widget 4×2: cambian la serie que se repite, no registran. */
+    /** Los − y + del bloque de ajuste: cambian la serie que se repite, no registran. */
     public static final String ACTION_WEIGHT_DOWN = PREFIX + "WEIGHT_DOWN";
     public static final String ACTION_WEIGHT_UP = PREFIX + "WEIGHT_UP";
     public static final String ACTION_REPS_DOWN = PREFIX + "REPS_DOWN";
     public static final String ACTION_REPS_UP = PREFIX + "REPS_UP";
-    /** «Terminar» del widget 4×2. */
+    /** «Terminar» del widget. */
     public static final String ACTION_END = PREFIX + "END";
-    public static final String ACTION_SKIP = PREFIX + "SKIP";
     public static final String ACTION_REST_OVER = PREFIX + "REST_OVER";
     public static final String ACTION_EXPIRE = PREFIX + "EXPIRE";
-    public static final String KEY_OTHER = "otra_serie";
+    /** Los puntitos del widget sin entreno: la otra pantalla. */
+    public static final String ACTION_PAGE = PREFIX + "PAGE";
+    /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
+    public static final String ACTION_DAY = PREFIX + "DAY";
 
     private SessionController() {}
 
@@ -40,6 +37,16 @@ public final class SessionController {
     public static void publish(Context context, JSONObject control, long now) {
         Session.store(context).saveControl(control);
         refresh(context, control, now);
+    }
+
+    /**
+     * La app entra (o abre con sesión) y da su token: si los widgets decían
+     * «Sesión caducada», vuelven; y la cola que esperaba sale ya.
+     */
+    public static void renew(Context context, String token, String apiBase, String clientVersion) {
+        Session.store(context).setSession(token, apiBase, clientVersion);
+        SessionWidget.updateAll(context);
+        SessionSender.schedule(context);
     }
 
     /** «Terminar»: fuera la notificación y el control. Las series no se tocan. */
@@ -51,7 +58,11 @@ public final class SessionController {
         SessionEvents.changed();
     }
 
-    /** Saltar el descanso, desde la notificación o desde la app. */
+    /**
+     * Saltar el descanso en la app: la notificación y los widgets quitan su reloj
+     * también. Fuera de la app no hay botón de saltar (DESIGN.md): registrar ya
+     * empieza la serie aunque quede descanso.
+     */
     public static void skipRest(Context context, long now) {
         SessionStore store = Session.store(context);
         JSONObject control = store.control();
@@ -69,6 +80,16 @@ public final class SessionController {
         String action = intent.getAction();
         if (action == null) return;
         SessionStore store = Session.store(context);
+        // Lo del widget sin entreno no tiene control al que preguntar.
+        if (ACTION_PAGE.equals(action)) {
+            store.flipIdlePage();
+            SessionWidget.updateAll(context);
+            return;
+        }
+        if (ACTION_DAY.equals(action)) {
+            SessionWidget.updateAll(context);
+            return;
+        }
         JSONObject control = store.control();
         if (control == null) {
             // Una tarjeta que sobrevivió a su control (se cerró la sesión con la
@@ -89,13 +110,6 @@ public final class SessionController {
                     log(context, store, SessionControl.repeat(control, now), now);
                     pulse(context);
                     break;
-                case ACTION_OTHER:
-                case ACTION_OTHER_EXERCISE:
-                    // Los dos campos entienden lo mismo: Android pinta tres
-                    // botones como mucho, y con el descanso corriendo el tercero
-                    // es «Saltar», así que «Otra serie» acepta también «Remo 40x10».
-                    other(context, store, control, typed(intent), now);
-                    break;
                 case ACTION_WEIGHT_DOWN:
                     adjust(context, store, SessionControl.weight(control, -1), now);
                     break;
@@ -110,10 +124,6 @@ public final class SessionController {
                     break;
                 case ACTION_END:
                     end(context);
-                    break;
-                case ACTION_SKIP:
-                    skipRest(context, now);
-                    SessionEvents.changed();
                     break;
                 case ACTION_REST_OVER:
                     refresh(context, control, now);
@@ -131,41 +141,7 @@ public final class SessionController {
         }
     }
 
-    private static void other(
-            Context context, SessionStore store, JSONObject control, String typed, long now)
-            throws JSONException {
-        SessionControl.Step step = SessionControl.typed(control, typed, now);
-        if (step.entry != null) {
-            log(context, store, step, now);
-            return;
-        }
-        // Nada que registrar: un aviso, o un cambio de ejercicio sin serie.
-        adjust(context, store, step.control, now);
-        if (!step.control.optString("exercise").equals(control.optString("exercise"))) {
-            SessionEvents.changed();
-        }
-    }
-
-    /**
-     * La app publica a qué ejercicios se puede cambiar (al añadir uno, al
-     * registrar): sólo cambia la lista del control en curso, y sólo si es de ese
-     * entreno. No toca la serie, el contador ni el descanso, así que no pisa un
-     * toque del widget que llegase mientras tanto.
-     */
-    public static void candidates(Context context, int workoutId, org.json.JSONArray list, long now) {
-        SessionStore store = Session.store(context);
-        JSONObject control = store.control();
-        if (control == null || control.optInt("workoutId", -1) != workoutId) return;
-        try {
-            control.put("candidates", list);
-        } catch (JSONException e) {
-            return;
-        }
-        store.saveControl(control);
-        SessionWidget.updateAll(context);
-    }
-
-    /** Un − o + del 4×2: la serie que repetirán los siguientes toques, a la vista en todas partes. */
+    /** Un − o + del bloque de ajuste: la serie que repetirán los siguientes toques, a la vista en todas partes. */
     private static void adjust(Context context, SessionStore store, JSONObject control, long now) {
         store.saveControl(control);
         refresh(context, control, now);
@@ -192,12 +168,5 @@ public final class SessionController {
         Vibrator vibrator = context.getSystemService(Vibrator.class);
         if (vibrator == null || !vibrator.hasVibrator()) return;
         vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
-    }
-
-    private static String typed(Intent intent) {
-        Bundle results = RemoteInput.getResultsFromIntent(intent);
-        if (results == null) return "";
-        CharSequence text = results.getCharSequence(KEY_OTHER);
-        return text == null ? "" : text.toString();
     }
 }

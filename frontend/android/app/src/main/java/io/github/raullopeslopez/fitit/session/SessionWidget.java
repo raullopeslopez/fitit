@@ -36,7 +36,7 @@ public class SessionWidget extends AppWidgetProvider {
         render(context, manager, ids);
     }
 
-    /** Repinta todos los widgets puestos, 4×1 y 4×2; si no hay ninguno no hace nada. */
+    /** Repinta todos los widgets puestos, 4×1, 4×2 y 3×2; si no hay ninguno no hace nada. */
     public static void updateAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         if (manager == null) return;
@@ -44,6 +44,12 @@ public class SessionWidget extends AppWidgetProvider {
         if (ids != null && ids.length > 0) render(context, manager, ids);
         int[] large = manager.getAppWidgetIds(new ComponentName(context, SessionWidget4x2.class));
         if (large != null && large.length > 0) SessionWidget4x2.render(context, manager, large);
+        int[] mid = manager.getAppWidgetIds(new ComponentName(context, SessionWidget3x2.class));
+        if (mid != null && mid.length > 0) SessionWidget4x2.render(context, manager, mid);
+        if ((ids != null && ids.length > 0) || (large != null && large.length > 0)
+                || (mid != null && mid.length > 0)) {
+            SessionAlarms.armDay(context, System.currentTimeMillis());
+        }
     }
 
     private static void render(Context context, AppWidgetManager manager, int[] ids) {
@@ -53,20 +59,37 @@ public class SessionWidget extends AppWidgetProvider {
 
     static RemoteViews views(Context context, JSONObject control, long now) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x1);
+        if (Session.store(context).sessionExpired()) return expired(context, views);
         if (control == null) return idle(context, views);
 
         header(context, views, control, now);
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         views.setOnClickPendingIntent(R.id.widget_repeat,
-                SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20, false));
+                SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20));
         return views;
     }
 
     // Lo que comparten los dos tamaños; los ids se llaman igual en los dos layouts.
 
+    /**
+     * «Sesión caducada»: el servidor rechazó el token. Gana a los demás estados,
+     * porque un +1 ahora encolaría series que no salen. Un botón con borde y sin
+     * relleno, «Abrir Fitit» («Abrir» en el 4×1), que sólo abre la app: no
+     * registra nada, así que no lleva ámbar. Las series siguen en la cola.
+     */
+    static RemoteViews expired(Context context, RemoteViews views) {
+        views.setViewVisibility(R.id.widget_session, View.GONE);
+        views.setViewVisibility(R.id.widget_idle, View.GONE);
+        views.setViewVisibility(R.id.widget_expired, View.VISIBLE);
+        views.setOnClickPendingIntent(R.id.widget_reopen, SessionLaunch.app(context));
+        views.setOnClickPendingIntent(R.id.widget_expired, SessionLaunch.app(context));
+        return views;
+    }
+
     /** Sin sesión: «Sin entreno en curso», el día, y «Empezar entreno». */
     static RemoteViews idle(Context context, RemoteViews views) {
+        views.setViewVisibility(R.id.widget_expired, View.GONE);
         views.setViewVisibility(R.id.widget_session, View.GONE);
         views.setViewVisibility(R.id.widget_idle, View.VISIBLE);
         views.setTextViewText(R.id.widget_idle_date, LocalDate.now().format(DAY));
@@ -77,30 +100,47 @@ public class SessionWidget extends AppWidgetProvider {
 
     /** El ejercicio, que abre la app al tocarlo, y el reloj del descanso. */
     static void header(Context context, RemoteViews views, JSONObject control, long now) {
+        views.setViewVisibility(R.id.widget_expired, View.GONE);
         views.setViewVisibility(R.id.widget_idle, View.GONE);
         views.setViewVisibility(R.id.widget_session, View.VISIBLE);
         // Sólo el ejercicio: el grupo muscular dejó de pintarse en la fase 5.
         views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
         views.setOnClickPendingIntent(R.id.widget_open,
                 SessionLaunch.open(context, control.optInt("workoutId", -1)));
+        clock(views, R.id.widget_clock, R.id.widget_over, control, now);
+    }
 
+    /**
+     * El tiempo del descanso en dos cronómetros del propio layout, que corren sin
+     * que nadie los repinte: {@code countdown} baja en color de texto hasta el fin
+     * del descanso; pasado, {@code over} sube desde ahí en accent-ink con signo
+     * ({@code +00:12}). El cambio de uno a otro lo hace la alarma del fin del
+     * descanso, que repinta. Sin descanso, ninguno. Lo usan los widgets y la
+     * notificación.
+     */
+    static void clock(RemoteViews views, int countdown, int over, JSONObject control, long now) {
+        long endsAt = control.optLong("restEndsAt");
+        long base = SystemClock.elapsedRealtime() + (endsAt - now);
         switch (SessionControl.rest(control, now)) {
             case RUNNING:
-                long remaining = control.optLong("restEndsAt") - now;
-                views.setChronometer(R.id.widget_clock, SystemClock.elapsedRealtime() + remaining, null, true);
-                views.setChronometerCountDown(R.id.widget_clock, true);
-                views.setViewVisibility(R.id.widget_clock, View.VISIBLE);
-                views.setViewVisibility(R.id.widget_rest_over, View.GONE);
+                views.setChronometer(countdown, base, null, true);
+                views.setChronometerCountDown(countdown, true);
+                views.setViewVisibility(countdown, View.VISIBLE);
+                views.setChronometer(over, SystemClock.elapsedRealtime(), "+%s", false);
+                views.setViewVisibility(over, View.GONE);
                 break;
             case OVER:
-                views.setChronometer(R.id.widget_clock, SystemClock.elapsedRealtime(), null, false);
-                views.setViewVisibility(R.id.widget_clock, View.GONE);
-                views.setViewVisibility(R.id.widget_rest_over, View.VISIBLE);
+                views.setChronometer(countdown, SystemClock.elapsedRealtime(), null, false);
+                views.setViewVisibility(countdown, View.GONE);
+                views.setChronometer(over, base, "+%s", true);
+                views.setChronometerCountDown(over, false);
+                views.setViewVisibility(over, View.VISIBLE);
                 break;
             default:
-                views.setChronometer(R.id.widget_clock, SystemClock.elapsedRealtime(), null, false);
-                views.setViewVisibility(R.id.widget_clock, View.GONE);
-                views.setViewVisibility(R.id.widget_rest_over, View.GONE);
+                views.setChronometer(countdown, SystemClock.elapsedRealtime(), null, false);
+                views.setViewVisibility(countdown, View.GONE);
+                views.setChronometer(over, SystemClock.elapsedRealtime(), "+%s", false);
+                views.setViewVisibility(over, View.GONE);
                 break;
         }
     }

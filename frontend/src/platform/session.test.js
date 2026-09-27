@@ -16,7 +16,7 @@ const plugin = vi.hoisted(() => ({
   end: vi.fn(),
   skipRest: vi.fn(),
   ensureNotifications: vi.fn(),
-  candidates: vi.fn(),
+  summary: vi.fn(),
   addListener: vi.fn(),
 }))
 vi.mock('@capacitor/core', () => ({ registerPlugin: vi.fn(() => plugin) }))
@@ -47,6 +47,11 @@ describe('platform/session en el APK', () => {
     })
   })
 
+  it('le da al widget lo que enseña sin entreno', async () => {
+    await session.summary({ stepsGoal: 10000 })
+    expect(plugin.summary).toHaveBeenCalledWith({ summary: { stepsGoal: 10000 } })
+  })
+
   it('publica el control, lo termina, salta el descanso y pide el permiso', async () => {
     const control = { workoutId: 1, exercise: 'Press banca' }
     plugin.ensureNotifications.mockResolvedValue({ granted: true })
@@ -61,12 +66,8 @@ describe('platform/session en el APK', () => {
     await expect(session.ensureNotifications()).resolves.toEqual({ granted: true })
   })
 
-  it('le da los ejercicios a los que se puede cambiar desde fuera (fase 5)', async () => {
-    const candidates = [{ exercise: 'Remo', template: null, count: 0 }]
-
-    await session.candidates(1, candidates)
-
-    expect(plugin.candidates).toHaveBeenCalledWith({ workoutId: 1, candidates })
+  it('no publica candidatos: fuera de la app ya no se cambia de ejercicio (fase 6)', () => {
+    expect('candidates' in session).toBe(false)
   })
 
   it('llama al nativo de uno en uno, en el orden en que se pidió', async () => {

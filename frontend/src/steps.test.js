@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./api.js', () => ({ putSteps: vi.fn(), getSteps: vi.fn() }))
+vi.mock('./api.js', () => ({ putSteps: vi.fn(), getSteps: vi.fn(), getTargetProfile: vi.fn() }))
+vi.mock('./widgetSummary.js', () => ({ publishSteps: vi.fn(), publishStepsGoal: vi.fn() }))
 vi.mock('./platform/health.js', () => ({
   healthSupported: vi.fn(() => true),
   ensureHealthAccess: vi.fn(() => Promise.resolve(true)),
   readDailySteps: vi.fn(),
 }))
 
-import { getSteps, putSteps } from './api.js'
+import { getSteps, getTargetProfile, putSteps } from './api.js'
+import { publishSteps, publishStepsGoal } from './widgetSummary.js'
 import { ensureHealthAccess, healthSupported, readDailySteps } from './platform/health.js'
 import { STEPS_SYNCED, formatSteps, resetStepsSync, stepsByDate, syncSteps } from './steps.js'
 
@@ -18,6 +20,7 @@ describe('syncSteps', () => {
     healthSupported.mockReturnValue(true)
     ensureHealthAccess.mockResolvedValue(true)
     putSteps.mockResolvedValue({ saved: 1 })
+    getTargetProfile.mockResolvedValue({ steps_goal: 10000 })
   })
   afterEach(() => resetStepsSync())
 
@@ -59,6 +62,30 @@ describe('syncSteps', () => {
     readDailySteps.mockResolvedValue([])
     await syncSteps()
     expect(putSteps).not.toHaveBeenCalled()
+  })
+
+  // El widget de Android enseña los pasos de hoy frente al objetivo (DESIGN.md,
+  // «Sin entreno»): se los da la app cada vez que los lee.
+  it('le pasa al widget los pasos leídos y el objetivo', async () => {
+    const days = [{ date: '2026-09-25', steps: 8432 }]
+    readDailySteps.mockResolvedValue(days)
+
+    await syncSteps({ now: 1_000_000 })
+
+    expect(publishSteps).toHaveBeenCalledWith(days)
+    await vi.waitFor(() => expect(publishStepsGoal).toHaveBeenCalledWith(10000))
+  })
+
+  it('sin red el widget recibe los pasos igual: salen del teléfono', async () => {
+    const days = [{ date: '2026-09-25', steps: 10 }]
+    readDailySteps.mockResolvedValue(days)
+    putSteps.mockRejectedValue(new Error('offline'))
+    getTargetProfile.mockRejectedValue(new Error('offline'))
+
+    await syncSteps()
+
+    expect(publishSteps).toHaveBeenCalledWith(days)
+    expect(publishStepsGoal).not.toHaveBeenCalled()
   })
 
   it('un fallo de red se traga: los pasos siguen en el teléfono', async () => {
