@@ -32,7 +32,6 @@ vi.mock('./offline.js', async (original) => ({
 
 // Lo que Perfil pide al abrirse, con respuestas tranquilas.
 function stubPerfil() {
-  api.getMe.mockResolvedValue({ id: 1, username: 'raul' })
   api.weightTrend.mockResolvedValue({ kg: null, weigh_ins: 0, up_to: null })
   api.getTargetProfile.mockResolvedValue({})
   api.getTargetProposal.mockResolvedValue(null)
@@ -223,7 +222,7 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: /^salir$/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Perfil' }))
-    expect(await screen.findByRole('heading', { name: 'Macros' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Objetivo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Perfil' })).toHaveAttribute('aria-current', 'page')
   })
 

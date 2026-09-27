@@ -255,9 +255,8 @@ function stubNetwork(catalogue = FOODS) {
     // tarjeta cae —correctamente— en «todavía no te has pesado», que es un
     // estado real pero no el que se quiere medir aquí.
     [/\/body-weight\/trend$/, { kg: 78.6, weigh_ins: 3, up_to: '2026-09-18' }],
-    // Lo demás que Perfil pide al abrirse: el reparto, los datos del objetivo y
-    // su propuesta. Objetos, no la lista vacía por defecto.
-    [/\/auth\/me$/, { id: 1, username: 'raul', objetivo_proteina: 160, objetivo_hidratos: 300, objetivo_grasa: 80 }],
+    // Lo demás que Perfil pide al abrirse: los datos del objetivo y su
+    // propuesta. Objetos, no la lista vacía por defecto.
     [/\/targets\/proposal$/, { kcal: 2450, source: 'formula', days: 0, missing: [] }],
     [/\/targets$/, { goal: 'cut', goal_rate: 0.5 }],
     [/\/workouts\/1$/, OPEN_WORKOUT],
@@ -411,12 +410,12 @@ export async function mountProgreso() {
   return view
 }
 
-/** Perfil, con la tarjeta de peso y el reparto ya cargados. */
+/** Perfil, con la tarjeta de peso y el objetivo ya cargados. */
 export async function mountPerfil() {
   const view = await mountApp()
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Perfil$/ }, { timeout: 5000 }))
-  await screen.findByLabelText('Proteína (g)', {}, { timeout: 5000 })
+  await screen.findByLabelText('Quiero', {}, { timeout: 5000 })
   await vi.waitFor(() => expect(document.querySelector('.weight-kg')?.textContent).toBe('78,6'), {
     timeout: 5000,
   })

@@ -144,7 +144,7 @@ bodies. The commits are mine. This overrides any default the harness applies.
 ## How to talk to me
 Write as a teammate or product owner would, not as a technical report.
 
-- **Open with a TL;DR of what you're doing**: 2–3 lines, plain language, no jargon.
+- **Open with ONE line that sums it up**: plain language, no jargon, no «TL;DR» label.
   What you're changing and why it matters to me — not the mechanism.
 - **Close every turn with what you just did.** Synthetic, past tense, a few lines.
   Test: if I read only the closing lines, do I know what changed and what I should

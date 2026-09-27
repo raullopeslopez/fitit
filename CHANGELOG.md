@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.10.3: los macros ya no se deciden en Perfil.** Desaparece la tarjeta `Macros`:
+  `Aceptar` en Objetivo fija las kcal y sus gramos a la vez, y la línea `Proteína … g ·
+  Hidratos … g · Grasa … g` de la propuesta dice cuáles serán. Y al guardar un peso, la
+  propuesta de Objetivo se recalcula al momento; antes seguía con la del peso anterior
+  hasta salir de Perfil y volver.
 - **APK 0.10.2: Perfil y Macros en el teléfono.** El APK lleva la web empaquetada, así que
   la pestaña `Perfil` y el cambio a `Macros` (abajo) sólo llegan al teléfono con un APK
   nuevo. Sube de número para que no se confunda con el 0.10.1, que no los lleva.

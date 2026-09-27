@@ -4449,30 +4449,6 @@ button.set-chip:active:not(:disabled) {
   margin-top: 0.45rem;
 }
 
-/* Los objetivos: gramos arriba, el total derivado abajo y sin marco de campo —
-   no es algo que se decida, es lo que sale de lo que se ha decidido. */
-.food-goals-total {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 1rem 0;
-  padding: 0.8rem 1rem;
-  font-size: 0.85rem;
-}
-.food-goals .field input,
-.food-goals-total .food-detail-value {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.food-goals-total .food-detail-value {
-  font-size: 1rem;
-}
-.food-goals-foot {
-  margin: 0.6rem 0 0;
-  text-align: center;
-}
-
 /* ------------------------------------------------------------------ *
  * La hoja de detalle: cuánto, y a qué comida.
  * ------------------------------------------------------------------ */
@@ -5653,10 +5629,6 @@ button.draft-save {
 .perfil-card .objetivo {
   margin-bottom: 0;
 }
-/* Qué es la tarjeta, en una línea, entre el título y el primer campo. */
-.perfil-hint {
-  margin: -0.3rem 0 0.8rem;
-}
 /* Las preferencias de Entreno eran filas de un menú; aquí son el contenido de
    la tarjeta, así que no llevan el sangrado del menú ni la raya final. */
 .perfil-card .menu-pref {
@@ -5747,11 +5719,6 @@ button.draft-save {
   font-size: 0.8rem;
   color: var(--muted);
   white-space: nowrap;
-}
-/* Lo que falta por repartir para llegar al objetivo aceptado. Va pegado al
-   total que comenta, no como un aviso aparte. */
-.food-goals-gap {
-  margin-top: -0.4rem;
 }
 
 /* --- El plan de la semana (fase 6) -----------------------------------------

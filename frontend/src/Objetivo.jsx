@@ -36,7 +36,7 @@ function Procedencia({ source, days }) {
  * avisar no se obedece, se desconfía — así que mirar la propuesta no fija
  * nada, y aceptar es un acto aparte.
  */
-export default function Objetivo({ onAccepted }) {
+export default function Objetivo({ onAccepted, refresh = 0 }) {
   const [perfil, setPerfil] = useState(null)
   const [propuesta, setPropuesta] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -68,6 +68,12 @@ export default function Objetivo({ onAccepted }) {
       vivo = false
     }
   }, [preguntar])
+
+  // Una pesada nueva cambia la propuesta: se vuelve a pedir, sin tocar los
+  // campos que estés editando. `refresh` lo sube quien sabe que ha cambiado.
+  useEffect(() => {
+    if (refresh > 0) preguntar()
+  }, [refresh, preguntar])
 
   const set = (key) => (e) => setPerfil({ ...perfil, [key]: e.target.value })
 
