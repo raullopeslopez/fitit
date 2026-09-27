@@ -2103,6 +2103,28 @@ describe('Workout', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       })
 
+      // Si venía de «Repetir», la plantilla lo levantaba otra vez al reabrir:
+      // la tarjeta de un ejercicio que ya no existe.
+      it('lo saca también de la cola de «Repetir»', async () => {
+        standing()
+        localStorage.setItem(
+          'fitit_repeat_template',
+          JSON.stringify({ workoutId: 1, names: ['Bench Press', 'Remo'] }),
+        )
+        api.listDays.mockResolvedValue(log())
+        api.deleteExercise.mockResolvedValue(null)
+        renderWorkout()
+
+        await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio bench/i }))
+        await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
+        await userEvent.click(screen.getByRole('button', { name: /^eliminar ejercicio$/i }))
+        const dialog = await screen.findByRole('dialog', { name: /^Eliminar Bench Press$/ })
+        await userEvent.click(within(dialog).getByRole('button', { name: /sí, eliminar/i }))
+
+        await waitFor(() => expect(api.deleteExercise).toHaveBeenCalledWith(2))
+        expect(JSON.parse(localStorage.getItem('fitit_repeat_template')).names).toEqual(['Remo'])
+      })
+
       // Sin registro no hay cifra, y sin cifra no hay diálogo: un «¿seguro?»
       // que no dice qué se lleva es lo que este diálogo vino a quitar.
       it('says so instead of asking blind when the log will not load', async () => {
@@ -2569,6 +2591,42 @@ describe('Workout', () => {
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Remo', 1)
     })
 
+    // Saltarse uno de la cola era borrarlo de la app: el ejercicio existe, así
+    // que «Eliminar» llevaba su id al servidor y con él meses de registro. Una
+    // tarjeta sin series en este entreno no tiene nada de esta sesión que
+    // borrar — sale de la sesión y de la cola, y el ejercicio se queda.
+    it('una tarjeta en cola sin series sale del entreno sin borrar el ejercicio', async () => {
+      localStorage.setItem(
+        'fitit_repeat_template',
+        JSON.stringify({ workoutId: 1, names: ['Dominadas', 'Remo'] }),
+      )
+      api.listExercises.mockResolvedValue([
+        { id: 7, name: 'Dominadas', muscle_group: 'Espalda', set_count: 40 },
+        { id: 8, name: 'Remo', muscle_group: 'Espalda', set_count: 30 },
+      ])
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      const first = renderWorkout()
+
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio dominadas/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^eliminar ejercicio$/i }))
+
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(0))
+      expect(cardToggle('Remo')).toBeInTheDocument()
+      // Ni diálogo que tase un historial que no se toca, ni llamada que lo tire.
+      expect(screen.queryByRole('dialog', { name: /^Eliminar/ })).not.toBeInTheDocument()
+      expect(api.deleteExercise).not.toHaveBeenCalled()
+      first.unmount()
+
+      // Y no vuelve al reabrir: sale de la cola, no sólo de la pantalla.
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Remo')).toHaveLength(1))
+      expect(cardToggles('Dominadas')).toHaveLength(0)
+    })
+
     it('ignores a template left over from another workout', async () => {
       localStorage.setItem(
         'fitit_repeat_template',
@@ -2666,8 +2724,8 @@ describe('Workout', () => {
       )
       await userEvent.click(screen.getByRole('button', { name: /^Grupo, nota y eliminar/ }))
       await userEvent.click(screen.getByRole('button', { name: /^eliminar ejercicio$/i }))
-      await userEvent.click(screen.getByRole('button', { name: /sí, eliminar/i }))
 
+      // Sin series no hay nada que tasar: sale sin diálogo.
       await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(0))
       expect(api.deleteExercise).not.toHaveBeenCalled()
       first.unmount()

@@ -55,6 +55,7 @@ import {
 import { useWaitFlag, WorkoutSkeleton } from './Skeleton.jsx'
 import { weightPrs } from './stats.js'
 import {
+  dropFromRepeatTemplate,
   forgetAddedExercise,
   getAddedExercises,
   getRepeatTemplate,
@@ -843,6 +844,14 @@ function ExerciseCard({
                     className="editor-row editor-row-danger delete-exercise"
                     disabled={counting}
                     onClick={async () => {
+                      // Sin series hoy sólo sale la tarjeta (ver
+                      // `deleteExerciseFor`): no hay historial que tasar, y el
+                      // diálogo contaría uno que no se toca.
+                      if (sets.length === 0) {
+                        setEditorOpen(false)
+                        await onDeleteExercise(name)
+                        return
+                      }
                       setCounting(true)
                       const damage = await onCountDamage(name)
                       setCounting(false)
@@ -1985,10 +1994,13 @@ export default function Workout({
 
   async function deleteExerciseFor(name) {
     const id = idByName[name] ?? setsFor(name)[0]?.exercise_id
-    if (id == null) {
-      // Nunca llegó al servidor (añadido aquí, sin series): no hay nada que
-      // borrar allí, sólo la tarjeta y la nota de que la añadiste.
+    if (id == null || setsFor(name).length === 0) {
+      // Sin series en esta sesión no hay nada de esta sesión que borrar: la
+      // tarjeta es una nota de que lo añadiste o un hueco de la cola de
+      // «Repetir». Sale de las dos y el ejercicio se queda. Tirarlo entero por
+      // saltártelo hoy era llevarse meses de registro con un toque.
       forgetAddedExercise(workoutId, name)
+      dropFromRepeatTemplate(workoutId, name)
       setExercises((list) => list.filter((e) => e.name !== name))
       return
     }
@@ -2001,6 +2013,9 @@ export default function Workout({
       // de borrar.
       dropQueuedFor(name)
       forgetAddedExercise(workoutId, name)
+      // Y de la cola: si no, al reabrir la sesión la plantilla levanta otra
+      // vez una tarjeta de un ejercicio que ya no existe.
+      dropFromRepeatTemplate(workoutId, name)
       setExercises((list) => list.filter((e) => e.name !== name))
       setWorkout((w) =>
         w ? { ...w, sets: w.sets.filter((set) => set.exercise_name !== name) } : w,
