@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.10.4: el editor del ejercicio es una hoja, y «Eliminar» en Entreno sólo quita
+  de la sesión.** `Editar ejercicio` sube una hoja desde abajo con el nombre, el grupo en
+  fichas (se acaba el selector que parpadeaba), la nota y `Eliminar`. En Entreno,
+  `Eliminar` quita el ejercicio de ese entreno —con series pregunta: «Se borran sus N
+  series de hoy. El historial de otros días no se toca.»— y el ejercicio sigue existiendo;
+  borrarlo entero, con su historial, queda sólo en Progreso. Y saltarse un ejercicio en
+  cola de «Repetir» ya no borra su historial.
 - **APK 0.10.3: los macros ya no se deciden en Perfil.** Desaparece la tarjeta `Macros`:
   `Aceptar` en Objetivo fija las kcal y sus gramos a la vez, y la línea `Proteína … g ·
   Hidratos … g · Grasa … g` de la propuesta dice cuáles serán. Y al guardar un peso, la
