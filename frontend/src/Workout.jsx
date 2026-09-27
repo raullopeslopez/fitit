@@ -482,11 +482,6 @@ function ExerciseCard({
   const lastWhen = previous?.last_date ? daysAgoLabel(previous.last_date) : null
   // El paso siguiente a esa marca. La regla y su porqué viven en progression.js.
   const target = lastTop ? nextTarget(lastTop, lastRir(previous.sets)) : null
-  const targetWhy = {
-    rep: 'a 1–2 del fallo',
-    top: 'llegaste a 12',
-    reserve: 'sobraron 3+',
-  }
   const targetFigure = target
     ? target.weight == null
       ? `${target.reps} reps`
@@ -895,14 +890,10 @@ function ExerciseCard({
           </div>
           {/* Says why no record can fire, once, quietly. Without it a set that
               plainly beat the number above looks like a bug. */}
-          {/* Dos bloques que no se parten: a 430 px la línea entera no
-              siempre cabe, y cortada por dentro dejaba «más» sola debajo. */}
-          {target && (
-            <div className="target-next">
-              <span>{`Objetivo · ${targetFigure}`}</span>{' '}
-              <span>{`· ${targetWhy[target.reason]}`}</span>
-            </div>
-          )}
+          {/* Sólo la cifra: el porqué («llegaste a 12») al lado de un × 8
+              se leía como otro número que cuadrar. La regla está en
+              progression.js para quien quiera saberlo. */}
+          {target && <div className="target-next">{`Objetivo · ${targetFigure}`}</div>}
           {previous?.stale && (
             <div className="target-stale">Marcas guardadas · sin conexión</div>
           )}

@@ -524,7 +524,7 @@ describe('Workout', () => {
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-    expect(await findTarget()).toHaveTextContent('Objetivo · 60 kg × 9 · a 1–2 del fallo')
+    expect(await findTarget()).toHaveTextContent(/^Objetivo · 60 kg × 9$/)
   })
 
   it('moves the weight up when the last session ended with 3 or more in reserve', async () => {
@@ -541,7 +541,7 @@ describe('Workout', () => {
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-    expect(await findTarget()).toHaveTextContent('Objetivo · 62.5 kg × 8 · sobraron 3+')
+    expect(await findTarget()).toHaveTextContent(/^Objetivo · 62.5 kg × 8$/)
   })
 
   it('asks how many were left after a set and stores the answer as RPE', async () => {
