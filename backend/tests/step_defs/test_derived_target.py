@@ -96,6 +96,30 @@ def then_maintenance(client, propuesta):
     assert propuesta["kcal"] == _mantenimiento(client)
 
 
+@then(parsers.parse("it proposes {grams:d} g of protein"))
+def then_protein(propuesta, grams):
+    assert propuesta["protein"] == grams
+
+
+@then("it proposes a quarter of the calories as fat")
+def then_fat_quarter(propuesta):
+    assert propuesta["fat"] == round(propuesta["kcal"] * 0.25 / 9)
+
+
+@then("it proposes the rest as carbohydrates")
+def then_carbs_rest(propuesta):
+    resto = propuesta["kcal"] - 4 * propuesta["protein"] - 9 * propuesta["fat"]
+    assert propuesta["carbs"] == round(resto / 4)
+
+
+@then("my macro targets are the ones it proposed")
+def then_macros_set(client, propuesta):
+    me = client.get("/auth/me").json()
+    assert me["objetivo_proteina"] == propuesta["protein"]
+    assert me["objetivo_grasa"] == propuesta["fat"]
+    assert me["objetivo_hidratos"] == propuesta["carbs"]
+
+
 @then("it says the number came from the formula")
 def then_from_formula(propuesta):
     assert propuesta["source"] == "formula"

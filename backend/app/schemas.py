@@ -965,6 +965,10 @@ class TargetProposalOut(BaseModel):
     days: int = 0
     # Qué falta para poder proponer nada, por su nombre.
     missing: list[str] = Field(default_factory=list)
+    # Cómo se reparten esas kcal (`reparto_macros`), en gramos. `None` sin peso.
+    protein: int | None = None
+    fat: int | None = None
+    carbs: int | None = None
     # Si la cifra tocó suelo. Recortar en silencio sería devolver otra cosa.
     floored: bool = False
 

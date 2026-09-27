@@ -415,3 +415,26 @@ def ajustar_gramos(
     ]
     totales, _ = sumar_nutrientes(filas)
     return tuple(gramos), totales
+
+
+# Cómo se reparten unas kcal en macros cuando nadie ha dicho otra cosa. La
+# proteína va por kilo de peso —es lo que la sostiene—, la grasa es una parte
+# fija de las kcal, y los hidratos son lo que queda.
+PROTEINA_G_POR_KG = 2.0
+GRASA_PARTE_KCAL = 0.25
+
+
+def reparto_macros(*, kcal: float | None, kg: float | None) -> dict[str, int] | None:
+    """Gramos de proteína, grasa e hidratos que suman esas kcal.
+
+    `None` sin kcal o sin peso: sin peso no hay proteína por kilo, y repartir
+    sin ella sería inventarla. Gramos enteros, que es lo que se teclea y se lee.
+    Los hidratos se quedan en 0 si la proteína y la grasa ya se comen las kcal:
+    un objetivo negativo no significa nada.
+    """
+    if kcal is None or kg is None:
+        return None
+    protein = round(PROTEINA_G_POR_KG * kg)
+    fat = round(kcal * GRASA_PARTE_KCAL / 9)
+    carbs = max(0, round((kcal - 4 * protein - 9 * fat) / 4))
+    return {"protein": protein, "fat": fat, "carbs": carbs}

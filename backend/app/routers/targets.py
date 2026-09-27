@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..auth import get_current_user
 from ..db import get_session
 from ..models import BodyWeight, DailyTarget, Day, LogEntry, User
+from ..nutrition import reparto_macros
 from ..schemas import (
     TargetAcceptIn,
     TargetProfileIn,
@@ -46,6 +47,30 @@ async def _dias_entreno(session: AsyncSession, user_id: int) -> float:
         )
     ).scalar_one()
     return (total or 0) / 4.0
+
+
+async def _peso(session: AsyncSession, user_id: int) -> float | None:
+    """Tu peso: la tendencia de tus pesadas, o la última si sólo hay una.
+
+    Con una sola pesada no hay tendencia — pero para una estimación vale más una
+    pesada que ninguna, y lo que la usa ya se declara estimación.
+    """
+    filas = (
+        await session.execute(
+            select(BodyWeight.measured_on, BodyWeight.kg).where(BodyWeight.user_id == user_id)
+        )
+    ).all()
+    kg = tendencia([(row[0], row[1]) for row in filas]).kg
+    if kg is None:
+        kg = (
+            await session.execute(
+                select(BodyWeight.kg)
+                .where(BodyWeight.user_id == user_id)
+                .order_by(BodyWeight.measured_on.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+    return kg
 
 
 async def _medido(session: AsyncSession, user_id: int):
@@ -120,33 +145,9 @@ async def proposal(
     """Lo que tocaría comer, y de dónde sale el número. No escribe nada."""
     user = await _user(session, user_id)
 
+    kg = await _peso(session, user_id)
     gasto = await _medido(session, user_id)
     if gasto is None:
-        peso = tendencia(
-            [
-                (row[0], row[1])
-                for row in (
-                    await session.execute(
-                        select(BodyWeight.measured_on, BodyWeight.kg).where(
-                            BodyWeight.user_id == user_id
-                        )
-                    )
-                ).all()
-            ]
-        )
-        # Con una sola pesada no hay tendencia — pero para la fórmula vale más
-        # una pesada que ninguna, y la fórmula ya es una estimación declarada.
-        kg = peso.kg
-        if kg is None:
-            ultima = (
-                await session.execute(
-                    select(BodyWeight.kg)
-                    .where(BodyWeight.user_id == user_id)
-                    .order_by(BodyWeight.measured_on.desc())
-                    .limit(1)
-                )
-            ).scalar_one_or_none()
-            kg = ultima
         edad = date.today().year - user.birth_year if user.birth_year else None
         gasto = gasto_por_formula(
             sex=user.sex,
@@ -157,12 +158,14 @@ async def proposal(
         )
 
     propuesta = proponer(gasto, goal=user.goal or "maintain", rate_kg_week=user.goal_rate)
+    macros = reparto_macros(kcal=propuesta.kcal, kg=kg) or {}
     return TargetProposalOut(
         kcal=propuesta.kcal,
         source=propuesta.source,
         days=propuesta.days,
         missing=propuesta.missing,
         floored=propuesta.floored,
+        **macros,
     )
 
 
@@ -179,6 +182,14 @@ async def accept(
     """
     user = await _user(session, user_id)
     user.objetivo_kcal = payload.kcal
+    # Las kcal dicen cuánto y los macros cómo: se aceptan juntos, o el reparto
+    # que compara Comida seguiría siendo el de otro objetivo. Sin peso no hay
+    # reparto que proponer y se deja el que hubiera.
+    macros = reparto_macros(kcal=payload.kcal, kg=await _peso(session, user_id))
+    if macros:
+        user.objetivo_proteina = macros["protein"]
+        user.objetivo_grasa = macros["fat"]
+        user.objetivo_hidratos = macros["carbs"]
     await session.commit()
     await session.refresh(user)
     return TargetProfileOut.model_validate(user)

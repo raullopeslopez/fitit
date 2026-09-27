@@ -46,11 +46,15 @@ export default function Perfil({ onLogout }) {
         <Objetivo onAccepted={cargar} />
       </section>
 
-      <section className="card perfil-card" aria-labelledby="perfil-reparto">
-        <h2 id="perfil-reparto">Reparto</h2>
-        {/* Con la clave del perfil cargado: el formulario arranca de lo que hay
-            guardado, no de unos campos vacíos que alguien podría guardar. */}
-        {me && <Reparto key={me.id ?? 'sin'} me={me} onSaved={setMe} />}
+      <section className="card perfil-card" aria-labelledby="perfil-macros">
+        <h2 id="perfil-macros">Macros</h2>
+        <p className="hint perfil-hint">
+          Cuántos gramos de proteína, hidratos y grasa suman tus kcal.
+        </p>
+        {/* La clave son los gramos guardados: aceptar la propuesta de arriba los
+            cambia en el servidor, y el formulario arranca otra vez de ellos en
+            vez de quedarse con lo que había antes. */}
+        {me && <Reparto key={claveMacros(me)} me={me} onSaved={setMe} />}
       </section>
 
       <section className="card perfil-card" aria-labelledby="perfil-reglas">
@@ -77,7 +81,12 @@ export default function Perfil({ onLogout }) {
   )
 }
 
-// El reparto: gramos por macro, y las kcal como consecuencia.
+const claveMacros = (me) =>
+  [me.objetivo_proteina, me.objetivo_hidratos, me.objetivo_grasa].join('/')
+
+// Los macros: gramos por macro, y las kcal como consecuencia. Aceptar la
+// propuesta de Objetivo los rellena (2 g de proteína por kilo, un cuarto de las
+// kcal en grasa, el resto hidratos); aquí se retocan.
 //
 // Antes se fijaban las kcal y la proteína, cada una por su lado, y eso dejaba
 // guardar un total que sus propios macros no daban —2.600 kcal con 160 g de
@@ -123,7 +132,7 @@ function Reparto({ me, onSaved }) {
       const saved = await setTargets(macros)
       if (saved) onSaved(saved)
     } catch {
-      setError('No se ha podido guardar el reparto.')
+      setError('No se han podido guardar los macros.')
     } finally {
       setBusy(false)
     }
@@ -175,7 +184,8 @@ function Reparto({ me, onSaved }) {
           de repartir aquí— y nada que dijera cuál manda. Manda la de arriba: el
           objetivo da el total y esto lo reparte. Así que aquí se dice cuánto
           falta por repartir, que convierte la contradicción en una cuenta. */}
-      {objetivo != null && derived != null && Math.abs(objetivo - derived) > 1 && (
+      {/* Por debajo de 10 kcal es el redondeo de los gramos, no un desfase. */}
+      {objetivo != null && derived != null && Math.abs(objetivo - derived) >= 10 && (
         <p className="hint food-goals-gap">
           Tu objetivo son {formatMacro(objetivo)} kcal:{' '}
           {derived < objetivo
@@ -191,7 +201,7 @@ function Reparto({ me, onSaved }) {
       )}
 
       <button type="submit" className="primary btn-full" disabled={busy}>
-        Guardar reparto
+        Guardar macros
       </button>
       <p className="hint food-goals-foot">
         Las kcal no se teclean: salen de repartir los gramos.
