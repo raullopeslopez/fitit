@@ -35,6 +35,7 @@ import { muscleColor } from './muscles.js'
 import { lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
+  answerIsFor,
   answersFor,
   cacheMarks,
   cacheWorkout,
@@ -130,15 +131,17 @@ function exercisesFromWorkout(workout) {
 // encima de la serie, para que el chip siga marcado al reabrir sin señal.
 function withQueued(workout) {
   if (!workout) return workout
-  const answered = new Map(answersFor(workout.id).map((a) => [a.setId, a.rpe]))
+  const answers = answersFor(workout.id)
+  const answered = (s) => {
+    const answer = answers.find((a) => answerIsFor(a, s))
+    return answer ? { ...s, rpe: answer.rpe } : s
+  }
   return {
     ...workout,
     sets: [
-      ...workout.sets
-        .filter((s) => !s.pending)
-        .map((s) => (answered.has(s.id) ? { ...s, rpe: answered.get(s.id) } : s)),
+      ...workout.sets.filter((s) => !s.pending),
       ...queuedFor(workout.id).map((e) => ({ id: e.tmpId, pending: true, ...e.payload })),
-    ],
+    ].map(answered),
   }
 }
 
@@ -238,10 +241,10 @@ function ExerciseCard({
   // vieja, y siempre por la última serie: es la que dice cómo acabaste y la
   // que lee el objetivo de la próxima vez. No contestar no rompe nada.
   const [askRir, setAskRir] = useState(false)
-  // La respuesta espera a que la serie tenga id de servidor: recién registrada
-  // vive en la cola con un `tmp-N` contra el que no se puede corregir. Si la app
-  // se cierra antes de que llegue, la respuesta se pierde; la serie no. Con id
-  // ya no se pierde: entra en su propia cola (offline.js).
+  // La respuesta entra en su propia cola en cuanto se da (offline.js), atada al
+  // `client_id` de la serie si todavía no ha llegado al servidor. Sólo espera
+  // aquí una serie en cola sin `client_id` —abierta por http plano, sin
+  // `randomUUID`—, y ésa sí se pierde si la app se cierra antes de enviarla.
   const [rirAnswer, setRirAnswer] = useState(null)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen.
@@ -506,12 +509,12 @@ function ExerciseCard({
   const shownRir =
     rirAnswer?.index === latestIndex ? rirAnswer.rir : rpeToRir(latestSet?.rpe)
 
-  // Entrega la respuesta en cuanto la serie existe en el servidor. Una sola vez
+  // Entrega la respuesta en cuanto hay con qué atarla a la serie. Una sola vez
   // por respuesta: `sent` evita reenviarla con cada render que traiga la fila.
   useEffect(() => {
     if (!rirAnswer || rirAnswer.sent) return
     const set = sets[rirAnswer.index]
-    if (!set || set.pending) return
+    if (!set || (set.pending && !set.client_id)) return
     setRirAnswer({ ...rirAnswer, sent: true })
     onAnswerRir(set, rirToRpe(rirAnswer.rir))
   }, [rirAnswer, sets, onAnswerRir])
@@ -1669,14 +1672,14 @@ export default function Workout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutId])
 
-  // Las respuestas que quedaron sin enviar la última vez, en cuanto hay un
-  // entreno contra el que rellenarlas. Un efecto y no el `finally` de la carga:
-  // ahí `workoutRef` todavía no ha visto el entreno recién puesto.
-  const loadedId = workout?.id
+  // Cada vez que el entreno en pantalla cambia, si queda alguna respuesta: al
+  // cargarlo (las que quedaron de la última vez) y cuando una serie de la cola
+  // vuelve del servidor con su id (las que se dieron antes de que llegara). Un
+  // efecto y no quien cambia el entreno: `workoutRef` sólo lo ve tras el render.
   useEffect(() => {
-    if (loadedId === workoutId) flushAnswers()
+    if (workout?.id === workoutId && answersFor(workoutId).length > 0) flushAnswers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadedId, workoutId])
+  }, [workout, workoutId])
 
   // The screen doesn't go dark between sets. Re-run on the preference, so
   // turning it off in the overflow lets go of the lock there and then.
@@ -1833,7 +1836,12 @@ export default function Workout({
   }
 
   function answerRirFor(set, rpe) {
-    queueAnswer({ workoutId: workout.id, setId: set.id, rpe })
+    queueAnswer({
+      workoutId: workout.id,
+      ...(set.pending ? {} : { setId: set.id }),
+      ...(set.client_id ? { clientId: set.client_id } : {}),
+      rpe,
+    })
     setWorkout(withQueued)
     flushAnswers()
   }
@@ -1848,12 +1856,14 @@ export default function Workout({
       for (const answer of answersFor(workoutId)) {
         const sets = workoutRef.current?.id === workoutId ? workoutRef.current.sets : null
         if (!sets) break
-        const set = sets.find((s) => s.id === answer.setId)
+        const set = sets.find((s) => answerIsFor(answer, s))
         // Borrada desde que se contestó: ya no hay a quién ponérsela.
         if (!set) {
           dropAnswer(answer)
           continue
         }
+        // Todavía en la cola: sale cuando el servidor la devuelva con su id.
+        if (set.pending) continue
         try {
           await editSetFor(set, {
             reps: set.reps,

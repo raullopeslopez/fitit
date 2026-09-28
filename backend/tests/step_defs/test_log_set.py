@@ -67,3 +67,8 @@ def then_set_values(log_response, reps, weight):
     last_set = log_response.json()["sets"][-1]
     assert last_set["reps"] == reps
     assert last_set["weight"] == weight
+
+
+@then(parsers.parse('that set carries the client id "{client_id}"'))
+def then_set_client_id(log_response, client_id):
+    assert log_response.json()["sets"][-1]["client_id"] == client_id

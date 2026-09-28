@@ -3059,6 +3059,46 @@ describe('Workout', () => {
       await waitFor(() => expect(localStorage.getItem('fitit_rir_outbox')).toBeNull())
     })
 
+    // La serie todavía en la cola sólo tiene `tmp-N` y su `client_id`. La
+    // respuesta se ata a ese id, y encuentra la serie cuando el servidor la
+    // devuelve con él: cerrar la app entremedias ya no la pierde.
+    it('keeps an answer given to a set that has not reached the server yet', async () => {
+      api.logSet.mockRejectedValue(offline())
+      renderWorkout()
+      await addBench()
+      await logBench()
+      await screen.findByText('60 kg x 8')
+      const [queued] = JSON.parse(localStorage.getItem('fitit_outbox'))
+      const clientId = queued.payload.client_id
+      expect(clientId).toBeTruthy()
+
+      const group = screen.getByRole('group', { name: '¿Cuántas te quedaban?' })
+      await userEvent.click(within(group).getByRole('button', { name: '2' }))
+
+      await waitFor(() =>
+        expect(JSON.parse(localStorage.getItem('fitit_rir_outbox'))).toEqual([
+          { workoutId: 1, clientId, rpe: 8 },
+        ]),
+      )
+      expect(api.editSet).not.toHaveBeenCalled()
+
+      api.logSet.mockReset()
+      api.logSet.mockResolvedValue(workoutWith(benchSet({ id: 6, client_id: clientId })))
+      api.editSet.mockResolvedValue(benchSet({ id: 6, rpe: 8, client_id: clientId }))
+      window.dispatchEvent(new Event('online'))
+
+      await waitFor(() =>
+        expect(api.editSet).toHaveBeenCalledWith(6, {
+          exercise_name: 'Bench Press',
+          reps: 8,
+          weight: 60,
+          rpe: 8,
+          note: null,
+        }),
+      )
+      await waitFor(() => expect(localStorage.getItem('fitit_rir_outbox')).toBeNull())
+    })
+
     it('sends an answer left unsent last time the app was open', async () => {
       localStorage.setItem(
         'fitit_rir_outbox',

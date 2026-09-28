@@ -41,6 +41,7 @@ def _set_out(entry: SetEntry, exercise: Exercise) -> SetOut:
         duration_seconds=entry.duration_seconds,
         distance=entry.distance,
         created_at=entry.created_at,
+        client_id=entry.client_id,
     )
 
 

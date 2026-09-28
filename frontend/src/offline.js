@@ -124,12 +124,17 @@ export function forgetWorkout(workoutId) {
 // serie tomada al contestar pisaría cualquier corrección hecha después. Quien
 // la envía rellena el resto con lo que la serie dice en ese momento.
 //
-// Sólo series con id de servidor. Una recién registrada vive con un `tmp-N` y
-// el servidor no devuelve su `client_id`, así que no hay con qué casarlas.
+// Una serie que aún está en la cola no tiene id de servidor, sólo su `tmp-N` y
+// el `client_id` que le puso `enqueueSet`. La respuesta se ata a ese id y
+// encuentra la serie cuando el servidor la devuelve con él, aunque la app se
+// haya cerrado entremedias.
 
 const ANSWERS_KEY = 'fitit_rir_outbox'
 
-// [{ workoutId, setId, rpe }], una por serie: contestar otra vez la sustituye.
+// [{ workoutId, setId?, clientId?, rpe }], una por serie: contestar otra vez la
+// sustituye. `setId` cuando la serie ya estaba en el servidor, `clientId`
+// cuando se sabe —siempre que la registró este móvil—.
+
 function readAnswers() {
   try {
     const stored = JSON.parse(storage.getItem(ANSWERS_KEY))
@@ -145,7 +150,17 @@ function writeAnswers(entries) {
 }
 
 export function queueAnswer(entry) {
-  writeAnswers([...readAnswers().filter((a) => a.setId !== entry.setId), entry])
+  const same = (a) =>
+    (entry.setId != null && a.setId === entry.setId) ||
+    (entry.clientId != null && a.clientId === entry.clientId)
+  writeAnswers([...readAnswers().filter((a) => !same(a)), entry])
+}
+
+// ¿Es ésta la serie de la respuesta? Por id de servidor, o por el `client_id`
+// con que la registró este móvil —en la cola todavía, o ya de vuelta—.
+export function answerIsFor(answer, set) {
+  if (answer.setId != null && !set.pending && set.id === answer.setId) return true
+  return answer.clientId != null && set.client_id === answer.clientId
 }
 
 export function answersFor(workoutId) {
@@ -154,9 +169,11 @@ export function answersFor(workoutId) {
 
 // Sólo si sigue siendo la misma respuesta: la que se contestó mientras la
 // anterior iba de camino tiene que salir en la vuelta siguiente, no borrarse.
-export function dropAnswer({ setId, rpe }) {
+export function dropAnswer({ setId, clientId, rpe }) {
   const entries = readAnswers()
-  const left = entries.filter((a) => !(a.setId === setId && a.rpe === rpe))
+  const left = entries.filter(
+    (a) => !(a.setId === setId && a.clientId === clientId && a.rpe === rpe),
+  )
   if (left.length !== entries.length) writeAnswers(left)
 }
 
