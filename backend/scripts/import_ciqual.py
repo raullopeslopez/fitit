@@ -95,6 +95,7 @@ async def load(session: AsyncSession, foods: list[dict]) -> tuple[int, int]:
             "group_code": row["group_code"],
             "subgroup_code": row["subgroup_code"],
             "kcal_100g": row["kcal_100g"],
+            "kcal_estimated": row["kcal_estimated"],
             "protein_100g": row["protein_100g"],
             "fat_100g": row["fat_100g"],
             "carbs_100g": row["carbs_100g"],
@@ -143,8 +144,10 @@ async def main() -> None:
     foods = deduplicate(foods)
 
     sin_kcal = sum(1 for f in foods if f["kcal_100g"] is None)
+    estimadas = sum(1 for f in foods if f["kcal_estimated"])
     print(f"{len(rows)} filas → {len(foods)} alimentos ({len(rows) - len(foods)} duplicados)")
-    print(f"{sin_kcal} sin kcal — se quedan en NULL, no se derivan (ver ciqual_rules.md)")
+    print(f"{estimadas} con kcal estimadas por Atwater (ver ciqual_rules.md)")
+    print(f"{sin_kcal} sin kcal — les falta un macro para estimarlas, se quedan en NULL")
     if args.dry_run:
         print("--dry-run: no se ha escrito nada")
         return

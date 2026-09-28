@@ -247,6 +247,12 @@ class Food(Base):
     fat_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
     carbs_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
     fiber_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # True when `kcal_100g` is not a measurement but Atwater over the macros —
+    # CIQUAL rows that carry no energy figure (see scripts/ciqual.py). An
+    # estimate may fill the gap; it may not pass itself off as a measurement.
+    kcal_estimated: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
     # Everything CIQUAL carries beyond the five macros, as a JSON object.
     nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # La clasificación de CIQUAL, en códigos. `0201` es verdura, `0203`
