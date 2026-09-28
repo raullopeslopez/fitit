@@ -1,8 +1,10 @@
 """La semana generada, de punta a punta."""
 
-from datetime import date, timedelta
+from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, scenarios, then, when
+
+from app.routers import rules as rules_router
 
 scenarios("../features/plan_week.feature")
 
@@ -25,6 +27,19 @@ def _dish(client, name, food_id, **extra):
     resp = client.post("/dishes", json=body)
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+@given(parsers.parse("today is {hoy}"))
+def given_today(monkeypatch, hoy):
+    # El reloj del router de reglas, que es el que fecha el alta (`active_from`).
+    fijo = datetime.fromisoformat(hoy).replace(hour=12, tzinfo=UTC)
+
+    class Reloj(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fijo if tz is None else fijo.astimezone(tz)
+
+    monkeypatch.setattr(rules_router, "datetime", Reloj)
 
 
 @given(parsers.parse("a repertoire of {cuantos:d} dishes"), target_fixture="repertorio")
@@ -86,15 +101,6 @@ def given_pulses_rule(client):
         },
     )
     assert resp.status_code == 201, resp.text
-
-
-@when("I generate next week", target_fixture="respuesta")
-def when_generate_next(client):
-    hoy = date.today()
-    lunes = hoy + timedelta(days=7 - hoy.weekday())
-    resp = client.post("/plans", json={"week_start": lunes.isoformat()})
-    assert resp.status_code == 201, resp.text
-    return resp.json()
 
 
 @when(parsers.parse("I generate the week of {inicio}"), target_fixture="respuesta")
