@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import BodyWeight, DailyTarget, Day, LogEntry, User
+from ..models import BodyWeight, DailySteps, DailyTarget, Day, LogEntry, SetEntry, User, Workout
 from ..nutrition import reparto_macros
 from ..schemas import (
     TargetAcceptIn,
@@ -23,7 +23,8 @@ from ..schemas import (
     TargetProfileOut,
     TargetProposalOut,
 )
-from ..targets import gasto_medido, gasto_por_formula, proponer
+from ..session_length import session_length
+from ..targets import gasto_medido, gasto_por_formula, kcal_entreno, proponer
 from ..weight import tendencia
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -47,6 +48,54 @@ async def _dias_entreno(session: AsyncSession, user_id: int) -> float:
         )
     ).scalar_one()
     return (total or 0) / 4.0
+
+
+async def _pasos(session: AsyncSession, user_id: int) -> list[int]:
+    """Los pasos de cada día de la ventana que el móvil subió. Hoy no: todavía
+    se está andando. Un día sin fila no es un cero, así que no entra."""
+    desde = date.today() - timedelta(days=VENTANA)
+    filas = (
+        await session.execute(
+            select(DailySteps.steps).where(
+                DailySteps.user_id == user_id,
+                DailySteps.date >= desde,
+                DailySteps.date < date.today(),
+            )
+        )
+    ).all()
+    return [row[0] for row in filas]
+
+
+# Una sesión de la que no se puede decir cuánto duró (una sola serie, o series
+# fuera de su día) cuenta como esto. Mejor tres cuartos de hora que cero.
+SESION_SIN_DURACION_S = 45 * 60
+
+
+async def _entreno_kcal_dia(session: AsyncSession, user_id: int, kg: float | None) -> float:
+    """Lo que cuestan al día, de media en la ventana, tus sesiones de entreno.
+
+    La duración sale de las propias series (`session_length`): nadie tiene que
+    arrancar ni parar un reloj.
+    """
+    if kg is None:
+        return 0.0
+    desde = date.today() - timedelta(days=VENTANA)
+    filas = (
+        await session.execute(
+            select(Workout.id, Day.date, SetEntry.created_at)
+            .join(Day, Workout.day_id == Day.id)
+            .join(SetEntry, SetEntry.workout_id == Workout.id)
+            .where(Day.user_id == user_id, Day.date >= desde, Day.date < date.today())
+        )
+    ).all()
+    sesiones: dict[int, tuple[date, list]] = {}
+    for workout_id, dia, momento in filas:
+        sesiones.setdefault(workout_id, (dia, []))[1].append(momento)
+    segundos = sum(
+        session_length(momentos, dia) or SESION_SIN_DURACION_S
+        for dia, momentos in sesiones.values()
+    )
+    return kcal_entreno(kg=kg, horas=segundos / 3600) / VENTANA
 
 
 async def _peso(session: AsyncSession, user_id: int) -> float | None:
@@ -160,6 +209,8 @@ async def proposal(
             cm=user.height_cm,
             age=edad,
             dias_entreno=await _dias_entreno(session, user_id),
+            pasos_por_dia=await _pasos(session, user_id),
+            entreno_kcal_dia=await _entreno_kcal_dia(session, user_id, kg),
         )
 
     propuesta = proponer(gasto, goal=user.goal or "maintain", rate_kg_week=user.goal_rate)
@@ -170,6 +221,8 @@ async def proposal(
         days=propuesta.days,
         missing=propuesta.missing,
         floored=propuesta.floored,
+        steps_per_day=propuesta.steps_per_day,
+        training_kcal_per_day=propuesta.training_kcal_per_day,
         **macros,
     )
 

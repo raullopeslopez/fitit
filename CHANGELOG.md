@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **El gasto por fórmula cuenta tus pasos y tus entrenos en vez de adivinar la actividad.**
+  Con al menos 7 días de pasos en las últimas 4 semanas, la propuesta de Objetivo parte
+  del basal sedentario (Mifflin × 1,2) y le suma lo que cuestan tus pasos (0,0005 kcal
+  por paso y kilo) y tus sesiones (4 MET netos × kg × horas, con la duración sacada de
+  las series; 45 min si no se puede medir), repartidas en la ventana. Sin pasos sigue la
+  escalera por días de entreno. El gasto medido con tus datos sigue mandando. La pantalla
+  lo dice: «Estimado con tus 9.200 pasos al día y 45 kcal de entreno».
+  `GET /targets/proposal` devuelve `steps_per_day` y `training_kcal_per_day`.
+
 ### Fixed
 - **Un alimento de CIQUAL sin kcal ya no borra las kcal del día.** 794 alimentos del
   catálogo (el plátano macho, el kéfir, la salsa de tomate…) no traían energía y una sola

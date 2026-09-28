@@ -43,6 +43,22 @@ describe('Objetivo', () => {
     expect(screen.getByText(/estimad/i)).toBeInTheDocument()
   })
 
+  // Con pasos, la actividad se cuenta en vez de adivinarse, y se dice con qué.
+  it('says which steps and training the formula counted', async () => {
+    getTargetProposal.mockResolvedValue({
+      kcal: 2480,
+      source: 'formula',
+      days: 0,
+      missing: [],
+      steps_per_day: 9200,
+      training_kcal_per_day: 45,
+    })
+    render(<Objetivo onAccepted={() => {}} />)
+    await screen.findByText('2480')
+    expect(screen.getByText(/9\.200 pasos al día/)).toBeInTheDocument()
+    expect(screen.getByText(/45 kcal de entreno/)).toBeInTheDocument()
+  })
+
   it('names what it is missing instead of proposing a number anyway', async () => {
     getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: ['altura', 'sexo'] })
     render(<Objetivo onAccepted={() => {}} />)
