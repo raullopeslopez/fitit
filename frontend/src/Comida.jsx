@@ -40,7 +40,7 @@ import {
 } from './food.js'
 import { formatDayShort } from './format.js'
 import { takePhoto, usesNativeCamera } from './platform/camera.js'
-import { canScan, detectBarcodes, scanLive } from './platform/scanner.js'
+import { canScan, detectBarcodes } from './platform/scanner.js'
 
 // Los raíles del día: las cuatro comidas, siempre, con su subtotal y lo que
 // lleven dentro. Una comida vacía **sí** se dibuja — es por donde se entra a
@@ -1153,12 +1153,11 @@ function AddFood({
   // acaba abriendo el formulario, que es donde estabas antes de que el botón
   // existiera.
   //
-  // En el APK el peldaño 1 cambia de forma: no hay foto, se apunta al código con
-  // el escáner de Google (`scanLive`) y la foto se guarda para la tabla. Lo que
-  // no cambia es lo de detrás: el código, venga de donde venga, sigue el mismo
-  // camino (`resolveCode`). Sin el escáner en vivo —el módulo de Google aún no
-  // está en ese teléfono— la escalada es la de la web, con la foto de la cámara
-  // de Android y el código decodificado en ella con ML Kit.
+  // En el APK la escalada es la misma, con la foto de la cámara de Android y el
+  // código decodificado en ella con ML Kit. Hubo un escáner en vivo de Google
+  // delante (2026-09-25 → 09-28) y se quitó: su pantalla no tiene obturador,
+  // así que la tabla quedaba detrás de cerrarla, y en esos días no llegó al
+  // servidor ni un código ni una lectura. Una foto sirve para los dos peldaños.
   //
   // `event` es el `change` del `input` en la web. En el APK no hay input: el
   // botón llama sin nada, y la foto la pide `takePhoto`.
@@ -1173,28 +1172,6 @@ function AddFood({
     setResolved(null)
 
     if (!event) {
-      const live = await scanLive()
-      if (live?.code) {
-        setReading('scan')
-        setLabel(null)
-        setCreating(false)
-        try {
-          await resolveCode(live.code)
-        } catch {
-          // Sin foto de la que tirar, un fallo de red es lo que dice: que no se
-          // ha podido preguntar. La escalada ofrece la tabla, como siempre.
-          setReading(null)
-          setEscalating('offline')
-        }
-        return
-      }
-      // Cerraste el escáner sin que leyera nada: el envase no tiene código, o
-      // no se deja leer. Es el mismo peldaño que un código que no sirve —otra
-      // foto, de la tabla, o teclearlo—, con su propio motivo.
-      if (live?.cancelled) {
-        setEscalating('nocode')
-        return
-      }
       file = await nativePhoto()
       if (!file) return
     }
@@ -1224,11 +1201,9 @@ function AddFood({
     await readTable(file)
   }
 
-  // Un código leído, del escáner en vivo o de una foto, hasta el final.
-  //
-  // Un solo camino para los dos a propósito: `GET /foods/barcode/{ean}`, y si la
-  // ficha pública sirve, `POST /foods` — la única puerta. Lanza si no hay red:
-  // qué hacer entonces depende de si hay una foto de la que tirar.
+  // Un código leído en la foto, hasta el final: `GET /foods/barcode/{ean}`, y si
+  // la ficha pública sirve, `POST /foods` — la única puerta. Lanza si no hay
+  // red, y quien llama intenta la tabla con la misma foto.
   async function resolveCode(code) {
     setBarcode(code)
     const found = await scanBarcode(code)
@@ -1798,9 +1773,6 @@ function Escalada({ reason, slot, busy, onShoot, onType, onCancel }) {
                 offline: 'No he podido preguntar por ese código.',
                 unusable: 'Los datos de ese código no me sirven.',
                 unreadable: 'No he podido leer la etiqueta.',
-                // Sólo en el APK: cerraste el escáner de códigos sin que leyera
-                // ninguno.
-                nocode: 'No he leído ningún código.',
               }[reason] ?? 'Ese código no está en ninguna base.'
             }
           </p>

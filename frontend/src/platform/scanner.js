@@ -8,9 +8,10 @@
 //
 // En el APK, ML Kit (`@capacitor-mlkit/barcode-scanning`), porque un WebView de
 // Android no promete `BarcodeDetector` y ML Kit va dentro de la app: funciona en
-// cualquier teléfono y sin red. Da dos cosas: decodificar una foto ya hecha
-// (`detectBarcodes`, igual que en la web) y escanear en vivo (`scanLive`), que
-// es apuntar sin hacer foto.
+// cualquier teléfono y sin red. Decodifica la foto ya hecha, igual que en la
+// web. El escáner en vivo de Google que trae el plugin (`BarcodeScanner.scan`)
+// no se usa: su pantalla no tiene obturador, y la foto tiene que servir también
+// para leer la tabla si no hay código.
 
 import { BarcodeFormat, BarcodeScanner } from '@capacitor-mlkit/barcode-scanning'
 
@@ -25,10 +26,6 @@ const NATIVE_FORMATS = [
   BarcodeFormat.UpcA,
   BarcodeFormat.UpcE,
 ]
-
-// El rechazo con el que el plugin cuenta que cerraste el escáner sin leer nada
-// (`BarcodeScannerPlugin.ERROR_SCAN_CANCELED`).
-const CANCELED = 'scan canceled.'
 
 export function canScan() {
   if (isNative()) return true
@@ -55,38 +52,3 @@ async function detectNatively(file) {
   return barcodes.map((code) => code.rawValue).filter(Boolean)
 }
 
-// Apuntar con la cámara, sin hacer foto. Sólo en el APK.
-//
-// Contesta una de tres cosas:
-// - `{ code }` — leyó un código.
-// - `{ cancelled: true }` — cerraste el escáner sin que leyera nada.
-// - `null` — aquí no hay escáner en vivo (el navegador, o un Android al que
-//   todavía le falta el módulo de Google): quien llama sigue por la foto, que
-//   es lo que había antes.
-//
-// El escáner es el de Google (Play Services): abre su propia pantalla, no pide
-// permiso de cámara, y necesita un módulo que Play Services baja aparte. Si no
-// está, se pide aquí y se sigue sin esperar — la próxima vez ya estará, y
-// hacerte mirar una barra de descarga para leer un código sería peor que una
-// foto.
-//
-// Lo que no cubre: Android puede matar la app mientras el escáner de Google
-// está delante. Entonces esta promesa no vuelve nunca, y el código llega en el
-// evento `appRestoredResult` de `@capacitor/app` a una app recién arrancada, sin
-// la pantalla de añadir abierta. No se recoge: se vuelve a escanear.
-export async function scanLive() {
-  if (!isNative()) return null
-  try {
-    const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable()
-    if (!available) {
-      BarcodeScanner.installGoogleBarcodeScannerModule().catch(() => {})
-      return null
-    }
-    const { barcodes } = await BarcodeScanner.scan({ formats: NATIVE_FORMATS, autoZoom: true })
-    const code = barcodes.map((found) => found.rawValue).find(Boolean)
-    return code ? { code } : { cancelled: true }
-  } catch (error) {
-    if (error?.message === CANCELED) return { cancelled: true }
-    return null
-  }
-}

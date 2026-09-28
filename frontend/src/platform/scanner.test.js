@@ -9,16 +9,13 @@ vi.mock('@capacitor-mlkit/barcode-scanning', () => ({
   BarcodeFormat: { Ean13: 'EAN_13', Ean8: 'EAN_8', UpcA: 'UPC_A', UpcE: 'UPC_E' },
   BarcodeScanner: {
     readBarcodesFromImage: vi.fn(),
-    isGoogleBarcodeScannerModuleAvailable: vi.fn(),
-    installGoogleBarcodeScannerModule: vi.fn(() => Promise.resolve()),
-    scan: vi.fn(),
   },
 }))
 
 import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning'
 
 import { isNative } from './native.js'
-import { canScan, detectBarcodes, scanLive } from './scanner.js'
+import { canScan, detectBarcodes } from './scanner.js'
 
 const FORMATS = ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E']
 
@@ -57,47 +54,12 @@ describe('scanner.js dentro del APK', () => {
     await expect(detectBarcodes(sinRuta)).resolves.toEqual([])
     expect(BarcodeScanner.readBarcodesFromImage).not.toHaveBeenCalled()
   })
-
-  describe('escanear en vivo', () => {
-    it('abre el escáner de Google y devuelve el primer código', async () => {
-      BarcodeScanner.isGoogleBarcodeScannerModuleAvailable.mockResolvedValue({ available: true })
-      BarcodeScanner.scan.mockResolvedValue({ barcodes: [{ rawValue: '8410128750121' }] })
-      await expect(scanLive()).resolves.toEqual({ code: '8410128750121' })
-      expect(BarcodeScanner.scan).toHaveBeenCalledWith(
-        expect.objectContaining({ formats: FORMATS }),
-      )
-    })
-
-    it('cerrar el escáner sin leer nada es «no hay código», no un fallo', async () => {
-      BarcodeScanner.isGoogleBarcodeScannerModuleAvailable.mockResolvedValue({ available: true })
-      BarcodeScanner.scan.mockRejectedValue(new Error('scan canceled.'))
-      await expect(scanLive()).resolves.toEqual({ cancelled: true })
-    })
-
-    it('sin el módulo de Google lo pide para la próxima y deja paso a la foto', async () => {
-      BarcodeScanner.isGoogleBarcodeScannerModuleAvailable.mockResolvedValue({ available: false })
-      await expect(scanLive()).resolves.toBe(null)
-      expect(BarcodeScanner.installGoogleBarcodeScannerModule).toHaveBeenCalled()
-      expect(BarcodeScanner.scan).not.toHaveBeenCalled()
-    })
-
-    it('un escáner que falla por otra cosa también deja paso a la foto', async () => {
-      BarcodeScanner.isGoogleBarcodeScannerModuleAvailable.mockResolvedValue({ available: true })
-      BarcodeScanner.scan.mockRejectedValue(new Error('Google Play Services no disponible'))
-      await expect(scanLive()).resolves.toBe(null)
-    })
-  })
 })
 
 describe('scanner.js en el navegador', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     isNative.mockReturnValue(false)
-  })
-
-  it('no hay escaneo en vivo: la escalada empieza por la foto, como siempre', async () => {
-    await expect(scanLive()).resolves.toBe(null)
-    expect(BarcodeScanner.scan).not.toHaveBeenCalled()
   })
 
   it('sin BarcodeDetector no promete leer códigos', () => {

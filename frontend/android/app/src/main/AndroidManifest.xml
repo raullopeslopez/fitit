@@ -10,11 +10,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- Escáner de códigos de Google (ML Kit, `BarcodeScanner.scan()`): Play
-             Services baja el módulo al instalar. No pide permiso de cámara: la
-             cámara la abre Google, no la app. -->
-        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui"/>
-
 
         <!-- Los botones de la notificación del entreno y sus alarmas
              (docs/widgets-entreno.md, fase 2). No exportado: sólo lo despiertan

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.10.5: la cámara de Comida vuelve a hacer una foto.** `Abrir la cámara` ya no
+  abre el escáner de Google («Powered by Google», sin obturador), que desde el 25 de
+  septiembre no había hecho llegar al servidor ni un código ni una lectura de etiqueta.
+  Ahora hace una foto: si lleva código de barras se busca en Open Food Facts, y si no lo
+  lleva, esa misma foto la lee el modelo como tabla nutricional. Desaparece el aviso «No he
+  leído ningún código.».
 - **APK 0.10.4: el editor del ejercicio es una hoja, y «Eliminar» en Entreno sólo quita
   de la sesión.** `Editar ejercicio` sube una hoja desde abajo con el nombre, el grupo en
   fichas (se acaba el selector que parpadeaba), la nota y `Eliminar`. En Entreno,
