@@ -981,6 +981,11 @@ class TargetProposalOut(BaseModel):
     carbs: int | None = None
     # Si la cifra tocó suelo. Recortar en silencio sería devolver otra cosa.
     floored: bool = False
+    # Con qué se contó la actividad en la fórmula: tu media de pasos y lo que
+    # cuestan al día tus sesiones. `None` si se usó la escalera por días de
+    # entreno, o si la cifra es medida (ahí la actividad ya va dentro).
+    steps_per_day: int | None = None
+    training_kcal_per_day: int | None = None
 
 
 class TargetAcceptIn(BaseModel):

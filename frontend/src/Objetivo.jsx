@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { acceptTarget, getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
 import { formatMacro } from './food.js'
+import { formatSteps } from './steps.js'
 import { publishStepsGoal } from './widgetSummary.js'
 
 const OBJETIVOS = [
@@ -14,12 +15,21 @@ const OBJETIVOS = [
 //
 // Una estimación y una medición no se pintan igual: presentar la primera con la
 // tinta de la segunda es la clase de mentira tranquila que esta app evita en
-// todo lo demás. `measured` dice además sobre cuántos días descansa.
-function Procedencia({ source, days }) {
+// todo lo demás. `measured` dice además sobre cuántos días descansa, y la
+// fórmula con qué actividad contó cuando hubo pasos en vez de adivinarla.
+function Procedencia({ source, days, stepsPerDay, trainingKcal }) {
   if (source === 'measured') {
     return (
       <span className="objetivo-fuente">
         Medido con tus datos · {days} días
+      </span>
+    )
+  }
+  if (source === 'formula' && stepsPerDay != null) {
+    return (
+      <span className="objetivo-fuente">
+        Estimado con tus {formatSteps(stepsPerDay)} al día
+        {trainingKcal ? ` y ${trainingKcal} kcal de entreno` : ''}
       </span>
     )
   }
@@ -139,7 +149,12 @@ export default function Objetivo({ onAccepted, refresh = 0 }) {
         <span className="objetivo-kcal">{formatMacro(kcal)}</span>
         {kcal != null && <span className="objetivo-unit">kcal</span>}
       </p>
-      <Procedencia source={propuesta?.source} days={propuesta?.days ?? 0} />
+      <Procedencia
+        source={propuesta?.source}
+        days={propuesta?.days ?? 0}
+        stepsPerDay={propuesta?.steps_per_day ?? null}
+        trainingKcal={propuesta?.training_kcal_per_day ?? 0}
+      />
       {/* Cómo se reparten esas kcal. Se ve antes de aceptar porque aceptar fija
           las dos cosas: las kcal y estos gramos. */}
       {kcal != null && propuesta?.protein != null && (

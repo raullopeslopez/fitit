@@ -63,6 +63,32 @@ class Gasto:
     days: int = 0
     # Qué falta para poder calcularlo, por su nombre. Vacío cuando sí se pudo.
     missing: list[str] = field(default_factory=list)
+    # Cuando la actividad se contó en vez de adivinarse: la media de pasos y lo
+    # que cuestan al día tus sesiones. `None` cuando se usó la escalera.
+    steps_per_day: int | None = None
+    training_kcal_per_day: int | None = None
+
+
+# Con pasos, la actividad deja de adivinarse: se parte del basal sedentario y se
+# suma lo que se ha contado.
+SEDENTARIO = 1.2
+
+# Lo que cuesta un paso, por kilo de peso: ~0,04 kcal por paso a 80 kg. Lo que
+# pesas es lo que se mueve, así que escala con el peso.
+KCAL_PASO_KG = 0.0005
+
+# Cuántos días con pasos hacen falta para creerse una media. Tres días de
+# vacaciones andando no son tu semana.
+MIN_DIAS_PASOS = 7
+
+# Lo que cuesta una hora de pesas por encima de estar sentado: 5 MET de un
+# entreno de fuerza moderado menos el 1 del reposo, que ya está en el basal.
+MET_NETO_ENTRENO = 4.0
+
+
+def kcal_entreno(*, kg: float, horas: float) -> float:
+    """Lo que cuesta entrenar `horas`, por encima del reposo."""
+    return MET_NETO_ENTRENO * kg * horas
 
 
 def mifflin(*, sex: str, kg: float, cm: float, age: int) -> float:
@@ -71,8 +97,22 @@ def mifflin(*, sex: str, kg: float, cm: float, age: int) -> float:
     return base + (5.0 if sex == "male" else -161.0)
 
 
-def gasto_por_formula(*, sex, kg, cm, age, dias_entreno: float) -> Gasto:
-    """El gasto estimado, o qué falta para poder estimarlo."""
+def gasto_por_formula(
+    *,
+    sex,
+    kg,
+    cm,
+    age,
+    dias_entreno: float,
+    pasos_por_dia: list[int] | None = None,
+    entreno_kcal_dia: float = 0.0,
+) -> Gasto:
+    """El gasto estimado, o qué falta para poder estimarlo.
+
+    Con al menos `MIN_DIAS_PASOS` días de pasos, la actividad se cuenta: basal
+    sedentario + lo que cuestan tus pasos + lo que cuestan tus sesiones. Sin
+    ellos, la escalera por días de entreno.
+    """
     faltan = [
         nombre
         for nombre, valor in (("peso", kg), ("altura", cm), ("edad", age), ("sexo", sex))
@@ -81,6 +121,15 @@ def gasto_por_formula(*, sex, kg, cm, age, dias_entreno: float) -> Gasto:
     if faltan:
         return Gasto(kcal=None, source=None, missing=faltan)
     basal = mifflin(sex=sex, kg=kg, cm=cm, age=age)
+    if pasos_por_dia and len(pasos_por_dia) >= MIN_DIAS_PASOS:
+        media = sum(pasos_por_dia) / len(pasos_por_dia)
+        kcal = basal * SEDENTARIO + media * KCAL_PASO_KG * kg + entreno_kcal_dia
+        return Gasto(
+            kcal=round(kcal, 0),
+            source="formula",
+            steps_per_day=round(media),
+            training_kcal_per_day=round(entreno_kcal_dia),
+        )
     return Gasto(kcal=round(basal * factor_actividad(dias_entreno), 0), source="formula")
 
 
@@ -109,6 +158,8 @@ class Propuesta:
     source: str | None
     days: int = 0
     missing: list[str] = field(default_factory=list)
+    steps_per_day: int | None = None
+    training_kcal_per_day: int | None = None
     # Si hubo que subir la cifra hasta el suelo. Se dice: una propuesta
     # recortada en silencio es una propuesta que no es lo que pediste.
     floored: bool = False
@@ -137,5 +188,7 @@ def proponer(gasto: Gasto, *, goal: str, rate_kg_week: float | None) -> Propuest
         kcal=round(max(objetivo, MIN_KCAL), 0),
         source=gasto.source,
         days=gasto.days,
+        steps_per_day=gasto.steps_per_day,
+        training_kcal_per_day=gasto.training_kcal_per_day,
         floored=floored,
     )

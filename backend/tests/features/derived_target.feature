@@ -118,3 +118,42 @@ Feature: The calories stop being typed
   Scenario: A daily steps goal above the ceiling is rejected
     When I try to set my daily steps goal to 200000
     Then it is rejected
+
+  # El factor por días de entreno es un dedo al viento. Si el móvil sube tus
+  # pasos, la actividad se cuenta en vez de adivinarse: el basal sedentario, más
+  # lo que cuestan esos pasos, más lo que duraron tus sesiones.
+  Scenario: My steps count in the formula instead of guessing my activity
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have walked 10000 steps a day for two weeks
+    When I ask what I should eat
+    Then it says the number came from the formula
+    And it counts 10000 steps a day
+    And it proposes my sedentary maintenance plus 390 kcal
+
+  Scenario: A few days of steps are not a habit yet
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have walked 10000 steps a day for three days
+    When I ask what I should eat
+    Then it does not count my steps
+    And it proposes my maintenance
+
+  Scenario: The time I spent training counts too
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have walked 10000 steps a day for two weeks
+    And yesterday I trained for an hour
+    When I ask what I should eat
+    Then it counts 11 kcal a day of training
+    And it proposes my sedentary maintenance plus 401 kcal
+
+  # Los pasos afinan la estimación; no compiten con una medición.
+  Scenario: My own data still beats the steps
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have walked 10000 steps a day for two weeks
+    And I have eaten 2600 kcal a day for three weeks and not moved on the scale
+    When I ask what I should eat
+    Then it says the number came from my own data
+    And it proposes 2600 kcal
