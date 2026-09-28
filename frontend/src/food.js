@@ -259,6 +259,14 @@ export function previewNutrients(food, grams) {
   }
 }
 
+// Los gramos que se comen de una pieza pesada con hueso. El espejo de
+// `gramos_comestibles` (backend/app/nutrition.py), sólo para la previsión: quien
+// congela la cifra es el servidor, al registrar.
+export function edibleGrams(grams, refusePct) {
+  if (grams == null || refusePct == null) return null
+  return round2((grams * (100 - refusePct)) / 100)
+}
+
 // Las kcal que dan esos macros, por los factores de la UE. El espejo de
 // `atwater_kcal`, incluida su excepción: lo desconocido cuenta como 0 **sólo
 // aquí dentro**, porque esto no es un nutriente que se guarde, es una estimación

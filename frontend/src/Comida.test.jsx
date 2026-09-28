@@ -2246,3 +2246,167 @@ describe('ideas con un alimento', () => {
     await waitFor(() => expect(api.getPlan.mock.calls.length).toBeGreaterThan(antes))
   })
 })
+
+describe('alimentos con hueso', () => {
+  // Un muslo de CIQUAL: sus kcal son de la parte comestible, y el 30 % de lo
+  // que pesas con hueso no se come (tabla de referencia del servidor).
+  const MUSLO = {
+    id: 5,
+    name: 'Pollo, muslo, carne y piel, crudo',
+    brand: null,
+    kcal_100g: 192,
+    protein_100g: 18,
+    fat_100g: 13,
+    carbs_100g: 0,
+    fiber_100g: 0,
+    portions: [],
+    is_mine: false,
+    refuse_pct: 30,
+    refuse_source: 'referencia',
+    kcal_basis: 'edible',
+    kcal_basis_guessed: false,
+  }
+
+  const abrir = async (food = MUSLO) => {
+    api.searchFoods.mockResolvedValue([food])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'muslo')
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
+    await userEvent.clear(screen.getByLabelText('Cantidad'))
+    await userEvent.type(screen.getByLabelText('Cantidad'), '300')
+  }
+
+  // Lo que hay en la fila del total de la hoja: la previsión de kcal.
+  const totalKcal = () => document.querySelector('.food-detail-total .food-detail-value').textContent
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    api.getFoodDay.mockResolvedValue(day())
+    api.frequentFoods.mockResolvedValue([])
+    api.listDishes.mockResolvedValue([])
+    api.logFood.mockResolvedValue({})
+  })
+
+  it('se pesa con hueso por defecto y cuenta sólo lo que se come', async () => {
+    await abrir()
+    expect(screen.getByRole('button', { name: 'Pesado con hueso' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByText(/300 g con hueso → 210 g comestibles/)).toBeInTheDocument()
+    expect(screen.getByText(/30 % de hueso, típico/)).toBeInTheDocument()
+    // 210 g × 1,92 = 403,2 kcal: la previsión es de la carne, no de la bandeja.
+    expect(totalKcal()).toBe('403 kcal')
+    await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
+    await waitFor(() =>
+      expect(api.logFood).toHaveBeenCalledWith(
+        expect.objectContaining({ foodId: 5, grams: 300, withBone: true }),
+      ),
+    )
+  })
+
+  it('sin hueso, lo pesado es lo que se come', async () => {
+    await abrir()
+    await userEvent.click(screen.getByRole('button', { name: 'Pesado con hueso' }))
+    expect(screen.queryByText(/comestibles/)).not.toBeInTheDocument()
+    expect(totalKcal()).toBe('576 kcal')
+    await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
+    await waitFor(() =>
+      expect(api.logFood).toHaveBeenCalledWith(
+        expect.objectContaining({ foodId: 5, grams: 300, withBone: false }),
+      ),
+    )
+  })
+
+  it('con kcal de la bandeja, el hueso ya va dentro y lo dice', async () => {
+    await abrir({ ...MUSLO, kcal_100g: 135, kcal_basis: 'as_sold', kcal_basis_guessed: true })
+    expect(screen.getByText(/Las kcal de la etiqueta ya cuentan el hueso/)).toBeInTheDocument()
+    expect(totalKcal()).toBe('405 kcal')
+  })
+
+  it('un alimento que no lleva hueso no enseña nada de esto', async () => {
+    await abrir({ ...MUSLO, refuse_pct: null, refuse_source: null, kcal_basis: null })
+    expect(screen.queryByRole('button', { name: 'Pesado con hueso' })).not.toBeInTheDocument()
+  })
+
+  it('si no se sabe a qué son las kcal, pregunta antes de dejar añadir', async () => {
+    const mio = {
+      ...MUSLO,
+      id: 6,
+      name: 'Muslos de pollo',
+      is_mine: true,
+      kcal_100g: 165,
+      kcal_basis: 'unknown',
+    }
+    api.correctFood.mockResolvedValue({ ...mio, kcal_basis: 'edible' })
+    await abrir(mio)
+    expect(
+      screen.getByText(
+        '¿Las kcal de la etiqueta son de la pieza con hueso o de la parte comestible?',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Añadir \d/ })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Parte comestible' }))
+    await waitFor(() => expect(api.correctFood).toHaveBeenCalledWith(6, { kcal_basis: 'edible' }))
+    expect(await screen.findByText(/300 g con hueso → 210 g comestibles/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Añadir \d/ })).toBeEnabled()
+  })
+
+  it('la fila de una entrada pesada con hueso dice las dos cifras', async () => {
+    api.getFoodDay.mockResolvedValue(
+      day({
+        entries: [entry({ food_id: 5, food_name: MUSLO.name, grams: 300, edible_grams: 210 })],
+      }),
+    )
+    render(<Comida />)
+    const row = await screen.findByRole('button', { name: new RegExp(MUSLO.name) })
+    expect(row).toHaveTextContent('300 g con hueso · 210 g comestibles')
+  })
+
+  it('pesar el hueso que sobró corrige la entrada', async () => {
+    api.getFoodDay.mockResolvedValue(
+      day({
+        entries: [entry({ food_id: 5, food_name: MUSLO.name, grams: 300, edible_grams: 210 })],
+      }),
+    )
+    api.weighLeftoverBone.mockResolvedValue({ entry: entry(), refuse_pct: 20, food_updated: false })
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(MUSLO.name) }))
+    await userEvent.type(screen.getByLabelText('Hueso que ha sobrado'), '60')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(api.weighLeftoverBone).toHaveBeenCalledWith(10, 60))
+    // Los gramos no han cambiado: no se repesa lo que no se tocó.
+    expect(api.correctFoodEntry).not.toHaveBeenCalled()
+  })
+
+  it('una entrada sin hueso no pregunta por el hueso', async () => {
+    api.getFoodDay.mockResolvedValue(day({ entries: [entry()] }))
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+    expect(screen.queryByLabelText('Hueso que ha sobrado')).not.toBeInTheDocument()
+  })
+
+  it('lo de siempre se vuelve a pesar como la última vez', async () => {
+    api.frequentFoods.mockResolvedValue([
+      {
+        food_id: 5,
+        name: MUSLO.name,
+        brand: null,
+        grams: 300,
+        kcal: 403.2,
+        meal_slot: 'comida',
+        times: 3,
+        with_bone: true,
+      },
+    ])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(MUSLO.name) }))
+    await waitFor(() =>
+      expect(api.logFood).toHaveBeenCalledWith(
+        expect.objectContaining({ foodId: 5, grams: 300, withBone: true }),
+      ),
+    )
+  })
+})

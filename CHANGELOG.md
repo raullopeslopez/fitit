@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Un alimento con hueso cuenta la carne, no el hueso.** Muslos, alitas, chuletas,
+  costillas, conejo o pescado entero: en la hoja de «cuánto» aparece `Pesado con hueso`
+  (encendido por defecto) y debajo la cuenta, «300 g con hueso → 210 g comestibles · 30 %
+  de hueso, típico»; los macros salen de la carne. El desperdicio típico sale de una tabla
+  corta (`backend/app/refuse.py`, USDA SR Legacy y BEDCA/Moreiras) y lo tuyo manda sobre
+  ella. Como la etiqueta no dice si sus kcal son de la bandeja o de la carne, se compara
+  con la cifra comestible de CIQUAL: a ±10 % de ella es la carne, a ±10 % de ella diluida
+  por el hueso es la bandeja (y no se descuenta nada), y si no cae en ninguna se pregunta
+  «¿Las kcal de la etiqueta son de la pieza con hueso o de la parte comestible?» antes de
+  dejar añadir. La fila del diario dice «300 g con hueso · 210 g comestibles», y al
+  abrirla se puede apuntar el `Hueso que ha sobrado`: corrige la entrada y, si el
+  alimento es tuyo, le deja ese hueso medido (el catálogo compartido no se toca).
+  `foods.refuse_pct`, `foods.kcal_basis`, `log_entries.edible_grams`;
+  `POST /food-log` acepta `with_bone`; `POST /food-log/{id}/bone`.
 - **El gasto por fórmula cuenta tus pasos y tus entrenos en vez de adivinar la actividad.**
   Con al menos 7 días de pasos en las últimas 4 semanas, la propuesta de Objetivo parte
   del basal sedentario (Mifflin × 1,2) y le suma lo que cuestan tus pasos (0,0005 kcal

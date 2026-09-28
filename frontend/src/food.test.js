@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MEAL_SLOTS,
   droppedNote,
+  edibleGrams,
   foodDayIso,
   foodMomentIso,
   formatAmount,
@@ -304,5 +305,17 @@ describe('agruparPorPlato', () => {
     const { agruparPorPlato } = await import('./food.js')
     const [grupo] = agruparPorPlato([dePlato(1, 99)], {})
     expect(grupo.name).toBeNull()
+  })
+})
+
+describe('edibleGrams', () => {
+  it('quita el hueso de lo pesado, como `gramos_comestibles` en el servidor', () => {
+    expect(edibleGrams(300, 30)).toBe(210)
+    expect(edibleGrams(1000, 25)).toBe(750)
+  })
+
+  it('sin peso o sin hueso no hay nada que quitar', () => {
+    expect(edibleGrams(null, 30)).toBeNull()
+    expect(edibleGrams(300, null)).toBeNull()
   })
 })

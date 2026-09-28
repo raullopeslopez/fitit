@@ -9,10 +9,12 @@ from datetime import UTC
 
 from .models import Food, LogEntry
 from .food_groups import familia
+from .refuse import hueso_de
 from .schemas import FoodOut, LogEntryOut, PortionOut
 
 
 def to_food_out(food: Food, user_id: int) -> FoodOut:
+    hueso = hueso_de(food)
     return FoodOut(
         id=food.id,
         name=food.name,
@@ -29,6 +31,10 @@ def to_food_out(food: Food, user_id: int) -> FoodOut:
         barcode=food.barcode,
         portions=[PortionOut.model_validate(p) for p in food.portions],
         is_mine=food.user_id == user_id,
+        refuse_pct=hueso.refuse_pct if hueso else None,
+        refuse_source=hueso.origen if hueso else None,
+        kcal_basis=hueso.basis if hueso else None,
+        kcal_basis_guessed=hueso.basis_guessed if hueso else False,
     )
 
 
@@ -51,6 +57,7 @@ def to_entry_out(entry: LogEntry) -> LogEntryOut:
         fat=entry.fat,
         carbs=entry.carbs,
         fiber=entry.fiber,
+        edible_grams=entry.edible_grams,
         entry_source=entry.entry_source,
         dish_id=entry.dish_id,
     )

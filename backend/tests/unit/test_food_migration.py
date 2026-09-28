@@ -51,6 +51,9 @@ COLUMN_MIGRATIONS = (
     "e7b3c02a91d8_add_food_groups.py",
     # Añade `foods.kcal_estimated`: las kcal de CIQUAL que salen de Atwater.
     "b8e4d2f7a915_ciqual_kcal_estimated.py",
+    # Añade el hueso: `foods.refuse_pct`, `foods.kcal_basis` y
+    # `log_entries.edible_grams`.
+    "c3f1a7e2b940_bone_in_foods.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

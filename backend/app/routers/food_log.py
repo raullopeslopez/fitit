@@ -20,13 +20,19 @@ from ..models import Food, LogEntry, User, visible_foods
 from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
+    desperdicio_de_sobras,
     dump_nutrients,
+    escalar_gramos,
     escalar_nutrientes,
     food_log_date,
+    gramos_comestibles,
     restante,
     sumar_nutrientes,
 )
+from ..refuse import nutrientes_de_lo_pesado
 from ..schemas import (
+    BoneIn,
+    BoneOut,
     FoodDayOut,
     LogEntryIn,
     LogEntryOut,
@@ -66,7 +72,7 @@ async def log_food(
     # The moment carries the phone's offset, and the offset is what decides
     # which food day a supper lands on. Absent means now.
     moment = payload.logged_at or datetime.now(UTC)
-    computed = calcular_nutrientes(food, grams)
+    computed, edible = _pesar(food, grams, payload.with_bone)
 
     entry = LogEntry(
         user_id=user_id,
@@ -78,6 +84,7 @@ async def log_food(
         # A copy of the name, so the row still reads if the food is deleted.
         food_name_snapshot=food.name,
         grams=grams,
+        edible_grams=edible,
         nutrients_json=dump_nutrients(computed.pop("nutrients")),
         entry_source=payload.entry_source,
         **computed,
@@ -86,6 +93,22 @@ async def log_food(
     await session.commit()
     await session.refresh(entry)
     return to_entry_out(entry)
+
+
+# Lo que se contesta cuando se pesa con hueso un alimento del que no se sabe si
+# sus kcal lo cuentan. La pantalla no debería llegar aquí —pregunta antes—,
+# pero un cliente que no pregunte tiene que enterarse de qué falta.
+NO_SE_SABE_EL_HUESO = (
+    "no se sabe si las kcal de este alimento son con hueso o de la parte comestible: "
+    "dilo en el alimento antes de pesarlo con hueso"
+)
+
+
+def _pesar(food: Food, grams: float, with_bone: bool) -> tuple[dict, float | None]:
+    try:
+        return nutrientes_de_lo_pesado(food, grams, with_bone)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=NO_SE_SABE_EL_HUESO) from None
 
 
 def _resolve_grams(payload: LogEntryIn, food: Food) -> float:
@@ -222,7 +245,8 @@ async def recompute_day(
         .all()
     )
     for entry in entries:
-        computed = calcular_nutrientes(food, entry.grams)
+        computed, edible = _rehacer(food, entry)
+        entry.edible_grams = edible
         entry.nutrients_json = dump_nutrients(computed.pop("nutrients"))
         for field, value in computed.items():
             setattr(entry, field, value)
@@ -231,6 +255,75 @@ async def recompute_day(
         entry.food_name_snapshot = food.name
     await session.commit()
     return RecomputeOut(updated=len(entries))
+
+
+def _rehacer(food: Food, entry: LogEntry) -> tuple[dict, float | None]:
+    """Vuelve a leer el alimento para una entrada, pesada como se pesó.
+
+    Una entrada pesada con hueso se rehace con el hueso que el alimento dice
+    **ahora** — corregirlo es justo para lo que existe `recompute`. Si ahora
+    nadie sabe a qué se refieren sus kcal, se queda con los comestibles que ya
+    tenía: rehacer no puede convertir una cifra en un error.
+    """
+    with_bone = entry.edible_grams is not None
+    try:
+        return nutrientes_de_lo_pesado(food, entry.grams, with_bone)
+    except ValueError:
+        return calcular_nutrientes(food, entry.edible_grams), entry.edible_grams
+
+
+@router.post("/{entry_id}/bone", response_model=BoneOut)
+async def weigh_leftover_bone(
+    entry_id: int,
+    payload: BoneIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> BoneOut:
+    """El hueso que sobró en el plato, pesado: el desperdicio de verdad.
+
+    Corrige la entrada —los comestibles pasan a ser lo pesado menos el hueso,
+    y los nutrientes se reescalan desde lo congelado, como al repesar— y, si
+    el alimento es tuyo, le deja escrito ese desperdicio para la próxima vez.
+
+    El catálogo compartido no se toca: es de todos, y tu muslo de hoy no es la
+    media de los muslos. La entrada sí, porque es tuya.
+
+    Sólo para entradas pesadas con hueso cuyas kcal salen de la carne. Con
+    kcal «tal cual se vende» el hueso no cambia la cifra, y en una entrada
+    pesada sin hueso los gramos ya son la carne: dividir el hueso entre ellos
+    daría un desperdicio que no existe.
+    """
+    entry = await _load_entry(session, entry_id, user_id)
+    if entry.edible_grams is None:
+        raise HTTPException(status_code=422, detail="esta entrada no se pesó con hueso")
+    try:
+        refuse = desperdicio_de_sobras(entry.grams, payload.bone_grams)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail="el hueso tiene que pesar menos que lo que pesaste",
+        ) from None
+
+    food = None
+    if entry.food_id is not None:
+        food = (
+            await session.execute(
+                select(Food).where(Food.id == entry.food_id, visible_foods(user_id))
+            )
+        ).scalar_one_or_none()
+    food_updated = food is not None and food.user_id == user_id
+    if food_updated:
+        food.refuse_pct = refuse
+
+    edible = gramos_comestibles(entry.grams, refuse)
+    rescaled = escalar_nutrientes(entry, old_grams=entry.edible_grams, new_grams=edible)
+    entry.nutrients_json = dump_nutrients(rescaled.pop("nutrients"))
+    for field, value in rescaled.items():
+        setattr(entry, field, value)
+    entry.edible_grams = edible
+    await session.commit()
+    await session.refresh(entry)
+    return BoneOut(entry=to_entry_out(entry), refuse_pct=refuse, food_updated=food_updated)
 
 
 @router.patch("/{entry_id}", response_model=LogEntryOut)
@@ -266,6 +359,10 @@ async def correct_entry(
         entry.nutrients_json = dump_nutrients(rescaled.pop("nutrients"))
         for field, value in rescaled.items():
             setattr(entry, field, value)
+        # Pesada con hueso, la parte comestible crece en la misma proporción.
+        entry.edible_grams = escalar_gramos(
+            entry.edible_grams, old_grams=entry.grams, new_grams=new_grams
+        )
         entry.grams = new_grams
     await session.commit()
     await session.refresh(entry)

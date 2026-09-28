@@ -56,6 +56,23 @@ terminado y dejar de admitir entradas? ¿Sólo dejar de avisar? ¿Guardar una fo
 de los totales para que corregir un alimento no reescriba el pasado? La tercera
 es la única que añade algo que hoy no se puede hacer, y es también la más cara.
 
+## El hueso, fuera del diario
+
+Registrar un alimento con hueso descuenta lo que no se come (`app/refuse.py`,
+`nutrientes_de_lo_pesado`). Tres sitios no lo hacen todavía:
+
+- **Platos y plan.** Un ingrediente de plato se calcula con `calcular_nutrientes`
+  sobre sus gramos, sin hueso. Unas costillas en un guiso contarían el hueso como
+  carne si se escribieron con el peso de la bandeja. Haría falta un `with_bone`
+  por ingrediente y decidir qué pasa con el ajuste de gramos del planificador.
+- **El catálogo no aprende.** Pesar el hueso sobrante de un alimento de CIQUAL
+  corrige la entrada, pero no se guarda en ningún sitio: el catálogo es de todos.
+  Un «mi desperdicio para este alimento del catálogo» sería una tabla por usuario.
+- **El rendimiento de cocción** (lo que pierde un muslo al asarse, USDA *yield
+  factors*). Pesar en crudo y elegir el alimento crudo sigue siendo lo correcto;
+  pesar en cocinado exige elegir el alimento cocinado. Aplicar un factor de
+  rendimiento es otra feature, con su propia tabla.
+
 ## Piezas menores que quedaron fuera
 
 - **El contador `4 hoy`** de la cuota de fotos. Necesita contar lecturas por día,

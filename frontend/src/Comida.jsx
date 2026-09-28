@@ -16,6 +16,7 @@ import {
   recomputeFoodDay,
   scanBarcode,
   searchFoods,
+  weighLeftoverBone,
 } from './api.js'
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
@@ -36,6 +37,7 @@ import {
   slotLabel,
   withoutEntry,
   droppedNote,
+  edibleGrams,
   unknownNote,
 } from './food.js'
 import { formatDayShort } from './format.js'
@@ -249,6 +251,9 @@ export default function Comida() {
         foodId: deleted.food_id,
         grams: deleted.grams,
         mealSlot: deleted.meal_slot,
+        // Pesada con hueso, se vuelve a pesar con hueso: si no, la misma
+        // bandeja contaría el hueso como carne al recuperarse.
+        withBone: deleted.edible_grams != null,
         // El sello vuelve a salir con el reloj de pared del móvil. El servidor
         // devuelve el instante en UTC, y mandárselo tal cual lo fechaba por un
         // reloj que no era el tuyo: entre las 04:00 y las 04:00 más tu offset,
@@ -978,12 +983,19 @@ function EntryRow({ entry, onEdit, onDelete }) {
             compara una con otra. */}
         <span className="food-entry-main">
           <span className="food-entry-name">{entry.food_name}</span>
-          <span className="food-entry-amount">{formatAmount(entry.grams)}</span>
+          <span className="food-entry-amount">{entryAmount(entry)}</span>
         </span>
         <span className="food-entry-protein">{formatMacro(entry.protein)} P</span>
       </button>
     </div>
   )
+}
+
+// La cantidad de una entrada. Pesada con hueso, las dos cifras: lo que pesaste
+// y lo que se come, que es de donde salen sus números.
+function entryAmount(entry) {
+  if (entry.edible_grams == null) return formatAmount(entry.grams)
+  return `${formatAmount(entry.grams)} con hueso · ${formatAmount(entry.edible_grams)} comestibles`
 }
 
 // Repesar lo ya registrado. Los gramos son lo único editable aquí: los
@@ -992,14 +1004,24 @@ function EntryRow({ entry, onEdit, onDelete }) {
 // aquí — se desliza la fila que abrió este editor.
 function EntryEditor({ entry, onDone, onCancel }) {
   const [grams, setGrams] = useState(String(entry.grams))
+  const [bone, setBone] = useState('')
   const [busy, setBusy] = useState(false)
+  // Sólo una entrada pesada con hueso, y con kcal de la carne, tiene un hueso
+  // que pesar: en las demás no cambiaría ninguna cifra.
+  const withBone = entry.edible_grams != null
 
   async function save(event) {
     event.preventDefault()
     const value = Number(grams.replace(',', '.'))
     if (!Number.isFinite(value) || value <= 0) return
+    const boneValue = bone.trim() ? Number(bone.replace(',', '.')) : null
+    if (boneValue != null && !(boneValue > 0 && boneValue < value)) return
     setBusy(true)
-    await correctFoodEntry(entry.id, { grams: value })
+    // Repesar primero: el hueso se reparte sobre lo que pesaste, así que tiene
+    // que ir contra el peso bueno. Y sólo si cambió — no se repesa lo que no
+    // se tocó.
+    if (value !== entry.grams) await correctFoodEntry(entry.id, { grams: value })
+    if (boneValue != null) await weighLeftoverBone(entry.id, boneValue)
     await onDone()
   }
 
@@ -1015,6 +1037,22 @@ function EntryEditor({ entry, onDone, onCancel }) {
           onChange={(e) => setGrams(e.target.value)}
         />
       </div>
+      {withBone && (
+        <div className="field">
+          <label htmlFor={`bone-${entry.id}`}>Hueso que ha sobrado</label>
+          <input
+            id={`bone-${entry.id}`}
+            inputMode="decimal"
+            placeholder="g"
+            value={bone}
+            onChange={(e) => setBone(e.target.value)}
+          />
+          <p className="hint">
+            Pésalo al terminar y se ajusta lo que has comido
+            {entry.food_id != null ? ' y el hueso de este alimento, si es tuyo' : ''}.
+          </p>
+        </div>
+      )}
       <div className="food-editor-actions">
         <button type="submit" className="primary" disabled={busy}>
           Guardar
@@ -1127,6 +1165,8 @@ function AddFood({
         foodId: item.food_id,
         grams: item.grams,
         mealSlot: slot,
+        // Como la última vez: con hueso o sin él.
+        withBone: Boolean(item.with_bone),
         // El día que la pantalla tiene en la cabecera, no el reloj del móvil.
         loggedAt: momentForDay(dayIso),
       })
@@ -1861,6 +1901,10 @@ function Amount({
   // pregunta desaparece, la libertad no.
   const [slot, setSlot] = useState(initialSlot ?? '')
   const [busy, setBusy] = useState(false)
+  // Con hueso por defecto cuando el alimento lo lleva: lo que tienes en la mano
+  // es la bandeja, y es lo que pesa la báscula.
+  const hasBone = food.refuse_pct != null
+  const [withBone, setWithBone] = useState(hasBone)
   const portion = food.portions?.find((p) => p.id === portionId) ?? null
 
   const number = (raw) => {
@@ -1903,8 +1947,20 @@ function Amount({
       // apuntabas en un día pasado se guardaba en hoy: las kcal faltaban en la
       // pantalla que tenías delante y sobraban en otra que no.
       loggedAt: momentForDay(dayIso),
+      withBone: bone.on,
     })
     await onDone()
+  }
+
+  // Decir a qué se refieren las kcal de un alimento tuyo. Se guarda en el
+  // alimento —es un dato suyo, no de esta comida— y la hoja sigue donde estaba.
+  async function setBasis(basis) {
+    setBusy(true)
+    try {
+      setFood(await correctFood(food.id, { kcal_basis: basis }))
+    } finally {
+      setBusy(false)
+    }
   }
 
   if (correcting) {
@@ -1939,7 +1995,14 @@ function Amount({
   // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
   // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.
   const amount = number(portionId ? (portion?.grams ?? 0) * (number(quantity) ?? 0) : grams)
-  const preview = previewNutrients(food, amount)
+  const bone = {
+    on: hasBone && withBone,
+    edible: hasBone && withBone && food.kcal_basis === 'edible' ? edibleGrams(amount, food.refuse_pct) : null,
+    // Sin saber a qué son las kcal no hay cifra honesta: la diferencia entre
+    // las dos lecturas es justo el hueso.
+    blocked: hasBone && withBone && food.kcal_basis === 'unknown',
+  }
+  const preview = bone.blocked ? null : previewNutrients(food, bone.edible ?? amount)
 
   return (
     <form className="sheet-body food-detail" onSubmit={submit}>
@@ -2003,6 +2066,19 @@ function Amount({
           </button>
         </div>
       </div>
+
+      {/* Debajo de la cantidad, porque habla de ella: cuánto de lo que pesas se
+          come. Sólo en alimentos con hueso. */}
+      {hasBone && (
+        <BoneNote
+          food={food}
+          amount={amount}
+          bone={bone}
+          busy={busy}
+          onToggle={() => setWithBone(!withBone)}
+          onBasis={setBasis}
+        />
+      )}
 
       {/* Los macros de **esta** cantidad, no los del alimento. La proteína en
           acento porque es la que la pantalla persigue; las otras tres en tinta,
@@ -2083,6 +2159,70 @@ function Amount({
         </button>
       )}
     </form>
+  )
+}
+
+// El hueso de lo que se va a registrar: si se pesa con él, cuánto se come, y
+// —cuando hace falta— a qué se refieren las kcal de la etiqueta.
+//
+// Tres casos, según `kcal_basis`:
+//   edible   — «300 g con hueso → 210 g comestibles»: los números salen de ahí.
+//   as_sold  — la etiqueta ya cuenta el hueso; se calcula con lo pesado.
+//   unknown  — se pregunta, y no se deja añadir hasta tener respuesta.
+// Una base supuesta (comparando la etiqueta con la tabla) se puede cambiar si el
+// alimento es tuyo; la del catálogo no se discute: CIQUAL es comestible.
+function BoneNote({ food, amount, bone, busy, onToggle, onBasis }) {
+  const typical = food.refuse_source === 'referencia' ? 'típico' : 'medido'
+  const canAnswer = food.is_mine && (food.kcal_basis === 'unknown' || food.kcal_basis_guessed)
+  return (
+    <div className="food-bone">
+      <button
+        type="button"
+        className={`chip${bone.on ? ' is-active' : ''}`}
+        aria-pressed={bone.on}
+        onClick={onToggle}
+        disabled={busy}
+      >
+        Pesado con hueso
+      </button>
+      {bone.on && bone.edible != null && (
+        <p className="hint food-bone-note">
+          {formatAmount(amount)} con hueso → {formatAmount(bone.edible)} comestibles ·{' '}
+          {formatMacro(food.refuse_pct)} % de hueso, {typical}
+        </p>
+      )}
+      {bone.on && food.kcal_basis === 'as_sold' && (
+        <p className="hint food-bone-note">
+          Las kcal de la etiqueta ya cuentan el hueso: se calcula con lo que pesas.
+        </p>
+      )}
+      {bone.on && canAnswer && (
+        <div className="food-bone-basis">
+          <p className="hint">
+            {food.kcal_basis === 'unknown'
+              ? '¿Las kcal de la etiqueta son de la pieza con hueso o de la parte comestible?'
+              : 'Supuesto por la etiqueta. ¿Es así?'}
+          </p>
+          <div className="food-slots">
+            {[
+              { key: 'as_sold', label: 'Pieza con hueso' },
+              { key: 'edible', label: 'Parte comestible' },
+            ].map((option) => (
+              <button
+                type="button"
+                key={option.key}
+                className={`chip${food.kcal_basis === option.key ? ' is-active' : ''}`}
+                aria-pressed={food.kcal_basis === option.key}
+                onClick={() => onBasis(option.key)}
+                disabled={busy}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
