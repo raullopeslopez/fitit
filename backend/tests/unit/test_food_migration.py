@@ -49,6 +49,8 @@ COLUMN_MIGRATIONS = (
     # Añade los códigos de grupo a `foods`, que es lo que deja a una regla
     # nombrar «verdura» o «legumbre».
     "e7b3c02a91d8_add_food_groups.py",
+    # Añade `foods.kcal_estimated`: las kcal de CIQUAL que salen de Atwater.
+    "b8e4d2f7a915_ciqual_kcal_estimated.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

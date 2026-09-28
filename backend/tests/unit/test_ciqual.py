@@ -128,6 +128,50 @@ class TestRowToFood:
         # import, así que «9621.0» y «9621» no pueden ser dos alimentos.
         assert row_to_food(self.row())["source_ref"] == "9621"
 
+    def test_kcal_medidas_no_son_estimadas(self):
+        assert row_to_food(self.row())["kcal_estimated"] is False
+
+    def test_sin_kcal_con_macros_completos_se_estiman_por_atwater(self):
+        """El plátano macho: CIQUAL no trae energía, pero sí los macros. Sin
+        esto, un solo plátano deja las kcal del día entero sin número."""
+        food = row_to_food(
+            self.row(
+                **{
+                    "Energie, Règlement UE N° 1169/2011 (kcal/100 g)": "-",
+                    "Protéines, N x facteur de Jones (g/100 g)": "1,28",
+                    "Lipides (g/100 g)": "0,39",
+                    "Glucides (g/100 g)": "29,6",
+                    "Fibres alimentaires (g/100 g)": "2,3",
+                }
+            )
+        )
+        # 4·1,28 + 9·0,39 + 4·29,6 + 2·2,3
+        assert food["kcal_100g"] == 131.63
+        assert food["kcal_estimated"] is True
+
+    def test_la_fibra_desconocida_no_impide_estimar(self):
+        # Es el macro que menos energía da (2 kcal/g), y CIQUAL la deja en
+        # blanco a menudo: exigirla dejaría fuera casi un centenar de alimentos.
+        food = row_to_food(
+            self.row(
+                **{
+                    "Energie, Règlement UE N° 1169/2011 (kcal/100 g)": "-",
+                    "Glucides (g/100 g)": "10",
+                    "Fibres alimentaires (g/100 g)": "-",
+                }
+            )
+        )
+        # 4·15,4 + 9·0,15 + 4·10
+        assert food["kcal_100g"] == 102.95
+        assert food["kcal_estimated"] is True
+
+    def test_sin_kcal_y_con_un_macro_desconocido_no_se_inventa_nada(self):
+        # Proteína, grasa o hidratos en blanco: la estimación ya no es una
+        # estimación, es un número al que le falta un trozo sin decirlo.
+        food = row_to_food(self.row(**{"Energie, Règlement UE N° 1169/2011 (kcal/100 g)": "-"}))
+        assert food["kcal_100g"] is None
+        assert food["kcal_estimated"] is False
+
     def test_procedencia_y_convencion(self):
         food = row_to_food(self.row())
         assert food["source"] == "ciqual"

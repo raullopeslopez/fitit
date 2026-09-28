@@ -333,7 +333,12 @@ def test_without_a_macro_target_what_remains_is_unknown(client):
 #
 # Sin esto sólo se sabe disparando: un 503 después de la foto, que es enterarse
 # de que el botón no podía funcionar justo cuando ya has apuntado al envase.
-def test_the_day_says_whether_a_label_can_be_read(client):
-    """Sin clave configurada —como en la suite— la lectura está apagada."""
+def test_the_day_says_whether_a_label_can_be_read(client, monkeypatch):
+    """Sin clave configurada la lectura está apagada."""
+    from app.config import settings
+
+    # A mano: la suite lee `backend/.env`, y en una máquina con clave el
+    # «como en la suite» dejaba de ser verdad.
+    monkeypatch.setattr(settings, "gemini_api_key", type(settings.gemini_api_key)(""))
     day = client.get("/food-log?date=2026-08-31").json()
     assert day["label_reading"] is False

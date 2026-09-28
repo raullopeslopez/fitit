@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Un alimento de CIQUAL sin kcal ya no borra las kcal del día.** 794 alimentos del
+  catálogo (el plátano macho, el kéfir, la salsa de tomate…) no traían energía y una sola
+  entrada suya dejaba la cabecera de Comida en `—`. Ahora sus kcal se estiman por Atwater
+  a partir de los macros y quedan marcadas (`foods.kcal_estimated`). Los 93 a los que
+  les falta proteína, grasa o hidratos siguen sin kcal.
+
 ### Changed
 - **APK 0.10.5: la cámara de Comida vuelve a hacer una foto.** `Abrir la cámara` ya no
   abre el escáner de Google («Powered by Google», sin obturador), que desde el 25 de

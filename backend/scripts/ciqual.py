@@ -13,6 +13,8 @@ de ellas significan «nadie lo midió», que no es lo mismo que cero.
 import re
 import unicodedata
 
+from app.nutrition import atwater_kcal
+
 # Columnas de la hoja `compo` que van a columna propia en `foods`. El resto de
 # nutrientes va entero a `nutrients_json`.
 #
@@ -168,6 +170,25 @@ def measured_count(row: dict) -> int:
     )
 
 
+def estimate_kcal(macros: dict) -> float | None:
+    """Las kcal por Atwater cuando CIQUAL no trae energía, o `None`.
+
+    Un 28 % de CIQUAL no trae la energía y sí los macros, y una sola entrada
+    sin kcal deja el total del día entero sin número (`sumar_nutrientes`). Así
+    que se estima, y la fila lo dice (`kcal_estimated`): lo que se rechazó de
+    CALNUT fue que la estimación no se distinguiera de la medida, no estimar.
+
+    Proteína, grasa e hidratos son obligatorios —sin uno de ellos la cifra es
+    un número al que le falta un trozo sin decirlo—; la fibra no, porque es la
+    que menos energía da y CIQUAL la deja en blanco a menudo.
+    """
+    protein, fat, carbs = (macros[f"{m}_100g"] for m in ("protein", "fat", "carbs"))
+    if protein is None or fat is None or carbs is None:
+        return None
+    kcal = atwater_kcal(protein=protein, fat=fat, carbs=carbs, fiber=macros["fiber_100g"])
+    return round(kcal, 2)
+
+
 def row_to_food(row: dict) -> dict:
     """Una fila de la hoja `compo` → los campos de una fila de `foods`.
 
@@ -180,6 +201,12 @@ def row_to_food(row: dict) -> dict:
     code = str(int(code)) if isinstance(code, float) else str(code).strip()
 
     macros = {field: parse_value(row.get(header)) for field, header in MACRO_COLUMNS.items()}
+    macros["kcal_estimated"] = False
+    if macros["kcal_100g"] is None:
+        estimated = estimate_kcal(macros)
+        if estimated is not None:
+            macros["kcal_100g"] = estimated
+            macros["kcal_estimated"] = True
     nutrients = {
         nutrient_key(header): parse_value(raw)
         for header, raw in row.items()

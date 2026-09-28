@@ -450,6 +450,8 @@ class FoodOut(BaseModel):
     source: str = "manual"
     carb_convention: str = "available"
     kcal_100g: float | None = None
+    # `kcal_100g` sale de Atwater sobre los macros, no de una medida.
+    kcal_estimated: bool = False
     protein_100g: float | None = None
     fat_100g: float | None = None
     carbs_100g: float | None = None

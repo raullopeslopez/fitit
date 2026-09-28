@@ -74,6 +74,21 @@ Dos columnas tienen alternativa en el fichero y hay que elegir una:
 `Glucides` son glúcidos **disponibles**, con la fibra contada aparte — que es exactamente
 lo que afirma `carb_convention = 'available'`, y la razón de que esa columna exista.
 
+### Energía que falta: se estima y se dice (2026-09-28)
+
+El 27,9 % de CIQUAL no trae energía. Con la regla de sumas del día, un solo alimento sin
+kcal deja las kcal del día entero sin número: un plátano macho en la merienda y la
+cabecera de Comida pinta una raya.
+
+Cuando faltan las kcal y **proteína, grasa e hidratos** están, se estiman con los
+factores de la UE (4·P + 9·G + 4·HC + 2·fibra, `atwater_kcal`) y la fila lleva
+`kcal_estimated = TRUE`. La fibra desconocida cuenta como 0: es la que menos energía da y
+exigirla dejaría fuera casi un centenar. Sin alguno de los otros tres, `NULL` — la cifra
+sería un número al que le falta un trozo sin decirlo. Cubre 794 de los 887 huecos.
+
+No contradice el rechazo a CALNUT: aquello era una estimación **indistinguible** de una
+medida. Esta lo dice en su propia columna.
+
 ### Claves de `nutrients_json`
 
 `'Sodium (mg/100 g)'` → `sodium_mg`. La unidad va **dentro de la clave** porque el valor

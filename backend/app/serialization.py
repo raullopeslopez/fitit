@@ -20,6 +20,7 @@ def to_food_out(food: Food, user_id: int) -> FoodOut:
         source=food.source,
         carb_convention=food.carb_convention,
         kcal_100g=food.kcal_100g,
+        kcal_estimated=food.kcal_estimated,
         protein_100g=food.protein_100g,
         fat_100g=food.fat_100g,
         carbs_100g=food.carbs_100g,
