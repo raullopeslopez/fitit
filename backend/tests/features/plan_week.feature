@@ -40,12 +40,13 @@ Feature: The week, generated
     When I generate the week of 2026-09-21 and it cannot
     Then it names the slot it could not fill
 
-  # La semana que viene, no una fecha fija: una regla cuenta desde el día en que
-  # se crea, y una semana anterior a eso no se juzga con ella.
+  # Una regla cuenta desde el día en que se crea, y una semana anterior a eso no
+  # se juzga con ella. Sin fijar «hoy», este escenario caducaba con el calendario.
   Scenario: The plan says which rules the week does not meet
-    Given a repertoire of 12 dishes
+    Given today is 2026-09-21
+    And a repertoire of 12 dishes
     And a soft rule of pulses 3 times a week
-    When I generate next week
+    When I generate the week of 2026-09-21
     Then the plan reports the rule as broken
 
   Scenario: A week I never generated is not invented
