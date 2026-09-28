@@ -1,5 +1,7 @@
 """La semana generada, de punta a punta."""
 
+from datetime import date, timedelta
+
 from pytest_bdd import given, parsers, scenarios, then, when
 
 scenarios("../features/plan_week.feature")
@@ -84,6 +86,15 @@ def given_pulses_rule(client):
         },
     )
     assert resp.status_code == 201, resp.text
+
+
+@when("I generate next week", target_fixture="respuesta")
+def when_generate_next(client):
+    hoy = date.today()
+    lunes = hoy + timedelta(days=7 - hoy.weekday())
+    resp = client.post("/plans", json={"week_start": lunes.isoformat()})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
 
 
 @when(parsers.parse("I generate the week of {inicio}"), target_fixture="respuesta")
