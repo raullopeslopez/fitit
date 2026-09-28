@@ -108,7 +108,56 @@ export function forgetWorkout(workoutId) {
   const entries = readQueue()
   const left = entries.filter((e) => e.workoutId !== workoutId)
   if (left.length !== entries.length) writeQueue(left)
+  const answers = readAnswers()
+  const kept = answers.filter((a) => a.workoutId !== workoutId)
+  if (kept.length !== answers.length) writeAnswers(kept)
   if (cachedWorkout(workoutId)) storage.removeItem(WORKOUT_KEY)
+}
+
+// ---------------------------------------------------------------------------
+// Las respuestas a «¿Cuántas te quedaban?» que el servidor aún no tiene.
+// ---------------------------------------------------------------------------
+//
+// Una cola aparte, y en la web también dentro del APK: la del nativo sólo sabe
+// crear series, y esto corrige una que ya existe. Guarda el RPE y nada más —ni
+// reps ni peso—, porque el PATCH reemplaza la fila entera y una copia de la
+// serie tomada al contestar pisaría cualquier corrección hecha después. Quien
+// la envía rellena el resto con lo que la serie dice en ese momento.
+//
+// Sólo series con id de servidor. Una recién registrada vive con un `tmp-N` y
+// el servidor no devuelve su `client_id`, así que no hay con qué casarlas.
+
+const ANSWERS_KEY = 'fitit_rir_outbox'
+
+// [{ workoutId, setId, rpe }], una por serie: contestar otra vez la sustituye.
+function readAnswers() {
+  try {
+    const stored = JSON.parse(storage.getItem(ANSWERS_KEY))
+    return Array.isArray(stored) ? stored : []
+  } catch {
+    return []
+  }
+}
+
+function writeAnswers(entries) {
+  if (entries.length === 0) storage.removeItem(ANSWERS_KEY)
+  else storage.setItem(ANSWERS_KEY, JSON.stringify(entries))
+}
+
+export function queueAnswer(entry) {
+  writeAnswers([...readAnswers().filter((a) => a.setId !== entry.setId), entry])
+}
+
+export function answersFor(workoutId) {
+  return readAnswers().filter((a) => a.workoutId === workoutId)
+}
+
+// Sólo si sigue siendo la misma respuesta: la que se contestó mientras la
+// anterior iba de camino tiene que salir en la vuelta siguiente, no borrarse.
+export function dropAnswer({ setId, rpe }) {
+  const entries = readAnswers()
+  const left = entries.filter((a) => !(a.setId === setId && a.rpe === rpe))
+  if (left.length !== entries.length) writeAnswers(left)
 }
 
 // ---------------------------------------------------------------------------
