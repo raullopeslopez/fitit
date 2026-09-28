@@ -312,6 +312,9 @@ export function logFood({
   quantity = 1,
   mealSlot = null,
   loggedAt = null,
+  // Los gramos son de la pieza con su hueso: el servidor descuenta lo que no
+  // se come (o no, si las kcal de la etiqueta ya lo cuentan).
+  withBone = false,
 }) {
   return apiFetch('/food-log', {
     method: 'POST',
@@ -322,7 +325,17 @@ export function logFood({
       quantity,
       meal_slot: mealSlot,
       logged_at: loggedAt ?? foodMomentIso(),
+      with_bone: withBone,
     }),
+  })
+}
+
+// El hueso que sobró en el plato, pesado. Corrige la entrada y, si el alimento
+// es tuyo, le deja ese hueso para la próxima vez. El catálogo no se toca.
+export function weighLeftoverBone(entryId, boneGrams) {
+  return apiFetch(`/food-log/${entryId}/bone`, {
+    method: 'POST',
+    body: JSON.stringify({ bone_grams: boneGrams }),
   })
 }
 

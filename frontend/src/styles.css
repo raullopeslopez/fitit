@@ -4427,6 +4427,21 @@ button.set-chip:active:not(:disabled) {
   gap: 0.4rem;
   margin-bottom: 1rem;
 }
+/* El hueso: un chip que se enciende y, debajo, la cuenta en `hint`. Mismo
+   ritmo que «Se añade a»: es otra pregunta sobre lo que vas a registrar. */
+.food-bone,
+.food-bone-basis {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+.food-bone {
+  margin-bottom: 1rem;
+}
+.food-bone-note {
+  margin: 0;
+}
 .food-detail-correct {
   display: flex;
   justify-content: center;
