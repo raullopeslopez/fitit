@@ -108,7 +108,73 @@ export function forgetWorkout(workoutId) {
   const entries = readQueue()
   const left = entries.filter((e) => e.workoutId !== workoutId)
   if (left.length !== entries.length) writeQueue(left)
+  const answers = readAnswers()
+  const kept = answers.filter((a) => a.workoutId !== workoutId)
+  if (kept.length !== answers.length) writeAnswers(kept)
   if (cachedWorkout(workoutId)) storage.removeItem(WORKOUT_KEY)
+}
+
+// ---------------------------------------------------------------------------
+// Las respuestas a «¿Cuántas te quedaban?» que el servidor aún no tiene.
+// ---------------------------------------------------------------------------
+//
+// Una cola aparte, y en la web también dentro del APK: la del nativo sólo sabe
+// crear series, y esto corrige una que ya existe. Guarda el RPE y nada más —ni
+// reps ni peso—, porque el PATCH reemplaza la fila entera y una copia de la
+// serie tomada al contestar pisaría cualquier corrección hecha después. Quien
+// la envía rellena el resto con lo que la serie dice en ese momento.
+//
+// Una serie que aún está en la cola no tiene id de servidor, sólo su `tmp-N` y
+// el `client_id` que le puso `enqueueSet`. La respuesta se ata a ese id y
+// encuentra la serie cuando el servidor la devuelve con él, aunque la app se
+// haya cerrado entremedias.
+
+const ANSWERS_KEY = 'fitit_rir_outbox'
+
+// [{ workoutId, setId?, clientId?, rpe }], una por serie: contestar otra vez la
+// sustituye. `setId` cuando la serie ya estaba en el servidor, `clientId`
+// cuando se sabe —siempre que la registró este móvil—.
+
+function readAnswers() {
+  try {
+    const stored = JSON.parse(storage.getItem(ANSWERS_KEY))
+    return Array.isArray(stored) ? stored : []
+  } catch {
+    return []
+  }
+}
+
+function writeAnswers(entries) {
+  if (entries.length === 0) storage.removeItem(ANSWERS_KEY)
+  else storage.setItem(ANSWERS_KEY, JSON.stringify(entries))
+}
+
+export function queueAnswer(entry) {
+  const same = (a) =>
+    (entry.setId != null && a.setId === entry.setId) ||
+    (entry.clientId != null && a.clientId === entry.clientId)
+  writeAnswers([...readAnswers().filter((a) => !same(a)), entry])
+}
+
+// ¿Es ésta la serie de la respuesta? Por id de servidor, o por el `client_id`
+// con que la registró este móvil —en la cola todavía, o ya de vuelta—.
+export function answerIsFor(answer, set) {
+  if (answer.setId != null && !set.pending && set.id === answer.setId) return true
+  return answer.clientId != null && set.client_id === answer.clientId
+}
+
+export function answersFor(workoutId) {
+  return readAnswers().filter((a) => a.workoutId === workoutId)
+}
+
+// Sólo si sigue siendo la misma respuesta: la que se contestó mientras la
+// anterior iba de camino tiene que salir en la vuelta siguiente, no borrarse.
+export function dropAnswer({ setId, clientId, rpe }) {
+  const entries = readAnswers()
+  const left = entries.filter(
+    (a) => !(a.setId === setId && a.clientId === clientId && a.rpe === rpe),
+  )
+  if (left.length !== entries.length) writeAnswers(left)
 }
 
 // ---------------------------------------------------------------------------

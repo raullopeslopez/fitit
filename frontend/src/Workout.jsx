@@ -35,17 +35,21 @@ import { muscleColor } from './muscles.js'
 import { lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
+  answerIsFor,
+  answersFor,
   cacheMarks,
   cacheWorkout,
   cachedMarks,
   cachedWorkout,
   checkInNativeQueue,
+  dropAnswer,
   dropQueued,
   dropQueuedFor,
   enqueueSet,
   flushNatively,
   forgetWorkout,
   onNativeSend,
+  queueAnswer,
   queuedFor,
   readQueue,
   renameQueued,
@@ -122,14 +126,22 @@ function exercisesFromWorkout(workout) {
 // workout. The queue is the single source of "pending", which is what makes a
 // reload rebuild the unsent rows for free — and why this strips pending sets
 // before re-adding them, so calling it twice can't duplicate anything.
+//
+// Lo mismo con las respuestas a «¿Cuántas te quedaban?» sin enviar: su RPE va
+// encima de la serie, para que el chip siga marcado al reabrir sin señal.
 function withQueued(workout) {
   if (!workout) return workout
+  const answers = answersFor(workout.id)
+  const answered = (s) => {
+    const answer = answers.find((a) => answerIsFor(a, s))
+    return answer ? { ...s, rpe: answer.rpe } : s
+  }
   return {
     ...workout,
     sets: [
       ...workout.sets.filter((s) => !s.pending),
       ...queuedFor(workout.id).map((e) => ({ id: e.tmpId, pending: true, ...e.payload })),
-    ],
+    ].map(answered),
   }
 }
 
@@ -167,6 +179,9 @@ function ExerciseCard({
   sets,
   onLogSet,
   onEditSet,
+  // Guarda la respuesta a «¿Cuántas te quedaban?». No falla: sin señal se
+  // queda en su cola y sale cuando vuelva.
+  onAnswerRir,
   onDeleteSet,
   onChangeMuscle,
   onChangeNote,
@@ -226,9 +241,10 @@ function ExerciseCard({
   // vieja, y siempre por la última serie: es la que dice cómo acabaste y la
   // que lee el objetivo de la próxima vez. No contestar no rompe nada.
   const [askRir, setAskRir] = useState(false)
-  // La respuesta espera a que la serie tenga id de servidor: recién registrada
-  // vive en la cola con un `tmp-N` contra el que no se puede corregir. Si la app
-  // se cierra antes de que llegue, la respuesta se pierde; la serie no.
+  // La respuesta entra en su propia cola en cuanto se da (offline.js), atada al
+  // `client_id` de la serie si todavía no ha llegado al servidor. Sólo espera
+  // aquí una serie en cola sin `client_id` —abierta por http plano, sin
+  // `randomUUID`—, y ésa sí se pierde si la app se cierra antes de enviarla.
   const [rirAnswer, setRirAnswer] = useState(null)
   // Every figure below is in kilos, the unit the API compares in; it's only
   // converted on the way to the screen.
@@ -493,22 +509,15 @@ function ExerciseCard({
   const shownRir =
     rirAnswer?.index === latestIndex ? rirAnswer.rir : rpeToRir(latestSet?.rpe)
 
-  // Manda la respuesta en cuanto la serie existe en el servidor. Una sola vez
+  // Entrega la respuesta en cuanto hay con qué atarla a la serie. Una sola vez
   // por respuesta: `sent` evita reenviarla con cada render que traiga la fila.
   useEffect(() => {
     if (!rirAnswer || rirAnswer.sent) return
     const set = sets[rirAnswer.index]
-    if (!set || set.pending) return
+    if (!set || (set.pending && !set.client_id)) return
     setRirAnswer({ ...rirAnswer, sent: true })
-    Promise.resolve(
-      onEditSet(set, {
-        reps: set.reps,
-        weight: set.weight,
-        rpe: rirToRpe(rirAnswer.rir),
-        note: set.note ?? null,
-      }),
-    ).catch(() => setError('No se pudo guardar cuántas te quedaban.'))
-  }, [rirAnswer, sets, onEditSet])
+    onAnswerRir(set, rirToRpe(rirAnswer.rir))
+  }, [rirAnswer, sets, onAnswerRir])
   // What a folded card still has to answer: did I do this, and what did I hit.
   // It names one real working set — not decoupled reps/weight ranges, where you
   // couldn't tell which weight went with which reps. When every set matched,
@@ -1477,6 +1486,12 @@ export default function Workout({
   const tmpPrefix = useRef(`tmp-${Date.now().toString(36)}`)
   // One drain at a time, or two triggers firing together send the same set twice.
   const flushing = useRef(false)
+  // Lo mismo para las respuestas a «¿Cuántas te quedaban?», que se envían con
+  // lo que la serie dice en ese momento: de ahí que haga falta el entreno al día
+  // desde listeners que se registraron en el primer render.
+  const answering = useRef(false)
+  const workoutRef = useRef(workout)
+  workoutRef.current = workout
   // The notification permission is asked for once per visit to Entreno; Android
   // itself stops asking after the second no.
   const askedNotifications = useRef(false)
@@ -1607,9 +1622,12 @@ export default function Workout({
   // a countdown that wakes the radio every few seconds is a battery cost paid
   // by every session to help the rare one.
   useEffect(() => {
-    const drain = () => flushQueue()
+    const drain = () => {
+      flushQueue()
+      flushAnswers()
+    }
     const onVisible = () => {
-      if (document.visibilityState === 'visible') flushQueue()
+      if (document.visibilityState === 'visible') drain()
     }
     window.addEventListener('online', drain)
     document.addEventListener('visibilitychange', onVisible)
@@ -1648,9 +1666,20 @@ export default function Workout({
         setWorkout(withQueued)
       }
       if (rejected > 0) refused()
+      // El nativo acaba de hablar con el servidor: hay señal.
+      flushAnswers()
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutId])
+
+  // Cada vez que el entreno en pantalla cambia, si queda alguna respuesta: al
+  // cargarlo (las que quedaron de la última vez) y cuando una serie de la cola
+  // vuelve del servidor con su id (las que se dieron antes de que llegara). Un
+  // efecto y no quien cambia el entreno: `workoutRef` sólo lo ve tras el render.
+  useEffect(() => {
+    if (workout?.id === workoutId && answersFor(workoutId).length > 0) flushAnswers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workout, workoutId])
 
   // The screen doesn't go dark between sets. Re-run on the preference, so
   // turning it off in the overflow lets go of the lock there and then.
@@ -1803,6 +1832,54 @@ export default function Workout({
       }
     } finally {
       flushing.current = false
+    }
+  }
+
+  function answerRirFor(set, rpe) {
+    queueAnswer({
+      workoutId: workout.id,
+      ...(set.pending ? {} : { setId: set.id }),
+      ...(set.client_id ? { clientId: set.client_id } : {}),
+      rpe,
+    })
+    setWorkout(withQueued)
+    flushAnswers()
+  }
+
+  // Como `flushQueue`, pero sin orden que guardar: cada respuesta corrige una
+  // serie distinta. Se para en la primera que no sale por falta de señal —las
+  // demás fallarían igual— y suelta, en voz alta, la que el servidor rechaza.
+  async function flushAnswers() {
+    if (answering.current) return
+    answering.current = true
+    try {
+      for (const answer of answersFor(workoutId)) {
+        const sets = workoutRef.current?.id === workoutId ? workoutRef.current.sets : null
+        if (!sets) break
+        const set = sets.find((s) => answerIsFor(answer, s))
+        // Borrada desde que se contestó: ya no hay a quién ponérsela.
+        if (!set) {
+          dropAnswer(answer)
+          continue
+        }
+        // Todavía en la cola: sale cuando el servidor la devuelva con su id.
+        if (set.pending) continue
+        try {
+          await editSetFor(set, {
+            reps: set.reps,
+            weight: set.weight,
+            rpe: answer.rpe,
+            note: set.note ?? null,
+          })
+          dropAnswer(answer)
+        } catch (err) {
+          if (retryable(err)) break
+          dropAnswer(answer)
+          setError('El servidor rechazó cuántas te quedaban.')
+        }
+      }
+    } finally {
+      answering.current = false
     }
   }
 
@@ -2489,6 +2566,7 @@ export default function Workout({
             sets={setsFor(ex.name)}
             onLogSet={logSetFor}
             onEditSet={editSetFor}
+            onAnswerRir={answerRirFor}
             onDeleteSet={deleteSetFor}
             onChangeMuscle={changeMuscleFor}
             onChangeNote={changeNoteFor}

@@ -153,6 +153,10 @@ class SetOut(BaseModel):
     duration_seconds: int | None = None
     distance: float | None = None  # kilometres
     created_at: datetime | None = None
+    # The id the phone stamped on the set when it queued it, handed back so the
+    # phone can tell which of its queued sets this one is.
+    # Spec: tests/features/log_set.feature
+    client_id: str | None = None
 
 
 class WorkoutIn(BaseModel):

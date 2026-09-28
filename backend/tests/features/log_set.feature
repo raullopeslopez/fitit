@@ -33,3 +33,12 @@ Feature: Log a workout set
     When I log a set of 8 reps at 60 kg for "Bench Press"
     And I log a set of 8 reps at 60 kg for "Bench Press"
     Then the workout contains 2 sets for "Bench Press"
+
+  # The phone knows a queued set only by its own id. Answering with it is what
+  # lets something said about the set before it arrived — how many reps were
+  # left in reserve — find the set once it has a server id.
+  Scenario: The logged set carries its client id back
+    Given an exercise "Bench Press"
+    And a workout started today
+    When I log a set of 8 reps at 60 kg for "Bench Press" with client id "a1b2"
+    Then that set carries the client id "a1b2"
