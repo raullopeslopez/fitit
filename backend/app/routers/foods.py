@@ -32,7 +32,8 @@ from ..openfoodfacts import (
 )
 from ..models import Food, FoodAlias, LogEntry, Portion, visible_foods
 from ..naming import fold_exercise_name as fold
-from ..nutrition import NUTRIENTS, calcular_nutrientes, kcal_disagreement
+from ..nutrition import NUTRIENTS, kcal_disagreement
+from ..refuse import nutrientes_de_lo_pesado
 from ..schemas import (
     BarcodeLookupOut,
     BarcodeClash,
@@ -616,15 +617,23 @@ async def frequent_foods(
         if food is None:
             continue
         grams = _most_repeated(row.grams for row in rows)
+        # Como se pesó la última vez: con hueso o sin él.
+        with_bone = rows[0].edible_grams is not None
+        try:
+            kcal = nutrientes_de_lo_pesado(food, grams, with_bone)[0]["kcal"]
+        except ValueError:
+            # Nadie sabe ya si sus kcal cuentan el hueso: sin previsión.
+            kcal = None
         out.append(
             FrequentFoodOut(
                 food_id=food.id,
                 name=food.name,
                 brand=food.brand,
                 grams=grams,
-                kcal=calcular_nutrientes(food, grams)["kcal"],
+                kcal=kcal,
                 meal_slot=_most_repeated(row.meal_slot for row in rows),
                 times=len(rows),
+                with_bone=with_bone,
             )
         )
     return out

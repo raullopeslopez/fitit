@@ -255,6 +255,15 @@ class Food(Base):
     )
     # Everything CIQUAL carries beyond the five macros, as a JSON object.
     nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Qué % del peso en crudo, tal cual se compra, es hueso (o espina, o
+    # cabeza): 30 en unos muslos. NULL es «nadie lo ha dicho», y entonces
+    # manda la tabla de `app/refuse.py`; 0 es «no lleva hueso». Sólo lo escribe
+    # quien es dueño del alimento, a mano o pesando el hueso que sobró.
+    refuse_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # A qué se refieren las kcal: 'edible' (la parte que se come), 'as_sold'
+    # (el producto con su hueso) o 'unknown'. NULL es que nadie lo ha dicho, y
+    # entonces se supone (`refuse.hueso_de`) — y la suposición no se guarda.
+    kcal_basis: Mapped[str | None] = mapped_column(String(8), nullable=True)
     # La clasificación de CIQUAL, en códigos. `0201` es verdura, `0203`
     # legumbre, `0202` tubérculo — el mapa a familias vive en
     # `app/food_groups.py`. Nullable porque hay 45 filas de CIQUAL sin grupo y
@@ -355,6 +364,10 @@ class LogEntry(Base):
     carbs: Mapped[float | None] = mapped_column(Float, nullable=True)
     fiber: Mapped[float | None] = mapped_column(Float, nullable=True)
     nutrients_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Cuando `grams` se pesó con hueso y los nutrientes salen de la carne: los
+    # gramos que se comen de verdad. Congelado como lo demás. NULL es que
+    # `grams` ya era lo que se come (o que las kcal ya contaban el hueso).
+    edible_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
     # De qué plato salió esta entrada, cuando salió de uno. No cascadea y no
     # manda: los macros ya están congelados arriba y la fila se lee igual sin
     # él. Sirve para una sola cosa, que es agrupar en pantalla las cinco filas

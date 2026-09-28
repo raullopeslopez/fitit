@@ -417,6 +417,107 @@ def ajustar_gramos(
     return tuple(gramos), totales
 
 
+# --- El hueso -------------------------------------------------------------------
+#
+# Una bandeja de muslos pesa un kilo y un tercio es hueso. Las tablas —CIQUAL,
+# BEDCA, USDA— dan los nutrientes por 100 g de **porción comestible**, y el
+# desperdicio (`refuse`) aparte, como porcentaje del peso en crudo tal cual se
+# compra. La etiqueta del súper, en cambio, no dice a qué se refiere: el
+# Reglamento (UE) 1169/2011, art. 31.3, pide el alimento «tal como se vende»,
+# pero muchas etiquetas de carne copian la cifra de la parte comestible.
+#
+# De ahí las tres bases de unas kcal: `edible` (de la carne: al peso de la
+# bandeja hay que quitarle el hueso), `as_sold` (de la bandeja: el hueso ya va
+# diluido en la cifra y restarlo sería contarlo dos veces) y `unknown`.
+#
+# El rendimiento de cocción (lo que pierde un muslo al asarse) es otra cosa y no
+# está aquí: pesar en crudo y elegir el alimento crudo sigue siendo lo correcto.
+
+BASES_KCAL = ("as_sold", "edible", "unknown")
+
+# Cuánto puede separarse la etiqueta de una referencia para decir que es «esa».
+# Un 10 % cubre la diferencia entre marcas y la de redondear en la etiqueta, y
+# se queda por debajo de lo que separa las dos bases con un 20–45 % de hueso.
+# Con menos hueso (un chuletón, 15 %) las dos bandas se pisan y no se adivina.
+TOLERANCIA_BASE_KCAL = 0.10
+
+
+def gramos_comestibles(grams: float, refuse_pct: float) -> float:
+    """Lo que queda de `grams` al quitarle el `refuse_pct` % de hueso."""
+    if not 0 <= refuse_pct < 100:
+        raise ValueError("refuse_pct must be in [0, 100)")
+    return _round(grams * (100 - refuse_pct) / 100, _MACRO_PLACES)
+
+
+def escalar_gramos(grams: float | None, *, old_grams: float, new_grams: float) -> float | None:
+    """Unos gramos congelados, repesados en la misma proporción que la entrada.
+
+    Repesar 300 g con hueso a 600 g dobla también los comestibles: la pieza es
+    la misma, sólo hay más.
+    """
+    if grams is None:
+        return None
+    return _scale(grams, new_grams / old_grams, _MACRO_PLACES)
+
+
+def desperdicio_de_sobras(grams: float, bone_grams: float) -> float:
+    """El % de hueso de verdad, a partir del que sobró en el plato.
+
+    Una décima basta: la báscula de cocina no da para más, y es lo que se enseña.
+    """
+    if bone_grams is None or bone_grams <= 0 or not grams or bone_grams >= grams:
+        raise ValueError("bone must weigh more than 0 and less than what was weighed")
+    return round(bone_grams / grams * 100, 1)
+
+
+def base_de_kcal(
+    kcal_100g: float | None, kcal_comestible: float | None, refuse_pct: float | None
+) -> str:
+    """A qué se refieren las kcal de una etiqueta, comparándolas con la tabla.
+
+    - A ±10 % de la referencia comestible → `edible`.
+    - A ±10 % de esa referencia diluida por el hueso (× (1 − desperdicio)) →
+      `as_sold`.
+    - En ninguna, o en las dos a la vez → `unknown`: que decida quien lo compró.
+
+    Es una **suposición**, y quien la use tiene que decirlo como tal.
+    """
+    if kcal_100g is None or kcal_comestible is None or not refuse_pct:
+        return "unknown"
+
+    def cerca(referencia: float) -> bool:
+        return abs(kcal_100g - referencia) <= TOLERANCIA_BASE_KCAL * referencia + 1e-9
+
+    comestible = cerca(kcal_comestible)
+    tal_cual = cerca(kcal_comestible * (100 - refuse_pct) / 100)
+    if comestible and not tal_cual:
+        return "edible"
+    if tal_cual and not comestible:
+        return "as_sold"
+    return "unknown"
+
+
+def nutrientes_con_hueso(
+    food, grams: float, *, refuse_pct: float, basis: str
+) -> tuple[dict, float | None]:
+    """Los nutrientes de `grams` pesados **con** hueso, y los gramos comestibles.
+
+    Devuelve `(nutrientes, gramos_comestibles)`. Los comestibles sólo salen
+    cuando se han usado para calcular — con kcal `as_sold` el hueso ya está
+    dentro de la cifra y la entrada es la de siempre, así que salen `None`.
+
+    Con `unknown` no hay número honesto: la diferencia entre las dos lecturas
+    es justo el hueso, y elegir una en silencio es equivocarse un 30 % sin
+    decirlo.
+    """
+    if basis == "edible":
+        edible = gramos_comestibles(grams, refuse_pct)
+        return calcular_nutrientes(food, edible), edible
+    if basis == "as_sold":
+        return calcular_nutrientes(food, grams), None
+    raise ValueError("no se sabe si las kcal de este alimento cuentan el hueso")
+
+
 # Cómo se reparten unas kcal en macros cuando nadie ha dicho otra cosa. La
 # proteína va por kilo de peso —es lo que la sostiene—, la grasa es una parte
 # fija de las kcal, y los hidratos son lo que queda.

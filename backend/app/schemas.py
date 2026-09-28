@@ -337,6 +337,8 @@ MealSlot = Literal["desayuno", "comida", "cena", "snack"]
 # reserved for the barcode scanner, templates and the voice parser, and exist
 # from the start so their adoption is measurable rather than remembered.
 EntrySource = Literal["manual", "barcode", "template", "repeat", "voice"]
+# A qué se refieren las kcal de un alimento con hueso (ver `app/nutrition.py`).
+KcalBasis = Literal["as_sold", "edible", "unknown"]
 
 
 class PortionIn(BaseModel):
@@ -413,6 +415,12 @@ class FoodPatch(BaseModel):
     # gramos ya resueltos, nunca un puntero a la ración— así que rehacerlas no
     # puede desfechar nada. Omitido las deja como estén; `[]` las quita todas.
     portions: list[PortionIn] | None = Field(default=None, max_length=8)
+    # Cuánto es hueso, en % del peso tal cual se compra. `null` vuelve a la
+    # tabla de referencia; 0 dice que no lleva. Menos de 100: un alimento que
+    # fuera todo hueso no se come.
+    refuse_pct: float | None = Field(default=None, ge=0, lt=100)
+    # A qué se refieren las kcal. `null` deja que se suponga desde la etiqueta.
+    kcal_basis: KcalBasis | None = None
 
 
 class BarcodeClash(BaseModel):
@@ -470,6 +478,15 @@ class FoodOut(BaseModel):
     # True when this row is yours to correct. The shared CIQUAL catalogue is
     # reference data: the screen offers "Corregir" only where it would work.
     is_mine: bool = False
+    # El hueso que **vale** para este alimento (`refuse.hueso_de`), no la
+    # columna tal cual: lo tuyo si lo dijiste, la tabla si no. `null` es que no
+    # lleva hueso, y entonces los otros tres tampoco dicen nada.
+    refuse_pct: float | None = None
+    # 'tuyo' | 'referencia'
+    refuse_source: str | None = None
+    kcal_basis: KcalBasis | None = None
+    # La base es una suposición sacada de comparar la etiqueta con la tabla.
+    kcal_basis_guessed: bool = False
 
 
 class FrequentFoodOut(BaseModel):
@@ -488,6 +505,9 @@ class FrequentFoodOut(BaseModel):
     kcal: float | None = None
     meal_slot: str | None = None
     times: int
+    # Si la última vez se pesó con hueso. Volver a registrarlo de un toque
+    # tiene que pesarlo igual, o la misma bandeja contaría el hueso como carne.
+    with_bone: bool = False
 
 
 class LogEntryIn(BaseModel):
@@ -504,6 +524,9 @@ class LogEntryIn(BaseModel):
     # The instant, with the offset the phone is on. Absent means now.
     logged_at: datetime | None = None
     entry_source: EntrySource = "manual"
+    # Los gramos son de la pieza con su hueso, tal cual la pesaste. Por
+    # defecto no: lo de siempre es que pesas lo que te comes.
+    with_bone: bool = False
 
     @field_validator("portion_id")
     @classmethod
@@ -556,10 +579,31 @@ class LogEntryOut(BaseModel):
     fat: float | None = None
     carbs: float | None = None
     fiber: float | None = None
+    # Los gramos que se comen, cuando `grams` se pesó con hueso y los
+    # nutrientes salen de ahí. `null` es que `grams` ya es lo que se come.
+    edible_grams: float | None = None
     entry_source: str = "manual"
     # De qué plato salió, cuando salió de uno. La fila se lee igual sin él; esto
     # es lo que deja a la pantalla agrupar.
     dish_id: int | None = None
+
+
+class BoneIn(BaseModel):
+    """El hueso que sobró en el plato, pesado."""
+
+    bone_grams: float = Field(gt=0, le=5000)
+
+
+class BoneOut(BaseModel):
+    """La entrada corregida y el hueso que resulta.
+
+    `food_updated` es False cuando el alimento es del catálogo compartido: la
+    entrada se corrige igual, pero la tabla es de todos y no se toca.
+    """
+
+    entry: LogEntryOut
+    refuse_pct: float
+    food_updated: bool
 
 
 class SlotTotalsOut(BaseModel):
