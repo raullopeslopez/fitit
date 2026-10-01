@@ -94,9 +94,13 @@ public class SessionControllerTest {
                 .put("lastSetAt", NOW);
     }
 
+    /** La tarjeta del entreno (no el aviso de fin de descanso, que va aparte). */
     private Notification shown() {
-        Notification[] active = shadowOf(notifications).getAllNotifications().toArray(new Notification[0]);
-        return active.length == 0 ? null : active[active.length - 1];
+        return shadowOf(notifications).getNotification(SessionNotification.ID);
+    }
+
+    private Notification chime() {
+        return shadowOf(notifications).getNotification(RestChime.ID);
     }
 
     private static List<String> actions(Notification n) {
@@ -361,6 +365,62 @@ public class SessionControllerTest {
         // La alarma repinta: el reloj que bajaba se va y aparece el que sube.
         assertFalse(visible(collapsed(), R.id.widget_clock));
         assertTrue(visible(collapsed(), R.id.widget_over));
+    }
+
+    @Test
+    public void theEndOfTheRestSoundsOnItsOwnChannel() throws Exception {
+        SessionController.publish(context, bench(NOW + 1_000), NOW);
+        assertNull(chime());
+
+        tap(SessionController.ACTION_REST_OVER);
+
+        // Un aviso aparte, con sonido y vibración: la tarjeta sigue sin sonar.
+        Notification chime = chime();
+        assertNotNull(chime);
+        assertEquals(RestChime.CHANNEL, chime.getChannelId());
+        assertEquals("Descanso terminado", chime.extras.getString(Notification.EXTRA_TITLE));
+        assertEquals("Press banca", chime.extras.getString(Notification.EXTRA_TEXT));
+        NotificationChannel loud = notifications.getNotificationChannel(RestChime.CHANNEL);
+        assertNotNull(loud.getSound());
+        assertTrue(loud.shouldVibrate());
+        NotificationChannel quiet = notifications.getNotificationChannel(SessionNotification.CHANNEL);
+        assertNull(quiet.getSound());
+        assertFalse(quiet.shouldVibrate());
+        // Se va sola: no se queda en la bandeja tapando la tarjeta.
+        assertTrue(chime.getTimeoutAfter() > 0);
+    }
+
+    @Test
+    public void aRestOverAlarmThatArrivesLateStaysQuiet() throws Exception {
+        // Con el teléfono en reposo la alarma inexacta puede llegar tarde, y un
+        // pitido a destiempo da la hora equivocada: mejor ninguno.
+        SessionController.publish(context, bench(NOW + 1_000), NOW);
+
+        SessionController.handle(context, new Intent(SessionController.ACTION_REST_OVER),
+                NOW + 1_000 + RestChime.LATE_MS + 1);
+
+        assertNull(chime());
+        assertTrue(visible(collapsed(), R.id.widget_over));
+    }
+
+    @Test
+    public void aSkippedRestDoesNotSound() throws Exception {
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+        SessionController.skipRest(context, NOW + 2_000);
+
+        tap(SessionController.ACTION_REST_OVER);
+
+        assertNull(chime());
+    }
+
+    @Test
+    public void endingTheSessionTakesTheChimeAway() throws Exception {
+        SessionController.publish(context, bench(NOW + 1_000), NOW);
+        tap(SessionController.ACTION_REST_OVER);
+
+        tap(SessionController.ACTION_END);
+
+        assertNull(chime());
     }
 
     @Test

@@ -36,7 +36,8 @@ import org.json.JSONObject;
  * <p>El tiempo son los cronómetros del propio layout, como en el widget: nadie lo
  * reescribe cada segundo. Baja en color de texto y, pasado el descanso, sube en
  * accent-ink con signo; el cambio lo hace la alarma de fin de descanso. Canal
- * silencioso: ni suena ni vibra (sólo vibra el +1 del widget).
+ * silencioso: ni suena ni vibra. Lo que suena al acabar el descanso es otro aviso,
+ * en otro canal ({@link RestChime}).
  */
 final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
