@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.10.6: suena cuando acaba el descanso.** Al llegar el reloj a cero, el móvil
+  suena y vibra una vez y aparece `Descanso terminado` con el ejercicio, que se quita solo
+  a los 15 s. La tarjeta del entreno sigue muda. Va en su propio canal, «Fin del
+  descanso», que se apaga en Ajustes de Android sin tocar la tarjeta. Si la alarma llega
+  más de un minuto tarde (teléfono en reposo), no suena. Saltar el descanso o terminar el
+  entreno, tampoco. Sólo APK; la PWA no cambia.
 - **Un alimento con hueso cuenta la carne, no el hueso.** Muslos, alitas, chuletas,
   costillas, conejo o pescado entero: en la hoja de «cuánto» aparece `Pesado con hueso`
   (encendido por defecto) y debajo la cuenta, «300 g con hueso → 210 g comestibles · 30 %

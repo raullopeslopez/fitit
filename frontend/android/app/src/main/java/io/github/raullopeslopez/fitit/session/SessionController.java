@@ -67,6 +67,7 @@ public final class SessionController {
     public static void end(Context context) {
         Session.store(context).clearControl();
         SessionNotification.cancel(context);
+        RestChime.cancel(context);
         SessionAlarms.cancel(context);
         SessionWidget.updateAll(context);
         SessionEvents.changed();
@@ -119,8 +120,9 @@ public final class SessionController {
                     log(context, store, SessionControl.repeat(control, now), now);
                     break;
                 case ACTION_WIDGET_REPEAT:
-                    // Lo único que vibra en toda la función: el pulgar sobre el
-                    // widget no ve nada más que confirme el toque.
+                    // El único toque que vibra: el pulgar sobre el widget no ve
+                    // nada más que lo confirme. (El fin del descanso también
+                    // vibra, pero es aviso, no toque: RestChime.)
                     log(context, store, SessionControl.repeat(control, now), now);
                     pulse(context);
                     break;
@@ -141,6 +143,7 @@ public final class SessionController {
                     break;
                 case ACTION_REST_OVER:
                     refresh(context, control, now);
+                    RestChime.ring(context, control, now);
                     break;
                 case ACTION_EXPIRE:
                     if (SessionControl.expired(control, now)) end(context);

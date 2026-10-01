@@ -27,6 +27,8 @@ Respuestas del product owner, condensadas:
   elige en la app, ver «Sin sesión»). Termina con `Terminar` del widget 4×2, con
   `Terminar entreno` del menú de Entreno o solo, a las dos horas sin registrar nada.
 - Ni sonido ni vibración, con una excepción: **vibra al tocar «+1 serie» en el widget**.
+  **Revisado el 2026-10-01:** el fin del descanso sí suena y vibra, con aviso propio
+  (ver «Fin del descanso con sonido»). La tarjeta sigue muda.
 - Una serie registrada desde fuera **se sube en el momento**, sin esperar a abrir la app.
 
 ### Las dos dudas
@@ -160,7 +162,7 @@ se queda en `Sin entreno en curso` y tocar abre la app.
 |---|---|
 | Primera serie de fuerza de la sesión en la app | Aparece la notificación en curso; el widget pasa a mostrar la sesión |
 | Serie registrada (app, notificación o widget) | Las tres vistas se actualizan; empieza el descanso si está activado |
-| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Sin sonido ni vibración |
+| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.6 esa alarma, además, suena y vibra una vez (aviso aparte, canal «Fin del descanso»); si llega más de un minuto tarde, calla |
 | Cambio de ejercicio en la app | El control pasa al nuevo ejercicio con su primera serie |
 | `Terminar` en el widget | Todo desaparece. Las series quedan |
 | Dos horas sin registrar nada | Lo mismo que `Terminar`, solo |
@@ -693,3 +695,33 @@ Dos fallos de la primera prueba en el Xiaomi (2026-09-27), con las capturas del 
   tiempo; borrar el entreno en curso desde el menú de Entreno y desde Días (la
   notificación se va, el widget vuelve a `Sin entreno en curso`); borrar desde la web
   con el widget en ese entreno y tocar su `+1`.
+
+## Fin del descanso con sonido (APK 0.10.6)
+
+Pedido el 2026-10-01, sólo para el APK: que suene cuando acaba el descanso. Reabre el
+«ni sonido ni vibración» de arriba, sólo para ese momento.
+
+- **Un aviso aparte, no la tarjeta.** La alarma de fin de descanso, la que ya repintaba
+  el reloj, publica además una notificación corta: título `Descanso terminado`, texto el
+  ejercicio (`Press banca`). Suena con el sonido de notificación del teléfono, vibra dos
+  pulsos cortos y se quita sola a los 15 s; tocarla abre Entreno.
+- **Canal propio, `fitit_fin_descanso` («Fin del descanso»)**, de importancia normal: suena,
+  no salta encima de lo que estés usando. La tarjeta se reescribe con cada serie y tiene
+  que seguir muda, y Android no deja cambiar el sonido de un canal ya creado. Quien lo
+  quiera callado lo apaga en Ajustes → Apps → Fitit → Notificaciones → «Fin del
+  descanso», sin tocar la tarjeta. No hay interruptor en la app (DESIGN.md, 2026-07-25:
+  callarlo es cosa del canal). No reutiliza `fitit-fin-descanso`: es el del aviso retirado
+  y se borra cada vez que se pinta la tarjeta.
+- **Si la alarma llega más de 60 s tarde, no suena.** Sigue siendo inexacta
+  (`setAndAllowWhileIdle`, sin `USE_EXACT_ALARM`); con el teléfono en reposo puede
+  retrasarse, y un pitido a destiempo da la hora equivocada. El reloj se repinta igual.
+- **Saltar el descanso, o terminar, no suena:** saltar quita la alarma; `Terminar` quita
+  también el aviso si estaba a la vista.
+- Con el teléfono en silencio manda el teléfono: no suena, y vibra si el modo silencio
+  vibra. Con YouTube Music, Android baja la música un instante.
+- **Comprobar en el teléfono:** descanso de 60 s, registrar una serie y bloquear: suena
+  y vibra al llegar a cero, `Descanso terminado · <ejercicio>` aparece y se va solo;
+  medir cuánto se retrasa con la pantalla apagada un rato (si pasa del minuto a menudo,
+  calla, y hay que decidir si se pide alarma exacta); `Saltar` en la app antes del cero
+  no suena; en Ajustes aparece el canal «Fin del descanso» y apagarlo lo calla sin
+  quitar la tarjeta.
