@@ -36,11 +36,20 @@ import org.json.JSONObject;
  * <p>El tiempo son los cronómetros del propio layout, como en el widget: nadie lo
  * reescribe cada segundo. Baja en color de texto y, pasado el descanso, sube en
  * accent-ink con signo; el cambio lo hace la alarma de fin de descanso. Canal
- * silencioso: ni suena ni vibra. Al acabar el descanso vibra el teléfono, no la
- * tarjeta (SessionController).
+ * silencioso: ni suena ni vibra, salvo una vez: al acabar el descanso la misma
+ * tarjeta se repinta en {@link #CHANNEL_REST_OVER}, que vibra, y la siguiente
+ * actualización la devuelve al canal mudo.
  */
 final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
+    /**
+     * El mismo aviso al llegar el descanso a cero: vibra, sin sonido. Es la
+     * vibración de una notificación, que en el Xiaomi sí llega (0.10.6); la
+     * directa con el teléfono bloqueado, no (0.10.7). Y apagar este canal en
+     * Ajustes calla la vibración sin tocar la tarjeta.
+     */
+    static final String CHANNEL_REST_OVER = "fitit_entreno_fin";
+    private static final long[] REST_OVER_PATTERN = {0, 300, 150, 300};
     static final int ID = 4102;
     // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
     // se haya ido: los del aviso de descanso que retiró la fase 0, y el de la
@@ -53,12 +62,17 @@ final class SessionNotification {
     private SessionNotification() {}
 
     static void show(Context context, JSONObject control, long now) {
+        show(context, control, now, false);
+    }
+
+    /** Con {@code buzz}, la tarjeta vibra esta vez: el fin del descanso. */
+    static void show(Context context, JSONObject control, long now, boolean buzz) {
         NotificationManagerCompat manager = NotificationManagerCompat.from(context);
         ensureChannel(context);
         // Sin permiso (Android 13+) no hay tarjeta; el control sigue guardado.
         if (!manager.areNotificationsEnabled()) return;
         try {
-            manager.notify(ID, build(context, control, now));
+            manager.notify(ID, build(context, control, now, buzz));
         } catch (SecurityException e) {
             // Permiso retirado entre la comprobación y el aviso: igual que sin él.
         }
@@ -83,10 +97,21 @@ final class SessionNotification {
         channel.setShowBadge(false);
         channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         manager.createNotificationChannel(channel);
+
+        // Misma importancia (misma visibilidad en el bloqueo), con vibración.
+        NotificationChannel restOver = new NotificationChannel(
+                CHANNEL_REST_OVER, "Fin del descanso", NotificationManager.IMPORTANCE_DEFAULT);
+        restOver.setDescription("La tarjeta del entreno vibra una vez cuando acaba el descanso. Sin sonido.");
+        restOver.setSound(null, null);
+        restOver.enableVibration(true);
+        restOver.setVibrationPattern(REST_OVER_PATTERN);
+        restOver.setShowBadge(false);
+        restOver.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        manager.createNotificationChannel(restOver);
     }
 
-    private static Notification build(Context context, JSONObject control, long now) {
-        return new NotificationCompat.Builder(context, CHANNEL)
+    private static Notification build(Context context, JSONObject control, long now, boolean buzz) {
+        return new NotificationCompat.Builder(context, buzz ? CHANNEL_REST_OVER : CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_fitit)
                 // Título y texto no se pintan (manda el diseño propio), pero los
                 // leen el lector de pantalla y quien no sabe pintarlo (un reloj).
@@ -98,8 +123,10 @@ final class SessionNotification {
                 // El tiempo grande es el nuestro: la cabecera no pinta otro.
                 .setShowWhen(false)
                 .setOngoing(true)
-                .setSilent(true)
-                .setOnlyAlertOnce(true)
+                // Una actualización no avisa (cada serie la repinta), salvo la
+                // del fin del descanso, que existe para eso.
+                .setSilent(!buzz)
+                .setOnlyAlertOnce(!buzz)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(SessionLaunch.open(context, control.optInt("workoutId", -1)))
                 .build();

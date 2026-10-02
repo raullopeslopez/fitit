@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **APK 0.10.8: el fin del descanso vuelve a vibrar.** La 0.10.7 quitó el aviso, pero en
+  el Xiaomi tampoco vibraba. Ahora vibra la propia tarjeta del entreno al llegar a cero:
+  dos pulsos, sin sonido y sin notificación nueva. Se puede callar apagando «Fin del
+  descanso» en Ajustes de Android. Con el móvil en silencio total no vibra; en vibración,
+  sí.
+
 ### Changed
 - **APK 0.10.7: al acabar el descanso, sólo vibra.** Desaparecen el aviso `Descanso
   terminado` y su sonido. Al llegar a cero el móvil vibra dos veces, también en silencio,

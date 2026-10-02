@@ -162,7 +162,7 @@ se queda en `Sin entreno en curso` y tocar abre la app.
 |---|---|
 | Primera serie de fuerza de la sesión en la app | Aparece la notificación en curso; el widget pasa a mostrar la sesión |
 | Serie registrada (app, notificación o widget) | Las tres vistas se actualizan; empieza el descanso si está activado |
-| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.7 esa alarma, además, hace vibrar el teléfono dos pulsos, sin aviso aparte ni sonido; si llega más de un minuto tarde, no vibra |
+| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.8 esa alarma repinta la tarjeta en el canal «Fin del descanso», que vibra dos pulsos sin sonido; la siguiente actualización la devuelve al canal mudo. Si llega más de un minuto tarde, no vibra |
 | Cambio de ejercicio en la app | El control pasa al nuevo ejercicio con su primera serie |
 | `Terminar` en el widget | Todo desaparece. Las series quedan |
 | Dos horas sin registrar nada | Lo mismo que `Terminar`, solo |
@@ -747,3 +747,35 @@ que ya pasa a positivo al acabar, y el teléfono vibra en ese momento. Nada más
   Al llegar a cero vibra dos veces y no aparece ningún aviso nuevo, sólo la tarjeta en
   positivo. Probarlo con el móvil en vibración y en silencio total. En Ajustes → Fitit →
   Notificaciones ya no está «Fin del descanso».
+
+## Fin del descanso: vibra la tarjeta (APK 0.10.8)
+
+**Probado en el Xiaomi (2026-10-02): la 0.10.7 no vibraba.** El aviso se fue, pero la
+vibración no llegó. La 0.10.7 llamaba al vibrador directamente desde el receptor de la
+alarma, con el teléfono bloqueado y la app en segundo plano. En algún punto entre Android
+y HyperOS esa vibración se descarta, aunque sea de uso alarma. Desde aquí no se puede ver
+en qué capa: haría falta `adb logcat | grep -i vibrat` en el teléfono. Los tests de
+Robolectric pasaban porque no modelan esa restricción: comprobaban que se pidió vibrar, no
+que el teléfono vibrara.
+
+Lo que sí llegaba era la vibración de una **notificación** (0.10.6). Se usa eso, sin
+añadir ninguna:
+
+- **La misma tarjeta vibra.** Al llegar a cero, la alarma la repinta (mismo id, ya en
+  positivo) en un segundo canal, `fitit_entreno_fin` («Fin del descanso»): importancia
+  normal, vibración de dos pulsos de 300 ms, sin sonido. Esa publicación puede avisar
+  (sin `onlyAlertOnce` ni `silent`). La siguiente actualización, sea una serie o un
+  `−`/`+`, la devuelve a `fitit_entreno`, mudo.
+- **Vuelve el interruptor:** apagar «Fin del descanso» en Ajustes → Fitit → Notificaciones
+  calla la vibración y la tarjeta sigue ahí.
+- **Ahora manda el modo del teléfono,** como en la 0.10.6: con el móvil en vibración,
+  vibra; en silencio total, no.
+- Lo demás se mantiene igual: más de 60 s tarde no vibra; saltar el descanso, tampoco.
+- **Riesgo conocido:** desde Android 15, Android puede suavizar las notificaciones
+  seguidas de una misma app («notificaciones discretas»). Si el segundo descanso vibra
+  menos que el primero, la causa es ésa, y se desactiva en Ajustes de Android.
+- **Comprobar en el teléfono:** con el móvil en vibración y un descanso de 60 s, registrar
+  una serie y bloquear. Al llegar a cero tiene que vibrar dos veces sin que aparezca un
+  aviso nuevo. Registrar otra serie con `+1` y esperar al siguiente cero, que también
+  tiene que vibrar. En Ajustes debe aparecer «Fin del descanso», y apagarlo debe callar la
+  vibración.
