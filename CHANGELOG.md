@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **APK 0.10.9: Glúteo es un grupo muscular propio.** Hip thrust, puente, patada de glúteo y
+  abductor cuentan en Glúteo, no en Femoral, también en el histórico. Sentadilla, prensa y
+  zancada suman media serie a Glúteo en vez de a Femoral; el peso muerto, media a cada uno.
+  En Progreso, fila **Glúteo** con punto cobre entre Cuádriceps y Femoral, y ficha Glúteo al
+  editar el grupo de un ejercicio. La web lo tiene desde el deploy del mismo día; la 0.10.8
+  no lo pintaba.
+
 ### Fixed
 - **APK 0.10.8: el fin del descanso vuelve a vibrar.** La 0.10.7 quitó el aviso, pero en
   el Xiaomi tampoco vibraba. Ahora vibra la propia tarjeta del entreno al llegar a cero:
