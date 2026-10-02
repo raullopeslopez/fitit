@@ -189,3 +189,63 @@ Feature: The calories stop being typed
     Given my goal is to maintain
     When I ask what I should eat
     Then it says it has no expenditure
+
+  # Un objetivo sin fecha no se puede sentir: con un peso meta el ritmo se
+  # convierte en «semana 3 de 10» y en un día en el que acabas.
+  Scenario: Accepting a cut with a goal weight starts the plan today from my current weight
+    Given I am a 35 year old man, 178 cm, weighing 102.5 kg
+    And my goal is to lose 0.5 kg a week, down to 97.5 kg
+    When I ask what I should eat
+    And I accept what it proposes
+    Then my plan started today from 102.5 kg
+
+  # Reajustar las kcal cada semana es el uso normal: no puede reiniciar el plan.
+  Scenario: Accepting a new figure a week later does not restart the plan
+    Given I am a 35 year old man, 178 cm, weighing 101 kg
+    And my goal is to lose 0.5 kg a week, down to 97.5 kg
+    And I started that plan 15 days ago from 102.5 kg
+    When I accept a target of 2300 kcal instead
+    Then my plan still started 15 days ago from 102.5 kg
+
+  Scenario: The proposal says which week of the plan I am in and when I should arrive
+    Given I am a 35 year old man, 178 cm, weighing 101 kg
+    And my goal is to lose 0.5 kg a week, down to 97.5 kg
+    And I started that plan 15 days ago from 102.5 kg
+    When I ask what I should eat
+    Then it says I am in week 3 of 10
+    And it says 3.5 kg are left
+    And it says I should arrive in 7 weeks
+    And it does not say I have arrived
+
+  Scenario: Changing my goal weight clears where the plan started
+    Given I am a 35 year old man, 178 cm, weighing 101 kg
+    And my goal is to lose 0.5 kg a week, down to 97.5 kg
+    And I started that plan 15 days ago from 102.5 kg
+    When I change my goal weight to 95 kg
+    And I ask what I should eat
+    Then my plan has no start
+    And it has no plan
+
+  Scenario: Changing something else leaves the plan where it was
+    Given I am a 35 year old man, 178 cm, weighing 101 kg
+    And my goal is to lose 0.5 kg a week, down to 97.5 kg
+    And I started that plan 15 days ago from 102.5 kg
+    When I change my height to 180 cm
+    Then my plan still started 15 days ago from 102.5 kg
+
+  # Decisión 18 también aquí: llegar no cambia el objetivo, lo propone.
+  Scenario: Reaching the goal weight proposes maintenance and says so
+    Given I am a 35 year old man, 178 cm, weighing 97 kg
+    And my goal is to lose 0.5 kg a week, down to 97.5 kg
+    And I started that plan 15 days ago from 102.5 kg
+    When I ask what I should eat
+    Then it says I have arrived
+    And it proposes my maintenance
+    And my daily target has not changed
+
+  Scenario: Without a goal weight there is no plan
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to lose 0.5 kg a week
+    When I ask what I should eat
+    Then it has no plan
+    And it proposes fewer calories than my maintenance

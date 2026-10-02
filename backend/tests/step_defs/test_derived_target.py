@@ -1,9 +1,14 @@
 """El objetivo, derivado en vez de tecleado."""
 
+import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 from pytest_bdd import given, parsers, scenarios, then, when
+from sqlalchemy import select
 
+from app.db import get_session
+from app.main import app
+from app.models import User
 from app.targets import factor_actividad, mifflin
 
 scenarios("../features/derived_target.feature")
@@ -331,3 +336,97 @@ def then_expenditure(propuesta, kcal):
 @then("it says it has no expenditure")
 def then_no_expenditure(propuesta):
     assert propuesta["expenditure"] is None
+
+
+# --- Plan con peso meta -------------------------------------------------------
+
+
+@given(parsers.parse("my goal is to lose {rate:g} kg a week, down to {meta:g} kg"))
+def given_cut_to(client, rate, meta):
+    _perfil(client, goal="cut", goal_rate=rate, goal_weight_kg=meta)
+
+
+def _en_la_base(fn):
+    """Ejecuta `fn(user)` sobre la misma base que ve `client` y devuelve dónde
+    empieza el plan.
+
+    El inicio del plan no se escribe por HTTP —lo pone `accept`, con el día de
+    hoy—, así que para probar «hace dos semanas» hay que escribirlo por debajo.
+    """
+
+    async def go():
+        gen = app.dependency_overrides[get_session]()
+        session = await gen.__anext__()
+        try:
+            user = (await session.execute(select(User))).scalar_one()
+            fn(user)
+            await session.commit()
+            return user.plan_started_on, user.plan_start_kg
+        finally:
+            await gen.aclose()
+
+    return asyncio.run(go())
+
+
+@given(parsers.parse("I started that plan {days:d} days ago from {kg:g} kg"))
+def given_plan_started(days, kg):
+    def poner(user):
+        user.plan_started_on = date.today() - timedelta(days=days)
+        user.plan_start_kg = kg
+
+    _en_la_base(poner)
+
+
+@when(parsers.parse("I change my goal weight to {kg:g} kg"))
+def when_change_goal_weight(client, kg):
+    _perfil(client, goal_weight_kg=kg)
+
+
+@when(parsers.parse("I change my height to {cm:g} cm"))
+def when_change_height(client, cm):
+    _perfil(client, height_cm=cm)
+
+
+@then(parsers.parse("my plan started today from {kg:g} kg"))
+def then_plan_started_today(client, kg):
+    assert _en_la_base(lambda user: None) == (date.today(), kg)
+
+
+@then(parsers.parse("my plan still started {days:d} days ago from {kg:g} kg"))
+def then_plan_still(client, days, kg):
+    assert _en_la_base(lambda user: None) == (date.today() - timedelta(days=days), kg)
+
+
+@then("my plan has no start")
+def then_plan_no_start(client):
+    assert _en_la_base(lambda user: None) == (None, None)
+
+
+@then(parsers.parse("it says I am in week {week:d} of {weeks:d}"))
+def then_week(propuesta, week, weeks):
+    assert (propuesta["plan"]["week"], propuesta["plan"]["weeks"]) == (week, weeks)
+
+
+@then(parsers.parse("it says {kg:g} kg are left"))
+def then_left(propuesta, kg):
+    assert propuesta["plan"]["remaining_kg"] == kg
+
+
+@then(parsers.parse("it says I should arrive in {weeks:d} weeks"))
+def then_eta(propuesta, weeks):
+    assert propuesta["plan"]["eta"] == (date.today() + timedelta(weeks=weeks)).isoformat()
+
+
+@then("it does not say I have arrived")
+def then_not_arrived(propuesta):
+    assert propuesta["plan"]["reached"] is False
+
+
+@then("it says I have arrived")
+def then_arrived(propuesta):
+    assert propuesta["plan"]["reached"] is True
+
+
+@then("it has no plan")
+def then_no_plan(propuesta):
+    assert propuesta["plan"] is None

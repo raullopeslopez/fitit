@@ -989,6 +989,9 @@ class TargetProfileIn(BaseModel):
     # La meta de pasos diaria del widget. `null` la borra; omitido la deja
     # como esté, igual que el resto de este perfil.
     steps_goal: int | None = Field(default=None, ge=1000, le=100000)
+    # El peso al que quieres llegar. Cambiarlo (o cambiar `goal`) empieza otro
+    # plan: el servidor borra dónde arrancó el anterior.
+    goal_weight_kg: float | None = Field(default=None, ge=30, le=300)
 
 
 class TargetProfileOut(BaseModel):
@@ -1002,6 +1005,19 @@ class TargetProfileOut(BaseModel):
     # Lo que hay fijado ahora mismo, que puede no ser lo que se propone.
     objetivo_kcal: float | None = None
     steps_goal: int | None = None
+    goal_weight_kg: float | None = None
+
+
+class GoalPlanOut(BaseModel):
+    """Dónde vas en el plan hacia tu peso meta (`targets.plan`)."""
+
+    week: int
+    weeks: int
+    remaining_kg: float
+    # El día estimado de llegada al ritmo elegido. `None` si ya llegaste.
+    eta: Date | None = None
+    reached: bool
+    goal_weight_kg: float
 
 
 class TargetProposalOut(BaseModel):
@@ -1033,6 +1049,9 @@ class TargetProposalOut(BaseModel):
     # El gasto del que sale `kcal`, antes de sumarle o restarle el ritmo del
     # objetivo. Le vale el mismo `source`. Con el suelo puesto sigue siendo el real.
     expenditure: float | None = None
+    # En qué semana del plan vas. `None` sin peso meta o sin plan aceptado.
+    # Cuando `plan.reached`, `kcal` ya es el mantenimiento: se propone, no se aplica.
+    plan: GoalPlanOut | None = None
 
 
 class TargetAcceptIn(BaseModel):

@@ -18,7 +18,10 @@ from app.models import Base
 VERSIONS = Path(__file__).resolve().parents[2] / "alembic" / "versions"
 MIGRATION = "d5f1a09c3e42_add_derived_targets.py"
 STEPS_GOAL_MIGRATION = "d30c512b2762_add_steps_goal.py"
+PLAN_MIGRATION = "b8e3d51a7c20_add_goal_plan.py"
 PERFIL = ("goal", "goal_rate", "height_cm", "birth_year", "sex", "steps_goal")
+# El plan con peso meta: sin meta ni inicio no hay plan, y eso es un estado normal.
+PLAN = ("goal_weight_kg", "plan_started_on", "plan_start_kg")
 
 
 def _load(filename):
@@ -31,6 +34,7 @@ def _load(filename):
 def _migrated():
     module = _load(MIGRATION)
     steps_module = _load(STEPS_GOAL_MIGRATION)
+    plan_module = _load(PLAN_MIGRATION)
 
     engine = create_engine("sqlite://")
     with engine.begin() as conn:
@@ -39,6 +43,7 @@ def _migrated():
         with Operations.context(context):
             module.upgrade()
             steps_module.upgrade()
+            plan_module.upgrade()
         inspector = inspect(conn)
         schema = {
             table: {c["name"]: c["nullable"] for c in inspector.get_columns(table)}
@@ -84,3 +89,13 @@ def test_one_target_per_day():
 def test_the_chain_reaches_this_migration():
     _, module = _migrated()
     assert module.down_revision == "c4e8b21d7f09"
+
+
+def test_the_goal_plan_is_all_optional():
+    """Sin peso meta no hay plan; y un plan sin inicio es uno que aún no se aceptó."""
+    schema, _ = _migrated()
+    for column in PLAN:
+        assert schema["users"][column] is True, column
+    model = {c.name: c.nullable for c in Base.metadata.tables["users"].columns}
+    for column in PLAN:
+        assert model[column] is True, column

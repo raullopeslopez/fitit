@@ -21,7 +21,9 @@ de mentira tranquila que esta app evita en todo lo demás.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 
 # Cuánta energía hay en un kilo de peso corporal. Es el número que convierte
 # «he bajado un kilo» en «he comido 7.700 kcal menos de las que gasté».
@@ -194,4 +196,68 @@ def proponer(gasto: Gasto, *, goal: str, rate_kg_week: float | None) -> Propuest
         training_kcal_per_day=gasto.training_kcal_per_day,
         floored=floored,
         expenditure=round(gasto.kcal, 0),
+    )
+
+
+@dataclass(frozen=True)
+class Plan:
+    """Dónde vas en el camino a tu peso meta."""
+
+    week: int
+    weeks: int
+    remaining_kg: float
+    # `None` cuando ya llegaste: no hay fecha que estimar.
+    eta: date | None
+    reached: bool
+    goal_weight_kg: float
+
+
+def _semanas(kg: float, rate: float) -> int:
+    # Redondear antes de `ceil`: 0,3 / 0,1 es 2,9999… en coma flotante y sin
+    # esto una cuenta justa de tres semanas diría cuatro.
+    return math.ceil(round(kg / rate, 6))
+
+
+def plan(
+    *,
+    goal: str | None,
+    rate_kg_week: float | None,
+    goal_weight_kg: float | None,
+    start_kg: float | None,
+    started_on: date | None,
+    current_kg: float | None,
+    today: date,
+) -> Plan | None:
+    """La semana, los kilos que faltan y el día estimado de llegada.
+
+    `None` cuando falta algo, y eso es una respuesta: sin ritmo no hay cuántas
+    semanas, y sin inicio no hay desde cuándo contarlas. Tampoco hay plan hacia
+    el lado contrario —bajar hacia un peso mayor que el de partida—: es un
+    perfil a medio teclear, y ningún «semana 1 de 6» le haría justicia.
+
+    Las semanas totales se miden desde donde **arrancó** el plan y lo que falta
+    desde donde estás **ahora**: lo primero no se mueve con el agua de cada día,
+    lo segundo sí debe.
+    """
+    if goal not in ("cut", "gain") or not rate_kg_week or rate_kg_week <= 0:
+        return None
+    if None in (goal_weight_kg, start_kg, started_on, current_kg):
+        return None
+    sentido = 1 if goal == "gain" else -1
+    if (goal_weight_kg - start_kg) * sentido <= 0:
+        return None
+
+    weeks = _semanas(abs(goal_weight_kg - start_kg), rate_kg_week)
+    week = min((today - started_on).days // 7 + 1, weeks)
+    # Pasarse del peso meta también es haber llegado.
+    reached = (goal_weight_kg - current_kg) * sentido <= 0
+    remaining = 0.0 if reached else round(abs(goal_weight_kg - current_kg), 1)
+    eta = None if reached else today + timedelta(weeks=_semanas(remaining, rate_kg_week))
+    return Plan(
+        week=week,
+        weeks=weeks,
+        remaining_kg=remaining,
+        eta=eta,
+        reached=reached,
+        goal_weight_kg=goal_weight_kg,
     )

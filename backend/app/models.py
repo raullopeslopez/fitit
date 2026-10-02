@@ -70,6 +70,12 @@ class User(Base):
     # `NULL` es «no la has fijado», no cero — Health Connect se lee en el
     # teléfono; aquí sólo se guarda el número contra el que comparar.
     steps_goal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # El plan: a qué peso quieres llegar, y desde dónde y cuándo arrancó. El
+    # inicio lo escribe `accept` y lo borra cambiar de meta u objetivo —es otro
+    # plan—; `NULL` es «aún no hay plan», no «empezó el día cero».
+    goal_weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    plan_started_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    plan_start_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Exercise(Base):

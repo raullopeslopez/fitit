@@ -18,13 +18,14 @@ from ..db import get_session
 from ..models import BodyWeight, DailySteps, DailyTarget, Day, LogEntry, SetEntry, User, Workout
 from ..nutrition import reparto_macros
 from ..schemas import (
+    GoalPlanOut,
     TargetAcceptIn,
     TargetProfileIn,
     TargetProfileOut,
     TargetProposalOut,
 )
 from ..session_length import session_length
-from ..targets import gasto_medido, gasto_por_formula, kcal_entreno, proponer
+from ..targets import gasto_medido, gasto_por_formula, kcal_entreno, plan, proponer
 from ..weight import tendencia
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -184,7 +185,15 @@ async def update_profile(
 ) -> TargetProfileOut:
     """Guarda el perfil. **No toca el objetivo**: cambiarlo es un acto aparte."""
     user = await _user(session, user_id)
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    cambios = payload.model_dump(exclude_unset=True)
+    # Otra meta u otro objetivo es otro plan: dónde arrancó el anterior ya no
+    # cuenta. Sólo si **cambia** — un cliente que reenvía el perfil entero al
+    # guardar no puede reiniciar el plan con los mismos valores. Altura, ritmo o
+    # pasos no lo tocan: ajustar el ritmo a mitad de camino sigue siendo el mismo plan.
+    if any(k in cambios and cambios[k] != getattr(user, k) for k in ("goal", "goal_weight_kg")):
+        user.plan_started_on = None
+        user.plan_start_kg = None
+    for key, value in cambios.items():
         setattr(user, key, value)
     await session.commit()
     await session.refresh(user)
@@ -213,7 +222,21 @@ async def proposal(
             entreno_kcal_dia=await _entreno_kcal_dia(session, user_id, kg),
         )
 
-    propuesta = proponer(gasto, goal=user.goal or "maintain", rate_kg_week=user.goal_rate)
+    hoy = date.today()
+    el_plan = plan(
+        goal=user.goal,
+        rate_kg_week=user.goal_rate,
+        goal_weight_kg=user.goal_weight_kg,
+        start_kg=user.plan_start_kg,
+        started_on=user.plan_started_on,
+        current_kg=kg,
+        today=hoy,
+    )
+    # Llegar al peso meta propone mantener. Sólo propone: seguir restando hasta
+    # que alguien acepte el mantenimiento sería un objetivo que cambia solo, y
+    # la decisión 18 lo prohíbe en las dos direcciones.
+    meta = "maintain" if el_plan and el_plan.reached else user.goal or "maintain"
+    propuesta = proponer(gasto, goal=meta, rate_kg_week=user.goal_rate)
     macros = reparto_macros(kcal=propuesta.kcal, kg=kg) or {}
     return TargetProposalOut(
         kcal=propuesta.kcal,
@@ -224,6 +247,7 @@ async def proposal(
         steps_per_day=propuesta.steps_per_day,
         training_kcal_per_day=propuesta.training_kcal_per_day,
         expenditure=propuesta.expenditure,
+        plan=GoalPlanOut(**vars(el_plan)) if el_plan else None,
         **macros,
     )
 
@@ -244,11 +268,27 @@ async def accept(
     # Las kcal dicen cuánto y los macros cómo: se aceptan juntos, o el reparto
     # que compara Comida seguiría siendo el de otro objetivo. Sin peso no hay
     # reparto que proponer y se deja el que hubiera.
-    macros = reparto_macros(kcal=payload.kcal, kg=await _peso(session, user_id))
+    kg = await _peso(session, user_id)
+    macros = reparto_macros(kcal=payload.kcal, kg=kg)
     if macros:
         user.objetivo_proteina = macros["protein"]
         user.objetivo_grasa = macros["fat"]
         user.objetivo_hidratos = macros["carbs"]
+    # Aceptar es lo que arranca el plan: hasta entonces era una propuesta. Y si
+    # ya arrancó se deja como está, o el reajuste semanal de kcal lo reiniciaría
+    # cada semana. Sin peso de partida tampoco hay plan que empezar.
+    if user.goal == "maintain":
+        user.plan_started_on = None
+        user.plan_start_kg = None
+    elif (
+        user.goal in ("cut", "gain")
+        and (user.goal_rate or 0) > 0
+        and user.goal_weight_kg is not None
+        and user.plan_started_on is None
+        and kg is not None
+    ):
+        user.plan_started_on = date.today()
+        user.plan_start_kg = kg
     await session.commit()
     await session.refresh(user)
     return TargetProfileOut.model_validate(user)
