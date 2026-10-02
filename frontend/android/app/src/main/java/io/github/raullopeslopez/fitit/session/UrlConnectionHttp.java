@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /** {@link QueueDrainer.Http} sobre {@code HttpURLConnection}: sin librerías. */
-final class UrlConnectionHttp implements QueueDrainer.Http {
+final class UrlConnectionHttp implements QueueDrainer.Http, ReviewHttp {
     // El plan gratuito de Render duerme: la primera petición del día puede
     // tardar medio minuto en despertar el contenedor.
     private static final int CONNECT_TIMEOUT_MS = 15_000;
@@ -30,6 +30,24 @@ final class UrlConnectionHttp implements QueueDrainer.Http {
             }
             try (OutputStream out = connection.getOutputStream()) {
                 out.write(body.getBytes(StandardCharsets.UTF_8));
+            }
+            int status = connection.getResponseCode();
+            InputStream in = status < 400 ? connection.getInputStream() : connection.getErrorStream();
+            return new QueueDrainer.Response(status, read(in));
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    @Override
+    public QueueDrainer.Response get(String url, Map<String, String> headers) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            connection.setReadTimeout(READ_TIMEOUT_MS);
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                connection.setRequestProperty(header.getKey(), header.getValue());
             }
             int status = connection.getResponseCode();
             InputStream in = status < 400 ? connection.getInputStream() : connection.getErrorStream();

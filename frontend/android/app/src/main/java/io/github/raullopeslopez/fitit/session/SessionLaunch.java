@@ -20,6 +20,7 @@ public final class SessionLaunch {
     public static final String EXTRA_WORKOUT = "fitit_workout";
     public static final String OPEN = "open";
     public static final String START = "start";
+    public static final String REVIEW = "review";
 
     private SessionLaunch() {}
 
@@ -40,6 +41,12 @@ public final class SessionLaunch {
 
     static PendingIntent start(Context context) {
         return PendingIntent.getActivity(context, 31, intent(context, START, -1),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /** El aviso de la revisión semanal: la página abre Comida, donde está la tarjeta. */
+    static PendingIntent review(Context context) {
+        return PendingIntent.getActivity(context, 33, intent(context, REVIEW, -1),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
