@@ -16,7 +16,6 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.SystemClock;
-import android.os.VibrationAttributes;
 import android.os.Vibrator;
 import android.view.View;
 import android.widget.Chronometer;
@@ -368,28 +367,47 @@ public class SessionControllerTest {
         assertTrue(visible(collapsed(), R.id.widget_over));
     }
 
+    private static boolean alertsOnUpdate(Notification n) {
+        return (n.flags & Notification.FLAG_ONLY_ALERT_ONCE) == 0;
+    }
+
     @Test
-    public void theEndOfTheRestVibratesWithoutAnotherNotification() throws Exception {
+    public void theCardItselfBuzzesWhenTheRestEnds() throws Exception {
         SessionController.publish(context, bench(NOW + 1_000), NOW);
-        assertFalse(vibrator().isVibrating());
+        assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
 
         tap(SessionController.ACTION_REST_OVER);
 
-        // Vibra el teléfono y ya está: ni aviso aparte ni sonido. Lo único en
-        // la bandeja sigue siendo la tarjeta, ahora con el tiempo en positivo.
-        assertTrue(vibrator().isVibrating());
+        // La misma tarjeta, repintada en positivo en el canal que vibra y con
+        // permiso para avisar aunque sea una actualización. Nada más en la bandeja.
         assertEquals(1, shadowOf(notifications).getAllNotifications().size());
         assertTrue(visible(collapsed(), R.id.widget_over));
-        // Como alarma: Android ignora la vibración de una app en segundo plano
-        // si no es de alarma, aviso o llamada, y con el teléfono bloqueado lo está.
-        assertEquals(VibrationAttributes.USAGE_ALARM,
-                ((VibrationAttributes) vibrator().getVibrationAttributesFromLastVibration()).getUsage());
-        // El canal con sonido de la 0.10.6 desaparece de Ajustes.
+        assertEquals(SessionNotification.CHANNEL_REST_OVER, shown().getChannelId());
+        assertTrue(alertsOnUpdate(shown()));
+        NotificationChannel buzz =
+                notifications.getNotificationChannel(SessionNotification.CHANNEL_REST_OVER);
+        assertTrue(buzz.shouldVibrate());
+        assertNull(buzz.getSound());
+        // La vibración la pone Android con la notificación, que en este teléfono
+        // sí llega (0.10.6); la directa de la 0.10.7 no llegaba. No las dos.
+        assertFalse(vibrator().isVibrating());
+        // El canal con sonido de la 0.10.6 sigue fuera de Ajustes.
         assertNull(notifications.getNotificationChannel("fitit_fin_descanso"));
     }
 
     @Test
-    public void aRestOverAlarmThatArrivesLateDoesNotVibrate() throws Exception {
+    public void afterTheBuzzTheCardGoesBackToTheQuietChannel() throws Exception {
+        SessionController.publish(context, bench(NOW + 1_000), NOW);
+        tap(SessionController.ACTION_REST_OVER);
+
+        tap(SessionController.ACTION_WEIGHT_UP);
+
+        assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
+        assertFalse(alertsOnUpdate(shown()));
+    }
+
+    @Test
+    public void aRestOverAlarmThatArrivesLateDoesNotBuzz() throws Exception {
         // Con el teléfono en reposo la alarma inexacta puede llegar tarde, y una
         // vibración a destiempo da la hora equivocada: mejor ninguna.
         SessionController.publish(context, bench(NOW + 1_000), NOW);
@@ -397,18 +415,18 @@ public class SessionControllerTest {
         SessionController.handle(context, new Intent(SessionController.ACTION_REST_OVER),
                 NOW + 1_000 + SessionController.REST_LATE_MS + 1);
 
-        assertFalse(vibrator().isVibrating());
+        assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
         assertTrue(visible(collapsed(), R.id.widget_over));
     }
 
     @Test
-    public void aSkippedRestDoesNotVibrate() throws Exception {
+    public void aSkippedRestDoesNotBuzz() throws Exception {
         SessionController.publish(context, bench(NOW + 83_000), NOW);
         SessionController.skipRest(context, NOW + 2_000);
 
         tap(SessionController.ACTION_REST_OVER);
 
-        assertFalse(vibrator().isVibrating());
+        assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
     }
 
     @Test
