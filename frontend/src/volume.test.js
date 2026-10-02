@@ -103,6 +103,19 @@ describe('bandState', () => {
     expect(bandState('Core', 0)).toMatchObject({ state: 'zona', gap: 0 })
   })
 
+  it('takes the glute landmarks from RP whole, so Glúteo is never "bajo" either', () => {
+    // RP's glute article: MV none, MEV "ZERO sets per week" because squatting
+    // maintains and grows them, MRV ~12 at two sessions. A floor of zero is the
+    // published number, not a gap in the table.
+    expect(BANDS['Glúteo']).toEqual({ mv: 0, mev: 0, mrv: 12 })
+    expect(bandState('Glúteo', 0)).toMatchObject({ state: 'zona', gap: 0 })
+    expect(bandState('Glúteo', 13).state).toBe('sobre')
+  })
+
+  it('keeps the hamstring band on Femoral now that the glutes have left it', () => {
+    expect(BANDS.Femoral).toEqual({ mv: 3, mev: 4, mrv: 12 })
+  })
+
   it('gives every group all three states somewhere on its own scale', () => {
     for (const group of MUSCLE_GROUPS) {
       const { mev, mrv } = BANDS[group]

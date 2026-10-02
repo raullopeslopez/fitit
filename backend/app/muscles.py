@@ -5,16 +5,22 @@ lift by hand, we guess the group from the name (Spanish and common English terms
 accent- and case-insensitively. A stored value always wins — this is only the
 auto-assignment/fallback, and the guess is editable via the API.
 
-The set is deliberately small (9 groups): the whole point downstream is a legible
-per-muscle colour, and a colour per individual muscle would be an unreadable
-rainbow.
+The set is deliberately small (10 groups): the whole point downstream is a
+legible per-muscle colour, and a colour per individual muscle would be an
+unreadable rainbow.
 
 It was 7 until the weekly-set reference arrived. A single "Pierna" bucket held
 squats, leg curls and calf raises at once, so "Pierna: 20 series" could be twenty
 sets of squats and nothing else — a number you cannot hold against a per-muscle
 reference and learn anything from. The three that a leg day actually splits into
-are separated; glutes ride with the hamstrings under ``FEMORAL`` because the
-hinges that train one train the other.
+are separated.
+
+Glutes rode with the hamstrings under ``FEMORAL`` until 2026-10, on the argument
+that the hinges that train one train the other. True of the hinges, and false of
+everything else that trains them: a squat grows the glutes and barely touches the
+hamstrings (Kubo et al. 2019), so every squat was paying its half-set to the one
+leg muscle it doesn't work, and a hip thrust and a leg curl landed on the same
+row. ``GLUTEO`` is the tenth group.
 """
 
 import unicodedata
@@ -22,6 +28,7 @@ import unicodedata
 PECHO = "Pecho"
 ESPALDA = "Espalda"
 CUADRICEPS = "Cuádriceps"
+GLUTEO = "Glúteo"
 FEMORAL = "Femoral"
 GEMELO = "Gemelo"
 HOMBRO = "Hombro"
@@ -30,12 +37,13 @@ TRICEPS = "Tríceps"
 CORE = "Core"
 
 # Canonical order — the UI renders chips/legend in this sequence, and it is the
-# order the categorical palette was validated in (adjacent pairs), so the three
+# order the categorical palette was validated in (adjacent pairs), so the four
 # leg groups have to stay together and in this position.
 MUSCLE_GROUPS: list[str] = [
     PECHO,
     ESPALDA,
     CUADRICEPS,
+    GLUTEO,
     FEMORAL,
     GEMELO,
     HOMBRO,
@@ -97,10 +105,27 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         ),
     ),
     (
-        # Hip hinge and knee flexion. Glutes live here: the RDLs and hip thrusts
-        # that train them train the hamstrings in the same set, and a separate
-        # glute colour was the tenth in a palette that stops being readable at
-        # nine.
+        # Hip extension against the hip, and abduction. Ahead of FEMORAL so
+        # "patada de glúteo" and "glute bridge" never reach a hinge keyword, and
+        # ahead of the triceps "patada".
+        #
+        # The abductor lives here. It used to have no group at all — see the
+        # FEMORAL comment below — because abduction is not hip extension and no
+        # hinge trains it. What it trains is gluteus medius and minimus, which is
+        # glute work by any reading, and the one part of the glute that neither
+        # squats nor hip thrusts grow (Plotkin et al. 2023). With a glute group it
+        # finally has an honest home. Spelled "abduc", never "aduc": the adductor
+        # is a hip extensor and stays with the hinge.
+        GLUTEO,
+        (
+            "hip thrust", "empuje de cadera", "gluteo", "glute", "patada de gluteo",
+            "puente de gluteo", "rear kick", "abductor", "abduccion", "abduction",
+        ),
+    ),
+    (
+        # Hip hinge and knee flexion. Glutes lived here until they got their own
+        # group: the hinges below still train them, and pay them half a set
+        # through `_SECONDARY_RULES` rather than being filed under them.
         #
         # The adductor belongs here on biomechanics, not for want of a better
         # shelf: the adductor magnus is a hip extensor — musculoskeletal
@@ -111,8 +136,8 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         # The *abductor* is not, and used to sit on this same line. Abduction is
         # not hip extension and no hinge trains it: Plotkin et al. 2023 found
         # little to no gluteus medius/minimus growth after nine weeks of *either*
-        # squats or hip thrusts. It has no honest home among the nine and no
-        # published volume landmark of its own, so it gets no guess at all.
+        # squats or hip thrusts. It went unclassified while there was no glute
+        # group, and is filed under GLUTEO above now that there is.
         #
         # Back extensions are hinges too, which is the least obvious entry here.
         # Without pelvic fixation the glutes and hamstrings de-rotate the pelvis
@@ -126,11 +151,9 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         # see test_isolated_lumbar_extension_is_not_filed_as_a_hinge.
         FEMORAL,
         (
-            "peso muerto rumano", "rumano", "romanian", "rdl", "hip thrust",
-            "empuje de cadera", "gluteo", "glute", "femoral", "isquios",
+            "peso muerto rumano", "rumano", "romanian", "rdl", "femoral", "isquios",
             "isquiotibial", "hamstring", "curl de pierna", "leg curl", "nordic",
-            "buenos dias", "good morning", "patada de gluteo", "puente de gluteo",
-            "rear kick", "aductor",
+            "buenos dias", "good morning", "aductor",
             "hiperextension", "banco romano", "roman chair", "back extension",
             "extension de espalda", "reverse hyper",
         ),
@@ -243,17 +266,32 @@ _SECONDARY_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
         ),
         (BICEPS,),
     ),
-    # A deadlift is a hip hinge that the back holds together.
-    (ESPALDA, ("peso muerto", "deadlift"), (FEMORAL,)),
-    # Knee-dominant work drives the hips out of the hole too. Leg extensions
-    # are absent: the hip never moves. Glutes ride with FEMORAL throughout.
+    # A deadlift is a hip hinge that the back holds together, and a hinge
+    # trains both of its hip extensors.
+    (ESPALDA, ("peso muerto", "deadlift"), (FEMORAL, GLUTEO)),
+    # The hinges filed under FEMORAL train the glutes in the same set. Leg
+    # curls are absent: knee flexion, the hip never moves.
+    (
+        FEMORAL,
+        (
+            "peso muerto rumano", "rumano", "romanian", "rdl", "buenos dias",
+            "good morning", "hiperextension", "banco romano", "roman chair",
+            "back extension", "extension de espalda", "reverse hyper",
+        ),
+        (GLUTEO,),
+    ),
+    # Knee-dominant work drives the hips out of the hole too — through the
+    # glutes, not the hamstrings. Kubo et al. 2019: full squats grew the glutes
+    # and the adductors and left the hamstrings essentially unchanged, because
+    # the hamstrings lengthen at the hip as they shorten at the knee and never
+    # change length much. Leg extensions are absent: the hip never moves.
     (
         CUADRICEPS,
         (
             "sentadilla", "squat", "prensa", "leg press", "zancada", "lunge",
             "bulgara", "hack", "jaca", "step up", "subida al cajon",
         ),
-        (FEMORAL,),
+        (GLUTEO,),
     ),
 ]
 

@@ -87,7 +87,7 @@ def _reject_unknown_group(group: str | None) -> None:
     """Every door that writes `muscle_group` goes through here.
 
     `None` is legal and means "no override, use the classifier"; anything else
-    has to be one of the canonical nine. This lived inline in `PATCH` only,
+    has to be one of the canonical groups. This lived inline in `PATCH` only,
     which left `POST` taking any string the column would fit — and the frontend
     documents its `Sin grupo` sentinel as safe precisely because the backend
     refuses it.

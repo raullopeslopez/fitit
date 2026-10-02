@@ -4,7 +4,7 @@
 // zone, the same nine times — which is what made the band question
 // unanswerable: ten sets of calves and ten sets of back are not the same news.
 // Renaissance Periodization publish a landmark set per muscle instead, and this
-// module is that set, mapped onto Fitit's nine groups.
+// module is that set, mapped onto Fitit's ten groups.
 //
 // ---------------------------------------------------------------------------
 // The landmarks
@@ -71,31 +71,32 @@
 //
 // The quad blog guide above carries a second, lower table (MV 2–4, MEV 4–6,
 // MRV 14–18). It is not used: the Help Center Quads article is the same vintage
-// and the same wording as the other ten, so taking it keeps all nine rows on one
+// and the same wording as the other ten, so taking it keeps every row on one
 // consistent scale. Mixing two revisions would make Cuádriceps incomparable with
 // its neighbours, which is the exact failure this module exists to fix.
 //
 // ---------------------------------------------------------------------------
-// Mapping RP's muscles onto Fitit's nine groups
+// Mapping RP's muscles onto Fitit's ten groups
 // ---------------------------------------------------------------------------
 //
-// RP does not use Fitit's partition, so three rows need a decision. The rule for
-// all three: **take one RP muscle wholesale rather than build a franken-band out
+// RP does not use Fitit's partition, so four rows need a decision. The rule for
+// all four: **take one RP muscle wholesale rather than build a franken-band out
 // of two.** A band assembled from two muscles' halves is a number no article
 // says, which is the thing this module is here to stop doing.
 //
-// * **Femoral** = hamstrings + glutes (DESIGN.md, 2026-08-01: "Glutes ride with
-//   the hamstrings under Femoral"). Takes the **hamstring** landmarks. The glute
-//   article supplies only zeros at the bottom — MV none, MEV "ZERO sets per
-//   week", because squatting maintains and grows them — so hamstrings are the
-//   only source of a nonzero floor either way. The ceiling is the one real
-//   choice: 12 (either muscle alone) or 24 (the sum). **12, the conservative
-//   read.** Both muscles happen to sit at 12 at two sessions, and hamstrings are
-//   the pair's recovery bottleneck — RP note their MRV barely rises with
-//   frequency "because the hamstrings take so long to recover", while glute MRV
-//   swings from 8 to triple depending on exercise. A ceiling of 24 assumes the
-//   row's volume split perfectly between two muscles, which the row cannot see
-//   and usually is not true.
+// * **Femoral** = hamstrings (and the adductors, which the classifier files
+//   with the hinge). Takes the **hamstring** landmarks. It carried the glutes
+//   too until 2026-10, and the band was the conservative 12 rather than the
+//   24 a sum would give, for a reason that no longer applies: the row could not
+//   see how its volume split between two muscles.
+//
+// * **Glúteo** takes the **glute** landmarks wholesale, zeros included: MV none,
+//   MEV "actually ZERO sets per week" because squatting maintains and grows
+//   them, MRV 12 at two sessions. So, like Core, **Glúteo can never read
+//   "bajo"**, and that is RP's position rather than a hole in the table. It is
+//   also what the log does: every squat, lunge, hinge and deadlift posts half a
+//   set here, and the "direct = total − indirect" correction below judges only
+//   the hip thrusts, bridges and abductors you did on purpose.
 //
 // * **Hombro** = front + side + rear delts, which RP bands very differently.
 //   Takes the **side delt** landmarks. It is the only one of the three heads
@@ -116,11 +117,11 @@
 //   "Zero sets per week. Yep." and ab MV at no training at all. **So Core can
 //   never read "bajo".** That is not an oversight, it is RP's position, and it
 //   is strictly better than the flat reference it replaces, which told you that
-//   you owed your abs ten sets. It does mean one of the nine rows only ever has
-//   two of the three states available to it.
+//   you owed your abs ten sets. It does mean two of the ten rows (Core and
+//   Glúteo) only ever have two of the three states available to them.
 //
 // Traps and forearms have RP articles too. Fitit has no such groups and
-// DESIGN.md caps the palette at nine ("a tenth group is not a new hue"), so they
+// DESIGN.md caps the palette at ten (Glúteo was the approved tenth), so they
 // are out of scope; trap work lands in Espalda by the classifier's `shrug` /
 // `trapecio` keywords, under a back band that does not describe it.
 //
@@ -140,14 +141,15 @@
 //
 // So for any group that receives indirect volume, this compares two different
 // quantities and our row reads high. Reading `_SECONDARY_RULES` in
-// backend/app/muscles.py, exactly four groups are affected, and the rest are
+// backend/app/muscles.py, exactly five groups are affected, and the rest are
 // never anybody's secondary:
 //
 //   never inflated   Pecho · Espalda · Cuádriceps · Gemelo · Core
 //   inflated by      Tríceps  +0.5 per chest press, dip and overhead press
 //                    Hombro   +0.5 per chest press and dip
 //                    Bíceps   +0.5 per pulldown, pull-up and row
-//                    Femoral  +0.5 per squat/press/lunge and per deadlift
+//                    Femoral  +0.5 per deadlift
+//                    Glúteo   +0.5 per squat/press/lunge, deadlift and hinge
 //
 // Measured against three real weeks of the user's log, the damage was not
 // theoretical: Bíceps read 29.5 sets one week off 16 direct and 13.5 collected
@@ -186,7 +188,8 @@ export const BANDS = {
   Pecho: { mv: 4, mev: 6, mrv: 20 }, // RP Chest
   Espalda: { mv: 6, mev: 10, mrv: 20 }, // RP Back
   Cuádriceps: { mv: 6, mev: 8, mrv: 18 }, // RP Quads
-  Femoral: { mv: 3, mev: 4, mrv: 12 }, // RP Hamstrings (glutes contribute 0/0/12)
+  Glúteo: { mv: 0, mev: 0, mrv: 12 }, // RP Glutes — MEV is genuinely zero
+  Femoral: { mv: 3, mev: 4, mrv: 12 }, // RP Hamstrings
   Gemelo: { mv: 6, mev: 8, mrv: 16 }, // RP Calves
   Hombro: { mv: 6, mev: 8, mrv: 25 }, // RP Side Delts (of front/side/rear)
   Bíceps: { mv: 4, mev: 8, mrv: 20 }, // RP Biceps

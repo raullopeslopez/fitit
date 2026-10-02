@@ -9,6 +9,7 @@ from app.muscles import (
     ESPALDA,
     FEMORAL,
     GEMELO,
+    GLUTEO,
     HOMBRO,
     MUSCLE_GROUPS,
     PECHO,
@@ -59,9 +60,13 @@ def test_classifies_common_lifts(name, expected):
         ("RDL", FEMORAL),
         ("Curl femoral", FEMORAL),  # a leg curl, not a biceps curl
         ("Curl de pierna tumbado", FEMORAL),
-        ("Hip thrust", FEMORAL),
-        ("Patada de glúteo", FEMORAL),
         ("Buenos días", FEMORAL),
+        # Glutes are their own group since the hip thrust stopped hiding in the
+        # hamstring row: hip extension against the hip, not against the knee.
+        ("Hip thrust", GLUTEO),
+        ("Patada de glúteo", GLUTEO),
+        ("Puente de glúteo", GLUTEO),
+        ("Empuje de cadera", GLUTEO),
         # Calves are their own group: many sets, one small muscle. Folding them
         # in with squats is exactly what made a "Pierna" total meaningless.
         ("Elevación de talones", GEMELO),
@@ -86,10 +91,10 @@ def test_splits_the_leg_groups(name, expected):
         ("Hamstring curl", FEMORAL),
         ("Romanian deadlift", FEMORAL),
         ("Nordic curl", FEMORAL),
-        ("Glute bridge", FEMORAL),
+        ("Glute bridge", GLUTEO),
         # A glute kickback machine. "Patada" and "kickback" belong to triceps, so
         # this one is matched on its own name rather than by loosening those.
-        ("Rear Kick Máq", FEMORAL),
+        ("Rear Kick Máq", GLUTEO),
         ("Leg extension", CUADRICEPS),
         ("Leg press", CUADRICEPS),
         ("Calf raise", GEMELO),
@@ -129,12 +134,13 @@ def test_every_result_is_a_canonical_group():
 
 def test_canonical_order_keeps_the_leg_groups_together():
     """The chip row and the legend render in this sequence, so it is the palette's
-    order too — and the three leg groups sit adjacent, which is what the
+    order too — and the four leg groups sit adjacent, which is what the
     colorblind validation was run against."""
     assert MUSCLE_GROUPS == [
         "Pecho",
         "Espalda",
         "Cuádriceps",
+        "Glúteo",
         "Femoral",
         "Gemelo",
         "Hombro",
@@ -202,7 +208,7 @@ def test_a_bare_kickback_is_left_for_the_user_to_tag():
     assert classify("Kickback") is None
     # Cualificado sí se clasifica, por los dos lados.
     assert classify("Kickback de tríceps") == TRICEPS
-    assert classify("Rear Kick Máq") == FEMORAL
+    assert classify("Rear Kick Máq") == GLUTEO
 
 
 def test_vocabulary_holes():
@@ -242,15 +248,33 @@ def test_isolated_lumbar_extension_is_not_filed_as_a_hinge():
 
 
 def test_the_abductor_machine_is_not_posterior_chain():
-    """El aductor se queda en Femoral y el abductor sale.
+    """El aductor se queda en Femoral y el abductor no.
 
     No es simetría: el aductor mayor es un extensor de cadera —aporta la mitad
     o más del par de extensión en sentadilla, y Kubo et al. 2019 midió +6,2% de
     volumen sólo sentadillando—, así que pertenece a la familia del hinge. La
     abducción no es extensión de cadera y ningún hinge la entrena: Plotkin et
     al. 2023 no halló crecimiento del glúteo medio/menor ni con sentadilla ni
-    con hip thrust. Sin grupo honesto donde ponerlo, lo etiqueta el usuario."""
+    con hip thrust."""
     assert classify("Aductores en máquina") == FEMORAL
     assert classify("Copenhagen") is None  # tampoco se inventa uno
-    assert classify("Abductores en máquina") is None
-    assert classify("Abductor") is None
+
+
+def test_the_abductor_machine_is_glute_work():
+    """Sin grupo Glúteo, el abductor se quedaba sin clasificar: no tenía sitio
+    honesto entre los nueve. Lo que trabaja es el glúteo medio y menor, que es
+    justo lo que ni la sentadilla ni el hip thrust hacen crecer (Plotkin et al.
+    2023), así que con Glúteo como grupo es trabajo directo de glúteo."""
+    assert classify("Abductores en máquina") == GLUTEO
+    assert classify("Abductor") == GLUTEO
+    assert classify("Hip abduction") == GLUTEO
+    # El parecido de nombre no arrastra al aductor.
+    assert classify("Aductor") == FEMORAL
+
+
+def test_hamstring_and_hinge_work_stays_femoral():
+    """Separar el glúteo no saca nada de la bisagra: el peso muerto rumano y el
+    banco romano siguen siendo Femoral, y el glúteo los cobra como secundario."""
+    for name in ["Curl femoral", "Peso muerto rumano", "Nordic curl", "Buenos días",
+                 "Hiperextensiones"]:
+        assert classify(name) == FEMORAL, name

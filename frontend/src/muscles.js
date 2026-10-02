@@ -4,6 +4,7 @@ export const MUSCLE_GROUPS = [
   'Pecho',
   'Espalda',
   'Cuádriceps',
+  'Glúteo',
   'Femoral',
   'Gemelo',
   'Hombro',
@@ -16,6 +17,7 @@ const SLUG = {
   Pecho: 'pecho',
   Espalda: 'espalda',
   Cuádriceps: 'cuadriceps',
+  Glúteo: 'gluteo',
   Femoral: 'femoral',
   Gemelo: 'gemelo',
   Hombro: 'hombro',
@@ -34,7 +36,7 @@ export function muscleColor(group) {
 // What an exercise with no group is called, everywhere it is named: the empty
 // option of the corrector, and the Progreso chip that makes those exercises
 // reachable at all. It doubles as the selected-filter value there — safe as a
-// sentinel because the backend only accepts the nine real groups, so no
+// sentinel because the backend only accepts the real groups, so no
 // exercise can ever hold this as its actual muscle_group.
 export const UNGROUPED = 'Sin grupo'
 

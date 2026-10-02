@@ -1,4 +1,4 @@
-"""The nine groups live in four places. Nothing made them agree.
+"""The muscle groups live in four places. Nothing made them agree.
 
 `MUSCLE_GROUPS` is declared in `backend/app/muscles.py` and again in
 `frontend/src/muscles.js`; each group needs a `--m-<slug>` colour token in

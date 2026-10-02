@@ -19,7 +19,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-from app.muscles import CUADRICEPS, FEMORAL, GEMELO, classify
+from app.muscles import CUADRICEPS, FEMORAL, GEMELO, GLUTEO, classify
 
 revision: str = "d4f7a2c9e185"
 down_revision: str | None = "b2c3d4e5f6a7"
@@ -38,6 +38,11 @@ def upgrade() -> None:
     ).all()
     for row in rows:
         guess = classify(row.name)
+        # Glúteo did not exist yet: the classifier now files hip thrusts there,
+        # but at this revision they were Femoral, and a7c2e9f41d36 is what moves
+        # them on. Without this they would fall through to Cuádriceps.
+        if guess == GLUTEO:
+            guess = FEMORAL
         group = guess if guess in LEG_GROUPS else CUADRICEPS
         conn.execute(
             sa.text("UPDATE exercises SET muscle_group = :group WHERE id = :id"),

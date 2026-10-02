@@ -155,12 +155,15 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   brand/effort/PR accent and is **not** in this palette (so "record" keeps meaning).
 - **Color rides a mark, not text.** A muscle is shown as a colored dot/line beside
   its name; labels/values stay in ink. Color is never the only cue.
-- **Fixed 9-group set**, assigned in canonical order (below). A colour per
-  individual muscle would be an unreadable rainbow — nine is the ceiling, and it
-  is already at the edge of what a categorical palette separates cleanly. A
-  tenth group is not a new hue: fold it into an existing one.
-- **The three leg groups sit adjacent in the order**, because that is the
-  pairlist the validation was run against. Reordering them re-opens the check.
+- **Fixed 10-group set**, assigned in canonical order (below). A colour per
+  individual muscle would be an unreadable rainbow — ten is the ceiling, and the
+  hue wheel is full: the tenth (Glúteo, 2026-10-02) only fit as a dark,
+  low-chroma copper, and in dark mode it clears its neighbour Cuádriceps by
+  ΔE 15.2 against a floor of 15. An eleventh group is not a new hue: fold it
+  into an existing one.
+- **The four leg groups sit adjacent in the order** (Cuádriceps · Glúteo ·
+  Femoral · Gemelo), because that is the pairlist the validation was run
+  against. Reordering them re-opens the check.
 - Validated colorblind-safe on the *adjacent* pairlist in both modes via the
   dataviz `validate_palette.js` (light surface #fff, dark #15171A). Re-run it if
   you touch these hues.
@@ -170,6 +173,7 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   | Pecho | `#3987e5` | `#2a78d6` |
   | Espalda | `#008300` | `#008300` |
   | Cuádriceps | `#d55181` | `#e87ba4` |
+  | Glúteo | `#a16336` | `#7d3f17` |
   | Femoral | `#8046c8` | `#8b4bc0` |
   | Gemelo | `#0093a8` | `#0089a0` |
   | Hombro | `#c98500` | `#eda100` |
@@ -599,6 +603,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-02 | Glúteo sale de Femoral: diez grupos, y la paleta pasa de 9 a 10 | Reversión explícita de «nueve es el techo» (2026-08-01), aprobada por el usuario. Femoral juntaba isquios y glúteo con el argumento de que las bisagras que entrenan uno entrenan el otro, y eso es cierto de las bisagras y falso de todo lo demás: la sentadilla hace crecer el glúteo y apenas los isquios (Kubo et al. 2019), así que cada sentadilla pagaba su media serie al único músculo de la pierna que no trabaja, y un hip thrust y un curl femoral caían en la misma fila. Ahora: hip thrust, puente, patada de glúteo y **abductor** (que hasta hoy no tenía grupo) son Glúteo; la bisagra sigue en Femoral y paga ½ a Glúteo; sentadilla, prensa y zancada pagan ½ a Glúteo en vez de a Femoral; el peso muerto paga ½ a cada uno. Banda RP de glúteo tal cual: mínimo 0, máximo 12, así que la fila, como Core, nunca dice «faltan». El color es un cobre (`#a16336` oscuro / `#7d3f17` claro), insertado entre Cuádriceps y Femoral para que la pierna siga junta. La rueda ya estaba llena y no había sitio para un tono vivo: es el único hueco que pasa el validador en los dos modos sin añadir un WARN de contraste, y en oscuro queda a ΔE 15,2 de Cuádriceps (suelo 15), el par adyacente más justo de la paleta en visión normal. Revalidado en las cuatro superficies; el peor par CVD no cambia. |
 | 2026-10-02 | La vibración del fin del descanso la pone la tarjeta | Corrige la 0.10.7, que no vibraba en el Xiaomi: la vibración directa desde la alarma, con el teléfono bloqueado, se descarta. La de una notificación sí llega (se vio en la 0.10.6). Así que vibra la tarjeta que ya está, repintada una vez en un canal hermano que vibra, y no se añade ninguna notificación. De paso vuelve el interruptor en Ajustes, que la 0.10.7 había perdido. |
 | 2026-10-02 | El fin del descanso sólo vibra | Corrige la del día anterior tras usarla: el usuario lleva el móvil en vibración y lo que le servía era la vibración; el aviso `Descanso terminado` era una segunda notificación para decir lo que la tarjeta ya dice al pasar a positivo. Se quitan el aviso y su canal, y el teléfono vibra directamente, como alarma (`USAGE_ALARM`), porque con la pantalla bloqueada Android ignora las demás vibraciones de una app en segundo plano. Se renuncia al interruptor del canal en Ajustes: no hay canal que apagar. Si alguien quiere callarlo, la respuesta hoy es `Descanso: Sin`. |
 | 2026-10-01 | El fin del descanso suena, en un canal propio | Pedido por el usuario para el APK, y reabre el «ni sonido ni vibración» del 2026-09-25 sólo para ese momento. No se le pone sonido a la tarjeta: se reescribe con cada serie y tiene que seguir muda, y Android no deja cambiar el sonido de un canal ya creado. Es una notificación aparte, en `fitit_fin_descanso`, que se quita sola; callarla es apagar ese canal en Ajustes, la misma regla del 2026-07-25 (la preferencia de silencio vive en el canal, no en un interruptor). Y una salvedad que es de producto, no técnica: la alarma sigue siendo inexacta, y **si llega más de 60 s tarde no suena** — un pitido a destiempo da la hora equivocada, peor que no darla. |

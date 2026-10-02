@@ -167,8 +167,8 @@ describe('MusclePicker', () => {
     const group = screen.getByRole('radiogroup', { name: 'Grupo muscular de Press banca' })
     expect(screen.getByRole('radio', { name: 'Pecho' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Espalda' })).not.toBeChecked()
-    // Los nueve grupos y «Sin grupo», todos a la vista.
-    expect(group.querySelectorAll('[role="radio"]')).toHaveLength(10)
+    // Los diez grupos y «Sin grupo», todos a la vista.
+    expect(group.querySelectorAll('[role="radio"]')).toHaveLength(11)
     expect(document.querySelector('select')).toBeNull()
   })
 

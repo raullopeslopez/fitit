@@ -230,7 +230,7 @@ const SPOKEN = {
 // sets only — "we've already factored in the indirect volume from pressing
 // movements" — while the row prints the fractional total. Handing `bandState`
 // the total was comparing two different quantities, and it cost the card four
-// of its nine rows on a normal week: Tríceps read over its ceiling off ten
+// of its nine rows on a normal week (nine then; Glúteo is the tenth): Tríceps read over its ceiling off ten
 // direct sets because four days of pressing had posted ten half-sets into it,
 // and Hombro, Bíceps and Femoral each read "en zona" on volume the chest and
 // the back had done for them. The figure the row prints does not change — it

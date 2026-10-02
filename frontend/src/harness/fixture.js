@@ -33,8 +33,8 @@ const dow = (today.getDay() + 6) % 7
 const monday = shift(today, -dow)
 
 // Fractional sets per group this week, read against the mev–mrv bands in
-// volume.js: Pecho 6–20, Espalda 10–20, Cuádriceps 8–18, Femoral 4–12,
-// Gemelo 8–16, Hombro 8–25, Bíceps 8–20, Tríceps 6–16, Core 0–25.
+// volume.js: Pecho 6–20, Espalda 10–20, Cuádriceps 8–18, Glúteo 0–12,
+// Femoral 4–12, Gemelo 8–16, Hombro 8–25, Bíceps 8–20, Tríceps 6–16, Core 0–25.
 const TARGETS = {
   Hombro: 32, // well past 25 — the row that has to shout
   Gemelo: 17, // one set past 16 — the one that must not read as "inside"
@@ -45,6 +45,7 @@ const TARGETS = {
   Tríceps: 4.5, // under 6, by a fraction — the gap the row prints is 1.5
   Bíceps: 3, // well under 8
   Femoral: 0, // untouched this week, trained last — the silent row
+  Glúteo: 5, // inside (no floor either: RP put glute MEV at zero)
 }
 
 // The compound lifts, written first because they are what makes the counting
@@ -62,6 +63,7 @@ const FILLER = {
   Pecho: 'Aperturas en polea',
   Espalda: 'Jalón neutro',
   Cuádriceps: 'Prensa',
+  Glúteo: 'Hip thrust',
   Femoral: 'Curl femoral',
   Gemelo: 'Gemelo en máquina',
   Hombro: 'Elevaciones laterales',
@@ -190,6 +192,7 @@ function lastWeek() {
     Pecho: 10,
     Espalda: 12,
     Cuádriceps: 12,
+    Glúteo: 6,
     Femoral: 10,
     Gemelo: 6,
     Hombro: 14,
@@ -290,7 +293,8 @@ const PREVIOUS = [
     ['Curl con mancuerna', 'Bíceps', [], 3],
   ],
   [
-    ['Prensa', 'Cuádriceps', ['Femoral'], 4],
+    ['Prensa', 'Cuádriceps', ['Glúteo'], 4],
+    ['Hip thrust', 'Glúteo', [], 3],
     ['Curl femoral', 'Femoral', [], 3],
     ['Gemelo en máquina', 'Gemelo', [], 4],
   ],
