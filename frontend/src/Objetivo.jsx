@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import { acceptTarget, getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
-import { formatMacro } from './food.js'
+import { acceptTarget, saveTargetProfile } from './api.js'
 import { formatSteps } from './steps.js'
-import { publishStepsGoal } from './widgetSummary.js'
+import { Chip, Sheet } from './ui'
 
 const OBJETIVOS = [
   ['cut', 'Bajar'],
@@ -11,118 +10,83 @@ const OBJETIVOS = [
   ['gain', 'Ganar'],
 ]
 
+// Un número con el punto de miles que se escribe aquí. `toLocaleString('es-ES')`
+// no sirve: en español no agrupa los de cuatro cifras («2569»), y 2.569 kcal es
+// como se lee y como se teclea.
+export function conMiles(n) {
+  if (n == null) return '—'
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+// «0,5»: aquí se escribe con coma, y la API habla en punto.
+const conComa = (n) => String(n).replace('.', ',')
+
+// Vacío o ilegible es `null`, nunca cero: sin dato no es dato.
+function numero(raw) {
+  const value = Number(String(raw ?? '').replace(',', '.'))
+  return String(raw ?? '').trim() === '' || !Number.isFinite(value) ? null : value
+}
+
 // De dónde salió la cifra, dicho con la palabra que le corresponde.
 //
 // Una estimación y una medición no se pintan igual: presentar la primera con la
 // tinta de la segunda es la clase de mentira tranquila que esta app evita en
 // todo lo demás. `measured` dice además sobre cuántos días descansa, y la
 // fórmula con qué actividad contó cuando hubo pasos en vez de adivinarla.
-function Procedencia({ source, days, stepsPerDay, trainingKcal }) {
-  if (source === 'measured') {
+export function procedencia(propuesta) {
+  if (!propuesta) return null
+  const { source } = propuesta
+  if (source === 'measured') return `Medido con tus datos · ${propuesta.days ?? 0} días`
+  if (source === 'formula' && propuesta.steps_per_day != null) {
+    const entreno = propuesta.training_kcal_per_day
     return (
-      <span className="objetivo-fuente">
-        Medido con tus datos · {days} días
-      </span>
+      `Estimado con tus ${formatSteps(propuesta.steps_per_day)} al día` +
+      (entreno ? ` y ${entreno} kcal de entreno` : '')
     )
   }
-  if (source === 'formula' && stepsPerDay != null) {
-    return (
-      <span className="objetivo-fuente">
-        Estimado con tus {formatSteps(stepsPerDay)} al día
-        {trainingKcal ? ` y ${trainingKcal} kcal de entreno` : ''}
-      </span>
-    )
-  }
-  if (source === 'formula') {
-    return <span className="objetivo-fuente">Estimado con una fórmula</span>
-  }
+  if (source === 'formula') return 'Estimado con una fórmula'
   return null
 }
 
+// El ritmo, como se dice: «Bajar · 0,5 kg/sem». Sin objetivo es una raya, no «—
+// kg/sem»; y «Mantener» no lleva ritmo, que no tiene sentido.
+export function ritmo(perfil) {
+  const goal = perfil?.goal
+  const nombre = OBJETIVOS.find(([value]) => value === goal)?.[1]
+  if (!nombre) return null
+  if (goal === 'maintain' || !perfil.goal_rate) return nombre
+  return `${nombre} · ${conComa(perfil.goal_rate)} kg/sem`
+}
+
 /**
- * De qué quieres que le pase a tu cuerpo a cuántas kcal tocan.
+ * De qué quieres que le pase a tu cuerpo y a cuántas kcal tocan: la hoja «Tu
+ * objetivo» de Perfil.
  *
  * La app **propone** y tú aceptas (decisión 18). Un número que cambia sin
  * avisar no se obedece, se desconfía — así que mirar la propuesta no fija
- * nada, y aceptar es un acto aparte.
+ * nada, y aceptar es un acto aparte. «Guardar» fija sólo el objetivo y el
+ * ritmo, vuelve a preguntar y deja la hoja abierta, para que se vea qué cifra
+ * sale con lo nuevo antes de decidir si se acepta.
+ *
+ * Se monta al abrirse, así que su borrador siempre arranca del perfil de ahora.
  */
-export default function Objetivo({ onAccepted, refresh = 0 }) {
-  const [perfil, setPerfil] = useState(null)
-  const [propuesta, setPropuesta] = useState(null)
+export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onAccepted }) {
+  const [goal, setGoal] = useState(perfil?.goal ?? null)
+  const [rate, setRate] = useState(perfil?.goal_rate == null ? '' : conComa(perfil.goal_rate))
   const [busy, setBusy] = useState(false)
-  const [pasosMal, setPasosMal] = useState(false)
 
-  const preguntar = useCallback(async () => {
-    try {
-      setPropuesta((await getTargetProposal()) ?? null)
-    } catch {
-      setPropuesta(null)
-    }
-  }, [])
+  const kcal = propuesta?.kcal ?? null
+  const fuente = procedencia(propuesta)
 
-  useEffect(() => {
-    let vivo = true
-    ;(async () => {
-      try {
-        const p = await getTargetProfile()
-        // `?? {}` y no a pelo: un perfil que no llega deja la pantalla
-        // utilizable —los campos vacíos y la propuesta diciendo qué falta—
-        // en vez de caerse sobre `undefined`.
-        if (vivo) setPerfil(p ?? {})
-      } catch {
-        if (vivo) setPerfil({})
-      }
-      if (vivo) await preguntar()
-    })()
-    return () => {
-      vivo = false
-    }
-  }, [preguntar])
-
-  // Una pesada nueva cambia la propuesta: se vuelve a pedir, sin tocar los
-  // campos que estés editando. `refresh` lo sube quien sabe que ha cambiado.
-  useEffect(() => {
-    if (refresh > 0) preguntar()
-  }, [refresh, preguntar])
-
-  const set = (key) => (e) => setPerfil({ ...perfil, [key]: e.target.value })
-
-  const numero = (raw) => {
-    const value = Number(String(raw ?? '').replace(',', '.'))
-    return String(raw ?? '').trim() === '' || !Number.isFinite(value) ? null : value
-  }
-
-  // Pasos: un entero, con o sin punto de miles («10.000» son diez mil, no diez).
-  // Vacío es sin objetivo (null), nunca cero.
-  const pasos = (raw) => {
-    const text = String(raw ?? '').replace(/[.\s]/g, '')
-    if (text === '') return null
-    return /^\d+$/.test(text) ? Number(text) : NaN
-  }
-
-  async function guardarPerfil() {
-    const stepsGoal = pasos(perfil.steps_goal)
-    // El servidor sólo acepta 1.000–100.000; mandarle otra cosa sería un error
-    // callado en vez de una frase.
-    if (stepsGoal !== null && !(stepsGoal >= 1000 && stepsGoal <= 100000)) {
-      setPasosMal(true)
-      return
-    }
-    setPasosMal(false)
+  async function guardar() {
     setBusy(true)
     try {
       await saveTargetProfile({
-        goal: perfil.goal || null,
-        goal_rate: numero(perfil.goal_rate),
-        height_cm: numero(perfil.height_cm),
-        birth_year: numero(perfil.birth_year),
-        sex: perfil.sex || null,
-        steps_goal: stepsGoal,
+        goal,
+        // Mantener no tiene ritmo: se guarda 0 y no un resto de cuando bajabas.
+        goal_rate: goal === 'maintain' ? 0 : numero(rate),
       })
-      // El widget de Android dibuja la barra contra este número.
-      publishStepsGoal(stepsGoal)
-      // Y se vuelve a preguntar: la cifra depende de lo que se acaba de guardar.
-      await preguntar()
+      await onSaved()
     } finally {
       setBusy(false)
     }
@@ -131,34 +95,27 @@ export default function Objetivo({ onAccepted, refresh = 0 }) {
   async function aceptar() {
     setBusy(true)
     try {
-      await acceptTarget(propuesta.kcal)
+      // Aceptar fija las kcal y sus gramos a la vez: los macros no se deciden
+      // aparte, y Comida compara con lo que se acepte aquí.
+      await acceptTarget(kcal)
       await onAccepted()
     } finally {
       setBusy(false)
     }
   }
 
-  if (perfil === null) return null
-  const kcal = propuesta?.kcal ?? null
-
   return (
-    <section className="objetivo">
-      <p className="card-eyebrow">De dónde salen tus calorías</p>
-
-      <p className="objetivo-figure">
-        <span className="objetivo-kcal">{formatMacro(kcal)}</span>
-        {kcal != null && <span className="objetivo-unit">kcal</span>}
+    <Sheet open title="Tu objetivo" onClose={onClose}>
+      <p className="perfil-figure">
+        <span className="perfil-kcal">{conMiles(kcal)}</span>
+        {kcal != null && <span className="perfil-unit">kcal</span>}
       </p>
-      <Procedencia
-        source={propuesta?.source}
-        days={propuesta?.days ?? 0}
-        stepsPerDay={propuesta?.steps_per_day ?? null}
-        trainingKcal={propuesta?.training_kcal_per_day ?? 0}
-      />
+      {fuente && <span className="perfil-fuente">{fuente}</span>}
+
       {/* Cómo se reparten esas kcal. Se ve antes de aceptar porque aceptar fija
           las dos cosas: las kcal y estos gramos. */}
       {kcal != null && propuesta?.protein != null && (
-        <p className="objetivo-macros">
+        <p className="perfil-macros">
           {`Proteína ${propuesta.protein} g · Hidratos ${propuesta.carbs} g · Grasa ${propuesta.fat} g`}
         </p>
       )}
@@ -166,97 +123,46 @@ export default function Objetivo({ onAccepted, refresh = 0 }) {
       {/* Un resultado vacío nombra el fallo correcto: qué falta, por su nombre,
           en vez de una cifra inventada con una media. */}
       {kcal == null && propuesta?.missing?.length > 0 && (
-        <p className="objetivo-falta">
-          Para calcularlo me falta: {propuesta.missing.join(', ')}.
-        </p>
+        <p className="perfil-aviso">Para calcularlo me falta: {propuesta.missing.join(', ')}.</p>
       )}
 
       {/* Recortar en silencio sería devolver otra cosa de la que pediste. */}
       {propuesta?.floored && (
-        <p className="objetivo-falta">
-          Con ese ritmo saldría menos, pero no baja de 1.200 kcal.
-        </p>
+        <p className="perfil-aviso">Con ese ritmo saldría menos, pero no baja de 1.200 kcal.</p>
       )}
 
-      <div className="objetivo-row">
-        <div className="field">
-          <label htmlFor="goal">Quiero</label>
-          <select id="goal" value={perfil.goal ?? ''} onChange={set('goal')}>
-            <option value="">Sin decidir</option>
-            {OBJETIVOS.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <p className="perfil-campo-label" id="objetivo-quiero">
+        Quiero
+      </p>
+      <div className="perfil-chips" role="group" aria-labelledby="objetivo-quiero">
+        {OBJETIVOS.map(([value, label]) => (
+          <Chip key={value} selected={goal === value} onClick={() => setGoal(value)}>
+            {label}
+          </Chip>
+        ))}
+      </div>
+
+      {goal !== 'maintain' && (
         <div className="field">
           <label htmlFor="goal_rate">kg por semana</label>
           <input
             id="goal_rate"
             inputMode="decimal"
-            value={perfil.goal_rate ?? ''}
-            onChange={set('goal_rate')}
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
             placeholder="0,5"
           />
         </div>
-      </div>
+      )}
 
-      <div className="objetivo-row">
-        <div className="field">
-          <label htmlFor="height_cm">Altura (cm)</label>
-          <input
-            id="height_cm"
-            inputMode="decimal"
-            value={perfil.height_cm ?? ''}
-            onChange={set('height_cm')}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="birth_year">Año de nacimiento</label>
-          <input
-            id="birth_year"
-            inputMode="numeric"
-            value={perfil.birth_year ?? ''}
-            onChange={set('birth_year')}
-          />
-        </div>
-      </div>
-
-      <div className="field">
-        <label htmlFor="sex">Sexo</label>
-        <select id="sex" value={perfil.sex ?? ''} onChange={set('sex')}>
-          <option value="">Sin decir</option>
-          <option value="male">Hombre</option>
-          <option value="female">Mujer</option>
-        </select>
-      </div>
-
-      <div className="field">
-        <label htmlFor="steps_goal">Pasos al día</label>
-        <input
-          id="steps_goal"
-          inputMode="numeric"
-          value={perfil.steps_goal ?? ''}
-          onChange={set('steps_goal')}
-          placeholder="10.000"
-          aria-describedby={pasosMal ? 'steps_goal_error' : undefined}
-        />
-        {pasosMal && (
-          <p id="steps_goal_error" className="objetivo-falta">
-            Entre 1.000 y 100.000 pasos.
-          </p>
-        )}
-      </div>
-
-      <div className="objetivo-actions">
-        <button type="button" className="secondary" disabled={busy} onClick={guardarPerfil}>
-          Guardar mis datos
+      <div className="perfil-acciones">
+        <button type="button" className="secondary" disabled={busy} onClick={guardar}>
+          Guardar
         </button>
         <button type="button" className="primary" disabled={busy || kcal == null} onClick={aceptar}>
           Aceptar
         </button>
       </div>
-    </section>
+    </Sheet>
   )
 }

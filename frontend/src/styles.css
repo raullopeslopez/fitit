@@ -5308,76 +5308,6 @@ button.draft-save {
   line-height: 1.5;
 }
 
-/* --- Peso corporal (Progreso) ---------------------------------------------
-   La cifra grande es la **tendencia**, nunca la última pesada: el peso oscila
-   más de un kilo por agua, y pintar la última invita a leer como un cambio lo
-   que fue una cena. Mono tabular, como todo número de esta app.
-
-   El guion del desconocido va en `--text`, no en `--muted`: es la misma regla
-   que en Comida — lo que nadie ha medido se imprime con la misma tinta que una
-   cifra, porque es un dato y no un hueco decorativo. Lo muted es la frase que
-   lo explica, que sí es prosa de apoyo. */
-.weight-figure {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  margin: 0 0 0.25rem;
-}
-.weight-kg {
-  font-family: var(--font-mono);
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-.weight-unit {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  color: var(--muted);
-}
-/* Micro: mayúsculas espaciadas que anotan una cifra, no una frase que se lee.
-   Dice cuántas pesadas la sostienen —dos y veinte no valen lo mismo— y hasta
-   cuándo está medida, para que una tendencia de hace un mes lo diga. */
-.weight-stamp {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 0.9rem;
-}
-/* Prosa, así que no baja de la escala legible: «una pesada» y «ninguna» son
-   fallos distintos y cada uno se nombra por su nombre. */
-/* Dos sellos seguidos: el de la última pesada se pega al de la tendencia. */
-.weight-stamp:has(+ .weight-trend) {
-  margin-bottom: 0.2rem;
-}
-.weight-empty {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin: 0 0 0.9rem;
-  max-width: 34ch;
-}
-.weight-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-}
-.weight-input {
-  flex: 1;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.weight-save {
-  flex: none;
-}
-.weight-error {
-  font-size: 0.85rem;
-  color: var(--danger);
-  margin: 0.5rem 0 0;
-}
-
 /* --- Platos ----------------------------------------------------------------
    Un plato registrado son varias filas de alimento. El grupo las recoge bajo
    su nombre con un filete izquierdo, que es lo que dice «esto es una cosa» sin
@@ -5493,89 +5423,13 @@ button.draft-save {
   max-width: 40ch;
 }
 
-/* --- Objetivo derivado ------------------------------------------------------
-   La cifra grande es una propuesta, no tu objetivo: se mira y se acepta aparte.
-   Mono tabular, como todo número de esta app. */
-.objetivo {
-  margin-bottom: 1.1rem;
-}
-.objetivo-macros {
-  margin: 0.35rem 0 0.9rem;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-  color: var(--text);
-}
-.objetivo-figure {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  margin: 0.15rem 0 0.1rem;
-}
-.objetivo-kcal {
-  font-family: var(--font-mono);
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-.objetivo-unit {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  color: var(--muted);
-}
-/* De dónde salió. Una estimación y una medición no se dicen igual. */
-.objetivo-fuente {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.6rem;
-}
-.objetivo-falta {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin: 0 0 0.7rem;
-  max-width: 40ch;
-}
+/* --- Reglas: filas de dos campos --------------------------------------------- */
 .objetivo-row {
   display: flex;
   gap: 0.6rem;
 }
 .objetivo-row .field {
   flex: 1;
-}
-.objetivo-actions {
-  display: flex;
-  gap: 0.6rem;
-  justify-content: flex-end;
-  margin: 0.4rem 0 0.2rem;
-}
-/* --- Perfil ---------------------------------------------------------------
-   Lo que se fija una vez (DESIGN.md, «Perfil»): tarjetas apiladas con el
-   ritmo de siempre (`.card` trae su margen), y «Salir» al final, callado. */
-.perfil-card .objetivo {
-  margin-bottom: 0;
-}
-/* Las preferencias de Entreno eran filas de un menú; aquí son el contenido de
-   la tarjeta, así que no llevan el sangrado del menú ni la raya final. */
-.perfil-card .menu-pref {
-  padding: 0.3rem 0 0.7rem;
-}
-.perfil-card .menu-pref + .menu-pref {
-  padding-top: 0.7rem;
-}
-.perfil-card .menu-pref:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-.perfil-salir {
-  display: flex;
-  justify-content: center;
-  margin: 0.5rem 0 1.5rem;
 }
 
 /* --- Reglas ---------------------------------------------------------------- */
@@ -6005,4 +5859,227 @@ button.draft-save {
   content: '›';
   color: var(--muted);
   font-family: var(--font-body);
+}
+
+/* ================================================================== *
+ * Perfil v2 (DESIGN.md → Sistema v2, H1)
+ * Una cabecera tonal con el peso, y secciones de filas que abren hojas.
+ * ================================================================== */
+/* El botón flotante vive sobre la lista: `Salir`, lo último de la columna,
+   tiene que poder subir por encima de él (56px de botón + 1rem de aire + la
+   barra de 56px), así que el pie del contenedor crece. */
+.perfil {
+  padding-bottom: 6rem;
+}
+
+/* La cabecera: lo que la pantalla mide. Superficie tonal, y la cifra es la
+   única Display de la pantalla. */
+.weight-card {
+  background: var(--surface-tonal);
+  border-radius: var(--radius-card);
+  padding: 1.1rem 1.25rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+/* Micro: un sello que rotula la cifra, no una frase. */
+.weight-stamp {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+.weight-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.weight-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+}
+/* El guion del desconocido va en `--text`, no en `--muted`: lo que nadie ha
+   medido se imprime con la misma tinta que una cifra, porque es un dato y no un
+   hueco decorativo. `.weight-kg` no se bifurca, así que medir su tinta mide la
+   del guion. */
+.weight-kg {
+  font-family: var(--font-mono);
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.weight-unit {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text);
+}
+/* La curva no tiene ejes ni cifras: es la forma. El trazo en `--muted` para
+   que no compita con el número; la última pesada, un punto de ámbar. */
+.weight-spark {
+  flex: none;
+  width: 120px;
+  height: 36px;
+  overflow: visible;
+}
+.weight-spark-line {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.weight-spark-dot {
+  fill: var(--accent);
+}
+/* Cifras, no frases: `--text`, con el valor en mono. Dos y veinte pesadas no
+   sostienen igual una tendencia, así que la cuenta va pegada a ella. */
+.weight-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.25rem;
+  margin-top: 0.7rem;
+}
+.weight-trend,
+.weight-last {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.weight-fact {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.weight-n {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+/* Prosa, así que no baja de la escala legible: «una pesada» y «ninguna» son
+   fallos distintos y cada uno se nombra por su nombre. */
+.weight-empty {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.7rem 0 0;
+  max-width: 34ch;
+}
+.weight-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+.weight-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.weight-error {
+  font-size: 0.85rem;
+  color: var(--danger);
+  margin: 0.5rem 0 0;
+}
+
+/* Una sección: su título, y debajo la tarjeta de filas. La tarjeta no lleva
+   relleno —cada `ListRow` trae el suyo y su raya—, y recorta los rincones del
+   primer y el último para que el hover no se salga del radio. */
+.perfil-seccion {
+  margin-bottom: 1.25rem;
+}
+.perfil-seccion > h2 {
+  margin: 0 0 0.5rem 0.25rem;
+}
+.perfil-card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+/* Las preferencias de Entreno no son filas sino controles, y llevan aire. */
+.perfil-card-pad {
+  padding: 0.5rem 1.1rem;
+}
+.perfil-card .menu-pref {
+  padding: 0.3rem 0 0.7rem;
+}
+.perfil-card .menu-pref + .menu-pref {
+  padding-top: 0.7rem;
+}
+.perfil-card .menu-pref:last-child {
+  border-bottom: 0;
+  padding-bottom: 0.3rem;
+}
+.perfil-salir {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0 1.5rem;
+}
+
+/* La hoja «Tu objetivo». La cifra es una propuesta, no tu objetivo: se mira y
+   se acepta aparte. Big stat, que el Display ya es el del peso. */
+.perfil-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+}
+.perfil-kcal {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.perfil-unit {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text);
+}
+/* De dónde salió, con forma de chip pero sin ser un botón: una estimación y
+   una medición no se dicen igual, y la procedencia es una etiqueta, no un pie. */
+.perfil-fuente {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.perfil-macros {
+  margin: 0.8rem 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  color: var(--text);
+}
+.perfil-aviso {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.7rem 0 0;
+  max-width: 40ch;
+}
+.perfil-campo-label {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.perfil-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+.perfil-acciones {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin: 1rem 0 0;
 }

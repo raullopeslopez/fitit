@@ -222,7 +222,7 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: /^salir$/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Perfil' }))
-    expect(await screen.findByRole('heading', { name: 'Objetivo' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Tu objetivo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Perfil' })).toHaveAttribute('aria-current', 'page')
   })
 

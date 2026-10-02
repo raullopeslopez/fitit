@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { logBodyWeight, weightTrend } from './api.js'
+import { listBodyWeights, logBodyWeight, weightTrend } from './api.js'
 import { saveWeightToHealth } from './platform/health.js'
 import { formatDayShort } from './format.js'
+import { Fab, Sheet } from './ui'
 
 // La fecha civil de hoy. **No** `foodDayIso()`: el corte de las 04:00 es del
 // diario de comida, donde una cena de la 01:00 es de ayer. Una pesada no tiene
@@ -23,8 +24,51 @@ export function aNumero(texto) {
   return /^\d+(\.\d+)?$/.test(limpio) ? Number(limpio) : null
 }
 
+// Las últimas pesadas que caben en la curva: más no se distinguen en 120 px y
+// una curva de dos años no dice cómo vas, dice cómo ibas.
+const PUNTOS = 30
+const ANCHO = 120
+const ALTO = 36
+const MARGEN = 4
+
+// La curva, sin ejes ni cifras: sólo la forma del último mes. De la más
+// antigua a la más reciente, con la última como punto — es la que manda. El
+// trazo y el punto toman su color de la hoja (`.weight-spark-*`), no de aquí.
+// Con menos de dos pesadas no hay curva que dibujar.
+function Curva({ pesadas }) {
+  const serie = [...pesadas]
+    .sort((a, b) => (a.measured_on < b.measured_on ? -1 : a.measured_on > b.measured_on ? 1 : 0))
+    .slice(-PUNTOS)
+  if (serie.length < 2) return null
+
+  const kgs = serie.map((p) => p.kg)
+  const min = Math.min(...kgs)
+  const max = Math.max(...kgs)
+  // Todas iguales: una raya en medio, no una división por cero.
+  const rango = max - min || 1
+  const x = (i) => MARGEN + (i * (ANCHO - 2 * MARGEN)) / (serie.length - 1)
+  const y = (kg) =>
+    max === min ? ALTO / 2 : ALTO - MARGEN - ((kg - min) * (ALTO - 2 * MARGEN)) / rango
+  const puntos = serie.map((p, i) => `${x(i).toFixed(1)},${y(p.kg).toFixed(1)}`)
+  const ultimo = serie.length - 1
+
+  return (
+    <svg
+      className="weight-spark"
+      viewBox={`0 0 ${ANCHO} ${ALTO}`}
+      role="img"
+      aria-label="Tus últimas pesadas"
+    >
+      <polyline className="weight-spark-line" points={puntos.join(' ')} />
+      <circle className="weight-spark-dot" cx={x(ultimo)} cy={y(serie[ultimo].kg)} r="3" />
+    </svg>
+  )
+}
+
 export default function Weight({ today = new Date(), onSaved }) {
   const [trend, setTrend] = useState(null)
+  const [pesadas, setPesadas] = useState([])
+  const [abierta, setAbierta] = useState(false)
   const [texto, setTexto] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
@@ -36,11 +80,23 @@ export default function Weight({ today = new Date(), onSaved }) {
       // Una tendencia que no se pudo pedir no es una tendencia vacía. Se queda
       // como estaba y la tarjeta sigue aceptando pesadas.
     }
+    try {
+      // `?? []`: sin lista no hay curva, y la cabecera se sostiene igual.
+      setPesadas((await listBodyWeights()) ?? [])
+    } catch {
+      // Lo mismo: la curva es un adorno de la cifra, no la cifra.
+    }
   }, [])
 
   useEffect(() => {
     refrescar()
   }, [refrescar])
+
+  function cerrar() {
+    setAbierta(false)
+    setTexto('')
+    setError(null)
+  }
 
   async function guardar(event) {
     event.preventDefault()
@@ -56,7 +112,7 @@ export default function Weight({ today = new Date(), onSaved }) {
       // En el APK, también a Health Connect, para las demás apps. Sin esperar:
       // lo que cuenta es que ya está en Fitit.
       saveWeightToHealth(kg)
-      setTexto('')
+      cerrar()
       await refrescar()
       // Lo que depende de tu peso (la propuesta de Objetivo) se entera aquí.
       onSaved?.()
@@ -69,63 +125,76 @@ export default function Weight({ today = new Date(), onSaved }) {
 
   const ultima = trend?.last_kg
   const media = trend?.kg
-  const pesadas = trend?.weigh_ins ?? 0
+  const cuantas = trend?.weigh_ins ?? 0
 
   return (
-    <div className="card weight-card">
-      <h2>Peso</h2>
-
-      {/* La cifra es lo que marcó la báscula: tras pesarte, un «—» se leía como
-          que no se había guardado. La tendencia —de la que sale Objetivo— va
-          debajo, en pequeño, porque el peso oscila más de un kilo por agua y
-          la última cifra sola invita a leer como un cambio lo que es una cena.
-          El guion va con la misma tinta que un número: desconocido es un dato,
-          no una ausencia decorativa. */}
-      <p className="weight-figure">
-        <span className="weight-kg">{ultima == null ? '—' : conComa(ultima)}</span>
-        {ultima != null && <span className="weight-unit">kg</span>}
-      </p>
-
-      {ultima != null ? (
-        <>
-          <p className="weight-stamp">
-            {`ÚLTIMA PESADA · ${formatDayShort(trend.up_to, today)}`}
+    <>
+      <div className="weight-card">
+        {/* La cifra es lo que marcó la báscula: tras pesarte, un «—» se leía como
+            que no se había guardado. La tendencia —de la que sale Objetivo— va
+            debajo, porque el peso oscila más de un kilo por agua y la última
+            cifra sola invita a leer como un cambio lo que es una cena. El guion
+            va con la misma tinta que un número: desconocido es un dato, no una
+            ausencia decorativa. */}
+        <p className="weight-stamp">Peso</p>
+        <div className="weight-head">
+          <p className="weight-figure">
+            <span className="weight-kg">{ultima == null ? '—' : conComa(ultima)}</span>
+            {ultima != null && <span className="weight-unit">kg</span>}
           </p>
-          {media != null && (
-            <p className="weight-stamp weight-trend">
-              {`TENDENCIA ${conComa(media)} KG · ${pesadas} PESADAS`}
-            </p>
-          )}
-        </>
-      ) : (
-        <p className="weight-empty">Todavía no te has pesado.</p>
-      )}
+          <Curva pesadas={pesadas} />
+        </div>
 
-      <form className="weight-form" onSubmit={guardar}>
-        <label className="weight-label" htmlFor="weight-kg">
-          Peso
-        </label>
-        <div className="weight-row">
+        {ultima != null ? (
+          <div className="weight-facts">
+            {media != null && (
+              <p className="weight-trend">
+                Tendencia <span className="weight-fact">{conComa(media)} kg</span>
+                <span className="weight-n">{` · ${cuantas} ${cuantas === 1 ? 'pesada' : 'pesadas'}`}</span>
+              </p>
+            )}
+            <p className="weight-last">
+              Última · <span className="weight-fact">{formatDayShort(trend.up_to, today).toLowerCase()}</span>
+            </p>
+          </div>
+        ) : (
+          <p className="weight-empty">Todavía no te has pesado.</p>
+        )}
+      </div>
+
+      <Fab icon="+" label="Pesarme" onClick={() => setAbierta(true)} />
+
+      <Sheet open={abierta} title="Apuntar pesada" onClose={cerrar}>
+        <form className="weight-form" onSubmit={guardar}>
+          <label className="weight-label" htmlFor="weight-kg">
+            Peso (kg)
+          </label>
           <input
             id="weight-kg"
             className="weight-input"
             type="text"
             inputMode="decimal"
             autoComplete="off"
+            autoFocus
             placeholder="78,4"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
           />
-          <button className="primary weight-save" type="submit" disabled={guardando}>
-            Guardar
-          </button>
-        </div>
-        {error && (
-          <p role="status" className="weight-error">
-            {error}
-          </p>
-        )}
-      </form>
-    </div>
+          {error && (
+            <p role="status" className="weight-error">
+              {error}
+            </p>
+          )}
+          <div className="perfil-acciones">
+            <button type="button" className="secondary" onClick={cerrar}>
+              Cancelar
+            </button>
+            <button className="primary" type="submit" disabled={guardando}>
+              Guardar
+            </button>
+          </div>
+        </form>
+      </Sheet>
+    </>
   )
 }
