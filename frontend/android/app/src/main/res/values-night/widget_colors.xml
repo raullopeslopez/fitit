@@ -11,4 +11,6 @@
     <color name="widget_on_accent">#16181B</color>
     <color name="widget_danger">#F87171</color>
     <color name="widget_press">#3A2216</color>
+    <color name="widget_pr">#FFA733</color>
+    <color name="widget_ring_kcal">#B3F2F3F5</color>
 </resources>

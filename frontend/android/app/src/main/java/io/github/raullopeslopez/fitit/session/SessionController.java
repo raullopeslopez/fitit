@@ -104,7 +104,9 @@ public final class SessionController {
         SessionStore store = Session.store(context);
         // Lo del widget sin entreno no tiene control al que preguntar.
         if (ACTION_PAGE.equals(action)) {
-            store.flipIdlePage();
+            java.time.LocalDateTime clock = java.time.LocalDateTime.now();
+            store.flipIdlePage(IdleSummary.pages(
+                    store.summary(), clock.toLocalDate(), IdleSummary.foodDay(clock)).size());
             SessionWidget.updateAll(context);
             return;
         }

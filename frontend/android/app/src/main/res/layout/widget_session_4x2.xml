@@ -350,6 +350,152 @@
                         android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- Pantalla de comida: los dos anillos de la tarjeta de Comida (DESIGN.md,
+                 «Pantalla Comida»). Proteína fuera, kcal dentro; los anillos son un
+                 bitmap que pinta FoodRings, porque un widget no dibuja arcos. Lo que
+                 falta de proteína, en el centro; las dos cifras, a la derecha. -->
+            <LinearLayout
+                android:id="@+id/widget_idle_food"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <FrameLayout
+                    android:layout_width="96dp"
+                    android:layout_height="96dp">
+
+                    <ImageView
+                        android:id="@+id/widget_food_rings"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:importantForAccessibility="no" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/widget_food_left"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_mono_medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_accent_ink"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:id="@+id/widget_food_caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/geist_regular"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/widget_food_left"
+                            android:textColor="@color/widget_muted"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/widget_food_dot_protein" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:fontFamily="@font/geist_mono_semibold"
+                            android:includeFontPadding="false"
+                            android:letterSpacing="0.1"
+                            android:text="@string/widget_food_protein"
+                            android:textColor="@color/widget_muted"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/widget_food_protein"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:fontFamily="@font/geist_mono_medium"
+                        android:maxLines="1"
+                        android:textColor="@color/widget_text"
+                        android:textSize="15sp" />
+
+                    <LinearLayout
+                        android:id="@+id/widget_food_kcal_group"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="7dp"
+                                android:layout_height="7dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/widget_food_dot_kcal" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:fontFamily="@font/geist_mono_semibold"
+                                android:includeFontPadding="false"
+                                android:letterSpacing="0.1"
+                                android:text="@string/widget_food_kcal"
+                                android:textColor="@color/widget_muted"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/widget_food_kcal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:fontFamily="@font/geist_mono_medium"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/widget_food_note"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_regular"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_muted"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
         </FrameLayout>
 
         <!-- Los puntitos: activo, pastilla 18 × 7 en color de texto; inactivo,
@@ -380,6 +526,15 @@
                 android:layout_marginStart="8dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/widget_dot_off" />
+
+            <ImageView
+                android:id="@+id/widget_dot_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/widget_dot_off"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 

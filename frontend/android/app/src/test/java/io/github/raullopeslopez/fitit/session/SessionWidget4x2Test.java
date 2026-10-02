@@ -473,19 +473,156 @@ public class SessionWidget4x2Test {
         summary(last(2));
 
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
-        long midnight = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault())
-                .toInstant().toEpochMilli();
+        // Medianoche, o las 04:00 si ya pasó (el corte del día de comida).
+        long midnight = SessionAlarms.nextDayEdge(now(), ZoneId.systemDefault());
         boolean armed = false;
         for (org.robolectric.shadows.ShadowAlarmManager.ScheduledAlarm alarm
                 : shadowOf(alarms).getScheduledAlarms()) {
             if (alarm.triggerAtTime == midnight) armed = true;
         }
-        assertTrue("hay una alarma a medianoche", armed);
+        assertTrue("hay una alarma al cambiar de día", armed);
 
         // Y la alarma repinta aunque no haya entreno: «hace 2 días» pasa a 3.
         SessionController.handle(context, new Intent(SessionController.ACTION_DAY), now());
         assertTrue(shown(R.id.widget_idle_start));
         assertEquals("Último: hace 2 días", text(R.id.widget_idle_date));
+    }
+
+    // --- La pantalla Comida (DESIGN.md, «Pantalla Comida») -------------------
+
+    private static String foodDay(int ago) {
+        return IdleSummary.foodDay(java.time.LocalDateTime.now()).minusDays(ago).toString();
+    }
+
+    /** El día de comida a medias: 118 de 202 g de proteína, 1460 de 2569 kcal. */
+    private static JSONObject food(String date, Object protein, Object kcal, Object remainingProtein,
+            Object remainingKcal, Object targetKcal) throws Exception {
+        return new JSONObject().put("food", new JSONObject()
+                .put("date", date)
+                .put("protein", protein)
+                .put("targetProtein", 202)
+                .put("remainingProtein", remainingProtein)
+                .put("kcal", kcal)
+                .put("targetKcal", targetKcal)
+                .put("remainingKcal", remainingKcal));
+    }
+
+    private static JSONObject halfDay() throws Exception {
+        return food(foodDay(0), 118, 1460, 84, 1109, 2569);
+    }
+
+    @Test
+    public void foodSitsBetweenStepsAndStartAndTheDotsGoRound() throws Exception {
+        store.mergeSummary(stepsToday(8432, 7910));
+        summary(halfDay());
+
+        // Tres pantallas, tres puntitos; la primera sigue siendo la de pasos.
+        assertTrue(shown(R.id.widget_dot_3));
+        assertTrue(shown(R.id.widget_idle_steps));
+        assertFalse(shown(R.id.widget_idle_food));
+
+        tapDots();
+
+        assertTrue(shown(R.id.widget_idle_food));
+        assertFalse(shown(R.id.widget_idle_steps));
+        assertFalse(shown(R.id.widget_idle_start));
+        assertEquals("84", text(R.id.widget_food_left));
+        assertEquals("g faltan", text(R.id.widget_food_caption));
+        assertEquals("118 / 202 g", text(R.id.widget_food_protein));
+        assertEquals("1460 / 2569", text(R.id.widget_food_kcal));
+        assertEquals("quedan 1109", text(R.id.widget_food_note));
+        android.widget.ImageView rings = view().findViewById(R.id.widget_food_rings);
+        assertNotNull("los anillos se pintan", rings.getDrawable());
+
+        tapDots();
+        assertTrue(shown(R.id.widget_idle_start));
+
+        // De la última se vuelve a la primera.
+        tapDots();
+        assertTrue(shown(R.id.widget_idle_steps));
+    }
+
+    @Test
+    public void withoutStepsFoodIsTheFirstPageOfTwo() throws Exception {
+        summary(halfDay());
+
+        assertTrue(shown(R.id.widget_idle_food));
+        assertTrue(shown(R.id.widget_dots));
+        assertFalse(shown(R.id.widget_dot_3));
+    }
+
+    @Test
+    public void withoutAProteinTargetThereIsNoFoodPage() throws Exception {
+        JSONObject part = halfDay();
+        part.getJSONObject("food").put("targetProtein", JSONObject.NULL);
+        summary(part);
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_idle_food));
+        assertFalse(shown(R.id.widget_dots));
+    }
+
+    @Test
+    public void yesterdaysFoodIsAnEmptyDayWithTheSameTargets() throws Exception {
+        // Pasadas las 04:00, lo apuntado ayer no es de hoy: anillos vacíos, nada
+        // comido («—», no 0) y todo por delante.
+        summary(food(foodDay(1), 118, 1460, 84, 1109, 2569));
+
+        assertTrue(shown(R.id.widget_idle_food));
+        assertEquals("202", text(R.id.widget_food_left));
+        assertEquals("— / 202 g", text(R.id.widget_food_protein));
+        assertEquals("— / 2569", text(R.id.widget_food_kcal));
+        assertEquals("quedan 2569", text(R.id.widget_food_note));
+    }
+
+    @Test
+    public void closedProteinIsAScoreAndOverKcalSaysHowMuch() throws Exception {
+        summary(food(foodDay(0), 205, 2769, -3, -200, 2569));
+
+        assertEquals("205/202", text(R.id.widget_food_left));
+        assertEquals("Cerrado", text(R.id.widget_food_caption));
+        assertEquals("200 de más", text(R.id.widget_food_note));
+    }
+
+    @Test
+    public void withoutAKcalTargetOnlyProteinIsShown() throws Exception {
+        summary(food(foodDay(0), 118, 1460, 84, JSONObject.NULL, JSONObject.NULL));
+
+        assertTrue(shown(R.id.widget_idle_food));
+        assertEquals("118 / 202 g", text(R.id.widget_food_protein));
+        assertFalse(shown(R.id.widget_food_kcal_group));
+    }
+
+    @Test
+    public void tappingFoodOpensComida() throws Exception {
+        summary(halfDay());
+
+        view().findViewById(R.id.widget_idle_food).performClick();
+
+        Intent started = shadowOf((Application) context).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(SessionLaunch.FOOD, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
+    }
+
+    @Test
+    public void theDayEdgeIsFourInTheMorningThenMidnight() {
+        ZoneId zone = ZoneId.of("Europe/Madrid");
+        long night = java.time.ZonedDateTime.of(2026, 10, 2, 1, 30, 0, 0, zone).toInstant().toEpochMilli();
+        long four = java.time.ZonedDateTime.of(2026, 10, 2, 4, 0, 0, 0, zone).toInstant().toEpochMilli();
+        long noon = java.time.ZonedDateTime.of(2026, 10, 2, 12, 0, 0, 0, zone).toInstant().toEpochMilli();
+        long midnight = java.time.ZonedDateTime.of(2026, 10, 3, 0, 0, 0, 0, zone).toInstant().toEpochMilli();
+
+        assertEquals(four, SessionAlarms.nextDayEdge(night, zone));
+        assertEquals(midnight, SessionAlarms.nextDayEdge(four, zone));
+        assertEquals(midnight, SessionAlarms.nextDayEdge(noon, zone));
+    }
+
+    @Test
+    public void macrosPrintLikeTheApp() {
+        // Cuatro cifras sin punto, cinco con punto (formatMacro, RAE); null es «—».
+        assertEquals("2569", IdleSummary.macro(2569.4));
+        assertEquals("12.500", IdleSummary.macro(12500.0));
+        assertEquals("—", IdleSummary.macro(null));
     }
 
     // --- El 3×2: el mismo widget, más estrecho (DESIGN.md, «Tamaños») ----------

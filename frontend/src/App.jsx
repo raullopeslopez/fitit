@@ -78,9 +78,10 @@ export default function App() {
         openWorkout(null)
         setView('days')
         setStartOnArrival(true)
-      } else if (action === 'review') {
-        // El aviso de la revisión semanal: la tarjeta está en Comida. Si había
-        // un entreno abierto se cierra, o taparía la vista.
+      } else if (action === 'review' || action === 'food') {
+        // El aviso de la revisión semanal (la tarjeta está en Comida) y la
+        // pantalla Comida del widget. Si había un entreno abierto se cierra, o
+        // taparía la vista.
         openWorkout(null)
         setView('food')
       }

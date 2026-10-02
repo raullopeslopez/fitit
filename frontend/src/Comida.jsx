@@ -46,6 +46,7 @@ import {
 import { formatDayShort } from './format.js'
 import { takePhoto, usesNativeCamera } from './platform/camera.js'
 import { canScan, detectBarcodes } from './platform/scanner.js'
+import { publishFood } from './widgetSummary.js'
 
 // Los raíles del día: las cuatro comidas, siempre, con su subtotal y lo que
 // lleven dentro. Una comida vacía **sí** se dibuja — es por donde se entra a
@@ -155,8 +156,11 @@ export default function Comida() {
 
   const load = useCallback(async (iso) => {
     try {
-      setDay(await getFoodDay(iso))
+      const fetched = await getFoodDay(iso)
+      setDay(fetched)
       setError(null)
+      // La pantalla Comida del widget enseña hoy: mirar un día pasado no la toca.
+      if (iso === foodDayIso()) publishFood(fetched)
     } catch {
       setError('No se ha podido cargar el día.')
     }

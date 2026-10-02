@@ -26,6 +26,11 @@
     <string name="widget_steps_week">"Media semanal: "</string>
     <!-- Los puntitos: cómo los nombra un lector de pantalla. -->
     <string name="widget_page">Cambiar de pantalla</string>
+    <!-- La pantalla Comida del widget sin entreno (DESIGN.md, «Pantalla Comida»). -->
+    <string name="widget_food_left">g faltan</string>
+    <string name="widget_food_closed">Cerrado</string>
+    <string name="widget_food_protein">PROTEÍNA</string>
+    <string name="widget_food_kcal">KCAL</string>
     <!-- Sesión caducada (DESIGN.md): el servidor rechazó el token al enviar. -->
     <string name="widget_expired_title">Sesión caducada</string>
     <string name="widget_expired_body">Abre Fitit para volver a entrar. Tus series siguen guardadas.</string>

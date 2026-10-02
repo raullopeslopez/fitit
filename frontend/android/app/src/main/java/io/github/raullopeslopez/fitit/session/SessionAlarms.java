@@ -38,18 +38,27 @@ final class SessionAlarms {
     }
 
     /**
-     * Repintar los widgets a medianoche, para lo que depende del día (IdleSummary).
+     * Repintar los widgets al cambiar de día, para lo que depende de él (IdleSummary).
      * Sin despertar al teléfono: si duerme, lo verá quien lo desbloquee, y es
      * entonces cuando repinta.
      */
     static void armDay(Context context, long now) {
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
         if (alarms == null) return;
-        ZoneId zone = ZoneId.systemDefault();
-        long midnight = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-                .plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
-        alarms.set(AlarmManager.RTC, midnight,
+        alarms.set(AlarmManager.RTC, nextDayEdge(now, ZoneId.systemDefault()),
                 SessionNotification.broadcast(context, SessionController.ACTION_DAY, 12));
+    }
+
+    /**
+     * El próximo cambio de día que el widget tiene que ver: las 04:00, cuando
+     * empieza el día de comida, o medianoche, cuando cambian los pasos y «hace 2
+     * días». La alarma vuelve a armarse al repintar, así que basta con la próxima.
+     */
+    static long nextDayEdge(long now, ZoneId zone) {
+        java.time.ZonedDateTime at = java.time.Instant.ofEpochMilli(now).atZone(zone);
+        java.time.ZonedDateTime four = at.toLocalDate().atTime(4, 0).atZone(zone);
+        if (at.isBefore(four)) return four.toInstant().toEpochMilli();
+        return at.toLocalDate().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
     }
 
     private static PendingIntent restOver(Context context) {

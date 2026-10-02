@@ -138,7 +138,8 @@ describe('App', () => {
       expect(api.createWorkout).toHaveBeenCalledTimes(1)
     })
 
-    it('«revisión» (el aviso del domingo) abre Comida', async () => {
+    // «review», el aviso del domingo; «food», la pantalla Comida del widget.
+    it.each(['review', 'food'])('«%s» abre Comida', async (action) => {
       setToken('tok')
       api.listDays.mockResolvedValue([])
       api.listExercises.mockResolvedValue([])
@@ -152,7 +153,7 @@ describe('App', () => {
       render(<App />)
       await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
 
-      act(() => launch.listener({ action: 'review' }))
+      act(() => launch.listener({ action }))
 
       expect(await screen.findByRole('button', { name: 'Añadir a desayuno' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')

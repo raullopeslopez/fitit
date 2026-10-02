@@ -523,6 +523,25 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
     segundo. Sin objetivo fijado no hay barra ni `/ 10.000`.
   - Pantalla 2 (la única si no hay pasos de hoy): `Sin entreno en curso` /
     `Último: hace 2 días · Pierna` y el botón ámbar `Empezar entreno` a lo ancho.
+- **Pantalla Comida** (entre la de pasos y la de empezar; 2026-10-02). Los dos anillos de
+  la tarjeta de macros de Comida, en pequeño: un bitmap de 96 dp (`FoodRings`), proteína
+  fuera (9 dp, `--accent`) y kcal dentro (5 dp, tinta al 70 %) sobre carriles en
+  `--border`. En el centro, lo que falta de proteína en Mono 24sp `--accent-ink` y
+  `g faltan` en 11sp `--muted`; cerrada, `205/202` en 15sp y `Cerrado`, los dos en
+  `--pr`, y el anillo entero en `--pr`. A la derecha, el sello `PROTEÍNA` con su punto
+  ámbar y `118 / 202 g` en Mono 15sp; el sello `KCAL` con su punto en tinta,
+  `1460 / 2569` y `quedan 1109` (o `200 de más`) en 13sp `--muted`. Sin botones: el
+  único ámbar es el anillo, y tocar la pantalla abre Comida.
+  - Sólo aparece con objetivo de proteína. Sin objetivo de kcal no hay anillo de dentro
+    ni sello `KCAL`.
+  - Los datos los manda la app al cargar el día de hoy en Comida (`publishFood`); el
+    widget no consulta el servidor, por decisión del usuario. Lo restado lo resta el
+    servidor; el nativo sólo imprime.
+  - El día de comida corta a las 04:00: a esa hora el widget se repinta solo y, si lo
+    guardado es de otro día, sale vacío con los mismos objetivos (`— / 202 g`,
+    `quedan 2569`).
+  - Con tres pantallas hay tres puntitos, y se recorren en círculo: pasos, comida,
+    empezar.
 - **Entrenando.** Arriba, en una línea: `Press banca` (600, `--text`) `· 4 series`
   (`--muted`), y Terminar a la derecha. Debajo, el **bloque de ajuste**. Nada más.
 - **Descansando.** Entre la línea del ejercicio y el bloque aparece el tiempo, `01:23` en
@@ -749,3 +768,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-10-02 | Sistema v2 «Material tonal»: hojas, botón flotante, chips y filas de ajuste; los datos del servidor como cifra | Usuario, sobre Comida y Perfil: *"parece más una PWA que una aplicación nativa"* y *"información contenida en frases que apenas son visibles"*. Eligió la maqueta B de tres. Se suma al sistema en vez de sustituirlo y se migra pantalla a pantalla, empezando por Perfil y Comida. |
 | 2026-10-02 | Las barras de macros se llenan al comer | Usuario, viendo Comida sin nada apuntado y las barras enteras en ámbar: *"no me cuadran las barras rellenadas si no tengo nada registrado"*. La regla «el cromo a lo que falta» pintaba el día vacío como completo. Ahora lo comido se llena (proteína en `--accent`, hidratos y grasa en tinta) y lo que falta es el carril vacío. `--pr` al cerrar no cambia. |
 | 2026-10-02 | La tarjeta de macros pasa a dos anillos | Usuario, ante la tarjeta de barras: pidió alternativas, eligió la del anillo y echó en falta las calorías, que iban en una línea gris al pie. Eligió la B1 de tres: proteína en el anillo de fuera, kcal en el de dentro, cada uno con su cifra y su punto de color al lado («quedan 1109» o «200 de más», restado por el servidor). La jerarquía sigue siendo de grosor (12 / 7 / 6), como pidió al preferir barras de distinta altura. El carril del anillo va en `--border`: en papel, `--surface-raised` es blanco sobre blanco. |
+| 2026-10-02 | Comida, tercera pantalla del widget sin entreno | Consulta de diseño con el usuario: pidió un widget de calorías y, al proponerle uno nuevo de 2×2, prefirió *"incluirlo como card dentro del que ya uso, que es el de 3×2"*. Repite la tarjeta B1 de la app (proteína manda, kcal acompaña), a contracorriente de MacroFactor, Cronometer y MyFitnessPal, que ponen las kcal por delante. Orden pasos · comida · empezar, para no tocar la decisión del 27-09. Se actualiza sólo al abrir la app: el usuario descartó la consulta horaria al servidor. |

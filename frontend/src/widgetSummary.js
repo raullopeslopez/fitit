@@ -79,6 +79,28 @@ export function publishSteps(days, now = new Date()) {
   return publish({ steps: stepsSummary(days, now) })
 }
 
+// La pantalla Comida del widget (DESIGN.md, «Pantalla Comida»): lo comido de
+// hoy frente al objetivo, de un `GET /food-log` tal cual. Lo que queda va ya
+// restado por el servidor (`restante`): el nativo no hace aritmética de
+// nutrición. Sin objetivo de proteína el nativo no enseña la pantalla. `date` es
+// el día de comida, que corta a las 04:00: con él el nativo vacía los anillos al
+// empezar el día siguiente aunque nadie abra Fitit.
+export function foodSummary(day) {
+  return {
+    date: day.date,
+    protein: day.totals?.protein ?? null,
+    targetProtein: day.target_protein ?? null,
+    remainingProtein: day.remaining_protein ?? null,
+    kcal: day.totals?.kcal ?? null,
+    targetKcal: day.target_kcal ?? null,
+    remainingKcal: day.remaining_kcal ?? null,
+  }
+}
+
+export function publishFood(day) {
+  return publish({ food: foodSummary(day) })
+}
+
 // Sin objetivo (null) no hay barra ni «/ 10.000».
 export function publishStepsGoal(goal) {
   return publish({ stepsGoal: goal ?? null })

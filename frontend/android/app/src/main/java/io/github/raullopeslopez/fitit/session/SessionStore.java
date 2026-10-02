@@ -256,7 +256,8 @@ public final class SessionStore {
     }
 
     /**
-     * La pantalla del widget sin entreno: 0, pasos; 1, empezar. Se recuerda. La
+     * La pantalla del widget sin entreno, por su posición entre las que hay
+     * ({@link IdleSummary#pages}): pasos, comida, empezar. Se recuerda. La
      * clave cambió al poner los pasos delante: con la vieja, quien los estaba
      * mirando habría caído en «empezar».
      */
@@ -265,7 +266,13 @@ public final class SessionStore {
     }
 
     public synchronized void flipIdlePage() {
-        prefs.edit().putInt(IDLE_PAGE, idlePage() == 0 ? 1 : 0).apply();
+        flipIdlePage(2);
+    }
+
+    /** La siguiente de {@code count} pantallas, y de la última a la primera. */
+    public synchronized void flipIdlePage(int count) {
+        int pages = Math.max(1, count);
+        prefs.edit().putInt(IDLE_PAGE, (idlePage() % pages + 1) % pages).apply();
     }
 
     // --- Series rechazadas -------------------------------------------------

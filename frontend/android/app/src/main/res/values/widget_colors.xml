@@ -19,4 +19,8 @@
     <!-- La zona de un − o + mientras se pulsa: suave, no sólida, para que el + de
          los kilos no se funda con el +1 de al lado. -->
     <color name="widget_press">#FBE6DC</color>
+    <!-- El récord (pr en DESIGN.md): el anillo de proteína al cerrar el día. -->
+    <color name="widget_pr">#A83208</color>
+    <!-- El anillo de kcal: la tinta al 70 %, un paso detrás de la proteína. -->
+    <color name="widget_ring_kcal">#B316181B</color>
 </resources>

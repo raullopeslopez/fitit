@@ -21,6 +21,7 @@ public final class SessionLaunch {
     public static final String OPEN = "open";
     public static final String START = "start";
     public static final String REVIEW = "review";
+    public static final String FOOD = "food";
 
     private SessionLaunch() {}
 
@@ -47,6 +48,12 @@ public final class SessionLaunch {
     /** El aviso de la revisión semanal: la página abre Comida, donde está la tarjeta. */
     static PendingIntent review(Context context) {
         return PendingIntent.getActivity(context, 33, intent(context, REVIEW, -1),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /** La pantalla Comida del widget: la página abre Comida, como el aviso. */
+    static PendingIntent food(Context context) {
+        return PendingIntent.getActivity(context, 34, intent(context, FOOD, -1),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 

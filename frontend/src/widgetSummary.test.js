@@ -7,7 +7,9 @@ vi.mock('./platform/session.js', () => ({
 
 import { nativeSession, session } from './platform/session.js'
 import {
+  foodSummary,
   lastWorkoutOf,
+  publishFood,
   publishLastWorkout,
   publishSteps,
   publishStepsGoal,
@@ -115,5 +117,50 @@ describe('lo que se publica al nativo', () => {
   it('un fallo del puente no sale de aquí: el widget es un extra', async () => {
     session.summary.mockRejectedValue(new Error('bridge'))
     await expect(publishStepsGoal(10000)).resolves.toBeUndefined()
+  })
+})
+
+describe('la pantalla Comida del widget', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    nativeSession.mockReturnValue(true)
+    session.summary.mockResolvedValue()
+  })
+
+  const DIA = {
+    date: '2026-10-02',
+    totals: { kcal: 1460, protein: 118, fat: 40, carbs: 160, fiber: 12 },
+    target_kcal: 2569,
+    target_protein: 202,
+    remaining_kcal: 1109,
+    remaining_protein: 84,
+  }
+
+  it('publica lo comido, el objetivo y lo que queda, tal como llega', async () => {
+    await publishFood(DIA)
+    expect(session.summary).toHaveBeenCalledWith({
+      food: {
+        date: '2026-10-02',
+        protein: 118,
+        targetProtein: 202,
+        remainingProtein: 84,
+        kcal: 1460,
+        targetKcal: 2569,
+        remainingKcal: 1109,
+      },
+    })
+  })
+
+  // NULL no es 0: un día sin nada apuntado viaja con null, y el widget pinta «—».
+  it('lo que no se sabe viaja como null, no como 0', () => {
+    expect(foodSummary({ date: '2026-10-02', totals: { kcal: null, protein: null } })).toEqual({
+      date: '2026-10-02',
+      protein: null,
+      targetProtein: null,
+      remainingProtein: null,
+      kcal: null,
+      targetKcal: null,
+      remainingKcal: null,
+    })
   })
 })

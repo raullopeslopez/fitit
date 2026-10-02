@@ -370,6 +370,61 @@ public class SessionWidgetLookTest {
         WidgetRender.save(idle(358), WALL_DARK, "4x2-sin-entreno-1-pasos-sin-objetivo-oscuro");
     }
 
+    // --- La pantalla Comida, en el 3×2 del Xiaomi (≈253 × 176 dp) -------------
+
+    /** El 3×2 sin entreno al tamaño que da el launcher, con la comida de hoy a medias. */
+    private View foodPlaced(float width, float height, Object protein, Object remainingKcal) throws Exception {
+        String today = IdleSummary.foodDay(java.time.LocalDateTime.now()).toString();
+        store.mergeSummary(new JSONObject().put("food", new JSONObject()
+                .put("date", today).put("protein", protein).put("targetProtein", 202)
+                .put("remainingProtein", 84).put("kcal", 1460).put("targetKcal", 2569)
+                .put("remainingKcal", remainingKcal)));
+        int id = widgets.createWidget(SessionWidget3x2.class, R.layout.widget_session_4x2);
+        Bundle options = new Bundle();
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, Math.round(width));
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, Math.round(height));
+        AppWidgetManager.getInstance(context).updateAppWidgetOptions(id, options);
+        SessionWidget.updateAll(context);
+        return WidgetRender.lay(context, widgets.getViewFor(id), width, height);
+    }
+
+    /** Cabe entera en el 3×2 compacto: nada cortado, nada encima de los puntitos. */
+    private void foodFits(View root) {
+        assertTrue(shown(root, R.id.widget_idle_food));
+        whole(root, R.id.widget_food_left);
+        whole(root, R.id.widget_food_protein);
+        whole(root, R.id.widget_food_kcal);
+        whole(root, R.id.widget_food_note);
+        Rect rings = at(root, R.id.widget_food_rings);
+        near("anillos", 96, dp(rings.width()));
+        Rect dots = at(root, R.id.widget_dots);
+        int slack = WidgetRender.px(context, 12);
+        assertTrue("los anillos pisan los puntitos", rings.bottom <= dots.top + slack);
+        assertTrue("la nota de kcal pisa los puntitos",
+                at(root, R.id.widget_food_note).bottom <= dots.top + slack);
+        assertTrue("la leyenda se sale por la derecha",
+                at(root, R.id.widget_food_kcal).right <= root.getWidth());
+    }
+
+    @Test
+    public void foodFitsTheCompactThreeByTwo() throws Exception {
+        View root = foodPlaced(253, 176, 118, 1109);
+        foodFits(root);
+        WidgetRender.save(root, WALL_LIGHT, "3x2-comida-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void foodInTheDarkAndClosed() throws Exception {
+        View root = foodPlaced(253, 176, 118, 1109);
+        foodFits(root);
+        WidgetRender.save(root, WALL_DARK, "3x2-comida-oscuro");
+
+        View closed = foodPlaced(253, 176, 205, -200);
+        foodFits(closed);
+        WidgetRender.save(closed, WALL_DARK, "3x2-comida-cerrado-oscuro");
+    }
+
     // --- El 3×2, a ≈270 dp (DESIGN.md, «Tamaños») -------------------------------
 
     private View mid(JSONObject control) {

@@ -10,6 +10,8 @@ import android.view.View;
 import android.widget.RemoteViews;
 import io.github.raullopeslopez.fitit.R;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.json.JSONObject;
 
 /**
@@ -164,15 +166,23 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         if (last != null) views.setTextViewText(R.id.widget_idle_date, last);
         views.setOnClickPendingIntent(R.id.widget_idle_start, SessionLaunch.start(context));
 
-        IdleSummary.Steps steps = IdleSummary.steps(summary, today);
-        boolean second = steps != null && Session.store(context).idlePage() == 1;
-        boolean showSteps = steps != null && !second;
-        views.setViewVisibility(R.id.widget_idle_start, showSteps ? View.GONE : View.VISIBLE);
-        views.setViewVisibility(R.id.widget_idle_steps, showSteps ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.widget_dots, steps == null ? View.INVISIBLE : View.VISIBLE);
-        views.setImageViewResource(R.id.widget_dot_1, second ? R.drawable.widget_dot_off : R.drawable.widget_dot_on);
-        views.setImageViewResource(R.id.widget_dot_2, second ? R.drawable.widget_dot_on : R.drawable.widget_dot_off);
+        LocalDate foodToday = IdleSummary.foodDay(LocalDateTime.now());
+        List<IdleSummary.Page> pages = IdleSummary.pages(summary, today, foodToday);
+        int index = Session.store(context).idlePage() % pages.size();
+        IdleSummary.Page page = pages.get(index);
+        views.setViewVisibility(R.id.widget_idle_start,
+                page == IdleSummary.Page.START ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_idle_steps,
+                page == IdleSummary.Page.STEPS ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_idle_food,
+                page == IdleSummary.Page.FOOD ? View.VISIBLE : View.GONE);
+        dots(views, pages.size(), index);
         SessionNotification.tap(context, views, R.id.widget_dots, SessionController.ACTION_PAGE, 35);
+
+        IdleSummary.Food food = IdleSummary.food(summary, foodToday);
+        if (food != null) food(context, views, food);
+
+        IdleSummary.Steps steps = IdleSummary.steps(summary, today);
         if (steps == null) return views;
 
         views.setTextViewText(R.id.widget_steps, IdleSummary.thousands(steps.today));
@@ -188,6 +198,47 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         if (week) views.setTextViewText(R.id.widget_steps_week, IdleSummary.thousands(steps.weekAverage));
         views.setOnClickPendingIntent(R.id.widget_idle_steps, SessionLaunch.app(context));
         return views;
+    }
+
+    /**
+     * Los puntitos: uno por pantalla, el de la que se ve en pastilla. Con una sola
+     * pantalla no se ven (invisibles, no fuera: la pantalla no se mueve de sitio).
+     */
+    private static void dots(RemoteViews views, int count, int index) {
+        views.setViewVisibility(R.id.widget_dots, count > 1 ? View.VISIBLE : View.INVISIBLE);
+        int[] ids = {R.id.widget_dot_1, R.id.widget_dot_2, R.id.widget_dot_3};
+        for (int i = 0; i < ids.length; i++) {
+            views.setViewVisibility(ids[i], i < count ? View.VISIBLE : View.GONE);
+            views.setImageViewResource(ids[i],
+                    i == index ? R.drawable.widget_dot_on : R.drawable.widget_dot_off);
+        }
+    }
+
+    /**
+     * La pantalla Comida (DESIGN.md, «Pantalla Comida»): los anillos, lo que falta
+     * de proteína en el centro y las dos cifras a la derecha. Tocarla abre Comida.
+     */
+    static void food(Context context, RemoteViews views, IdleSummary.Food food) {
+        views.setImageViewBitmap(R.id.widget_food_rings, FoodRings.draw(context, food));
+        boolean closed = food.closed();
+        int ink = context.getColor(closed ? R.color.widget_pr : R.color.widget_accent_ink);
+        views.setTextViewText(R.id.widget_food_left, food.center());
+        views.setTextColor(R.id.widget_food_left, ink);
+        views.setTextViewTextSize(R.id.widget_food_left, TypedValue.COMPLEX_UNIT_SP, closed ? 15 : 24);
+        views.setTextViewText(R.id.widget_food_caption, context.getString(
+                closed ? R.string.widget_food_closed : R.string.widget_food_left));
+        views.setTextColor(R.id.widget_food_caption,
+                context.getColor(closed ? R.color.widget_pr : R.color.widget_muted));
+        views.setTextViewText(R.id.widget_food_protein, food.proteinLine());
+        boolean kcal = food.targetKcal != null;
+        views.setViewVisibility(R.id.widget_food_kcal_group, kcal ? View.VISIBLE : View.GONE);
+        if (kcal) {
+            views.setTextViewText(R.id.widget_food_kcal, food.kcalLine());
+            String note = food.kcalNote();
+            views.setViewVisibility(R.id.widget_food_note, note == null ? View.GONE : View.VISIBLE);
+            if (note != null) views.setTextViewText(R.id.widget_food_note, note);
+        }
+        views.setOnClickPendingIntent(R.id.widget_idle_food, SessionLaunch.food(context));
     }
 
     /**

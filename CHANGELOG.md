@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.12.0: la comida de hoy en el widget 3×2.** Sin entreno en curso, el widget tiene una
+  pantalla nueva entre los pasos y «Empezar entreno»: los dos anillos de Comida (proteína
+  fuera, kcal dentro), «84 / g faltan» en el centro y, al lado, «PROTEÍNA 118 / 202 g» y
+  «KCAL 1460 / 2569 · quedan 1109». Se llega tocando los puntitos (ahora tres) y, al tocarla,
+  se abre Comida. Se pone al día cada vez que abres Comida en el móvil; a las 04:00 se vacía
+  sola para el día nuevo. Sin objetivo de proteína, la pantalla no aparece.
 - **APK 0.11.1: la tarjeta de macros de Comida, en anillos.** Con objetivo, la proteína es
   un anillo naranja con lo que falta en el centro («84 / g faltan») y las kcal un anillo
   fino por dentro. Al lado, «Proteína 118 / 202 g» y «Kcal 1460 / 2569 · quedan 1109» (o
