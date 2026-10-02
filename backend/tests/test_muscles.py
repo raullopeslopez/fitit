@@ -64,6 +64,10 @@ def test_classifies_common_lifts(name, expected):
         # Glutes are their own group since the hip thrust stopped hiding in the
         # hamstring row: hip extension against the hip, not against the knee.
         ("Hip thrust", GLUTEO),
+        # Written as one word in the real log, 12 sets of it, and the keyword
+        # only knew the spaced spelling.
+        ("Hipthrust", GLUTEO),
+        ("Hip-thrust", GLUTEO),
         ("Patada de glúteo", GLUTEO),
         ("Puente de glúteo", GLUTEO),
         ("Empuje de cadera", GLUTEO),
@@ -278,3 +282,15 @@ def test_hamstring_and_hinge_work_stays_femoral():
     for name in ["Curl femoral", "Peso muerto rumano", "Nordic curl", "Buenos días",
                  "Hiperextensiones"]:
         assert classify(name) == FEMORAL, name
+
+
+def test_a_deadlift_filed_under_femoral_still_pays_the_glutes():
+    """Un peso muerto que el usuario archivó a mano en Femoral es una bisagra
+    igual: cobra el glúteo. La regla del peso muerto estaba atada a Espalda, y
+    con el primario cambiado no le daba nada a nadie."""
+    from app.muscles import secondaries_for
+
+    assert secondaries_for("Peso muerto", "strength", primary=FEMORAL) == [GLUTEO]
+    assert secondaries_for("Deadlift", "strength", primary=FEMORAL) == [GLUTEO]
+    # Archivado donde lo pondría el clasificador, sigue pagando a los dos.
+    assert secondaries_for("Peso muerto", "strength") == [GLUTEO, FEMORAL]

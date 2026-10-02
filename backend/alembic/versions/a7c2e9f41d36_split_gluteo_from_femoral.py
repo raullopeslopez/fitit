@@ -34,7 +34,8 @@ GLUTEO = "Glúteo"
 
 # La lista de GLUTEO en `app/muscles.py` el día de la separación.
 GLUTE_KEYWORDS = (
-    "hip thrust", "empuje de cadera", "gluteo", "glute", "patada de gluteo",
+    "hip thrust", "hipthrust", "hip-thrust", "empuje de cadera", "gluteo",
+    "glute", "patada de gluteo",
     "puente de gluteo", "rear kick", "abductor", "abduccion", "abduction",
 )
 

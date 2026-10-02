@@ -118,7 +118,8 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
         # is a hip extensor and stays with the hinge.
         GLUTEO,
         (
-            "hip thrust", "empuje de cadera", "gluteo", "glute", "patada de gluteo",
+            "hip thrust", "hipthrust", "hip-thrust", "empuje de cadera", "gluteo",
+            "glute", "patada de gluteo",
             "puente de gluteo", "rear kick", "abductor", "abduccion", "abduction",
         ),
     ),
@@ -270,11 +271,13 @@ _SECONDARY_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     # trains both of its hip extensors.
     (ESPALDA, ("peso muerto", "deadlift"), (FEMORAL, GLUTEO)),
     # The hinges filed under FEMORAL train the glutes in the same set. Leg
-    # curls are absent: knee flexion, the hip never moves.
+    # curls are absent: knee flexion, the hip never moves. A plain deadlift is
+    # here too: the classifier files it under ESPALDA, but one re-tagged to
+    # Femoral by hand is still a hinge, and the rule above is gated on ESPALDA.
     (
         FEMORAL,
         (
-            "peso muerto rumano", "rumano", "romanian", "rdl", "buenos dias",
+            "peso muerto", "deadlift", "rumano", "romanian", "rdl", "buenos dias",
             "good morning", "hiperextension", "banco romano", "roman chair",
             "back extension", "extension de espalda", "reverse hyper",
         ),

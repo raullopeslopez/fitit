@@ -46,6 +46,7 @@ ROWS = [
     (11, "Sentadilla para glúteo", "Cuádriceps"),
     (12, "Abductor", None),  # NULL es «que lo diga el clasificador»: se lee, no se escribe
     (13, "Press banca", "Pecho"),
+    (14, "Hipthrust", "Femoral"),  # así está escrito en el log real
 ]
 
 
@@ -89,7 +90,7 @@ def round_tripped():
     return _run("downgrade")
 
 
-@pytest.mark.parametrize("exercise_id", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("exercise_id", [1, 2, 3, 4, 5, 14])
 def test_glute_work_moves_to_gluteo(migrated, exercise_id):
     assert migrated[exercise_id] == "Glúteo"
 
