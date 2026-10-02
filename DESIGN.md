@@ -598,7 +598,7 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
 
 | Pantalla | Estado |
 |---|---|
-| Perfil | pendiente (H1) |
+| Perfil | migrada (H1, 2026-10-02) |
 | Comida | pendiente (H2) |
 | Días, Progreso, Entreno | fuera de esta tanda |
 
