@@ -135,6 +135,43 @@ describe('Comida', () => {
     expect(screen.getByText('LUN 31 AGO')).toBeInTheDocument()
   })
 
+  describe('el objetivo, a la vista (sistema v2)', () => {
+    // Una propuesta sin aceptar y Comida sin decir nada: así se pasaron semanas.
+    it('hoy sin objetivo lo dice arriba y ofrece calcularlo', async () => {
+      render(<Comida />)
+      expect(
+        await screen.findByRole('button', { name: 'Sin objetivo todavía · Calcularlo' }),
+      ).toBeInTheDocument()
+    })
+
+    it('con objetivo, la línea dice el plan y la cifra del día', async () => {
+      api.getFoodDay.mockResolvedValue(day({ target_kcal: 2230 }))
+      api.getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5 })
+      render(<Comida />)
+      expect(
+        await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2.230 kcal' }),
+      ).toBeInTheDocument()
+    })
+
+    // Un día pasado tiene el objetivo que tenía, congelado; el plan de hoy al
+    // lado haría creer que aquel día se comía con este ritmo.
+    it('un día pasado no enseña la línea del plan', async () => {
+      render(<Comida />)
+      await screen.findByRole('button', { name: 'Sin objetivo todavía · Calcularlo' })
+      await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
+      await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
+      expect(screen.queryByRole('button', { name: /Sin objetivo todavía/ })).not.toBeInTheDocument()
+    })
+
+    it('el botón flotante abre la pantalla de añadir', async () => {
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir comida' }))
+      expect(await screen.findByLabelText('Buscar alimento')).toBeInTheDocument()
+      // Con la pantalla de añadir abierta no hay un segundo «añadir» flotando encima.
+      expect(screen.queryByRole('button', { name: 'Añadir comida' })).not.toBeInTheDocument()
+    })
+  })
+
   it('un día vacío lo dice comida por comida, en vez de enseñar ceros', async () => {
     render(<Comida />)
     // Las cuatro comidas en `dashed`, cada una una sola tarjeta: sin «Nada aún»

@@ -599,7 +599,7 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
 | Pantalla | Estado |
 |---|---|
 | Perfil | migrada (H1, 2026-10-02) |
-| Comida | pendiente (H2) |
+| Comida | en curso (H2: línea del objetivo, botón flotante, radios; la tarjeta de macros y las comidas, pendientes) |
 | Días, Progreso, Entreno | fuera de esta tanda |
 
 ### Reglas nuevas

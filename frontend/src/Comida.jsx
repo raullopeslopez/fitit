@@ -21,7 +21,9 @@ import {
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { Veredictos } from './Reglas.jsx'
+import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PlanDelDia, { Semana, lunesDe } from './Plan.jsx'
+import { Fab } from './ui'
 import {
   MACROS,
   MEAL_SLOTS,
@@ -313,6 +315,13 @@ export default function Comida() {
 
       {error && <p className="alert">{error}</p>}
 
+      {/* Qué plan llevas y cuánto toca hoy, o que todavía no hay objetivo. Sólo
+          hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
+          lado haría creer que aquel día se comía a este ritmo. */}
+      {day && isToday && (
+        <ObjetivoLinea targetKcal={day.target_kcal ?? null} onAccepted={() => load(dayIso)} />
+      )}
+
       {day && <MacroCard day={day} />}
 
       {/* Sólo se pinta lo que pide algo: una regla cumplida no necesita
@@ -403,6 +412,14 @@ export default function Comida() {
           muchos resultados o necesita cámara, hoja para lo corto.
 
           Editar una entrada sí se queda en hoja: es un campo y dos botones. */}
+      {/* La acción de la pantalla, donde está el pulgar (DESIGN.md → Sistema
+          v2). Sin comida elegida: la pantalla de añadir la deduce de la hora,
+          igual que cuando se entra por el diario sin tocar una tarjeta. Se
+          esconde con cualquier hoja abierta, que ya es lo que estás haciendo. */}
+      {!adding && !editingEntry && !confirming && !summaryOpen && !semanaOpen && (
+        <Fab icon="+" label="Añadir comida" onClick={() => setAdding({ slot: null })} />
+      )}
+
       {adding && (
         <AddFood
           slot={adding.slot}

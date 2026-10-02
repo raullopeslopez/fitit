@@ -6086,3 +6086,26 @@ button.draft-save {
   justify-content: flex-end;
   margin: 1rem 0 0;
 }
+
+/* ------------------------------------------------------------------ *
+ * Comida v2 (DESIGN.md → Sistema v2). `.comida` ya deja 9rem al pie, que
+ * cubre el botón flotante sin tocar nada.
+ * ------------------------------------------------------------------ */
+/* La línea del objetivo: lo primero que se lee después de la fecha. */
+.food-objetivo {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 1rem;
+}
+.food-objetivo .ui-chip {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.food-objetivo-chevron {
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+/* Las tarjetas de la pantalla toman el radio v2; su interior no cambia. */
+.comida .card {
+  border-radius: var(--radius-card);
+}
