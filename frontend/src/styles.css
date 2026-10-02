@@ -6125,9 +6125,12 @@ button.draft-save {
   justify-content: center;
   margin: 0 0 1rem;
 }
+/* Geist y no Geist Mono: con el plan dentro («semana 3 de 10») la línea en mono
+   no cabía a 430px y dejaba «kcal» sola en una segunda línea. Las cifras siguen
+   en tabulares, que es lo que las hace legibles de un vistazo. */
 .food-objetivo .ui-chip {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  text-wrap: balance;
 }
 .food-objetivo-chevron {
   color: var(--muted);
