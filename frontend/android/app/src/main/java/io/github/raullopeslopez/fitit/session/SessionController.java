@@ -2,6 +2,9 @@ package io.github.raullopeslopez.fitit.session;
 
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.os.Build;
+import android.os.VibrationAttributes;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import org.json.JSONException;
@@ -30,6 +33,13 @@ public final class SessionController {
     public static final String ACTION_PAGE = PREFIX + "PAGE";
     /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
     public static final String ACTION_DAY = PREFIX + "DAY";
+    /**
+     * Más tarde que esto, la alarma de fin de descanso repinta pero no vibra:
+     * es inexacta, y una vibración a destiempo da la hora equivocada.
+     */
+    static final long REST_LATE_MS = 60_000;
+    /** Dos pulsos que se notan en el bolsillo o sobre el banco. */
+    private static final long[] REST_OVER_PATTERN = {0, 300, 150, 300};
 
     private SessionController() {}
 
@@ -67,7 +77,6 @@ public final class SessionController {
     public static void end(Context context) {
         Session.store(context).clearControl();
         SessionNotification.cancel(context);
-        RestChime.cancel(context);
         SessionAlarms.cancel(context);
         SessionWidget.updateAll(context);
         SessionEvents.changed();
@@ -122,7 +131,7 @@ public final class SessionController {
                 case ACTION_WIDGET_REPEAT:
                     // El único toque que vibra: el pulgar sobre el widget no ve
                     // nada más que lo confirme. (El fin del descanso también
-                    // vibra, pero es aviso, no toque: RestChime.)
+                    // vibra, pero no es un toque: restOver.)
                     log(context, store, SessionControl.repeat(control, now), now);
                     pulse(context);
                     break;
@@ -143,7 +152,7 @@ public final class SessionController {
                     break;
                 case ACTION_REST_OVER:
                     refresh(context, control, now);
-                    RestChime.ring(context, control, now);
+                    if (restJustEnded(control, now)) restOver(context);
                     break;
                 case ACTION_EXPIRE:
                     if (SessionControl.expired(control, now)) end(context);
@@ -178,6 +187,31 @@ public final class SessionController {
         SessionNotification.show(context, control, now);
         SessionAlarms.arm(context, control, now);
         SessionWidget.updateAll(context);
+    }
+
+    /** Saltado (0), aún corriendo, o demasiado tarde para que la vibración sea verdad. */
+    private static boolean restJustEnded(JSONObject control, long now) {
+        long restEndsAt = control.optLong("restEndsAt", 0);
+        return restEndsAt > 0 && now >= restEndsAt && now - restEndsAt <= REST_LATE_MS;
+    }
+
+    /**
+     * El fin del descanso: vibra y ya está, sin aviso aparte ni sonido; lo que se
+     * ve es la tarjeta, que pasa a contar en positivo. Como alarma, porque con el
+     * teléfono bloqueado la app está en segundo plano y Android ignora ahí
+     * cualquier vibración que no sea de alarma, aviso o llamada. Y la de alarma
+     * vibra también en silencio, que es como se usa en el gimnasio.
+     */
+    private static void restOver(Context context) {
+        Vibrator vibrator = context.getSystemService(Vibrator.class);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        VibrationEffect effect = VibrationEffect.createWaveform(REST_OVER_PATTERN, -1);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            vibrator.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM));
+        } else {
+            vibrator.vibrate(effect, new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM).build());
+        }
     }
 
     /** Una pulsación corta. */

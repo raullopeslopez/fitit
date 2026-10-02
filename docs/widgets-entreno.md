@@ -27,8 +27,8 @@ Respuestas del product owner, condensadas:
   elige en la app, ver «Sin sesión»). Termina con `Terminar` del widget 4×2, con
   `Terminar entreno` del menú de Entreno o solo, a las dos horas sin registrar nada.
 - Ni sonido ni vibración, con una excepción: **vibra al tocar «+1 serie» en el widget**.
-  **Revisado el 2026-10-01:** el fin del descanso sí suena y vibra, con aviso propio
-  (ver «Fin del descanso con sonido»). La tarjeta sigue muda.
+  **Revisado el 2026-10-01/02:** el fin del descanso vibra, sin aviso ni sonido (ver «Fin
+  del descanso con sonido» y «… sólo vibración»). La tarjeta sigue muda.
 - Una serie registrada desde fuera **se sube en el momento**, sin esperar a abrir la app.
 
 ### Las dos dudas
@@ -162,7 +162,7 @@ se queda en `Sin entreno en curso` y tocar abre la app.
 |---|---|
 | Primera serie de fuerza de la sesión en la app | Aparece la notificación en curso; el widget pasa a mostrar la sesión |
 | Serie registrada (app, notificación o widget) | Las tres vistas se actualizan; empieza el descanso si está activado |
-| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.6 esa alarma, además, suena y vibra una vez (aviso aparte, canal «Fin del descanso»); si llega más de un minuto tarde, calla |
+| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.7 esa alarma, además, hace vibrar el teléfono dos pulsos, sin aviso aparte ni sonido; si llega más de un minuto tarde, no vibra |
 | Cambio de ejercicio en la app | El control pasa al nuevo ejercicio con su primera serie |
 | `Terminar` en el widget | Todo desaparece. Las series quedan |
 | Dos horas sin registrar nada | Lo mismo que `Terminar`, solo |
@@ -725,3 +725,25 @@ Pedido el 2026-10-01, sólo para el APK: que suene cuando acaba el descanso. Rea
   calla, y hay que decidir si se pide alarma exacta); `Saltar` en la app antes del cero
   no suena; en Ajustes aparece el canal «Fin del descanso» y apagarlo lo calla sin
   quitar la tarjeta.
+
+## Fin del descanso: sólo vibración (APK 0.10.7)
+
+Tras usar la 0.10.6 (2026-10-02): la vibración es justo lo que hacía falta, porque el
+móvil va en vibración; el aviso `Descanso terminado` sobra. Queda la tarjeta con el tiempo,
+que ya pasa a positivo al acabar, y el teléfono vibra en ese momento. Nada más.
+
+- **Sin aviso y sin canal.** La alarma de fin de descanso vibra directamente
+  (`SessionController.restOver`): dos pulsos de 300 ms. El canal `fitit_fin_descanso` de
+  la 0.10.6 pasa a la lista de retirados y desaparece de Ajustes.
+- **Vibra como alarma (`USAGE_ALARM`).** Con el teléfono bloqueado la app está en segundo
+  plano, y Android ignora ahí las vibraciones que no sean de alarma, aviso o llamada. La
+  de alarma, además, vibra con el teléfono en silencio. La contrapartida es que también
+  vibra con «No molestar» activado, salvo que ese modo silencie las alarmas.
+- **Se pierde el ajuste para callarlo:** sin canal no hay interruptor en Ajustes de
+  Android. Quien no quiera la vibración pone `Descanso: Sin`, o se le añade un interruptor
+  cuando alguien lo pida.
+- Lo demás se mantiene igual: más de 60 s tarde no vibra; saltar el descanso, tampoco.
+- **Comprobar en el teléfono:** con un descanso de 60 s, registrar una serie y bloquear.
+  Al llegar a cero vibra dos veces y no aparece ningún aviso nuevo, sólo la tarjeta en
+  positivo. Probarlo con el móvil en vibración y en silencio total. En Ajustes → Fitit →
+  Notificaciones ya no está «Fin del descanso».

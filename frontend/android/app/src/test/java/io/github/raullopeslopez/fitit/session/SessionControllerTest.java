@@ -16,6 +16,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.SystemClock;
+import android.os.VibrationAttributes;
 import android.os.Vibrator;
 import android.view.View;
 import android.widget.Chronometer;
@@ -99,8 +100,8 @@ public class SessionControllerTest {
         return shadowOf(notifications).getNotification(SessionNotification.ID);
     }
 
-    private Notification chime() {
-        return shadowOf(notifications).getNotification(RestChime.ID);
+    private org.robolectric.shadows.ShadowVibrator vibrator() {
+        return shadowOf(context.getSystemService(Vibrator.class));
     }
 
     private static List<String> actions(Notification n) {
@@ -368,59 +369,46 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void theEndOfTheRestSoundsOnItsOwnChannel() throws Exception {
+    public void theEndOfTheRestVibratesWithoutAnotherNotification() throws Exception {
         SessionController.publish(context, bench(NOW + 1_000), NOW);
-        assertNull(chime());
+        assertFalse(vibrator().isVibrating());
 
         tap(SessionController.ACTION_REST_OVER);
 
-        // Un aviso aparte, con sonido y vibración: la tarjeta sigue sin sonar.
-        Notification chime = chime();
-        assertNotNull(chime);
-        assertEquals(RestChime.CHANNEL, chime.getChannelId());
-        assertEquals("Descanso terminado", chime.extras.getString(Notification.EXTRA_TITLE));
-        assertEquals("Press banca", chime.extras.getString(Notification.EXTRA_TEXT));
-        NotificationChannel loud = notifications.getNotificationChannel(RestChime.CHANNEL);
-        assertNotNull(loud.getSound());
-        assertTrue(loud.shouldVibrate());
-        NotificationChannel quiet = notifications.getNotificationChannel(SessionNotification.CHANNEL);
-        assertNull(quiet.getSound());
-        assertFalse(quiet.shouldVibrate());
-        // Se va sola: no se queda en la bandeja tapando la tarjeta.
-        assertTrue(chime.getTimeoutAfter() > 0);
+        // Vibra el teléfono y ya está: ni aviso aparte ni sonido. Lo único en
+        // la bandeja sigue siendo la tarjeta, ahora con el tiempo en positivo.
+        assertTrue(vibrator().isVibrating());
+        assertEquals(1, shadowOf(notifications).getAllNotifications().size());
+        assertTrue(visible(collapsed(), R.id.widget_over));
+        // Como alarma: Android ignora la vibración de una app en segundo plano
+        // si no es de alarma, aviso o llamada, y con el teléfono bloqueado lo está.
+        assertEquals(VibrationAttributes.USAGE_ALARM,
+                ((VibrationAttributes) vibrator().getVibrationAttributesFromLastVibration()).getUsage());
+        // El canal con sonido de la 0.10.6 desaparece de Ajustes.
+        assertNull(notifications.getNotificationChannel("fitit_fin_descanso"));
     }
 
     @Test
-    public void aRestOverAlarmThatArrivesLateStaysQuiet() throws Exception {
-        // Con el teléfono en reposo la alarma inexacta puede llegar tarde, y un
-        // pitido a destiempo da la hora equivocada: mejor ninguno.
+    public void aRestOverAlarmThatArrivesLateDoesNotVibrate() throws Exception {
+        // Con el teléfono en reposo la alarma inexacta puede llegar tarde, y una
+        // vibración a destiempo da la hora equivocada: mejor ninguna.
         SessionController.publish(context, bench(NOW + 1_000), NOW);
 
         SessionController.handle(context, new Intent(SessionController.ACTION_REST_OVER),
-                NOW + 1_000 + RestChime.LATE_MS + 1);
+                NOW + 1_000 + SessionController.REST_LATE_MS + 1);
 
-        assertNull(chime());
+        assertFalse(vibrator().isVibrating());
         assertTrue(visible(collapsed(), R.id.widget_over));
     }
 
     @Test
-    public void aSkippedRestDoesNotSound() throws Exception {
+    public void aSkippedRestDoesNotVibrate() throws Exception {
         SessionController.publish(context, bench(NOW + 83_000), NOW);
         SessionController.skipRest(context, NOW + 2_000);
 
         tap(SessionController.ACTION_REST_OVER);
 
-        assertNull(chime());
-    }
-
-    @Test
-    public void endingTheSessionTakesTheChimeAway() throws Exception {
-        SessionController.publish(context, bench(NOW + 1_000), NOW);
-        tap(SessionController.ACTION_REST_OVER);
-
-        tap(SessionController.ACTION_END);
-
-        assertNull(chime());
+        assertFalse(vibrator().isVibrating());
     }
 
     @Test
