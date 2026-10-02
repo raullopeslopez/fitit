@@ -223,6 +223,7 @@ async def proposal(
         floored=propuesta.floored,
         steps_per_day=propuesta.steps_per_day,
         training_kcal_per_day=propuesta.training_kcal_per_day,
+        expenditure=propuesta.expenditure,
         **macros,
     )
 

@@ -1030,6 +1030,9 @@ class TargetProposalOut(BaseModel):
     # entreno, o si la cifra es medida (ahí la actividad ya va dentro).
     steps_per_day: int | None = None
     training_kcal_per_day: int | None = None
+    # El gasto del que sale `kcal`, antes de sumarle o restarle el ritmo del
+    # objetivo. Le vale el mismo `source`. Con el suelo puesto sigue siendo el real.
+    expenditure: float | None = None
 
 
 class TargetAcceptIn(BaseModel):

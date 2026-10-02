@@ -81,3 +81,19 @@ def test_sin_gasto_no_hay_propuesta_y_viaja_lo_que_falta():
     propuesta = proponer(Gasto(kcal=None, missing=["altura"]), goal="cut", rate_kg_week=0.5)
     assert propuesta.kcal is None
     assert propuesta.missing == ["altura"]
+
+
+def test_la_propuesta_lleva_el_gasto_del_que_sale_sin_el_ritmo():
+    propuesta = proponer(Gasto(kcal=2600, source="measured"), goal="cut", rate_kg_week=0.5)
+    assert propuesta.expenditure == 2600
+    assert propuesta.kcal == 2050
+
+
+def test_el_suelo_recorta_las_kcal_pero_no_el_gasto():
+    propuesta = proponer(Gasto(kcal=1800, source="formula"), goal="cut", rate_kg_week=2)
+    assert propuesta.expenditure == 1800
+
+
+def test_sin_gasto_la_propuesta_no_trae_gasto():
+    propuesta = proponer(Gasto(kcal=None, missing=["altura"]), goal="cut", rate_kg_week=0.5)
+    assert propuesta.expenditure is None

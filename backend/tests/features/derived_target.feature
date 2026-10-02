@@ -157,3 +157,35 @@ Feature: The calories stop being typed
     When I ask what I should eat
     Then it says the number came from my own data
     And it proposes 2600 kcal
+
+  # La pantalla tiene que poder enseñar la cuenta entera —gasto, ritmo, resultado—
+  # y para eso el gasto del que sale la cifra viaja con ella.
+  Scenario: A cut proposal says the expenditure it was worked out from
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to lose 0.5 kg a week
+    And I have eaten 2600 kcal a day for three weeks and not moved on the scale
+    When I ask what I should eat
+    Then it says my expenditure is 2600 kcal
+    And it proposes 2050 kcal
+
+  Scenario: When I want to stay, the expenditure is the proposal
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I have eaten 2600 kcal a day for three weeks and not moved on the scale
+    When I ask what I should eat
+    Then it says my expenditure is 2600 kcal
+    And it proposes 2600 kcal
+
+  # El suelo recorta las kcal propuestas, no lo que gastas: el gasto sigue siendo real.
+  Scenario: The floor does not rewrite the expenditure
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to lose 0.5 kg a week
+    And I have eaten 1500 kcal a day for three weeks and not moved on the scale
+    When I ask what I should eat
+    Then it proposes 1200 kcal
+    And it says my expenditure is 1500 kcal
+
+  Scenario: With nothing to work out a number from, there is no expenditure either
+    Given my goal is to maintain
+    When I ask what I should eat
+    Then it says it has no expenditure

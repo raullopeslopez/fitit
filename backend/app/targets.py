@@ -163,6 +163,8 @@ class Propuesta:
     # Si hubo que subir la cifra hasta el suelo. Se dice: una propuesta
     # recortada en silencio es una propuesta que no es lo que pediste.
     floored: bool = False
+    # El gasto del que sale `kcal`, antes de aplicar el ritmo. `None` sin gasto.
+    expenditure: float | None = None
 
 
 def proponer(gasto: Gasto, *, goal: str, rate_kg_week: float | None) -> Propuesta:
@@ -191,4 +193,5 @@ def proponer(gasto: Gasto, *, goal: str, rate_kg_week: float | None) -> Propuest
         steps_per_day=gasto.steps_per_day,
         training_kcal_per_day=gasto.training_kcal_per_day,
         floored=floored,
+        expenditure=round(gasto.kcal, 0),
     )

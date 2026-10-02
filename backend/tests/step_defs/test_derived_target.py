@@ -321,3 +321,13 @@ def then_steps_goal_unset(perfil):
 @then("it is rejected")
 def then_rejected(rechazo):
     assert rechazo.status_code == 422, rechazo.text
+
+
+@then(parsers.parse("it says my expenditure is {kcal:g} kcal"))
+def then_expenditure(propuesta, kcal):
+    assert propuesta["expenditure"] == kcal
+
+
+@then("it says it has no expenditure")
+def then_no_expenditure(propuesta):
+    assert propuesta["expenditure"] is None
