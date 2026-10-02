@@ -599,7 +599,7 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
 | Pantalla | Estado |
 |---|---|
 | Perfil | migrada (H1, 2026-10-02) |
-| Comida | en curso (H2: línea del objetivo, botón flotante, radios; la tarjeta de macros y las comidas, pendientes) |
+| Comida | migrada (H2 y revisión semanal, 2026-10-02). La tarjeta de macros mantiene la proteína como cifra grande: decisión del usuario |
 | Días, Progreso, Entreno | fuera de esta tanda |
 
 ### Reglas nuevas

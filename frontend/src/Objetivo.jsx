@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { acceptTarget, saveTargetProfile } from './api.js'
+import { formatMacro } from './food.js'
 import { formatDayMonth } from './format.js'
 import { formatSteps } from './steps.js'
 import { Chip, Sheet } from './ui'
@@ -15,8 +16,11 @@ const OBJETIVOS = [
 // no sirve: en español no agrupa los de cuatro cifras («2569»), y 2.569 kcal es
 // como se lee y como se teclea.
 export function conMiles(n) {
-  if (n == null) return '—'
-  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  // La convención de la app es la de `formatMacro` (RAE, es-ES): cuatro cifras
+  // sin separador —«2230 kcal»— y a partir de cinco con punto —«10.000»—. Aquí
+  // se ponía punto siempre, y en Comida la línea del objetivo decía «2.230»
+  // encima de una fila Energía que decía «2230».
+  return formatMacro(n == null ? null : Math.round(n))
 }
 
 // «0,5»: aquí se escribe con coma, y la API habla en punto.

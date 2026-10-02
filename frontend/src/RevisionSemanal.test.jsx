@@ -48,10 +48,10 @@ describe('La revisión semanal', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
 
     expect(answerReview).toHaveBeenCalledWith('all')
-    expect(await screen.findByText('Gastaste unas 2.780 kcal al día')).toBeInTheDocument()
-    expect(screen.getByText('2.150 → 2.230 kcal')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Mantener 2.150' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Aceptar 2.230' })).toBeInTheDocument()
+    expect(await screen.findByText('Gastaste unas 2780 kcal al día')).toBeInTheDocument()
+    expect(screen.getByText('2150 → 2230 kcal')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mantener 2150' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aceptar 2230' })).toBeInTheDocument()
     // Contestar no fija nada.
     expect(acceptTarget).not.toHaveBeenCalled()
   })
@@ -60,14 +60,14 @@ describe('La revisión semanal', () => {
     render(<RevisionSemanal onAccepted={() => {}} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Casi todo' }))
     expect(answerReview).toHaveBeenCalledWith('most')
-    expect(await screen.findByText('2.150 → 2.230 kcal')).toBeInTheDocument()
+    expect(await screen.findByText('2150 → 2230 kcal')).toBeInTheDocument()
   })
 
   it('«Aceptar» fija la propuesta, cierra la tarjeta y avisa a Comida', async () => {
     const onAccepted = vi.fn()
     render(<RevisionSemanal onAccepted={onAccepted} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2.230' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2230' }))
 
     expect(acceptTarget).toHaveBeenCalledWith(2230)
     await waitFor(() => expect(onAccepted).toHaveBeenCalledOnce())
@@ -79,7 +79,7 @@ describe('La revisión semanal', () => {
     const onAccepted = vi.fn()
     render(<RevisionSemanal onAccepted={onAccepted} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2.150' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
 
     expect(acceptTarget).not.toHaveBeenCalled()
     expect(onAccepted).not.toHaveBeenCalled()
@@ -91,7 +91,7 @@ describe('La revisión semanal', () => {
     render(<RevisionSemanal onAccepted={() => {}} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
 
-    expect(await screen.findByText('Tu objetivo sigue en 2.230 kcal.')).toBeInTheDocument()
+    expect(await screen.findByText('Tu objetivo sigue en 2230 kcal.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Aceptar/ })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Vale' }))
     expect(screen.queryByText('REVISIÓN SEMANAL')).not.toBeInTheDocument()
@@ -102,8 +102,8 @@ describe('La revisión semanal', () => {
     render(<RevisionSemanal onAccepted={() => {}} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
 
-    expect(await screen.findByText('2.230 kcal')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Aceptar 2.230' })).toBeInTheDocument()
+    expect(await screen.findByText('2230 kcal')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aceptar 2230' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Ahora no' }))
     expect(screen.queryByText('REVISIÓN SEMANAL')).not.toBeInTheDocument()
     expect(acceptTarget).not.toHaveBeenCalled()
@@ -114,7 +114,7 @@ describe('La revisión semanal', () => {
     answerReview.mockResolvedValue({ ...PROPUESTA, expenditure: null })
     render(<RevisionSemanal onAccepted={() => {}} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
-    await screen.findByText('2.150 → 2.230 kcal')
+    await screen.findByText('2150 → 2230 kcal')
     expect(screen.queryByText(/Gastaste/)).not.toBeInTheDocument()
   })
 

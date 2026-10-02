@@ -74,9 +74,9 @@ describe('Perfil', () => {
     it('Objetivo diario enseña lo aceptado, y la propuesta lo suyo con su procedencia', async () => {
       renderPerfil()
 
-      expect(await fila('Objetivo diario')).toHaveTextContent('2.230 kcal')
+      expect(await fila('Objetivo diario')).toHaveTextContent('2230 kcal')
       const propuesta = await fila('Propuesta')
-      expect(propuesta).toHaveTextContent('2.569 kcal')
+      expect(propuesta).toHaveTextContent('2569 kcal')
       expect(propuesta).toHaveTextContent('Estimado con una fórmula')
       expect(await fila('Ritmo')).toHaveTextContent('Bajar · 0,5 kg/sem')
     })
@@ -117,7 +117,7 @@ describe('Perfil', () => {
       for (const label of ['Objetivo diario', 'Propuesta', 'Ritmo']) {
         await userEvent.click(await fila(label))
         const hoja = await screen.findByRole('dialog', { name: 'Tu objetivo' })
-        expect(within(hoja).getByText('2.569')).toBeInTheDocument()
+        expect(within(hoja).getByText('2569')).toBeInTheDocument()
         await userEvent.keyboard('{Escape}')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       }
@@ -138,7 +138,7 @@ describe('Perfil', () => {
       await waitFor(() => expect(api.acceptTarget).toHaveBeenCalledWith(2569))
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
       await waitFor(async () =>
-        expect(await fila('Objetivo diario')).toHaveTextContent('2.569 kcal'),
+        expect(await fila('Objetivo diario')).toHaveTextContent('2569 kcal'),
       )
       expect(await fila('Objetivo diario')).not.toHaveTextContent('Sin aceptar')
     })
@@ -154,7 +154,7 @@ describe('Perfil', () => {
 
       await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalled())
       expect(api.saveTargetProfile.mock.calls[0][0]).toMatchObject({ goal: 'gain' })
-      expect(await within(hoja).findByText('2.480')).toBeInTheDocument()
+      expect(await within(hoja).findByText('2480')).toBeInTheDocument()
       expect(screen.getByRole('dialog', { name: 'Tu objetivo' })).toBeInTheDocument()
     })
   })
@@ -352,14 +352,14 @@ describe('Perfil', () => {
     it('al guardar un peso, la propuesta se vuelve a pedir', async () => {
       api.logBodyWeight.mockResolvedValue({ id: 1, measured_on: '2026-09-27', kg: 80 })
       renderPerfil()
-      expect(await fila('Propuesta')).toHaveTextContent('2.569 kcal')
+      expect(await fila('Propuesta')).toHaveTextContent('2569 kcal')
       api.getTargetProposal.mockResolvedValue({ kcal: 2599, source: 'formula', days: 0, missing: [] })
 
       await userEvent.click(screen.getByRole('button', { name: /Pesarme/ }))
       await userEvent.type(await screen.findByLabelText('Peso (kg)'), '80')
       await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
-      await waitFor(async () => expect(await fila('Propuesta')).toHaveTextContent('2.599 kcal'))
+      await waitFor(async () => expect(await fila('Propuesta')).toHaveTextContent('2599 kcal'))
     })
   })
 

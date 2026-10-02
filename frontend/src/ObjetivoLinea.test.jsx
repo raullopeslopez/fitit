@@ -30,7 +30,7 @@ describe('La línea del objetivo en Comida', () => {
     getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5 })
     render(<ObjetivoLinea targetKcal={2230} onAccepted={() => {}} />)
     expect(
-      await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2.230 kcal' }),
+      await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2230 kcal' }),
     ).toBeInTheDocument()
   })
 
@@ -38,14 +38,14 @@ describe('La línea del objetivo en Comida', () => {
     getTargetProfile.mockResolvedValue({ goal: 'maintain', goal_rate: 0 })
     render(<ObjetivoLinea targetKcal={2780} onAccepted={() => {}} />)
     expect(
-      await screen.findByRole('button', { name: 'Manteniendo · 2.780 kcal' }),
+      await screen.findByRole('button', { name: 'Manteniendo · 2780 kcal' }),
     ).toBeInTheDocument()
   })
 
   it('still shows the figure when no goal was ever chosen', async () => {
     getTargetProfile.mockResolvedValue({})
     render(<ObjetivoLinea targetKcal={2230} onAccepted={() => {}} />)
-    expect(await screen.findByRole('button', { name: 'Objetivo · 2.230 kcal' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Objetivo · 2230 kcal' })).toBeInTheDocument()
   })
 
   // El caso que empezó todo: una propuesta calculada en Perfil, sin aceptar,
@@ -60,7 +60,7 @@ describe('La línea del objetivo en Comida', () => {
     )
 
     const hoja = await screen.findByRole('dialog', { name: 'Tu objetivo' })
-    expect(hoja).toHaveTextContent('2.569')
+    expect(hoja).toHaveTextContent('2569')
   })
 
   it('accepting fixes the target, closes the sheet and tells Comida', async () => {
@@ -90,7 +90,7 @@ describe('La línea del objetivo en Comida', () => {
     render(<ObjetivoLinea targetKcal={2230} onAccepted={() => {}} />)
     expect(
       await screen.findByRole('button', {
-        name: 'Bajando 0,5 kg/sem · semana 3 de 10 · 2.230 kcal',
+        name: 'Bajando 0,5 kg/sem · semana 3 de 10 · 2230 kcal',
       }),
     ).toBeInTheDocument()
   })
@@ -103,7 +103,7 @@ describe('La línea del objetivo en Comida', () => {
     })
     render(<ObjetivoLinea targetKcal={2230} onAccepted={() => {}} />)
     expect(
-      await screen.findByRole('button', { name: 'Peso meta alcanzado · 2.230 kcal' }),
+      await screen.findByRole('button', { name: 'Peso meta alcanzado · 2230 kcal' }),
     ).toBeInTheDocument()
   })
 
@@ -113,7 +113,7 @@ describe('La línea del objetivo en Comida', () => {
     getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5, objetivo_kcal: 2569 })
     render(<ObjetivoLinea targetKcal={2230} onAccepted={() => {}} />)
     expect(
-      await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2.230 kcal · mañana 2.569' }),
+      await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2230 kcal · mañana 2569' }),
     ).toBeInTheDocument()
   })
 
@@ -127,6 +127,6 @@ describe('La línea del objetivo en Comida', () => {
   it('survives a profile that fails to load', async () => {
     getTargetProfile.mockRejectedValue(new Error('offline'))
     render(<ObjetivoLinea targetKcal={2230} onAccepted={() => {}} />)
-    expect(await screen.findByRole('button', { name: 'Objetivo · 2.230 kcal' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Objetivo · 2230 kcal' })).toBeInTheDocument()
   })
 })

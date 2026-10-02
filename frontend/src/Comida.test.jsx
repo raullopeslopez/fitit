@@ -151,7 +151,7 @@ describe('Comida', () => {
       api.getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5 })
       render(<Comida />)
       expect(
-        await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2.230 kcal' }),
+        await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2230 kcal' }),
       ).toBeInTheDocument()
     })
 
@@ -171,7 +171,7 @@ describe('Comida', () => {
       api.getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5, objetivo_kcal: 2569 })
       render(<Comida />)
       expect(
-        await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2.230 kcal · mañana 2.569' }),
+        await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2230 kcal · mañana 2569' }),
       ).toBeInTheDocument()
     })
 
@@ -200,7 +200,7 @@ describe('Comida', () => {
         render(<Comida />)
         await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
         const antes = api.getFoodDay.mock.calls.length
-        await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2.230' }))
+        await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2230' }))
         await waitFor(() => expect(api.getFoodDay.mock.calls.length).toBeGreaterThan(antes))
         expect(api.acceptTarget).toHaveBeenCalledWith(2230)
       })

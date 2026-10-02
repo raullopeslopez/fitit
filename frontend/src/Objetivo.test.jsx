@@ -27,9 +27,11 @@ beforeEach(() => {
 })
 
 describe('conMiles', () => {
-  // `toLocaleString('es-ES')` no agrupa los de cuatro cifras.
-  it('pone el punto de miles también en cuatro cifras', () => {
-    expect(conMiles(2569)).toBe('2.569')
+  // La convención de la app (RAE, es-ES, la misma que `formatMacro`): cuatro
+  // cifras sin separador y cinco con punto. Una pantalla no puede decir «2.230»
+  // encima de una fila que dice «2230».
+  it('sigue la convención de formatMacro: 2569 y 10.000', () => {
+    expect(conMiles(2569)).toBe('2569')
     expect(conMiles(10000)).toBe('10.000')
     expect(conMiles(null)).toBe('—')
   })
@@ -47,7 +49,7 @@ describe('ritmo', () => {
 describe('Tu objetivo', () => {
   it('shows the proposal and where the number came from', () => {
     const { hoja } = abrir()
-    expect(within(hoja).getByText('2.600')).toBeInTheDocument()
+    expect(within(hoja).getByText('2600')).toBeInTheDocument()
     expect(within(hoja).getByText('kcal')).toBeInTheDocument()
     expect(within(hoja).getByText('Medido con tus datos · 21 días')).toBeInTheDocument()
   })
@@ -146,7 +148,7 @@ describe('Tu objetivo', () => {
   })
 
   // La cuenta a la vista: de dónde sale la cifra, no sólo la cifra. Con el gasto
-  // y el ritmo delante, «2.230» deja de ser un número que se obedece a ciegas.
+  // y el ritmo delante, «2230» deja de ser un número que se obedece a ciegas.
   describe('la cuenta', () => {
     const CUENTA = {
       kcal: 2230,
@@ -165,9 +167,9 @@ describe('Tu objetivo', () => {
       const cuenta = within(hoja).getByRole('list', { name: 'La cuenta' })
       const filas = within(cuenta).getAllByRole('listitem')
       expect(filas.map((f) => f.textContent)).toEqual([
-        'Gasto medido2.780',
+        'Gasto medido2780',
         'Bajar 0,5 kg/semana− 550',
-        'Comer al día2.230',
+        'Comer al día2230',
       ])
     })
 
@@ -180,9 +182,9 @@ describe('Tu objetivo', () => {
         'listitem',
       )
       expect(filas.map((f) => f.textContent)).toEqual([
-        'Gasto estimado2.780',
+        'Gasto estimado2780',
         'Ganar 0,25 kg/semana+ 275',
-        'Comer al día3.055',
+        'Comer al día3055',
       ])
     })
 
@@ -195,7 +197,7 @@ describe('Tu objetivo', () => {
       const filas = within(within(hoja).getByRole('list', { name: 'La cuenta' })).getAllByRole(
         'listitem',
       )
-      expect(filas.map((f) => f.textContent)).toEqual(['Gasto medido2.780', 'Comer al día2.780'])
+      expect(filas.map((f) => f.textContent)).toEqual(['Gasto medido2780', 'Comer al día2780'])
     })
 
     // Sin gasto no hay cuenta que enseñar, y no se inventa una con un cero.
