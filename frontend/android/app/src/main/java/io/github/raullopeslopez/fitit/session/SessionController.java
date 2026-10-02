@@ -52,6 +52,9 @@ public final class SessionController {
         Session.store(context).setSession(token, apiBase, clientVersion);
         SessionWidget.updateAll(context);
         SessionSender.schedule(context);
+        // Cada APK con sesión entrega el token al arrancar: ahí se programa el aviso
+        // de la revisión, sin que nadie tenga que hacer nada tras actualizar.
+        ReviewScheduler.schedule(context);
     }
 
     /**

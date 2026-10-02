@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.11.0: aviso de la revisión semanal y Comida/Perfil nuevos.** El día de la revisión (domingo, si no
+  eliges otro en Perfil) a las 9:00 llega una notificación, «Revisión semanal · Tu semana está lista. ¿Ajustamos el
+  objetivo?», una sola vez y sólo el día de la revisión; al tocarla se abre Comida, donde
+  está la tarjeta. Si no hay red o no tienes sesión, no avisa y mañana lo vuelve a mirar.
+  Este APK trae además el Perfil rediseñado (filas y hojas, «+ Pesarme»), la línea del
+  objetivo en Comida («Sin objetivo todavía · Calcularlo» / «Bajando 0,5 kg/sem · semana 3
+  de 10 · 2230 kcal»), el botón «Añadir comida» y la tarjeta de la revisión semanal.
 - **APK 0.10.9: Glúteo es un grupo muscular propio.** Hip thrust, puente, patada de glúteo y
   abductor cuentan en Glúteo, no en Femoral, también en el histórico. Sentadilla, prensa y
   zancada suman media serie a Glúteo en vez de a Femoral; el peso muerto, media a cada uno.

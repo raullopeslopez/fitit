@@ -585,6 +585,20 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
   La siguiente actualización la devuelve al canal mudo. Si la alarma llega más de un
   minuto tarde, no vibra.
 
+### El aviso de la revisión semanal
+- **Canal** `fitit_review`, «Revisión semanal», importancia normal (suena como una
+  notificación cualquiera: es el único aviso que Fitit da por iniciativa propia).
+- **Texto.** Título `Revisión semanal`; cuerpo `Tu semana está lista. ¿Ajustamos el
+  objetivo?`. Se cierra al tocarla, y tocarla abre Comida, donde está la tarjeta de la
+  revisión.
+- **Cuándo.** Una comprobación al día, a las 9:00 locales y con red. Avisa sólo si el
+  servidor dice que la revisión está pendiente **y** su día es hoy: pendiente sigue
+  siendo cierto el lunes, y un «tu semana está lista» tres días tarde es ruido, no
+  recordatorio. Sin sesión, o con un fallo de red, no hace nada y no reintenta.
+- **Por qué una sola vez.** Se apunta la fecha de la revisión avisada: ni un segundo
+  disparo el mismo día ni un reintento repiten el aviso. Si no la abres, la tarjeta
+  espera en Comida; insistir sería regañar.
+
 ## Sistema v2 — Material tonal (desde 2026-10-02)
 La app se usa como APK, y la piel heredada de la PWA no lo parecía: formularios con un
 «Guardar» al pie, datos del servidor escritos en frases pequeñas en `--muted`, y ninguna

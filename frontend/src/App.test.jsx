@@ -138,6 +138,26 @@ describe('App', () => {
       expect(api.createWorkout).toHaveBeenCalledTimes(1)
     })
 
+    it('«revisión» (el aviso del domingo) abre Comida', async () => {
+      setToken('tok')
+      api.listDays.mockResolvedValue([])
+      api.listExercises.mockResolvedValue([])
+      api.getFoodDay.mockResolvedValue({
+        date: '2026-07-15',
+        entries: [],
+        totals: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+        unknown: { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 },
+      })
+      api.frequentFoods.mockResolvedValue([])
+      render(<App />)
+      await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
+
+      act(() => launch.listener({ action: 'review' }))
+
+      expect(await screen.findByRole('button', { name: 'Añadir a desayuno' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')
+    })
+
     it('sin sesión no escucha: la orden espera a que entres', () => {
       render(<App />)
       expect(launch.listener).toBeNull()
