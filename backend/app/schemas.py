@@ -992,6 +992,8 @@ class TargetProfileIn(BaseModel):
     # El peso al que quieres llegar. Cambiarlo (o cambiar `goal`) empieza otro
     # plan: el servidor borra dónde arrancó el anterior.
     goal_weight_kg: float | None = Field(default=None, ge=30, le=300)
+    # El día en que la app pregunta «¿apuntaste todo?»: 0 lunes … 6 domingo.
+    review_weekday: int | None = Field(default=None, ge=0, le=6)
 
 
 class TargetProfileOut(BaseModel):
@@ -1006,6 +1008,7 @@ class TargetProfileOut(BaseModel):
     objetivo_kcal: float | None = None
     steps_goal: int | None = None
     goal_weight_kg: float | None = None
+    review_weekday: int = 6
 
 
 class GoalPlanOut(BaseModel):
@@ -1056,6 +1059,25 @@ class TargetProposalOut(BaseModel):
 
 class TargetAcceptIn(BaseModel):
     kcal: float = Field(gt=0, le=10000)
+
+
+ReviewAnswer = Literal["all", "most", "none"]
+
+
+class WeeklyReviewIn(BaseModel):
+    answer: ReviewAnswer
+
+
+class WeeklyReviewOut(BaseModel):
+    """Si toca preguntar «¿apuntaste todo?», y sobre qué días."""
+
+    review_date: Date
+    # La semana revisada: los siete días anteriores al día de revisión.
+    period_from: Date
+    period_to: Date
+    # Sin respuesta guardada y con algo apuntado en el periodo.
+    due: bool
+    answer: ReviewAnswer | None = None
 
 
 # --- Reglas -------------------------------------------------------------------

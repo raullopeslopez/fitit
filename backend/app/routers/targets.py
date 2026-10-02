@@ -15,7 +15,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import BodyWeight, DailySteps, DailyTarget, Day, LogEntry, SetEntry, User, Workout
+from ..models import (
+    BodyWeight,
+    DailySteps,
+    DailyTarget,
+    Day,
+    LogEntry,
+    SetEntry,
+    User,
+    WeeklyReview,
+    Workout,
+)
 from ..nutrition import reparto_macros
 from ..schemas import (
     GoalPlanOut,
@@ -23,9 +33,19 @@ from ..schemas import (
     TargetProfileIn,
     TargetProfileOut,
     TargetProposalOut,
+    WeeklyReviewIn,
+    WeeklyReviewOut,
 )
 from ..session_length import session_length
-from ..targets import gasto_medido, gasto_por_formula, kcal_entreno, plan, proponer
+from ..targets import (
+    fecha_de_revision,
+    gasto_medido,
+    gasto_por_formula,
+    kcal_entreno,
+    periodo_revisado,
+    plan,
+    proponer,
+)
 from ..weight import tendencia
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -123,9 +143,33 @@ async def _peso(session: AsyncSession, user_id: int) -> float | None:
     return kg
 
 
+async def _dias_sin_apuntar(session: AsyncSession, user_id: int, desde: date) -> set[date]:
+    """Los días de la ventana que caen en una semana que contestaste «No» a
+    «¿apuntaste todo?». Comer apuntado a medias hunde la media, y con ella el
+    gasto medido: esa semana no mide nada. «Casi todo» y la que no contestaste
+    sí cuentan — sólo un «No» la saca."""
+    revisiones = (
+        await session.execute(
+            select(WeeklyReview.review_date).where(
+                WeeklyReview.user_id == user_id,
+                WeeklyReview.answer == "none",
+                # El periodo acaba el día anterior: una revisión de `desde` ya
+                # no toca la ventana.
+                WeeklyReview.review_date > desde,
+            )
+        )
+    ).all()
+    dias: set[date] = set()
+    for (revision,) in revisiones:
+        primero, ultimo = periodo_revisado(revision)
+        dias.update(primero + timedelta(days=i) for i in range((ultimo - primero).days + 1))
+    return dias
+
+
 async def _medido(session: AsyncSession, user_id: int):
     """El gasto medido en tus datos, o `None` si todavía no hay con qué."""
     desde = date.today() - timedelta(days=VENTANA)
+    excluidos = await _dias_sin_apuntar(session, user_id, desde)
     filas = (
         await session.execute(
             select(LogEntry.log_date, func.sum(LogEntry.kcal))
@@ -141,7 +185,11 @@ async def _medido(session: AsyncSession, user_id: int):
             .group_by(LogEntry.log_date)
         )
     ).all()
-    por_dia = [float(total) for _, total in filas if total is not None]
+    # Las pesadas no se excluyen: lo que pesaste, pesaste. Sólo lo comido es lo
+    # que pudo quedarse sin apuntar.
+    por_dia = [
+        float(total) for dia, total in filas if total is not None and dia not in excluidos
+    ]
     if not por_dia:
         return None
 
@@ -186,6 +234,9 @@ async def update_profile(
     """Guarda el perfil. **No toca el objetivo**: cambiarlo es un acto aparte."""
     user = await _user(session, user_id)
     cambios = payload.model_dump(exclude_unset=True)
+    # `review_weekday` no admite «borrar»: es NOT NULL con valor por defecto.
+    if cambios.get("review_weekday") is None:
+        cambios.pop("review_weekday", None)
     # Otra meta u otro objetivo es otro plan: dónde arrancó el anterior ya no
     # cuenta. Sólo si **cambia** — un cliente que reenvía el perfil entero al
     # guardar no puede reiniciar el plan con los mismos valores. Altura, ritmo o
@@ -200,12 +251,9 @@ async def update_profile(
     return TargetProfileOut.model_validate(user)
 
 
-@router.get("/proposal", response_model=TargetProposalOut)
-async def proposal(
-    user_id: int = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-) -> TargetProposalOut:
-    """Lo que tocaría comer, y de dónde sale el número. No escribe nada."""
+async def _proponer(session: AsyncSession, user_id: int) -> TargetProposalOut:
+    """Lo que tocaría comer y de dónde sale. No escribe nada; lo comparten
+    `GET /proposal` y la revisión semanal, para que digan siempre lo mismo."""
     user = await _user(session, user_id)
 
     kg = await _peso(session, user_id)
@@ -252,6 +300,15 @@ async def proposal(
     )
 
 
+@router.get("/proposal", response_model=TargetProposalOut)
+async def proposal(
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TargetProposalOut:
+    """Lo que tocaría comer, y de dónde sale el número. No escribe nada."""
+    return await _proponer(session, user_id)
+
+
 @router.post("/accept", response_model=TargetProfileOut)
 async def accept(
     payload: TargetAcceptIn,
@@ -289,9 +346,88 @@ async def accept(
     ):
         user.plan_started_on = date.today()
         user.plan_start_kg = kg
+    # Si lo que se acepta es lo que proponía la revisión de esta semana, queda
+    # dicho. Sólo lo dice: el objetivo ya lo ha cambiado `accept` de arriba.
+    revision = await _revision_actual(session, user)
+    if revision is not None and revision.proposed_kcal == payload.kcal:
+        revision.accepted = True
     await session.commit()
     await session.refresh(user)
     return TargetProfileOut.model_validate(user)
+
+
+async def _revision_actual(session: AsyncSession, user: User) -> WeeklyReview | None:
+    """La revisión guardada del último día de revisión, si hay."""
+    dia = fecha_de_revision(date.today(), user.review_weekday)
+    return (
+        await session.execute(
+            select(WeeklyReview).where(
+                WeeklyReview.user_id == user.id, WeeklyReview.review_date == dia
+            )
+        )
+    ).scalar_one_or_none()
+
+
+@router.get("/review", response_model=WeeklyReviewOut)
+async def read_review(
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> WeeklyReviewOut:
+    """¿Toca preguntar «¿apuntaste todo lo que comiste?». No escribe nada.
+
+    Sólo toca si esa semana tiene algo apuntado: una cuenta nueva no tiene una
+    semana que revisar, y preguntarle por una que no registró sería ruido.
+    """
+    user = await _user(session, user_id)
+    dia = fecha_de_revision(date.today(), user.review_weekday)
+    desde, hasta = periodo_revisado(dia)
+    revision = await _revision_actual(session, user)
+    apuntado = (
+        await session.execute(
+            select(func.count(LogEntry.id)).where(
+                LogEntry.user_id == user_id,
+                LogEntry.log_date >= desde,
+                LogEntry.log_date <= hasta,
+            )
+        )
+    ).scalar_one()
+    return WeeklyReviewOut(
+        review_date=dia,
+        period_from=desde,
+        period_to=hasta,
+        due=revision is None and apuntado > 0,
+        answer=revision.answer if revision else None,
+    )
+
+
+@router.post("/review", response_model=TargetProposalOut)
+async def answer_review(
+    payload: WeeklyReviewIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TargetProposalOut:
+    """Contesta la revisión y devuelve la propuesta que sale con esa respuesta.
+
+    Contestar otra vez la sobrescribe: cambiar de opinión es normal. **No toca
+    el objetivo** — lo que propone se acepta aparte, con `POST /accept`
+    (decisión 18).
+    """
+    user = await _user(session, user_id)
+    dia = fecha_de_revision(date.today(), user.review_weekday)
+    revision = await _revision_actual(session, user)
+    if revision is None:
+        revision = WeeklyReview(user_id=user_id, review_date=dia, answer=payload.answer)
+        session.add(revision)
+    revision.answer = payload.answer
+    # La respuesta tiene que estar en la base antes de proponer: `_medido` la lee
+    # de ahí para saber si esa semana cuenta.
+    await session.flush()
+    propuesta = await _proponer(session, user_id)
+    revision.proposed_kcal = propuesta.kcal
+    # Una respuesta nueva es otra propuesta: la aceptación de la anterior no vale.
+    revision.accepted = False
+    await session.commit()
+    return propuesta
 
 
 async def frozen_target(session: AsyncSession, user_id: int, day: date, fallback: float | None):

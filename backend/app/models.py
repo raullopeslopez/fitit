@@ -76,6 +76,10 @@ class User(Base):
     goal_weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     plan_started_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     plan_start_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # El día de la semana en que la app pregunta «¿apuntaste todo?» (`weekday()`
+    # de Python: lunes 0 … domingo 6). NOT NULL a propósito: no es un dato del
+    # cuerpo que pueda faltar, es una preferencia con valor por defecto.
+    review_weekday: Mapped[int] = mapped_column(Integer, default=6, server_default="6")
 
 
 class Exercise(Base):
@@ -697,4 +701,32 @@ class DishIdea(Base):
     # `fetched_at`), leído una vez. NULL = todavía no se ha leído; una página
     # sin receta se guarda con `found: false`, que no es lo mismo.
     recipe_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class WeeklyReview(Base):
+    """La respuesta a «¿Apuntaste todo lo que comiste?» de una semana.
+
+    El gasto medido supone que lo comido está apuntado; una semana apuntada a
+    medias lo hunde. Por eso se pregunta, y una semana contestada «No» deja de
+    contar en la medición. `review_date` es el día de revisión; el periodo
+    revisado son los siete días **anteriores**, [D−7, D−1].
+
+    `accepted` sólo dice que la propuesta de esa revisión se aceptó tal cual:
+    el objetivo lo cambia `POST /targets/accept`, nunca esta fila (decisión 18).
+    """
+
+    __tablename__ = "weekly_reviews"
+    __table_args__ = (
+        UniqueConstraint("user_id", "review_date", name="uq_weekly_reviews_user_date"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    review_date: Mapped[date] = mapped_column(Date)
+    # 'all' | 'most' | 'none'. «Casi todo» cuenta como «Sí»: sólo 'none' excluye.
+    answer: Mapped[str] = mapped_column(String(8))
+    # Lo que proponía la app con esa respuesta. `NULL` si no pudo proponer nada.
+    proposed_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
+    accepted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -19,6 +19,7 @@ VERSIONS = Path(__file__).resolve().parents[2] / "alembic" / "versions"
 MIGRATION = "d5f1a09c3e42_add_derived_targets.py"
 STEPS_GOAL_MIGRATION = "d30c512b2762_add_steps_goal.py"
 PLAN_MIGRATION = "b8e3d51a7c20_add_goal_plan.py"
+REVIEW_MIGRATION = "c9a4f6e2b183_add_weekly_review.py"
 PERFIL = ("goal", "goal_rate", "height_cm", "birth_year", "sex", "steps_goal")
 # El plan con peso meta: sin meta ni inicio no hay plan, y eso es un estado normal.
 PLAN = ("goal_weight_kg", "plan_started_on", "plan_start_kg")
@@ -35,6 +36,7 @@ def _migrated():
     module = _load(MIGRATION)
     steps_module = _load(STEPS_GOAL_MIGRATION)
     plan_module = _load(PLAN_MIGRATION)
+    review_module = _load(REVIEW_MIGRATION)
 
     engine = create_engine("sqlite://")
     with engine.begin() as conn:
@@ -44,10 +46,11 @@ def _migrated():
             module.upgrade()
             steps_module.upgrade()
             plan_module.upgrade()
+            review_module.upgrade()
         inspector = inspect(conn)
         schema = {
             table: {c["name"]: c["nullable"] for c in inspector.get_columns(table)}
-            for table in ("users", "daily_targets")
+            for table in ("users", "daily_targets", "weekly_reviews")
         }
     engine.dispose()
     return schema, module
@@ -99,3 +102,30 @@ def test_the_goal_plan_is_all_optional():
     model = {c.name: c.nullable for c in Base.metadata.tables["users"].columns}
     for column in PLAN:
         assert model[column] is True, column
+
+
+def test_the_weekly_review_matches_the_model():
+    """Una revisión siempre tiene día y respuesta; lo único que puede faltar es
+    lo que la app proponía (sin datos no propone nada)."""
+    schema, _ = _migrated()
+    table = Base.metadata.tables["weekly_reviews"]
+    assert set(schema["weekly_reviews"]) == set(table.columns.keys())
+    assert schema["weekly_reviews"] == {c.name: c.nullable for c in table.columns}
+    assert schema["weekly_reviews"]["proposed_kcal"] is True
+    for column in ("review_date", "answer", "accepted"):
+        assert schema["weekly_reviews"][column] is False, column
+
+
+def test_the_review_weekday_is_never_null():
+    """No es un dato del cuerpo que pueda faltar: es una preferencia, y las
+    cuentas de siempre reciben el domingo."""
+    schema, _ = _migrated()
+    assert schema["users"]["review_weekday"] is False
+    assert Base.metadata.tables["users"].columns["review_weekday"].nullable is False
+
+
+def test_one_review_per_user_and_day():
+    constraints = {
+        c.name for c in Base.metadata.tables["weekly_reviews"].constraints if c.name is not None
+    }
+    assert "uq_weekly_reviews_user_date" in constraints
