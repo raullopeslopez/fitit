@@ -57,6 +57,19 @@ const DATOS = {
     texto: (p) => (p.birth_year == null ? '' : String(p.birth_year)),
     parsear: numero,
   },
+  pesoMeta: {
+    titulo: 'Peso meta',
+    campo: 'goal_weight_kg',
+    label: 'Peso meta (kg)',
+    inputMode: 'decimal',
+    placeholder: '97,5',
+    valor: (p) => (p.goal_weight_kg == null ? null : `${String(p.goal_weight_kg).replace('.', ',')} kg`),
+    texto: (p) => (p.goal_weight_kg == null ? '' : String(p.goal_weight_kg).replace('.', ',')),
+    parsear: numero,
+    // El servidor sólo acepta 30–300 kg; callarlo sería un error sin frase.
+    valido: (v) => v === null || (v >= 30 && v <= 300),
+    error: 'Entre 30 y 300 kg.',
+  },
   pasos: {
     titulo: 'Meta de pasos',
     campo: 'steps_goal',
@@ -66,8 +79,23 @@ const DATOS = {
     valor: (p) => (p.steps_goal == null ? null : conMiles(p.steps_goal)),
     texto: (p) => (p.steps_goal == null ? '' : String(p.steps_goal)),
     parsear: pasos,
+    // El servidor sólo acepta 1.000–100.000 pasos; mandarle otra cosa sería un
+    // error callado en vez de una frase.
+    valido: (v) => v === null || (v >= 1000 && v <= 100000),
+    error: 'Entre 1.000 y 100.000 pasos.',
   },
 }
+
+// 0 = lunes … 6 = domingo, como el servidor (`review_weekday`).
+const DIAS_REVISION = [
+  ['Lun', 'Lunes'],
+  ['Mar', 'Martes'],
+  ['Mié', 'Miércoles'],
+  ['Jue', 'Jueves'],
+  ['Vie', 'Viernes'],
+  ['Sáb', 'Sábado'],
+  ['Dom', 'Domingo'],
+]
 
 // Lo que se fija una vez y se corrige rara vez, en un solo sitio: el peso, de
 // dónde salen las calorías (y con ellas los macros), tus datos, las reglas y
@@ -147,7 +175,22 @@ export default function Perfil({ onLogout }) {
             value={kcal == null ? null : `${conMiles(kcal)} kcal`}
             onClick={() => setHoja('objetivo')}
           />
-          <ListRow label="Ritmo" value={ritmo(p)} onClick={() => setHoja('objetivo')} />
+          <ListRow
+            label="Ritmo"
+            hint={propuesta?.plan ? `Semana ${propuesta.plan.week} de ${propuesta.plan.weeks}` : undefined}
+            value={ritmo(p)}
+            onClick={() => setHoja('objetivo')}
+          />
+          <ListRow
+            label="Peso meta"
+            value={DATOS.pesoMeta.valor(p)}
+            onClick={() => setHoja('pesoMeta')}
+          />
+          <ListRow
+            label="Revisión semanal"
+            value={DIAS_REVISION[p.review_weekday]?.[1] ?? null}
+            onClick={() => setHoja('revision')}
+          />
         </div>
       </section>
 
@@ -205,6 +248,7 @@ export default function Perfil({ onLogout }) {
       {DATOS[hoja] && (
         <HojaDato dato={DATOS[hoja]} perfil={p} onClose={cerrar} onSaved={recargar} />
       )}
+      {hoja === 'revision' && <HojaRevision perfil={p} onClose={cerrar} onSaved={recargar} />}
       {hoja === 'sexo' && <HojaSexo perfil={p} onClose={cerrar} onSaved={recargar} />}
 
       {reglasOpen && <Reglas onChanged={() => {}} onClose={() => setReglasOpen(false)} />}
@@ -222,9 +266,7 @@ function HojaDato({ dato, perfil, onClose, onSaved }) {
   async function guardar(event) {
     event.preventDefault()
     const valor = dato.parsear(texto)
-    // El servidor sólo acepta 1.000–100.000 pasos; mandarle otra cosa sería un
-    // error callado en vez de una frase.
-    if (dato.campo === 'steps_goal' && valor !== null && !(valor >= 1000 && valor <= 100000)) {
+    if (dato.valido && !dato.valido(valor)) {
       setMal(true)
       return
     }
@@ -259,12 +301,46 @@ function HojaDato({ dato, perfil, onClose, onSaved }) {
           />
           {mal && (
             <p id="perfil-dato-error" className="perfil-aviso">
-              Entre 1.000 y 100.000 pasos.
+              {dato.error}
             </p>
           )}
         </div>
         <Acciones busy={busy} onCancel={onClose} />
       </form>
+    </Sheet>
+  )
+}
+
+// El día de la revisión semanal: siete opciones, y se elige, no se teclea. Tocar
+// un chip guarda y cierra a la vez —no hay nada que confirmar en un día—, y es
+// lo único que no lleva «Guardar».
+function HojaRevision({ perfil, onClose, onSaved }) {
+  const [busy, setBusy] = useState(false)
+
+  async function elegir(dia) {
+    setBusy(true)
+    try {
+      await saveTargetProfile({ review_weekday: dia })
+      onClose()
+      await onSaved()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Sheet open title="Revisión semanal" onClose={onClose}>
+      <div className="perfil-chips" role="group" aria-label="Día de la revisión">
+        {DIAS_REVISION.map(([corto], dia) => (
+          <Chip
+            key={corto}
+            selected={perfil.review_weekday === dia}
+            onClick={() => !busy && elegir(dia)}
+          >
+            {corto}
+          </Chip>
+        ))}
+      </div>
     </Sheet>
   )
 }

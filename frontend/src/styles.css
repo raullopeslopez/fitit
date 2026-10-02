@@ -6069,6 +6069,34 @@ button.draft-save {
   margin: 0.7rem 0 0;
   max-width: 40ch;
 }
+/* La cuenta de «Tu objetivo»: etiqueta a la izquierda, cifra en mono a la
+   derecha, y la última —lo que toca comer— en negrita. */
+.objetivo-cuenta {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+}
+.objetivo-cuenta li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 1rem;
+  color: var(--text);
+}
+.objetivo-cuenta li.is-total {
+  border-bottom: 0;
+  font-weight: 700;
+}
+.objetivo-cuenta-cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.objetivo-cuenta li.is-total .objetivo-cuenta-cifra {
+  font-weight: 700;
+}
 .perfil-campo-label {
   margin: 1.1rem 0 0.5rem;
   font-size: 0.85rem;
@@ -6104,6 +6132,53 @@ button.draft-save {
 .food-objetivo-chevron {
   color: var(--muted);
   font-family: var(--font-body);
+}
+/* La revisión semanal: la tarjeta que pide una respuesta, sobre la superficie
+   tonal. Sello, pregunta (o cuenta) y botones al pie, donde está el pulgar. */
+.revision {
+  background: var(--surface-tonal);
+  border-radius: var(--radius-card);
+  padding: 1rem 1.1rem;
+  margin: 0 0 1rem;
+  color: var(--text);
+}
+.revision-sello {
+  display: block;
+  margin: 0 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.revision-pregunta {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+.revision-texto {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+.revision-cambio {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+.revision-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin: 0.9rem 0 0;
+}
+.revision-error {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  color: var(--danger);
 }
 /* Las tarjetas de la pantalla toman el radio v2; su interior no cambia. */
 .comida .card {

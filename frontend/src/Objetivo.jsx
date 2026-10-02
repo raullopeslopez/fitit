@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { acceptTarget, saveTargetProfile } from './api.js'
+import { formatDayMonth } from './format.js'
 import { formatSteps } from './steps.js'
 import { Chip, Sheet } from './ui'
 
@@ -58,6 +59,46 @@ export function ritmo(perfil) {
   return `${nombre} · ${conComa(perfil.goal_rate)} kg/sem`
 }
 
+// La cuenta de la hoja, en filas: lo que gastas, lo que el ritmo suma o resta y
+// lo que toca comer. El ritmo se **resta del servidor** (`kcal − expenditure`)
+// y no se vuelve a derivar aquí de 7.700 kcal/kg: si el servidor cambia la
+// constante, o el suelo recorta la cifra, la pantalla sigue diciendo lo que de
+// verdad se ha restado. Sin gasto no hay cuenta (`null` no es `0`).
+export function cuenta(perfil, propuesta) {
+  const gasto = propuesta?.expenditure
+  const kcal = propuesta?.kcal
+  if (gasto == null || kcal == null) return null
+  const filas = [
+    [propuesta.source === 'measured' ? 'Gasto medido' : 'Gasto estimado', conMiles(gasto)],
+  ]
+  const delta = Math.round(kcal - gasto)
+  const nombre = { cut: 'Bajar', gain: 'Ganar' }[perfil?.goal]
+  if (delta !== 0 && nombre && perfil.goal_rate) {
+    // U+2212, no un guion: es una resta y el guion se lee como un rango.
+    filas.push([
+      `${nombre} ${conComa(perfil.goal_rate)} kg/semana`,
+      `${delta < 0 ? '\u2212' : '+'} ${conMiles(Math.abs(delta))}`,
+    ])
+  }
+  filas.push(['Comer al día', conMiles(kcal), true])
+  return filas
+}
+
+// «≈ 7 semanas más · hacia el 20 nov». Cuenta hasta la fecha que dio el
+// servidor (`eta`), construida por partes: `new Date('2026-11-20')` es UTC y
+// en un huso al oeste caería en el día anterior.
+export function faltan(plan) {
+  if (!plan || plan.reached || !plan.eta) return null
+  const [y, m, d] = plan.eta.split('-').map(Number)
+  const meta = new Date(y, m - 1, d)
+  const hoy = new Date()
+  // Días enteros por UTC: restar fechas locales cruza el cambio de hora y
+  // regala una hora que ceil convierte en una semana de más.
+  const dias = (Date.UTC(y, m - 1, d) - Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000
+  const semanas = Math.max(1, Math.ceil(dias / 7))
+  return `≈ ${semanas} ${semanas === 1 ? 'semana' : 'semanas'} más · hacia el ${formatDayMonth(meta)}`
+}
+
 /**
  * De qué quieres que le pase a tu cuerpo y a cuántas kcal tocan: la hoja «Tu
  * objetivo» de Perfil.
@@ -73,10 +114,15 @@ export function ritmo(perfil) {
 export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onAccepted }) {
   const [goal, setGoal] = useState(perfil?.goal ?? null)
   const [rate, setRate] = useState(perfil?.goal_rate == null ? '' : conComa(perfil.goal_rate))
+  const [meta, setMeta] = useState(
+    perfil?.goal_weight_kg == null ? '' : conComa(perfil.goal_weight_kg),
+  )
   const [busy, setBusy] = useState(false)
 
   const kcal = propuesta?.kcal ?? null
   const fuente = procedencia(propuesta)
+  const filas = cuenta(perfil, propuesta)
+  const plan = propuesta?.plan ?? null
 
   async function guardar() {
     setBusy(true)
@@ -85,6 +131,8 @@ export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onA
         goal,
         // Mantener no tiene ritmo: se guarda 0 y no un resto de cuando bajabas.
         goal_rate: goal === 'maintain' ? 0 : numero(rate),
+        // Vacío es sin peso meta (`null`), nunca cero.
+        goal_weight_kg: numero(meta),
       })
       await onSaved()
     } finally {
@@ -111,6 +159,22 @@ export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onA
         {kcal != null && <span className="perfil-unit">kcal</span>}
       </p>
       {fuente && <span className="perfil-fuente">{fuente}</span>}
+
+      {/* La cuenta: de dónde sale la cifra de arriba. Llegar a la meta se dice
+          antes que las filas, porque cambia lo que significan: ya no se resta. */}
+      {plan?.reached && (
+        <p className="perfil-aviso">Has llegado a tu peso meta: te propongo mantener.</p>
+      )}
+      {filas && (
+        <ul className="objetivo-cuenta" aria-label="La cuenta">
+          {filas.map(([label, cifra, fuerte]) => (
+            <li key={label} className={fuerte ? 'is-total' : undefined}>
+              <span>{label}</span>
+              <span className="objetivo-cuenta-cifra">{cifra}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* Cómo se reparten esas kcal. Se ve antes de aceptar porque aceptar fija
           las dos cosas: las kcal y estos gramos. */}
@@ -154,6 +218,20 @@ export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onA
           />
         </div>
       )}
+
+      {/* El peso al que quieres llegar. Siempre visible, también con Mantener:
+          es un dato tuyo, no del ritmo, y quitarlo del formulario lo borraría. */}
+      <div className="field">
+        <label htmlFor="goal_weight">Peso meta</label>
+        <input
+          id="goal_weight"
+          inputMode="decimal"
+          value={meta}
+          onChange={(e) => setMeta(e.target.value)}
+          placeholder="97,5"
+        />
+      </div>
+      {faltan(plan) && <p className="perfil-aviso">{faltan(plan)}</p>}
 
       <div className="perfil-acciones">
         <button type="button" className="secondary" disabled={busy} onClick={guardar}>

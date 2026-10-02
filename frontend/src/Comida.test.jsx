@@ -123,6 +123,8 @@ describe('Comida', () => {
     api.getPlan.mockResolvedValue(null)
     api.getAdherence.mockResolvedValue(null)
     api.getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: [] })
+    // La revisión semanal no toca por defecto: lo que se mide aquí es el diario.
+    api.getReview.mockResolvedValue({ due: false })
   })
 
   afterEach(() => {
@@ -161,6 +163,47 @@ describe('Comida', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
       expect(screen.queryByRole('button', { name: /Sin objetivo todavía/ })).not.toBeInTheDocument()
+    })
+
+    // §31: aceptar a media jornada no reescribe lo congelado de hoy.
+    it('si lo aceptado difiere del de hoy, la línea dice cuál rige mañana', async () => {
+      api.getFoodDay.mockResolvedValue(day({ target_kcal: 2230 }))
+      api.getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5, objetivo_kcal: 2569 })
+      render(<Comida />)
+      expect(
+        await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2.230 kcal · mañana 2.569' }),
+      ).toBeInTheDocument()
+    })
+
+    describe('la revisión semanal', () => {
+      beforeEach(() => {
+        api.getReview.mockResolvedValue({ due: true, answer: null })
+      })
+
+      it('hoy, cuando toca, pregunta encima de la línea del objetivo', async () => {
+        render(<Comida />)
+        expect(await screen.findByText('¿Apuntaste todo lo que comiste?')).toBeInTheDocument()
+      })
+
+      it('un día pasado no la enseña', async () => {
+        render(<Comida />)
+        await screen.findByText('¿Apuntaste todo lo que comiste?')
+        await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
+        await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
+        expect(screen.queryByText('¿Apuntaste todo lo que comiste?')).not.toBeInTheDocument()
+      })
+
+      it('aceptar la propuesta recarga el día', async () => {
+        api.getTargetProfile.mockResolvedValue({ objetivo_kcal: 2150 })
+        api.answerReview.mockResolvedValue({ kcal: 2230, source: 'measured', expenditure: 2780 })
+        api.acceptTarget.mockResolvedValue({})
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+        const antes = api.getFoodDay.mock.calls.length
+        await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2.230' }))
+        await waitFor(() => expect(api.getFoodDay.mock.calls.length).toBeGreaterThan(antes))
+        expect(api.acceptTarget).toHaveBeenCalledWith(2230)
+      })
     })
 
     it('el botón flotante abre la pantalla de añadir', async () => {

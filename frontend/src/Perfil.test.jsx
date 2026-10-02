@@ -159,6 +159,79 @@ describe('Perfil', () => {
     })
   })
 
+  describe('Peso meta, revisión semanal y plan', () => {
+    it('el ritmo dice en qué semana del plan vas', async () => {
+      api.getTargetProposal.mockResolvedValue({
+        kcal: 2230,
+        source: 'measured',
+        days: 21,
+        missing: [],
+        plan: { week: 3, weeks: 10, remaining_kg: 3.5, eta: '2026-12-11', reached: false, goal_weight_kg: 97.5 },
+      })
+      renderPerfil()
+      expect(await fila('Ritmo')).toHaveTextContent('Semana 3 de 10')
+    })
+
+    it('Peso meta enseña el valor, o «—» si no hay', async () => {
+      api.getTargetProfile.mockResolvedValue({ ...PERFIL, goal_weight_kg: 97.5 })
+      const { unmount } = renderPerfil()
+      expect(await fila('Peso meta')).toHaveTextContent('97,5 kg')
+      unmount()
+
+      api.getTargetProfile.mockResolvedValue({ ...PERFIL, goal_weight_kg: null })
+      renderPerfil()
+      expect(await fila('Peso meta')).toHaveTextContent('—')
+    })
+
+    it('Peso meta guarda sólo ese campo y vuelve a pedir perfil y propuesta', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Peso meta'))
+      const hoja = await screen.findByRole('dialog', { name: 'Peso meta' })
+      await userEvent.type(within(hoja).getByLabelText('Peso meta (kg)'), '97,5')
+      const propuestas = api.getTargetProposal.mock.calls.length
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Guardar' }))
+
+      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ goal_weight_kg: 97.5 }))
+      await waitFor(() =>
+        expect(api.getTargetProposal.mock.calls.length).toBeGreaterThan(propuestas),
+      )
+    })
+
+    it('fuera de 30–300 kg no se manda: lo dice', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Peso meta'))
+      await userEvent.type(await screen.findByLabelText('Peso meta (kg)'), '20')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(await screen.findByText('Entre 30 y 300 kg.')).toBeInTheDocument()
+      expect(api.saveTargetProfile).not.toHaveBeenCalled()
+    })
+
+    it('Revisión semanal enseña el día en palabras', async () => {
+      api.getTargetProfile.mockResolvedValue({ ...PERFIL, review_weekday: 6 })
+      renderPerfil()
+      expect(await fila('Revisión semanal')).toHaveTextContent('Domingo')
+    })
+
+    it('Revisión semanal son siete chips, el actual elegido, y tocar uno guarda y cierra', async () => {
+      api.getTargetProfile.mockResolvedValue({ ...PERFIL, review_weekday: 6 })
+      renderPerfil()
+      await userEvent.click(await fila('Revisión semanal'))
+      const hoja = await screen.findByRole('dialog', { name: 'Revisión semanal' })
+      const grupo = within(hoja).getByRole('group', { name: 'Día de la revisión' })
+      expect(within(grupo).getAllByRole('button').map((b) => b.textContent)).toEqual([
+        'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom',
+      ])
+      expect(within(grupo).getByRole('button', { name: 'Dom' })).toHaveAttribute('aria-pressed', 'true')
+      expect(within(grupo).getByRole('button', { name: 'Lun' })).toHaveAttribute('aria-pressed', 'false')
+
+      await userEvent.click(within(grupo).getByRole('button', { name: 'Lun' }))
+
+      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ review_weekday: 0 }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+  })
+
   describe('Tus datos', () => {
     it('cada dato es una fila con su valor', async () => {
       renderPerfil()

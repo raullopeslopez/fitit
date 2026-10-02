@@ -22,6 +22,7 @@ import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
+import RevisionSemanal from './RevisionSemanal.jsx'
 import PlanDelDia, { Semana, lunesDe } from './Plan.jsx'
 import { Fab } from './ui'
 import {
@@ -148,6 +149,9 @@ export default function Comida() {
   // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
   const [deleted, setDeleted] = useState(null)
   const [undoing, setUndoing] = useState(false)
+  // Aceptar en la revisión cambia el perfil que la línea del objetivo ya leyó:
+  // se remonta con otra `key` para que vuelva a pedirlo y diga «mañana …».
+  const [lineaKey, setLineaKey] = useState(0)
 
   const load = useCallback(async (iso) => {
     try {
@@ -319,7 +323,21 @@ export default function Comida() {
           hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
           lado haría creer que aquel día se comía a este ritmo. */}
       {day && isToday && (
-        <ObjetivoLinea targetKcal={day.target_kcal ?? null} onAccepted={() => load(dayIso)} />
+        <>
+          {/* Sólo hoy, y encima de la línea: la pregunta es de esta semana, y
+              un día pasado no se contesta desde el diario de otro día. */}
+          <RevisionSemanal
+            onAccepted={async () => {
+              setLineaKey((k) => k + 1)
+              await load(dayIso)
+            }}
+          />
+          <ObjetivoLinea
+            key={lineaKey}
+            targetKcal={day.target_kcal ?? null}
+            onAccepted={() => load(dayIso)}
+          />
+        </>
       )}
 
       {day && <MacroCard day={day} />}

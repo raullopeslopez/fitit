@@ -479,6 +479,17 @@ export function acceptTarget(kcal) {
   return apiFetch('/targets/accept', { method: 'POST', body: JSON.stringify({ kcal }) })
 }
 
+// ¿Toca preguntar «¿apuntaste todo?»? Sólo lee: `due` dice si hay pregunta.
+export function getReview() {
+  return apiFetch('/targets/review')
+}
+
+// Contesta ('all' | 'most' | 'none') y devuelve la propuesta que sale con esa
+// respuesta. **No toca el objetivo**: aceptarla es `acceptTarget`.
+export function answerReview(answer) {
+  return apiFetch('/targets/review', { method: 'POST', body: JSON.stringify({ answer }) })
+}
+
 // --- Reglas -------------------------------------------------------------------
 export function listRules() {
   return apiFetch('/rules')

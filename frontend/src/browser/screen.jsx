@@ -265,6 +265,8 @@ function stubNetwork(catalogue = FOODS) {
     ],
     // Lo demás que Perfil pide al abrirse: los datos del objetivo y su
     // propuesta. Objetos, no la lista vacía por defecto.
+    // Sin revisión pendiente: la tarjeta no se pinta y no mueve la geometría.
+    [/\/targets\/review$/, { due: false }],
     [/\/targets\/proposal$/, { kcal: 2450, source: 'formula', days: 0, missing: [] }],
     [/\/targets$/, { goal: 'cut', goal_rate: 0.5, height_cm: 190, birth_year: 1996, sex: 'male', steps_goal: 10000, objetivo_kcal: 2230 }],
     [/\/workouts\/1$/, OPEN_WORKOUT],

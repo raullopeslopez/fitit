@@ -133,11 +133,145 @@ describe('Tu objetivo', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
       await waitFor(() =>
-        expect(saveTargetProfile).toHaveBeenCalledWith({ goal: 'cut', goal_rate: 0.5 }),
+        expect(saveTargetProfile).toHaveBeenCalledWith({
+          goal: 'cut',
+          goal_rate: 0.5,
+          goal_weight_kg: null,
+        }),
       )
       await waitFor(() => expect(onSaved).toHaveBeenCalled())
       expect(onClose).not.toHaveBeenCalled()
       expect(screen.getByRole('dialog', { name: 'Tu objetivo' })).toBeInTheDocument()
+    })
+  })
+
+  // La cuenta a la vista: de dónde sale la cifra, no sólo la cifra. Con el gasto
+  // y el ritmo delante, «2.230» deja de ser un número que se obedece a ciegas.
+  describe('la cuenta', () => {
+    const CUENTA = {
+      kcal: 2230,
+      source: 'measured',
+      days: 21,
+      missing: [],
+      expenditure: 2780,
+      plan: null,
+    }
+
+    it('gasto medido, el ritmo con su signo y lo que toca comer', () => {
+      const { hoja } = abrir({
+        perfil: { goal: 'cut', goal_rate: 0.5 },
+        propuesta: CUENTA,
+      })
+      const cuenta = within(hoja).getByRole('list', { name: 'La cuenta' })
+      const filas = within(cuenta).getAllByRole('listitem')
+      expect(filas.map((f) => f.textContent)).toEqual([
+        'Gasto medido2.780',
+        'Bajar 0,5 kg/semana− 550',
+        'Comer al día2.230',
+      ])
+    })
+
+    it('una fórmula es «Gasto estimado», y ganar suma', () => {
+      const { hoja } = abrir({
+        perfil: { goal: 'gain', goal_rate: 0.25 },
+        propuesta: { ...CUENTA, kcal: 3055, source: 'formula' },
+      })
+      const filas = within(within(hoja).getByRole('list', { name: 'La cuenta' })).getAllByRole(
+        'listitem',
+      )
+      expect(filas.map((f) => f.textContent)).toEqual([
+        'Gasto estimado2.780',
+        'Ganar 0,25 kg/semana+ 275',
+        'Comer al día3.055',
+      ])
+    })
+
+    // Mantener no resta ni suma: la línea del ritmo no tiene nada que decir.
+    it('mantener no tiene línea de ritmo', () => {
+      const { hoja } = abrir({
+        perfil: { goal: 'maintain', goal_rate: 0 },
+        propuesta: { ...CUENTA, kcal: 2780 },
+      })
+      const filas = within(within(hoja).getByRole('list', { name: 'La cuenta' })).getAllByRole(
+        'listitem',
+      )
+      expect(filas.map((f) => f.textContent)).toEqual(['Gasto medido2.780', 'Comer al día2.780'])
+    })
+
+    // Sin gasto no hay cuenta que enseñar, y no se inventa una con un cero.
+    it('sin gasto no hay cuenta', () => {
+      const { hoja } = abrir({ propuesta: { ...CUENTA, expenditure: null } })
+      expect(within(hoja).queryByRole('list', { name: 'La cuenta' })).not.toBeInTheDocument()
+    })
+
+    it('si ya llegaste, lo dice y propone mantener', () => {
+      const { hoja } = abrir({
+        perfil: { goal: 'cut', goal_rate: 0.5, goal_weight_kg: 97.5 },
+        propuesta: {
+          ...CUENTA,
+          kcal: 2780,
+          plan: { week: 10, weeks: 10, remaining_kg: 0, eta: null, reached: true, goal_weight_kg: 97.5 },
+        },
+      })
+      expect(
+        within(hoja).getByText('Has llegado a tu peso meta: te propongo mantener.'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('Peso meta', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it('se guarda con el objetivo y el ritmo, con coma o con punto', async () => {
+      abrir({ perfil: { goal: 'cut', goal_rate: 0.5, goal_weight_kg: null } })
+
+      await userEvent.type(screen.getByLabelText('Peso meta'), '97,5')
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      await waitFor(() =>
+        expect(saveTargetProfile).toHaveBeenCalledWith({
+          goal: 'cut',
+          goal_rate: 0.5,
+          goal_weight_kg: 97.5,
+        }),
+      )
+    })
+
+    it('vacío es null, nunca cero', async () => {
+      abrir({ perfil: { goal: 'cut', goal_rate: 0.5, goal_weight_kg: 97.5 } })
+      expect(screen.getByLabelText('Peso meta')).toHaveValue('97,5')
+
+      await userEvent.clear(screen.getByLabelText('Peso meta'))
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      await waitFor(() =>
+        expect(saveTargetProfile).toHaveBeenCalledWith(
+          expect.objectContaining({ goal_weight_kg: null }),
+        ),
+      )
+    })
+
+    // La fecha manda: «semanas» sale de contar hasta ella, no de re-derivar el ritmo.
+    it('con plan dice cuántas semanas faltan y hacia qué día', () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2026, 9, 2, 12, 0))
+      const { hoja } = abrir({
+        perfil: { goal: 'cut', goal_rate: 0.5, goal_weight_kg: 97.5 },
+        propuesta: {
+          kcal: 2230,
+          source: 'measured',
+          days: 21,
+          missing: [],
+          expenditure: 2780,
+          plan: { week: 3, weeks: 7, remaining_kg: 3.5, eta: '2026-11-20', reached: false, goal_weight_kg: 97.5 },
+        },
+      })
+      expect(within(hoja).getByText('≈ 7 semanas más · hacia el 20 nov')).toBeInTheDocument()
+    })
+
+    it('sin plan no dice nada de semanas', () => {
+      const { hoja } = abrir()
+      expect(within(hoja).queryByText(/semanas más/)).not.toBeInTheDocument()
     })
   })
 })

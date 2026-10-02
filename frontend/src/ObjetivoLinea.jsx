@@ -8,13 +8,22 @@ import { Chip } from './ui'
 // no «Bajar». Es la línea que se lee cada día, y lee el día, no el formulario.
 const HACIENDO = { cut: 'Bajando', maintain: 'Manteniendo', gain: 'Ganando' }
 
-function texto(perfil, kcal) {
+function texto(perfil, kcal, plan) {
   if (kcal == null) return 'Sin objetivo todavía · Calcularlo'
-  const cifra = `${conMiles(kcal)} kcal`
+  // §31: aceptar a media jornada no reescribe el objetivo congelado de hoy; rige
+  // desde mañana. Si lo aceptado ya no es lo de hoy se dice, que si no «pulsé
+  // Aceptar y no cambió nada» es indistinguible de un fallo.
+  const manana =
+    perfil?.objetivo_kcal != null && Math.round(perfil.objetivo_kcal) !== Math.round(kcal)
+      ? ` · mañana ${conMiles(perfil.objetivo_kcal)}`
+      : ''
+  const cifra = `${conMiles(kcal)} kcal${manana}`
+  if (plan?.reached) return `Peso meta alcanzado · ${cifra}`
   const verbo = HACIENDO[perfil?.goal]
   if (!verbo) return `Objetivo · ${cifra}`
   if (perfil.goal === 'maintain' || !perfil.goal_rate) return `${verbo} · ${cifra}`
-  return `${verbo} ${String(perfil.goal_rate).replace('.', ',')} kg/sem · ${cifra}`
+  const semana = plan ? ` · semana ${plan.week} de ${plan.weeks}` : ''
+  return `${verbo} ${String(perfil.goal_rate).replace('.', ',')} kg/sem${semana} · ${cifra}`
 }
 
 /**
@@ -51,12 +60,15 @@ export default function ObjetivoLinea({ targetKcal, onAccepted }) {
     }
   }, [])
 
+  // Las dos a la vez: la línea ya dice en qué semana del plan vas, y eso sale de
+  // la propuesta. Cuesta una consulta de 28 días al montar; es el precio de que
+  // la línea cuente el plan y no sólo el ritmo.
   useEffect(() => {
     pedirPerfil()
-  }, [pedirPerfil])
+    pedirPropuesta()
+  }, [pedirPerfil, pedirPropuesta])
 
-  // La propuesta se pide al abrir y no al cargar Comida: cuesta una consulta
-  // de 28 días al servidor, y sólo hace falta para decidir.
+  // Y se vuelve a pedir al abrir: puede haber cambiado desde que se montó.
   async function abrir() {
     setAbierta(true)
     await pedirPropuesta()
@@ -67,7 +79,7 @@ export default function ObjetivoLinea({ targetKcal, onAccepted }) {
   return (
     <div className="food-objetivo">
       <Chip onClick={abrir}>
-        {texto(perfil, targetKcal)}
+        {texto(perfil, targetKcal, propuesta?.plan)}
         <span className="food-objetivo-chevron" aria-hidden="true">
           ›
         </span>
@@ -82,7 +94,7 @@ export default function ObjetivoLinea({ targetKcal, onAccepted }) {
           }}
           onAccepted={async () => {
             setAbierta(false)
-            await Promise.all([pedirPerfil(), onAccepted()])
+            await Promise.all([pedirPerfil(), pedirPropuesta(), onAccepted()])
           }}
         />
       )}
