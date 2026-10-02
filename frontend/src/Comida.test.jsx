@@ -1946,8 +1946,8 @@ describe('Comida', () => {
       // Una sola manda, y se dice con intensidad (10px frente a 6px), no con un
       // tono distinto: un color por macro sería redundante con la posición.
       expect(macros.querySelectorAll('.food-macro.is-lead')).toHaveLength(1)
-      // Los dos tramos: lo cumplido, desaturado y con su ancho; lo que falta,
-      // en cromo y ocupando el resto.
+      // Los dos tramos: lo comido, con su ancho; lo que falta, el carril vacío
+      // que ocupa el resto.
       const done = macros.querySelector('.food-macro.is-lead .food-macro-done')
       expect(done).toHaveStyle({ width: '4%' })
       expect(macros.querySelector('.food-macro.is-lead .food-macro-left')).not.toBeNull()

@@ -629,24 +629,23 @@ describe('Comida', () => {
     const chroma = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b)
     const bg = (el) => parseColor(getComputedStyle(el).backgroundColor)
 
-    it('lo cumplido se desatura y el cromo se queda en lo que falta', async () => {
+    // La barra se llena al comer (2026-10-02). La regla anterior pintaba en
+    // cromo lo que faltaba, y a primera hora, sin nada apuntado, la barra salía
+    // entera en ámbar: se leía «completo» justo cuando no había nada.
+    it('lo comido se pinta en el acento y lo que falta queda vacío', async () => {
       await mountComida()
       const lead = document.querySelector('.food-macro.is-lead')
       for (const theme of ['light', 'dark']) {
         forceTheme(theme)
         await settle()
         const done = bg(lead.querySelector('.food-macro-done'))
-        const left = bg(lead.querySelector('.food-macro-left'))
         const accent = token('--accent')
-        // Lo que falta va en el acento entero: es la regla 2 del contrato.
-        expect(rgb(left), theme).toEqual(rgb(accent))
-        // Y lo cumplido, más apagado que él. «Desaturar» se mide como distancia
-        // al gris: el tramo consumido tiene que tener menos color que el acento,
-        // o el contrato dice una cosa y la pantalla pinta otra.
+        expect(rgb(done), theme).toEqual(rgb(accent))
+        // Lo que falta no lleva pintura propia: se ve el carril de la barra.
         expect(
-          chroma(done),
-          `${theme}: cumplido ${chroma(done).toFixed(0)} vs acento ${chroma(accent).toFixed(0)}`,
-        ).toBeLessThan(chroma(accent))
+          getComputedStyle(lead.querySelector('.food-macro-left')).backgroundColor,
+          theme,
+        ).toBe('rgba(0, 0, 0, 0)')
       }
     })
 

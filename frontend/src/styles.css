@@ -4911,12 +4911,13 @@ button.draft-save {
  * sin una segunda declaración.
  * ------------------------------------------------------------------ */
 :root {
-  /* Lo cumplido. Presente, pero apagado: ya no hay nada que hacer con él. */
-  --food-done: color-mix(in srgb, var(--accent) 22%, var(--muted));
-  /* Lo mismo en las barras que acompañan, un paso más atrás todavía. */
-  --food-done-soft: color-mix(in srgb, var(--accent) 18%, var(--muted));
-  /* Lo que falta, en las barras que acompañan: cromo, al 60%. */
-  --food-left-soft: color-mix(in srgb, var(--accent) 60%, transparent);
+  /* Lo comido. La barra se llena al comer (2026-10-02): antes el cromo era lo
+     que faltaba, y sin nada apuntado la barra salía entera en ámbar, que se lee
+     «completo». La proteína, que manda, se llena en el acento. */
+  --food-done: var(--accent);
+  /* Las barras que acompañan se llenan en tinta, un paso atrás: la jerarquía se
+     dice con intensidad, no con un segundo color. */
+  --food-done-soft: color-mix(in srgb, var(--text) 70%, transparent);
 }
 
 .food-macros {
@@ -5020,12 +5021,9 @@ button.draft-save {
 .food-macro.is-lead .food-macro-done {
   background: var(--food-done);
 }
+/* Lo que falta no lleva pintura: es el carril de la barra, que ya está ahí. */
 .food-macro-left {
   flex: 1;
-  background: var(--food-left-soft);
-}
-.food-macro.is-lead .food-macro-left {
-  background: var(--accent);
 }
 /* Cerrado: `--pr` a todo lo ancho, sin costura. Es el único momento en que el
    tono profundo ocupa la barra entera — igual que un récord en Entreno. */
