@@ -36,8 +36,8 @@ import org.json.JSONObject;
  * <p>El tiempo son los cronómetros del propio layout, como en el widget: nadie lo
  * reescribe cada segundo. Baja en color de texto y, pasado el descanso, sube en
  * accent-ink con signo; el cambio lo hace la alarma de fin de descanso. Canal
- * silencioso: ni suena ni vibra. Lo que suena al acabar el descanso es otro aviso,
- * en otro canal ({@link RestChime}).
+ * silencioso: ni suena ni vibra. Al acabar el descanso vibra el teléfono, no la
+ * tarjeta (SessionController).
  */
 final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
@@ -45,8 +45,10 @@ final class SessionNotification {
     // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
     // se haya ido: los del aviso de descanso que retiró la fase 0, y el de la
     // 0.6.0, de importancia baja (Android no deja subírsela a un canal que ya
-    // existe, así que se sustituye).
-    private static final String[] RETIRED = {"fitit-sesion", "fitit-fin-descanso", "fitit_session"};
+    // existe, así que se sustituye), y el aviso con sonido de fin de descanso de
+    // la 0.10.6, que pasó a ser sólo vibración.
+    private static final String[] RETIRED = {
+        "fitit-sesion", "fitit-fin-descanso", "fitit_session", "fitit_fin_descanso"};
 
     private SessionNotification() {}
 

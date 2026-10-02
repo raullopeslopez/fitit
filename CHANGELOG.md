@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **APK 0.10.7: al acabar el descanso, sólo vibra.** Desaparecen el aviso `Descanso
+  terminado` y su sonido. Al llegar a cero el móvil vibra dos veces, también en silencio,
+  y lo único en la bandeja sigue siendo la tarjeta del entreno, ya contando en positivo.
+  El canal «Fin del descanso» se borra de Ajustes. Si la alarma llega más de un minuto
+  tarde, o se saltó el descanso, no vibra.
+
 ### Added
 - **APK 0.10.6: suena cuando acaba el descanso.** Al llegar el reloj a cero, el móvil
   suena y vibra una vez y aparece `Descanso terminado` con el ejercicio, que se quita solo
