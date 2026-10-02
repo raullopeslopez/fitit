@@ -1912,19 +1912,31 @@ describe('Comida', () => {
       render(<Comida />)
       const macros = await screen.findByTestId('food-macros')
       // El héroe es lo que **falta**, y de proteína: es la pregunta que se hace
-      // a las 20:00. Contestarla con lo comido obliga a restar de cabeza.
-      expect(within(macros).getByText('Te falta')).toBeInTheDocument()
+      // a las 20:00. Va en el centro de los anillos.
       expect(within(macros).getByText('154')).toBeInTheDocument()
-      expect(within(macros).getByText('g de proteína')).toBeInTheDocument()
-      // Lo comido no desaparece: baja a la derecha, pequeño y apagado.
-      expect(within(macros).getByText('Llevas')).toBeInTheDocument()
-      expect(within(macros).getByText('6 / 160')).toBeInTheDocument()
-      // Y las kcal dejan de ser el héroe: bajan a la fila de cierre.
-      // «Cumplido» decía lo contrario de lo que enseñaba con `200 / 2800` al
-      // lado. «Energía» no afirma nada, y la unidad va al final como en las
-      // filas de macro.
-      expect(within(macros).getByText('Energía')).toBeInTheDocument()
-      expect(within(macros).getByText('200 / 2800 kcal')).toBeInTheDocument()
+      expect(within(macros).getByText('g faltan')).toBeInTheDocument()
+      // Al lado, la leyenda de los dos anillos: lo comido de proteína y de kcal.
+      const proteina = within(macros).getByText('Proteína').closest('.food-ring-item')
+      expect(proteina).toHaveTextContent('6 / 160 g')
+      const kcal = within(macros).getByText('Kcal').closest('.food-ring-item')
+      expect(kcal).toHaveTextContent('200 / 2800')
+      // Lo que queda de kcal lo resta el servidor; aquí sólo se imprime.
+      expect(kcal).toHaveTextContent(`quedan ${2800 - 200}`)
+    })
+
+    it('pasado de kcal, dice lo que sobra y no una resta negativa', async () => {
+      api.getFoodDay.mockResolvedValue(
+        objetivo({
+          totals: { kcal: 3000, protein: 100, fat: 80, carbs: 300, fiber: 2 },
+          remaining_kcal: -200,
+          remaining_protein: 60,
+        }),
+      )
+      render(<Comida />)
+      const macros = await screen.findByTestId('food-macros')
+      const kcal = within(macros).getByText('Kcal').closest('.food-ring-item')
+      expect(kcal).toHaveTextContent('200 de más')
+      expect(kcal).not.toHaveTextContent('quedan')
     })
 
     // ---------------------------------------------------------------------
@@ -1936,24 +1948,44 @@ describe('Comida', () => {
     // afirmar aquí es qué pieza lleva cada papel. El color realmente pintado se
     // mide en `src/browser/`, en Chromium.
     // ---------------------------------------------------------------------
-    it('cada barra parte lo cumplido de lo que falta, y sólo la proteína manda', async () => {
+    it('la proteína va en el anillo de fuera, y hidratos y grasa en barra', async () => {
       api.getFoodDay.mockResolvedValue(objetivo())
       render(<Comida />)
       const macros = await screen.findByTestId('food-macros')
-      // Tres barras: proteína, hidratos y grasa. La fibra no tiene objetivo, así
-      // que no tiene barra — una barra sin meta no mide nada.
-      expect(macros.querySelectorAll('.food-macro-bar')).toHaveLength(3)
-      // Una sola manda, y se dice con intensidad (10px frente a 6px), no con un
-      // tono distinto: un color por macro sería redundante con la posición.
-      expect(macros.querySelectorAll('.food-macro.is-lead')).toHaveLength(1)
-      // Los dos tramos: lo comido, con su ancho; lo que falta, el carril vacío
-      // que ocupa el resto.
-      const done = macros.querySelector('.food-macro.is-lead .food-macro-done')
-      expect(done).toHaveStyle({ width: '4%' })
-      expect(macros.querySelector('.food-macro.is-lead .food-macro-left')).not.toBeNull()
+      // Dos barras: hidratos y grasa. La fibra no tiene objetivo, así que no
+      // tiene barra — una barra sin meta no mide nada.
+      expect(macros.querySelectorAll('.food-macro-bar')).toHaveLength(2)
+      // La proteína es el anillo de fuera, con su arco al 4 % de la vuelta; las
+      // kcal, el de dentro.
+      const arco = macros.querySelector('.food-ring-arc.is-protein')
+      const vuelta = 2 * Math.PI * 62
+      expect(parseFloat(arco.getAttribute('stroke-dasharray'))).toBeCloseTo(vuelta * 0.04, 1)
+      expect(macros.querySelector('.food-ring-arc.is-kcal')).not.toBeNull()
+      // Los dos tramos de cada barra: lo comido, con su ancho; lo que falta, el
+      // carril vacío que ocupa el resto.
+      expect(macros.querySelector('.food-macro-done')).not.toBeNull()
+      expect(macros.querySelector('.food-macro-left')).not.toBeNull()
     })
 
-    it('al cerrar el objetivo la barra pasa a --pr entera, sin costura', async () => {
+    it('sin nada comido no se dibuja ningún arco, ni un punto', async () => {
+      api.getFoodDay.mockResolvedValue(
+        objetivo({
+          entries: [],
+          totals: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
+          by_slot: slots(),
+          remaining_protein: 160,
+          remaining_kcal: 2800,
+        }),
+      )
+      render(<Comida />)
+      const macros = await screen.findByTestId('food-macros')
+      // Con el extremo redondo, un arco de 0 deja un punto que se lee «algo
+      // comido». Sólo quedan los carriles.
+      expect(macros.querySelectorAll('.food-ring-arc')).toHaveLength(0)
+      expect(macros.querySelectorAll('.food-ring-track')).toHaveLength(2)
+    })
+
+    it('al cerrar el objetivo el anillo pasa a --pr entero', async () => {
       api.getFoodDay.mockResolvedValue(
         objetivo({
           totals: { kcal: 2800, protein: 160, fat: 80, carbs: 300, fiber: 2 },
@@ -1962,18 +1994,15 @@ describe('Comida', () => {
       )
       render(<Comida />)
       const macros = await screen.findByTestId('food-macros')
-      // El único momento en que el tono profundo ocupa la barra entera. Partirla
-      // en «cumplido» y «pendiente» cuando no queda pendiente dibujaría una
-      // costura donde ya no hay dos cosas.
-      const bar = macros.querySelector('.food-macro.is-lead .food-macro-bar')
-      expect(bar).toHaveClass('is-closed')
-      expect(bar.querySelector('.food-macro-done')).toBeNull()
-      expect(bar.querySelector('.food-macro-left')).toBeNull()
+      // El único momento en que el tono profundo ocupa el anillo entero.
+      const arco = macros.querySelector('.food-ring-arc.is-protein')
+      expect(arco).toHaveClass('is-closed')
+      expect(parseFloat(arco.getAttribute('stroke-dasharray'))).toBeCloseTo(2 * Math.PI * 62, 1)
       // Y el número deja de ser una resta y pasa a ser el marcador: un «te falta
       // 0» sería la misma cifra diciendo lo contrario de lo que ha pasado.
       expect(within(macros).getByText('Cerrado')).toBeInTheDocument()
       expect(within(macros).getByText('160 / 160')).toBeInTheDocument()
-      expect(within(macros).queryByText('Te falta')).not.toBeInTheDocument()
+      expect(within(macros).queryByText('g faltan')).not.toBeInTheDocument()
     })
 
     it('un día vacío con objetivo enseña el objetivo entero como lo que falta', async () => {
@@ -1988,8 +2017,9 @@ describe('Comida', () => {
       render(<Comida />)
       const macros = await screen.findByTestId('food-macros')
       expect(within(macros).getByText('160')).toBeInTheDocument()
-      // Nada comido no es cero comido: la cifra de la izquierda es una raya.
-      expect(within(macros).getByText('— / 160')).toBeInTheDocument()
+      // Nada comido no es cero comido: la cifra de lo comido es una raya.
+      const proteina = within(macros).getByText('Proteína').closest('.food-ring-item')
+      expect(proteina).toHaveTextContent('— / 160 g')
     })
 
     it('la línea de cierre dice lo que falta para cerrar el día', async () => {

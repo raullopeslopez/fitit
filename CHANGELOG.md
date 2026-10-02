@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **APK 0.11.1: la tarjeta de macros de Comida, en anillos.** Con objetivo, la proteína es
+  un anillo naranja con lo que falta en el centro («84 / g faltan») y las kcal un anillo
+  fino por dentro. Al lado, «Proteína 118 / 202 g» y «Kcal 1460 / 2569 · quedan 1109» (o
+  «200 de más» si te pasas). Hidratos y grasa van debajo, en dos columnas con su barra. La
+  línea «Energía» del pie desaparece: las kcal ya están arriba.
 - **APK 0.11.0: aviso de la revisión semanal y Comida/Perfil nuevos.** El día de la revisión (domingo, si no
   eliges otro en Perfil) a las 9:00 llega una notificación, «Revisión semanal · Tu semana está lista. ¿Ajustamos el
   objetivo?», una sola vez y sólo el día de la revisión; al tocarla se abre Comida, donde

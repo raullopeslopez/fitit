@@ -31,9 +31,9 @@ import {
 
 afterEach(() => clearForcedTheme())
 
-// Los macros de la cabecera: proteína, hidratos y grasa, cada uno con su fila y
-// su barra. La fibra no está — no tiene objetivo, y una barra sin meta no mide
-// nada.
+// Los macros en barra de la cabecera: hidratos y grasa. La proteína y las kcal
+// van en los anillos. La fibra no está — no tiene objetivo, y una barra sin
+// meta no mide nada.
 const macroRows = () => [...document.querySelectorAll('.food-macro')]
 // Las cabeceras de comida con su subtotal. Un hueco no lleva ninguna.
 const slotMetas = () => [...document.querySelectorAll('.food-slot-meta')]
@@ -60,7 +60,8 @@ describe('Comida', () => {
   it('llega con el día pintado', async () => {
     await mountComida()
     expect(document.querySelector('.food-macros')).not.toBeNull()
-    expect(macroRows()).toHaveLength(3)
+    expect(document.querySelector('.food-ring')).not.toBeNull()
+    expect(macroRows()).toHaveLength(2)
   })
 
   it('la fecha y sus dos pasos van en un solo renglón', async () => {
@@ -137,7 +138,7 @@ describe('Comida', () => {
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth)
     // Y ninguna fila se sale de la tarjeta que las contiene.
     const box = paintedRect(card)
-    for (const cell of macroRows()) {
+    for (const cell of [...macroRows(), document.querySelector('.food-ring-legend')]) {
       const rect = paintedRect(cell)
       expect(rect.left).toBeGreaterThanOrEqual(box.left - 0.5)
       expect(rect.right).toBeLessThanOrEqual(box.right + 0.5)
@@ -632,24 +633,31 @@ describe('Comida', () => {
     // La barra se llena al comer (2026-10-02). La regla anterior pintaba en
     // cromo lo que faltaba, y a primera hora, sin nada apuntado, la barra salía
     // entera en ámbar: se leía «completo» justo cuando no había nada.
-    it('lo comido se pinta en el acento y lo que falta queda vacío', async () => {
+    // El fixture trae 0 g de proteína y 985 kcal: el anillo de proteína no
+    // tiene arco (un arco de 0 sería un punto) y el de kcal sí.
+    it('lo comido se pinta y lo que falta es el carril', async () => {
       await mountComida()
-      const lead = document.querySelector('.food-macro.is-lead')
+      const stroke = (el) => parseColor(getComputedStyle(el).stroke)
       for (const theme of ['light', 'dark']) {
         forceTheme(theme)
         await settle()
-        const done = bg(lead.querySelector('.food-macro-done'))
-        const accent = token('--accent')
-        expect(rgb(done), theme).toEqual(rgb(accent))
-        // Lo que falta no lleva pintura propia: se ve el carril de la barra.
-        expect(
-          getComputedStyle(lead.querySelector('.food-macro-left')).backgroundColor,
-          theme,
-        ).toBe('rgba(0, 0, 0, 0)')
+        expect(document.querySelector('.food-ring-arc.is-protein'), theme).toBeNull()
+        const kcal = document.querySelector('.food-ring-arc.is-kcal')
+        // Las kcal, en tinta: sin croma, como las barras que acompañan.
+        expect(chroma(rgb(stroke(kcal))), theme).toBeLessThan(10)
+        const track = document.querySelector('.food-ring-track.is-protein')
+        expect(rgb(stroke(track)), theme).toEqual(rgb(token('--border')))
+        // Y las barras: lo que falta no lleva pintura propia.
+        for (const row of macroRows()) {
+          expect(
+            getComputedStyle(row.querySelector('.food-macro-left')).backgroundColor,
+            theme,
+          ).toBe('rgba(0, 0, 0, 0)')
+        }
       }
     })
 
-    it('sin cerrar el objetivo, --pr no aparece en ninguna barra', async () => {
+    it('sin cerrar el objetivo, --pr no aparece ni en anillos ni en barras', async () => {
       await mountComida()
       for (const theme of ['light', 'dark']) {
         forceTheme(theme)
@@ -661,6 +669,10 @@ describe('Comida', () => {
           '.food-macro-bar, .food-macro-done, .food-macro-left',
         )) {
           expect(rgb(bg(part)), `${theme}: ${part.className}`).not.toEqual(pr)
+        }
+        for (const part of document.querySelectorAll('.food-ring circle')) {
+          const color = rgb(parseColor(getComputedStyle(part).stroke))
+          expect(color, `${theme}: ${part.getAttribute('class')}`).not.toEqual(pr)
         }
       }
     })
@@ -765,15 +777,15 @@ describe('Comida', () => {
       }
     })
 
-    it('la jerarquía se dice con altura, no con un tono nuevo', async () => {
+    it('la jerarquía se dice con grosor, no con un tono nuevo', async () => {
       await mountComida()
-      const [lead, ...rest] = macroRows()
-      // Proteína manda: 10px. Hidratos y grasa acompañan: 6px. Un color por
-      // macro sería redundante con la posición y con la cifra.
-      expect(lead).toHaveClass('is-lead')
+      // Proteína manda: anillo de 12. Kcal: 7. Hidratos y grasa: barra de 6.
+      const trazo = (sel) =>
+        parseFloat(getComputedStyle(document.querySelector(sel)).strokeWidth)
+      expect(trazo('.food-ring-track.is-protein')).toBe(12)
+      expect(trazo('.food-ring-track.is-kcal')).toBe(7)
       const height = (row) => paintedRect(row.querySelector('.food-macro-bar')).height
-      expect(height(lead)).toBeCloseTo(10, 0)
-      for (const row of rest) expect(height(row)).toBeCloseTo(6, 0)
+      for (const row of macroRows()) expect(height(row)).toBeCloseTo(6, 0)
     })
 
     it('el número héroe se lee sobre el fondo en los dos esquemas', async () => {

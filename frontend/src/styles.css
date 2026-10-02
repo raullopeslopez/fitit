@@ -4930,15 +4930,10 @@ button.draft-save {
   justify-content: space-between;
   gap: 0.85rem;
 }
-.food-macros-hero,
-.food-macros-eaten {
+.food-macros-hero {
   margin: 0;
   display: flex;
   flex-direction: column;
-}
-.food-macros-eaten {
-  align-items: flex-end;
-  text-align: right;
 }
 .food-macros-figure {
   display: flex;
@@ -4965,12 +4960,6 @@ button.draft-save {
   color: var(--pr);
 }
 .food-macros-unit {
-  font-size: 1rem;
-  color: var(--muted);
-}
-.food-macros-eaten-value {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
   font-size: 1rem;
   color: var(--muted);
 }
@@ -5009,17 +4998,8 @@ button.draft-save {
   border: 1px solid var(--border);
   overflow: hidden;
 }
-/* La proteína manda: el doble de alto y el cromo entero. La jerarquía se dice
-   con intensidad, no con un tono distinto — un segundo color por macro sería
-   redundante con la posición y con la cifra. */
-.food-macro.is-lead .food-macro-bar {
-  height: 10px;
-}
 .food-macro-done {
   background: var(--food-done-soft);
-}
-.food-macro.is-lead .food-macro-done {
-  background: var(--food-done);
 }
 /* Lo que falta no lleva pintura: es el carril de la barra, que ya está ahí. */
 .food-macro-left {
@@ -5032,22 +5012,127 @@ button.draft-save {
   border-color: var(--pr);
 }
 
-.food-macros-kcal {
+/* Hidratos y grasa, con objetivo, van a pares bajo los anillos. */
+.food-macros-rows.is-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+/* ── Los dos anillos ──────────────────────────────────────────────────
+   Proteína fuera (12 de trazo, acento), kcal dentro (7, tinta). Lo que falta
+   no se pinta: es el carril, en `--border`. El `--surface-raised` de las barras
+   no sirve aquí, que un anillo no lleva borde y en papel saldría blanco sobre
+   blanco. */
+.food-macros-top:has(.food-ring) {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.1rem;
+}
+.food-ring {
+  position: relative;
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+}
+.food-ring svg {
+  display: block;
+}
+.food-ring circle {
+  fill: none;
+  stroke-linecap: round;
+}
+.food-ring-track {
+  stroke: var(--border);
+}
+.food-ring-track.is-protein,
+.food-ring-arc.is-protein {
+  stroke-width: 12;
+}
+.food-ring-track.is-kcal,
+.food-ring-arc.is-kcal {
+  stroke-width: 7;
+}
+.food-ring-arc.is-protein {
+  stroke: var(--food-done);
+}
+.food-ring-arc.is-kcal {
+  stroke: var(--food-done-soft);
+}
+/* Cerrado: `--pr` en el anillo entero, como la barra cerrada antes de él. */
+.food-ring-arc.is-protein.is-closed {
+  stroke: var(--pr);
+}
+.food-ring-center {
+  position: absolute;
+  inset: 0;
+  margin: 0;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0.85rem 0 0;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.85rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+/* Dentro del anillo la cifra del día baja un paso (Display, 1.6rem): a 2.6rem
+   tres dígitos no caben en el hueco de 85 px junto a su rótulo. */
+.food-ring-center .food-macros-number {
+  font-size: 1.6rem;
+}
+.food-ring-center .food-macros-number.is-closed {
+  font-size: 1rem;
+}
+.food-ring-caption {
+  font-size: 0.8rem;
   color: var(--muted);
 }
-.food-macros-kcal-value {
+.food-ring-caption.is-closed {
+  color: var(--pr);
+}
+.food-ring-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+.food-ring-item {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.food-ring-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.food-ring-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.food-ring-dot.is-protein {
+  background: var(--food-done);
+}
+.food-ring-dot.is-kcal {
+  background: var(--food-done-soft);
+}
+.food-ring-value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
   color: var(--text);
   white-space: nowrap;
+}
+.food-ring-of {
+  color: var(--muted);
+}
+.food-ring-note {
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
 /* ------------------------------------------------------------------ *

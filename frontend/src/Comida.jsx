@@ -677,8 +677,9 @@ const SUMMARY_MACROS = [
 // 3. `--pr` es el momento ganado: no aparece hasta que el objetivo se cierra, y
 //    entonces ocupa la barra entera. Igual que un récord en Entreno.
 //
-// Jerarquía por intensidad y no por tono: la proteína manda (10px, cromo lleno)
-// y los otros dos acompañan (6px, cromo al 60%). Un solo color en toda la app.
+// Con objetivo, dos anillos (proteína fuera, kcal dentro) y debajo hidratos y
+// grasa en barra fina. La proteína manda con grosor y con el acento; lo demás
+// acompaña en tinta. Un solo color en toda la app.
 function MacroCard({ day }) {
   const totals = day.totals ?? {}
   const target = day.target_protein
@@ -713,60 +714,119 @@ function MacroCard({ day }) {
     )
   }
 
+  const kcal = macroBar(totals.kcal, day.target_kcal)
+
   return (
     <div className="card food-macros" data-testid="food-macros">
       <div className="food-macros-top">
-        <p className="food-macros-hero">
-          <span className={`card-eyebrow${closed ? ' is-closed' : ''}`}>
-            {closed ? 'Cerrado' : 'Te falta'}
+        <MacroRings protein={bar} kcal={kcal}>
+          {/* Cerrado, el número deja de ser una resta y pasa a ser el marcador:
+              «160 / 160». Un «te falta 0» sería la misma cifra diciendo lo
+              contrario de lo que ha pasado. */}
+          <span className={`food-macros-number${closed ? ' is-closed' : ''}`}>
+            {closed
+              ? `${formatMacro(totals.protein)} / ${formatMacro(target)}`
+              : formatMacro(day.remaining_protein)}
           </span>
-          <span className="food-macros-figure">
-            {/* Cerrado, el número deja de ser una resta y pasa a ser el marcador:
-                «160 / 160». Un «te falta 0» sería la misma cifra diciendo lo
-                contrario de lo que ha pasado. */}
-            <span className={`food-macros-number${closed ? ' is-closed' : ''}`}>
-              {closed
-                ? `${formatMacro(totals.protein)} / ${formatMacro(target)}`
-                : formatMacro(day.remaining_protein)}
+          <span className={`food-ring-caption${closed ? ' is-closed' : ''}`}>
+            {closed ? 'Cerrado' : 'g faltan'}
+          </span>
+        </MacroRings>
+
+        {/* La leyenda de los dos anillos: cada cifra lleva el punto del color
+            de su anillo, que es lo que dice cuál es cuál sin rotularlos. */}
+        <div className="food-ring-legend">
+          <p className="food-ring-item">
+            <span className="food-ring-label">
+              <span className="food-ring-dot is-protein" aria-hidden="true" />
+              Proteína
             </span>
-            <span className="food-macros-unit">g de proteína</span>
-          </span>
-        </p>
-        {/* Lo comido no desaparece: baja a la derecha, pequeño y en `--muted`.
-            Se sigue pudiendo consultar, pero ya no es lo que se lee primero. */}
-        {!closed && (
-          <p className="food-macros-eaten">
-            <span className="card-eyebrow">Llevas</span>
-            <span className="food-macros-eaten-value">
-              {formatMacro(totals.protein)} / {formatMacro(target)}
+            <span className="food-ring-value">
+              {formatMacro(totals.protein)}
+              <span className="food-ring-of"> / {formatMacro(target)} g</span>
             </span>
           </p>
-        )}
+          {day.target_kcal != null && (
+            <p className="food-ring-item">
+              <span className="food-ring-label">
+                <span className="food-ring-dot is-kcal" aria-hidden="true" />
+                Kcal
+              </span>
+              <span className="food-ring-value">
+                {formatMacro(totals.kcal)}
+                <span className="food-ring-of"> / {formatMacro(day.target_kcal)}</span>
+              </span>
+              {/* La resta la hace el servidor (`restante`). Pasarse sale en
+                  negativo, y «quedan -200» se lee mal: se dice lo que sobra. */}
+              {day.remaining_kcal != null && (
+                <span className="food-ring-note">
+                  {day.remaining_kcal < 0
+                    ? `${formatMacro(-day.remaining_kcal)} de más`
+                    : `quedan ${formatMacro(day.remaining_kcal)}`}
+                </span>
+              )}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="food-macros-rows">
-        <MacroRow
-          label="Proteína"
-          eaten={totals.protein}
-          target={target}
-          lead
-        />
+      <div className="food-macros-rows is-pair">
         <MacroRow label="Hidratos" eaten={totals.carbs} target={day.target_carbs} />
         <MacroRow label="Grasa" eaten={totals.fat} target={day.target_fat} />
       </div>
+    </div>
+  )
+}
 
-      {/* «Cumplido» era el rótulo de esta fila, y con `985 / 2560` al lado decía
-          justo lo contrario de lo que enseñaba. «Energía» es lo que una etiqueta
-          llama a esto, no afirma nada, y deja la unidad al final como en las
-          filas de macro de arriba. */}
-      {day.target_kcal != null && (
-        <p className="food-macros-kcal">
-          <span>Energía</span>
-          <span className="food-macros-kcal-value">
-            {formatMacro(totals.kcal)} / {formatMacro(day.target_kcal)} kcal
-          </span>
-        </p>
-      )}
+// Los dos anillos: proteína fuera, gruesa y en el acento; kcal dentro, fina y
+// en tinta. La jerarquía sigue diciéndose con grosor (12 frente a 7, y 6 las
+// barras de debajo), no con un tono por macro.
+//
+// Un arco de 0 no se dibuja: con el extremo redondo dejaría un punto, que se lee
+// «algo comido». Cerrada la proteína, su anillo entero pasa a `--pr`.
+const RING = { size: 140, outer: 62, inner: 46 }
+function MacroRings({ protein, kcal, children }) {
+  const c = RING.size / 2
+  const arc = (r, done) => {
+    const length = 2 * Math.PI * r
+    return `${(length * done) / 100} ${length}`
+  }
+  return (
+    <div className="food-ring">
+      <svg
+        width={RING.size}
+        height={RING.size}
+        viewBox={`0 0 ${RING.size} ${RING.size}`}
+        aria-hidden="true"
+      >
+        <circle className="food-ring-track is-protein" cx={c} cy={c} r={RING.outer} />
+        {protein && (protein.closed || protein.done > 0) && (
+          <circle
+            className={`food-ring-arc is-protein${protein.closed ? ' is-closed' : ''}`}
+            cx={c}
+            cy={c}
+            r={RING.outer}
+            strokeDasharray={arc(RING.outer, protein.closed ? 100 : protein.done)}
+            transform={`rotate(-90 ${c} ${c})`}
+          />
+        )}
+        {kcal && (
+          <>
+            <circle className="food-ring-track is-kcal" cx={c} cy={c} r={RING.inner} />
+            {kcal.done > 0 && (
+              <circle
+                className="food-ring-arc is-kcal"
+                cx={c}
+                cy={c}
+                r={RING.inner}
+                strokeDasharray={arc(RING.inner, kcal.done)}
+                transform={`rotate(-90 ${c} ${c})`}
+              />
+            )}
+          </>
+        )}
+      </svg>
+      <p className="food-ring-center">{children}</p>
     </div>
   )
 }
@@ -776,13 +836,11 @@ function MacroCard({ day }) {
 // La barra sólo se dibuja si hay objetivo — es lo que la hace medir algo. Sin él
 // queda la línea de texto, que es toda la información que existe.
 //
-// `lead` es la proteína: misma estructura, el doble de alto y el cromo entero.
-// La diferencia entre mandar y acompañar se dice con intensidad, no con un tono
-// distinto.
-function MacroRow({ label, eaten, target = null, decimals = 0, lead = false }) {
+// La proteína ya no pasa por aquí: con objetivo va en el anillo de fuera.
+function MacroRow({ label, eaten, target = null, decimals = 0 }) {
   const bar = macroBar(eaten, target)
   return (
-    <div className={`food-macro${lead ? ' is-lead' : ''}`}>
+    <div className="food-macro">
       <p className="food-macro-line">
         <span className="food-macro-label">{label}</span>
         {/* Con objetivo, «118 / 160 g». Sin objetivo, sólo lo comido. Y si no

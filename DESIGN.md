@@ -229,8 +229,9 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
 - **El tono es marca, nunca dato.** Tiñe la banda del nombre de la tarjeta al
   20 %, pinta el punto de 7 px que va antes del nombre y el filete que cierra la
   banda. **No toca una cifra, no toca una barra, no toca el héroe.** El contrato
-  de color de la cabecera de macros —la barra se llena al comer, en ámbar la
-  proteína y en tinta las otras dos, `--pr` al cerrar— no lo toca el tono.
+  de color de la cabecera de macros —el anillo y las barras se llenan al comer,
+  en ámbar la proteína y en tinta las kcal, los hidratos y la grasa, `--pr` al
+  cerrar— no lo toca el tono.
 - **El suelo es 3:1, no 4,5.** Es el de un elemento no textual, que es lo único
   que el tono pinta. No es una rebaja: es la consecuencia de la regla anterior.
   Si el tono tiñera el subtotal habría que subirlo hasta pasar AA como texto
@@ -613,7 +614,7 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
 | Pantalla | Estado |
 |---|---|
 | Perfil | migrada (H1, 2026-10-02) |
-| Comida | migrada (H2 y revisión semanal, 2026-10-02). La tarjeta de macros mantiene la proteína como cifra grande: decisión del usuario |
+| Comida | migrada (H2 y revisión semanal, 2026-10-02). La tarjeta de macros mantiene la proteína como cifra grande: decisión del usuario. Con objetivo son dos anillos (proteína fuera, 12 de trazo; kcal dentro, 7) con su leyenda al lado, e hidratos y grasa en barra de 6 px a pares debajo |
 | Días, Progreso, Entreno | fuera de esta tanda |
 
 ### Reglas nuevas
@@ -747,3 +748,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-09-27 | `Objetivo` enseña sólo la cifra, sin el porqué | Usuario, viendo `Objetivo · 22,5 kg × 8 · llegaste a 12`: *"es un poco confuso"*. El 12 al lado de un × 8 se lee como otra cifra que cuadrar, no como el motivo. Entre decir el porqué mejor y quitarlo, eligió quitarlo: la línea queda `Objetivo · 22,5 kg × 8`. La regla no cambia y sigue en `progression.js`; `reason` se calcula aunque no se pinte. |
 | 2026-10-02 | Sistema v2 «Material tonal»: hojas, botón flotante, chips y filas de ajuste; los datos del servidor como cifra | Usuario, sobre Comida y Perfil: *"parece más una PWA que una aplicación nativa"* y *"información contenida en frases que apenas son visibles"*. Eligió la maqueta B de tres. Se suma al sistema en vez de sustituirlo y se migra pantalla a pantalla, empezando por Perfil y Comida. |
 | 2026-10-02 | Las barras de macros se llenan al comer | Usuario, viendo Comida sin nada apuntado y las barras enteras en ámbar: *"no me cuadran las barras rellenadas si no tengo nada registrado"*. La regla «el cromo a lo que falta» pintaba el día vacío como completo. Ahora lo comido se llena (proteína en `--accent`, hidratos y grasa en tinta) y lo que falta es el carril vacío. `--pr` al cerrar no cambia. |
+| 2026-10-02 | La tarjeta de macros pasa a dos anillos | Usuario, ante la tarjeta de barras: pidió alternativas, eligió la del anillo y echó en falta las calorías, que iban en una línea gris al pie. Eligió la B1 de tres: proteína en el anillo de fuera, kcal en el de dentro, cada uno con su cifra y su punto de color al lado («quedan 1109» o «200 de más», restado por el servidor). La jerarquía sigue siendo de grosor (12 / 7 / 6), como pidió al preferir barras de distinta altura. El carril del anillo va en `--border`: en papel, `--surface-raised` es blanco sobre blanco. |
