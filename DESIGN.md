@@ -8,7 +8,9 @@
   your previous marks so you know what to beat.
 - **Who it's for:** A serious lifter tracking progressive overload. Solo use, no social feed.
 - **Space/industry:** Strength-training / gym logging (peers: Hevy, Strong, Fitbod).
-- **Project type:** Mobile-first PWA (installable). Used one-handed, in the gym, between sets.
+- **Project type:** Android app (Capacitor) que también se instala como PWA. Used
+  one-handed, in the gym, between sets. Desde 2026-10-02 la referencia es la app nativa,
+  no la web: ver **Sistema v2** más abajo.
 - **Design thesis:** An instrument, not a lifestyle brand. Numbers are the product, and the
   product is measured in **taps to a logged set**. Design for the hand that is holding a
   phone one-handed, mid-set, between two working sets — not for the moment of triumph.
@@ -583,6 +585,55 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
   La siguiente actualización la devuelve al canal mudo. Si la alarma llega más de un
   minuto tarde, no vibra.
 
+## Sistema v2 — Material tonal (desde 2026-10-02)
+La app se usa como APK, y la piel heredada de la PWA no lo parecía: formularios con un
+«Guardar» al pie, datos del servidor escritos en frases pequeñas en `--muted`, y ninguna
+de las piezas que en Android dicen «esto se toca». El usuario eligió la dirección
+«Material 3 tonal» entre tres maquetas. Este apartado **se suma** al documento: lo que no
+dice aquí sigue igual (tres tipografías, una sola tinta de acento, Geist Mono para toda
+cifra, la escala tipográfica, 44px de objetivo táctil, `NULL` se pinta `—`).
+
+**Se migra pantalla a pantalla.** Una pantalla está en v2 o no lo está; no hay
+interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
+
+| Pantalla | Estado |
+|---|---|
+| Perfil | pendiente (H1) |
+| Comida | pendiente (H2) |
+| Días, Progreso, Entreno | fuera de esta tanda |
+
+### Reglas nuevas
+- **Un dato del servidor es una cifra, no una frase.** Si el backend devuelve un número,
+  la pantalla lo pinta en Geist Mono a tamaño Data o mayor y en `--text`, y lo que lo
+  explica va al lado como etiqueta. «ESTIMADO CON UNA FÓRMULA» en mono gris de 11px era
+  el caso tipo: la procedencia es un **chip**, no un pie de foto.
+- **Se edita en una hoja, no en un formulario.** Un ajuste es una fila (`ListRow`) con su
+  valor a la derecha; tocarla abre una hoja con ese único campo, y cerrarla con
+  «Guardar» lo guarda. Desaparecen los botones «Guardar mis datos» al pie de una tarjeta.
+- **La acción principal de la pantalla es un botón flotante extendido** (`Fab`): icono +
+  verbo, abajo a la derecha, encima de la barra de pestañas. Uno por pantalla como mucho.
+  Sigue la regla de siempre —la acción va abajo, donde está el pulgar— con la forma que
+  Android ya enseña a buscar.
+- **Lo que se elige es un chip.** Una opción, un filtro, un día: `Chip`, con
+  `aria-pressed` si es seleccionable. Un chip con `›` abre algo (la línea del plan).
+- **Superficies tonales.** Además de *hero*, *raised* y *quiet*, hay `--surface-tonal`:
+  la superficie con un 8 % de ámbar, para la tarjeta que pide una respuesta (la revisión
+  semanal) y la cabecera de una pantalla (el peso en Perfil). El ámbar sigue siendo una
+  sola tinta: aquí es un velo, no un color nuevo. Sobre ella el texto es `--text`.
+- **Radios v2:** tarjeta 20px (`--radius-card`), hoja 24px arriba (`--radius-sheet`),
+  chip y botón flotante 16px (`--radius-pill`). Las pantallas v1 conservan 8/6.
+
+### Componentes (`frontend/src/ui/`)
+Cuatro, porque son los que piden Comida y Perfil. Un componente nuevo entra aquí cuando
+lo usan **dos** pantallas; antes vive en la suya.
+
+| Componente | Qué es | Notas |
+|---|---|---|
+| `Sheet` | hoja inferior modal | Asa, título, `role="dialog"`, `aria-modal`. Se cierra con el velo y con Escape. Reutiliza `.sheet-scrim` / `.sheet` y les añade `.ui-sheet`. |
+| `Fab` | botón flotante extendido | Icono + verbo. Fijo sobre la barra de pestañas, con el inset seguro. |
+| `Chip` | opción, filtro o atajo | `aria-pressed` sólo si `selected` está definido; con `onClick` y sin `selected` es un atajo. |
+| `ListRow` | fila de ajuste | Etiqueta (+ pista opcional) a la izquierda, valor en mono a la derecha, `›`. Es un `button` de 56px. |
+
 ## Motion
 - **Approach:** minimal-functional. One expressive moment only: the PR.
 - **Easing:** enter `ease-out` · exit `ease-in` · move `ease-in-out`.
@@ -680,3 +731,4 @@ The current implicit system is competent but generic. To adopt this:
 | 2026-09-27 | Los pasos, primera pantalla del widget sin entreno | El usuario, con una captura del 4×2: el objetivo `/ 10.000` salía cortado por abajo y quería los pasos «siempre la primera card». La cifra de 40sp llevaba un margen negativo abajo y `/ 10.000`, alineado a su línea base, quedaba medio fuera de la fila; el margen de abajo se quita (el de arriba sigue). Las pantallas cambian de orden: pasos, luego empezar; sin pasos de hoy sólo está la de empezar, como antes. La página recordada cambia de clave para que nadie aterrice en `Empezar entreno` por haber estado mirando los pasos. |
 | 2026-09-27 | La marca dice dónde estabas y una línea debajo dice el paso siguiente; el RIR vuelve como una pregunta que alguien lee | El usuario quería elegir en Perfil qué referencia ver al registrar, y la pregunta de fondo era qué dice la evidencia. Dice que la vía da igual —subir reps o subir kilos da lo mismo (Plotkin 2022)— y que lo que manda es superar la última sesión y acercarse al fallo (Robinson 2024), así que `Última vez` se queda como está y el selector no se construye. Bajo la cifra entra `Objetivo · 60 kg × 9 · a 1–2 del fallo`, en tinta y a Meta: progresión doble (una rep más; en 12, +2,5 kg y vuelta a 8) más una lectura del RIR, que sube el peso ya si la última serie dejó 3 o más (`· sobraron 3+`). La regla vive en `progression.js`. El RIR vuelve **contra la regla del 2026-08-05**, y por eso no vuelve como campo: aquel RPE lo llevaba 1 serie de 277 y no lo leía nada. Ahora se pregunta después de registrar (`¿Cuántas te quedaban?` con `0 1 2 3+`, 44 px, el activo en tinta y no en ámbar), sólo por la última serie, sin ocupar el formulario, y lo lee el objetivo de la próxima sesión. Se guarda en la columna `rpe` como 10 − RIR (`3+` → 7), sin tocar el backend. La línea va en dos bloques que no se parten porque a 430 px partía «más» sola. Pendiente a propósito: tope, vuelta y salto son fijos; en mancuernas ligeras 2,5 kg es mucho salto. |
 | 2026-09-27 | `Objetivo` enseña sólo la cifra, sin el porqué | Usuario, viendo `Objetivo · 22,5 kg × 8 · llegaste a 12`: *"es un poco confuso"*. El 12 al lado de un × 8 se lee como otra cifra que cuadrar, no como el motivo. Entre decir el porqué mejor y quitarlo, eligió quitarlo: la línea queda `Objetivo · 22,5 kg × 8`. La regla no cambia y sigue en `progression.js`; `reason` se calcula aunque no se pinte. |
+| 2026-10-02 | Sistema v2 «Material tonal»: hojas, botón flotante, chips y filas de ajuste; los datos del servidor como cifra | Usuario, sobre Comida y Perfil: *"parece más una PWA que una aplicación nativa"* y *"información contenida en frases que apenas son visibles"*. Eligió la maqueta B de tres. Se suma al sistema en vez de sustituirlo y se migra pantalla a pantalla, empezando por Perfil y Comida. |
