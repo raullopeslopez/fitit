@@ -364,6 +364,7 @@
                 android:visibility="gone">
 
                 <FrameLayout
+                    android:id="@+id/widget_food_ring_box"
                     android:layout_width="96dp"
                     android:layout_height="96dp">
 

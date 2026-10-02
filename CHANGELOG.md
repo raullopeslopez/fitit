@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **APK 0.12.1: los anillos del widget llenan su hueco.** En la pantalla Comida del widget el anillo
+  medía siempre 96 dp; ahora crece hasta donde cabe: ≈106 dp en el 3×2 (el ancho lo limita la
+  leyenda) y 140 dp en un 4×2. La cifra del centro y el grosor crecen con él.
+
 ### Added
 - **APK 0.12.0: la comida de hoy en el widget 3×2.** Sin entreno en curso, el widget tiene una
   pantalla nueva entre los pasos y «Empezar entreno»: los dos anillos de Comida (proteína

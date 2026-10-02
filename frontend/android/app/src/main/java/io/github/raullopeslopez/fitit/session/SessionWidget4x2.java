@@ -75,8 +75,11 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         JSONObject control = Session.store(context).control();
         long now = System.currentTimeMillis();
         for (int id : ids) {
-            Fit fit = Fit.of(manager.getAppWidgetOptions(id));
-            manager.updateAppWidget(id, views(context, control, now, fit));
+            Bundle options = manager.getAppWidgetOptions(id);
+            Fit fit = Fit.of(options);
+            int width = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
+            int height = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
+            manager.updateAppWidget(id, views(context, control, now, fit, width, height));
         }
     }
 
@@ -85,12 +88,18 @@ public class SessionWidget4x2 extends AppWidgetProvider {
     }
 
     static RemoteViews views(Context context, JSONObject control, long now, Fit fit) {
+        return views(context, control, now, fit, 0, 0);
+    }
+
+    /** {@code width} × {@code height}: los dp que dio el launcher, o 0 si no los dijo. */
+    static RemoteViews views(Context context, JSONObject control, long now, Fit fit,
+            int width, int height) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x2);
         // Los márgenes de siempre; el compacto los aprieta más abajo (fit). Sin
         // entreno o caducada caben igual, y no deben heredar los de un compacto.
         padding(context, views, 14);
         if (Session.store(context).sessionExpired()) return SessionWidget.expired(context, views);
-        if (control == null) return idle(context, views, LocalDate.now());
+        if (control == null) return idle(context, views, LocalDate.now(), width, height);
 
         SessionWidget.header(context, views, control, now);
 
@@ -159,6 +168,10 @@ public class SessionWidget4x2 extends AppWidgetProvider {
      * puntitos no se ven (invisibles, no fuera: la pantalla no se mueve de sitio).
      */
     static RemoteViews idle(Context context, RemoteViews views, LocalDate today) {
+        return idle(context, views, today, 0, 0);
+    }
+
+    static RemoteViews idle(Context context, RemoteViews views, LocalDate today, int width, int height) {
         SessionWidget.idle(context, views);
         JSONObject summary = Session.store(context).summary();
 
@@ -180,7 +193,7 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         SessionNotification.tap(context, views, R.id.widget_dots, SessionController.ACTION_PAGE, 35);
 
         IdleSummary.Food food = IdleSummary.food(summary, foodToday);
-        if (food != null) food(context, views, food);
+        if (food != null) food(context, views, food, FoodRings.sizeFor(context, food, width, height));
 
         IdleSummary.Steps steps = IdleSummary.steps(summary, today);
         if (steps == null) return views;
@@ -218,13 +231,22 @@ public class SessionWidget4x2 extends AppWidgetProvider {
      * La pantalla Comida (DESIGN.md, «Pantalla Comida»): los anillos, lo que falta
      * de proteína en el centro y las dos cifras a la derecha. Tocarla abre Comida.
      */
-    static void food(Context context, RemoteViews views, IdleSummary.Food food) {
-        views.setImageViewBitmap(R.id.widget_food_rings, FoodRings.draw(context, food));
+    static void food(Context context, RemoteViews views, IdleSummary.Food food, int ring) {
+        // El anillo llena el hueco (FoodRings.sizeFor); el tamaño de una vista
+        // sólo se cambia desde Android 12, y antes se queda en los 96 dp del layout.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) ring = FoodRings.SIZE_DP;
+        else {
+            views.setViewLayoutWidth(R.id.widget_food_ring_box, ring, TypedValue.COMPLEX_UNIT_DIP);
+            views.setViewLayoutHeight(R.id.widget_food_ring_box, ring, TypedValue.COMPLEX_UNIT_DIP);
+        }
+        views.setImageViewBitmap(R.id.widget_food_rings, FoodRings.draw(context, food, ring));
         boolean closed = food.closed();
         int ink = context.getColor(closed ? R.color.widget_pr : R.color.widget_accent_ink);
+        float scale = ring / (float) FoodRings.SIZE_DP;
         views.setTextViewText(R.id.widget_food_left, food.center());
         views.setTextColor(R.id.widget_food_left, ink);
-        views.setTextViewTextSize(R.id.widget_food_left, TypedValue.COMPLEX_UNIT_SP, closed ? 15 : 24);
+        views.setTextViewTextSize(R.id.widget_food_left, TypedValue.COMPLEX_UNIT_SP,
+                Math.round((closed ? 15 : 24) * scale));
         views.setTextViewText(R.id.widget_food_caption, context.getString(
                 closed ? R.string.widget_food_closed : R.string.widget_food_left));
         views.setTextColor(R.id.widget_food_caption,

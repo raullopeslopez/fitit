@@ -524,9 +524,13 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   - Pantalla 2 (la única si no hay pasos de hoy): `Sin entreno en curso` /
     `Último: hace 2 días · Pierna` y el botón ámbar `Empezar entreno` a lo ancho.
 - **Pantalla Comida** (entre la de pasos y la de empezar; 2026-10-02). Los dos anillos de
-  la tarjeta de macros de Comida, en pequeño: un bitmap de 96 dp (`FoodRings`), proteína
+  la tarjeta de macros de Comida, en pequeño: un bitmap (`FoodRings`), proteína
   fuera (9 dp, `--accent`) y kcal dentro (5 dp, tinta al 70 %) sobre carriles en
-  `--border`. En el centro, lo que falta de proteína en Mono 24sp `--accent-ink` y
+  `--border`. **El anillo llena el hueco** (2026-10-02, el usuario: *"hay menos círculo
+  del que cabe"*): todo el alto libre, salvo que la leyenda, medida con su fuente y sus
+  cifras, pida el ancho; entre 96 y 180 dp. ≈106 dp en el 3×2 del Xiaomi (manda el
+  ancho), 140 en un 4×2. Grosores y cifra del centro crecen en proporción; las medidas
+  de abajo son las de 96 dp. En el centro, lo que falta de proteína en Mono 24sp `--accent-ink` y
   `g faltan` en 11sp `--muted`; cerrada, `205/202` en 15sp y `Cerrado`, los dos en
   `--pr`, y el anillo entero en `--pr`. A la derecha, el sello `PROTEÍNA` con su punto
   ámbar y `118 / 202 g` en Mono 15sp; el sello `KCAL` con su punto en tinta,

@@ -396,21 +396,47 @@ public class SessionWidgetLookTest {
         whole(root, R.id.widget_food_kcal);
         whole(root, R.id.widget_food_note);
         Rect rings = at(root, R.id.widget_food_rings);
-        near("anillos", 96, dp(rings.width()));
+        // Redondos: el bitmap no se estira.
+        near("anillos redondos", dp(rings.width()), dp(rings.height()));
         Rect dots = at(root, R.id.widget_dots);
         int slack = WidgetRender.px(context, 12);
         assertTrue("los anillos pisan los puntitos", rings.bottom <= dots.top + slack);
         assertTrue("la nota de kcal pisa los puntitos",
                 at(root, R.id.widget_food_note).bottom <= dots.top + slack);
+        int side = WidgetRender.px(context, 16);
         assertTrue("la leyenda se sale por la derecha",
-                at(root, R.id.widget_food_kcal).right <= root.getWidth());
+                at(root, R.id.widget_food_kcal).right <= root.getWidth() - side);
+        assertTrue("los anillos se salen por arriba", rings.top >= WidgetRender.px(context, 14) - 1);
+    }
+
+    /**
+     * El anillo llena el hueco: lo que deja libre, a lo alto o a lo ancho (el
+     * que mande), no pasa de 6 dp. Con 96 fijos sobraban ~28 dp de alto.
+     */
+    private void foodFills(View root) {
+        Rect rings = at(root, R.id.widget_food_rings);
+        Rect dots = at(root, R.id.widget_dots);
+        float spareHeight = dp(dots.top - rings.bottom) + dp(rings.top) - 14;
+        float spareWidth = dp(root.getWidth()) - 16 - dp(at(root, R.id.widget_food_kcal).right);
+        assertTrue("sobra alto (" + spareHeight + ") y ancho (" + spareWidth + "), anillo de " + dp(rings.width()),
+                Math.min(spareHeight, spareWidth) <= 6);
     }
 
     @Test
     public void foodFitsTheCompactThreeByTwo() throws Exception {
         View root = foodPlaced(253, 176, 118, 1109);
         foodFits(root);
+        foodFills(root);
         WidgetRender.save(root, WALL_LIGHT, "3x2-comida-claro");
+    }
+
+    @Test
+    public void inTheFourByTwoTheRingsGrowWithTheRoom() throws Exception {
+        View root = foodPlaced(358, 200, 118, 1109);
+        foodFits(root);
+        foodFills(root);
+        assertTrue("más anillo que en el 3×2", dp(at(root, R.id.widget_food_rings).width()) > 120);
+        WidgetRender.save(root, WALL_LIGHT, "4x2-comida-claro");
     }
 
     @Test
