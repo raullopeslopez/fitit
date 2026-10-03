@@ -18,6 +18,18 @@
             android:name=".session.SessionActionReceiver"
             android:exported="false" />
 
+        <!-- Repinta los widgets al instalar una APK nueva y al encender el teléfono,
+             con lo que ya está guardado. No exportado: estos avisos los manda el
+             sistema, que llega igual. -->
+        <receiver
+            android:name=".session.WidgetRefreshReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- El widget 4×1 del entreno (fase 3). Exportado porque quien lo pinta
              es el launcher, otra app. -->
         <receiver
@@ -137,6 +149,8 @@
     <uses-permission android:name="android.permission.health.READ_VO2_MAX" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_VO2_MAX" tools:node="remove" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para repintar los widgets al encender el teléfono (WidgetRefreshReceiver). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- La notificación en curso del entreno. Android 13+ lo pregunta una vez, al
          registrar la primera serie del APK. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

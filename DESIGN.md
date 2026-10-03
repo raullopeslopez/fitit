@@ -538,8 +538,10 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   único ámbar es el anillo, y tocar la pantalla abre Comida.
   - Sólo aparece con objetivo de proteína. Sin objetivo de kcal no hay anillo de dentro
     ni sello `KCAL`.
-  - Los datos los manda la app al cargar el día de hoy en Comida (`publishFood`); el
-    widget no consulta el servidor, por decisión del usuario. Lo restado lo resta el
+  - Los datos los manda la app al abrirse y al volver a primer plano (`syncFood`), y
+    Comida al cargar hoy (`publishFood`); el widget no consulta el servidor, por
+    decisión del usuario (y porque despertaría a Render cada vez). Al instalar una APK
+    nueva y al encender el teléfono se repinta con lo guardado (`WidgetRefreshReceiver`). Lo restado lo resta el
     servidor; el nativo sólo imprime.
   - El día de comida corta a las 04:00: a esa hora el widget se repinta solo y, si lo
     guardado es de otro día, sale vacío con los mismos objetivos (`— / 202 g`,

@@ -604,6 +604,29 @@ public class SessionWidget4x2Test {
         assertEquals(SessionLaunch.FOOD, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
     }
 
+    // Lo guardado no se pierde al actualizar ni al reiniciar, pero nadie repintaba:
+    // el widget quedaba vacío hasta abrir Fitit.
+    @Test
+    public void aNewApkOrABootRepaintsWhatIsStored() throws Exception {
+        store.mergeSummary(halfDay());
+        assertFalse("sin repintar, el widget no lo sabe", shown(R.id.widget_idle_food));
+
+        new WidgetRefreshReceiver().onReceive(context, new Intent(Intent.ACTION_MY_PACKAGE_REPLACED));
+        assertTrue(shown(R.id.widget_idle_food));
+        assertEquals("84", text(R.id.widget_food_left));
+
+        store.mergeSummary(food(foodDay(0), 150, 2000, 52, 569, 2569));
+        new WidgetRefreshReceiver().onReceive(context, new Intent(Intent.ACTION_BOOT_COMPLETED));
+        assertEquals("52", text(R.id.widget_food_left));
+    }
+
+    @Test
+    public void otherBroadcastsDoNothing() throws Exception {
+        store.mergeSummary(halfDay());
+        new WidgetRefreshReceiver().onReceive(context, new Intent(Intent.ACTION_SCREEN_ON));
+        assertFalse(shown(R.id.widget_idle_food));
+    }
+
     @Test
     public void theDayEdgeIsFourInTheMorningThenMidnight() {
         ZoneId zone = ZoneId.of("Europe/Madrid");

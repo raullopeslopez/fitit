@@ -1,3 +1,5 @@
+import { getFoodDay } from './api.js'
+import { foodDayIso } from './food.js'
 import { nativeSession, session } from './platform/session.js'
 
 // Lo que el widget de Android enseña cuando no hay entreno en curso (DESIGN.md,
@@ -99,6 +101,19 @@ export function foodSummary(day) {
 
 export function publishFood(day) {
   return publish({ food: foodSummary(day) })
+}
+
+// La comida de hoy al widget sin pasar por Comida: al abrir la app y al volver
+// a primer plano, como los pasos. Antes sólo la mandaba Comida, y abriendo Fitit
+// en Días la pantalla Comida del widget no existía. Fuera del APK no pide nada;
+// un fallo de red no sale de aquí (el widget es un extra).
+export async function syncFood(now = new Date()) {
+  if (!nativeSession()) return
+  try {
+    await publishFood(await getFoodDay(foodDayIso(now)))
+  } catch {
+    // Se queda lo que el widget ya tenía.
+  }
 }
 
 // Sin objetivo (null) no hay barra ni «/ 10.000».

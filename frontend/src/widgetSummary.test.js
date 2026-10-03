@@ -5,11 +5,15 @@ vi.mock('./platform/session.js', () => ({
   session: { summary: vi.fn(() => Promise.resolve()) },
 }))
 
+vi.mock('./api.js', () => ({ getFoodDay: vi.fn() }))
+
+import { getFoodDay } from './api.js'
 import { nativeSession, session } from './platform/session.js'
 import {
   foodSummary,
   lastWorkoutOf,
   publishFood,
+  syncFood,
   publishLastWorkout,
   publishSteps,
   publishStepsGoal,
@@ -161,6 +165,28 @@ describe('la pantalla Comida del widget', () => {
       kcal: null,
       targetKcal: null,
       remainingKcal: null,
+    })
+  })
+
+  describe('syncFood, al abrir la app', () => {
+    it('pide el día de comida de hoy y lo publica', async () => {
+      getFoodDay.mockResolvedValue(DIA)
+      // Las 02:00 del 3 son todavía el día de comida del 2 (corte a las 04:00).
+      await syncFood(new Date(2026, 9, 3, 2, 0))
+      expect(getFoodDay).toHaveBeenCalledWith('2026-10-02')
+      expect(session.summary).toHaveBeenCalledWith({ food: foodSummary(DIA) })
+    })
+
+    it('fuera del APK no pide nada', async () => {
+      nativeSession.mockReturnValue(false)
+      await syncFood()
+      expect(getFoodDay).not.toHaveBeenCalled()
+    })
+
+    it('sin red, el widget se queda con lo que tenía', async () => {
+      getFoodDay.mockRejectedValue(new Error('offline'))
+      await expect(syncFood()).resolves.toBeUndefined()
+      expect(session.summary).not.toHaveBeenCalled()
     })
   })
 })

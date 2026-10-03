@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **APK 0.12.2: el widget no se queda vacío hasta abrir Fitit.** Al instalar una APK nueva o al
+  encender el móvil, el widget se repinta solo con lo último que tenía (pasos, comida, último
+  entreno). Y la pantalla Comida del widget se pone al día con sólo abrir la app, en cualquier
+  pestaña; antes había que entrar en Comida.
+
 ### Changed
 - **APK 0.12.1: los anillos del widget llenan su hueco.** En la pantalla Comida del widget el anillo
   medía siempre 96 dp; ahora crece hasta donde cabe: ≈106 dp en el 3×2 (el ancho lo limita la
