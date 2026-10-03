@@ -16,6 +16,7 @@ import { session } from './platform/session.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 import { onResume } from './platform/lifecycle.js'
 import { syncSteps } from './steps.js'
+import { syncFood } from './widgetSummary.js'
 
 export default function App() {
   const [token, setTokenState] = useState(getToken())
@@ -49,12 +50,16 @@ export default function App() {
     return () => setUnauthorizedHandler(null)
   }, [])
 
-  // Los pasos del teléfono, al entrar y cada vez que la app vuelve a primer
-  // plano. Fuera del APK `syncSteps` no hace nada.
+  // Los pasos del teléfono y la comida de hoy para el widget, al entrar y cada
+  // vez que la app vuelve a primer plano. Fuera del APK no hacen nada.
   useEffect(() => {
     if (!token) return undefined
     syncSteps()
-    return onResume(() => syncSteps())
+    syncFood()
+    return onResume(() => {
+      syncSteps()
+      syncFood()
+    })
   }, [token])
 
   // En el APK la cola de series la envía el nativo, también con la app cerrada,
