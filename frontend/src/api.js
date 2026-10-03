@@ -249,6 +249,12 @@ export function frequentFoods(limit = 6) {
   return apiFetch(`/foods/frequent?limit=${limit}`)
 }
 
+// Las cantidades que repites para un alimento, la más repetida primero: lo que
+// la hoja de «cuánto» propone en vez de cien gramos. Hasta tres, en gramos.
+export function usualAmounts(foodId) {
+  return apiFetch(`/foods/${foodId}/usual`)
+}
+
 // Da de alta un alimento a mano — el pan de la panadería, los piquillos de tu
 // madre. Es la única puerta por la que se escribe en el catálogo: ni el
 // escáner, ni un import, ni un parser pueden crear un alimento sin que alguien

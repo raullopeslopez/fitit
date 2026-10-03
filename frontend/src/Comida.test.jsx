@@ -112,6 +112,7 @@ describe('Comida', () => {
     api.getFoodDay.mockResolvedValue(day())
     api.searchFoods.mockResolvedValue([])
     api.frequentFoods.mockResolvedValue([])
+    api.usualAmounts.mockResolvedValue([])
     // Lo que la pantalla pide además del día: los platos, las reglas y su
     // veredicto. Vacíos por defecto — lo que se mide aquí es el diario, y una
     // sección sin nada dentro no se dibuja.
@@ -506,7 +507,66 @@ describe('Comida', () => {
     // El escáner. La puerta barata: un EAN se resuelve contra Open Food Facts
     // sin clave, sin cuota y sin modelo, y la segunda vez ni siquiera sale de
     // la base de datos.
-    describe('escanear un código de barras', () => {
+    describe('tus cantidades', () => {
+    async function abrirPan(food = PAN) {
+      api.searchFoods.mockResolvedValue([food])
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+      await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
+      await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+    }
+
+    it('la hoja arranca en la cantidad que más repites, y ofrece las otras', async () => {
+      api.usualAmounts.mockResolvedValue([
+        { grams: 125, times: 3 },
+        { grams: 250, times: 1 },
+      ])
+      await abrirPan()
+      expect(api.usualAmounts).toHaveBeenCalledWith(1)
+      await waitFor(() => expect(screen.getByLabelText('Cantidad')).toHaveValue('125'))
+      expect(screen.getByText('Tus cantidades')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '125 g · 3 veces' })).toHaveAttribute('aria-pressed', 'true')
+      await userEvent.click(screen.getByRole('button', { name: '250 g · 1 vez' }))
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('250')
+    })
+
+    it('sin historial no hay fila y se queda en 100 g, como antes', async () => {
+      api.usualAmounts.mockResolvedValue([])
+      await abrirPan()
+      await waitFor(() => expect(api.usualAmounts).toHaveBeenCalled())
+      expect(screen.queryByText('Tus cantidades')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('100')
+    })
+
+    it('una cantidad que son raciones exactas se dice en raciones, y manda sobre la de por defecto', async () => {
+      api.usualAmounts.mockResolvedValue([{ grams: 60, times: 4 }])
+      api.logFood.mockResolvedValue(entry())
+      await abrirPan({ ...PAN, portions: [{ id: 7, label: 'rebanada', grams: 30, is_default: true }] })
+      const chip = await screen.findByRole('button', { name: '2 × rebanada · 4 veces' })
+      expect(chip).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByLabelText('Cuántas')).toHaveValue('2')
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir \d/ }))
+      await waitFor(() =>
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ portionId: 7, quantity: 2, grams: null }),
+        ),
+      )
+    })
+
+    it('si ya has escrito, lo que llega tarde no te pisa', async () => {
+      let llegar
+      api.usualAmounts.mockReturnValue(new Promise((resolve) => (llegar = resolve)))
+      await abrirPan()
+      await userEvent.clear(screen.getByLabelText('Cantidad'))
+      await userEvent.type(screen.getByLabelText('Cantidad'), '80')
+      await act(async () => llegar([{ grams: 125, times: 3 }]))
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('80')
+      // La fila sí aparece: elegirla sigue siendo un toque.
+      expect(screen.getByRole('button', { name: '125 g · 3 veces' })).toHaveAttribute('aria-pressed', 'false')
+    })
+  })
+
+  describe('escanear un código de barras', () => {
       const JPEG = () =>
         new File([new Uint8Array([255, 216, 255])], 'codigo.jpg', { type: 'image/jpeg' })
 

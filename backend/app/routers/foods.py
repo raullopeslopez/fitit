@@ -44,6 +44,7 @@ from ..schemas import (
     FoodOut,
     FoodPatch,
     FrequentFoodOut,
+    UsualAmountOut,
     LabelReadOut,
 )
 from ..serialization import to_food_out
@@ -651,6 +652,52 @@ def _most_repeated(values):
     for value in values:
         counts[value] = counts.get(value, 0) + 1
     return max(counts, key=lambda value: counts[value])
+
+
+USUAL_AMOUNTS = 3
+
+
+@router.get("/{food_id}/usual", response_model=list[UsualAmountOut])
+async def usual_amounts(
+    food_id: int,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[UsualAmountOut]:
+    """Las cantidades que repites para este alimento, la más repetida primero.
+
+    La misma ventana y el mismo desempate que `/frequent`, para que la rejilla y
+    la hoja hablen de lo mismo. Sin índice nuevo ni nada precalculado: son las
+    entradas de un alimento en noventa días, y cualquier dato derivado habría que
+    mantenerlo al día en cada escritura — y `recompute` reescribe entradas.
+
+    Se agrupa en Python y no con `GROUP BY round(grams, 1)`: Postgres no tiene
+    `round` para `double precision` con decimales, y SQLite sí, así que la
+    consulta que pasaría los tests reventaría en producción.
+    """
+    await _load(session, food_id, user_id)
+    since = date.today() - timedelta(days=FREQUENT_WINDOW_DAYS)
+    grams = (
+        await session.execute(
+            select(LogEntry.grams)
+            .where(
+                LogEntry.user_id == user_id,
+                LogEntry.food_id == food_id,
+                LogEntry.log_date >= since,
+            )
+            .order_by(LogEntry.logged_at.desc(), LogEntry.id.desc())
+        )
+    ).scalars()
+
+    # Redondeado a la décima: 125 y 125,00001 son la misma cantidad, y la
+    # aritmética de una ración por cuántas deja colas así.
+    counts: dict[float, int] = {}
+    for value in grams:
+        key = round(value, 1)
+        counts[key] = counts.get(key, 0) + 1
+    # `sorted` es estable y `counts` guarda el orden de la primera aparición,
+    # que es la más reciente: a igualdad, gana lo último que hiciste.
+    ranked = sorted(counts.items(), key=lambda kv: -kv[1])[:USUAL_AMOUNTS]
+    return [UsualAmountOut(grams=g, times=n) for g, n in ranked]
 
 
 @router.get("/{food_id}", response_model=FoodOut)
