@@ -16,6 +16,7 @@ import {
   recomputeFoodDay,
   scanBarcode,
   searchFoods,
+  usualAmounts,
   weighLeftoverBone,
 } from './api.js'
 import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
@@ -1973,6 +1974,20 @@ function byOrigin(foods) {
 // Cuánto, y a qué comida. La porción por defecto llega ya elegida cuando el
 // alimento tiene una: registrar "una rebanada" no puede obligarte a pensar en
 // gramos.
+// Una cantidad tuya, dicha como la dirías: «2 × rebanada» si son raciones
+// exactas del alimento, sus gramos si no. El diario sólo guarda gramos, así que
+// la ración se deduce dividiendo; con decimales sueltos no lo es.
+function usualChoice({ grams, times }, portions = []) {
+  for (const portion of portions ?? []) {
+    const count = grams / portion.grams
+    const whole = Math.round(count)
+    if (whole >= 1 && Math.abs(count - whole) < 0.01) {
+      return { grams, times, portion, count: whole, label: `${whole} × ${portion.label}` }
+    }
+  }
+  return { grams, times, portion: null, count: null, label: formatAmount(grams) }
+}
+
 function Amount({
   food: initialFood,
   initialSlot = null,
@@ -2003,6 +2018,46 @@ function Amount({
   const hasBone = food.refuse_pct != null
   const [withBone, setWithBone] = useState(hasBone)
   const portion = food.portions?.find((p) => p.id === portionId) ?? null
+  // Tus cantidades de este alimento. Llegan después de abrir la hoja —se piden
+  // al abrirla, no en cada resultado de búsqueda—, así que sólo rellenan el
+  // campo si todavía no has tocado nada: lo que llega tarde no pisa lo escrito.
+  const [usual, setUsual] = useState([])
+  const touched = useRef(false)
+  const choices = usual.map((u) => usualChoice(u, food.portions))
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const found = (await usualAmounts(food.id)) ?? []
+        if (!alive) return
+        setUsual(found)
+        if (found.length > 0 && !touched.current) apply(usualChoice(found[0], food.portions))
+      } catch {
+        // Sin red no hay memoria, y la hoja sigue como siempre.
+      }
+    })()
+    return () => {
+      alive = false
+    }
+    // Una vez por alimento: corregirlo en la hoja no cambia lo que comiste.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [food.id])
+
+  function apply(choice) {
+    if (choice.portion) {
+      setPortionId(choice.portion.id)
+      setQuantity(String(choice.count))
+    } else {
+      setPortionId(null)
+      setGrams(String(choice.grams))
+    }
+  }
+
+  function isCurrent(choice) {
+    if (choice.portion) return portionId === choice.portion.id && number(quantity) === choice.count
+    return !portionId && number(grams) === choice.grams
+  }
 
   const number = (raw) => {
     const value = Number(String(raw).replace(',', '.'))
@@ -2016,6 +2071,7 @@ function Amount({
   // El suelo es lo que hay, no cero: bajar de cinco gramos a menos cinco no es
   // una cantidad más pequeña, es otra cosa.
   function step(delta) {
+    touched.current = true
     if (portionId) {
       const next = Math.max(1, (number(quantity) ?? 1) + delta)
       setQuantity(String(next))
@@ -2127,11 +2183,38 @@ function Amount({
               key={p.id}
               className={`chip${portionId === p.id ? ' is-active' : ''}`}
               aria-pressed={portionId === p.id}
-              onClick={() => setPortionId(portionId === p.id ? null : p.id)}
+              onClick={() => {
+                touched.current = true
+                setPortionId(portionId === p.id ? null : p.id)
+              }}
             >
               {p.label} · {formatAmount(p.grams)}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Lo que tú repites, después de las raciones del alimento y antes del
+          campo: son una respuesta a «cuánto», no una propiedad del alimento. */}
+      {choices.length > 0 && (
+        <div className="food-usual">
+          <p className="food-usual-label">Tus cantidades</p>
+          <div className="food-usual-chips">
+            {choices.map((choice) => (
+              <button
+                type="button"
+                key={choice.grams}
+                className={`chip${isCurrent(choice) ? ' is-active' : ''}`}
+                aria-pressed={isCurrent(choice)}
+                onClick={() => {
+                  touched.current = true
+                  apply(choice)
+                }}
+              >
+                {choice.label} <span className="food-usual-times">· {choice.times === 1 ? '1 vez' : `${choice.times} veces`}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -2151,7 +2234,11 @@ function Amount({
             className="stepper-input"
             inputMode="decimal"
             value={portionId ? quantity : grams}
-            onChange={(e) => (portionId ? setQuantity(e.target.value) : setGrams(e.target.value))}
+            onChange={(e) => {
+              touched.current = true
+              if (portionId) setQuantity(e.target.value)
+              else setGrams(e.target.value)
+            }}
           />
           <button
             type="button"

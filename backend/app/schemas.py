@@ -510,6 +510,18 @@ class FrequentFoodOut(BaseModel):
     with_bone: bool = False
 
 
+class UsualAmountOut(BaseModel):
+    """Una cantidad que repites para un alimento, y cuántas veces la usaste.
+
+    En gramos, porque es lo único que guarda el diario: «dos rebanadas» llega a
+    `log_entries` ya convertido. Si una cantidad es un número exacto de
+    raciones, la pantalla lo dice así; eso es cosa de quien pinta.
+    """
+
+    grams: float
+    times: int
+
+
 class LogEntryIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 

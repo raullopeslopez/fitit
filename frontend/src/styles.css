@@ -6270,3 +6270,24 @@ button.draft-save {
 .comida .card {
   border-radius: var(--radius-card);
 }
+
+/* Tus cantidades, en la hoja de «cuánto»: lo que repites para este alimento. */
+.food-usual {
+  margin: 0 0 0.9rem;
+}
+.food-usual-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.food-usual-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.food-usual-times {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
