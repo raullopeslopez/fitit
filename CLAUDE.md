@@ -149,6 +149,8 @@ Write as a teammate or product owner would, not as a technical report.
 - **Close every turn with what you just did.** Synthetic, past tense, a few lines.
   Test: if I read only the closing lines, do I know what changed and what I should
   do next? If not, it isn't written yet.
+- **The very last line of every answer is a one-liner** that sums it up. Always, even in
+  short answers.
 - **Keep the technical detail** — it's valuable — but put it in the middle, between
   those two. It supports the summary; it never replaces it.
 - Name the trade-off and what you left undone. Don't bury a decision I need to make
