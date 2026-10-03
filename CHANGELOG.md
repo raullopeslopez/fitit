@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **APK 0.13.1: el fin del descanso vibra de verdad.** Con el móvil bloqueado, el aviso de
+  fin del descanso llegaba más de un minuto tarde y entonces, a propósito, no vibraba. Ahora
+  la alarma es exacta: al llegar a cero vibran los dos pulsos de la 0.10.8, en hora. No
+  pide ningún permiso al instalar.
+
 ### Added
 - **APK 0.13.0: la hoja de «cuánto» recuerda tus cantidades.** Al elegir un alimento desde la
   búsqueda, el campo arranca en la cantidad que más repites para él, y debajo de las raciones

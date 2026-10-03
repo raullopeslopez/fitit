@@ -346,14 +346,29 @@ public class SessionControllerTest {
     }
 
     @Test
-    public void theEndOfTheRestIsAnAlarmNotATimer() throws Exception {
+    public void theEndOfTheRestIsAnExactAlarm() throws Exception {
+        ShadowAlarmManager.setCanScheduleExactAlarms(true);
         SessionController.publish(context, bench(NOW + 83_000), NOW);
 
-        // Una alarma que despierta en reposo, sin exigir alarma exacta.
+        // Exacta y despierta en reposo: la inexacta llegaba con el teléfono
+        // bloqueado más de un minuto tarde, y entonces no vibraba (0.13.1).
         List<ShadowAlarmManager.ScheduledAlarm> scheduled = alarms.getScheduledAlarms();
-        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 83_000 && a.isAllowWhileIdle()));
-        // Una alarma exacta tiene ventana 0; la inexacta deja a Android elegir.
-        assertTrue(scheduled.stream().allMatch(a -> a.getWindowLengthMs() != 0));
+        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 83_000
+                && a.isAllowWhileIdle() && a.getWindowLengthMs() == 0));
+        // El cierre a las dos horas sigue inexacto: un minuto ahí no se nota.
+        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + SessionControl.IDLE_MS
+                && a.getWindowLengthMs() != 0));
+    }
+
+    @Test
+    public void withoutExactAlarmsTheRestEndStillArrivesLate() throws Exception {
+        ShadowAlarmManager.setCanScheduleExactAlarms(false);
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+
+        // Sin el permiso, la de antes: inexacta, y el repintado llega igual.
+        List<ShadowAlarmManager.ScheduledAlarm> scheduled = alarms.getScheduledAlarms();
+        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 83_000
+                && a.isAllowWhileIdle() && a.getWindowLengthMs() != 0));
     }
 
     @Test

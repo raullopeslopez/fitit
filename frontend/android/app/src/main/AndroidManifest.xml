@@ -154,6 +154,12 @@
     <!-- La notificación en curso del entreno. Android 13+ lo pregunta una vez, al
          registrar la primera serie del APK. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- La alarma de fin de descanso, exacta: la inexacta llegaba tarde con el
+         teléfono bloqueado y la tarjeta no vibraba. USE_EXACT_ALARM se concede sola
+         (Android 13+; es un temporizador); en 12 hace falta la otra, que ahí
+         también se concede al instalar. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <!-- La pulsación corta al tocar «+1 serie» en el widget. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

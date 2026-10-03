@@ -162,7 +162,7 @@ se queda en `Sin entreno en curso` y tocar abre la app.
 |---|---|
 | Primera serie de fuerza de la sesión en la app | Aparece la notificación en curso; el widget pasa a mostrar la sesión |
 | Serie registrada (app, notificación o widget) | Las tres vistas se actualizan; empieza el descanso si está activado |
-| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.8 esa alarma repinta la tarjeta en el canal «Fin del descanso», que vibra dos pulsos sin sonido; la siguiente actualización la devuelve al canal mudo. Si llega más de un minuto tarde, no vibra |
+| Fin del descanso | El reloj pasa de cero (en negativo) hasta que la alarma del fin repinta: `Descanso terminado`. Desde la 0.10.8 esa alarma repinta la tarjeta en el canal «Fin del descanso», que vibra dos pulsos sin sonido; la siguiente actualización la devuelve al canal mudo. Si llega más de un minuto tarde, no vibra; desde la 0.13.1 la alarma es exacta y llega en hora |
 | Cambio de ejercicio en la app | El control pasa al nuevo ejercicio con su primera serie |
 | `Terminar` en el widget | Todo desaparece. Las series quedan |
 | Dos horas sin registrar nada | Lo mismo que `Terminar`, solo |
@@ -217,10 +217,10 @@ Las piezas:
   cambio de ejercicio; `enqueue(set)` para las series de la app; `end()`; `setToken()` /
   `clearToken()`; evento `changed` para que la pantalla se repinte cuando algo llega de
   fuera. En web, cada función es un no-op y `enqueue` cae en `offline.js`.
-- Un relabel al fin del descanso con `AlarmManager` inexacto pero
-  `setAndAllowWhileIdle`: sin eso, con el teléfono en reposo (Doze) la alarma puede
-  tardar bastante más de un minuto, y mientras tanto el reloj enseña tiempo negativo. No
-  hace falta alarma exacta, ni por tanto `USE_EXACT_ALARM`.
+- Un relabel al fin del descanso con `AlarmManager`, que despierta en reposo. Exacto
+  desde la 0.13.1 (`setExactAndAllowWhileIdle`, permiso `USE_EXACT_ALARM`): el inexacto
+  llegaba tarde con el teléfono bloqueado y la vibración no salía. Ver «Fin del descanso:
+  alarma exacta (APK 0.13.1)».
 - Otra alarma igual para el cierre automático a las dos horas sin registrar nada; se
   reprograma con cada serie.
 - Tipografía: Geist Mono y Space Grotesk empaquetadas en `res/font` (~200 KB), que
@@ -779,3 +779,29 @@ añadir ninguna:
   aviso nuevo. Registrar otra serie con `+1` y esperar al siguiente cero, que también
   tiene que vibrar. En Ajustes debe aparecer «Fin del descanso», y apagarlo debe callar la
   vibración.
+
+## Fin del descanso: alarma exacta (APK 0.13.1)
+
+**Tras la 0.10.8 (2026-10-03): sigue sin vibrar.** La causa no estaba en la vibración sino
+en la hora. La alarma del fin del descanso era inexacta (`setAndAllowWhileIdle`), y desde
+Android 12 una alarma inexacta tiene una ventana de hasta diez minutos; con el teléfono
+bloqueado encima de un banco, Android (y HyperOS más) la agrupa con otras y la entrega
+tarde. Al llegar comprobaba la hora, veía que pasaba de 60 s y, por diseño, no vibraba: un
+aviso a destiempo da la hora equivocada. El reloj sí se repintaba, así que desde fuera
+parecía que la vibración fallaba. Es probable que la 0.10.7 cayera por lo mismo, y no por
+la vibración directa que se le atribuyó.
+
+- **La alarma del fin del descanso es exacta:** `setExactAndAllowWhileIdle`, en hora
+  también con el teléfono en reposo. El cierre a las dos horas sigue inexacto.
+- **Permiso `USE_EXACT_ALARM`** (Android 13+), que se concede al instalar sin preguntar
+  nada: es el de las apps de temporizador, que es lo que es esto. En Android 12,
+  `SCHEDULE_EXACT_ALARM` (`maxSdkVersion` 32), que ahí también viene concedido.
+- **Si Android no deja programarla exacta**, vuelve a la inexacta de antes: el reloj se
+  repinta igual y la vibración depende de que llegue a tiempo.
+- La vibración no cambia: la tarjeta se repinta en «Fin del descanso» como en la 0.10.8.
+  Se mantiene la regla de los 60 s, que ahora casi nunca se cumple.
+- **Comprobar en el teléfono:** con el móvil en vibración y un descanso de 60–90 s,
+  registrar una serie, bloquear y dejarlo quieto. Tiene que vibrar dos veces justo al
+  llegar a cero; repetir con `+1` para el segundo descanso. Si aun así no vibra, el
+  siguiente paso es `adb logcat | grep -iE "alarm|vibrat|notif"` en ese momento: dirá si
+  la alarma llegó y qué hizo Android con la notificación.

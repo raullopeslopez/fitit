@@ -609,7 +609,7 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
 - **La tarjeta no suena; al acabar el descanso vibra ella misma** (APK 0.10.8). Se repinta
   en positivo en el canal «Fin del descanso»: dos pulsos, sin sonido y sin aviso aparte.
   La siguiente actualización la devuelve al canal mudo. Si la alarma llega más de un
-  minuto tarde, no vibra.
+  minuto tarde, no vibra; desde la 0.13.1 es exacta y llega en hora.
 
 ### El aviso de la revisión semanal
 - **Canal** `fitit_review`, «Revisión semanal», importancia normal (suena como una
