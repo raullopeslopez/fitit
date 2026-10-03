@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **APK 0.13.0: la hoja de «cuánto» recuerda tus cantidades.** Al elegir un alimento desde la
+  búsqueda, el campo arranca en la cantidad que más repites para él, y debajo de las raciones
+  salen hasta tres chips «Tus cantidades» (`300 g · 5 veces`). Si son raciones exactas se dicen
+  así (`2 × rebanada`). Sin historial de ese alimento, todo sigue como antes: 100 g.
+
 ### Fixed
 - **APK 0.12.2: el widget no se queda vacío hasta abrir Fitit.** Al instalar una APK nueva o al
   encender el móvil, el widget se repinta solo con lo último que tenía (pasos, comida, último
