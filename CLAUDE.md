@@ -88,8 +88,10 @@ El import es idempotente y **no pisa nada tuyo**: sólo escribe filas de catálo
 
 ## Testing / Workflow
 TDD: write the failing test first, watch it fail for the right reason, implement to green.
-- **Backend:** `cd backend && uv run python -m pytest` (pytest-bdd on in-memory SQLite;
-  this is the CI merge gate). Plain `uv run pytest` is broken in this checkout.
+- **Backend:** `cd backend && uv run python -m pytest -n auto` (pytest-bdd on in-memory
+  SQLite; this is the CI merge gate). `-n auto` (pytest-xdist) spreads the suite over the
+  cores, ~4 min → ~1,5 min; leave it off for a targeted `-k` run, where starting the
+  workers costs more than the test. Plain `uv run pytest` is broken in this checkout.
 - **Frontend:** `cd frontend && npm test` (vitest sobre jsdom, 24 archivos — la suite
   de siempre y la que corre el hook).
 - **Frontend, geometría real:** `cd frontend && npm run test:browser`
