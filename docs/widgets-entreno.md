@@ -861,3 +861,22 @@ Pedido el 2026-10-04: que vibre en cada uno de los tres segundos antes del cero.
 - **Comprobar en el teléfono:** con el móvil en vibración, registrar una serie y bloquear.
   A tres segundos del cero, un toque por segundo y uno más largo justo en el cero; luego
   la tarjeta pasa a `+00:00`. Pausar antes de los tres segundos: no vibra.
+
+## Fin del descanso: pi, pii, piiii (APK 0.16.0)
+
+Pedido el 2026-10-04: que la cuenta atrás no sean tres toques iguales, sino que cada uno
+dure más que el anterior conforme se acerca el cero.
+
+- **Mismo ritmo, más duración.** Cada pulso sigue empezando en su segundo; lo que crece
+  es lo que dura: `{0, 100, 900, 250, 750, 500, 500, 800}` — 100 ms en el 3, 250 en el 2,
+  500 en el 1 y 800 en el cero.
+- **Los del 3, 2 y 1 no pasan del segundo**, o se pegarían con el siguiente y dejarían de
+  contarse. **El cero acaba antes de los 900 ms** del repintado a positivo, que lo cortaría.
+- **Canal nuevo, `fitit_entreno_crece`**, con el mismo nombre en Ajustes («Fin del
+  descanso»); se retira `fitit_entreno_cuenta`, porque Android no deja cambiar el patrón
+  de un canal ya creado. Quien lo hubiera apagado vuelve a tener la vibración una vez.
+- **Sólo duración, no fuerza.** La vibración de un canal es encendido/apagado; que el
+  último además pegue más fuerte pediría vibrar desde la app, que con el Xiaomi bloqueado
+  no llega (0.10.6).
+- **Comprobar en el teléfono:** con el móvil bloqueado y en vibración, a tres segundos del
+  cero se notan tres toques cada vez más largos y uno largo en el cero.

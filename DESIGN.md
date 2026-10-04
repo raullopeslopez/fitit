@@ -620,8 +620,9 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
   `+00:12` al pasarse.
 - **La tarjeta no suena; al acabar el descanso vibra ella misma, con cuenta atrás**
   (APK 0.15.0; antes, dos pulsos en el cero). Tres segundos antes del cero se publica en
-  el canal «Fin del descanso», todavía bajando: un pulso corto por segundo (3, 2, 1, de
-  120 ms) y uno largo en el cero (400 ms), sin sonido y sin aviso aparte. Pasado el cero
+  el canal «Fin del descanso», todavía bajando: un pulso por segundo que crece hacia el
+  cero, pi, pii, piiii (APK 0.16.0: 100, 250, 500 y 800 ms en el 3, 2, 1 y el cero; en la
+  0.15.0 eran iguales, 120 ms, y 400 en el cero), sin sonido y sin aviso aparte. Pasado el cero
   se repinta en positivo en el canal mudo. Si la cuenta atrás llega más de medio segundo
   tarde, no vibra; en pausa o saltado, tampoco.
 

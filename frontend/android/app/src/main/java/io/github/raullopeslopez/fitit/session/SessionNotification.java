@@ -44,25 +44,28 @@ final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
     /**
      * La cuenta atrás del fin del descanso (0.15.0): tres segundos antes del cero
-     * la misma tarjeta se publica aquí, y el canal vibra un pulso corto por
-     * segundo (3, 2, 1) y uno largo en el cero. Sin sonido. Es la vibración de
-     * una notificación, la única que llega con el Xiaomi bloqueado (0.10.6); y
-     * apagar este canal en Ajustes calla la cuenta sin tocar la tarjeta. Canal
-     * nuevo porque Android no deja cambiar el patrón de uno ya creado.
+     * la misma tarjeta se publica aquí, y el canal vibra un pulso por segundo
+     * (3, 2, 1 y el cero), cada uno más largo que el anterior (0.16.0): pi, pii,
+     * piiii. Sin sonido. Es la vibración de una notificación, la única que llega
+     * con el Xiaomi bloqueado (0.10.6); y apagar este canal en Ajustes calla la
+     * cuenta sin tocar la tarjeta. Canal nuevo porque Android no deja cambiar el
+     * patrón de uno ya creado.
      */
-    static final String CHANNEL_COUNTDOWN = "fitit_entreno_cuenta";
-    // 3 (0 ms), 2 (1 s), 1 (2 s): 120 ms; el cero (3 s): 400 ms.
-    static final long[] COUNTDOWN_PATTERN = {0, 120, 880, 120, 880, 120, 880, 400};
+    static final String CHANNEL_COUNTDOWN = "fitit_entreno_crece";
+    // Cada pulso empieza en su segundo: 3 (0 ms) 100 ms, 2 (1 s) 250, 1 (2 s) 500
+    // y el cero (3 s) 800, que acaba antes del repintado (REST_OVER_DELAY_MS).
+    static final long[] COUNTDOWN_PATTERN = {0, 100, 900, 250, 750, 500, 500, 800};
     static final int ID = 4102;
     // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
     // se haya ido: los del aviso de descanso que retiró la fase 0, y el de la
     // 0.6.0, de importancia baja (Android no deja subírsela a un canal que ya
     // existe, así que se sustituye), y el aviso con sonido de fin de descanso de
     // la 0.10.6, que pasó a ser sólo vibración, y el de dos pulsos al llegar a
-    // cero (0.10.8), que pasó a ser la cuenta atrás.
+    // cero (0.10.8), que pasó a ser la cuenta atrás, y la cuenta de pulsos
+    // iguales (0.15.0), que pasó a crecer.
     private static final String[] RETIRED = {
         "fitit-sesion", "fitit-fin-descanso", "fitit_session", "fitit_fin_descanso",
-        "fitit_entreno_fin"};
+        "fitit_entreno_fin", "fitit_entreno_cuenta"};
 
     private SessionNotification() {}
 
