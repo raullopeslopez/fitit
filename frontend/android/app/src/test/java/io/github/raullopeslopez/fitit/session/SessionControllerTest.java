@@ -353,9 +353,9 @@ public class SessionControllerTest {
 
         // Exactas y despiertan en reposo: la inexacta llegaba con el teléfono
         // bloqueado más de un minuto tarde, y entonces no vibraba (0.13.1). La
-        // cuenta atrás, tres segundos antes del cero; el repintado, después.
+        // cuenta atrás, 3,8 s antes del cero (acaba en él); el repintado, después.
         List<ShadowAlarmManager.ScheduledAlarm> scheduled = alarms.getScheduledAlarms();
-        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 80_000
+        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 79_200
                 && a.isAllowWhileIdle() && a.getWindowLengthMs() == 0));
         assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs()
                         == NOW + 83_000 + SessionController.REST_OVER_DELAY_MS
@@ -392,12 +392,14 @@ public class SessionControllerTest {
         return (n.flags & Notification.FLAG_ONLY_ALERT_ONCE) == 0;
     }
 
+    // Un descanso que acaba justo cuando toca la cuenta atrás en tap() (NOW + 5_000).
+    private static final long END = NOW + 5_000 + SessionController.COUNTDOWN_MS;
+
     @Test
     public void threeSecondsBeforeTheEndTheCardCountsDownWithItsVibration() throws Exception {
-        SessionController.publish(context, bench(NOW + 8_000), NOW);
+        SessionController.publish(context, bench(END), NOW);
         assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
 
-        // NOW + 5_000 es justo el momento de la cuenta atrás (8 s − 3 s).
         tap(SessionController.ACTION_REST_COUNTDOWN);
 
         // La misma tarjeta, aún bajando, en el canal que vibra y con permiso
@@ -411,10 +413,13 @@ public class SessionControllerTest {
         assertTrue(buzz.shouldVibrate());
         assertNull(buzz.getSound());
         // Uno por segundo, cada uno más largo que el anterior: pi, pii, piiii y
-        // el cero, que acaba antes del repintado a positivo.
+        // el último, que acaba justo en el cero: la cuenta empieza lo que dura
+        // el patrón entero antes del final.
         assertEquals("fitit_entreno_crece", SessionNotification.CHANNEL_COUNTDOWN);
-        assertArrayEquals(new long[] {0, 100, 900, 250, 750, 500, 500, 800}, buzz.getVibrationPattern());
-        assertTrue(800 < SessionController.REST_OVER_DELAY_MS);
+        long[] pattern = buzz.getVibrationPattern();
+        assertArrayEquals(new long[] {0, 100, 900, 250, 750, 500, 500, 800}, pattern);
+        assertEquals(java.util.Arrays.stream(pattern).sum(), SessionController.COUNTDOWN_MS);
+        assertEquals(3_800, SessionController.COUNTDOWN_MS);
         // La vibración la pone Android con la notificación; la directa no llega.
         assertFalse(vibrator().isVibrating());
         // Los canales de antes, fuera de Ajustes: el de sonido (0.10.6), el de
@@ -426,11 +431,11 @@ public class SessionControllerTest {
 
     @Test
     public void theRestOverRepaintIsQuietAfterTheCountdown() throws Exception {
-        SessionController.publish(context, bench(NOW + 8_000), NOW);
+        SessionController.publish(context, bench(END), NOW);
         tap(SessionController.ACTION_REST_COUNTDOWN);
 
         SessionController.handle(context, new Intent(SessionController.ACTION_REST_OVER),
-                NOW + 8_000 + SessionController.REST_OVER_DELAY_MS);
+                END + SessionController.REST_OVER_DELAY_MS);
 
         // A positivo y de vuelta al canal mudo: la vibración ya fue la cuenta.
         assertTrue(visible(collapsed(), R.id.widget_over));
@@ -442,17 +447,17 @@ public class SessionControllerTest {
     public void aCountdownThatArrivesLateDoesNotBuzz() throws Exception {
         // Los pulsos son un patrón fijo del canal: tarde, el 3, 2, 1 no cae con
         // el reloj. Mejor ninguno que uno a destiempo.
-        SessionController.publish(context, bench(NOW + 8_000), NOW);
+        SessionController.publish(context, bench(END), NOW);
 
         SessionController.handle(context, new Intent(SessionController.ACTION_REST_COUNTDOWN),
-                NOW + 5_000 + SessionController.COUNTDOWN_LATE_MS + 1);
+                END - SessionController.COUNTDOWN_MS + SessionController.COUNTDOWN_LATE_MS + 1);
 
         assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
     }
 
     @Test
     public void aSkippedRestDoesNotCountDown() throws Exception {
-        SessionController.publish(context, bench(NOW + 8_000), NOW);
+        SessionController.publish(context, bench(END), NOW);
         SessionController.skipRest(context, NOW + 2_000);
 
         tap(SessionController.ACTION_REST_COUNTDOWN);
@@ -462,7 +467,7 @@ public class SessionControllerTest {
 
     @Test
     public void aPausedRestDoesNotCountDown() throws Exception {
-        SessionController.publish(context, bench(NOW + 8_000), NOW);
+        SessionController.publish(context, bench(END), NOW);
         SessionController.handle(context, new Intent(SessionController.ACTION_REST_TOGGLE), NOW + 1_000);
 
         tap(SessionController.ACTION_REST_COUNTDOWN);

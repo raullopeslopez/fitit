@@ -52,8 +52,8 @@ final class SessionNotification {
      * patrón de uno ya creado.
      */
     static final String CHANNEL_COUNTDOWN = "fitit_entreno_crece";
-    // Cada pulso empieza en su segundo: 3 (0 ms) 100 ms, 2 (1 s) 250, 1 (2 s) 500
-    // y el cero (3 s) 800, que acaba antes del repintado (REST_OVER_DELAY_MS).
+    // Un pulso por segundo, de 100, 250, 500 y 800 ms. Suma 3,8 s, y la alarma
+    // salta eso antes del final (COUNTDOWN_MS): el último acaba en el cero.
     static final long[] COUNTDOWN_PATTERN = {0, 100, 900, 250, 750, 500, 500, 800};
     static final int ID = 4102;
     // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
