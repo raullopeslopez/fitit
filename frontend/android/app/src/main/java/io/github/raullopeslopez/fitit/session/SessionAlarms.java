@@ -3,6 +3,7 @@ package io.github.raullopeslopez.fitit.session;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.os.Build;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import org.json.JSONObject;
@@ -11,10 +12,12 @@ import org.json.JSONObject;
  * Las dos horas del control: el fin del descanso (para repintar «Descanso
  * terminado») y el cierre a las dos horas sin series.
  *
- * <p>Alarmas inexactas que despiertan en reposo ({@code setAndAllowWhileIdle}): no
- * hace falta el permiso de alarma exacta, y un minuto de retraso sólo se ve como
- * el reloj pasando de cero un rato. Spec: docs/widgets-entreno.md, «Cómo se
- * construye».
+ * <p>Las dos despiertan en reposo. La del fin del descanso es <b>exacta</b>
+ * ({@code setExactAndAllowWhileIdle}, permiso {@code USE_EXACT_ALARM}): la
+ * inexacta, con el teléfono bloqueado, llegaba más de un minuto tarde y entonces
+ * la tarjeta no vibraba (0.13.1). Si Android no deja programarla exacta, vuelve a
+ * la inexacta: el reloj se repinta igual, tarde. El cierre a las dos horas sigue
+ * inexacto; ahí un minuto no se nota. Spec: docs/widgets-entreno.md.
  */
 final class SessionAlarms {
     private SessionAlarms() {}
@@ -24,11 +27,24 @@ final class SessionAlarms {
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
         long restEndsAt = control.optLong("restEndsAt", 0);
         if (restEndsAt > now) {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, restEndsAt, restOver(context));
+            armRestOver(context, alarms, restEndsAt);
         }
         long lastSetAt = control.optLong("lastSetAt", now);
         alarms.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP, lastSetAt + SessionControl.IDLE_MS, expire(context));
+    }
+
+    private static void armRestOver(Context context, AlarmManager alarms, long restEndsAt) {
+        // Antes de Android 12 no hace falta permiso; desde ahí, el del manifiesto.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()) {
+            try {
+                alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, restEndsAt, restOver(context));
+                return;
+            } catch (SecurityException e) {
+                // Permiso retirado entre la pregunta y la alarma: la inexacta.
+            }
+        }
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, restEndsAt, restOver(context));
     }
 
     static void cancel(Context context) {
