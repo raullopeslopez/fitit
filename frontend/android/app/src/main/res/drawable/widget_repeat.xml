@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El +1 del 4×1 (0.17.0): 60 × 56 dp, radio 14 como el bloque de ajuste. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/widget_accent" />
+    <corners android:radius="14dp" />
+</shape>

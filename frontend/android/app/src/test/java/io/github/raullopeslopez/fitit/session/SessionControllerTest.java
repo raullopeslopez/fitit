@@ -449,6 +449,21 @@ public class SessionControllerTest {
     }
 
     @Test
+    public void withNoFourByOneOnTheHomeScreenTheBarNeverRepaints() throws Exception {
+        // La barra del descanso es sólo del 4×1 (0.17.0): sin él puesto, ni una
+        // alarma de repintado, y una que quedara de antes no arma la siguiente.
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+        SessionController.handle(context, new Intent(SessionController.ACTION_BAR_TICK), NOW + 5_000);
+
+        for (ShadowAlarmManager.ScheduledAlarm alarm : alarms.getScheduledAlarms()) {
+            assertFalse(SessionController.ACTION_BAR_TICK.equals(
+                    shadowOf(alarm.operation).getSavedIntent().getAction()));
+        }
+        // Y no toca la notificación: sigue la misma.
+        assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
+    }
+
+    @Test
     public void withoutExactAlarmsTheRestEndStillArrivesLate() throws Exception {
         ShadowAlarmManager.setCanScheduleExactAlarms(false);
         SessionController.publish(context, bench(NOW + 83_000), NOW);

@@ -205,6 +205,28 @@ public final class SessionControl {
         return endsAt > now ? Rest.RUNNING : Rest.OVER;
     }
 
+    /**
+     * Lo que queda del descanso, en milésimas del descanso entero: 1000 recién
+     * empezado, 0 al acabar. En pausa, lo que quedaba al pausar. Sin descanso o
+     * pasado, 0. La barra del 4×1.
+     */
+    public static int restLeft(JSONObject control, long now) {
+        long total = control.optInt("restSeconds", 0) * 1000L;
+        if (total <= 0) return 0;
+        long left;
+        switch (rest(control, now)) {
+            case RUNNING:
+                left = control.optLong("restEndsAt") - now;
+                break;
+            case PAUSED:
+                left = control.optLong(PAUSED_KEY);
+                break;
+            default:
+                return 0;
+        }
+        return (int) Math.max(0, Math.min(1000, left * 1000 / total));
+    }
+
     public static boolean expired(JSONObject control, long now) {
         return now - control.optLong("lastSetAt", now) >= IDLE_MS;
     }

@@ -21,15 +21,23 @@ import org.json.JSONObject;
  * 32,5 kg × 12 · 4 series        [ +1 serie ]
  * </pre>
  *
- * <p>Sin sesión: «Sin entreno en curso», el día, y «Empezar entreno». No tiene
- * actualización periódica: {@link SessionController} lo repinta cada vez que el
- * control cambia, y el reloj es un cronómetro del propio widget. Colores por tema
+ * <p>Sin sesión: «Sin entreno en curso», el día, y «Empezar entreno».
+ * {@link SessionController} lo repinta cada vez que el control cambia, y el reloj
+ * es un cronómetro del propio widget. Descansando, el fondo es lo que queda de
+ * descanso (0.17.0): una barra que se retira de derecha a izquierda y que, como
+ * un widget no se mueve solo, se repinta cada {@link #BAR_TICK_MS}. Colores por tema
  * del sistema (values / values-night) y las fuentes de la maqueta en res/font.
  * Spec: docs/widgets-entreno.md, «2 · Widget» y fase 3.
  */
 public class SessionWidget extends AppWidgetProvider {
     private static final DateTimeFormatter DAY =
             DateTimeFormatter.ofPattern("EEEE d", new Locale("es", "ES"));
+    /**
+     * Cada cuánto se repinta la barra del descanso. A 5 s, en un descanso de 90
+     * la barra baja un 5 % de golpe: se ve moverse sin gastar un repintado por
+     * segundo. Sólo mientras corre: acabado, en pausa o sin descanso, ninguno.
+     */
+    static final long BAR_TICK_MS = 5_000;
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
@@ -41,7 +49,8 @@ public class SessionWidget extends AppWidgetProvider {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         if (manager == null) return;
         int[] ids = manager.getAppWidgetIds(new ComponentName(context, SessionWidget.class));
-        if (ids != null && ids.length > 0) render(context, manager, ids);
+        if (ids != null && ids.length > 0) render(context, manager, ids, System.currentTimeMillis());
+        else SessionAlarms.cancelBarTick(context);
         int[] large = manager.getAppWidgetIds(new ComponentName(context, SessionWidget4x2.class));
         if (large != null && large.length > 0) SessionWidget4x2.render(context, manager, large);
         int[] mid = manager.getAppWidgetIds(new ComponentName(context, SessionWidget3x2.class));
@@ -53,21 +62,68 @@ public class SessionWidget extends AppWidgetProvider {
     }
 
     private static void render(Context context, AppWidgetManager manager, int[] ids) {
-        RemoteViews views = views(context, Session.store(context).control(), System.currentTimeMillis());
+        render(context, manager, ids, System.currentTimeMillis());
+    }
+
+    private static void render(Context context, AppWidgetManager manager, int[] ids, long now) {
+        JSONObject control = Session.store(context).control();
+        RemoteViews views = views(context, control, now);
         for (int id : ids) manager.updateAppWidget(id, views);
+        armBar(context, control, now);
+    }
+
+    /**
+     * La alarma del repintado de la barra: la siguiente sólo si el descanso corre
+     * y no acaba antes; el último tramo lo repinta ya el fin del descanso.
+     */
+    private static void armBar(Context context, JSONObject control, long now) {
+        boolean running = control != null && !Session.store(context).sessionExpired()
+                && SessionControl.rest(control, now) == SessionControl.Rest.RUNNING;
+        long next = now + BAR_TICK_MS;
+        if (running && next < control.optLong("restEndsAt")) SessionAlarms.armBarTick(context, next);
+        else SessionAlarms.cancelBarTick(context);
+    }
+
+    /**
+     * La alarma de la barra: repinta el 4×1 y arma la siguiente. Si ya no hay
+     * 4×1 en la pantalla de inicio, o ya no se descansa, no hace nada y no vuelve.
+     */
+    static void tick(Context context, long now) {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int[] ids = manager == null ? null
+                : manager.getAppWidgetIds(new ComponentName(context, SessionWidget.class));
+        JSONObject control = Session.store(context).control();
+        if (ids == null || ids.length == 0 || control == null
+                || SessionControl.rest(control, now) != SessionControl.Rest.RUNNING) {
+            SessionAlarms.cancelBarTick(context);
+            return;
+        }
+        render(context, manager, ids, now);
     }
 
     static RemoteViews views(Context context, JSONObject control, long now) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x1);
+        // Android reaplica sobre la vista que ya había: la barra de un descanso de
+        // antes se quedaría en «sin entreno» si no se quita aquí.
+        views.setViewVisibility(R.id.widget_rest_bar, View.GONE);
         if (Session.store(context).sessionExpired()) return expired(context, views);
         if (control == null) return idle(context, views);
 
         header(context, views, control, now);
+        bar(views, control, now);
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         views.setOnClickPendingIntent(R.id.widget_repeat,
                 SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20));
         return views;
+    }
+
+    /** La barra del descanso: lo que queda, corriendo o en pausa. Pasado o sin descanso, no está. */
+    private static void bar(RemoteViews views, JSONObject control, long now) {
+        SessionControl.Rest rest = SessionControl.rest(control, now);
+        boolean shown = rest == SessionControl.Rest.RUNNING || rest == SessionControl.Rest.PAUSED;
+        views.setViewVisibility(R.id.widget_rest_bar, shown ? View.VISIBLE : View.GONE);
+        views.setProgressBar(R.id.widget_rest_bar, 1000, shown ? SessionControl.restLeft(control, now) : 0, false);
     }
 
     // Lo que comparten los dos tamaños; los ids se llaman igual en los dos layouts.

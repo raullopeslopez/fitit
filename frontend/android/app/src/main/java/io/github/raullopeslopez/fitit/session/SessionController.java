@@ -38,6 +38,8 @@ public final class SessionController {
     public static final String ACTION_PAGE = PREFIX + "PAGE";
     /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
     public static final String ACTION_DAY = PREFIX + "DAY";
+    /** Repintar la barra del descanso del 4×1, cada {@link SessionWidget#BAR_TICK_MS}. */
+    public static final String ACTION_BAR_TICK = PREFIX + "BAR_TICK";
     /**
      * La cuenta atrás empieza lo que dura su patrón antes del cero, para que el
      * último pulso, el largo, acabe justo en el cero y no empiece en él (0.16.1).
@@ -178,6 +180,11 @@ public final class SessionController {
         }
         if (ACTION_DAY.equals(action)) {
             SessionWidget.updateAll(context);
+            return false;
+        }
+        if (ACTION_BAR_TICK.equals(action)) {
+            // Sólo el 4×1, y sólo si sigue puesto y descansando: SessionWidget.
+            SessionWidget.tick(context, now);
             return false;
         }
         JSONObject control = store.control();

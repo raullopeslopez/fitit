@@ -572,6 +572,33 @@ public class SessionWidgetLookTest {
         WidgetRender.save(root, WALL_LIGHT, "4x1-entrenando-claro");
     }
 
+    @Test
+    public void theFourByOneRestingIsABackgroundThatEmpties() throws Exception {
+        int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
+        // 30 de 90 s: queda un tercio de barra.
+        SessionController.publish(context, bench(System.currentTimeMillis() + 30_000), System.currentTimeMillis());
+        View root = WidgetRender.lay(context, widgets.getViewFor(id), 358, 90);
+
+        Rect bar = at(root, R.id.widget_rest_bar);
+        // Todo el widget, de borde a borde: el fondo es la barra.
+        near("alto de la barra", 90, dp(bar.height()));
+        near("ancho de la barra", 358, dp(bar.width()));
+        Rect plusOne = at(root, R.id.widget_repeat);
+        near("ancho del +1", 60, dp(plusOne.width()));
+        near("alto del +1", 56, dp(plusOne.height()));
+        uncut(root, R.id.widget_clock);
+        WidgetRender.save(root, WALL_LIGHT, "4x1-descansando-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void theFourByOneRestingInTheDark() throws Exception {
+        int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
+        SessionController.publish(context, bench(System.currentTimeMillis() + 60_000), System.currentTimeMillis());
+        WidgetRender.save(WidgetRender.lay(context, widgets.getViewFor(id), 358, 90), WALL_DARK,
+                "4x1-descansando-oscuro");
+    }
+
     // --- Compacto: dos filas de launcher más bajas que los 200 dp del diseño -----
     // En el Xiaomi del usuario el 3×2 mide ≈253 × 176 dp (medido en su captura del
     // 2026-09-27): el bloque perdía la fila de reps por abajo. Por debajo de 190 dp
@@ -624,7 +651,7 @@ public class SessionWidgetLookTest {
         }
         near("hueco entre + y +1", 6,
                 dp(at(root, R.id.widget_log).left - at(root, R.id.widget_weight_up).right));
-        WidgetRender.save(root, WALL_DARK, "3x2-compacto-102kg-oscuro");
+        WidgetRender.save(root, WALL_LIGHT, "3x2-compacto-102kg-claro");
     }
 
     @Test
