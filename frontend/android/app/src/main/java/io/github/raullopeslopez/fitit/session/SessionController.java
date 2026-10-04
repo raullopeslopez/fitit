@@ -34,15 +34,18 @@ public final class SessionController {
     public static final String ACTION_PAGE = PREFIX + "PAGE";
     /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
     public static final String ACTION_DAY = PREFIX + "DAY";
-    /** La cuenta atrás empieza tres segundos antes del cero: 3, 2, 1 y el cero. */
-    static final long COUNTDOWN_MS = 3_000;
+    /**
+     * La cuenta atrás empieza lo que dura su patrón antes del cero, para que el
+     * último pulso, el largo, acabe justo en el cero y no empiece en él (0.16.0).
+     */
+    static final long COUNTDOWN_MS = java.util.Arrays.stream(SessionNotification.COUNTDOWN_PATTERN).sum();
     /**
      * Más tarde que esto, la cuenta atrás no vibra: sus pulsos son un patrón
      * fijo del canal, y medio segundo tarde ya no caen con el 3, 2, 1 del reloj.
      */
     static final long COUNTDOWN_LATE_MS = 500;
     /**
-     * El repintado a positivo, después del último pulso (el cero, de 800 ms): una
+     * El repintado a positivo, con la vibración ya acabada en el cero: una
      * actualización muda de la tarjeta corta la vibración que estuviera sonando.
      * Por debajo de un segundo el reloj aún dice 00:00, no −00:01.
      */
