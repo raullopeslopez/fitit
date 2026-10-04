@@ -12,7 +12,10 @@ import org.json.JSONObject;
  * Las dos horas del control: el fin del descanso (para repintar «Descanso
  * terminado») y el cierre a las dos horas sin series.
  *
- * <p>Las dos despiertan en reposo. La del fin del descanso es <b>exacta</b>
+ * <p>Con descanso son tres: la cuenta atrás tres segundos antes del cero (vibra
+ * 3, 2, 1 y el cero), el repintado a positivo justo después, y el cierre.
+ *
+ * <p>Las tres despiertan en reposo. Las del fin del descanso son <b>exactas</b>
  * ({@code setExactAndAllowWhileIdle}, permiso {@code USE_EXACT_ALARM}): la
  * inexacta, con el teléfono bloqueado, llegaba más de un minuto tarde y entonces
  * la tarjeta no vibraba (0.13.1). Si Android no deja programarla exacta, vuelve a
@@ -27,28 +30,33 @@ final class SessionAlarms {
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
         long restEndsAt = control.optLong("restEndsAt", 0);
         if (restEndsAt > now) {
-            armRestOver(context, alarms, restEndsAt);
+            // La cuenta atrás vibra 3, 2, 1 y el cero; sólo si queda tiempo para
+            // contarla entera. El repintado a positivo va después del último pulso.
+            long countdownAt = restEndsAt - SessionController.COUNTDOWN_MS;
+            if (countdownAt > now) armExact(context, alarms, countdownAt, countdown(context));
+            armExact(context, alarms, restEndsAt + SessionController.REST_OVER_DELAY_MS, restOver(context));
         }
         long lastSetAt = control.optLong("lastSetAt", now);
         alarms.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP, lastSetAt + SessionControl.IDLE_MS, expire(context));
     }
 
-    private static void armRestOver(Context context, AlarmManager alarms, long restEndsAt) {
+    private static void armExact(Context context, AlarmManager alarms, long at, PendingIntent intent) {
         // Antes de Android 12 no hace falta permiso; desde ahí, el del manifiesto.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()) {
             try {
-                alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, restEndsAt, restOver(context));
+                alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
                 return;
             } catch (SecurityException e) {
                 // Permiso retirado entre la pregunta y la alarma: la inexacta.
             }
         }
-        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, restEndsAt, restOver(context));
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
     }
 
     static void cancel(Context context) {
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        alarms.cancel(countdown(context));
         alarms.cancel(restOver(context));
         alarms.cancel(expire(context));
     }
@@ -75,6 +83,10 @@ final class SessionAlarms {
         java.time.ZonedDateTime four = at.toLocalDate().atTime(4, 0).atZone(zone);
         if (at.isBefore(four)) return four.toInstant().toEpochMilli();
         return at.toLocalDate().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
+    }
+
+    private static PendingIntent countdown(Context context) {
+        return SessionNotification.broadcast(context, SessionController.ACTION_REST_COUNTDOWN, 14);
     }
 
     private static PendingIntent restOver(Context context) {

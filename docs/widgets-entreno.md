@@ -837,3 +837,27 @@ el tiempo en pausa se queda quieto en `--muted`, y Entreno ofrece `Reanudar`.
   Esperar más que el descanso: no vibra. Tocar ▶: sigue desde donde estaba y vibra al
   llegar a cero. Pausar, abrir Entreno: `En pausa` y `Reanudar`. Pausar y tocar `+1`:
   descanso nuevo, corriendo.
+
+## Fin del descanso: 3, 2, 1 (APK 0.15.0)
+
+Pedido el 2026-10-04: que vibre en cada uno de los tres segundos antes del cero.
+
+- **Una publicación, un patrón.** La alarma `REST_COUNTDOWN`, exacta, salta tres
+  segundos antes del cero y publica la misma tarjeta (aún bajando) en el canal
+  `fitit_entreno_cuenta` («Fin del descanso»): `{0, 120, 880, 120, 880, 120, 880, 400}`,
+  un pulso corto a los 0, 1 y 2 s y uno largo a los 3 s, el cero. Sin sonido.
+- **No son cuatro avisos** porque Android 15+ suaviza los avisos seguidos de una misma
+  app, y el último, el del cero, sería el más flojo.
+- **El repintado a positivo (`REST_OVER`) va 900 ms después del cero y es mudo.** Una
+  actualización muda de la tarjeta corta la vibración que esté sonando, así que tiene
+  que llegar cuando el pulso largo ya acabó. Por debajo del segundo, el cronómetro aún
+  dice `00:00`, no `−00:01`.
+- **Medio segundo tarde no vibra** (`COUNTDOWN_LATE_MS`): el patrón es del canal y no se
+  adapta, así que tarde los pulsos no caen con el 3, 2, 1 del reloj. En pausa, saltado o
+  con menos de tres segundos por delante, no hay cuenta atrás.
+- **Se retira `fitit_entreno_fin`** (dos pulsos, 0.10.8): Android no deja cambiar el
+  patrón de un canal ya creado. Quien lo hubiera apagado vuelve a tener la vibración una
+  vez; se calla apagando «Fin del descanso» otra vez.
+- **Comprobar en el teléfono:** con el móvil en vibración, registrar una serie y bloquear.
+  A tres segundos del cero, un toque por segundo y uno más largo justo en el cero; luego
+  la tarjeta pasa a `+00:00`. Pausar antes de los tres segundos: no vibra.

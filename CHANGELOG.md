@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **APK 0.15.0: el fin del descanso vibra 3, 2, 1 y el cero.** En vez de dos pulsos al
+  llegar a cero, un toque corto en cada uno de los tres últimos segundos y uno largo en el
+  cero. Se sigue callando apagando «Fin del descanso» en Ajustes de Android (es un canal
+  nuevo: si lo tenías apagado, apágalo otra vez).
+
 ### Added
 - **APK 0.14.0: pausar el descanso desde el widget.** En el 4×2 y el 3×2, mientras corre
   el descanso, sale un aro con ❚❚ a la izquierda de Terminar (en el 3×2 bajo, el del

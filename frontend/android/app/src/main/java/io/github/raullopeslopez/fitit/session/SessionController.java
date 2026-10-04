@@ -27,16 +27,26 @@ public final class SessionController {
     /** «Terminar» del widget. */
     public static final String ACTION_END = PREFIX + "END";
     public static final String ACTION_REST_OVER = PREFIX + "REST_OVER";
+    /** Tres segundos antes del cero: la tarjeta vibra 3, 2, 1 y el cero. */
+    public static final String ACTION_REST_COUNTDOWN = PREFIX + "REST_COUNTDOWN";
     public static final String ACTION_EXPIRE = PREFIX + "EXPIRE";
     /** Los puntitos del widget sin entreno: la otra pantalla. */
     public static final String ACTION_PAGE = PREFIX + "PAGE";
     /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
     public static final String ACTION_DAY = PREFIX + "DAY";
+    /** La cuenta atrás empieza tres segundos antes del cero: 3, 2, 1 y el cero. */
+    static final long COUNTDOWN_MS = 3_000;
     /**
-     * Más tarde que esto, la alarma de fin de descanso repinta pero no vibra:
-     * es inexacta, y una vibración a destiempo da la hora equivocada.
+     * Más tarde que esto, la cuenta atrás no vibra: sus pulsos son un patrón
+     * fijo del canal, y medio segundo tarde ya no caen con el 3, 2, 1 del reloj.
      */
-    static final long REST_LATE_MS = 60_000;
+    static final long COUNTDOWN_LATE_MS = 500;
+    /**
+     * El repintado a positivo, después del último pulso (el cero, de 400 ms): una
+     * actualización muda de la tarjeta corta la vibración que estuviera sonando.
+     * Por debajo de un segundo el reloj aún dice 00:00, no −00:01.
+     */
+    static final long REST_OVER_DELAY_MS = 900;
 
     private SessionController() {}
 
@@ -171,9 +181,16 @@ public final class SessionController {
                 case ACTION_END:
                     end(context);
                     break;
+                case ACTION_REST_COUNTDOWN:
+                    // La misma tarjeta, aún bajando, en el canal que vibra 3, 2, 1
+                    // y el cero; si el aviso aún es verdad. Las alarmas se quedan.
+                    if (countdownOnTime(control, now)) {
+                        SessionNotification.show(context, control, now, true);
+                    }
+                    break;
                 case ACTION_REST_OVER:
-                    // La tarjeta pasa a positivo y, si el aviso aún es verdad, vibra.
-                    SessionNotification.show(context, control, now, restJustEnded(control, now));
+                    // La tarjeta pasa a positivo, ya muda: la vibración fue la cuenta atrás.
+                    SessionNotification.show(context, control, now);
                     SessionAlarms.arm(context, control, now);
                     SessionWidget.updateAll(context);
                     break;
@@ -222,10 +239,11 @@ public final class SessionController {
         SessionWidget.updateAll(context);
     }
 
-    /** Saltado (0), aún corriendo, o demasiado tarde para que la vibración sea verdad. */
-    private static boolean restJustEnded(JSONObject control, long now) {
-        long restEndsAt = control.optLong("restEndsAt", 0);
-        return restEndsAt > 0 && now >= restEndsAt && now - restEndsAt <= REST_LATE_MS;
+    /** Corriendo y en hora: ni saltado, ni en pausa, ni tan tarde que el 3, 2, 1 mienta. */
+    private static boolean countdownOnTime(JSONObject control, long now) {
+        if (SessionControl.rest(control, now) != SessionControl.Rest.RUNNING) return false;
+        long countdownAt = control.optLong("restEndsAt", 0) - COUNTDOWN_MS;
+        return now - countdownAt <= COUNTDOWN_LATE_MS;
     }
 
     /** Una pulsación corta. */
