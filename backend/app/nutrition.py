@@ -435,13 +435,6 @@ def ajustar_gramos(
 
 BASES_KCAL = ("as_sold", "edible", "unknown")
 
-# Cuánto puede separarse la etiqueta de una referencia para decir que es «esa».
-# Un 10 % cubre la diferencia entre marcas y la de redondear en la etiqueta, y
-# se queda por debajo de lo que separa las dos bases con un 20–45 % de hueso.
-# Con menos hueso (un chuletón, 15 %) las dos bandas se pisan y no se adivina.
-TOLERANCIA_BASE_KCAL = 0.10
-
-
 def gramos_comestibles(grams: float, refuse_pct: float) -> float:
     """Lo que queda de `grams` al quitarle el `refuse_pct` % de hueso."""
     if not 0 <= refuse_pct < 100:
@@ -468,33 +461,6 @@ def desperdicio_de_sobras(grams: float, bone_grams: float) -> float:
     if bone_grams is None or bone_grams <= 0 or not grams or bone_grams >= grams:
         raise ValueError("bone must weigh more than 0 and less than what was weighed")
     return round(bone_grams / grams * 100, 1)
-
-
-def base_de_kcal(
-    kcal_100g: float | None, kcal_comestible: float | None, refuse_pct: float | None
-) -> str:
-    """A qué se refieren las kcal de una etiqueta, comparándolas con la tabla.
-
-    - A ±10 % de la referencia comestible → `edible`.
-    - A ±10 % de esa referencia diluida por el hueso (× (1 − desperdicio)) →
-      `as_sold`.
-    - En ninguna, o en las dos a la vez → `unknown`: que decida quien lo compró.
-
-    Es una **suposición**, y quien la use tiene que decirlo como tal.
-    """
-    if kcal_100g is None or kcal_comestible is None or not refuse_pct:
-        return "unknown"
-
-    def cerca(referencia: float) -> bool:
-        return abs(kcal_100g - referencia) <= TOLERANCIA_BASE_KCAL * referencia + 1e-9
-
-    comestible = cerca(kcal_comestible)
-    tal_cual = cerca(kcal_comestible * (100 - refuse_pct) / 100)
-    if comestible and not tal_cual:
-        return "edible"
-    if tal_cual and not comestible:
-        return "as_sold"
-    return "unknown"
 
 
 def nutrientes_con_hueso(

@@ -386,6 +386,12 @@ class FoodIn(BaseModel):
     # no saberlo es **sin clasificar**, que la regla dirá aparte, y es mejor que
     # obligar a elegir una familia al azar con tal de rellenar el hueco.
     familia: str | None = Field(default=None, max_length=16)
+    # El hueso, dicho al dar de alta. `null` deja la tabla de referencia; 0 es
+    # «no lleva», aunque el nombre lo sugiera. Mismo trato que en `FoodPatch`.
+    refuse_pct: float | None = Field(default=None, ge=0, lt=100)
+    # A qué se refieren las kcal de la etiqueta. `null` es que nadie lo ha
+    # dicho, y registrarlo con hueso esperará a que alguien lo diga.
+    kcal_basis: KcalBasis | None = None
 
     @field_validator("brand")
     @classmethod
@@ -419,7 +425,7 @@ class FoodPatch(BaseModel):
     # tabla de referencia; 0 dice que no lleva. Menos de 100: un alimento que
     # fuera todo hueso no se come.
     refuse_pct: float | None = Field(default=None, ge=0, lt=100)
-    # A qué se refieren las kcal. `null` deja que se suponga desde la etiqueta.
+    # A qué se refieren las kcal. `null` es que nadie lo ha dicho.
     kcal_basis: KcalBasis | None = None
 
 
@@ -485,8 +491,16 @@ class FoodOut(BaseModel):
     # 'tuyo' | 'referencia'
     refuse_source: str | None = None
     kcal_basis: KcalBasis | None = None
-    # La base es una suposición sacada de comparar la etiqueta con la tabla.
-    kcal_basis_guessed: bool = False
+
+
+class BoneReferenceOut(BaseModel):
+    """El hueso típico de un nombre, antes de que el alimento exista.
+
+    Es lo que deja al alta proponer «Lleva hueso» marcado y con su % ya puesto.
+    `null` es que la tabla no conoce ese nombre, no que no lleve hueso.
+    """
+
+    refuse_pct: float | None = None
 
 
 class FrequentFoodOut(BaseModel):
