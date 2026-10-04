@@ -33,12 +33,13 @@ from ..openfoodfacts import (
 from ..models import Food, FoodAlias, LogEntry, Portion, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import NUTRIENTS, kcal_disagreement
-from ..refuse import nutrientes_de_lo_pesado
+from ..refuse import nutrientes_de_lo_pesado, referencia
 from ..schemas import (
     BarcodeLookupOut,
     BarcodeClash,
     BarcodeTaken,
     BarcodeTakenError,
+    BoneReferenceOut,
     KcalMismatch,
     FoodIn,
     FoodOut,
@@ -271,6 +272,8 @@ async def create_food(
         fat_100g=payload.fat_100g,
         carbs_100g=payload.carbs_100g,
         fiber_100g=payload.fiber_100g,
+        refuse_pct=payload.refuse_pct,
+        kcal_basis=payload.kcal_basis,
         **dict(zip(("group_code", "subgroup_code"), _codigos_de_familia(payload.familia), strict=True)),
     )
     session.add(food)
@@ -655,6 +658,20 @@ def _most_repeated(values):
 
 
 USUAL_AMOUNTS = 3
+
+
+@router.get("/bone-reference", response_model=BoneReferenceOut)
+async def bone_reference(
+    name: str = Query(min_length=1, max_length=160),
+    _user_id: int = Depends(get_current_user),
+) -> BoneReferenceOut:
+    """El hueso típico de un nombre, para que el alta proponga «Lleva hueso».
+
+    Sólo lee la tabla de `refuse.py`; no toca la base. Antes de `/{food_id}`,
+    que si no se quedaría con «bone-reference» como si fuera un id.
+    """
+    ref = referencia(name)
+    return BoneReferenceOut(refuse_pct=ref.refuse_pct if ref else None)
 
 
 @router.get("/{food_id}/usual", response_model=list[UsualAmountOut])

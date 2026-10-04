@@ -263,6 +263,13 @@ export function createFood(food) {
   return apiFetch('/foods', { method: 'POST', body: JSON.stringify(food) })
 }
 
+// El hueso típico de un nombre, según la tabla del servidor, antes de que el
+// alimento exista: con qué proponer «Lleva hueso» en el alta. `refuse_pct`
+// null es que la tabla no conoce el nombre, no que no lleve hueso.
+export function boneReference(name) {
+  return apiFetch(`/foods/bone-reference?name=${encodeURIComponent(name)}`)
+}
+
 // Lee la tabla nutricional de una foto y devuelve lo que **rellenaría** el
 // formulario de alta. No da de alta nada: la puerta del catálogo sigue siendo
 // `createFood`, con alguien mirando lo que hay escrito antes de guardarlo.

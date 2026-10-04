@@ -4448,6 +4448,11 @@ button.set-chip:active:not(:disabled) {
 .food-bone-note {
   margin: 0;
 }
+/* En el alta, el % es un campo más del formulario: a lo ancho, como Fibra. */
+.food-bone-pct {
+  align-self: stretch;
+  margin-bottom: 0;
+}
 .food-detail-correct {
   display: flex;
   justify-content: center;

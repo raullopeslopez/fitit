@@ -3,6 +3,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import {
   correctFood,
   correctFoodEntry,
+  boneReference,
   createFood,
   deleteFoodEntry,
   dayVerdicts,
@@ -2353,11 +2354,11 @@ function Amount({
 //   edible   — «300 g con hueso → 210 g comestibles»: los números salen de ahí.
 //   as_sold  — la etiqueta ya cuenta el hueso; se calcula con lo pesado.
 //   unknown  — se pregunta, y no se deja añadir hasta tener respuesta.
-// Una base supuesta (comparando la etiqueta con la tabla) se puede cambiar si el
-// alimento es tuyo; la del catálogo no se discute: CIQUAL es comestible.
+// Nadie lo supone a partir del número de la etiqueta: lo dice quien dio de alta
+// el alimento. La base del catálogo no se discute: CIQUAL es comestible.
 function BoneNote({ food, amount, bone, busy, onToggle, onBasis }) {
   const typical = food.refuse_source === 'referencia' ? 'típico' : 'medido'
-  const canAnswer = food.is_mine && (food.kcal_basis === 'unknown' || food.kcal_basis_guessed)
+  const canAnswer = food.is_mine && food.kcal_basis === 'unknown'
   return (
     <div className="food-bone">
       <button
@@ -2382,16 +2383,9 @@ function BoneNote({ food, amount, bone, busy, onToggle, onBasis }) {
       )}
       {bone.on && canAnswer && (
         <div className="food-bone-basis">
-          <p className="hint">
-            {food.kcal_basis === 'unknown'
-              ? '¿Las kcal de la etiqueta son de la pieza con hueso o de la parte comestible?'
-              : 'Supuesto por la etiqueta. ¿Es así?'}
-          </p>
+          <p className="hint">{BASIS_QUESTION}</p>
           <div className="food-slots">
-            {[
-              { key: 'as_sold', label: 'Pieza con hueso' },
-              { key: 'edible', label: 'Parte comestible' },
-            ].map((option) => (
+            {BASIS_OPTIONS.map((option) => (
               <button
                 type="button"
                 key={option.key}
@@ -2406,6 +2400,90 @@ function BoneNote({ food, amount, bone, busy, onToggle, onBasis }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// La pregunta que decide la cuenta de un alimento con hueso, y sus respuestas.
+// Una etiqueta de 190 kcal por 100 g en una bandeja de muslos puede ser de la
+// bandeja (1 kg = 1.900 kcal) o de la carne limpia (700 g = 1.330 kcal), y no lo
+// dice. Antes se suponía comparando la cifra con una tabla; ahora se pregunta,
+// en palabras de quien tiene la bandeja en la mano.
+const BASIS_QUESTION = '¿Las kcal de la etiqueta cuentan el hueso?'
+const BASIS_OPTIONS = [
+  { key: 'edible', label: 'No, son solo de la carne' },
+  { key: 'as_sold', label: 'Sí, son de la pieza entera' },
+]
+
+const pctNumber = (raw) => {
+  const text = String(raw ?? '').trim()
+  const value = Number(text.replace(',', '.'))
+  return text === '' || !Number.isFinite(value) ? null : value
+}
+const pctText = (value) => (value == null ? '' : String(value).replace('.', ','))
+
+// ¿Se puede guardar lo que dice el hueso? Con hueso hay que contestar la
+// pregunta, y si las kcal son de la carne hace falta el % para descontarlo.
+function boneProblem({ on, pct, basis }) {
+  if (!on) return null
+  if (!basis) return 'Contéstalo para poder guardar.'
+  const n = pctNumber(pct)
+  if (basis === 'edible' && n == null) return 'Falta el % de hueso para descontarlo.'
+  if (n != null && !(n > 0 && n < 100)) return 'El % de hueso va entre 0 y 100.'
+  return null
+}
+
+// «Lleva hueso», en el alta y en la corrección: los mismos controles en los dos
+// sitios, porque es el mismo dato. Controlado por quien lo usa. `strict` dice
+// si lo que falta bloquea el guardado; sólo entonces se avisa.
+function BoneFields({ id, value, onChange, disabled, strict = true }) {
+  const problem = strict ? boneProblem(value) : null
+  return (
+    <div className="food-bone food-bone-fields">
+      <button
+        type="button"
+        className={`chip${value.on ? ' is-active' : ''}`}
+        aria-pressed={value.on}
+        onClick={() => onChange({ on: !value.on })}
+        disabled={disabled}
+      >
+        Lleva hueso
+      </button>
+      {value.on && (
+        <div className="food-bone-basis">
+          <p className="hint">{BASIS_QUESTION}</p>
+          <div className="food-slots">
+            {BASIS_OPTIONS.map((option) => (
+              <button
+                type="button"
+                key={option.key}
+                className={`chip${value.basis === option.key ? ' is-active' : ''}`}
+                aria-pressed={value.basis === option.key}
+                onClick={() => onChange({ basis: option.key })}
+                disabled={disabled}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* El % sólo cuando se usa: con las kcal de la pieza entera se calcula
+          con lo que pesas y el hueso no entra en la cuenta. */}
+      {value.on && value.basis === 'edible' && (
+        <div className="field food-bone-pct">
+          <label htmlFor={`${id}-refuse`}>% de hueso</label>
+          <input
+            id={`${id}-refuse`}
+            inputMode="decimal"
+            placeholder="—"
+            value={value.pct}
+            onChange={(e) => onChange({ pct: e.target.value })}
+            disabled={disabled}
+          />
+        </div>
+      )}
+      {problem && <p className="hint food-bone-note">{problem}</p>}
     </div>
   )
 }
@@ -2738,6 +2816,21 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onCancel }) {
     })),
   )
   const [busy, setBusy] = useState(false)
+  // El hueso tal como está, para mandar sólo lo que cambie. Un alimento cuya
+  // pregunta nadie contestó sale con «Lleva hueso» y sin respuesta elegida.
+  const boneAtStart = {
+    on: food.refuse_pct != null,
+    pct: pctText(food.refuse_pct),
+    basis: ['edible', 'as_sold'].includes(food.kcal_basis) ? food.kcal_basis : null,
+  }
+  const [bone, setBone] = useState(boneAtStart)
+  const boneTouched =
+    bone.on !== boneAtStart.on ||
+    bone.basis !== boneAtStart.basis ||
+    pctNumber(bone.pct) !== pctNumber(boneAtStart.pct)
+  // Sólo bloquea si lo has tocado: corregir la proteína de unos muslos no puede
+  // exigir contestar lo del hueso. Lo sin contestar se pregunta al registrar.
+  const boneBlocked = boneTouched && boneProblem(bone) != null
   // Lo guardado, esperando a que se decida qué hacer con lo que ya hay escrito
   // en el diario de este día. `null` mientras no haya nada que decidir.
   const [pending, setPending] = useState(null)
@@ -2760,9 +2853,22 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onCancel }) {
 
   async function submit(event) {
     event.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim() || boneBlocked) return
     setBusy(true)
+    const boneFields = {}
+    if (boneTouched) {
+      if (!bone.on) {
+        boneFields.refuse_pct = 0
+      } else {
+        boneFields.kcal_basis = bone.basis
+        // Vaciar el % lo devuelve a la tabla (`null`); un % distinto es tuyo.
+        if (pctNumber(bone.pct) !== pctNumber(boneAtStart.pct) || !boneAtStart.on) {
+          boneFields.refuse_pct = pctNumber(bone.pct)
+        }
+      }
+    }
     const saved = await correctFood(food.id, {
+      ...boneFields,
       name: name.trim(),
       brand: brand.trim() || null,
       barcode: barcode.trim() || null,
@@ -2880,6 +2986,14 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onCancel }) {
         />
       </div>
 
+      <BoneFields
+        id="edit"
+        value={bone}
+        strict={boneTouched}
+        onChange={(patch) => setBone({ ...bone, ...patch })}
+        disabled={busy}
+      />
+
       {/* Las raciones son lo que hace que registrar «dos rebanadas» no te
           obligue a pesar el pan. La tabla existía en el servidor desde el
           principio y no había ninguna pantalla que las escribiera. */}
@@ -2938,7 +3052,7 @@ function FoodEditor({ food, dayIso, affected = 0, onSaved, onCancel }) {
       <p className="hint">Corregir un alimento no cambia nada de lo que ya registraste.</p>
 
       <div className="food-editor-actions">
-        <button type="submit" className="primary" disabled={busy}>
+        <button type="submit" className="primary" disabled={busy || boneBlocked}>
           Guardar alimento
         </button>
         <button type="button" className="link-btn" onClick={onCancel} disabled={busy}>
@@ -2972,6 +3086,41 @@ function NewFood({ name: initialName, label = null, scan = null, barcode = null,
   const [brand, setBrand] = useState(label?.brand ?? scan?.brand ?? '')
   const [values, setValues] = useState(() => fromNutrients(label?.nutrients ?? scan?.nutrients))
   const [busy, setBusy] = useState(false)
+  // El hueso típico del nombre, según la tabla del servidor. Mientras no
+  // toques «Lleva hueso» ni el %, lo siguen: `on`/`pct` a `null` es «lo que diga
+  // la tabla». La respuesta a la pregunta nunca viene puesta.
+  const [boneRef, setBoneRef] = useState(null)
+  const [boneChoice, setBoneChoice] = useState({ on: null, pct: null, basis: null })
+  const bone = {
+    on: boneChoice.on ?? boneRef != null,
+    pct: boneChoice.pct ?? pctText(boneRef),
+    basis: boneChoice.basis,
+  }
+  const firstLookup = useRef(true)
+
+  // Se pregunta por el nombre al abrir y, con una pausa, cada vez que cambia.
+  // Sin red no hay propuesta y el alta sigue igual que antes.
+  useEffect(() => {
+    const text = name.trim()
+    let alive = true
+    const timer = setTimeout(
+      async () => {
+        if (!text) return
+        try {
+          const found = await boneReference(text)
+          if (alive) setBoneRef(found?.refuse_pct ?? null)
+        } catch {
+          if (alive) setBoneRef(null)
+        }
+      },
+      firstLookup.current ? 0 : 300,
+    )
+    firstLookup.current = false
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [name])
 
   // El formulario se trae a la vista al aparecer.
   //
@@ -2997,11 +3146,24 @@ function NewFood({ name: initialName, label = null, scan = null, barcode = null,
     return raw.trim() === '' || !Number.isFinite(value) ? null : value
   }
 
+  const boneBlocked = boneProblem(bone) != null
+
   async function submit(event) {
     event.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim() || boneBlocked) return
     setBusy(true)
+    // Sin hueso, a un nombre que la tabla daría por con hueso se le dice 0 %:
+    // «no lleva», que es distinto de no haberlo dicho. Con hueso, el % de la
+    // tabla sin tocar no se guarda como tuyo (`null` sigue a la tabla).
+    const pct = pctNumber(bone.pct)
+    const boneFields = bone.on
+      ? {
+          kcal_basis: bone.basis,
+          refuse_pct: bone.basis === 'edible' && pct !== boneRef ? pct : null,
+        }
+      : { kcal_basis: null, refuse_pct: boneRef != null ? 0 : null }
     const food = await createFood({
+      ...boneFields,
       name: name.trim(),
       // En blanco es `null`, no cadena vacía: no tiene marca, que es distinto
       // de tener una marca que se llama «».
@@ -3098,11 +3260,18 @@ function NewFood({ name: initialName, label = null, scan = null, barcode = null,
           <input {...campo('fiber')} aria-label="Fibra por 100 g" placeholder="—" />
         </div>
 
+        <BoneFields
+          id="food"
+          value={bone}
+          onChange={(patch) => setBoneChoice({ ...boneChoice, ...bone, ...patch })}
+          disabled={busy}
+        />
+
         <p className="hint">Lo que dejes en blanco queda como desconocido, no como cero.</p>
 
         {label?.rows?.length > 0 && <Transcripcion rows={label.rows} />}
 
-        <button type="submit" className="primary btn-full" disabled={busy}>
+        <button type="submit" className="primary btn-full" disabled={busy || boneBlocked}>
           {leido ? 'Dar de alta y continuar' : 'Guardar alimento'}
         </button>
         <p className="hint food-new-foot">

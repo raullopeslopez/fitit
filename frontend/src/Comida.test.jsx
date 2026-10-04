@@ -2434,7 +2434,6 @@ describe('alimentos con hueso', () => {
     refuse_pct: 30,
     refuse_source: 'referencia',
     kcal_basis: 'edible',
-    kcal_basis_guessed: false,
   }
 
   const abrir = async (food = MUSLO) => {
@@ -2490,7 +2489,7 @@ describe('alimentos con hueso', () => {
   })
 
   it('con kcal de la bandeja, el hueso ya va dentro y lo dice', async () => {
-    await abrir({ ...MUSLO, kcal_100g: 135, kcal_basis: 'as_sold', kcal_basis_guessed: true })
+    await abrir({ ...MUSLO, kcal_100g: 135, kcal_basis: 'as_sold' })
     expect(screen.getByText(/Las kcal de la etiqueta ya cuentan el hueso/)).toBeInTheDocument()
     expect(totalKcal()).toBe('405 kcal')
   })
@@ -2511,13 +2510,9 @@ describe('alimentos con hueso', () => {
     }
     api.correctFood.mockResolvedValue({ ...mio, kcal_basis: 'edible' })
     await abrir(mio)
-    expect(
-      screen.getByText(
-        '¿Las kcal de la etiqueta son de la pieza con hueso o de la parte comestible?',
-      ),
-    ).toBeInTheDocument()
+    expect(screen.getByText('¿Las kcal de la etiqueta cuentan el hueso?')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Añadir \d/ })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: 'Parte comestible' }))
+    await userEvent.click(screen.getByRole('button', { name: 'No, son solo de la carne' }))
     await waitFor(() => expect(api.correctFood).toHaveBeenCalledWith(6, { kcal_basis: 'edible' }))
     expect(await screen.findByText(/300 g con hueso → 210 g comestibles/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Añadir \d/ })).toBeEnabled()
@@ -2577,6 +2572,172 @@ describe('alimentos con hueso', () => {
       expect(api.logFood).toHaveBeenCalledWith(
         expect.objectContaining({ foodId: 5, grams: 300, withBone: true }),
       ),
+    )
+  })
+})
+
+describe('el hueso al dar de alta', () => {
+  const crear = async (texto) => {
+    api.searchFoods.mockResolvedValue([])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), texto)
+    await userEvent.click(await screen.findByRole('button', { name: `Crear «${texto}»` }))
+  }
+  const guardar = () => screen.getByRole('button', { name: 'Guardar alimento' })
+  const llevaHueso = () => screen.getByRole('button', { name: 'Lleva hueso' })
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    api.getFoodDay.mockResolvedValue(day())
+    api.frequentFoods.mockResolvedValue([])
+    api.listDishes.mockResolvedValue([])
+    api.createFood.mockResolvedValue({ ...PAN, id: 50, name: 'muslos de pollo' })
+  })
+
+  it('un nombre con hueso lo propone, y no deja guardar sin decir si las kcal lo cuentan', async () => {
+    api.boneReference.mockResolvedValue({ refuse_pct: 30 })
+    await crear('muslos de pollo')
+    await waitFor(() => expect(llevaHueso()).toHaveAttribute('aria-pressed', 'true'))
+    expect(screen.getByText('¿Las kcal de la etiqueta cuentan el hueso?')).toBeInTheDocument()
+    // Ninguna respuesta elegida de antemano: elegirla por ti es adivinar.
+    expect(screen.getByRole('button', { name: 'No, son solo de la carne' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    expect(guardar()).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'No, son solo de la carne' }))
+    expect(screen.getByLabelText('% de hueso')).toHaveValue('30')
+    await userEvent.click(guardar())
+    // El 30 % es el de la tabla y no se ha tocado: no se guarda como tuyo.
+    await waitFor(() =>
+      expect(api.createFood).toHaveBeenCalledWith(
+        expect.objectContaining({ kcal_basis: 'edible', refuse_pct: null }),
+      ),
+    )
+  })
+
+  it('con las kcal de la pieza entera no hace falta el % de hueso', async () => {
+    api.boneReference.mockResolvedValue({ refuse_pct: 30 })
+    await crear('muslos de pollo')
+    await waitFor(() => expect(llevaHueso()).toHaveAttribute('aria-pressed', 'true'))
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, son de la pieza entera' }))
+    expect(screen.queryByLabelText('% de hueso')).not.toBeInTheDocument()
+    await userEvent.click(guardar())
+    await waitFor(() =>
+      expect(api.createFood).toHaveBeenCalledWith(
+        expect.objectContaining({ kcal_basis: 'as_sold', refuse_pct: null }),
+      ),
+    )
+  })
+
+  it('quitar «Lleva hueso» a un nombre que lo sugiere lo guarda sin hueso', async () => {
+    api.boneReference.mockResolvedValue({ refuse_pct: 30 })
+    await crear('muslos de pollo')
+    await waitFor(() => expect(llevaHueso()).toHaveAttribute('aria-pressed', 'true'))
+    await userEvent.click(llevaHueso())
+    expect(screen.queryByText('¿Las kcal de la etiqueta cuentan el hueso?')).not.toBeInTheDocument()
+    await userEvent.click(guardar())
+    await waitFor(() =>
+      expect(api.createFood).toHaveBeenCalledWith(
+        expect.objectContaining({ refuse_pct: 0, kcal_basis: null }),
+      ),
+    )
+  })
+
+  it('un nombre que la tabla no conoce sale sin hueso, y se le puede poner', async () => {
+    api.boneReference.mockResolvedValue({ refuse_pct: null })
+    await crear('rabo de toro')
+    await waitFor(() => expect(api.boneReference).toHaveBeenCalled())
+    expect(llevaHueso()).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(llevaHueso())
+    await userEvent.click(screen.getByRole('button', { name: 'No, son solo de la carne' }))
+    // Sin tabla no hay % que proponer, y sin % no hay nada que descontar.
+    expect(screen.getByLabelText('% de hueso')).toHaveValue('')
+    expect(guardar()).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('% de hueso'), '40')
+    await userEvent.click(guardar())
+    await waitFor(() =>
+      expect(api.createFood).toHaveBeenCalledWith(
+        expect.objectContaining({ kcal_basis: 'edible', refuse_pct: 40 }),
+      ),
+    )
+  })
+
+  it('sin red para preguntar a la tabla, el alta sigue funcionando', async () => {
+    api.boneReference.mockRejectedValue(new Error('offline'))
+    await crear('yogur')
+    expect(llevaHueso()).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(guardar())
+    await waitFor(() =>
+      expect(api.createFood).toHaveBeenCalledWith(
+        expect.objectContaining({ refuse_pct: null, kcal_basis: null }),
+      ),
+    )
+  })
+})
+
+describe('el hueso al corregir un alimento', () => {
+  const MUSLOS = {
+    ...PAN,
+    id: 6,
+    name: 'Muslos de pollo',
+    is_mine: true,
+    kcal_100g: 190,
+    refuse_pct: 30,
+    refuse_source: 'referencia',
+    kcal_basis: 'unknown',
+  }
+  const abrir = async (food) => {
+    api.searchFoods.mockResolvedValue([food])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'muslos')
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir este alimento' }))
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    api.getFoodDay.mockResolvedValue(day())
+    api.frequentFoods.mockResolvedValue([])
+  })
+
+  it('un alimento tuyo con hueso sin contestar se contesta aquí', async () => {
+    api.correctFood.mockResolvedValue({ ...MUSLOS, kcal_basis: 'edible' })
+    await abrir(MUSLOS)
+    expect(screen.getByRole('button', { name: 'Lleva hueso' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'No, son solo de la carne' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(6, expect.objectContaining({ kcal_basis: 'edible' })),
+    )
+    // El % no se ha tocado: sigue siendo el de la tabla.
+    expect(api.correctFood.mock.calls[0][1]).not.toHaveProperty('refuse_pct')
+  })
+
+  it('corregir otra cifra no obliga a contestar lo del hueso', async () => {
+    api.correctFood.mockResolvedValue(MUSLOS)
+    await abrir(MUSLOS)
+    await userEvent.clear(screen.getByLabelText('Kcal por 100 g'))
+    await userEvent.type(screen.getByLabelText('Kcal por 100 g'), '200')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    // Sin tocar el hueso no hay nada que avisar: guardar funciona igual.
+    expect(screen.queryByText('Contéstalo para poder guardar.')).not.toBeInTheDocument()
+    await waitFor(() => expect(api.correctFood).toHaveBeenCalled())
+    expect(api.correctFood.mock.calls[0][1]).not.toHaveProperty('kcal_basis')
+  })
+
+  it('quitar el hueso lo guarda como 0 %', async () => {
+    api.correctFood.mockResolvedValue({ ...MUSLOS, refuse_pct: null })
+    await abrir({ ...MUSLOS, kcal_basis: 'edible' })
+    await userEvent.click(screen.getByRole('button', { name: 'Lleva hueso' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alimento' }))
+    await waitFor(() =>
+      expect(api.correctFood).toHaveBeenCalledWith(6, expect.objectContaining({ refuse_pct: 0 })),
     )
   })
 })

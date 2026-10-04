@@ -34,7 +34,6 @@ def to_food_out(food: Food, user_id: int) -> FoodOut:
         refuse_pct=hueso.refuse_pct if hueso else None,
         refuse_source=hueso.origen if hueso else None,
         kcal_basis=hueso.basis if hueso else None,
-        kcal_basis_guessed=hueso.basis_guessed if hueso else False,
     )
 
 

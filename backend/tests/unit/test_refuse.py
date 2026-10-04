@@ -1,6 +1,6 @@
 """El hueso: cuánto de lo que pesas no se come, y a qué se refieren las kcal.
 
-La aritmética (`gramos_comestibles`, `base_de_kcal`, `desperdicio_de_sobras`)
+La aritmética (`gramos_comestibles`, `desperdicio_de_sobras`)
 vive en `nutrition.py`; la tabla de referencia y el emparejado por nombre, en
 `refuse.py`. Aquí se fijan las dos.
 """
@@ -10,8 +10,6 @@ from types import SimpleNamespace
 import pytest
 
 from app.nutrition import (
-    TOLERANCIA_BASE_KCAL,
-    base_de_kcal,
     desperdicio_de_sobras,
     gramos_comestibles,
     nutrientes_con_hueso,
@@ -56,38 +54,6 @@ def test_leftover_bone_is_a_share_of_what_was_weighed():
 def test_leftover_bone_must_be_less_than_what_was_weighed(bone):
     with pytest.raises(ValueError):
         desperdicio_de_sobras(300, bone)
-
-
-def test_label_near_the_edible_reference_is_for_the_meat():
-    assert base_de_kcal(190, 192, 30) == "edible"
-
-
-def test_label_near_the_reference_diluted_by_bone_is_as_sold():
-    # 192 × 0,70 = 134,4
-    assert base_de_kcal(135, 192, 30) == "as_sold"
-
-
-def test_label_in_neither_band_stays_unknown():
-    assert base_de_kcal(165, 192, 30) == "unknown"
-
-
-def test_bands_that_overlap_say_nothing():
-    # Con un 15 % de hueso las dos bandas se pisan (226–276 y 192–235): 230
-    # cabe en las dos, y adivinar ahí sería tirar una moneda.
-    assert base_de_kcal(230, 251, 15) == "unknown"
-
-
-def test_the_band_is_ten_percent():
-    assert TOLERANCIA_BASE_KCAL == 0.10
-    # 192 ± 19,2
-    assert base_de_kcal(211, 192, 30) == "edible"
-    assert base_de_kcal(173, 192, 30) == "edible"
-    assert base_de_kcal(212, 192, 30) == "unknown"
-
-
-@pytest.mark.parametrize("kcal,ref", [(None, 192), (190, None)])
-def test_without_both_numbers_nothing_is_guessed(kcal, ref):
-    assert base_de_kcal(kcal, ref, 30) == "unknown"
 
 
 def test_with_bone_and_edible_basis_macros_scale_with_the_meat():
@@ -167,25 +133,25 @@ def test_every_reference_cites_where_it_comes_from():
 
 def test_catalogue_kcal_are_for_the_edible_part():
     h = hueso_de(_food("Pollo, muslo, carne y piel, crudo", source="ciqual", kcal=192))
-    assert (h.refuse_pct, h.origen, h.basis, h.basis_guessed) == (30, "referencia", "edible", False)
+    assert (h.refuse_pct, h.origen, h.basis) == (30, "referencia", "edible")
 
 
-def test_my_food_is_guessed_from_its_label():
-    h = hueso_de(_food("Muslos de pollo", kcal=135))
-    assert (h.basis, h.basis_guessed) == ("as_sold", True)
+@pytest.mark.parametrize("kcal", [135, 190, 165])
+def test_nothing_is_guessed_from_my_label(kcal):
+    # Antes una etiqueta cerca de la cifra de la carne se leía como «de la
+    # carne», y cerca de la cifra rebajada, como «con hueso». Ya no: el número
+    # no dice a qué se refiere, lo dice quien lo dio de alta.
+    assert hueso_de(_food("Muslos de pollo", kcal=kcal)).basis == "unknown"
 
 
-def test_what_i_said_beats_the_guess():
+def test_what_i_said_is_what_counts():
     h = hueso_de(_food("Muslos de pollo", kcal=135, kcal_basis="edible"))
-    assert (h.basis, h.basis_guessed) == ("edible", False)
+    assert h.basis == "edible"
 
 
 def test_what_i_measured_beats_the_reference():
     h = hueso_de(_food("Muslos de pollo", kcal=190, refuse_pct=25))
     assert (h.refuse_pct, h.origen) == (25, "tuyo")
-    # El heurístico compara con la referencia de la parte comestible, y la
-    # usa con el hueso medido: 190 sigue siendo la carne.
-    assert h.basis == "edible"
 
 
 def test_zero_bone_means_no_bone():

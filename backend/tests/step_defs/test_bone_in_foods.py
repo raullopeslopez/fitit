@@ -56,12 +56,38 @@ def given_catalogue(client, ctx, name, kcal, protein):
     ctx["foods"][name] = _en_la_bd(_alta)
 
 
-@given(parsers.parse('I add "{name}" with {kcal:g} kcal per 100 g'))
-def given_mine(client, ctx, name, kcal):
-    resp = client.post("/foods", json={"name": name, "kcal_100g": kcal})
+_BASES = {"edible part": "edible", "food as sold": "as_sold"}
+
+
+def _add(client, ctx, name, **body):
+    resp = client.post("/foods", json={"name": name, **body})
     assert resp.status_code == 201, resp.text
     ctx["foods"][name] = resp.json()["id"]
     ctx["food"] = resp.json()
+
+
+@given(parsers.parse('I add "{name}" with {kcal:g} kcal per 100 g'))
+def given_mine(client, ctx, name, kcal):
+    _add(client, ctx, name, kcal_100g=kcal)
+
+
+@given(parsers.parse('I add "{name}" with {kcal:g} kcal per 100 g, whose kcal are for the {basis}'))
+def given_mine_with_basis(client, ctx, name, kcal, basis):
+    _add(client, ctx, name, kcal_100g=kcal, kcal_basis=_BASES[basis])
+
+
+@given(
+    parsers.parse(
+        'I add "{name}" with {kcal:g} kcal per 100 g, {pct:g} % bone, whose kcal are for the {basis}'
+    )
+)
+def given_mine_with_bone(client, ctx, name, kcal, pct, basis):
+    _add(client, ctx, name, kcal_100g=kcal, refuse_pct=pct, kcal_basis=_BASES[basis])
+
+
+@given(parsers.parse('I add "{name}" with {kcal:g} kcal per 100 g and no bone'))
+def given_mine_without_bone(client, ctx, name, kcal):
+    _add(client, ctx, name, kcal_100g=kcal, refuse_pct=0)
 
 
 def _log(client, ctx, name, grams, *, with_bone):
@@ -154,11 +180,38 @@ def then_refuse_reference(ctx, pct):
     assert ctx["food"]["refuse_source"] == "referencia"
 
 
-@then(parsers.parse("it says its kcal are for the {basis}, as a {how}"))
-def then_basis(ctx, basis, how):
-    expected = {"edible part": "edible", "food as sold": "as_sold"}[basis]
-    assert ctx["food"]["kcal_basis"] == expected
-    assert ctx["food"]["kcal_basis_guessed"] is (how == "guess")
+@then(parsers.parse("it says its kcal are for the {basis}"))
+def then_basis(ctx, basis):
+    assert ctx["food"]["kcal_basis"] == _BASES[basis]
+
+
+@then(parsers.parse("it says {pct:g} % of it is bone, as I said"))
+def then_refuse_mine(ctx, pct):
+    assert ctx["food"]["refuse_pct"] == pct
+    assert ctx["food"]["refuse_source"] == "tuyo"
+
+
+@then("it says it has no bone")
+def then_no_bone(ctx):
+    assert ctx["food"]["refuse_pct"] is None
+    assert ctx["food"]["kcal_basis"] is None
+
+
+@when(parsers.parse('I ask how much bone "{name}" usually has'))
+def when_bone_reference(client, ctx, name):
+    resp = client.get("/foods/bone-reference", params={"name": name})
+    assert resp.status_code == 200, resp.text
+    ctx["reference"] = resp.json()
+
+
+@then(parsers.parse("it says {pct:g} %, by reference"))
+def then_reference(ctx, pct):
+    assert ctx["reference"]["refuse_pct"] == pct
+
+
+@then("it says the table knows no bone for it")
+def then_no_reference(ctx):
+    assert ctx["reference"]["refuse_pct"] is None
 
 
 @then("it says nobody knows what its kcal are for")
