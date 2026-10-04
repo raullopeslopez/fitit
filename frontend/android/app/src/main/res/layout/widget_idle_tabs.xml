@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El 4×2 y el 3×2 sin entreno (DESIGN.md, «Sin entreno — pestañas»; APK 0.19.0):
+     arriba las pestañas «Pasos», «Comida», «Entreno», un filete, y debajo la que
+     está elegida. Sustituye a los puntitos: el nombre dice adónde se va.
+
+     Las pestañas miden 40 dp a la vista y tocan en 44: la fila sube 4 dp sobre el
+     margen de arriba del widget (4 dp, SessionWidget4x2.idle), y cada pestaña
+     lleva 9 dp de relleno a cada lado, que entre dos suman los 18 dp de separación.
+     Sin pasos de hoy no hay «Pasos»; sin objetivo de proteína no hay «Comida».
+
+     Cada pestaña reparte el aire por igual (space-evenly): el mismo hueco entre el
+     filete, cada bloque y el borde de abajo, con huecos de peso 1. Lo que no está
+     se lleva su hueco. FrameLayout y no Space: un widget sólo admite las vistas de
+     RemoteViews. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_idle"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:id="@+id/widget_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="-4dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/widget_tab_steps"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="-9dp"
+            android:contentDescription="@string/widget_tab_steps"
+            android:orientation="vertical"
+            android:paddingStart="9dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="9dp">
+
+            <TextView
+                android:id="@+id/widget_tab_steps_label"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:fontFamily="@font/geist_semibold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/widget_tab_steps"
+                android:textColor="@color/widget_text"
+                android:textSize="13sp" />
+
+            <FrameLayout
+                android:id="@+id/widget_tab_steps_line"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/widget_text" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_tab_food"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/widget_tab_food"
+            android:orientation="vertical"
+            android:paddingStart="9dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="9dp">
+
+            <TextView
+                android:id="@+id/widget_tab_food_label"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:fontFamily="@font/geist_semibold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/widget_tab_food"
+                android:textColor="@color/widget_muted"
+                android:textSize="13sp" />
+
+            <FrameLayout
+                android:id="@+id/widget_tab_food_line"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/widget_text"
+                android:visibility="invisible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_tab_train"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/widget_tab_train"
+            android:orientation="vertical"
+            android:paddingStart="9dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="9dp">
+
+            <TextView
+                android:id="@+id/widget_tab_train_label"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:fontFamily="@font/geist_semibold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/widget_tab_train"
+                android:textColor="@color/widget_muted"
+                android:textSize="13sp" />
+
+            <FrameLayout
+                android:id="@+id/widget_tab_train_line"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/widget_text"
+                android:visibility="invisible" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/widget_tabs_rule"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/widget_border" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Pasos: «8.432» Mono 44sp y «faltan 1.568» a su línea base; la barra de
+             6 dp; «Media semanal 7.910». La barra dibuja un dato, no un tiempo: se
+             repinta cuando cambian los pasos, nunca cada segundo. Tocar abre Fitit. -->
+        <LinearLayout
+            android:id="@+id/widget_idle_steps"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/widget_steps_line"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_steps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="8.432"
+                    android:textColor="@color/widget_text"
+                    android:textSize="44sp" />
+
+                <LinearLayout
+                    android:id="@+id/widget_steps_left_line"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:baselineAlignedChildIndex="1"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/geist_regular"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="@string/widget_steps_left"
+                        android:textColor="@color/widget_muted"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/widget_steps_left"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/geist_mono_medium"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="1.568"
+                        android:textColor="@color/widget_text"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/widget_steps_bar_gap"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ProgressBar
+                android:id="@+id/widget_steps_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:indeterminate="false"
+                android:max="1000"
+                android:maxHeight="6dp"
+                android:minHeight="6dp"
+                android:progressDrawable="@drawable/widget_steps_bar" />
+
+            <FrameLayout
+                android:id="@+id/widget_steps_week_gap"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/widget_steps_week_line"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_regular"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_steps_week"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/widget_steps_week"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:includeFontPadding="false"
+                    android:text="7.910"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <!-- Comida: a la izquierda, proteína y kcal con su sello; a la derecha, los
+             anillos (FoodRings, un bitmap: un widget no dibuja arcos). Cada cifra
+             aparece una vez: el centro de los anillos va vacío. Una sola fila, así
+             que el aire de arriba y el de abajo son el mismo. Tocar abre Comida. -->
+        <LinearLayout
+            android:id="@+id/widget_idle_food"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_mono_semibold"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.1"
+                    android:text="@string/widget_food_protein"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:id="@+id/widget_food_protein_line"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/widget_food_protein"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/geist_mono_medium"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="118"
+                        android:textColor="@color/widget_accent_ink"
+                        android:textSize="24sp" />
+
+                    <TextView
+                        android:id="@+id/widget_food_protein_target"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/geist_mono_medium"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="/202"
+                        android:textColor="@color/widget_accent_ink"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/widget_food_protein_unit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/geist_mono_semibold"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="@string/widget_food_protein_unit"
+                        android:textColor="@color/widget_accent_ink"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/widget_food_kcal_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/geist_mono_semibold"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.1"
+                        android:text="@string/widget_food_kcal"
+                        android:textColor="@color/widget_muted"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/widget_food_kcal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_mono_medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="1460"
+                            android:textColor="@color/widget_text"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:id="@+id/widget_food_kcal_target"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_mono_medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="/2569"
+                            android:textColor="@color/widget_text"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/widget_food_kcal_unit"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_mono_semibold"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/widget_food_kcal_unit"
+                            android:textColor="@color/widget_text"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/widget_food_ring_box"
+                android:layout_width="136dp"
+                android:layout_height="136dp">
+
+                <ImageView
+                    android:id="@+id/widget_food_rings"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Entreno: cuántos días desde el último, con la franja del color de su
+             grupo (dos grupos, dos mitades), y el botón ámbar, el único relleno de la
+             superficie. Sin último entreno, sólo el botón. -->
+        <LinearLayout
+            android:id="@+id/widget_idle_start"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:id="@+id/widget_train_gap"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/widget_train"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="4dp"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/widget_train_stripe_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_stripe" />
+
+                    <ImageView
+                        android:id="@+id/widget_train_stripe_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:importantForAccessibility="no"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/widget_stripe_bottom"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/widget_train_days"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_mono_medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="2"
+                            android:textColor="@color/widget_text"
+                            android:textSize="40sp" />
+
+                        <!-- Hoy: la palabra en vez del número, en Geist (una palabra no
+                             es una cifra), y sin «días». -->
+                        <TextView
+                            android:id="@+id/widget_train_today"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_semibold"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/widget_train_today"
+                            android:textColor="@color/widget_text"
+                            android:textSize="40sp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/widget_train_unit"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:fontFamily="@font/geist_semibold"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="días"
+                            android:textColor="@color/widget_text"
+                            android:textSize="15sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/widget_train_since"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/geist_regular"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="@string/widget_train_since"
+                            android:textColor="@color/widget_muted"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/widget_train_groups"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="@font/geist_semibold"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="Pierna"
+                            android:textColor="@color/widget_text"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/widget_start"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/widget_button"
+                android:fontFamily="@font/geist_semibold"
+                android:gravity="center"
+                android:text="@string/widget_start"
+                android:textColor="@color/widget_on_accent"
+                android:textSize="15sp" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

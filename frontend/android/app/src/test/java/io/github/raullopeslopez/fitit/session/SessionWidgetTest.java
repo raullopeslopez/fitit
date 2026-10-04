@@ -95,7 +95,7 @@ public class SessionWidgetTest {
         assertFalse(shown(R.id.widget_idle));
         assertEquals("Press banca", text(R.id.widget_exercise));
         assertEquals("32,5 kg × 12", text(R.id.widget_set));
-        assertEquals(" · 4 series", text(R.id.widget_count));
+        assertEquals("4", text(R.id.widget_count_n));
         // Sólo «+1» (DESIGN.md): la serie ya está escrita a su izquierda.
         assertEquals("+1", text(R.id.widget_repeat));
         // El reloj lo lleva el propio widget: cuenta atrás hasta el fin del descanso.
@@ -207,7 +207,7 @@ public class SessionWidgetTest {
         SessionController.handle(context, sent, now + 5_000);
 
         assertEquals(1, store.queue().size());
-        assertEquals(" · 5 series", text(R.id.widget_count));
+        assertEquals("5", text(R.id.widget_count_n));
         // «Vibra al tocar +1 serie en el widget»: una pulsación corta, y es lo
         // único que vibra en toda la función.
         Vibrator vibrator = context.getSystemService(Vibrator.class);

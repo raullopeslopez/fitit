@@ -34,8 +34,10 @@ public final class SessionController {
     /** Tres segundos antes del cero: la tarjeta vibra 3, 2, 1 y el cero. */
     public static final String ACTION_REST_COUNTDOWN = PREFIX + "REST_COUNTDOWN";
     public static final String ACTION_EXPIRE = PREFIX + "EXPIRE";
-    /** Los puntitos del widget sin entreno: la otra pantalla. */
-    public static final String ACTION_PAGE = PREFIX + "PAGE";
+    /** Una pestaña del widget sin entreno; cuál, en {@link #EXTRA_TAB}. */
+    public static final String ACTION_TAB = PREFIX + "TAB";
+    /** El nombre de la pestaña ({@link IdleSummary.Page}). */
+    public static final String EXTRA_TAB = "tab";
     /** Medianoche: «hace 2 días» pasa a 3 y los pasos de ayer dejan de ser de hoy. */
     public static final String ACTION_DAY = PREFIX + "DAY";
     /** Repintar la barra del descanso del 4×1, cada {@link SessionWidget#BAR_TICK_MS}. */
@@ -172,10 +174,8 @@ public final class SessionController {
         if (action == null) return false;
         SessionStore store = Session.store(context);
         // Lo del widget sin entreno no tiene control al que preguntar.
-        if (ACTION_PAGE.equals(action)) {
-            java.time.LocalDateTime clock = java.time.LocalDateTime.now();
-            store.flipIdlePage(IdleSummary.pages(
-                    store.summary(), clock.toLocalDate(), IdleSummary.foodDay(clock)).size());
+        if (ACTION_TAB.equals(action)) {
+            store.setIdleTab(intent.getStringExtra(EXTRA_TAB));
             SessionWidget.updateAll(context);
             return false;
         }

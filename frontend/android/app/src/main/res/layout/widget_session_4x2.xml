@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 4×2 del entreno (DESIGN.md, «Fuera de la app»; vistas previas v9–v12).
-     Arriba, en una línea, «Press banca · 4 series» y Terminar a la derecha; debajo,
-     descansando, el tiempo; y el bloque de ajuste. Nada más. Tocar la línea abre
-     la app en ese entreno. Sin entreno (widget_idle), dos pantallas; con la
-     sesión caducada (widget_expired), sólo eso. SessionWidget4x2 enseña un estado
-     y esconde los demás; los textos de aquí son los de la vista previa del
-     selector de widgets. El 3×2 usa este mismo layout. -->
+<!-- Widget 4×2 del entreno (DESIGN.md, «Fuera de la app»; APK 0.19.0, «se lee como la
+     serie»). Tres partes en vertical:
+       a) «Press banca · 4 series» (tocarlo abre la app en ese entreno);
+       b) una fila que ocupa el alto que sobra, centrada: el tiempo en Mono 40sp, que
+          ocupa el ancho libre, el aro de pausa y el de Terminar;
+       c) la fila de ajuste de 46 dp, [marco peso] [marco reps] [+1].
+     Sin entreno (widget_idle), las pestañas; con la sesión caducada
+     (widget_expired), sólo eso. Es el diseño de 300 dp de ancho y 190 de alto o
+     más; por debajo de cualquiera de los dos, widget_session_4x2_compact, con los
+     mismos ids. SessionWidget4x2 enseña un estado y esconde los demás, y pone los
+     márgenes de cada uno; los textos de aquí son los de la vista previa del
+     selector de widgets. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -14,615 +19,140 @@
     android:paddingStart="16dp"
     android:paddingTop="14dp"
     android:paddingEnd="16dp"
-    android:paddingBottom="14dp">
+    android:paddingBottom="16dp">
 
     <LinearLayout
         android:id="@+id/widget_session"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- a) Ancho ajustado al contenido: así el nombre, con peso, sólo encoge (y
+             se corta con …) cuando no cabe, y las series van pegadas detrás. -->
         <LinearLayout
+            android:id="@+id/widget_open"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:minHeight="44dp"
             android:orientation="horizontal">
 
-            <!-- Tocar el ejercicio abre la app en ese entreno. -->
             <LinearLayout
-                android:id="@+id/widget_open"
-                android:layout_width="0dp"
+                android:id="@+id/widget_line"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:baselineAlignedChildIndex="0"
+                android:orientation="horizontal">
 
-                <!-- Ancho ajustado al contenido: así el nombre, con peso, sólo
-                     encoge (y se corta con …) cuando no cabe, y las series van
-                     pegadas detrás en vez de al otro extremo. -->
-                <LinearLayout
-                    android:id="@+id/widget_line"
+                <TextView
+                    android:id="@+id/widget_exercise"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/geist_semibold"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="Press banca"
+                    android:textColor="@color/widget_text"
+                    android:textSize="15sp" />
 
-                    <TextView
-                        android:id="@+id/widget_exercise"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:fontFamily="@font/geist_semibold"
-                        android:includeFontPadding="false"
-                        android:maxLines="1"
-                        android:text="Press banca"
-                        android:textColor="@color/widget_text"
-                        android:textSize="15sp" />
+                <include layout="@layout/widget_series" />
 
-                    <TextView
-                        android:id="@+id/widget_count"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_regular"
-                        android:includeFontPadding="false"
-                        android:maxLines="1"
-                        android:text=" · 4 series"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="13sp" />
+                <!-- Sólo con algo en la cola, y en ámbar: es un estado. -->
+                <TextView
+                    android:id="@+id/widget_unsent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_regular"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_accent_ink"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
 
-                    <!-- Sólo con algo en la cola, y en ámbar: es un estado. -->
-                    <TextView
-                        android:id="@+id/widget_unsent"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_regular"
-                        android:includeFontPadding="false"
-                        android:maxLines="1"
-                        android:textColor="@color/widget_accent_ink"
-                        android:textSize="13sp"
-                        android:visibility="gone" />
-                </LinearLayout>
+        <!-- b) El alto que sobra, con lo de dentro centrado en vertical. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-                <!-- El tiempo, alineado a la izquierda y centrado en su hueco:
-                     11 dp a la línea y 11 al bloque, contados desde una franja
-                     de 30 dp (line-height: 30px en la vista previa). La caja es
-                     la línea entera de la fuente (1,3 em, 39 dp): una caja de
-                     30 dp alineaba la cifra arriba y le cortaba el pie. Los
-                     4,5 dp de aire que sobran por cada lado se descuentan con
-                     los márgenes (11 − 4,5 arriba, −4,5 abajo); las cifras
-                     quedan centradas en la línea, así que la franja es la suya. -->
+            <!-- El tiempo ocupa el ancho libre; tocarlo abre la app, como la línea
+                 de arriba, para que ese toque no se quede en los 18 dp del nombre.
+                 La caja es la línea entera de la fuente (1,3 em): una caja del
+                 tamaño del texto le cortaba el pie a las cifras. Baja en tinta;
+                 pasado, sube en accent-ink con signo (+00:12); en pausa, quieto en
+                 muted. Sin descanso, ninguno. -->
+            <FrameLayout
+                android:id="@+id/widget_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
                 <Chronometer
                     android:id="@+id/widget_clock"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6.5dp"
-                    android:layout_marginBottom="-4.5dp"
                     android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center_vertical"
                     android:includeFontPadding="false"
                     android:textColor="@color/widget_text"
-                    android:textSize="30sp" />
+                    android:textSize="40sp" />
 
-                <!-- Pasado de tiempo: el mismo sitio y la misma cifra, en
-                     accent-ink y contando hacia arriba con signo (+00:12). Otra
-                     vista y no otro color sobre la misma: un color puesto desde
-                     aquí no cambiaría con el tema del sistema. -->
                 <Chronometer
                     android:id="@+id/widget_over"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6.5dp"
-                    android:layout_marginBottom="-4.5dp"
                     android:fontFamily="@font/geist_mono_medium"
                     android:format="+%s"
-                    android:gravity="center_vertical"
                     android:includeFontPadding="false"
                     android:textColor="@color/widget_accent_ink"
-                    android:textSize="30sp"
+                    android:textSize="40sp"
                     android:visibility="gone" />
 
-                <!-- En pausa (botón del 4×2 y del 3×2): lo que quedaba, quieto y en muted.
-                     Un texto y no un cronómetro parado: un cronómetro parado se recalcula
-                     cada vez que el launcher lo vuelve a pintar. -->
+                <!-- Un texto y no un cronómetro parado: un cronómetro parado se
+                     recalcula cada vez que el launcher lo vuelve a pintar. -->
                 <TextView
                     android:id="@+id/widget_paused"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6.5dp"
-                    android:layout_marginBottom="-4.5dp"
                     android:fontFamily="@font/geist_mono_medium"
-                    android:gravity="center_vertical"
                     android:includeFontPadding="false"
                     android:textColor="@color/widget_muted"
-                    android:textSize="30sp"
+                    android:textSize="40sp"
                     android:visibility="gone" />
-            </LinearLayout>
+            </FrameLayout>
 
-            <!-- Compacto (widget de menos de 190 dp de alto, SessionWidget4x2.Fit):
-                 el tiempo sube aquí, a la derecha del nombre, como en el 4×1, y
-                 el de debajo se va. A 24sp y no a 30: en un 3×2 de ≈253 dp, a 30
-                 no dejaba sitio ni a «Press banca». Mismo par de cronómetros:
-                 baja en color de texto; pasado, sube en accent-ink con signo. -->
-            <Chronometer
-                android:id="@+id/widget_clock_inline"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:fontFamily="@font/geist_mono_medium"
-                android:gravity="center_vertical"
-                android:includeFontPadding="false"
-                android:textColor="@color/widget_text"
-                android:textSize="24sp"
-                android:visibility="gone" />
-
-            <Chronometer
-                android:id="@+id/widget_over_inline"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:fontFamily="@font/geist_mono_medium"
-                android:format="+%s"
-                android:gravity="center_vertical"
-                android:includeFontPadding="false"
-                android:textColor="@color/widget_accent_ink"
-                android:textSize="24sp"
-                android:visibility="gone" />
-
-            <!-- En pausa (botón del 4×2 y del 3×2): lo que quedaba, quieto y en muted.
-                 Un texto y no un cronómetro parado: un cronómetro parado se recalcula
-                 cada vez que el launcher lo vuelve a pintar. -->
-            <TextView
-                android:id="@+id/widget_paused_inline"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:fontFamily="@font/geist_mono_medium"
-                android:gravity="center_vertical"
-                android:includeFontPadding="false"
-                android:textColor="@color/widget_muted"
-                android:textSize="24sp"
-                android:visibility="gone" />
-
-            <!-- Pausar el descanso: un aro neutro con ❚❚ (▶ en pausa), a la
-                 izquierda de Terminar. Sólo descansando. -->
+            <!-- Pausar el descanso: un aro neutro con ❚❚ (▶ en pausa). Sólo
+                 descansando. -->
             <ImageView
                 android:id="@+id/widget_rest_toggle"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
                 android:contentDescription="@string/widget_rest_pause"
                 android:scaleType="center"
                 android:src="@drawable/widget_pause_ring"
                 android:visibility="gone" />
 
-            <!-- Terminar: el aro rojo con ■, arriba a la derecha, 44 dp de toque. -->
+            <!-- Terminar: el aro rojo con ■. Los −5 dp lo llevan al borde: el aro de
+                 34 queda dentro de los 44 de toque. -->
             <ImageView
                 android:id="@+id/widget_end"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="4dp"
                 android:layout_marginEnd="-5dp"
                 android:contentDescription="@string/widget_end"
                 android:scaleType="center"
                 android:src="@drawable/widget_end_ring" />
         </LinearLayout>
 
-        <include
-            layout="@layout/widget_adjust_block"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="11dp" />
+        <!-- c) -->
+        <include layout="@layout/widget_adjust_row" />
     </LinearLayout>
 
-    <!-- Sin entreno, dos pantallas (DESIGN.md, «Sin entreno»; vista previa v16).
-         Una se ve y la otra no; los puntitos de abajo cambian de una a otra al
-         tocarlos (un widget no recibe deslizar: el launcher se queda el gesto).
-         Sin pasos de hoy, los puntitos quedan invisibles y sólo hay la primera. -->
-    <LinearLayout
-        android:id="@+id/widget_idle"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone">
+    <include layout="@layout/widget_idle_tabs" />
 
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <!-- Pantalla 2 (la 1 si no hay pasos de hoy): «Sin entreno en curso» / «Último: hace 2 días · Pierna»
-                 y el botón ámbar, el único relleno de la superficie. -->
-            <LinearLayout
-                android:id="@+id/widget_idle_start"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_idle_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/geist_semibold"
-                    android:maxLines="1"
-                    android:text="@string/widget_idle_title"
-                    android:textColor="@color/widget_text"
-                    android:textSize="15sp" />
-
-                <TextView
-                    android:id="@+id/widget_idle_date"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/geist_regular"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_muted"
-                    android:textSize="13sp" />
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:id="@+id/widget_start"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:background="@drawable/widget_button"
-                    android:fontFamily="@font/geist_semibold"
-                    android:gravity="center"
-                    android:text="@string/widget_start"
-                    android:textColor="@color/widget_on_accent"
-                    android:textSize="15sp" />
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-            </LinearLayout>
-
-            <!-- Pantalla 1: los pasos de hoy frente al objetivo, y la media de la
-                 semana. La barra dibuja un dato, no un tiempo: se repinta cuando
-                 cambian los pasos, nunca cada segundo. -->
-            <LinearLayout
-                android:id="@+id/widget_idle_steps"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_widget_steps" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:fontFamily="@font/geist_mono_semibold"
-                        android:includeFontPadding="false"
-                        android:letterSpacing="0.1"
-                        android:text="@string/widget_steps_stamp"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
-                <!-- La cifra en Mono 40sp. Su caja es la línea entera de la fuente
-                     (1,3 em) para no cortarle el pie; arriba se descuenta el aire
-                     de más con un margen, abajo no: `/ 10.000` va alineado a la
-                     línea base y un margen negativo le cortaba la mitad. -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/widget_steps"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="-6dp"
-                        android:fontFamily="@font/geist_mono_medium"
-                        android:includeFontPadding="false"
-                        android:maxLines="1"
-                        android:textColor="@color/widget_text"
-                        android:textSize="40sp" />
-
-                    <TextView
-                        android:id="@+id/widget_steps_goal"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:fontFamily="@font/geist_mono_medium"
-                        android:includeFontPadding="false"
-                        android:maxLines="1"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="15sp" />
-                </LinearLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <ProgressBar
-                    android:id="@+id/widget_steps_bar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp"
-                    android:indeterminate="false"
-                    android:max="1000"
-                    android:maxHeight="8dp"
-                    android:minHeight="8dp"
-                    android:progressDrawable="@drawable/widget_steps_bar" />
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <LinearLayout
-                    android:id="@+id/widget_steps_week_line"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_regular"
-                        android:text="@string/widget_steps_week"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/widget_steps_week"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/geist_mono_medium"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Pantalla de comida: los dos anillos de la tarjeta de Comida (DESIGN.md,
-                 «Pantalla Comida»). Proteína fuera, kcal dentro; los anillos son un
-                 bitmap que pinta FoodRings, porque un widget no dibuja arcos. Lo que
-                 falta de proteína, en el centro; las dos cifras, a la derecha. -->
-            <LinearLayout
-                android:id="@+id/widget_idle_food"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <FrameLayout
-                    android:id="@+id/widget_food_ring_box"
-                    android:layout_width="96dp"
-                    android:layout_height="96dp">
-
-                    <ImageView
-                        android:id="@+id/widget_food_rings"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:importantForAccessibility="no" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/widget_food_left"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/geist_mono_medium"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_accent_ink"
-                            android:textSize="24sp" />
-
-                        <TextView
-                            android:id="@+id/widget_food_caption"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:fontFamily="@font/geist_regular"
-                            android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:text="@string/widget_food_left"
-                            android:textColor="@color/widget_muted"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="7dp"
-                            android:layout_height="7dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/widget_food_dot_protein" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="5dp"
-                            android:fontFamily="@font/geist_mono_semibold"
-                            android:includeFontPadding="false"
-                            android:letterSpacing="0.1"
-                            android:text="@string/widget_food_protein"
-                            android:textColor="@color/widget_muted"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/widget_food_protein"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp"
-                        android:fontFamily="@font/geist_mono_medium"
-                        android:maxLines="1"
-                        android:textColor="@color/widget_text"
-                        android:textSize="15sp" />
-
-                    <LinearLayout
-                        android:id="@+id/widget_food_kcal_group"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <ImageView
-                                android:layout_width="7dp"
-                                android:layout_height="7dp"
-                                android:importantForAccessibility="no"
-                                android:src="@drawable/widget_food_dot_kcal" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="5dp"
-                                android:fontFamily="@font/geist_mono_semibold"
-                                android:includeFontPadding="false"
-                                android:letterSpacing="0.1"
-                                android:text="@string/widget_food_kcal"
-                                android:textColor="@color/widget_muted"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/widget_food_kcal"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:fontFamily="@font/geist_mono_medium"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text"
-                            android:textSize="15sp" />
-
-                        <TextView
-                            android:id="@+id/widget_food_note"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/geist_regular"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_muted"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </FrameLayout>
-
-        <!-- Los puntitos: activo, pastilla 18 × 7 en color de texto; inactivo,
-             7 × 7 en border-strong. La fila entera es el toque (44 dp) y se mete
-             en el margen de abajo para que los puntitos queden donde la vista
-             previa. -->
-        <LinearLayout
-            android:id="@+id/widget_dots"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="-12dp"
-            android:contentDescription="@string/widget_page"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:visibility="invisible">
-
-            <ImageView
-                android:id="@+id/widget_dot_1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot_on" />
-
-            <ImageView
-                android:id="@+id/widget_dot_2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot_off" />
-
-            <ImageView
-                android:id="@+id/widget_dot_3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot_off"
-                android:visibility="gone" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Sesión caducada: el servidor rechazó el token. Gana a los demás estados; el
-         botón, con borde y sin relleno, sólo abre la app. -->
-    <LinearLayout
-        android:id="@+id/widget_expired"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/widget_expired_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/geist_semibold"
-            android:maxLines="1"
-            android:text="@string/widget_expired_title"
-            android:textColor="@color/widget_text"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/widget_expired_body"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:fontFamily="@font/geist_regular"
-            android:maxLines="2"
-            android:text="@string/widget_expired_body"
-            android:textColor="@color/widget_muted"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/widget_reopen"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/widget_button_outline"
-            android:fontFamily="@font/geist_semibold"
-            android:gravity="center"
-            android:text="@string/widget_reopen"
-            android:textColor="@color/widget_text"
-            android:textSize="15sp" />
-    </LinearLayout>
+    <include layout="@layout/widget_expired_block" />
 </FrameLayout>

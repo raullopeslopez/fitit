@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sesión caducada, en el 4×2 y el 3×2 (las dos variantes la incluyen): el
+     servidor rechazó el token. Gana a los demás estados; el botón, con borde y sin
+     relleno, sólo abre la app. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_expired"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_vertical"
+    android:orientation="vertical"
+    android:visibility="gone">
+
+    <TextView
+        android:id="@+id/widget_expired_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/geist_semibold"
+        android:maxLines="1"
+        android:text="@string/widget_expired_title"
+        android:textColor="@color/widget_text"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/widget_expired_body"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="@font/geist_regular"
+        android:maxLines="2"
+        android:text="@string/widget_expired_body"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/widget_reopen"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/widget_button_outline"
+        android:fontFamily="@font/geist_semibold"
+        android:gravity="center"
+        android:text="@string/widget_reopen"
+        android:textColor="@color/widget_text"
+        android:textSize="15sp" />
+</LinearLayout>

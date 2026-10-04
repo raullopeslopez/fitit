@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- La barra de los pasos: accent sobre border, 8 dp y extremos redondos. Escalada
+<!-- La barra de los pasos: accent sobre border, 6 dp, radio 3. Escalada
      y no recortada, para que el extremo lleno también sea redondo. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@android:id/background">
         <shape android:shape="rectangle">
             <solid android:color="@color/widget_border" />
-            <corners android:radius="4dp" />
+            <corners android:radius="3dp" />
         </shape>
     </item>
     <item android:id="@android:id/progress">
         <scale android:scaleWidth="100%">
             <shape android:shape="rectangle">
                 <solid android:color="@color/widget_accent" />
-                <corners android:radius="4dp" />
+                <corners android:radius="3dp" />
             </shape>
         </scale>
     </item>

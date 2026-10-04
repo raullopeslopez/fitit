@@ -3,6 +3,7 @@ package io.github.raullopeslopez.fitit.session;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -19,42 +20,46 @@ import org.json.JSONObject;
  * ({@link SessionWidget3x2}), que es el mismo más estrecho.
  *
  * <pre>
- * Press banca · 4 series · 1 sin enviar         (■)
- * 01:23
- * [ −  32,5 kg  + |    ]
- * [ −  12 reps  + | +1 ]
+ * Press banca · 4 series · 1 sin enviar
+ * 01:23                                    (❚❚) (■)
+ * [ −  32,5 kg  + ] [ −  × 12  + ] [ +1 ]
  * </pre>
  *
- * <p>Añadir o cambiar de ejercicio se hace dentro de la app: tocar el ejercicio
- * la abre en ese entreno ({@link SessionLaunch#OPEN}).
+ * <p>Por debajo de 300 dp de ancho o de 190 de alto no cabe la fila de dos marcos, y
+ * se pinta el compacto (widget_session_4x2_compact): el tiempo en la línea del
+ * nombre y el bloque de dos filas apiladas. Los dos layouts tienen los mismos ids.
  *
- * <p>Los {@code −}/{@code +} cambian la serie que se repite y no registran nada;
- * el {@code +1} es el del 4×1 (y vibra igual). Un ejercicio sin peso no
- * enseña los botones de kg. Lo demás, el ejercicio, el reloj y el estado sin
- * sesión, es lo mismo que el 4×1 ({@link SessionWidget}), que es también quien
- * repinta los dos. Spec: docs/widgets-entreno.md, «4×2, con ajuste» y fase 4.
+ * <p>Añadir o cambiar de ejercicio se hace dentro de la app: tocar el ejercicio
+ * la abre en ese entreno ({@link SessionLaunch#OPEN}). Los {@code −}/{@code +}
+ * cambian la serie que se repite y no registran nada; el {@code +1} es el del
+ * 4×1 (y vibra igual). Un ejercicio sin peso no enseña el marco de kg. Sin
+ * entreno, pestañas: Pasos, Comida y Entreno. {@link SessionWidget} repinta los
+ * tres tamaños. Spec: docs/widgets-entreno.md, «4×2, con ajuste» y siguientes.
  */
 public class SessionWidget4x2 extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-        render(context, manager, ids);
+        render(context, manager, ids, fallback());
     }
 
     /** El launcher cambió su tamaño (al ponerlo, al estirarlo): se repinta a su medida. */
     @Override
     public void onAppWidgetOptionsChanged(
             Context context, AppWidgetManager manager, int id, Bundle options) {
-        render(context, manager, new int[] {id});
+        render(context, manager, new int[] {id}, fallback());
+    }
+
+    /** Lo que se pinta si el launcher no dice el tamaño: un 4×2 es el diseño entero. */
+    Fit fallback() {
+        return Fit.FULL;
     }
 
     /**
-     * Cuánto sitio le dio el launcher (DESIGN.md, «Tamaños»). El diseño aprobado
-     * pide 200 dp de alto; dos filas de launcher pueden dar menos (≈176 en el
-     * Xiaomi del usuario) y el bloque perdía la fila de reps por abajo. Por
-     * debajo de {@link #TALL}, compacto: el tiempo sube a la línea del nombre, las
-     * filas del bloque bajan a 44 dp (el mínimo de toque) y los márgenes a 10.
-     * Estrecho además ({@link #WIDE}), descansando se quita « · 4 series» para
-     * que quepa el nombre. Sin tamaño (un launcher que no lo dice), el de siempre.
+     * Cuánto sitio le dio el launcher (DESIGN.md, «Tamaños»). El diseño entero pide
+     * 300 dp de ancho y 190 de alto; el 3×2 del Xiaomi del usuario mide ≈253 × 176,
+     * y dos filas de launcher pueden dar menos de 190 también a un 4×2. Por debajo
+     * de cualquiera de los dos, compacto; estrecho además ({@link #WIDE}),
+     * descansando se quita « · 4 series» para que quepa el nombre.
      */
     enum Fit {
         FULL, COMPACT, NARROW;
@@ -63,20 +68,22 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         static final int WIDE = 300;
 
         /** En vertical, que es como se usa: ancho mínimo × alto máximo. */
-        static Fit of(Bundle options) {
+        static Fit of(Bundle options, Fit fallback) {
             int height = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
             int width = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
-            if (height <= 0 || height >= TALL) return FULL;
-            return width > 0 && width < WIDE ? NARROW : COMPACT;
+            if (width <= 0 && height <= 0) return fallback;
+            if (width > 0 && width < WIDE) return NARROW;
+            if (height > 0 && height < TALL) return COMPACT;
+            return FULL;
         }
     }
 
-    static void render(Context context, AppWidgetManager manager, int[] ids) {
+    static void render(Context context, AppWidgetManager manager, int[] ids, Fit fallback) {
         JSONObject control = Session.store(context).control();
         long now = System.currentTimeMillis();
         for (int id : ids) {
             Bundle options = manager.getAppWidgetOptions(id);
-            Fit fit = Fit.of(options);
+            Fit fit = Fit.of(options, fallback);
             int width = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
             int height = options == null ? 0 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
             manager.updateAppWidget(id, views(context, control, now, fit, width, height));
@@ -94,22 +101,33 @@ public class SessionWidget4x2 extends AppWidgetProvider {
     /** {@code width} × {@code height}: los dp que dio el launcher, o 0 si no los dijo. */
     static RemoteViews views(Context context, JSONObject control, long now, Fit fit,
             int width, int height) {
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_session_4x2);
-        // Los márgenes de siempre; el compacto los aprieta más abajo (fit). Sin
-        // entreno o caducada caben igual, y no deben heredar los de un compacto.
-        padding(context, views, 14);
-        if (Session.store(context).sessionExpired()) return SessionWidget.expired(context, views);
+        boolean full = fit == Fit.FULL;
+        RemoteViews views = new RemoteViews(context.getPackageName(),
+                full ? R.layout.widget_session_4x2 : R.layout.widget_session_4x2_compact);
+        if (Session.store(context).sessionExpired()) {
+            padding(context, views, 14, 14);
+            return SessionWidget.expired(context, views);
+        }
         if (control == null) return idle(context, views, LocalDate.now(), width, height);
+        // Android reaplica sobre la vista que ya había: los márgenes de las
+        // pestañas no deben quedarse en el widget que ahora entrena.
+        if (full) padding(context, views, 14, 16);
+        else padding(context, views, 10, 10);
 
         SessionWidget.header(context, views, control, now);
+        // El tiempo también abre la app: la línea del nombre sola mide 18 dp.
+        views.setOnClickPendingIntent(R.id.widget_time,
+                SessionLaunch.open(context, control.optInt("workoutId", -1)));
 
-        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        SessionWidget.count(views, control);
         String unsent = SessionControl.unsent(Session.store(context).queue().size());
         views.setTextViewText(R.id.widget_unsent, unsent);
         views.setViewVisibility(R.id.widget_unsent, unsent.isEmpty() ? View.GONE : View.VISIBLE);
+        boolean resting = SessionControl.rest(control, now) != SessionControl.Rest.NONE;
+        views.setViewVisibility(R.id.widget_count,
+                fit == Fit.NARROW && resting ? View.GONE : View.VISIBLE);
 
         block(views, control);
-        fit(context, views, control, now, fit);
         pause(context, views, control, now);
 
         SessionNotification.tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
@@ -119,49 +137,6 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         SessionNotification.tap(context, views, R.id.widget_log, SessionController.ACTION_WIDGET_REPEAT, 21);
         SessionNotification.tap(context, views, R.id.widget_end, SessionController.ACTION_END, 34);
         return views;
-    }
-
-    /**
-     * Lo que cambia con el tamaño. Todo se pone en los dos sentidos: al repintar,
-     * Android reaplica sobre la vista que ya había, y un compacto de antes dejaría
-     * sus márgenes y su reloj a un widget que ahora es alto.
-     */
-    static void fit(Context context, RemoteViews views, JSONObject control, long now, Fit fit) {
-        boolean compact = fit != Fit.FULL;
-        if (compact) padding(context, views, 10);
-
-        if (compact) {
-            views.setViewVisibility(R.id.widget_clock, View.GONE);
-            views.setViewVisibility(R.id.widget_over, View.GONE);
-            views.setViewVisibility(R.id.widget_paused, View.GONE);
-            SessionWidget.clock(views, R.id.widget_clock_inline, R.id.widget_over_inline,
-                    R.id.widget_paused_inline, control, now);
-        } else {
-            views.setViewVisibility(R.id.widget_clock_inline, View.GONE);
-            views.setViewVisibility(R.id.widget_over_inline, View.GONE);
-            views.setViewVisibility(R.id.widget_paused_inline, View.GONE);
-        }
-        boolean resting = SessionControl.rest(control, now) != SessionControl.Rest.NONE;
-        views.setViewVisibility(R.id.widget_count,
-                fit == Fit.NARROW && resting ? View.GONE : View.VISIBLE);
-
-        // Los márgenes y los altos sólo se tocan desde Android 12; antes, el
-        // compacto se queda en el reloj arriba y los márgenes de 10, que es lo
-        // que más alto ahorra.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            float row = compact ? 44 : 48;
-            views.setViewLayoutHeight(R.id.widget_weight_box, row, TypedValue.COMPLEX_UNIT_DIP);
-            views.setViewLayoutHeight(R.id.widget_reps_box, row, TypedValue.COMPLEX_UNIT_DIP);
-            views.setViewLayoutMargin(R.id.widget_block, RemoteViews.MARGIN_TOP,
-                    compact ? 8 : 11, TypedValue.COMPLEX_UNIT_DIP);
-            // Los − y + tocan en 52 dp (0.17.0), salvo en el compacto: en los
-            // ≈253 dp del Xiaomi, a 52 un «102,5 kg» pisaba el −.
-            float zone = compact ? 44 : 52;
-            for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
-                    R.id.widget_reps_down, R.id.widget_reps_up}) {
-                views.setViewLayoutWidth(id, zone, TypedValue.COMPLEX_UNIT_DIP);
-            }
-        }
     }
 
     /**
@@ -185,119 +160,234 @@ public class SessionWidget4x2 extends AppWidgetProvider {
                 SessionController.ACTION_REST_TOGGLE, 36);
     }
 
-    /** 16 dp a los lados siempre; arriba y abajo, {@code edge}. */
-    private static void padding(Context context, RemoteViews views, int edge) {
+    /** 16 dp a los lados siempre; arriba {@code top} y abajo {@code bottom}. */
+    private static void padding(Context context, RemoteViews views, int top, int bottom) {
         float density = context.getResources().getDisplayMetrics().density;
-        int side = Math.round(16 * density);
-        int vertical = Math.round(edge * density);
-        views.setViewPadding(R.id.widget_root, side, vertical, side, vertical);
+        views.setViewPadding(R.id.widget_root, Math.round(16 * density), Math.round(top * density),
+                Math.round(16 * density), Math.round(bottom * density));
     }
 
-    /**
-     * Sin entreno, dos pantallas que cambian al tocar los puntitos (DESIGN.md,
-     * «Sin entreno»): primero los pasos de hoy frente al objetivo; luego empezar,
-     * con el último entreno. Sin pasos de hoy sólo hay la de empezar, y los
-     * puntitos no se ven (invisibles, no fuera: la pantalla no se mueve de sitio).
-     */
+    // --- Sin entreno: las pestañas ---------------------------------------------
+
     static RemoteViews idle(Context context, RemoteViews views, LocalDate today) {
         return idle(context, views, today, 0, 0);
     }
 
+    /**
+     * Sin entreno (DESIGN.md, «Sin entreno — pestañas»): «Pasos», «Comida» y
+     * «Entreno» arriba, y debajo la elegida. Sin pasos de hoy no hay Pasos; sin
+     * objetivo de proteína, no hay Comida; Entreno está siempre. El widget
+     * recuerda la elegida ({@link SessionStore#idleTab}).
+     */
     static RemoteViews idle(Context context, RemoteViews views, LocalDate today, int width, int height) {
-        SessionWidget.idle(context, views);
-        JSONObject summary = Session.store(context).summary();
+        // 4 arriba (las pestañas tocan en 44 y suben sobre él) y nada abajo: el
+        // aire de abajo lo reparte la pestaña, igual que el de arriba.
+        padding(context, views, 4, 0);
+        views.setViewVisibility(R.id.widget_expired, View.GONE);
+        views.setViewVisibility(R.id.widget_session, View.GONE);
+        views.setViewVisibility(R.id.widget_idle, View.VISIBLE);
 
-        String last = IdleSummary.lastLine(summary, today);
-        if (last != null) views.setTextViewText(R.id.widget_idle_date, last);
-        views.setOnClickPendingIntent(R.id.widget_idle_start, SessionLaunch.start(context));
-
+        SessionStore store = Session.store(context);
+        JSONObject summary = store.summary();
         LocalDate foodToday = IdleSummary.foodDay(LocalDateTime.now());
         List<IdleSummary.Page> pages = IdleSummary.pages(summary, today, foodToday);
-        int index = Session.store(context).idlePage() % pages.size();
-        IdleSummary.Page page = pages.get(index);
-        views.setViewVisibility(R.id.widget_idle_start,
-                page == IdleSummary.Page.START ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.widget_idle_steps,
-                page == IdleSummary.Page.STEPS ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.widget_idle_food,
-                page == IdleSummary.Page.FOOD ? View.VISIBLE : View.GONE);
-        dots(views, pages.size(), index);
-        SessionNotification.tap(context, views, R.id.widget_dots, SessionController.ACTION_PAGE, 35);
+        IdleSummary.Page page = IdleSummary.tab(store.idleTab(), pages);
 
+        tab(context, views, IdleSummary.Page.STEPS, pages, page, R.id.widget_tab_steps,
+                R.id.widget_tab_steps_label, R.id.widget_tab_steps_line, 37);
+        tab(context, views, IdleSummary.Page.FOOD, pages, page, R.id.widget_tab_food,
+                R.id.widget_tab_food_label, R.id.widget_tab_food_line, 38);
+        tab(context, views, IdleSummary.Page.START, pages, page, R.id.widget_tab_train,
+                R.id.widget_tab_train_label, R.id.widget_tab_train_line, 39);
+        views.setViewVisibility(R.id.widget_idle_steps, page == IdleSummary.Page.STEPS ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_idle_food, page == IdleSummary.Page.FOOD ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_idle_start, page == IdleSummary.Page.START ? View.VISIBLE : View.GONE);
+
+        train(context, views, IdleSummary.last(summary, today), width);
         IdleSummary.Food food = IdleSummary.food(summary, foodToday);
-        if (food != null) food(context, views, food, FoodRings.sizeFor(context, food, width, height));
-
+        if (food != null) food(context, views, food, width, height);
         IdleSummary.Steps steps = IdleSummary.steps(summary, today);
-        if (steps == null) return views;
-
-        views.setTextViewText(R.id.widget_steps, IdleSummary.thousands(steps.today));
-        boolean goal = steps.goal != null;
-        views.setViewVisibility(R.id.widget_steps_goal, goal ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.widget_steps_bar, goal ? View.VISIBLE : View.INVISIBLE);
-        if (goal) {
-            views.setTextViewText(R.id.widget_steps_goal, "/ " + IdleSummary.thousands(steps.goal));
-            views.setProgressBar(R.id.widget_steps_bar, 1000, steps.progress(), false);
-        }
-        boolean week = steps.weekAverage != null;
-        views.setViewVisibility(R.id.widget_steps_week_line, week ? View.VISIBLE : View.INVISIBLE);
-        if (week) views.setTextViewText(R.id.widget_steps_week, IdleSummary.thousands(steps.weekAverage));
-        views.setOnClickPendingIntent(R.id.widget_idle_steps, SessionLaunch.app(context));
+        if (steps != null) steps(context, views, steps);
         return views;
     }
 
+    /** Una pestaña: sólo si hay su pantalla; la elegida, en tinta y subrayada. */
+    private static void tab(Context context, RemoteViews views, IdleSummary.Page tab,
+            List<IdleSummary.Page> pages, IdleSummary.Page chosen, int id, int label, int line, int code) {
+        views.setViewVisibility(id, pages.contains(tab) ? View.VISIBLE : View.GONE);
+        boolean on = tab == chosen;
+        ink(context, views, label, on ? R.color.widget_text : R.color.widget_muted);
+        views.setViewVisibility(line, on ? View.VISIBLE : View.INVISIBLE);
+        Intent intent = new Intent(context, SessionActionReceiver.class)
+                .setAction(SessionController.ACTION_TAB)
+                .putExtra(SessionController.EXTRA_TAB, tab.name());
+        views.setOnClickPendingIntent(id, SessionNotification.broadcast(context, intent, code));
+    }
+
     /**
-     * Los puntitos: uno por pantalla, el de la que se ve en pastilla. Con una sola
-     * pantalla no se ven (invisibles, no fuera: la pantalla no se mueve de sitio).
+     * Un color de texto de widget_colors: desde Android 12, el recurso, que el
+     * launcher resuelve al pintar y así sigue al tema del sistema; antes, el color
+     * de ahora.
      */
-    private static void dots(RemoteViews views, int count, int index) {
-        views.setViewVisibility(R.id.widget_dots, count > 1 ? View.VISIBLE : View.INVISIBLE);
-        int[] ids = {R.id.widget_dot_1, R.id.widget_dot_2, R.id.widget_dot_3};
-        for (int i = 0; i < ids.length; i++) {
-            views.setViewVisibility(ids[i], i < count ? View.VISIBLE : View.GONE);
-            views.setImageViewResource(ids[i],
-                    i == index ? R.drawable.widget_dot_on : R.drawable.widget_dot_off);
+    private static void ink(Context context, RemoteViews views, int id, int color) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            views.setColorStateList(id, "setTextColor", color);
+        } else {
+            views.setTextColor(id, context.getColor(color));
         }
     }
 
     /**
-     * La pantalla Comida (DESIGN.md, «Pantalla Comida»): los anillos, lo que falta
-     * de proteína en el centro y las dos cifras a la derecha. Tocarla abre Comida.
+     * La pestaña Pasos: «8.432» y «faltan 1.568» detrás; la barra; «Media semanal
+     * 7.910». Sin objetivo, ni «faltan» ni barra; cumplido, «faltan» se va. Lo que
+     * no está se lleva su hueco, para que el aire siga repartido por igual.
      */
-    static void food(Context context, RemoteViews views, IdleSummary.Food food, int ring) {
-        // El anillo llena el hueco (FoodRings.sizeFor); el tamaño de una vista
-        // sólo se cambia desde Android 12, y antes se queda en los 96 dp del layout.
+    private static void steps(Context context, RemoteViews views, IdleSummary.Steps steps) {
+        views.setTextViewText(R.id.widget_steps, IdleSummary.thousands(steps.today));
+        Integer left = steps.left();
+        views.setViewVisibility(R.id.widget_steps_left_line, left == null ? View.GONE : View.VISIBLE);
+        if (left != null) views.setTextViewText(R.id.widget_steps_left, IdleSummary.thousands(left));
+        boolean goal = steps.goal != null;
+        views.setViewVisibility(R.id.widget_steps_bar, goal ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_steps_bar_gap, goal ? View.VISIBLE : View.GONE);
+        if (goal) views.setProgressBar(R.id.widget_steps_bar, 1000, steps.progress(), false);
+        boolean week = steps.weekAverage != null;
+        views.setViewVisibility(R.id.widget_steps_week_line, week ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_steps_week_gap, week ? View.VISIBLE : View.GONE);
+        if (week) views.setTextViewText(R.id.widget_steps_week, IdleSummary.thousands(steps.weekAverage));
+        views.setOnClickPendingIntent(R.id.widget_idle_steps, SessionLaunch.app(context));
+    }
+
+    /**
+     * La pestaña Comida (DESIGN.md, «Pestaña Comida»): «118/202 G» en accent-ink y
+     * «1460/2569 KCAL» en tinta, con su sello, y los anillos a la derecha. Cerrada la
+     * proteína, su cifra y su anillo pasan a récord. Sin objetivo de kcal, ni bloque
+     * KCAL ni anillo de dentro. Tocarla abre Comida.
+     */
+    static void food(Context context, RemoteViews views, IdleSummary.Food food, int width, int height) {
+        boolean units = FoodRings.unitsFit(context, food, width, height);
+        int ring = FoodRings.sizeFor(context, food, width, height, units);
+        // El tamaño de una vista sólo se cambia desde Android 12; antes, los 136
+        // del layout.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) ring = FoodRings.SIZE_DP;
         else {
             views.setViewLayoutWidth(R.id.widget_food_ring_box, ring, TypedValue.COMPLEX_UNIT_DIP);
             views.setViewLayoutHeight(R.id.widget_food_ring_box, ring, TypedValue.COMPLEX_UNIT_DIP);
         }
         views.setImageViewBitmap(R.id.widget_food_rings, FoodRings.draw(context, food, ring));
-        boolean closed = food.closed();
-        int ink = context.getColor(closed ? R.color.widget_pr : R.color.widget_accent_ink);
-        float scale = ring / (float) FoodRings.SIZE_DP;
-        views.setTextViewText(R.id.widget_food_left, food.center());
-        views.setTextColor(R.id.widget_food_left, ink);
-        views.setTextViewTextSize(R.id.widget_food_left, TypedValue.COMPLEX_UNIT_SP,
-                Math.round((closed ? 15 : 24) * scale));
-        views.setTextViewText(R.id.widget_food_caption, context.getString(
-                closed ? R.string.widget_food_closed : R.string.widget_food_left));
-        views.setTextColor(R.id.widget_food_caption,
-                context.getColor(closed ? R.color.widget_pr : R.color.widget_muted));
-        views.setTextViewText(R.id.widget_food_protein, food.proteinLine());
+
+        int protein = food.closed() ? R.color.widget_pr : R.color.widget_accent_ink;
+        views.setTextViewText(R.id.widget_food_protein, IdleSummary.macro(food.protein));
+        views.setTextViewText(R.id.widget_food_protein_target, "/" + IdleSummary.macro(food.targetProtein));
+        for (int id : new int[] {R.id.widget_food_protein, R.id.widget_food_protein_target,
+                R.id.widget_food_protein_unit}) {
+            ink(context, views, id, protein);
+        }
+        int unit = units ? View.VISIBLE : View.GONE;
+        views.setViewVisibility(R.id.widget_food_protein_unit, unit);
         boolean kcal = food.targetKcal != null;
         views.setViewVisibility(R.id.widget_food_kcal_group, kcal ? View.VISIBLE : View.GONE);
         if (kcal) {
-            views.setTextViewText(R.id.widget_food_kcal, food.kcalLine());
-            String note = food.kcalNote();
-            views.setViewVisibility(R.id.widget_food_note, note == null ? View.GONE : View.VISIBLE);
-            if (note != null) views.setTextViewText(R.id.widget_food_note, note);
+            views.setTextViewText(R.id.widget_food_kcal, IdleSummary.macro(food.kcal));
+            views.setTextViewText(R.id.widget_food_kcal_target, "/" + IdleSummary.macro(food.targetKcal));
+            views.setViewVisibility(R.id.widget_food_kcal_unit, unit);
         }
         views.setOnClickPendingIntent(R.id.widget_idle_food, SessionLaunch.food(context));
     }
 
     /**
-     * Las cifras del bloque de ajuste (widget_adjust_block). Sin peso, la fila de
-     * kg y su filete se van y queda sólo la de reps.
+     * La pestaña Entreno: «2 días» desde el último, con la franja del color de su
+     * grupo (dos grupos, dos mitades), y «Empezar entreno». «Hoy» en lugar del
+     * número si fue hoy; «1 día». Sin último entreno, sólo el botón.
+     */
+    private static void train(Context context, RemoteViews views, IdleSummary.Last last, int width) {
+        views.setOnClickPendingIntent(R.id.widget_start, SessionLaunch.start(context));
+        views.setOnClickPendingIntent(R.id.widget_idle_start, SessionLaunch.start(context));
+        boolean known = last != null;
+        views.setViewVisibility(R.id.widget_train, known ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_train_gap, known ? View.VISIBLE : View.GONE);
+        if (!known) return;
+
+        boolean today = last.days == 0;
+        views.setViewVisibility(R.id.widget_train_days, today ? View.GONE : View.VISIBLE);
+        views.setViewVisibility(R.id.widget_train_unit, today ? View.GONE : View.VISIBLE);
+        views.setViewVisibility(R.id.widget_train_today, today ? View.VISIBLE : View.GONE);
+        views.setTextViewText(R.id.widget_train_days, String.valueOf(last.days));
+        views.setTextViewText(R.id.widget_train_unit, last.days == 1 ? "día" : "días");
+
+        List<String> groups = last.groups.size() > 2 ? last.groups.subList(0, 2) : last.groups;
+        boolean named = !groups.isEmpty();
+        String since = context.getString(today ? R.string.widget_train_today_line : R.string.widget_train_since);
+        views.setTextViewText(R.id.widget_train_since, named ? since + " · " : since);
+        views.setViewVisibility(R.id.widget_train_groups, named ? View.VISIBLE : View.GONE);
+        String names = String.join(" · ", groups);
+        // En un 3×2 «desde el último · Cuádriceps · Core» no cabe: antes que cortar
+        // con «…», se nombra el grupo principal entero. La franja sigue con los dos.
+        if (groups.size() == 2 && !fits(context, since + " · ", names, width)) names = groups.get(0);
+        views.setTextViewText(R.id.widget_train_groups, names);
+
+        boolean two = groups.size() == 2;
+        views.setViewVisibility(R.id.widget_train_stripe_2, two ? View.VISIBLE : View.GONE);
+        views.setImageViewResource(R.id.widget_train_stripe_1,
+                two ? R.drawable.widget_stripe_top : R.drawable.widget_stripe);
+        stripe(context, views, R.id.widget_train_stripe_1, named ? groups.get(0) : null);
+        if (two) stripe(context, views, R.id.widget_train_stripe_2, groups.get(1));
+    }
+
+    /**
+     * ¿Cabe la línea de debajo del número («desde el último · » en Geist 13 y los
+     * grupos en Geist 600 13) al lado de la franja? Sin tamaño del launcher, sí.
+     */
+    private static boolean fits(Context context, String since, String names, int widthDp) {
+        if (widthDp <= 0) return true;
+        float density = context.getResources().getDisplayMetrics().density;
+        float free = (widthDp - 2 * 16 - 4 - 12) * density;
+        return text(context, R.font.geist_regular, since) + text(context, R.font.geist_semibold, names) <= free;
+    }
+
+    private static float text(Context context, int font, String text) {
+        android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        try {
+            android.graphics.Typeface face = androidx.core.content.res.ResourcesCompat.getFont(context, font);
+            if (face != null) paint.setTypeface(face);
+        } catch (RuntimeException e) {
+            // Sin la fuente, se mide con la del sistema.
+        }
+        paint.setTextSize(13 * context.getResources().getDisplayMetrics().scaledDensity);
+        return paint.measureText(text);
+    }
+
+    /** Una mitad (o la franja entera) del color de su grupo; sin grupo conocido, border-strong. */
+    private static void stripe(Context context, RemoteViews views, int id, String group) {
+        int color = groupColor(group);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            views.setColor(id, "setColorFilter", color);
+        } else {
+            views.setInt(id, "setColorFilter", context.getColor(color));
+        }
+    }
+
+    /** El color de un grupo muscular (--m-* de DESIGN.md); Cardio y lo desconocido, border-strong. */
+    static int groupColor(String group) {
+        if (group == null) return R.color.widget_border_strong;
+        switch (IdleSummary.groupKey(group)) {
+            case "pecho": return R.color.widget_m_pecho;
+            case "espalda": return R.color.widget_m_espalda;
+            case "cuadriceps": return R.color.widget_m_cuadriceps;
+            case "gluteo": return R.color.widget_m_gluteo;
+            case "femoral": return R.color.widget_m_femoral;
+            case "gemelo": return R.color.widget_m_gemelo;
+            case "hombro": return R.color.widget_m_hombro;
+            case "biceps": return R.color.widget_m_biceps;
+            case "triceps": return R.color.widget_m_triceps;
+            case "core": return R.color.widget_m_core;
+            default: return R.color.widget_border_strong;
+        }
+    }
+
+    /**
+     * Las cifras de la fila de ajuste (o del bloque apilado, en el compacto). Sin
+     * peso, el marco de kg se va (y en el apilado, su filete) y queda el de reps.
      */
     static void block(RemoteViews views, JSONObject control) {
         int weighted = SessionControl.hasWeight(control) ? View.VISIBLE : View.GONE;

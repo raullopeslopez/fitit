@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La fila de ajuste del 4×2 y de la notificación desplegada (DESIGN.md, «El bloque
+     de ajuste»; APK 0.19.0, «se lee como la serie»): 46 dp de alto,
+     [marco peso] 6 dp [marco reps] 6 dp [+1]. Los dos marcos juntos dicen
+     «32,5 kg × 12», sin la palabra «reps».
+
+     Cada marco: 1 dp border-strong, radio 14; el − y el + son zonas de 44 dp en los
+     extremos y el valor va centrado encima de todo el marco. Encima y no entre ellas:
+     en un 4×2 cada marco mide ≈129 dp, y entre dos zonas de 44 no cabía «32,5 kg».
+     El valor no es tocable, así que un toque sobre él cae en la zona de debajo. Los
+     ids son los del bloque apilado (widget_adjust_block), que usa el compacto: el
+     mismo SessionWidget4x2.block rellena los dos. Sin peso, el marco de kg (y su
+     hueco) se va y el de reps ocupa el ancho. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_block"
+    android:layout_width="match_parent"
+    android:layout_height="46dp"
+    android:orientation="horizontal">
+
+    <FrameLayout
+        android:id="@+id/widget_weight_box"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="6dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_block"
+        android:padding="1dp">
+
+        <TextView
+            android:id="@+id/widget_weight_down"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:background="@drawable/widget_zone_start"
+            android:contentDescription="@string/widget_weight_down"
+            android:fontFamily="@font/geist_mono_medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="−"
+            android:textColor="@color/widget_glyph"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/widget_weight_up"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:background="@drawable/widget_zone_end"
+            android:contentDescription="@string/widget_weight_up"
+            android:fontFamily="@font/geist_mono_medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="+"
+            android:textColor="@color/widget_glyph"
+            android:textSize="20sp" />
+
+        <!-- «32,5» Mono 16sp, 3 dp, «kg» Geist 11sp muted, a la misma línea base. -->
+        <LinearLayout
+            android:id="@+id/widget_weight_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_weight"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/geist_mono_medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="32,5"
+                android:textColor="@color/widget_text"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:fontFamily="@font/geist_regular"
+                android:includeFontPadding="false"
+                android:text="@string/widget_weight_unit"
+                android:textColor="@color/widget_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/widget_reps_box"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/widget_block"
+        android:padding="1dp">
+
+        <TextView
+            android:id="@+id/widget_reps_down"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:background="@drawable/widget_zone_start"
+            android:contentDescription="@string/widget_reps_down"
+            android:fontFamily="@font/geist_mono_medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="−"
+            android:textColor="@color/widget_glyph"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/widget_reps_up"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:background="@drawable/widget_zone_end"
+            android:contentDescription="@string/widget_reps_up"
+            android:fontFamily="@font/geist_mono_medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="+"
+            android:textColor="@color/widget_glyph"
+            android:textSize="20sp" />
+
+        <!-- «×» Mono 14sp muted, 3 dp, «12» Mono 16sp. -->
+        <LinearLayout
+            android:id="@+id/widget_reps_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/geist_mono_medium"
+                android:includeFontPadding="false"
+                android:text="@string/widget_reps_sign"
+                android:textColor="@color/widget_muted"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_reps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:fontFamily="@font/geist_mono_medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="12"
+                android:textColor="@color/widget_text"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- El +1: 56 dp, todo el alto, radio 14. El único relleno ámbar. -->
+    <TextView
+        android:id="@+id/widget_log"
+        android:layout_width="56dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/widget_repeat"
+        android:contentDescription="@string/widget_log"
+        android:fontFamily="@font/geist_mono_semibold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/widget_plus_one"
+        android:textColor="@color/widget_on_accent"
+        android:textSize="18sp" />
+</LinearLayout>

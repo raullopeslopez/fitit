@@ -289,12 +289,13 @@ public class SessionStoreTest {
     }
 
     @Test
-    public void theIdlePageFlipsAndIsRemembered() {
-        assertEquals(0, store.idlePage());
-        store.flipIdlePage();
-        assertEquals(1, new SessionStore(context, cipher).idlePage());
-        store.flipIdlePage();
-        assertEquals(0, store.idlePage());
+    public void theIdleTabIsRememberedByName() {
+        assertNull("sin elegir, ninguna", store.idleTab());
+        store.setIdleTab("FOOD");
+        // Otro store sobre las mismas preferencias: lo que queda tras reiniciar.
+        assertEquals("FOOD", new SessionStore(context, cipher).idleTab());
+        store.setIdleTab(null);
+        assertEquals("un toque sin pestaña no borra la elegida", "FOOD", store.idleTab());
     }
 
     @Test

@@ -967,3 +967,75 @@ el usuario eligió **contar con toques cortos**.
   una y si se cortó y por qué.
 - **Comprobar en el teléfono:** bloqueado, con un descanso corriendo: tres toques, dos,
   uno, y el largo termina cuando la notificación marca `00:00`.
+
+## El 4×2 se lee como la serie, pestañas con nombre y anillos de reloj (APK 0.19.0)
+
+Encargo del 2026-10-04 con la maqueta cerrada: el 4×1 con los márgenes y tamaños finales,
+el 4×2 en tres partes con una fila de dos marcos, pestañas en vez de puntitos sin
+entreno, y la notificación como el widget. Las medidas están en DESIGN.md («Fuera de la
+app»); aquí, lo que se decidió al construirlo.
+
+### Lo que se decidió al construirlo
+- **Dos layouts para el 4×2.** `widget_session_4x2` (300 × 190 dp o más) y
+  `widget_session_4x2_compact` (el resto), con los mismos ids: un `RemoteViews` no mueve
+  vistas de sitio, y la fila de marcos y el bloque apilado comparten ids
+  (`widget_weight_down`…), así que no podían vivir en el mismo layout. El compacto lleva
+  sus medidas en el XML (filas y zonas de 44, márgenes de 10), y ya no se cambian desde
+  Java: de paso, desde Android 8 y no sólo desde el 12. Sin entreno y caducada son
+  `include` comunes (`widget_idle_tabs`, `widget_expired_block`).
+- **Compacto también por ancho** (< 300 dp). Antes, un 3×2 alto llevaba el diseño entero;
+  la fila de marcos no cabe en 253 dp. El 3×2, si el launcher no dice su tamaño, se
+  pinta estrecho (`SessionWidget3x2.fallback`).
+- **El valor de cada marco va encima de las zonas de −/+**, centrado en el marco, y no
+  entre ellas: un marco de 4×2 mide ≈129 dp, menos 88 de zonas quedan 39, y `32,5 kg`
+  mide ≈53. El texto no es tocable, así que el toque cae en la zona de debajo. Medido en
+  `SessionWidgetLookTest`: ≥ 4 dp entre el valor y su glifo, también con `102,5 kg`.
+- **`· 4 series` son tres textos** (`widget_series`): el número en Mono. Un `TextView` de
+  widget no mezcla fuentes propias (un `TypefaceSpan` con fuente no sobrevive al
+  `Parcel`). Los tests que leían `widget_count` leen ahora `widget_count_n`.
+- **Las pestañas se recuerdan por nombre** (`SessionStore.idleTab`, clave `idle_tab`), no
+  por posición: con la posición, al aparecer «Pasos» por la mañana quien estaba en Entreno
+  caía en Comida. Si la elegida no está hoy, se ve la primera. `ACTION_TAB` lleva la
+  pestaña en un extra; `ACTION_PAGE` y la clave `idle_page_steps_first` se retiran (la
+  vieja se queda huérfana en las preferencias, sin efecto).
+- **Colores que siguen al tema.** La tinta de la pestaña elegida y el récord de la
+  proteína se ponen con `setColorStateList` sobre el recurso desde Android 12, que el
+  launcher resuelve al pintar; antes, el color de ese momento. La franja de grupo, con
+  `setColor(…, "setColorFilter", …)` sobre un rectángulo blanco.
+- **Space-evenly a mano**: huecos de peso 1 entre bloques; lo que se esconde (barra,
+  media, bloque de Entreno) se lleva su hueco.
+- **Comida en el 3×2:** con ` KCAL` el anillo se quedaba en 73 dp; se quitan ` G` y
+  ` KCAL` cuando eso le da más anillo (`FoodRings.unitsFit`), y el anillo queda en ≈106.
+  Mínimo 88 dp.
+- **Entreno en el 3×2:** `desde el último · Cuádriceps · Core` no cabe en 253 dp; antes
+  que cortar con `…`, se nombra el grupo principal (medido con la fuente). La franja sigue
+  con los dos colores. Hoy dice `Hoy` y debajo `último entreno · Pierna` (el encargo no
+  decía qué poner debajo; «desde el último» con «Hoy» no se entiende). Sin último
+  entreno, sólo el botón.
+- **La notificación desplegada conserva la línea** `Press banca · 4 series` encima de la
+  fila del tiempo y la de ajuste: el encargo decía «b + c», pero sin ella la tarjeta no
+  dice qué ejercicio es y no queda nada que abra la app (0.17.0, el cuerpo ya no la abre).
+- **La barra del 4×1** se queda como estaba: radio propio a la izquierda y corte recto a la
+  derecha, que es lo mismo que recortarla con el fondo, sin depender de
+  `android:clipToOutline` (sólo Android 12+). Lo que sí cambia es el resto del 4×1:
+  márgenes 0 12 0 18, segunda línea a 3 dp, serie en Mono 13sp.
+- **Riesgos conocidos.** En el 3×2, Entreno va justo: el aire entre filete, bloque y botón
+  queda en ≈4 dp. En un 4×2 de entre 300 y 330 dp (launchers de cuatro columnas
+  estrechas), `102,5 kg` puede acercarse al `−` más de lo medido a 358.
+
+### Comprobar en el Xiaomi
+- **El 3×2 real (≈253 × 176 dp) en las tres pestañas.** Pasos: `8.432` y `faltan 1.568`
+  en una línea, la barra y la media sin cortarse. Comida: los anillos enteros, sin pisar el
+  filete ni el borde, y `118/202` / `1460/2569` sin unidades y sin cortarse. Entreno: `2
+  días`, `desde el último · Cuádriceps` (sólo el principal si son dos) y el botón, con
+  aire visible entre ellos.
+- **La barra del 4×1 baja y desaparece.** Durante el descanso se retira hacia la izquierda
+  a saltos de 5 s; en el cero desaparece; en pausa se queda quieta.
+- **Las pestañas recuerdan la elegida tras reiniciar.** Elegir Comida, reiniciar el
+  teléfono: el widget sigue en Comida.
+- **Los colores de grupo en claro y oscuro.** La franja de Entreno con el color de su
+  grupo (y partida en dos con dos grupos), en tema claro y en oscuro; que se distinga del
+  fondo en los dos.
+- Y de paso: el 4×2 entrenando con la fila de dos marcos (toques en − y + de cada marco,
+  `102,5 kg`), y la notificación cerrada con el tiempo a 30sp y el aro de pausa sin que
+  HyperOS la corte.

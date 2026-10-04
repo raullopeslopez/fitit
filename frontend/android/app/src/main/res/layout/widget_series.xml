@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- « · 4 series» detrás del nombre o de la serie: todo en Geist 13sp muted, salvo el
+     número, en Mono (toda cifra en Mono). Tres textos y no uno: un widget no lleva
+     fuentes propias dentro de un mismo texto. Lo incluyen el 4×1, el 4×2, el 3×2 y la
+     notificación; SessionWidget.count lo rellena. Alineado a la línea base del número,
+     para que vaya con el texto de al lado. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_count"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:baselineAlignedChildIndex="1"
+    android:orientation="horizontal">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/geist_regular"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text=" · "
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/widget_count_n"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/geist_mono_medium"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="4"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/widget_count_word"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="@font/geist_regular"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text=" series"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp" />
+</LinearLayout>

@@ -495,17 +495,25 @@ Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widge
   es 200 dp**: en ese launcher es ≈176, y a esa altura el diseño de abajo perdía la fila
   de reps. Por eso hay dos medidas del mismo diseño, y la elige el alto que da el
   launcher:
-  - **200 dp o más (≥ 190):** lo que se describe abajo, con el tiempo debajo del nombre.
-  - **Compacto (< 190):** el tiempo sube a la línea del nombre, a la derecha, en Mono
-    24sp (a 30 no cabía ni `Press banca` en 253 dp); las filas del bloque bajan a 44 dp
-    —el mínimo de toque— con 8 dp encima, y los márgenes de arriba y abajo a 10 dp.
-    Estrecho además (< 300 dp), mientras corre el tiempo se quita `· 4 series`: el
-    nombre entero pesa más que el número. Se aprobó el 2026-09-27 sobre la captura del
-    usuario. El 4×1 tiene diseño propio (abajo, «El 4×1»). Toques de 44 dp como mínimo,
-  siempre, aunque el icono sea menor.
+  - **300 dp de ancho y 190 de alto, o más:** lo que se describe abajo, en tres partes
+    (nombre, tiempo, fila de ajuste de dos marcos). Es el 4×2.
+  - **Compacto (< 300 de ancho o < 190 de alto; APK 0.19.0):** ahí la fila de dos marcos
+    no cabe, y es un layout aparte (`widget_session_4x2_compact`) con el diseño anterior:
+    el tiempo en la línea del nombre, a la derecha, en Mono 24sp (a 30 no cabía ni
+    `Press banca` en 253 dp); el bloque apilado de dos filas de 44 dp —el mínimo de
+    toque— con 8 dp encima, y los márgenes de arriba y abajo a 10 dp. Estrecho además
+    (< 300 dp), mientras corre el tiempo se quita `· 4 series`: el nombre entero pesa más
+    que el número. Es siempre el caso del 3×2 (≈253 × 176 dp en el Xiaomi). Hasta la
+    0.18.0 el compacto era sólo por alto; un 3×2 de 270 × 200 llevaba el diseño entero.
+  El 4×1 tiene diseño propio (abajo, «El 4×1»). Toques de 44 dp como mínimo, siempre,
+  aunque el icono sea menor.
 - **Tipos y color.** Nombre del ejercicio en Geist 600 15sp; lo secundario en Geist 13sp
-  `--muted`; toda cifra en Geist Mono con tabulares. Colores de `widget_colors.xml`, que
-  son los de este documento; claro y oscuro los elige el sistema.
+  `--muted`; toda cifra en Geist Mono con tabulares, **también dentro de una frase**:
+  en `· 4 series` el `4` va en Mono (un texto de widget no mezcla fuentes propias, así
+  que son tres textos, `widget_series`). Colores de `widget_colors.xml`, que son los de
+  este documento; claro y oscuro los elige el sistema. Los grupos musculares tienen los
+  suyos (`widget_m_pecho` … `widget_m_core`, los `--m-*` claro y oscuro), **sólo para
+  marcar, nunca para texto**.
 - **Nada que se deslice a los lados.** El launcher se queda ese gesto para cambiar de página;
   un widget no lo recibe. Lo que cambia de pantalla se **toca**.
 
@@ -513,46 +521,59 @@ Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widge
 Un solo estado activo cada vez. Tocar cualquier zona sin botón (nombre, series) abre Fitit
 en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no en el widget.
 
-- **Sin entreno — dos pantallas.** Una fila de puntitos abajo (activo: pastilla 18 × 7 en
-  `--text`; inactivo: 7 × 7 en `--border-strong`) de 44 dp de alto; tocarla cambia de
-  pantalla y el widget recuerda en cuál está.
-  - Pantalla 1: sello `PASOS HOY` con el icono de pisadas en `--accent-ink`; `8.432` en
-    Geist Mono 40sp seguido de `/ 10.000` en Mono 15sp `--muted`; una barra de 8 dp,
-    `--accent` sobre `--border`, que se llena hasta el objetivo; y `Media semanal: 7.910`.
-    La barra dibuja un dato, no un tiempo: se repinta cuando cambian los pasos, nunca cada
-    segundo. Sin objetivo fijado no hay barra ni `/ 10.000`.
-  - Pantalla 2 (la única si no hay pasos de hoy): `Sin entreno en curso` /
-    `Último: hace 2 días · Pierna` y el botón ámbar `Empezar entreno` a lo ancho.
-- **Pantalla Comida** (entre la de pasos y la de empezar; 2026-10-02). Los dos anillos de
-  la tarjeta de macros de Comida, en pequeño: un bitmap (`FoodRings`), proteína
-  fuera (9 dp, `--accent`) y kcal dentro (5 dp, tinta al 70 %) sobre carriles en
-  `--border`. **El anillo llena el hueco** (2026-10-02, el usuario: *"hay menos círculo
-  del que cabe"*): todo el alto libre, salvo que la leyenda, medida con su fuente y sus
-  cifras, pida el ancho; entre 96 y 180 dp. ≈106 dp en el 3×2 del Xiaomi (manda el
-  ancho), 140 en un 4×2. Grosores y cifra del centro crecen en proporción; las medidas
-  de abajo son las de 96 dp. En el centro, lo que falta de proteína en Mono 24sp `--accent-ink` y
-  `g faltan` en 11sp `--muted`; cerrada, `205/202` en 15sp y `Cerrado`, los dos en
-  `--pr`, y el anillo entero en `--pr`. A la derecha, el sello `PROTEÍNA` con su punto
-  ámbar y `118 / 202 g` en Mono 15sp; el sello `KCAL` con su punto en tinta,
-  `1460 / 2569` y `quedan 1109` (o `200 de más`) en 13sp `--muted`. Sin botones: el
-  único ámbar es el anillo, y tocar la pantalla abre Comida.
-  - Sólo aparece con objetivo de proteína. Sin objetivo de kcal no hay anillo de dentro
-    ni sello `KCAL`.
-  - Los datos los manda la app al abrirse y al volver a primer plano (`syncFood`), y
-    Comida al cargar hoy (`publishFood`); el widget no consulta el servidor, por
-    decisión del usuario (y porque despertaría a Render cada vez). Al instalar una APK
-    nueva y al encender el teléfono se repinta con lo guardado (`WidgetRefreshReceiver`). Lo restado lo resta el
-    servidor; el nativo sólo imprime.
-  - El día de comida corta a las 04:00: a esa hora el widget se repinta solo y, si lo
-    guardado es de otro día, sale vacío con los mismos objetivos (`— / 202 g`,
-    `quedan 2569`).
-  - Con tres pantallas hay tres puntitos, y se recorren en círculo: pasos, comida,
-    empezar.
-- **Entrenando.** Arriba, en una línea: `Press banca` (600, `--text`) `· 4 series`
-  (`--muted`), y Terminar a la derecha. Debajo, el **bloque de ajuste**. Nada más.
-- **Descansando.** Entre la línea del ejercicio y el bloque aparece el tiempo, `01:23` en
-  Geist Mono 30sp, alineado a la izquierda y **centrado en su hueco**: 11 dp arriba y 11
-  abajo (medido; antes quedaba a 2 dp del nombre y 20 del bloque y parecía pegado).
+- **Sin entreno — pestañas** (APK 0.19.0; antes, dos o tres pantallas con puntitos).
+  Arriba, `Pasos`, `Comida`, `Entreno` en Geist 600 13sp, 18 dp entre ellas; la fila
+  mide 40 dp a la vista y 44 de toque, que se mete en el margen de arriba (4 dp). La
+  elegida va en `--text` con un subrayado de 2 dp en `--text` del ancho de la palabra;
+  las otras, en `--muted`. Debajo, un filete de 1 dp `--border`. Tocar una pestaña la
+  elige y el widget **la recuerda por su nombre**, también al reiniciar: si mañana
+  desaparece `Pasos`, quien estaba en Entreno sigue en Entreno. Sin pasos de hoy no hay
+  `Pasos`; sin objetivo de proteína no hay `Comida`; `Entreno` está siempre. Márgenes
+  4 16 0. **El aire se reparte por igual** (space-evenly): el mismo hueco entre el
+  filete, cada bloque y el borde de abajo, y lo que no está se lleva su hueco.
+  - **Pasos:** `8.432` en Mono 44sp y, a su línea base y 10 dp detrás, `faltan 1.568`
+    (Geist 13sp `--muted`, la cifra en Mono `--text`); una barra de 6 dp, radio 3,
+    `--accent` sobre `--border`; y `Media semanal 7.910` en 12sp `--muted` (cifra en Mono).
+    Sin objetivo no hay `faltan` ni barra; cumplido, `faltan` desaparece y la barra se
+    queda llena. La barra dibuja un dato, no un tiempo: se repinta cuando cambian los
+    pasos, nunca cada segundo. Tocarla abre Fitit.
+  - **Comida** (anillos al estilo de los de actividad de un reloj): a la izquierda, dos
+    bloques a 14 dp: el sello `PROTEÍNA` (Mono 600 11sp, espaciado 0,1, `--muted`) y
+    `118` Mono 24sp + `/202` Mono 15sp + ` G` Mono 600 11sp, todo en `--accent-ink`; y el
+    sello `KCAL` con `1460/2569 KCAL` igual, en `--text`. A la derecha, los anillos
+    (`FoodRings`, un bitmap) de **136 dp**: fuera, 20 dp de `--accent` sobre un carril del
+    mismo ámbar al 22 %; 3 dp de hueco; dentro, 20 dp de `--text` sobre la tinta al 14 %.
+    Extremos redondos y **nada en el centro: cada cifra sale una vez** (antes, lo que
+    faltaba iba en el centro y las cifras otra vez a la derecha). Cerrada la proteína,
+    su anillo y su cifra pasan a `--pr`. Sin objetivo de kcal, ni anillo de dentro ni
+    bloque `KCAL`. Tocarla abre Comida.
+    - **En el 3×2** (≈253 dp) `1460/2569 KCAL` no deja sitio al anillo: se quitan ` G` y
+      ` KCAL` (la unidad ya la dice el sello) y el anillo mide lo que queda, unos 100 dp
+      (nunca menos de 88). Sólo se quitan si eso le da más anillo.
+    - Los datos los manda la app al abrirse y al volver a primer plano (`syncFood`), y
+      Comida al cargar hoy (`publishFood`); el widget no consulta el servidor, por
+      decisión del usuario (y porque despertaría a Render cada vez). Al instalar una APK
+      nueva y al encender el teléfono se repinta con lo guardado
+      (`WidgetRefreshReceiver`).
+    - El día de comida corta a las 04:00: a esa hora el widget se repinta solo y, si lo
+      guardado es de otro día, sale vacío con los mismos objetivos (`—/202 G`).
+  - **Entreno:** una franja vertical de 4 dp (radio 2) del color del grupo muscular del
+    último entreno y, 12 dp a su derecha, `2` en Mono 40sp + `días` en Geist 600 15sp;
+    6 dp debajo, `desde el último · Pierna` en 13sp `--muted` con el grupo en 600
+    `--text`. Con dos grupos, la franja va partida en dos mitades y dice
+    `Pierna · Core`; si no caben (en el 3×2 `Cuádriceps · Core` no cabe), se nombra
+    sólo el principal y la franja sigue con los dos colores. `1 día`; hoy, `Hoy` en Geist
+    600 en lugar del número, sin `días`, y debajo `último entreno · Pierna`. Cardio o un
+    grupo sin color: franja en `--border-strong`. Sin último entreno, sólo el botón.
+    Debajo, `Empezar entreno`, 44 dp a lo ancho, radio 12, `--accent`: el único relleno.
+- **Entrenando** (APK 0.19.0, «se lee como la serie»). Márgenes 14 16 16 y tres partes:
+  arriba `Press banca` (600, `--text`) `· 4 series` (`--muted`); en medio, una fila que
+  ocupa el alto que sobra, centrada en vertical, con el tiempo a la izquierda y, a la
+  derecha, el aro de pausa (margen derecho 4) y el de Terminar (margen derecho −5, para
+  que el aro de 34 quede en el borde); abajo, la **fila de ajuste** de 46 dp. Tocar el
+  nombre o el tiempo abre la app en ese entreno.
+- **Descansando.** El tiempo, `01:23` en Geist Mono 500 **40sp**, ocupa el ancho libre de
+  la fila de en medio. Sin descanso no hay tiempo, y Terminar se queda a la derecha.
 - **Pasado de tiempo.** Al llegar a cero, el mismo número pasa a `--accent-ink` y cuenta
   hacia arriba con signo: `+00:12`, `+02:47`. No hay botón de saltar en ningún sitio:
   registrar ya empieza la serie aunque quede descanso. **No se añade un amarillo**: no hay
@@ -578,31 +599,41 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   así que no lleva ámbar.
 
 ### El bloque de ajuste
-- **Una sola pieza**: los dos ajustes (`− 32,5 kg +`, `− 12 reps +`) apilados y el `+1` como
-  su extremo derecho, con un marco común (1 dp `--border-strong`, radio 14) y un filete de
-  1 dp `--border` entre filas. Dos filas de **48 dp**, así que el bloque mide lo mismo que
-  dos ajustes sueltos con su hueco (44 + 8 + 44 = 96). Menos cajas que compitan: se pasó de
-  siete cajas con borde a cuatro.
-- **`+1`**: 60 dp de ancho y todo el alto del bloque, relleno `--accent`, `+1` en Geist Mono
-  600 20sp `--on-accent`. Dice sólo `+1`: el botón no repite la serie, que ya está escrita
-  en los ajustes a su izquierda.
-- **`−` y `+`**: glifos en `--text` (no ámbar: el ámbar es del `+1`), zona de toque de
-  **52 dp** (APK 0.17.0; antes 44). En el 3×2 compacto (≈253 dp) se quedan en 44: a 52, un
-  `102,5 kg` pisaba el `−`. **Al pulsar**, su zona se tiñe (`#FBE6DC` claro / `#3A2216`
-  oscuro) y el glifo pasa a `--accent-ink`. Suave y no sólido: sólido, el `+` de los kilos
-  se fundía con el `+1` de al lado.
-- **6 dp entre las filas y el `+1`** (0.17.0). Era el riesgo apuntado aquí: el `+` de los
-  kilos pegado al `+1`, y un toque desviado registraba una serie. El hueco es del fondo del
-  bloque; el marco común sigue alrededor de todo.
+- **La fila de dos marcos** (4×2 y notificación desplegada; APK 0.19.0): 46 dp de alto,
+  `[marco peso]` 6 dp `[marco reps]` 6 dp `[+1]`. **Se lee como la serie**: `32,5 kg`
+  y `× 12`, juntos `32,5 kg × 12`, sin la palabra `reps`.
+  - **Cada marco**: 1 dp `--border-strong`, radio 14; `−` y `+` son zonas de toque de
+    44 dp en los extremos, y el valor va centrado sobre el marco entero. **Encima, no
+    entre ellas**: cada marco mide ≈129 dp y entre dos zonas de 44 no cabía `32,5 kg`; el
+    valor no se toca, así que un toque sobre él cae en la zona de debajo. Medido: hay al
+    menos 4 dp entre el valor y su glifo, también con `102,5 kg`.
+  - Peso: `32,5` Mono 16sp + 3 dp + `kg` Geist 11sp `--muted`, a la misma línea base.
+    Reps: `×` Mono 14sp `--muted` + 3 dp + `12` Mono 16sp.
+  - **`+1`**: 56 dp de ancho, todo el alto, radio 14, `--accent`, `+1` en Mono 600 18sp
+    `--on-accent`. Es el único relleno ámbar.
+  - **Sin peso** (dominadas): sólo el marco de reps, a lo ancho, y el `+1`.
+- **El bloque apilado** (el compacto: 3×2 y widgets bajos). Una sola pieza: las dos
+  filas de 44 dp apiladas (`− 32,5 kg +`, `− × 12 +`, con las mismas leyendas que la
+  fila, a la línea base de su cifra) y el `+1` como su extremo derecho, **56 dp**, a 6 dp
+  de las filas; marco común de 1 dp `--border-strong`, radio 14, y filete de 1 dp
+  `--border` entre filas.
+- **`−` y `+`**: glifos en `--text` (no ámbar: el ámbar es del `+1`). **Al pulsar**, su
+  zona se tiñe (`#FBE6DC` claro / `#3A2216` oscuro) y el glifo pasa a `--accent-ink`.
+  Suave y no sólido: sólido, el `+` de los kilos se fundía con el `+1` de al lado. Zonas
+  de 44 dp en los dos diseños (la 0.17.0 las había subido a 52 en el bloque apilado del
+  4×2; con la fila de marcos, el 4×2 ya no lo usa).
 - **Terminar**: un aro de 34 dp con borde 1,5 dp en `--danger` y un ■ de 14 dp dentro,
   arriba a la derecha, zona de toque de 44 dp. Rojo porque terminar no se deshace. Riesgo
   conocido: ■ es el símbolo universal de «parar» y está al lado de un cronómetro; si se lee
   como «parar el descanso», la alternativa aprobada es una bandera de meta en el mismo aro.
 
 ### El 4×1
-`Sin entreno en curso` + `Empezar`; entrenando, `Press banca` / `32,5 kg × 12 · 4 series` y
-`+1` (60 × 56 dp, radio 14, `--accent`); `Sesión caducada` + `Abrir`. El pasado de tiempo
-sigue la misma regla del ámbar.
+`Sin entreno en curso` + `Empezar`; `Sesión caducada` + `Abrir`. Entrenando (358 × 84 dp,
+radio 22), márgenes 0 12 0 18 y una fila centrada: a la izquierda, `01:23` en Mono 500
+28sp + 10 dp + `Press banca` en Geist 600 15sp (con `…` si no cabe) y, 3 dp debajo,
+`32,5 kg × 12` en Mono 13sp `--text` + ` · 4 series` en 13sp `--muted` (el `4` en Mono);
+a la derecha, el `+1` de 60 × 56 dp, radio 14, `--accent`, Mono 600 20sp. El pasado de
+tiempo sigue la misma regla del ámbar.
 
 - **Descansando, el fondo es el descanso** (APK 0.17.0, «el descanso se vacía», opción 2a
   de la maqueta). Una capa en `#FBE6DC` claro / `#3A2216` oscuro (la de la zona pulsada)
@@ -624,10 +655,15 @@ sigue la misma regla del ámbar.
   barra de estado. Se eligió tener el tiempo grande ya (HyperOS 3.0.3.0 aún no abre la isla
   a terceros; llega con la 3.1). El tamaño de la tarjeta de YouTube Music no está al alcance:
   es la plantilla multimedia, reservada a quien reproduce audio.
-- **Cerrada** (≈64 dp de contenido): `Press banca` / `32,5 kg × 12 · 4 series` a la
-  izquierda y el tiempo en Mono 34sp a la derecha.
-- **Desplegada**: la línea `Press banca · 4 series`, el tiempo en Mono 34sp y el **mismo
-  bloque de ajuste del widget**: se cambia peso y reps y se registra desde la notificación.
+- **Cerrada** (≈64 dp de contenido; APK 0.19.0): a la izquierda `Press banca` (Geist 600
+  15sp) / `32,5 kg × 12 · 4 series` (13sp; la serie en Mono `--text`, el resto `--muted`);
+  a la derecha, el tiempo en Mono 500 **30sp** y detrás el aro de pausa de 44 dp (▶ en
+  pausa; sin aro pasado de tiempo o sin descanso). Cabe en los 48 dp que da HyperOS.
+- **Desplegada**: la línea `Press banca · 4 series` y debajo **lo mismo que el 4×2**: el
+  tiempo en Mono 40sp con el aro de pausa, y la fila de ajuste de dos marcos y `+1`. **Sin
+  Terminar**: terminar no se deshace y se hace en el widget o en la app. La línea se
+  queda (el encargo decía «b + c») porque es lo único que dice qué ejercicio es y lo
+  único que abre la app.
 - **El cuerpo no abre la app** (APK 0.17.0). Lo único que abre Fitit es la línea del
   ejercicio (cerrada: `Press banca` / `32,5 kg × 12 · 4 series`; desplegada: `Press banca ·
   4 series`); un toque en cualquier otro sitio que no sea un botón no hace nada. Antes el
@@ -735,6 +771,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-04 | Widgets 0.19.0: el 4×2 se lee como la serie, pestañas con nombre y anillos de reloj | Encargo del usuario con la maqueta cerrada. **4×2:** tres partes (nombre; tiempo en 40sp con los aros; fila de dos marcos `32,5 kg` `× 12` y `+1` de 56): el bloque apilado decía `12 reps` y se leía como un formulario; la fila se lee como la serie. El valor va **encima** de las zonas de 44, no entre ellas, porque entre dos zonas no cabía `32,5 kg` en un marco de 129 dp. **Compacto por ancho también** (< 300 dp): la fila no cabe en un 3×2, que se queda con el bloque apilado (con las leyendas nuevas) y el tiempo en la línea del nombre; hasta ahora el compacto era sólo por alto. **Sin entreno:** pestañas `Pasos` `Comida` `Entreno` en vez de puntitos, recordadas por nombre (por posición, al aparecer «Pasos» por la mañana quien miraba Entreno caía en Comida). **Comida:** anillos de 20 dp al estilo de un reloj, cada cifra una vez; en el 3×2 se quitan ` G` y ` KCAL` porque si no el anillo se quedaba en 73 dp. **Entreno:** días desde el último con la franja del color de su grupo; con dos grupos que no caben se nombra el principal. Colores de grupo nuevos en el widget, sólo para marcar. **Notificación:** cerrada a 30sp con la serie en tinta; desplegada como el 4×2 sin Terminar, conservando la línea del ejercicio (abrir la app). La barra del 4×1 se queda con su radio propio a la izquierda en vez de recortarla con el fondo: se ve igual (un rectángulo recortado por la esquina del fondo es eso mismo) y no depende de que el launcher recorte (`android:clipToOutline` sólo existe desde Android 12). |
 | 2026-10-04 | La cuenta atrás se cuenta con toques cortos | Pedido del usuario: en la 0.16.0 (pi, pii, piiii) *"el tercero largo no sale"*. No se encontró la causa sin el teléfono conectado, y de las alternativas eligió contar con toques: tres en el 3, dos en el 2, uno en el 1 y uno largo en el cero. Dice cuánto queda sin mirar y sólo depende de toques cortos, que son los que llegan; el único largo, el del cero, es más corto que antes (500 ms frente a 800). |
 | 2026-10-04 | El cuerpo de la notificación no abre la app, y −/+ seguidos se pintan una vez | Problema del usuario: con el móvil bloqueado, tocar varias veces −/+ en la notificación desplegada pedía el código. Los botones son broadcasts (no piden desbloquear), pero el cuerpo tenía un `contentIntent` de actividad: cada toque repintaba la tarjeta, y uno que caía mientras tanto (o con la tarjeta ya cerrada por HyperOS) llegaba al cuerpo. Se quita el `contentIntent` y abrir Fitit pasa a ser un toque concreto, la línea del ejercicio; se pierde «tocar en cualquier sitio abre la app», que es justo lo que pedía el código. Además, los ajustes se pintan agrupados (300 ms tras el último) para que haya menos repintados que pisar; el `+1` no se agrupa porque registra. |
 | 2026-10-04 | −/+ de 52 dp y 6 dp entre el + de los kilos y el +1 | Mismo encargo: toques más grandes en el bloque, y cerrar el riesgo apuntado en «El bloque de ajuste». En el 3×2 compacto del Xiaomi (≈253 dp) las zonas se quedan en 44, medido: a 52 un `102,5 kg` pisaba el `−`. |

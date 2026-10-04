@@ -12,5 +12,15 @@
     <color name="widget_danger">#F87171</color>
     <color name="widget_press">#3A2216</color>
     <color name="widget_pr">#FFA733</color>
-    <color name="widget_ring_kcal">#B3F2F3F5</color>
+    <!-- Los grupos musculares, pasos oscuros (los m-* de styles.css). Sólo marca. -->
+    <color name="widget_m_pecho">#3987E5</color>
+    <color name="widget_m_espalda">#008300</color>
+    <color name="widget_m_cuadriceps">#D55181</color>
+    <color name="widget_m_gluteo">#A16336</color>
+    <color name="widget_m_femoral">#8046C8</color>
+    <color name="widget_m_gemelo">#0093A8</color>
+    <color name="widget_m_hombro">#C98500</color>
+    <color name="widget_m_biceps">#199E70</color>
+    <color name="widget_m_triceps">#9085E9</color>
+    <color name="widget_m_core">#E66767</color>
 </resources>

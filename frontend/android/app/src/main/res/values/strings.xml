@@ -16,23 +16,27 @@
     <string name="widget_rest_pause">Pausar descanso</string>
     <string name="widget_rest_resume">Reanudar descanso</string>
     <string name="widget_weight_unit">kg</string>
-    <string name="widget_reps_unit">reps</string>
+    <!-- Delante de las reps en el bloque: «32,5 kg» y «× 12» se leen como la serie. -->
+    <string name="widget_reps_sign">×</string>
     <string name="widget_weight_down">Menos 2,5 kg</string>
     <string name="widget_weight_up">Más 2,5 kg</string>
     <string name="widget_reps_down">Una rep menos</string>
     <string name="widget_reps_up">Una rep más</string>
     <string name="widget_idle_title">Sin entreno en curso</string>
     <string name="widget_start">Empezar entreno</string>
-    <!-- Sin entreno, pantalla 2 (DESIGN.md): los pasos de hoy. -->
-    <string name="widget_steps_stamp">PASOS HOY</string>
-    <string name="widget_steps_week">"Media semanal: "</string>
-    <!-- Los puntitos: cómo los nombra un lector de pantalla. -->
-    <string name="widget_page">Cambiar de pantalla</string>
-    <!-- La pantalla Comida del widget sin entreno (DESIGN.md, «Pantalla Comida»). -->
-    <string name="widget_food_left">g faltan</string>
-    <string name="widget_food_closed">Cerrado</string>
+    <!-- Sin entreno, las pestañas (DESIGN.md, «Sin entreno — pestañas»). -->
+    <string name="widget_tab_steps">Pasos</string>
+    <string name="widget_tab_food">Comida</string>
+    <string name="widget_tab_train">Entreno</string>
+    <string name="widget_steps_left">"faltan "</string>
+    <string name="widget_steps_week">"Media semanal "</string>
     <string name="widget_food_protein">PROTEÍNA</string>
     <string name="widget_food_kcal">KCAL</string>
+    <string name="widget_food_protein_unit">" G"</string>
+    <string name="widget_food_kcal_unit">" KCAL"</string>
+    <string name="widget_train_today">Hoy</string>
+    <string name="widget_train_since">desde el último</string>
+    <string name="widget_train_today_line">último entreno</string>
     <!-- Sesión caducada (DESIGN.md): el servidor rechazó el token al enviar. -->
     <string name="widget_expired_title">Sesión caducada</string>
     <string name="widget_expired_body">Abre Fitit para volver a entrar. Tus series siguen guardadas.</string>
