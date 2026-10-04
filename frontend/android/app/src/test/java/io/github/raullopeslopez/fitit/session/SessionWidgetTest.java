@@ -259,4 +259,108 @@ public class SessionWidgetTest {
         // La app no vuelve a abrir el entreno al girar el teléfono o recrearse.
         assertEquals(null, SessionLaunch.take(intent));
     }
+
+    // --- La barra del descanso (0.17.0, «el descanso se vacía», 2a) ------------
+    // El fondo del 4×1 es lo que queda de descanso: se retira de derecha a
+    // izquierda. Un widget sólo corre solo con el cronómetro, así que la barra
+    // se repinta cada 5 s, y sólo mientras el descanso corre.
+
+    private android.widget.ProgressBar bar() {
+        return view().findViewById(R.id.widget_rest_bar);
+    }
+
+    /** Las alarmas de repintar la barra que hay puestas. */
+    private java.util.List<org.robolectric.shadows.ShadowAlarmManager.ScheduledAlarm> ticks() {
+        java.util.List<org.robolectric.shadows.ShadowAlarmManager.ScheduledAlarm> found =
+                new java.util.ArrayList<>();
+        for (org.robolectric.shadows.ShadowAlarmManager.ScheduledAlarm alarm :
+                shadowOf(context.getSystemService(android.app.AlarmManager.class)).getScheduledAlarms()) {
+            Intent intent = shadowOf(alarm.operation).getSavedIntent();
+            if (SessionController.ACTION_BAR_TICK.equals(intent.getAction())) found.add(alarm);
+        }
+        return found;
+    }
+
+    @Test
+    public void restingTheBackgroundIsWhatIsLeftOfTheRest() throws Exception {
+        long now = now();
+        // 45 de 90 s: media barra.
+        SessionController.publish(context, bench(now + 45_000), now);
+
+        assertTrue(shown(R.id.widget_rest_bar));
+        assertEquals(1_000, bar().getMax());
+        assertEquals(500, bar().getProgress(), 10);
+        // El siguiente repintado, en 5 s, sin despertar al teléfono.
+        assertEquals(1, ticks().size());
+        assertEquals(android.app.AlarmManager.RTC, ticks().get(0).getType());
+        assertEquals(now + SessionWidget.BAR_TICK_MS, ticks().get(0).getTriggerAtMs(), 1_000);
+    }
+
+    @Test
+    public void eachTickRepaintsTheBarAndArmsTheNext() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now + 45_000), now);
+
+        SessionController.handle(context, new Intent(SessionController.ACTION_BAR_TICK), now + 9_000);
+
+        assertEquals(400, bar().getProgress(), 10);
+        assertEquals(1, ticks().size());
+        assertEquals(now + 9_000 + SessionWidget.BAR_TICK_MS, ticks().get(0).getTriggerAtMs());
+    }
+
+    @Test
+    public void theLastStretchIsLeftToTheEndOfRestRepaint() throws Exception {
+        long now = now();
+        // Quedan 3 s: el próximo repintado ya es el del fin del descanso.
+        SessionController.publish(context, bench(now + 3_000), now);
+
+        assertTrue(shown(R.id.widget_rest_bar));
+        assertTrue(ticks().isEmpty());
+    }
+
+    @Test
+    public void pastTheRestThereIsNoBarAndNoRepaints() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now + 45_000), now);
+        assertEquals(1, ticks().size());
+
+        SessionController.publish(context, bench(now - 12_500), now);
+
+        assertFalse(shown(R.id.widget_rest_bar));
+        assertTrue(ticks().isEmpty());
+        // Una alarma que llegue tarde no vuelve a armar nada.
+        SessionController.handle(context, new Intent(SessionController.ACTION_BAR_TICK), now + 5_000);
+        assertTrue(ticks().isEmpty());
+    }
+
+    @Test
+    public void withoutRestThereIsNoBarAndNoRepaints() throws Exception {
+        SessionController.publish(context, bench(0), now());
+
+        assertFalse(shown(R.id.widget_rest_bar));
+        assertTrue(ticks().isEmpty());
+    }
+
+    @Test
+    public void pausedTheBarStaysStillAndStopsRepainting() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now + 45_000), now);
+
+        SessionController.handle(context, new Intent(SessionController.ACTION_REST_TOGGLE), now);
+
+        assertTrue(shown(R.id.widget_rest_bar));
+        assertEquals(500, bar().getProgress(), 10);
+        assertTrue(ticks().isEmpty());
+    }
+
+    @Test
+    public void endingTheSessionStopsTheRepaints() throws Exception {
+        long now = now();
+        SessionController.publish(context, bench(now + 45_000), now);
+
+        SessionController.end(context);
+
+        assertFalse(shown(R.id.widget_rest_bar));
+        assertTrue(ticks().isEmpty());
+    }
 }

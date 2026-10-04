@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La barra del descanso del 4×1 (DESIGN.md, «El 4×1»): el fondo del widget es lo
+     que queda de descanso, en widget_press, y se retira de derecha a izquierda.
+     El clip corta recto por la derecha; la izquierda sigue la esquina del widget
+     (22 dp, menos el 1 dp del borde, que se queda a la vista). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip
+            android:clipOrientation="horizontal"
+            android:gravity="start">
+            <inset android:inset="1dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/widget_press" />
+                    <corners android:radius="21dp" />
+                </shape>
+            </inset>
+        </clip>
+    </item>
+</layer-list>

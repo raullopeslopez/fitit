@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- El bloque de ajuste (DESIGN.md, «El bloque de ajuste»): una sola pieza con las
      dos filas de 48 dp apiladas (− 32,5 kg +, − 12 reps +) y el +1 como su extremo
-     derecho, 60 dp de ancho y todo el alto. Marco común de 1 dp border-strong y
+     derecho, 60 dp de ancho y todo el alto, a 6 dp de las filas. Los − y + tocan
+     en 52 dp (44 en el 3×2 compacto: SessionWidget4x2.fit). Marco común de 1 dp border-strong y
      radio 14, filete de 1 dp border entre filas. Lo incluyen el 4×2, el 3×2 y la
      notificación desplegada, con los mismos ids. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -28,7 +29,7 @@
 
             <TextView
                 android:id="@+id/widget_weight_down"
-                android:layout_width="44dp"
+                android:layout_width="52dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone_top_start"
                 android:contentDescription="@string/widget_weight_down"
@@ -70,7 +71,7 @@
 
             <TextView
                 android:id="@+id/widget_weight_up"
-                android:layout_width="44dp"
+                android:layout_width="52dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone"
                 android:contentDescription="@string/widget_weight_up"
@@ -98,7 +99,7 @@
 
             <TextView
                 android:id="@+id/widget_reps_down"
-                android:layout_width="44dp"
+                android:layout_width="52dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone_bottom_start"
                 android:contentDescription="@string/widget_reps_down"
@@ -140,7 +141,7 @@
 
             <TextView
                 android:id="@+id/widget_reps_up"
-                android:layout_width="44dp"
+                android:layout_width="52dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone"
                 android:contentDescription="@string/widget_reps_up"
@@ -154,10 +155,12 @@
     </LinearLayout>
 
     <!-- El +1: el único relleno ámbar. Dice sólo +1: la serie ya está escrita a
-         su izquierda. -->
+         su izquierda. A 6 dp del + de los kilos (0.17.0): pegados, un toque
+         desviado registraba una serie. -->
     <TextView
         android:id="@+id/widget_log"
         android:layout_width="60dp"
+        android:layout_marginStart="6dp"
         android:layout_height="match_parent"
         android:background="@drawable/widget_plus_one"
         android:contentDescription="@string/widget_log"

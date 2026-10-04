@@ -9,7 +9,7 @@ import org.json.JSONObject;
 
 /**
  * Abrir la app con una orden: «abre este entreno» (tocar el ejercicio en el widget
- * o el cuerpo de la notificación) o «empieza el de hoy» (Empezar entreno).
+ * o la línea del ejercicio de la notificación) o «empieza el de hoy» (Empezar entreno).
  *
  * <p>La orden viaja en extras del intent; {@link SessionPlugin} la lee una sola vez
  * y se la pasa a la página, que es quien sabe abrir un entreno o empezar el de

@@ -501,8 +501,8 @@ Vistas previas aprobadas: `~/.gstack/projects/raullopeslopez-fitit/designs/widge
     —el mínimo de toque— con 8 dp encima, y los márgenes de arriba y abajo a 10 dp.
     Estrecho además (< 300 dp), mientras corre el tiempo se quita `· 4 series`: el
     nombre entero pesa más que el número. Se aprobó el 2026-09-27 sobre la captura del
-    usuario. El 4×1 se queda como está salvo el
-  botón, que dice sólo `+1`. Toques de 44 dp como mínimo, siempre, aunque el icono sea menor.
+    usuario. El 4×1 tiene diseño propio (abajo, «El 4×1»). Toques de 44 dp como mínimo,
+  siempre, aunque el icono sea menor.
 - **Tipos y color.** Nombre del ejercicio en Geist 600 15sp; lo secundario en Geist 13sp
   `--muted`; toda cifra en Geist Mono con tabulares. Colores de `widget_colors.xml`, que
   son los de este documento; claro y oscuro los elige el sistema.
@@ -586,20 +586,36 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
 - **`+1`**: 60 dp de ancho y todo el alto del bloque, relleno `--accent`, `+1` en Geist Mono
   600 20sp `--on-accent`. Dice sólo `+1`: el botón no repite la serie, que ya está escrita
   en los ajustes a su izquierda.
-- **`−` y `+`**: glifos en `--text` (no ámbar: el ámbar es del `+1`), zona de toque de 44 dp.
-  **Al pulsar**, su zona se tiñe (`#FBE6DC` claro / `#3A2216` oscuro) y el glifo pasa a
-  `--accent-ink`. Suave y no sólido: sólido, el `+` de los kilos se fundía con el `+1` de al
-  lado. Riesgo conocido: el `+` de los kilos está pegado al `+1`; si en uso real un toque
-  desviado registra una serie, se separan 6–8 dp.
+- **`−` y `+`**: glifos en `--text` (no ámbar: el ámbar es del `+1`), zona de toque de
+  **52 dp** (APK 0.17.0; antes 44). En el 3×2 compacto (≈253 dp) se quedan en 44: a 52, un
+  `102,5 kg` pisaba el `−`. **Al pulsar**, su zona se tiñe (`#FBE6DC` claro / `#3A2216`
+  oscuro) y el glifo pasa a `--accent-ink`. Suave y no sólido: sólido, el `+` de los kilos
+  se fundía con el `+1` de al lado.
+- **6 dp entre las filas y el `+1`** (0.17.0). Era el riesgo apuntado aquí: el `+` de los
+  kilos pegado al `+1`, y un toque desviado registraba una serie. El hueco es del fondo del
+  bloque; el marco común sigue alrededor de todo.
 - **Terminar**: un aro de 34 dp con borde 1,5 dp en `--danger` y un ■ de 14 dp dentro,
   arriba a la derecha, zona de toque de 44 dp. Rojo porque terminar no se deshace. Riesgo
   conocido: ■ es el símbolo universal de «parar» y está al lado de un cronómetro; si se lee
   como «parar el descanso», la alternativa aprobada es una bandera de meta en el mismo aro.
 
 ### El 4×1
-Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Press banca` /
-`32,5 kg × 12 · 4 series` y `+1`; descansando, el tiempo a la izquierda en Mono 30sp;
-`Sesión caducada` + `Abrir`. El pasado de tiempo sigue la misma regla del ámbar.
+`Sin entreno en curso` + `Empezar`; entrenando, `Press banca` / `32,5 kg × 12 · 4 series` y
+`+1` (60 × 56 dp, radio 14, `--accent`); `Sesión caducada` + `Abrir`. El pasado de tiempo
+sigue la misma regla del ámbar.
+
+- **Descansando, el fondo es el descanso** (APK 0.17.0, «el descanso se vacía», opción 2a
+  de la maqueta). Una capa en `#FBE6DC` claro / `#3A2216` oscuro (la de la zona pulsada)
+  ocupa todo el alto y se retira de derecha a izquierda según lo que queda: llena al
+  registrar, vacía en el cero. A la izquierda sigue la esquina del widget; a la derecha,
+  corte recto. Encima, como antes: el tiempo en Mono **28sp** + `Press banca`, debajo
+  `32,5 kg × 12 · 4 series`, y el `+1` a la derecha.
+- **Pasado de tiempo o sin descanso, la barra no está.** En pausa se queda quieta con lo
+  que quedaba.
+- **Se mueve a saltos de 5 s.** Un widget sólo se actualiza solo con el cronómetro, así
+  que la barra se repinta cada 5 s mientras el descanso corre (5 % de un descanso de 90), con
+  una alarma inexacta que no despierta al teléfono. Acabado, en pausa, sin descanso o sin
+  4×1 puesto, no hay repintados.
 
 ### La notificación del entreno
 - **Diseño propio, no plantilla.** Cabecera y marco los pone Android (`Fitit · Entreno`);
@@ -612,6 +628,14 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
   izquierda y el tiempo en Mono 34sp a la derecha.
 - **Desplegada**: la línea `Press banca · 4 series`, el tiempo en Mono 34sp y el **mismo
   bloque de ajuste del widget**: se cambia peso y reps y se registra desde la notificación.
+- **El cuerpo no abre la app** (APK 0.17.0). Lo único que abre Fitit es la línea del
+  ejercicio (cerrada: `Press banca` / `32,5 kg × 12 · 4 series`; desplegada: `Press banca ·
+  4 series`); un toque en cualquier otro sitio que no sea un botón no hace nada. Antes el
+  cuerpo abría la app, y con el móvil bloqueado un `−`/`+` que caía en él mientras la
+  tarjeta se repintaba pedía el código de desbloqueo.
+- **Toques seguidos en `−`/`+` se pintan una vez**: el peso y las reps cambian en cada
+  toque, pero la tarjeta y los widgets se repintan 300 ms después del último. El `+1` no
+  espera: registra con lo último y pinta al momento.
 - **Sin botones del sistema.** Desaparecen `+1 serie`, `Otra serie` y `Otro ejercicio`, y con
   ellos **escribir desde fuera de la app** (`Remo 40x10`, `35x10`): Android sólo deja campos
   de texto en sus propios botones, y el bloque ocupa ese sitio. Una serie distinta se ajusta
@@ -710,6 +734,9 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-04 | El cuerpo de la notificación no abre la app, y −/+ seguidos se pintan una vez | Problema del usuario: con el móvil bloqueado, tocar varias veces −/+ en la notificación desplegada pedía el código. Los botones son broadcasts (no piden desbloquear), pero el cuerpo tenía un `contentIntent` de actividad: cada toque repintaba la tarjeta, y uno que caía mientras tanto (o con la tarjeta ya cerrada por HyperOS) llegaba al cuerpo. Se quita el `contentIntent` y abrir Fitit pasa a ser un toque concreto, la línea del ejercicio; se pierde «tocar en cualquier sitio abre la app», que es justo lo que pedía el código. Además, los ajustes se pintan agrupados (300 ms tras el último) para que haya menos repintados que pisar; el `+1` no se agrupa porque registra. |
+| 2026-10-04 | −/+ de 52 dp y 6 dp entre el + de los kilos y el +1 | Mismo encargo: toques más grandes en el bloque, y cerrar el riesgo apuntado en «El bloque de ajuste». En el 3×2 compacto del Xiaomi (≈253 dp) las zonas se quedan en 44, medido: a 52 un `102,5 kg` pisaba el `−`. |
+| 2026-10-04 | El 4×1: el descanso se vacía | Opción 2a de la maqueta, elegida por el usuario: el fondo del 4×1 es lo que queda de descanso. Un widget no anima nada salvo el cronómetro, así que la barra se repinta cada 5 s, con alarma inexacta y sin despertar al teléfono (con la pantalla apagada nadie la mira), y nunca con el descanso acabado, en pausa o sin el 4×1 puesto. |
 | 2026-10-04 | El fin del descanso vibra 3, 2, 1 y el cero | Pedido del usuario: *"vibre en los tres segundos anteriores… 3, 2, 1, por cada segundo"*. Una sola notificación con un patrón que cubre los cuatro pulsos, y no cuatro avisos: Android suaviza los avisos seguidos de una app (Android 15+), y el del cero, el que importa, sería el más callado. El patrón es del canal, así que es fijo y no se adapta a una alarma tardía: por eso medio segundo tarde no vibra. El canal de dos pulsos de la 0.10.8 se retira (Android no deja cambiar el patrón de un canal), con lo que quien lo hubiera apagado lo vuelve a tener encendido una vez. |
 | 2026-10-04 | Pausar el descanso desde el widget | Pedido del usuario: *"añadir un botón al widget para pausar el descanso"*. Eligió él el sitio (sólo el 4×2 y el 3×2: el 4×1 no tiene hueco), qué hace `+1` en pausa (registra y empieza uno nuevo, corriendo) y cómo se ve (el tiempo quieto en `--muted`, y Entreno con `Reanudar`). Es un aro gemelo del de Terminar y no un botón con texto: la fila ya tiene un aro y la regla de «un solo ámbar» deja fuera el relleno; en `--border-strong` porque no es destructivo. Va a la izquierda de Terminar, no junto al tiempo, para no cambiar el alto de la franja del reloj (11 dp arriba y abajo, medidos). Riesgo aceptado: dos aros juntos, uno rojo; si un toque desviado termina el entreno, se separan. |
 | 2026-10-02 | Glúteo sale de Femoral: diez grupos, y la paleta pasa de 9 a 10 | Reversión explícita de «nueve es el techo» (2026-08-01), aprobada por el usuario. Femoral juntaba isquios y glúteo con el argumento de que las bisagras que entrenan uno entrenan el otro, y eso es cierto de las bisagras y falso de todo lo demás: la sentadilla hace crecer el glúteo y apenas los isquios (Kubo et al. 2019), así que cada sentadilla pagaba su media serie al único músculo de la pierna que no trabaja, y un hip thrust y un curl femoral caían en la misma fila. Ahora: hip thrust, puente, patada de glúteo y **abductor** (que hasta hoy no tenía grupo) son Glúteo; la bisagra sigue en Femoral y paga ½ a Glúteo; sentadilla, prensa y zancada pagan ½ a Glúteo en vez de a Femoral; el peso muerto paga ½ a cada uno. Banda RP de glúteo tal cual: mínimo 0, máximo 12, así que la fila, como Core, nunca dice «faltan». El color es un cobre (`#a16336` oscuro / `#7d3f17` claro), insertado entre Cuádriceps y Femoral para que la pierna siga junta. La rueda ya estaba llena y no había sitio para un tono vivo: es el único hueco que pasa el validador en los dos modos sin añadir un WARN de contraste, y en oscuro queda a ΔE 15,2 de Cuádriceps (suelo 15), el par adyacente más justo de la paleta en visión normal. Revalidado en las cuatro superficies; el peor par CVD no cambia. |

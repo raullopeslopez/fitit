@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.17.0: con el móvil bloqueado, tocar −/+ en la notificación ya no pide el código.**
+  El cuerpo de la notificación del entreno ya no abre la app: un toque fuera de un botón no
+  hace nada, y para abrir Fitit se toca la línea del ejercicio (`Press banca`). Varios −/+
+  seguidos se pintan una vez, 300 ms después del último; el +1 registra con lo último y se
+  pinta al momento.
+- **APK 0.17.0: −/+ más grandes en el bloque de ajuste.** Zonas de 52 dp (antes 44; en el
+  3×2 bajo del Xiaomi siguen en 44 para que quepa `102,5 kg`) y 6 dp de hueco entre el + de
+  los kilos y el +1, para que un toque desviado no registre una serie.
+- **APK 0.17.0: en el 4×1, el descanso se vacía.** Mientras descansas, el fondo del widget
+  es una barra que se retira de derecha a izquierda con lo que queda; al acabar desaparece.
+  El tiempo pasa a 28sp y el +1 a 60 × 56.
+- **APK 0.16.1: el último toque de la cuenta atrás acaba en el cero.** La cuenta empieza
+  3,8 s antes, así que el toque largo termina cuando el contador marca `00:00`.
+- **APK 0.16.0: la cuenta atrás del descanso crece.** Cada toque dura más que el anterior:
+  pi, pii, piiii (100, 250, 500 y 800 ms). Canal nuevo «Fin del descanso»: si lo tenías
+  apagado, apágalo otra vez.
 - **APK 0.15.0: el fin del descanso vibra 3, 2, 1 y el cero.** En vez de dos pulsos al
   llegar a cero, un toque corto en cada uno de los tres últimos segundos y uno largo en el
   cero. Se sigue callando apagando «Fin del descanso» en Ajustes de Android (es un canal

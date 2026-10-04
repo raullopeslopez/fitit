@@ -4,7 +4,9 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -16,6 +18,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.view.View;
@@ -25,6 +28,7 @@ import android.widget.TextView;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.testing.WorkManagerTestInitHelper;
 import io.github.raullopeslopez.fitit.R;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONObject;
@@ -197,10 +201,34 @@ public class SessionControllerTest {
     }
 
     @Test
+    public void theBodyOpensNothingOnlyTheExerciseLineOpensTheApp() throws Exception {
+        // Con el móvil bloqueado, un toque al cuerpo pedía el código: abría la app.
+        // Ahora el cuerpo no hace nada, y abrir Fitit es un toque concreto (0.17.0).
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+        assertNull(shown().contentIntent);
+
+        for (View root : new View[] {collapsed(), expanded()}) {
+            View line = root.findViewById(R.id.widget_line);
+            assertTrue(line.performClick());
+            Intent started = shadowOf((Application) context).getNextStartedActivity();
+            assertNotNull(started);
+            assertEquals(SessionLaunch.OPEN, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
+            assertEquals(1, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
+            // El resto no hereda el toque: ni el tiempo ni el fondo abren nada.
+            assertFalse(root.findViewById(R.id.widget_clock).performClick());
+            assertFalse(root.performClick());
+        }
+        View block = expanded().findViewById(R.id.widget_block);
+        assertFalse(block.performClick());
+        assertNull(shadowOf((Application) context).getNextStartedActivity());
+    }
+
+    @Test
     public void theExpandedBlockAdjustsAndLogsWithoutVibrating() throws Exception {
         SessionController.publish(context, bench(NOW - 1), NOW);
 
         tapIn(expanded(), R.id.widget_weight_up);
+        settle();
         assertTrue(store.queue().isEmpty());
         assertEquals("35", text(expanded(), R.id.widget_weight));
 
@@ -210,6 +238,61 @@ public class SessionControllerTest {
         assertEquals(" · 5 series", text(expanded(), R.id.widget_count));
         // Sólo el widget vibra.
         assertFalse(shadowOf(context.getSystemService(Vibrator.class)).isVibrating());
+    }
+
+    /** Pasa el rato sin toques tras un −/+: el repintado agrupado sale. */
+    private static void settle() {
+        idle(SessionController.ADJUST_SETTLE_MS);
+    }
+
+    private static void idle(long ms) {
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ms));
+    }
+
+    @Test
+    public void quickTapsOnPlusRepaintOnceWhenTheyStop() throws Exception {
+        SessionController.publish(context, bench(NOW - 1), NOW);
+        Notification before = shown();
+
+        // Tres + con menos de 300 ms entre ellos: el estado cambia en cada uno,
+        // pero la tarjeta no se repinta hasta que dejan de llegar.
+        tap(SessionController.ACTION_WEIGHT_UP);
+        idle(200);
+        tap(SessionController.ACTION_WEIGHT_UP);
+        idle(200);
+        tap(SessionController.ACTION_WEIGHT_UP);
+        assertEquals(40, store.control().getJSONObject("template").getDouble("weight"), 0);
+        // 400 ms después del primero: uno por toque ya habría repintado.
+        assertSame(before, shown());
+
+        settle();
+        assertNotSame(before, shown());
+        assertEquals("40", text(expanded(), R.id.widget_weight));
+        // Un solo repintado: no queda ninguno pendiente detrás.
+        assertTrue(shadowOf(Looper.getMainLooper()).isIdle());
+        Notification after = shown();
+        idle(1_000);
+        assertSame(after, shown());
+        // Repintar un ajuste no avisa.
+        assertTrue((after.flags & Notification.FLAG_ONLY_ALERT_ONCE) != 0);
+    }
+
+    @Test
+    public void plusOneRightAfterPlusLogsTheNewWeightAndRepaintsAtOnce() throws Exception {
+        SessionController.publish(context, bench(NOW - 1), NOW);
+
+        tap(SessionController.ACTION_WEIGHT_UP);
+        tap(SessionController.ACTION_REPEAT);
+
+        // Sin esperar: la serie sale con el peso nuevo y la tarjeta ya la cuenta.
+        assertEquals(1, store.queue().size());
+        assertEquals(35, store.head().getJSONObject("payload").getDouble("weight"), 0);
+        assertEquals(" · 5 series", text(expanded(), R.id.widget_count));
+        assertEquals("35", text(expanded(), R.id.widget_weight));
+        // El repintado del + se fundió en el del +1: no sale otro después.
+        Notification logged = shown();
+        settle();
+        assertSame(logged, shown());
     }
 
     // Toca una vista de la notificación y entrega lo que emitió, como Android.
@@ -363,6 +446,21 @@ public class SessionControllerTest {
         // El cierre a las dos horas sigue inexacto: un minuto ahí no se nota.
         assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + SessionControl.IDLE_MS
                 && a.getWindowLengthMs() != 0));
+    }
+
+    @Test
+    public void withNoFourByOneOnTheHomeScreenTheBarNeverRepaints() throws Exception {
+        // La barra del descanso es sólo del 4×1 (0.17.0): sin él puesto, ni una
+        // alarma de repintado, y una que quedara de antes no arma la siguiente.
+        SessionController.publish(context, bench(NOW + 83_000), NOW);
+        SessionController.handle(context, new Intent(SessionController.ACTION_BAR_TICK), NOW + 5_000);
+
+        for (ShadowAlarmManager.ScheduledAlarm alarm : alarms.getScheduledAlarms()) {
+            assertFalse(SessionController.ACTION_BAR_TICK.equals(
+                    shadowOf(alarm.operation).getSavedIntent().getAction()));
+        }
+        // Y no toca la notificación: sigue la misma.
+        assertEquals(SessionNotification.CHANNEL, shown().getChannelId());
     }
 
     @Test

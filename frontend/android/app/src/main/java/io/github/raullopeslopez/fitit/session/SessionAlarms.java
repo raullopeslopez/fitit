@@ -59,6 +59,22 @@ final class SessionAlarms {
         alarms.cancel(countdown(context));
         alarms.cancel(restOver(context));
         alarms.cancel(expire(context));
+        cancelBarTick(context);
+    }
+
+    /**
+     * El próximo repintado de la barra del 4×1 (0.17.0). Inexacta y sin despertar
+     * al teléfono: con la pantalla apagada nadie la mira, y al encenderla llega.
+     */
+    static void armBarTick(Context context, long at) {
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        if (alarms == null) return;
+        alarms.set(AlarmManager.RTC, at, barTick(context));
+    }
+
+    static void cancelBarTick(Context context) {
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        if (alarms != null) alarms.cancel(barTick(context));
     }
 
     /**
@@ -91,6 +107,10 @@ final class SessionAlarms {
 
     private static PendingIntent restOver(Context context) {
         return SessionNotification.broadcast(context, SessionController.ACTION_REST_OVER, 10);
+    }
+
+    private static PendingIntent barTick(Context context) {
+        return SessionNotification.broadcast(context, SessionController.ACTION_BAR_TICK, 15);
     }
 
     private static PendingIntent expire(Context context) {

@@ -173,11 +173,13 @@ public class SessionWidgetLookTest {
         near("el +1 cierra el bloque por la derecha, dentro del marco de 1 dp",
                 1, dp(block.right - log.right));
         near("el +1 ocupa todo el alto", 97, dp(log.height()));
-        // Los − y + tocan en 44 dp.
+        // Los − y + tocan en 52 dp (0.17.0; antes 44), y el + de los kilos queda
+        // a 6 dp del +1: un toque desviado ya no registra una serie.
         for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
                 R.id.widget_reps_down, R.id.widget_reps_up}) {
-            near("zona de toque", 44, dp(at(root, id).width()));
+            near("zona de toque", 52, dp(at(root, id).width()));
         }
+        near("hueco entre + y +1", 6, dp(log.left - at(root, R.id.widget_weight_up).right));
         // Y todo cabe en los 200 dp con su margen de 14.
         assertTrue("el bloque se sale por abajo", dp(block.bottom) <= 200 - 14 + 0.5f);
         WidgetRender.save(root, WALL_LIGHT, "4x2-entrenando-claro");
@@ -481,7 +483,7 @@ public class SessionWidgetLookTest {
         near("ancho del +1", 60, dp(at(root, R.id.widget_log).width()));
         for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
                 R.id.widget_reps_down, R.id.widget_reps_up}) {
-            near("zona de toque", 44, dp(at(root, id).width()));
+            near("zona de toque", 52, dp(at(root, id).width()));
         }
         // Las cifras caben entre sus − y +.
         assertTrue(at(root, R.id.widget_weight_down).right <= at(root, R.id.widget_weight).left);
@@ -570,6 +572,33 @@ public class SessionWidgetLookTest {
         WidgetRender.save(root, WALL_LIGHT, "4x1-entrenando-claro");
     }
 
+    @Test
+    public void theFourByOneRestingIsABackgroundThatEmpties() throws Exception {
+        int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
+        // 30 de 90 s: queda un tercio de barra.
+        SessionController.publish(context, bench(System.currentTimeMillis() + 30_000), System.currentTimeMillis());
+        View root = WidgetRender.lay(context, widgets.getViewFor(id), 358, 90);
+
+        Rect bar = at(root, R.id.widget_rest_bar);
+        // Todo el widget, de borde a borde: el fondo es la barra.
+        near("alto de la barra", 90, dp(bar.height()));
+        near("ancho de la barra", 358, dp(bar.width()));
+        Rect plusOne = at(root, R.id.widget_repeat);
+        near("ancho del +1", 60, dp(plusOne.width()));
+        near("alto del +1", 56, dp(plusOne.height()));
+        uncut(root, R.id.widget_clock);
+        WidgetRender.save(root, WALL_LIGHT, "4x1-descansando-claro");
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    public void theFourByOneRestingInTheDark() throws Exception {
+        int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
+        SessionController.publish(context, bench(System.currentTimeMillis() + 60_000), System.currentTimeMillis());
+        WidgetRender.save(WidgetRender.lay(context, widgets.getViewFor(id), 358, 90), WALL_DARK,
+                "4x1-descansando-oscuro");
+    }
+
     // --- Compacto: dos filas de launcher más bajas que los 200 dp del diseño -----
     // En el Xiaomi del usuario el 3×2 mide ≈253 × 176 dp (medido en su captura del
     // 2026-09-27): el bloque perdía la fila de reps por abajo. Por debajo de 190 dp
@@ -602,6 +631,27 @@ public class SessionWidgetLookTest {
         assertTrue(clock.right <= pause.left);
         assertTrue(pause.right <= at(root, R.id.widget_end).left);
         WidgetRender.save(root, WALL_DARK, "3x2-compacto-descansando-oscuro");
+    }
+
+    @Test
+    public void inTheUsersLauncherAHeavyWeightFitsBetweenItsMinusAndPlus() throws Exception {
+        JSONObject heavy = bench(0);
+        heavy.getJSONObject("template").put("weight", 102.5);
+        View root = placed(heavy, 253, 176);
+
+        assertEquals("102,5", ((TextView) root.findViewById(R.id.widget_weight)).getText().toString());
+        Rect weight = at(root, R.id.widget_weight);
+        assertTrue("la cifra pisa el −", at(root, R.id.widget_weight_down).right <= weight.left);
+        assertTrue("la cifra pisa el +", weight.right <= at(root, R.id.widget_weight_up).left);
+        uncut(root, R.id.widget_weight);
+        for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
+                R.id.widget_reps_down, R.id.widget_reps_up}) {
+            // A 52 no cabía: en el compacto se quedan en 44, el mínimo de toque.
+            near("zona de toque", 44, dp(at(root, id).width()));
+        }
+        near("hueco entre + y +1", 6,
+                dp(at(root, R.id.widget_log).left - at(root, R.id.widget_weight_up).right));
+        WidgetRender.save(root, WALL_LIGHT, "3x2-compacto-102kg-claro");
     }
 
     @Test

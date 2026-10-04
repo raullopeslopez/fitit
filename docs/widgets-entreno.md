@@ -883,3 +883,65 @@ dure más que el anterior conforme se acerca el cero.
 - **Comprobar en el teléfono:** con el móvil bloqueado y en vibración, a tres segundos del
   cero se notan cuatro toques cada vez más largos, y el último se acaba cuando el reloj
   marca `00:00`.
+
+## Toques con el móvil bloqueado, bloque más grande y el 4×1 que se vacía (APK 0.17.0)
+
+Problema del 2026-10-04: con el móvil bloqueado, tocar varias veces seguidas −/+ en la
+notificación desplegada pedía el código de desbloqueo.
+
+**Causa.** Los botones del bloque son `PendingIntent.getBroadcast`, que no piden
+desbloquear; pero la tarjeta tenía `setContentIntent(SessionLaunch.open(...))`, que es
+`getActivity`. Cada toque repintaba la tarjeta, y uno que caía mientras se repintaba (o con
+la tarjeta ya cerrada por HyperOS) llegaba al cuerpo, que intentaba abrir la app.
+
+### Lo que se decidió al construirlo
+- **Sin `contentIntent`.** Un toque fuera de un botón no hace nada. Abrir Fitit es tocar
+  `widget_line`: en la cerrada, la columna izquierda entera (`Press banca` / `32,5 kg × 12
+  · 4 series`), que ya es un blanco cómodo; en la desplegada, la línea `Press banca · 4
+  series`. Ni el tiempo, ni el fondo, ni el bloque heredan ese toque (lo fija un test).
+  Título y texto siguen rellenos para el lector de pantalla.
+- **Riesgo conocido:** en la desplegada, la línea mide de alto lo que el texto (≈20 dp),
+  menos que el mínimo de 44. Se dejó así porque crecerla movía el tiempo y el bloque, y
+  abrir la app es el toque raro aquí; si cuesta acertarle, se le da relleno con márgenes
+  negativos.
+- **Repintado agrupado.** `SessionController.adjust` guarda el control al momento y pinta
+  `ADJUST_SETTLE_MS` (300 ms) después del último −/+, con un `Handler` del hilo principal.
+  Para que Android no mate el proceso con el repintado pendiente, `SessionActionReceiver`
+  usa `goAsync()` y termina cuando sale (o al momento, si el toque no espera).
+- **El +1 no se agrupa.** Como el ajuste ya está guardado, el +1 registra con el peso y las
+  reps buenos sin aplicar nada; pinta al momento y el repintado de ajuste pendiente se
+  descarta, porque sobra.
+- **`setOnlyAlertOnce(true)`** en todos los repintados que no son la cuenta atrás; ya lo
+  estaba desde la 0.15.0. La vibración del fin del descanso no cambia. (El encargo la
+  nombraba con el canal `fitit_entreno_fin`, que se retiró en la 0.15.0: el canal que vibra
+  es `fitit_entreno_crece`, de la 0.16.0, y no se ha tocado.)
+- **−/+ de 52 dp**, filas de 48 (44 en el compacto), y **6 dp** entre el + de los kilos y
+  el +1 (`marginStart` del +1). En el 3×2 compacto del Xiaomi (≈253 × 176 dp) las zonas
+  **se quedan en 44**: a 52, `102,5 kg` pisaba el −, medido en `SessionWidgetLookTest`.
+- **El 4×1, «el descanso se vacía» (2a).** Un `ProgressBar` a todo el alto y ancho, debajo
+  del contenido, con un `clip` sobre un rectángulo en `widget_press` de radio 21 (el del
+  widget menos su borde de 1 dp): la izquierda sigue la esquina, la derecha corta recto.
+  Valor: `SessionControl.restLeft`, milésimas de lo que queda del descanso entero.
+- **Repintado de la barra cada 5 s** (`SessionWidget.BAR_TICK_MS`), con `AlarmManager.set`
+  en `RTC`: inexacta y sin despertar. Se arma al pintar el 4×1 sólo si el descanso corre y
+  la siguiente cae antes del fin (el último tramo lo repinta ya la alarma del fin del
+  descanso). Acabado, en pausa, sin descanso, con la sesión caducada o terminada, se quita.
+  Cada tick repinta **sólo el 4×1**, no la notificación ni el 4×2.
+- **Coste medido:** un descanso de 90 s son 17 repintados del 4×1, y ninguno después del
+  cero. «Fuera de la pantalla de inicio» se entiende como **sin 4×1 puesto**: entonces no
+  se arma ninguna alarma, y una que quedara no arma la siguiente (lo fijan los tests).
+  Android no dice si la página del launcher con el widget está a la vista, así que con la
+  pantalla encendida y otra app delante la barra se sigue repintando; con la pantalla
+  apagada no, porque la alarma no despierta.
+- **La barra se esconde a mano en cada repintado.** Android reaplica los `RemoteViews`
+  sobre la vista que ya había, y la barra de un descanso anterior se quedaba en «sin
+  entreno»; lo pilló el test de terminar.
+
+### Comprobar en el Xiaomi
+- Con el móvil bloqueado y la notificación desplegada, tocar −/+ diez veces rápido **no
+  pide el código**, y el peso acaba donde debe.
+- Tocar la línea del ejercicio (`Press banca`) **sí** pide desbloquear y abre Entreno.
+- Un toque fuera de los botones (el tiempo, el hueco junto al bloque) no hace nada.
+- −/+ diez veces y +1 enseguida: la serie sale con el peso de la pantalla.
+- La barra del 4×1 baja durante el descanso (a saltos de 5 s) y desaparece al acabar; en
+  pausa se queda quieta.
