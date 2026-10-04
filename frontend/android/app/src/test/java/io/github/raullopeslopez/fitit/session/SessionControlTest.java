@@ -212,4 +212,53 @@ public class SessionControlTest {
         assertEquals("32,5", SessionControl.weightLabel(bench()));
         assertEquals("12", SessionControl.repsLabel(bench()));
     }
+
+    // --- Pausar el descanso (botón del 4×2 y del 3×2) -------------------------
+
+    @Test
+    public void pausingKeepsWhatWasLeftAndStopsTheClock() throws Exception {
+        JSONObject running = bench().put("restEndsAt", NOW + 83_000);
+
+        JSONObject paused = SessionControl.toggleRest(running, NOW);
+
+        assertEquals(SessionControl.Rest.PAUSED, SessionControl.rest(paused, NOW + 600_000));
+        assertEquals(83_000, paused.getLong("restPausedMs"));
+        assertEquals(0, paused.getLong("restEndsAt"));
+        assertEquals("01:23", SessionControl.pausedLabel(paused));
+    }
+
+    @Test
+    public void resumingCountsWhatWasLeftFromNow() throws Exception {
+        JSONObject paused = SessionControl.toggleRest(bench().put("restEndsAt", NOW + 83_000), NOW);
+
+        JSONObject resumed = SessionControl.toggleRest(paused, NOW + 600_000);
+
+        assertEquals(SessionControl.Rest.RUNNING, SessionControl.rest(resumed, NOW + 600_000));
+        assertEquals(NOW + 600_000 + 83_000, resumed.getLong("restEndsAt"));
+        assertFalse(resumed.has("restPausedMs"));
+    }
+
+    @Test
+    public void overtimeOrNoRestHasNothingToPause() throws Exception {
+        JSONObject over = bench().put("restEndsAt", NOW - 1_000);
+        assertEquals(SessionControl.Rest.OVER, SessionControl.rest(SessionControl.toggleRest(over, NOW), NOW));
+        assertEquals(SessionControl.Rest.NONE, SessionControl.rest(SessionControl.toggleRest(bench(), NOW), NOW));
+    }
+
+    @Test
+    public void aRepeatWhilePausedStartsAFreshRunningRest() throws Exception {
+        JSONObject paused = SessionControl.toggleRest(bench().put("restEndsAt", NOW + 83_000), NOW);
+
+        JSONObject after = SessionControl.repeat(paused, NOW + 10_000).control;
+
+        assertFalse(after.has("restPausedMs"));
+        assertEquals(NOW + 10_000 + 90_000, after.getLong("restEndsAt"));
+        assertEquals(SessionControl.Rest.RUNNING, SessionControl.rest(after, NOW + 10_000));
+    }
+
+    @Test
+    public void thePausedLabelRoundsUpLikeACountdown() throws Exception {
+        assertEquals("00:01", SessionControl.pausedLabel(bench().put("restPausedMs", 400)));
+        assertEquals("02:00", SessionControl.pausedLabel(bench().put("restPausedMs", 120_000)));
+    }
 }

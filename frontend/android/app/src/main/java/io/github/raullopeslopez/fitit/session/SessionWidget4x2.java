@@ -110,6 +110,7 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
         block(views, control);
         fit(context, views, control, now, fit);
+        pause(context, views, control, now, fit);
 
         SessionNotification.tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         SessionNotification.tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
@@ -132,10 +133,13 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         if (compact) {
             views.setViewVisibility(R.id.widget_clock, View.GONE);
             views.setViewVisibility(R.id.widget_over, View.GONE);
-            SessionWidget.clock(views, R.id.widget_clock_inline, R.id.widget_over_inline, control, now);
+            views.setViewVisibility(R.id.widget_paused, View.GONE);
+            SessionWidget.clock(views, R.id.widget_clock_inline, R.id.widget_over_inline,
+                    R.id.widget_paused_inline, control, now);
         } else {
             views.setViewVisibility(R.id.widget_clock_inline, View.GONE);
             views.setViewVisibility(R.id.widget_over_inline, View.GONE);
+            views.setViewVisibility(R.id.widget_paused_inline, View.GONE);
         }
         boolean resting = SessionControl.rest(control, now) != SessionControl.Rest.NONE;
         views.setViewVisibility(R.id.widget_count,
@@ -151,6 +155,42 @@ public class SessionWidget4x2 extends AppWidgetProvider {
             views.setViewLayoutMargin(R.id.widget_block, RemoteViews.MARGIN_TOP,
                     compact ? 8 : 11, TypedValue.COMPLEX_UNIT_DIP);
         }
+    }
+
+    /**
+     * Pausar el descanso: sólo mientras corre (❚❚) o está en pausa (▶). Pasado
+     * de tiempo no hay nada que pausar. Es un aro al lado de Terminar, salvo en
+     * el estrecho ({@link Fit#NARROW}, el 3×2 del Xiaomi): ahí el tiempo va en la
+     * línea del nombre y un aro más lo cortaba, así que el botón es el propio
+     * tiempo (DESIGN.md, «En pausa»).
+     */
+    static void pause(Context context, RemoteViews views, JSONObject control, long now, Fit fit) {
+        SessionControl.Rest rest = SessionControl.rest(control, now);
+        boolean resting = rest == SessionControl.Rest.RUNNING || rest == SessionControl.Rest.PAUSED;
+        boolean ring = resting && fit != Fit.NARROW;
+        boolean onTheClock = resting && fit == Fit.NARROW;
+        views.setViewVisibility(R.id.widget_rest_toggle, ring ? View.VISIBLE : View.GONE);
+        // Todo en los dos sentidos: un widget estirado conserva lo del tamaño de antes.
+        for (int id : new int[] {R.id.widget_clock_inline, R.id.widget_paused_inline}) {
+            views.setOnClickPendingIntent(id, onTheClock
+                    ? SessionNotification.broadcast(context, SessionController.ACTION_REST_TOGGLE, 36)
+                    : null);
+        }
+        if (!resting) return;
+        boolean paused = rest == SessionControl.Rest.PAUSED;
+        String description = context.getString(
+                paused ? R.string.widget_rest_resume : R.string.widget_rest_pause);
+        if (onTheClock) {
+            // Sólo el quieto: un cronómetro reescribe su descripción con el tiempo
+            // en cada tic, y ése es el que se lee mientras corre.
+            views.setContentDescription(R.id.widget_paused_inline, description);
+            return;
+        }
+        views.setImageViewResource(R.id.widget_rest_toggle,
+                paused ? R.drawable.widget_resume_ring : R.drawable.widget_pause_ring);
+        views.setContentDescription(R.id.widget_rest_toggle, description);
+        SessionNotification.tap(context, views, R.id.widget_rest_toggle,
+                SessionController.ACTION_REST_TOGGLE, 36);
     }
 
     /** 16 dp a los lados siempre; arriba y abajo, {@code edge}. */

@@ -46,6 +46,8 @@ export const session = {
   publish: (control) => run(() => FititSession.publish({ control })),
   end: () => run(() => FititSession.end()),
   skipRest: () => run(() => FititSession.skipRest()),
+  // El descanso que se pausó desde el widget sigue con lo que le quedaba.
+  resumeRest: () => run(() => FititSession.resumeRest()),
   // Android 13+ lo pregunta una vez; contesta `{ granted }`.
   ensureNotifications: () => run(() => FititSession.ensureNotifications()),
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **APK 0.14.0: pausar el descanso desde el widget.** En el 4×2 y el 3×2, mientras corre
+  el descanso, sale un aro con ❚❚ a la izquierda de Terminar (en el 3×2 bajo, el del
+  Xiaomi, no cabe: ahí se toca el propio tiempo). Al tocarlo el tiempo se queda
+  quieto en gris y el aro pasa a ▶; tocarlo otra vez sigue desde ahí. En pausa no vibra.
+  El 4×1 y la notificación enseñan el tiempo quieto, y Entreno dice `En pausa` con
+  `Reanudar`. `+1` en pausa registra y empieza un descanso nuevo.
+
 ### Fixed
 - **APK 0.13.1: el fin del descanso vibra de verdad.** Con el móvil bloqueado, el aviso de
   fin del descanso llegaba más de un minuto tarde y entonces, a propósito, no vibraba. Ahora

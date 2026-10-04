@@ -22,6 +22,7 @@ const session = vi.hoisted(() => ({
   publish: vi.fn(),
   end: vi.fn(),
   skipRest: vi.fn(),
+  resumeRest: vi.fn(),
   ensureNotifications: vi.fn(),
   onChanged: vi.fn(),
 }))
@@ -256,6 +257,60 @@ describe('Entreno y la notificación en curso', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^saltar$/i }))
 
     expect(session.skipRest).toHaveBeenCalled()
+  })
+
+  it('un descanso pausado desde el widget se queda quieto en la app, con «Reanudar»', async () => {
+    await addBench()
+    await logBench()
+    expect(await screen.findByRole('timer')).toBeInTheDocument()
+
+    act(() =>
+      changed({
+        queue: [],
+        control: { workoutId: 1, restSeconds: 90, restEndsAt: 0, restPausedMs: 83_000 },
+      }),
+    )
+
+    const bar = await screen.findByRole('timer')
+    await waitFor(() => expect(bar).toHaveTextContent('En pausa'))
+    expect(bar.querySelector('.rest-num')).toHaveTextContent('01:23')
+    expect(bar.querySelector('.rest-num')).toHaveClass('rest-num-paused')
+    expect(screen.getByRole('button', { name: /^reanudar$/i })).toBeInTheDocument()
+    // Sigue pudiéndose saltar.
+    expect(screen.getByRole('button', { name: /^saltar$/i })).toBeInTheDocument()
+  })
+
+  it('«Reanudar» se lo dice al nativo y la barra vuelve a contar desde lo que quedaba', async () => {
+    await addBench()
+    act(() =>
+      changed({
+        queue: [],
+        control: { workoutId: 1, restSeconds: 90, restEndsAt: 0, restPausedMs: 83_000 },
+      }),
+    )
+    const before = Date.now()
+
+    await userEvent.click(await screen.findByRole('button', { name: /^reanudar$/i }))
+
+    expect(session.resumeRest).toHaveBeenCalled()
+    const bar = screen.getByRole('timer')
+    expect(bar).toHaveTextContent('Descanso')
+    expect(bar.querySelector('.rest-num')).not.toHaveClass('rest-num-paused')
+    expect(screen.queryByRole('button', { name: /^reanudar$/i })).not.toBeInTheDocument()
+    expect(Number(localStorage.getItem('fitit_rest_until'))).toBeGreaterThanOrEqual(before + 83_000)
+  })
+
+  it('al abrir Entreno con el descanso en pausa, la barra sale en pausa', async () => {
+    session.snapshot.mockResolvedValue({
+      queue: [],
+      rejected: 0,
+      control: { workoutId: 1, restSeconds: 90, restEndsAt: 0, restPausedMs: 42_000 },
+    })
+    render(<Workout workoutId={1} onExit={() => {}} />)
+
+    const bar = await screen.findByRole('timer')
+    expect(bar).toHaveTextContent('En pausa')
+    expect(bar.querySelector('.rest-num')).toHaveTextContent('00:42')
   })
 
   it('el control de otro entreno no toca el descanso de éste', async () => {

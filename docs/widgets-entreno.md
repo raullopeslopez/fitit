@@ -805,3 +805,35 @@ la vibración directa que se le atribuyó.
   llegar a cero; repetir con `+1` para el segundo descanso. Si aun así no vibra, el
   siguiente paso es `adb logcat | grep -iE "alarm|vibrat|notif"` en ese momento: dirá si
   la alarma llegó y qué hizo Android con la notificación.
+
+## Pausar el descanso (APK 0.14.0)
+
+Pedido el 2026-10-04: un botón en el widget para pausar el descanso. Decidido con el
+usuario: sólo en el 4×2 y el 3×2; `+1` en pausa registra y empieza un descanso nuevo;
+el tiempo en pausa se queda quieto en `--muted`, y Entreno ofrece `Reanudar`.
+
+- **El control guarda la pausa:** `restPausedMs` (lo que quedaba) y `restEndsAt` a 0.
+  `SessionControl.rest()` da `PAUSED`. Reanudar es `restEndsAt = ahora + restPausedMs`.
+  `+1` y `Saltar` quitan la pausa.
+- **Widget:** aro `widget_rest_toggle` a la izquierda de Terminar, sólo con el descanso
+  corriendo (❚❚, «Pausar descanso») o en pausa (▶, «Reanudar descanso»). Acción
+  `REST_TOGGLE`. En el estrecho (`Fit.NARROW`, el 3×2 compacto del Xiaomi) no hay aro:
+  el tiempo de la línea del nombre (`widget_clock_inline` / `widget_paused_inline`) es
+  el botón. Con el aro, `Press banca` se cortaba (lo cazó
+  `inTheUsersLauncherTheWholeBlockFitsWhileResting`).
+- **El tiempo quieto es un texto** (`widget_paused`, y `widget_paused_inline` en el
+  compacto), no un cronómetro parado: el launcher recalcula un cronómetro parado cada
+  vez que lo vuelve a pintar. Lo tienen también el 4×1 y las dos vistas de la
+  notificación, que no llevan botón.
+- **Alarma:** en pausa no hay fin del descanso, así que no hay alarma ni vibración; al
+  reanudar se vuelve a poner, exacta, para lo que queda.
+- **La app:** el aviso `changed` lleva el control; Entreno pinta `En pausa` con el tiempo
+  quieto en `--muted` y los botones `Reanudar` y `Saltar`. `Reanudar` llama a
+  `resumeRest` en el nativo. Al abrir Entreno, el control del `snapshot` también se sigue
+  (antes sólo se seguía con la app abierta), así que una pausa hecha con la app cerrada
+  se ve al entrar.
+- **Comprobar en el teléfono:** registrar una serie, tocar ❚❚ en el 4×2: el tiempo se
+  para en gris y el aro pasa a ▶; la notificación también enseña el tiempo quieto.
+  Esperar más que el descanso: no vibra. Tocar ▶: sigue desde donde estaba y vibra al
+  llegar a cero. Pausar, abrir Entreno: `En pausa` y `Reanudar`. Pausar y tocar `+1`:
+  descanso nuevo, corriendo.

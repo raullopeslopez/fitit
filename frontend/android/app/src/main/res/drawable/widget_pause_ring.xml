@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pausar el descanso: el aro de Terminar (34 dp, borde 1,5 dp) en border-strong
+     y no en danger, porque pausar se deshace; dentro ❚❚ en tinta. Se centra en
+     una zona de toque de 44 dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="34dp"
+    android:height="34dp"
+    android:viewportWidth="34"
+    android:viewportHeight="34">
+    <path
+        android:pathData="M17,0.75 A16.25,16.25 0 1,1 16.99,0.75 Z"
+        android:strokeColor="@color/widget_border_strong"
+        android:strokeWidth="1.5" />
+    <path
+        android:fillColor="@color/widget_text"
+        android:pathData="M12.5,11 h3.5 v12 h-3.5 Z M18,11 h3.5 v12 h-3.5 Z" />
+</vector>

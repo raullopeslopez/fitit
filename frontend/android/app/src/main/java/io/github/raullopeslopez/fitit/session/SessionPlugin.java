@@ -276,6 +276,13 @@ public class SessionPlugin extends Plugin {
         call.resolve();
     }
 
+    /** «Reanudar» en la app: el descanso pausado desde el widget sigue contando. */
+    @PluginMethod
+    public void resumeRest(PluginCall call) {
+        SessionController.resumeRest(getContext(), System.currentTimeMillis());
+        call.resolve();
+    }
+
     /**
      * El permiso de notificaciones, que Android 13+ pide una vez. Hasta 12 no es un
      * permiso que se pida: se contesta con si las notificaciones están activadas.

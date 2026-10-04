@@ -545,6 +545,21 @@ public class SessionWidgetLookTest {
     }
 
     @Test
+    public void thePauseRingSitsLeftOfTerminarWithoutTouchingIt() throws Exception {
+        View root = mid(bench(System.currentTimeMillis() + 83_000));
+
+        Rect pause = at(root, R.id.widget_rest_toggle);
+        Rect end = at(root, R.id.widget_end);
+        near("toque de pausa", 44, dp(pause.width()));
+        near("toque de pausa", 44, dp(pause.height()));
+        assertTrue("a la izquierda de Terminar, sin pisarlo", pause.right <= end.left);
+        assertTrue("en la línea de arriba", pause.bottom <= at(root, R.id.widget_block).top);
+        // El nombre sigue a la vista.
+        assertTrue(at(root, R.id.widget_exercise).width() > 0);
+        WidgetRender.save(root, WALL_LIGHT, "3x2-descansando-pausa-claro");
+    }
+
+    @Test
     public void theFourByOneTouchIsFortyFourDp() throws Exception {
         int id = widgets.createWidget(SessionWidget.class, R.layout.widget_session_4x1);
         SessionController.publish(context, bench(0), System.currentTimeMillis());

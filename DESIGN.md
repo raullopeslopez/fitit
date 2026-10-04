@@ -559,6 +559,18 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   tono de aviso en el sistema a propósito y el ámbar ya significa «ha pasado algo»; además
   un amarillo sobre blanco no se lee. Contraste medido del ámbar como texto: 5,09 en claro
   y 6,29 en oscuro.
+- **En pausa** (4×2 y 3×2; 2026-10-04). Descansando, a la izquierda de Terminar hay un
+  segundo aro, del mismo tamaño (34 dp, borde 1,5 dp, toque de 44) pero en
+  `--border-strong` y no en `--danger`, porque pausar se deshace; dentro, ❚❚ en
+  `--text`. Al tocarlo, el tiempo se queda quieto en `--muted` con lo que quedaba
+  (`01:23`) y el glifo pasa a ▶; tocarlo otra vez sigue desde ahí. Pasado de tiempo o
+  sin descanso, el aro no está. **En el 3×2 estrecho y bajo** (el compacto del Xiaomi,
+  ≈253 × 176 dp) no hay aro: el tiempo va en la línea del nombre y un aro más cortaba
+  `Press banca`, así que ahí el botón es el propio tiempo (tocarlo pausa y reanuda;
+  decidido con el usuario al verlo fallar en CI). `+1` en pausa registra y empieza un descanso nuevo,
+  corriendo. El 4×1 y la notificación no tienen botón, pero enseñan el tiempo quieto
+  igual; y Entreno, `En pausa` con `Reanudar` junto a `Saltar`. En pausa no vibra: la
+  alarma del fin se quita y vuelve al reanudar.
 - **Sin enviar.** La línea del ejercicio dice `5 series · 1 sin enviar`, con `1 sin enviar`
   en `--accent-ink`. Se va sola al llegar las series al servidor.
 - **Sesión caducada.** `Sesión caducada` / `Abre Fitit para volver a entrar. Tus series
@@ -694,6 +706,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-04 | Pausar el descanso desde el widget | Pedido del usuario: *"añadir un botón al widget para pausar el descanso"*. Eligió él el sitio (sólo el 4×2 y el 3×2: el 4×1 no tiene hueco), qué hace `+1` en pausa (registra y empieza uno nuevo, corriendo) y cómo se ve (el tiempo quieto en `--muted`, y Entreno con `Reanudar`). Es un aro gemelo del de Terminar y no un botón con texto: la fila ya tiene un aro y la regla de «un solo ámbar» deja fuera el relleno; en `--border-strong` porque no es destructivo. Va a la izquierda de Terminar, no junto al tiempo, para no cambiar el alto de la franja del reloj (11 dp arriba y abajo, medidos). Riesgo aceptado: dos aros juntos, uno rojo; si un toque desviado termina el entreno, se separan. |
 | 2026-10-02 | Glúteo sale de Femoral: diez grupos, y la paleta pasa de 9 a 10 | Reversión explícita de «nueve es el techo» (2026-08-01), aprobada por el usuario. Femoral juntaba isquios y glúteo con el argumento de que las bisagras que entrenan uno entrenan el otro, y eso es cierto de las bisagras y falso de todo lo demás: la sentadilla hace crecer el glúteo y apenas los isquios (Kubo et al. 2019), así que cada sentadilla pagaba su media serie al único músculo de la pierna que no trabaja, y un hip thrust y un curl femoral caían en la misma fila. Ahora: hip thrust, puente, patada de glúteo y **abductor** (que hasta hoy no tenía grupo) son Glúteo; la bisagra sigue en Femoral y paga ½ a Glúteo; sentadilla, prensa y zancada pagan ½ a Glúteo en vez de a Femoral; el peso muerto paga ½ a cada uno. Banda RP de glúteo tal cual: mínimo 0, máximo 12, así que la fila, como Core, nunca dice «faltan». El color es un cobre (`#a16336` oscuro / `#7d3f17` claro), insertado entre Cuádriceps y Femoral para que la pierna siga junta. La rueda ya estaba llena y no había sitio para un tono vivo: es el único hueco que pasa el validador en los dos modos sin añadir un WARN de contraste, y en oscuro queda a ΔE 15,2 de Cuádriceps (suelo 15), el par adyacente más justo de la paleta en visión normal. Revalidado en las cuatro superficies; el peor par CVD no cambia. |
 | 2026-10-02 | La vibración del fin del descanso la pone la tarjeta | Corrige la 0.10.7, que no vibraba en el Xiaomi: la vibración directa desde la alarma, con el teléfono bloqueado, se descarta. La de una notificación sí llega (se vio en la 0.10.6). Así que vibra la tarjeta que ya está, repintada una vez en un canal hermano que vibra, y no se añade ninguna notificación. De paso vuelve el interruptor en Ajustes, que la 0.10.7 había perdido. |
 | 2026-10-02 | El fin del descanso sólo vibra | Corrige la del día anterior tras usarla: el usuario lleva el móvil en vibración y lo que le servía era la vibración; el aviso `Descanso terminado` era una segunda notificación para decir lo que la tarjeta ya dice al pasar a positivo. Se quitan el aviso y su canal, y el teléfono vibra directamente, como alarma (`USAGE_ALARM`), porque con la pantalla bloqueada Android ignora las demás vibraciones de una app en segundo plano. Se renuncia al interruptor del canal en Ajustes: no hay canal que apagar. Si alguien quiere callarlo, la respuesta hoy es `Descanso: Sin`. |
