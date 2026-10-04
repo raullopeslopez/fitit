@@ -42,7 +42,7 @@ public final class SessionController {
      */
     static final long COUNTDOWN_LATE_MS = 500;
     /**
-     * El repintado a positivo, después del último pulso (el cero, de 400 ms): una
+     * El repintado a positivo, después del último pulso (el cero, de 800 ms): una
      * actualización muda de la tarjeta corta la vibración que estuviera sonando.
      * Por debajo de un segundo el reloj aún dice 00:00, no −00:01.
      */

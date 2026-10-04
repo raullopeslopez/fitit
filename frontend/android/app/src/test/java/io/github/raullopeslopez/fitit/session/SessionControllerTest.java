@@ -410,14 +410,18 @@ public class SessionControllerTest {
                 notifications.getNotificationChannel(SessionNotification.CHANNEL_COUNTDOWN);
         assertTrue(buzz.shouldVibrate());
         assertNull(buzz.getSound());
-        // 3, 2, 1 cortos, uno por segundo, y el cero largo.
-        assertArrayEquals(new long[] {0, 120, 880, 120, 880, 120, 880, 400}, buzz.getVibrationPattern());
+        // Uno por segundo, cada uno más largo que el anterior: pi, pii, piiii y
+        // el cero, que acaba antes del repintado a positivo.
+        assertEquals("fitit_entreno_crece", SessionNotification.CHANNEL_COUNTDOWN);
+        assertArrayEquals(new long[] {0, 100, 900, 250, 750, 500, 500, 800}, buzz.getVibrationPattern());
+        assertTrue(800 < SessionController.REST_OVER_DELAY_MS);
         // La vibración la pone Android con la notificación; la directa no llega.
         assertFalse(vibrator().isVibrating());
-        // Los canales de antes, fuera de Ajustes: el de sonido (0.10.6) y el de
-        // dos pulsos (0.10.8).
+        // Los canales de antes, fuera de Ajustes: el de sonido (0.10.6), el de
+        // dos pulsos (0.10.8) y el de pulsos iguales (0.15.0).
         assertNull(notifications.getNotificationChannel("fitit_fin_descanso"));
         assertNull(notifications.getNotificationChannel("fitit_entreno_fin"));
+        assertNull(notifications.getNotificationChannel("fitit_entreno_cuenta"));
     }
 
     @Test
