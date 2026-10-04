@@ -2,8 +2,12 @@ package io.github.raullopeslopez.fitit.session;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import java.util.ArrayList;
+import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -50,6 +54,18 @@ public final class SessionController {
      * Por debajo de un segundo el reloj aún dice 00:00, no −00:01.
      */
     static final long REST_OVER_DELAY_MS = 900;
+    /**
+     * Toques seguidos en −/+ (0.17.0): el estado cambia en cada uno, pero la
+     * notificación y los widgets se repintan una vez, cuando pasa este rato sin
+     * otro. Cada repintado rehace la tarjeta, y un toque que caía mientras tanto
+     * acababa en el cuerpo; con el móvil bloqueado, eso pedía el código.
+     */
+    static final long ADJUST_SETTLE_MS = 300;
+
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    /** El repintado de ajuste pendiente, si lo hay, y a quién avisar cuando salga. */
+    private static Runnable pendingPaint;
+    private static final List<Runnable> pendingDone = new ArrayList<>();
 
     private SessionController() {}
 
@@ -130,8 +146,27 @@ public final class SessionController {
     }
 
     public static void handle(Context context, Intent intent, long now) {
+        handle(context, intent, now, null);
+    }
+
+    /**
+     * Con {@code done}, se avisa cuando el toque ha terminado de pintarse: al
+     * momento, o tras {@link #ADJUST_SETTLE_MS} si es un −/+. El receptor lo usa
+     * para que Android no mate el proceso con un repintado aún pendiente.
+     */
+    static void handle(Context context, Intent intent, long now, Runnable done) {
+        boolean deferred = false;
+        try {
+            deferred = dispatch(context, intent, now, done);
+        } finally {
+            if (!deferred && done != null) done.run();
+        }
+    }
+
+    /** True si el repintado quedó pendiente y {@code done} lo correrá él. */
+    private static boolean dispatch(Context context, Intent intent, long now, Runnable done) {
         String action = intent.getAction();
-        if (action == null) return;
+        if (action == null) return false;
         SessionStore store = Session.store(context);
         // Lo del widget sin entreno no tiene control al que preguntar.
         if (ACTION_PAGE.equals(action)) {
@@ -139,11 +174,11 @@ public final class SessionController {
             store.flipIdlePage(IdleSummary.pages(
                     store.summary(), clock.toLocalDate(), IdleSummary.foodDay(clock)).size());
             SessionWidget.updateAll(context);
-            return;
+            return false;
         }
         if (ACTION_DAY.equals(action)) {
             SessionWidget.updateAll(context);
-            return;
+            return false;
         }
         JSONObject control = store.control();
         if (control == null) {
@@ -152,7 +187,7 @@ public final class SessionController {
             SessionNotification.cancel(context);
             SessionAlarms.cancel(context);
             SessionWidget.updateAll(context);
-            return;
+            return false;
         }
         try {
             switch (action) {
@@ -167,17 +202,13 @@ public final class SessionController {
                     pulse(context);
                     break;
                 case ACTION_WEIGHT_DOWN:
-                    adjust(context, store, SessionControl.weight(control, -1), now);
-                    break;
+                    return adjust(context, store, SessionControl.weight(control, -1), now, done);
                 case ACTION_WEIGHT_UP:
-                    adjust(context, store, SessionControl.weight(control, 1), now);
-                    break;
+                    return adjust(context, store, SessionControl.weight(control, 1), now, done);
                 case ACTION_REPS_DOWN:
-                    adjust(context, store, SessionControl.reps(control, -1), now);
-                    break;
+                    return adjust(context, store, SessionControl.reps(control, -1), now, done);
                 case ACTION_REPS_UP:
-                    adjust(context, store, SessionControl.reps(control, 1), now);
-                    break;
+                    return adjust(context, store, SessionControl.reps(control, 1), now, done);
                 case ACTION_REST_TOGGLE:
                     restChanged(context, store, SessionControl.toggleRest(control, now), now);
                     break;
@@ -208,12 +239,47 @@ public final class SessionController {
             // Un control ilegible no se puede usar: mejor ninguno que uno roto.
             end(context);
         }
+        return false;
     }
 
-    /** Un − o + del bloque de ajuste: la serie que repetirán los siguientes toques, a la vista en todas partes. */
-    private static void adjust(Context context, SessionStore store, JSONObject control, long now) {
+    /**
+     * Un − o + del bloque de ajuste: la serie que repetirán los siguientes toques.
+     * Se guarda al momento (un +1 que llegue ya la usa), pero se pinta cuando
+     * dejan de llegar toques: {@link #ADJUST_SETTLE_MS} después del último.
+     */
+    private static boolean adjust(Context context, SessionStore store, JSONObject control, long now,
+            Runnable done) {
         store.saveControl(control);
-        refresh(context, control, now);
+        Context app = context.getApplicationContext();
+        long paintAt = now + ADJUST_SETTLE_MS;
+        if (pendingPaint != null) MAIN.removeCallbacks(pendingPaint);
+        if (done != null) pendingDone.add(done);
+        pendingPaint = () -> {
+            pendingPaint = null;
+            JSONObject latest = Session.store(app).control();
+            if (latest != null) refresh(app, latest, paintAt);
+            settled();
+        };
+        MAIN.postDelayed(pendingPaint, ADJUST_SETTLE_MS);
+        return true;
+    }
+
+    /**
+     * Un repintado que pinta ya (el +1): el de ajuste pendiente sobra, porque
+     * éste sale con lo último guardado.
+     */
+    private static void supersedePendingPaint() {
+        if (pendingPaint == null) return;
+        MAIN.removeCallbacks(pendingPaint);
+        pendingPaint = null;
+        settled();
+    }
+
+    /** Los toques que esperaban al repintado ya pueden darse por acabados. */
+    private static void settled() {
+        List<Runnable> done = new ArrayList<>(pendingDone);
+        pendingDone.clear();
+        for (Runnable r : done) r.run();
     }
 
     /**
@@ -232,6 +298,7 @@ public final class SessionController {
         store.enqueue(step.entry);
         store.saveControl(step.control);
         refresh(context, step.control, now);
+        supersedePendingPaint();
         SessionSender.schedule(context);
         SessionEvents.changed();
     }

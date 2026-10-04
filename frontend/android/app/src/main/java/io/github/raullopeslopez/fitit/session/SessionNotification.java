@@ -136,7 +136,9 @@ final class SessionNotification {
                 .setSilent(!buzz)
                 .setOnlyAlertOnce(!buzz)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentIntent(SessionLaunch.open(context, control.optInt("workoutId", -1)))
+                // Sin contentIntent (0.17.0): el cuerpo abría la app, y con el móvil
+                // bloqueado un toque a −/+ que caía en él mientras se repintaba
+                // pedía el código. Abrir Fitit es tocar la línea del ejercicio.
                 .build();
     }
 
@@ -148,7 +150,14 @@ final class SessionNotification {
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
         SessionWidget4x2.pause(context, views, control, now);
+        openFromLine(context, views, control);
         return views;
+    }
+
+    /** Lo único que abre la app: la línea del ejercicio. El resto de la tarjeta no. */
+    private static void openFromLine(Context context, RemoteViews views, JSONObject control) {
+        views.setOnClickPendingIntent(R.id.widget_line,
+                SessionLaunch.open(context, control.optInt("workoutId", -1)));
     }
 
     /** Desplegada: la línea, el tiempo y el bloque de ajuste del widget. */
@@ -165,6 +174,7 @@ final class SessionNotification {
         tap(context, views, R.id.widget_reps_up, SessionController.ACTION_REPS_UP, 33);
         // El +1 de aquí no vibra: sólo el del widget, como se pidió.
         tap(context, views, R.id.widget_log, SessionController.ACTION_REPEAT, 1);
+        openFromLine(context, views, control);
         return views;
     }
 

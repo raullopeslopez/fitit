@@ -107,7 +107,16 @@ public class SessionWidget4x2Test {
         view().findViewById(id).performClick();
         List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
         assertEquals("el botón emite una acción", seen + 1, sent.size());
-        SessionController.handle(context, sent.get(sent.size() - 1), at);
+        Intent intent = sent.get(sent.size() - 1);
+        SessionController.handle(context, intent, at);
+        // Los toques de estos tests van separados de segundos: el repintado
+        // agrupado de un −/+ ya ha salido cuando llega el siguiente.
+        if (List.of(SessionController.ACTION_WEIGHT_DOWN, SessionController.ACTION_WEIGHT_UP,
+                SessionController.ACTION_REPS_DOWN, SessionController.ACTION_REPS_UP)
+                .contains(intent.getAction())) {
+            shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(java.time.Duration.ofMillis(SessionController.ADJUST_SETTLE_MS));
+        }
     }
 
     private Notification notification() {

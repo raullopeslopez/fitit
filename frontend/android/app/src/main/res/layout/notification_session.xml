@@ -9,7 +9,11 @@
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
+    <!-- La línea del ejercicio: lo único que abre la app (0.17.0). El cuerpo de la
+         tarjeta ya no lo hace, para que un toque desviado con el móvil bloqueado
+         no pida el código. -->
     <LinearLayout
+        android:id="@+id/widget_line"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
