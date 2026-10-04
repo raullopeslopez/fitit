@@ -37,27 +37,32 @@ import org.json.JSONObject;
  * reescribe cada segundo. Baja en color de texto y, pasado el descanso, sube en
  * accent-ink con signo; el cambio lo hace la alarma de fin de descanso. Canal
  * silencioso: ni suena ni vibra, salvo una vez: al acabar el descanso la misma
- * tarjeta se repinta en {@link #CHANNEL_REST_OVER}, que vibra, y la siguiente
+ * tarjeta se repinta en {@link #CHANNEL_COUNTDOWN}, que vibra, y la siguiente
  * actualización la devuelve al canal mudo.
  */
 final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
     /**
-     * El mismo aviso al llegar el descanso a cero: vibra, sin sonido. Es la
-     * vibración de una notificación, que en el Xiaomi sí llega (0.10.6); la
-     * directa con el teléfono bloqueado, no (0.10.7). Y apagar este canal en
-     * Ajustes calla la vibración sin tocar la tarjeta.
+     * La cuenta atrás del fin del descanso (0.15.0): tres segundos antes del cero
+     * la misma tarjeta se publica aquí, y el canal vibra un pulso corto por
+     * segundo (3, 2, 1) y uno largo en el cero. Sin sonido. Es la vibración de
+     * una notificación, la única que llega con el Xiaomi bloqueado (0.10.6); y
+     * apagar este canal en Ajustes calla la cuenta sin tocar la tarjeta. Canal
+     * nuevo porque Android no deja cambiar el patrón de uno ya creado.
      */
-    static final String CHANNEL_REST_OVER = "fitit_entreno_fin";
-    private static final long[] REST_OVER_PATTERN = {0, 300, 150, 300};
+    static final String CHANNEL_COUNTDOWN = "fitit_entreno_cuenta";
+    // 3 (0 ms), 2 (1 s), 1 (2 s): 120 ms; el cero (3 s): 400 ms.
+    static final long[] COUNTDOWN_PATTERN = {0, 120, 880, 120, 880, 120, 880, 400};
     static final int ID = 4102;
     // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
     // se haya ido: los del aviso de descanso que retiró la fase 0, y el de la
     // 0.6.0, de importancia baja (Android no deja subírsela a un canal que ya
     // existe, así que se sustituye), y el aviso con sonido de fin de descanso de
-    // la 0.10.6, que pasó a ser sólo vibración.
+    // la 0.10.6, que pasó a ser sólo vibración, y el de dos pulsos al llegar a
+    // cero (0.10.8), que pasó a ser la cuenta atrás.
     private static final String[] RETIRED = {
-        "fitit-sesion", "fitit-fin-descanso", "fitit_session", "fitit_fin_descanso"};
+        "fitit-sesion", "fitit-fin-descanso", "fitit_session", "fitit_fin_descanso",
+        "fitit_entreno_fin"};
 
     private SessionNotification() {}
 
@@ -65,7 +70,7 @@ final class SessionNotification {
         show(context, control, now, false);
     }
 
-    /** Con {@code buzz}, la tarjeta vibra esta vez: el fin del descanso. */
+    /** Con {@code buzz}, la tarjeta vibra esta vez: la cuenta atrás del fin del descanso. */
     static void show(Context context, JSONObject control, long now, boolean buzz) {
         NotificationManagerCompat manager = NotificationManagerCompat.from(context);
         ensureChannel(context);
@@ -100,18 +105,18 @@ final class SessionNotification {
 
         // Misma importancia (misma visibilidad en el bloqueo), con vibración.
         NotificationChannel restOver = new NotificationChannel(
-                CHANNEL_REST_OVER, "Fin del descanso", NotificationManager.IMPORTANCE_DEFAULT);
-        restOver.setDescription("La tarjeta del entreno vibra una vez cuando acaba el descanso. Sin sonido.");
+                CHANNEL_COUNTDOWN, "Fin del descanso", NotificationManager.IMPORTANCE_DEFAULT);
+        restOver.setDescription("La tarjeta del entreno vibra 3, 2, 1 y al llegar a cero el descanso. Sin sonido.");
         restOver.setSound(null, null);
         restOver.enableVibration(true);
-        restOver.setVibrationPattern(REST_OVER_PATTERN);
+        restOver.setVibrationPattern(COUNTDOWN_PATTERN);
         restOver.setShowBadge(false);
         restOver.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         manager.createNotificationChannel(restOver);
     }
 
     private static Notification build(Context context, JSONObject control, long now, boolean buzz) {
-        return new NotificationCompat.Builder(context, buzz ? CHANNEL_REST_OVER : CHANNEL)
+        return new NotificationCompat.Builder(context, buzz ? CHANNEL_COUNTDOWN : CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_fitit)
                 // Título y texto no se pintan (manda el diseño propio), pero los
                 // leen el lector de pantalla y quien no sabe pintarlo (un reloj).
@@ -139,6 +144,7 @@ final class SessionNotification {
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
+        SessionWidget4x2.pause(context, views, control, now);
         return views;
     }
 
@@ -149,6 +155,7 @@ final class SessionNotification {
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
         SessionWidget4x2.block(views, control);
+        SessionWidget4x2.pause(context, views, control, now);
         tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
         tap(context, views, R.id.widget_reps_down, SessionController.ACTION_REPS_DOWN, 32);

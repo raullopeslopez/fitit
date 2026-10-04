@@ -763,28 +763,21 @@ public class SessionWidget4x2Test {
     }
 
     @Test
-    public void inTheNarrowWidgetTheTimeItselfPauses() throws Exception {
-        // El 3×2 del Xiaomi (≈253 dp): el tiempo va en la línea del nombre y un
-        // aro más cortaba «Press banca». Ahí el botón es el propio tiempo.
+    public void theNarrowWidgetHasTheRingToo() throws Exception {
+        // El 3×2 del Xiaomi (≈253 dp): también lleva el aro, aunque el nombre se
+        // corte mientras se descansa (0.15.0; en la 0.14.0 se tocaba el tiempo y
+        // no se veía que fuera un botón).
         SessionController.publish(context, bench(now() + 90_000), now());
         View narrow = SessionWidget4x2.views(context, store.control(), now(),
                 SessionWidget4x2.Fit.NARROW).apply(context, new android.widget.FrameLayout(context));
-        assertEquals(View.GONE, narrow.findViewById(R.id.widget_rest_toggle).getVisibility());
+        assertEquals(View.VISIBLE, narrow.findViewById(R.id.widget_rest_toggle).getVisibility());
+        assertFalse(narrow.findViewById(R.id.widget_clock_inline).hasOnClickListeners());
 
         List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
         int seen = before.size();
-        narrow.findViewById(R.id.widget_clock_inline).performClick();
+        narrow.findViewById(R.id.widget_rest_toggle).performClick();
         List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
         assertEquals(seen + 1, sent.size());
         assertEquals(SessionController.ACTION_REST_TOGGLE, sent.get(sent.size() - 1).getAction());
-        SessionController.handle(context, sent.get(sent.size() - 1), now());
-        assertTrue(store.control().has("restPausedMs"));
-
-        View paused = SessionWidget4x2.views(context, store.control(), now(),
-                SessionWidget4x2.Fit.NARROW).apply(context, new android.widget.FrameLayout(context));
-        assertEquals(View.VISIBLE, paused.findViewById(R.id.widget_paused_inline).getVisibility());
-        assertEquals(context.getString(R.string.widget_rest_resume),
-                paused.findViewById(R.id.widget_paused_inline).getContentDescription());
-        assertTrue(paused.findViewById(R.id.widget_paused_inline).hasOnClickListeners());
     }
 }

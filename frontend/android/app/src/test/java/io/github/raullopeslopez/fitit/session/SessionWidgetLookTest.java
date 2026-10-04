@@ -592,9 +592,15 @@ public class SessionWidgetLookTest {
         assertTrue(clock.left >= name.right);
         assertTrue(clock.bottom <= block.top);
         uncut(root, R.id.widget_clock_inline);
-        // Estrecho y descansando: el nombre entero antes que el número de series.
-        assertFalse(cut(root, R.id.widget_exercise));
+        // Estrecho y descansando: fuera el número de series, y el aro de pausa a
+        // la izquierda de Terminar, entero. El nombre se corta con «…» mientras
+        // se descansa: decidido con el usuario sobre el render (0.15.0), antes
+        // que un botón que no se ve.
         assertFalse(shown(root, R.id.widget_count));
+        Rect pause = at(root, R.id.widget_rest_toggle);
+        near("toque de pausa", 44, dp(pause.width()));
+        assertTrue(clock.right <= pause.left);
+        assertTrue(pause.right <= at(root, R.id.widget_end).left);
         WidgetRender.save(root, WALL_DARK, "3x2-compacto-descansando-oscuro");
     }
 

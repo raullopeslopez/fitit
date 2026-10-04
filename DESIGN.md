@@ -564,12 +564,12 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   `--border-strong` y no en `--danger`, porque pausar se deshace; dentro, ❚❚ en
   `--text`. Al tocarlo, el tiempo se queda quieto en `--muted` con lo que quedaba
   (`01:23`) y el glifo pasa a ▶; tocarlo otra vez sigue desde ahí. Pasado de tiempo o
-  sin descanso, el aro no está. **En el 3×2 estrecho y bajo** (el compacto del Xiaomi,
-  ≈253 × 176 dp) no hay aro: el tiempo va en la línea del nombre y un aro más cortaba
-  `Press banca`, así que ahí el botón es el propio tiempo (tocarlo pausa y reanuda;
-  decidido con el usuario al verlo fallar en CI). `+1` en pausa registra y empieza un descanso nuevo,
-  corriendo. El 4×1 y la notificación no tienen botón, pero enseñan el tiempo quieto
-  igual; y Entreno, `En pausa` con `Reanudar` junto a `Saltar`. En pausa no vibra: la
+  sin descanso, el aro no está. **También en el 3×2 estrecho y bajo** (el compacto del
+  Xiaomi, ≈253 × 176 dp), aunque ahí el nombre se corta con «…» mientras se descansa
+  (`Pre…`): en la 0.14.0 el botón era tocar el tiempo, sin icono, y el usuario no lo
+  encontró; sobre el render eligió el aro antes que un tiempo más pequeño (0.15.0).
+  **Y en la notificación**, cerrada y desplegada: el mismo aro a la derecha del tiempo. `+1` en pausa registra y empieza un descanso nuevo,
+  corriendo. El 4×1 no tiene botón, pero enseña el tiempo quieto igual; y Entreno, `En pausa` con `Reanudar` junto a `Saltar`. En pausa no vibra: la
   alarma del fin se quita y vuelve al reanudar.
 - **Sin enviar.** La línea del ejercicio dice `5 series · 1 sin enviar`, con `1 sin enviar`
   en `--accent-ink`. Se va sola al llegar las series al servidor.
@@ -618,10 +618,12 @@ Sin cambios de estructura: `Sin entreno en curso` + `Empezar`; entrenando, `Pres
   antes con `−`/`+`; otro ejercicio, dentro de la app.
 - El tiempo sigue la misma regla que en el widget: texto mientras baja, `--accent-ink` y
   `+00:12` al pasarse.
-- **La tarjeta no suena; al acabar el descanso vibra ella misma** (APK 0.10.8). Se repinta
-  en positivo en el canal «Fin del descanso»: dos pulsos, sin sonido y sin aviso aparte.
-  La siguiente actualización la devuelve al canal mudo. Si la alarma llega más de un
-  minuto tarde, no vibra; desde la 0.13.1 es exacta y llega en hora.
+- **La tarjeta no suena; al acabar el descanso vibra ella misma, con cuenta atrás**
+  (APK 0.15.0; antes, dos pulsos en el cero). Tres segundos antes del cero se publica en
+  el canal «Fin del descanso», todavía bajando: un pulso corto por segundo (3, 2, 1, de
+  120 ms) y uno largo en el cero (400 ms), sin sonido y sin aviso aparte. Pasado el cero
+  se repinta en positivo en el canal mudo. Si la cuenta atrás llega más de medio segundo
+  tarde, no vibra; en pausa o saltado, tampoco.
 
 ### El aviso de la revisión semanal
 - **Canal** `fitit_review`, «Revisión semanal», importancia normal (suena como una
@@ -706,6 +708,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-04 | El fin del descanso vibra 3, 2, 1 y el cero | Pedido del usuario: *"vibre en los tres segundos anteriores… 3, 2, 1, por cada segundo"*. Una sola notificación con un patrón que cubre los cuatro pulsos, y no cuatro avisos: Android suaviza los avisos seguidos de una app (Android 15+), y el del cero, el que importa, sería el más callado. El patrón es del canal, así que es fijo y no se adapta a una alarma tardía: por eso medio segundo tarde no vibra. El canal de dos pulsos de la 0.10.8 se retira (Android no deja cambiar el patrón de un canal), con lo que quien lo hubiera apagado lo vuelve a tener encendido una vez. |
 | 2026-10-04 | Pausar el descanso desde el widget | Pedido del usuario: *"añadir un botón al widget para pausar el descanso"*. Eligió él el sitio (sólo el 4×2 y el 3×2: el 4×1 no tiene hueco), qué hace `+1` en pausa (registra y empieza uno nuevo, corriendo) y cómo se ve (el tiempo quieto en `--muted`, y Entreno con `Reanudar`). Es un aro gemelo del de Terminar y no un botón con texto: la fila ya tiene un aro y la regla de «un solo ámbar» deja fuera el relleno; en `--border-strong` porque no es destructivo. Va a la izquierda de Terminar, no junto al tiempo, para no cambiar el alto de la franja del reloj (11 dp arriba y abajo, medidos). Riesgo aceptado: dos aros juntos, uno rojo; si un toque desviado termina el entreno, se separan. |
 | 2026-10-02 | Glúteo sale de Femoral: diez grupos, y la paleta pasa de 9 a 10 | Reversión explícita de «nueve es el techo» (2026-08-01), aprobada por el usuario. Femoral juntaba isquios y glúteo con el argumento de que las bisagras que entrenan uno entrenan el otro, y eso es cierto de las bisagras y falso de todo lo demás: la sentadilla hace crecer el glúteo y apenas los isquios (Kubo et al. 2019), así que cada sentadilla pagaba su media serie al único músculo de la pierna que no trabaja, y un hip thrust y un curl femoral caían en la misma fila. Ahora: hip thrust, puente, patada de glúteo y **abductor** (que hasta hoy no tenía grupo) son Glúteo; la bisagra sigue en Femoral y paga ½ a Glúteo; sentadilla, prensa y zancada pagan ½ a Glúteo en vez de a Femoral; el peso muerto paga ½ a cada uno. Banda RP de glúteo tal cual: mínimo 0, máximo 12, así que la fila, como Core, nunca dice «faltan». El color es un cobre (`#a16336` oscuro / `#7d3f17` claro), insertado entre Cuádriceps y Femoral para que la pierna siga junta. La rueda ya estaba llena y no había sitio para un tono vivo: es el único hueco que pasa el validador en los dos modos sin añadir un WARN de contraste, y en oscuro queda a ΔE 15,2 de Cuádriceps (suelo 15), el par adyacente más justo de la paleta en visión normal. Revalidado en las cuatro superficies; el peor par CVD no cambia. |
 | 2026-10-02 | La vibración del fin del descanso la pone la tarjeta | Corrige la 0.10.7, que no vibraba en el Xiaomi: la vibración directa desde la alarma, con el teléfono bloqueado, se descarta. La de una notificación sí llega (se vio en la 0.10.6). Así que vibra la tarjeta que ya está, repintada una vez en un canal hermano que vibra, y no se añade ninguna notificación. De paso vuelve el interruptor en Ajustes, que la 0.10.7 había perdido. |
