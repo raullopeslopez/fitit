@@ -173,11 +173,13 @@ public class SessionWidgetLookTest {
         near("el +1 cierra el bloque por la derecha, dentro del marco de 1 dp",
                 1, dp(block.right - log.right));
         near("el +1 ocupa todo el alto", 97, dp(log.height()));
-        // Los − y + tocan en 44 dp.
+        // Los − y + tocan en 52 dp (0.17.0; antes 44), y el + de los kilos queda
+        // a 6 dp del +1: un toque desviado ya no registra una serie.
         for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
                 R.id.widget_reps_down, R.id.widget_reps_up}) {
-            near("zona de toque", 44, dp(at(root, id).width()));
+            near("zona de toque", 52, dp(at(root, id).width()));
         }
+        near("hueco entre + y +1", 6, dp(log.left - at(root, R.id.widget_weight_up).right));
         // Y todo cabe en los 200 dp con su margen de 14.
         assertTrue("el bloque se sale por abajo", dp(block.bottom) <= 200 - 14 + 0.5f);
         WidgetRender.save(root, WALL_LIGHT, "4x2-entrenando-claro");
@@ -481,7 +483,7 @@ public class SessionWidgetLookTest {
         near("ancho del +1", 60, dp(at(root, R.id.widget_log).width()));
         for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
                 R.id.widget_reps_down, R.id.widget_reps_up}) {
-            near("zona de toque", 44, dp(at(root, id).width()));
+            near("zona de toque", 52, dp(at(root, id).width()));
         }
         // Las cifras caben entre sus − y +.
         assertTrue(at(root, R.id.widget_weight_down).right <= at(root, R.id.widget_weight).left);
@@ -602,6 +604,27 @@ public class SessionWidgetLookTest {
         assertTrue(clock.right <= pause.left);
         assertTrue(pause.right <= at(root, R.id.widget_end).left);
         WidgetRender.save(root, WALL_DARK, "3x2-compacto-descansando-oscuro");
+    }
+
+    @Test
+    public void inTheUsersLauncherAHeavyWeightFitsBetweenItsMinusAndPlus() throws Exception {
+        JSONObject heavy = bench(0);
+        heavy.getJSONObject("template").put("weight", 102.5);
+        View root = placed(heavy, 253, 176);
+
+        assertEquals("102,5", ((TextView) root.findViewById(R.id.widget_weight)).getText().toString());
+        Rect weight = at(root, R.id.widget_weight);
+        assertTrue("la cifra pisa el −", at(root, R.id.widget_weight_down).right <= weight.left);
+        assertTrue("la cifra pisa el +", weight.right <= at(root, R.id.widget_weight_up).left);
+        uncut(root, R.id.widget_weight);
+        for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
+                R.id.widget_reps_down, R.id.widget_reps_up}) {
+            // A 52 no cabía: en el compacto se quedan en 44, el mínimo de toque.
+            near("zona de toque", 44, dp(at(root, id).width()));
+        }
+        near("hueco entre + y +1", 6,
+                dp(at(root, R.id.widget_log).left - at(root, R.id.widget_weight_up).right));
+        WidgetRender.save(root, WALL_DARK, "3x2-compacto-102kg-oscuro");
     }
 
     @Test

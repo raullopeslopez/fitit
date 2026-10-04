@@ -154,6 +154,13 @@ public class SessionWidget4x2 extends AppWidgetProvider {
             views.setViewLayoutHeight(R.id.widget_reps_box, row, TypedValue.COMPLEX_UNIT_DIP);
             views.setViewLayoutMargin(R.id.widget_block, RemoteViews.MARGIN_TOP,
                     compact ? 8 : 11, TypedValue.COMPLEX_UNIT_DIP);
+            // Los − y + tocan en 52 dp (0.17.0), salvo en el compacto: en los
+            // ≈253 dp del Xiaomi, a 52 un «102,5 kg» pisaba el −.
+            float zone = compact ? 44 : 52;
+            for (int id : new int[] {R.id.widget_weight_down, R.id.widget_weight_up,
+                    R.id.widget_reps_down, R.id.widget_reps_up}) {
+                views.setViewLayoutWidth(id, zone, TypedValue.COMPLEX_UNIT_DIP);
+            }
         }
     }
 
