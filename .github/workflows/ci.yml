@@ -1,13 +1,40 @@
 name: CI
 
+# Sólo en los PR. Se fusiona ff-only, así que lo que llega a `main` es el mismo
+# commit que ya pasó aquí: repetirlo en el push no comprobaba nada nuevo.
 on:
   pull_request:
-  push:
-    branches: [main]
 
 jobs:
+  # Qué capa tocó el PR. Un job saltado por `if:` cuenta como pasado, así que
+  # un PR sólo de Android no espera a Postgres ni a Vitest.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      workflow: ${{ steps.filter.outputs.workflow }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Todas las reglas de un filtro a la vez: «frontend sin android».
+          predicate-quantifier: every
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+              - '!frontend/android/**'
+            workflow:
+              - '.github/workflows/ci.yml'
+
   backend:
     name: backend (unit + specs + lint + migrations)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,13 +66,16 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://fitit:fitit@localhost:5432/fitit
         run: uv run alembic upgrade head
-      - name: Unit tests (schema validation)
-        run: uv run pytest tests/unit -v
-      - name: Integration specs (Gherkin / pytest-bdd)
-        run: uv run pytest --ignore=tests/unit -v
+      # Unit y specs en una sola llamada, repartidas entre los núcleos del runner
+      # (pytest-xdist): cada test monta su propio SQLite en memoria, así que no
+      # comparten nada. Dos llamadas eran dos arranques de los workers.
+      - name: Tests (unit + specs Gherkin / pytest-bdd)
+        run: uv run python -m pytest -n auto
 
   frontend:
     name: frontend (tests + build)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,8 +85,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # `ci` y no `install`: instala justo el lockfile, sin reescribirlo, y falla
+      # si no cuadra con package.json en vez de arreglarlo a escondidas.
       - name: Install deps
-        run: npm install
+        run: npm ci
       - name: Tests (Vitest + Testing Library)
         run: npm test
       - name: Build

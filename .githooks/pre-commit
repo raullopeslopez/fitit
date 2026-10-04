@@ -21,8 +21,8 @@ if printf '%s\n' "$STAGED" | grep -q '^backend/'; then
 
   # `python -m pytest`, not `uv run pytest`: the console-script trampoline can fail
   # to canonicalize its path on some Windows setups; the module invocation is robust.
-  echo "pre-commit: backend changed -> uv run python -m pytest"
-  if ! ( cd "$ROOT/backend" && uv run python -m pytest -q ); then
+  echo "pre-commit: backend changed -> uv run python -m pytest -n auto"
+  if ! ( cd "$ROOT/backend" && uv run python -m pytest -q -n auto ); then
     echo "pre-commit: backend tests FAILED."
     status=1
   fi

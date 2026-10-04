@@ -1,9 +1,11 @@
 name: Android APK
 
-# Compila el APK de Fitit. En un PR lo deja como artefacto del run
-# («fitit-<versión>»); en `main`, o a mano desde la pestaña Actions, además lo
-# publica como Release, con el APK como `fitit-<versión>.apk`, sin zip y sin
-# sesión. La última siempre está en:
+# Compila el APK de Fitit. En un PR pasa los tests nativos y lo deja como
+# artefacto del run («fitit-<versión>»). En `main` lo publica como Release, con
+# el APK como `fitit-<versión>.apk`, sin zip y sin sesión, **sólo si esa versión
+# aún no tiene Release**: un push que no sube la versión (un cambio de la web, de
+# CI) no reempaqueta el APK de una versión ya publicada. A mano desde la pestaña
+# Actions sí la reemplaza, como salida de emergencia. La última siempre está en:
 #   https://github.com/raullopeslopez/fitit/releases/latest
 on:
   workflow_dispatch:
@@ -20,8 +22,34 @@ on:
       - '.github/workflows/android.yml'
 
 jobs:
+  # ¿Hay ya Release de la versión de package.json? En un push a `main`, si la
+  # hay, no se compila nada.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      released: ${{ steps.read.outputs.released }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: frontend/package.json
+          sparse-checkout-cone-mode: false
+      - id: read
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./frontend/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "android-v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
   apk:
     name: APK de depuración
+    needs: version
+    if: github.event_name != 'push' || needs.version.outputs.released == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: write # crear la Release y su tag
@@ -47,7 +75,7 @@ jobs:
       # Sin setup-android: el runner de ubuntu ya trae el SDK (ANDROID_HOME) y
       # Gradle baja lo que falte. La acción pedía el paquete `tools`, retirado.
       - name: Install deps
-        run: npm install
+        run: npm ci
       - name: Build web bundle + sync Android
         run: npm run android:build
       # Los tests nativos (JUnit + Robolectric, sin emulador) y el APK, en una sola
@@ -55,9 +83,16 @@ jobs:
       # proyecto. El hook de pre-commit no pasa los tests nativos porque necesitan
       # el SDK de Android: éste es su sitio. Gradle corre los tests antes de
       # ensamblar y para si fallan, así que un APK roto por dentro no se publica.
+      # En el push a `main` sólo se ensambla: es el commit que ya pasó los tests
+      # en su PR (ff-only), y la subida de versión siempre toca android/.
       - name: Native unit tests + assemble APK
         working-directory: frontend/android
-        run: ./gradlew testDebugUnitTest assembleDebug
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            ./gradlew assembleDebug
+          else
+            ./gradlew testDebugUnitTest assembleDebug
+          fi
       # El APK sale siempre con su versión en el nombre (`fitit-0.7.1.apk`): en
       # la carpeta de descargas del teléfono tiene que verse cuál es cuál.
       - name: Name the APK after its version
@@ -75,8 +110,9 @@ jobs:
       # versión en el nombre. Ya no hay copia con nombre fijo (`fitit.apk`): el
       # enlace estable es la página de la última Release,
       #   https://github.com/raullopeslopez/fitit/releases/latest
-      # Si la versión no ha cambiado se reemplaza el APK de esa misma Release:
-      # para una Release nueva, sube `version` en package.json (y
+      # En `main` sólo se llega aquí con una versión nueva (job `version`); a mano
+      # (workflow_dispatch) se reemplaza el APK de la Release que ya hubiera.
+      # Para una Release nueva, sube `version` en package.json (y
       # `versionCode`/`versionName` en android/app/build.gradle).
       - name: Publish Release
         if: github.event_name != 'pull_request'
