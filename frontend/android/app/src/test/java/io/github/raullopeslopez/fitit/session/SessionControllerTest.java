@@ -517,4 +517,45 @@ public class SessionControllerTest {
         assertTrue(store.queue().isEmpty());
         assertNull(shown());
     }
+
+    @Test
+    public void aPausedRestFreezesTheCardAndTellsTheApp() throws Exception {
+        SessionController.publish(context, bench(NOW + 90_000), NOW);
+        heard.clear();
+
+        tap(SessionController.ACTION_REST_TOGGLE);
+
+        assertTrue(visible(collapsed(), R.id.widget_paused));
+        assertFalse(visible(collapsed(), R.id.widget_clock));
+        assertTrue(visible(expanded(), R.id.widget_paused));
+        assertTrue(heard.contains("changed"));
+        // Sin alarma de fin de descanso mientras está en pausa.
+        assertTrue(alarms.getScheduledAlarms().stream()
+                .noneMatch(a -> a.getTriggerAtMs() <= NOW + 90_000));
+    }
+
+    @Test
+    public void resumingFromTheAppCountsWhatWasLeft() throws Exception {
+        SessionController.publish(context, bench(NOW + 90_000), NOW);
+        tap(SessionController.ACTION_REST_TOGGLE);
+
+        SessionController.resumeRest(context, NOW + 60_000);
+
+        assertEquals(NOW + 60_000 + 85_000, store.control().getLong("restEndsAt"));
+        assertTrue(visible(collapsed(), R.id.widget_clock));
+        assertFalse(visible(collapsed(), R.id.widget_paused));
+        assertTrue(alarms.getScheduledAlarms().stream()
+                .anyMatch(a -> a.getTriggerAtMs() == NOW + 60_000 + 85_000));
+    }
+
+    @Test
+    public void skippingAPausedRestClearsThePause() throws Exception {
+        SessionController.publish(context, bench(NOW + 90_000), NOW);
+        tap(SessionController.ACTION_REST_TOGGLE);
+
+        SessionController.skipRest(context, NOW + 10_000);
+
+        assertFalse(store.control().has("restPausedMs"));
+        assertFalse(visible(collapsed(), R.id.widget_paused));
+    }
 }

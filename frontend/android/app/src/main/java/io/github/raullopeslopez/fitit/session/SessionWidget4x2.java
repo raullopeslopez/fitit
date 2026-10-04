@@ -110,6 +110,7 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
         block(views, control);
         fit(context, views, control, now, fit);
+        pause(context, views, control, now);
 
         SessionNotification.tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         SessionNotification.tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
@@ -132,10 +133,13 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         if (compact) {
             views.setViewVisibility(R.id.widget_clock, View.GONE);
             views.setViewVisibility(R.id.widget_over, View.GONE);
-            SessionWidget.clock(views, R.id.widget_clock_inline, R.id.widget_over_inline, control, now);
+            views.setViewVisibility(R.id.widget_paused, View.GONE);
+            SessionWidget.clock(views, R.id.widget_clock_inline, R.id.widget_over_inline,
+                    R.id.widget_paused_inline, control, now);
         } else {
             views.setViewVisibility(R.id.widget_clock_inline, View.GONE);
             views.setViewVisibility(R.id.widget_over_inline, View.GONE);
+            views.setViewVisibility(R.id.widget_paused_inline, View.GONE);
         }
         boolean resting = SessionControl.rest(control, now) != SessionControl.Rest.NONE;
         views.setViewVisibility(R.id.widget_count,
@@ -151,6 +155,24 @@ public class SessionWidget4x2 extends AppWidgetProvider {
             views.setViewLayoutMargin(R.id.widget_block, RemoteViews.MARGIN_TOP,
                     compact ? 8 : 11, TypedValue.COMPLEX_UNIT_DIP);
         }
+    }
+
+    /**
+     * El botón de pausa, al lado de Terminar: sólo mientras el descanso corre
+     * (❚❚) o está en pausa (▶). Pasado de tiempo no hay nada que pausar.
+     */
+    static void pause(Context context, RemoteViews views, JSONObject control, long now) {
+        SessionControl.Rest rest = SessionControl.rest(control, now);
+        boolean shown = rest == SessionControl.Rest.RUNNING || rest == SessionControl.Rest.PAUSED;
+        views.setViewVisibility(R.id.widget_rest_toggle, shown ? View.VISIBLE : View.GONE);
+        if (!shown) return;
+        boolean paused = rest == SessionControl.Rest.PAUSED;
+        views.setImageViewResource(R.id.widget_rest_toggle,
+                paused ? R.drawable.widget_resume_ring : R.drawable.widget_pause_ring);
+        views.setContentDescription(R.id.widget_rest_toggle, context.getString(
+                paused ? R.string.widget_rest_resume : R.string.widget_rest_pause));
+        SessionNotification.tap(context, views, R.id.widget_rest_toggle,
+                SessionController.ACTION_REST_TOGGLE, 36);
     }
 
     /** 16 dp a los lados siempre; arriba y abajo, {@code edge}. */

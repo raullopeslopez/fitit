@@ -22,6 +22,8 @@ public final class SessionController {
     public static final String ACTION_WEIGHT_UP = PREFIX + "WEIGHT_UP";
     public static final String ACTION_REPS_DOWN = PREFIX + "REPS_DOWN";
     public static final String ACTION_REPS_UP = PREFIX + "REPS_UP";
+    /** Pausar o reanudar el descanso, desde el 4×2 y el 3×2. */
+    public static final String ACTION_REST_TOGGLE = PREFIX + "REST_TOGGLE";
     /** «Terminar» del widget. */
     public static final String ACTION_END = PREFIX + "END";
     public static final String ACTION_REST_OVER = PREFIX + "REST_OVER";
@@ -94,8 +96,24 @@ public final class SessionController {
         } catch (JSONException e) {
             return;
         }
+        control.remove(SessionControl.PAUSED_KEY);
         store.saveControl(control);
         refresh(context, control, now);
+    }
+
+    /**
+     * «Reanudar» en la app: el descanso que se pausó desde el widget sigue con lo
+     * que le quedaba, y el widget y la notificación vuelven a contar.
+     */
+    public static void resumeRest(Context context, long now) {
+        SessionStore store = Session.store(context);
+        JSONObject control = store.control();
+        if (control == null) return;
+        try {
+            restChanged(context, store, SessionControl.resume(control, now), now);
+        } catch (JSONException e) {
+            // Un control ilegible se queda como estaba.
+        }
     }
 
     public static void handle(Context context, Intent intent, long now) {
@@ -147,6 +165,9 @@ public final class SessionController {
                 case ACTION_REPS_UP:
                     adjust(context, store, SessionControl.reps(control, 1), now);
                     break;
+                case ACTION_REST_TOGGLE:
+                    restChanged(context, store, SessionControl.toggleRest(control, now), now);
+                    break;
                 case ACTION_END:
                     end(context);
                     break;
@@ -173,6 +194,16 @@ public final class SessionController {
     private static void adjust(Context context, SessionStore store, JSONObject control, long now) {
         store.saveControl(control);
         refresh(context, control, now);
+    }
+
+    /**
+     * El descanso se pausó o siguió: la alarma del fin se quita o se vuelve a
+     * poner (refresh), y la app, si está abierta, congela o suelta su barra.
+     */
+    private static void restChanged(Context context, SessionStore store, JSONObject control, long now) {
+        store.saveControl(control);
+        refresh(context, control, now);
+        SessionEvents.changed();
     }
 
     /** Una serie desde fuera: a la cola, al servidor en cuanto se pueda, y a la vista. */

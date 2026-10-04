@@ -1346,22 +1346,36 @@ function CardioCard({
 
 // The between-sets countdown. Ticks off an absolute deadline rather than
 // decrementing a counter, so a backgrounded phone doesn't slow it down.
-function RestBar({ endsAt, total, onSkip }) {
+// `pausedMs`: the rest was paused from the widget (APK only) with that much
+// left. The clock stands still in --muted until `Reanudar`; the widget is the
+// only place that pauses, so here it can only be resumed or skipped.
+function RestBar({ endsAt, total, pausedMs = null, onSkip, onResume }) {
   const [now, setNow] = useState(() => Date.now())
+  const paused = pausedMs != null
 
   useEffect(() => {
+    if (paused) return undefined
     // Sub-second so the readout never visibly sticks on a number.
     const id = setInterval(() => setNow(Date.now()), 250)
     return () => clearInterval(id)
-  }, [endsAt])
+  }, [endsAt, paused])
 
-  const remaining = Math.max(0, (endsAt - now) / 1000)
+  // Paused, rounded up like the widget's: 0.4 s left still reads 00:01.
+  const remaining = paused ? Math.ceil(pausedMs / 1000) : Math.max(0, (endsAt - now) / 1000)
   const left = total > 0 ? Math.min(100, (remaining / total) * 100) : 0
+  const label = paused ? 'En pausa' : 'Descanso'
 
   return (
-    <div className="rest-bar" role="timer" aria-label={`Descanso ${formatClock(remaining)}`}>
-      <span className="rest-label">Descanso</span>
-      <span className="rest-num">{formatClock(remaining)}</span>
+    <div className="rest-bar" role="timer" aria-label={`${label} ${formatClock(remaining)}`}>
+      <span className="rest-label">{label}</span>
+      <span className={paused ? 'rest-num rest-num-paused' : 'rest-num'}>
+        {formatClock(remaining)}
+      </span>
+      {paused && (
+        <button type="button" className="secondary" onClick={onResume}>
+          Reanudar
+        </button>
+      )}
       <button type="button" className="secondary" onClick={onSkip}>
         Saltar
       </button>
@@ -1474,6 +1488,9 @@ export default function Workout({
   // mid-rest and coming back picks the clock up where it actually is.
   const [restSeconds] = useState(getRestSeconds)
   const [restEndsAt, setRestEndsAt] = useState(getRestUntil)
+  // Paused from the widget: what was left, in ms. Only the native control
+  // brings it; `restEndsAt` is null meanwhile.
+  const [restPausedMs, setRestPausedMs] = useState(null)
   // The screen staying lit while you are at the rack. Chosen in Perfil with the
   // rest of what gets set once; read here.
   const [screenAwake] = useState(getScreenAwake)
@@ -1499,6 +1516,7 @@ export default function Workout({
   function endRest() {
     setRestUntil(null)
     setRestEndsAt(null)
+    setRestPausedMs(null)
   }
 
   // Skipping is a decision, not the clock running out. In the APK the
@@ -1513,12 +1531,30 @@ export default function Workout({
   // with no clock takes it away. Only for this workout.
   function followNativeRest(control) {
     if (!control || control.workoutId !== workoutId) return
-    if (control.restEndsAt > Date.now()) {
+    if (control.restPausedMs > 0) {
+      // Paused from the widget. Nothing to resume from storage on a reload:
+      // the native control says it again when Entreno opens.
+      setRestUntil(null)
+      setRestEndsAt(null)
+      setRestPausedMs(control.restPausedMs)
+    } else if (control.restEndsAt > Date.now()) {
       setRestUntil(control.restEndsAt)
       setRestEndsAt(control.restEndsAt)
+      setRestPausedMs(null)
     } else if (!control.restEndsAt) {
       endRest()
     }
+  }
+
+  // `Reanudar`: what was left, from now. The widget and the notification count
+  // again because the native side does the same sum.
+  function resumeRest() {
+    if (restPausedMs == null) return
+    const until = Date.now() + restPausedMs
+    setRestUntil(until)
+    setRestEndsAt(until)
+    setRestPausedMs(null)
+    session.resumeRest().catch(() => {})
   }
 
   // The countdown on screen.
@@ -1527,6 +1563,7 @@ export default function Workout({
     const until = Date.now() + restSeconds * 1000
     setRestUntil(until)
     setRestEndsAt(until)
+    setRestPausedMs(null)
     return until
   }
 
@@ -1647,7 +1684,12 @@ export default function Workout({
     if (!sendsNatively()) return undefined
     const refused = () => setError('El servidor rechazó una serie. Vuelve a registrarla.')
     // Lo que el servidor rechazó con la app cerrada, cuando no había a quién decírselo.
-    checkInNativeQueue().then((rejected) => {
+    checkInNativeQueue((control) => {
+      // Opening Entreno on a rest paused from the widget (or started there
+      // with the app shut): the bar says what the widget says. Only a clock
+      // that exists — no control, or one without a rest, leaves the bar alone.
+      if (control?.restPausedMs > 0 || control?.restEndsAt > Date.now()) followNativeRest(control)
+    }).then((rejected) => {
       setWorkout(withQueued)
       if (rejected > 0) refused()
     })
@@ -2455,8 +2497,14 @@ export default function Workout({
         )}
       </div>
 
-      {restEndsAt != null && (
-        <RestBar endsAt={restEndsAt} total={restSeconds} onSkip={skipRest} />
+      {(restEndsAt != null || restPausedMs != null) && (
+        <RestBar
+          endsAt={restEndsAt}
+          total={restSeconds}
+          pausedMs={restPausedMs}
+          onSkip={skipRest}
+          onResume={resumeRest}
+        />
       )}
 
       {/* What is still recovering, above the form so it lands before you choose

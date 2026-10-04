@@ -686,4 +686,79 @@ public class SessionWidget4x2Test {
         assertEquals(SessionLaunch.OPEN, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
         assertEquals(7, started.getIntExtra(SessionLaunch.EXTRA_WORKOUT, -1));
     }
+
+    // --- Pausar el descanso ----------------------------------------------------
+
+    @Test
+    public void thePauseButtonOnlyShowsWhileTheRestRuns() throws Exception {
+        SessionController.publish(context, bench(now() + 90_000), now());
+        assertTrue(shown(R.id.widget_rest_toggle));
+        assertEquals(context.getString(R.string.widget_rest_pause),
+                view().findViewById(R.id.widget_rest_toggle).getContentDescription());
+
+        SessionController.publish(context, bench(now() - 5_000), now());
+        assertFalse("pasado de tiempo no hay nada que pausar", shown(R.id.widget_rest_toggle));
+
+        SessionController.publish(context, bench(0), now());
+        assertFalse(shown(R.id.widget_rest_toggle));
+    }
+
+    @Test
+    public void pausingFreezesTheClockAndResumingCountsAgain() throws Exception {
+        SessionController.publish(context, bench(now() + 90_000), now());
+
+        tap(R.id.widget_rest_toggle, now());
+
+        assertTrue(store.control().getLong("restPausedMs") > 0);
+        assertFalse(shown(R.id.widget_clock));
+        assertFalse(shown(R.id.widget_over));
+        assertTrue(shown(R.id.widget_paused));
+        assertTrue(text(R.id.widget_paused).matches("01:[23]\\d"));
+        assertEquals(context.getColor(R.color.widget_muted),
+                ((TextView) view().findViewById(R.id.widget_paused)).getCurrentTextColor());
+        assertEquals(context.getString(R.string.widget_rest_resume),
+                view().findViewById(R.id.widget_rest_toggle).getContentDescription());
+        // El 4×1 no tiene botón, pero también se queda quieto.
+        View small4x1 = widgets.getViewFor(small);
+        assertEquals(View.VISIBLE, small4x1.findViewById(R.id.widget_paused).getVisibility());
+        assertEquals(View.GONE, small4x1.findViewById(R.id.widget_clock).getVisibility());
+        // En pausa no hay fin del descanso que esperar.
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        assertTrue(shadowOf(alarms).getScheduledAlarms().stream()
+                .noneMatch(a -> a.getTriggerAtMs() < now() + SessionControl.IDLE_MS - 60_000));
+
+        tap(R.id.widget_rest_toggle, now());
+
+        assertFalse(store.control().has("restPausedMs"));
+        assertTrue(store.control().getLong("restEndsAt") > now());
+        assertTrue(shown(R.id.widget_clock));
+        assertFalse(shown(R.id.widget_paused));
+        assertEquals(context.getString(R.string.widget_rest_pause),
+                view().findViewById(R.id.widget_rest_toggle).getContentDescription());
+    }
+
+    @Test
+    public void plusOneWhilePausedStartsANewRestRunning() throws Exception {
+        SessionController.publish(context, bench(now() + 90_000), now());
+        tap(R.id.widget_rest_toggle, now());
+
+        tap(R.id.widget_log, now());
+
+        assertFalse(store.control().has("restPausedMs"));
+        assertTrue(shown(R.id.widget_clock));
+        assertFalse(shown(R.id.widget_paused));
+    }
+
+    @Test
+    public void theCompactWidgetFreezesTheInlineClock() throws Exception {
+        SessionController.publish(context, bench(now() + 90_000), now());
+        tap(R.id.widget_rest_toggle, now());
+
+        View compact = SessionWidget4x2.views(context, store.control(), now(),
+                SessionWidget4x2.Fit.COMPACT).apply(context, new android.widget.FrameLayout(context));
+
+        assertEquals(View.VISIBLE, compact.findViewById(R.id.widget_paused_inline).getVisibility());
+        assertEquals(View.GONE, compact.findViewById(R.id.widget_paused).getVisibility());
+        assertEquals(View.GONE, compact.findViewById(R.id.widget_clock_inline).getVisibility());
+    }
 }

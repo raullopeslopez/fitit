@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reanudar el descanso: el mismo aro que pausar, con ▶ en tinta. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="34dp"
+    android:height="34dp"
+    android:viewportWidth="34"
+    android:viewportHeight="34">
+    <path
+        android:pathData="M17,0.75 A16.25,16.25 0 1,1 16.99,0.75 Z"
+        android:strokeColor="@color/widget_border_strong"
+        android:strokeWidth="1.5" />
+    <path
+        android:fillColor="@color/widget_text"
+        android:pathData="M13.5,10.5 L23.5,17 L13.5,23.5 Z" />
+</vector>

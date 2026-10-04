@@ -13,6 +13,8 @@
     <string name="widget_log">Registrar serie</string>
     <!-- Terminar es un aro con ■, sin texto: esto es su nombre para el lector. -->
     <string name="widget_end">Terminar entreno</string>
+    <string name="widget_rest_pause">Pausar descanso</string>
+    <string name="widget_rest_resume">Reanudar descanso</string>
     <string name="widget_weight_unit">kg</string>
     <string name="widget_reps_unit">reps</string>
     <string name="widget_weight_down">Menos 2,5 kg</string>

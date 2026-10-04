@@ -121,6 +121,22 @@
                     android:textColor="@color/widget_accent_ink"
                     android:textSize="30sp"
                     android:visibility="gone" />
+
+                <!-- En pausa (botón del 4×2 y del 3×2): lo que quedaba, quieto y en muted.
+                     Un texto y no un cronómetro parado: un cronómetro parado se recalcula
+                     cada vez que el launcher lo vuelve a pintar. -->
+                <TextView
+                    android:id="@+id/widget_paused"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6.5dp"
+                    android:layout_marginBottom="-4.5dp"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="30sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Compacto (widget de menos de 190 dp de alto, SessionWidget4x2.Fit):
@@ -151,6 +167,33 @@
                 android:includeFontPadding="false"
                 android:textColor="@color/widget_accent_ink"
                 android:textSize="24sp"
+                android:visibility="gone" />
+
+            <!-- En pausa (botón del 4×2 y del 3×2): lo que quedaba, quieto y en muted.
+                 Un texto y no un cronómetro parado: un cronómetro parado se recalcula
+                 cada vez que el launcher lo vuelve a pintar. -->
+            <TextView
+                android:id="@+id/widget_paused_inline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/geist_mono_medium"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:textColor="@color/widget_muted"
+                android:textSize="24sp"
+                android:visibility="gone" />
+
+            <!-- Pausar el descanso: un aro neutro con ❚❚ (▶ en pausa), a la
+                 izquierda de Terminar. Sólo descansando. -->
+            <ImageView
+                android:id="@+id/widget_rest_toggle"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@string/widget_rest_pause"
+                android:scaleType="center"
+                android:src="@drawable/widget_pause_ring"
                 android:visibility="gone" />
 
             <!-- Terminar: el aro rojo con ■, arriba a la derecha, 44 dp de toque. -->

@@ -16,11 +16,12 @@ import org.json.JSONObject;
  *
  * <pre>
  * { workoutId, exercise, group, template: { exercise_name, reps, weight },
- *   count, restSeconds, restEndsAt, lastSetAt }
+ *   count, restSeconds, restEndsAt, lastSetAt, restPausedMs? }
  * </pre>
  *
  * <p>{@code restEndsAt} y {@code lastSetAt} en milisegundos; {@code restEndsAt} 0
- * es «sin reloj». {@code group} lo sigue mandando la app, pero desde la fase 5 no
+ * es «sin reloj». {@code restPausedMs}, sólo con el descanso en pausa: lo que
+ * quedaba al pausarlo (y {@code restEndsAt} a 0, que en pausa no acaba nunca). {@code group} lo sigue mandando la app, pero desde la fase 5 no
  * se pinta. Escribir una serie o un ejercicio desde fuera de la app (fases 2 y 5)
  * se retiró con el rediseño de la fase 6: la notificación lleva el bloque de
  * ajuste en su sitio. Spec: docs/widgets-entreno.md y DESIGN.md, «Fuera de la app».
@@ -29,7 +30,7 @@ public final class SessionControl {
     /** Sin registrar nada durante este tiempo, el control se cierra solo. */
     public static final long IDLE_MS = 2 * 60 * 60 * 1000L;
 
-    public enum Rest { RUNNING, OVER, NONE }
+    public enum Rest { RUNNING, PAUSED, OVER, NONE }
 
     /** Una serie que entra en la cola, y el control como queda después. */
     public static final class Step {
@@ -60,7 +61,52 @@ public final class SessionControl {
         int restSeconds = control.optInt("restSeconds", 0);
         after.put("restEndsAt", restSeconds > 0 ? now + restSeconds * 1000L : 0);
         after.put("lastSetAt", now);
+        // La pausa era de ese descanso; la serie empieza uno nuevo, corriendo.
+        after.remove(PAUSED_KEY);
         return new Step(entry, after);
+    }
+
+    static final String PAUSED_KEY = "restPausedMs";
+
+    /**
+     * El botón de pausa del widget: un descanso que corre se para con lo que le
+     * quedaba, y uno parado sigue desde ahí. Pasado de tiempo o sin reloj, nada.
+     */
+    public static JSONObject toggleRest(JSONObject control, long now) throws JSONException {
+        switch (rest(control, now)) {
+            case RUNNING:
+                return pause(control, now);
+            case PAUSED:
+                return resume(control, now);
+            default:
+                return new JSONObject(control.toString());
+        }
+    }
+
+    static JSONObject pause(JSONObject control, long now) throws JSONException {
+        JSONObject after = new JSONObject(control.toString());
+        if (rest(control, now) != Rest.RUNNING) return after;
+        after.put(PAUSED_KEY, control.optLong("restEndsAt") - now);
+        after.put("restEndsAt", 0);
+        return after;
+    }
+
+    /** Reanudar: lo que quedaba, desde ahora. Sin pausa, como estaba. */
+    public static JSONObject resume(JSONObject control, long now) throws JSONException {
+        JSONObject after = new JSONObject(control.toString());
+        if (rest(control, now) != Rest.PAUSED) return after;
+        after.put("restEndsAt", now + control.optLong(PAUSED_KEY));
+        after.remove(PAUSED_KEY);
+        return after;
+    }
+
+    /** Lo que queda de un descanso en pausa, como el cronómetro: «01:23». */
+    public static String pausedLabel(JSONObject control) {
+        // Hacia arriba, como una cuenta atrás: con 0,4 s quedaba «00:01», no «00:00».
+        long seconds = (control.optLong(PAUSED_KEY, 0) + 999) / 1000;
+        long hours = seconds / 3600;
+        String clock = String.format(java.util.Locale.ROOT, "%02d:%02d", (seconds / 60) % 60, seconds % 60);
+        return hours > 0 ? hours + ":" + clock : clock;
     }
 
     /** Un paso de los botones de peso. */
@@ -153,6 +199,7 @@ public final class SessionControl {
     }
 
     public static Rest rest(JSONObject control, long now) {
+        if (control.optLong(PAUSED_KEY, 0) > 0) return Rest.PAUSED;
         long endsAt = control.optLong("restEndsAt", 0);
         if (endsAt <= 0) return Rest.NONE;
         return endsAt > now ? Rest.RUNNING : Rest.OVER;

@@ -66,6 +66,22 @@
         android:textSize="34sp"
         android:visibility="gone" />
 
+    <!-- En pausa (botón del 4×2 y del 3×2): lo que quedaba, quieto y en muted.
+         Un texto y no un cronómetro parado: un cronómetro parado se recalcula
+         cada vez que el launcher lo vuelve a pintar. -->
+    <TextView
+        android:id="@+id/widget_paused"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:layout_marginBottom="-5dp"
+        android:fontFamily="@font/geist_mono_medium"
+        android:gravity="center_vertical"
+        android:includeFontPadding="false"
+        android:textColor="@color/widget_muted"
+        android:textSize="34sp"
+        android:visibility="gone" />
+
     <include
         layout="@layout/widget_adjust_block"
         android:layout_width="match_parent"

@@ -220,11 +220,13 @@ export function stopNativeQueue() {
 
 // Al abrir Entreno: la cola al día, y cuántas series rechazó el servidor
 // mientras nadie miraba (con la app cerrada, el aviso no tuvo a quién llegar).
-export async function checkInNativeQueue() {
+export async function checkInNativeQueue(onControl) {
   if (!nativeSession()) return 0
   try {
     const result = await session.snapshot()
     adoptNativeQueue(result)
+    // El control en curso, para quien quiera seguir su descanso (Entreno).
+    onControl?.(result?.control ?? null)
     return result?.rejected ?? 0
   } catch {
     return 0
