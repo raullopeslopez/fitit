@@ -817,7 +817,10 @@ el tiempo en pausa se queda quieto en `--muted`, y Entreno ofrece `Reanudar`.
   `+1` y `Saltar` quitan la pausa.
 - **Widget:** aro `widget_rest_toggle` a la izquierda de Terminar, sólo con el descanso
   corriendo (❚❚, «Pausar descanso») o en pausa (▶, «Reanudar descanso»). Acción
-  `REST_TOGGLE`.
+  `REST_TOGGLE`. En el estrecho (`Fit.NARROW`, el 3×2 compacto del Xiaomi) no hay aro:
+  el tiempo de la línea del nombre (`widget_clock_inline` / `widget_paused_inline`) es
+  el botón. Con el aro, `Press banca` se cortaba (lo cazó
+  `inTheUsersLauncherTheWholeBlockFitsWhileResting`).
 - **El tiempo quieto es un texto** (`widget_paused`, y `widget_paused_inline` en el
   compacto), no un cronómetro parado: el launcher recalcula un cronómetro parado cada
   vez que lo vuelve a pintar. Lo tienen también el 4×1 y las dos vistas de la

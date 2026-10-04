@@ -564,7 +564,10 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   `--border-strong` y no en `--danger`, porque pausar se deshace; dentro, ❚❚ en
   `--text`. Al tocarlo, el tiempo se queda quieto en `--muted` con lo que quedaba
   (`01:23`) y el glifo pasa a ▶; tocarlo otra vez sigue desde ahí. Pasado de tiempo o
-  sin descanso, el aro no está. `+1` en pausa registra y empieza un descanso nuevo,
+  sin descanso, el aro no está. **En el 3×2 estrecho y bajo** (el compacto del Xiaomi,
+  ≈253 × 176 dp) no hay aro: el tiempo va en la línea del nombre y un aro más cortaba
+  `Press banca`, así que ahí el botón es el propio tiempo (tocarlo pausa y reanuda;
+  decidido con el usuario al verlo fallar en CI). `+1` en pausa registra y empieza un descanso nuevo,
   corriendo. El 4×1 y la notificación no tienen botón, pero enseñan el tiempo quieto
   igual; y Entreno, `En pausa` con `Reanudar` junto a `Saltar`. En pausa no vibra: la
   alarma del fin se quita y vuelve al reanudar.

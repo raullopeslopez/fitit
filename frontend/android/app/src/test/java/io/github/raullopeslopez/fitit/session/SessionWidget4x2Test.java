@@ -761,4 +761,32 @@ public class SessionWidget4x2Test {
         assertEquals(View.GONE, compact.findViewById(R.id.widget_paused).getVisibility());
         assertEquals(View.GONE, compact.findViewById(R.id.widget_clock_inline).getVisibility());
     }
+
+    @Test
+    public void inTheNarrowWidgetTheTimeItselfPauses() throws Exception {
+        // El 3×2 del Xiaomi (≈253 dp): el tiempo va en la línea del nombre y un
+        // aro más cortaba «Press banca». Ahí el botón es el propio tiempo.
+        SessionController.publish(context, bench(now() + 90_000), now());
+        View narrow = SessionWidget4x2.views(context, store.control(), now(),
+                SessionWidget4x2.Fit.NARROW).apply(context, new android.widget.FrameLayout(context));
+        assertEquals(View.GONE, narrow.findViewById(R.id.widget_rest_toggle).getVisibility());
+        assertEquals(context.getString(R.string.widget_rest_pause),
+                narrow.findViewById(R.id.widget_clock_inline).getContentDescription());
+
+        List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
+        int seen = before.size();
+        narrow.findViewById(R.id.widget_clock_inline).performClick();
+        List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
+        assertEquals(seen + 1, sent.size());
+        assertEquals(SessionController.ACTION_REST_TOGGLE, sent.get(sent.size() - 1).getAction());
+        SessionController.handle(context, sent.get(sent.size() - 1), now());
+        assertTrue(store.control().has("restPausedMs"));
+
+        View paused = SessionWidget4x2.views(context, store.control(), now(),
+                SessionWidget4x2.Fit.NARROW).apply(context, new android.widget.FrameLayout(context));
+        assertEquals(View.VISIBLE, paused.findViewById(R.id.widget_paused_inline).getVisibility());
+        assertEquals(context.getString(R.string.widget_rest_resume),
+                paused.findViewById(R.id.widget_paused_inline).getContentDescription());
+        assertTrue(paused.findViewById(R.id.widget_paused_inline).hasOnClickListeners());
+    }
 }
