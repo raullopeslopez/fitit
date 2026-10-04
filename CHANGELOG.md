@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.18.0: la cuenta atrás del descanso se cuenta con toques.** Tres toques cortos en
+  el 3, dos en el 2, uno en el 1 y uno largo que acaba en el cero. Sustituye a pi, pii,
+  piiii, cuyo toque largo no llegaba entero. Canal nuevo «Fin del descanso»: si lo tenías
+  apagado, apágalo otra vez.
 - **APK 0.17.0: con el móvil bloqueado, tocar −/+ en la notificación ya no pide el código.**
   El cuerpo de la notificación del entreno ya no abre la app: un toque fuera de un botón no
   hace nada, y para abrir Fitit se toca la línea del ejercicio (`Press banca`). Varios −/+

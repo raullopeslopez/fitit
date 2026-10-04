@@ -436,9 +436,9 @@ public class SessionControllerTest {
 
         // Exactas y despiertan en reposo: la inexacta llegaba con el teléfono
         // bloqueado más de un minuto tarde, y entonces no vibraba (0.13.1). La
-        // cuenta atrás, 3,8 s antes del cero (acaba en él); el repintado, después.
+        // cuenta atrás, 3 s antes del cero (acaba en él); el repintado, después.
         List<ShadowAlarmManager.ScheduledAlarm> scheduled = alarms.getScheduledAlarms();
-        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 79_200
+        assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs() == NOW + 80_000
                 && a.isAllowWhileIdle() && a.getWindowLengthMs() == 0));
         assertTrue(scheduled.stream().anyMatch(a -> a.getTriggerAtMs()
                         == NOW + 83_000 + SessionController.REST_OVER_DELAY_MS
@@ -510,21 +510,30 @@ public class SessionControllerTest {
                 notifications.getNotificationChannel(SessionNotification.CHANNEL_COUNTDOWN);
         assertTrue(buzz.shouldVibrate());
         assertNull(buzz.getSound());
-        // Uno por segundo, cada uno más largo que el anterior: pi, pii, piiii y
-        // el último, que acaba justo en el cero: la cuenta empieza lo que dura
-        // el patrón entero antes del final.
-        assertEquals("fitit_entreno_crece", SessionNotification.CHANNEL_COUNTDOWN);
+        // Se cuenta con toques cortos (0.18.0): tres en el 3, dos en el 2, uno
+        // en el 1, cada grupo al empezar su segundo; y uno largo que acaba justo
+        // en el cero. La cuenta empieza lo que dura el patrón entero antes del final.
+        assertEquals("fitit_entreno_toques", SessionNotification.CHANNEL_COUNTDOWN);
         long[] pattern = buzz.getVibrationPattern();
-        assertArrayEquals(new long[] {0, 100, 900, 250, 750, 500, 500, 800}, pattern);
+        assertArrayEquals(new long[] {
+            0, 80, 120, 80, 120, 80,   // 3: pi pi pi
+            520, 80, 120, 80,          // 2: pi pi
+            720, 80,                   // 1: pi
+            420, 500},                 // 0: piiiii, que acaba en el cero
+                pattern);
         assertEquals(java.util.Arrays.stream(pattern).sum(), SessionController.COUNTDOWN_MS);
-        assertEquals(3_800, SessionController.COUNTDOWN_MS);
+        assertEquals(3_000, SessionController.COUNTDOWN_MS);
+        // Cada grupo empieza en su segundo.
+        assertEquals(1_000, 80 + 120 + 80 + 120 + 80 + 520);
+        assertEquals(1_000, 80 + 120 + 80 + 720);
         // La vibración la pone Android con la notificación; la directa no llega.
         assertFalse(vibrator().isVibrating());
         // Los canales de antes, fuera de Ajustes: el de sonido (0.10.6), el de
-        // dos pulsos (0.10.8) y el de pulsos iguales (0.15.0).
+        // dos pulsos (0.10.8), el de pulsos iguales (0.15.0) y el que crecía (0.16.0).
         assertNull(notifications.getNotificationChannel("fitit_fin_descanso"));
         assertNull(notifications.getNotificationChannel("fitit_entreno_fin"));
         assertNull(notifications.getNotificationChannel("fitit_entreno_cuenta"));
+        assertNull(notifications.getNotificationChannel("fitit_entreno_crece"));
     }
 
     @Test

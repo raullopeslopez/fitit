@@ -644,10 +644,11 @@ sigue la misma regla del ámbar.
   `+00:12` al pasarse.
 - **La tarjeta no suena; al acabar el descanso vibra ella misma, con cuenta atrás**
   (APK 0.15.0; antes, dos pulsos en el cero). Antes del cero se publica en
-  el canal «Fin del descanso», todavía bajando: un pulso por segundo que crece hacia el
-  cero, pi, pii, piiii (APK 0.16.0: 100, 250, 500 y 800 ms en el 3, 2, 1 y el cero; en la
-  0.15.0 eran iguales, 120 ms, y 400 en el cero). Desde la 0.16.1 la cuenta empieza 3,8 s
-  antes y el último pulso **acaba** en el cero en vez de empezar en él. Sin sonido y sin aviso aparte. Pasado el cero
+  el canal «Fin del descanso», todavía bajando, y **cuenta con toques cortos** (APK
+  0.18.0): `pi pi pi · pi pi · pi · piiiii`, tres toques de 80 ms en el 3, dos en el 2,
+  uno en el 1 (cada grupo al empezar su segundo) y uno de 500 ms que **acaba** en el cero.
+  Antes: en la 0.16.0, un toque por segundo que crecía (100, 250, 500 y 800 ms), y el
+  largo del 1 no llegaba entero en el Xiaomi; en la 0.15.0, toques iguales. Sin sonido y sin aviso aparte. Pasado el cero
   se repinta en positivo en el canal mudo. Si la cuenta atrás llega más de medio segundo
   tarde, no vibra; en pausa o saltado, tampoco.
 
@@ -734,6 +735,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-04 | La cuenta atrás se cuenta con toques cortos | Pedido del usuario: en la 0.16.0 (pi, pii, piiii) *"el tercero largo no sale"*. No se encontró la causa sin el teléfono conectado, y de las alternativas eligió contar con toques: tres en el 3, dos en el 2, uno en el 1 y uno largo en el cero. Dice cuánto queda sin mirar y sólo depende de toques cortos, que son los que llegan; el único largo, el del cero, es más corto que antes (500 ms frente a 800). |
 | 2026-10-04 | El cuerpo de la notificación no abre la app, y −/+ seguidos se pintan una vez | Problema del usuario: con el móvil bloqueado, tocar varias veces −/+ en la notificación desplegada pedía el código. Los botones son broadcasts (no piden desbloquear), pero el cuerpo tenía un `contentIntent` de actividad: cada toque repintaba la tarjeta, y uno que caía mientras tanto (o con la tarjeta ya cerrada por HyperOS) llegaba al cuerpo. Se quita el `contentIntent` y abrir Fitit pasa a ser un toque concreto, la línea del ejercicio; se pierde «tocar en cualquier sitio abre la app», que es justo lo que pedía el código. Además, los ajustes se pintan agrupados (300 ms tras el último) para que haya menos repintados que pisar; el `+1` no se agrupa porque registra. |
 | 2026-10-04 | −/+ de 52 dp y 6 dp entre el + de los kilos y el +1 | Mismo encargo: toques más grandes en el bloque, y cerrar el riesgo apuntado en «El bloque de ajuste». En el 3×2 compacto del Xiaomi (≈253 dp) las zonas se quedan en 44, medido: a 52 un `102,5 kg` pisaba el `−`. |
 | 2026-10-04 | El 4×1: el descanso se vacía | Opción 2a de la maqueta, elegida por el usuario: el fondo del 4×1 es lo que queda de descanso. Un widget no anima nada salvo el cronómetro, así que la barra se repinta cada 5 s, con alarma inexacta y sin despertar al teléfono (con la pantalla apagada nadie la mira), y nunca con el descanso acabado, en pausa o sin el 4×1 puesto. |

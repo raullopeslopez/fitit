@@ -44,28 +44,36 @@ final class SessionNotification {
     static final String CHANNEL = "fitit_entreno";
     /**
      * La cuenta atrás del fin del descanso (0.15.0): tres segundos antes del cero
-     * la misma tarjeta se publica aquí, y el canal vibra un pulso por segundo
-     * (3, 2, 1 y el cero), cada uno más largo que el anterior (0.16.0): pi, pii,
-     * piiii. Sin sonido. Es la vibración de una notificación, la única que llega
+     * la misma tarjeta se publica aquí, y el canal cuenta con toques cortos
+     * (0.18.0): tres en el 3, dos en el 2, uno en el 1 y uno largo que acaba en el
+     * cero. Los toques largos de la 0.16.0 (pi, pii, piiii) no llegaban enteros en
+     * el Xiaomi; contar con toques cortos dice cuánto queda sin depender de ellos.
+     * Sin sonido. Es la vibración de una notificación, la única que llega
      * con el Xiaomi bloqueado (0.10.6); y apagar este canal en Ajustes calla la
      * cuenta sin tocar la tarjeta. Canal nuevo porque Android no deja cambiar el
      * patrón de uno ya creado.
      */
-    static final String CHANNEL_COUNTDOWN = "fitit_entreno_crece";
-    // Un pulso por segundo, de 100, 250, 500 y 800 ms. Suma 3,8 s, y la alarma
-    // salta eso antes del final (COUNTDOWN_MS): el último acaba en el cero.
-    static final long[] COUNTDOWN_PATTERN = {0, 100, 900, 250, 750, 500, 500, 800};
+    static final String CHANNEL_COUNTDOWN = "fitit_entreno_toques";
+    // Toques de 80 ms con 120 entre ellos, cada grupo al empezar su segundo, y el
+    // largo de 500 que acaba en el cero. Suma 3 s, y la alarma salta eso antes del
+    // final (COUNTDOWN_MS).
+    static final long[] COUNTDOWN_PATTERN = {
+        0, 80, 120, 80, 120, 80,   // 3: pi pi pi
+        520, 80, 120, 80,          // 2: pi pi
+        720, 80,                   // 1: pi
+        420, 500};                 // 0: piiiii
     static final int ID = 4102;
     // Canales que ya no se usan y que Android conserva en Ajustes aunque el código
     // se haya ido: los del aviso de descanso que retiró la fase 0, y el de la
     // 0.6.0, de importancia baja (Android no deja subírsela a un canal que ya
     // existe, así que se sustituye), y el aviso con sonido de fin de descanso de
     // la 0.10.6, que pasó a ser sólo vibración, y el de dos pulsos al llegar a
-    // cero (0.10.8), que pasó a ser la cuenta atrás, y la cuenta de pulsos
-    // iguales (0.15.0), que pasó a crecer.
+    // cero (0.10.8), que pasó a ser la cuenta atrás, la cuenta de pulsos
+    // iguales (0.15.0), que pasó a crecer, y la que crecía (0.16.0), que pasó a
+    // contar con toques cortos.
     private static final String[] RETIRED = {
         "fitit-sesion", "fitit-fin-descanso", "fitit_session", "fitit_fin_descanso",
-        "fitit_entreno_fin", "fitit_entreno_cuenta"};
+        "fitit_entreno_fin", "fitit_entreno_cuenta", "fitit_entreno_crece"};
 
     private SessionNotification() {}
 
@@ -109,7 +117,7 @@ final class SessionNotification {
         // Misma importancia (misma visibilidad en el bloqueo), con vibración.
         NotificationChannel restOver = new NotificationChannel(
                 CHANNEL_COUNTDOWN, "Fin del descanso", NotificationManager.IMPORTANCE_DEFAULT);
-        restOver.setDescription("La tarjeta del entreno vibra 3, 2, 1 y al llegar a cero el descanso. Sin sonido.");
+        restOver.setDescription("Al acabar el descanso, la tarjeta del entreno vibra tres toques, dos, uno y uno largo en el cero. Sin sonido.");
         restOver.setSound(null, null);
         restOver.enableVibration(true);
         restOver.setVibrationPattern(COUNTDOWN_PATTERN);

@@ -945,3 +945,25 @@ la tarjeta ya cerrada por HyperOS) llegaba al cuerpo, que intentaba abrir la app
 - −/+ diez veces y +1 enseguida: la serie sale con el peso de la pantalla.
 - La barra del 4×1 baja durante el descanso (a saltos de 5 s) y desaparece al acabar; en
   pausa se queda quieta.
+
+## Fin del descanso: contar con toques (APK 0.18.0)
+
+Pedido el 2026-10-04: con la 0.16.0/0.16.1 (pi, pii, piiii), *"el tercero largo no sale"*.
+Sin el teléfono conectado no se encontró la causa (candidatos: HyperOS corta las
+vibraciones largas de una notificación, o al apagarse la pantalla). De las alternativas,
+el usuario eligió **contar con toques cortos**.
+
+- **Patrón:** `{0, 80, 120, 80, 120, 80, 520, 80, 120, 80, 720, 80, 420, 500}`. Toques de
+  80 ms con 120 entre ellos: tres en el 3, dos en el 2, uno en el 1, cada grupo al
+  empezar su segundo; y uno de 500 ms que acaba en el cero. Suma 3 s, así que la alarma
+  vuelve a saltar 3 s antes del final (`COUNTDOWN_MS` es la suma del patrón).
+- **Por qué así:** lo que cuenta son toques cortos, los que sí llegaban; el único largo,
+  el del cero, baja de 800 a 500 ms. Si ése tampoco llega entero, la salida es un doble
+  toque corto en el cero.
+- **Canal nuevo, `fitit_entreno_toques`** («Fin del descanso»); se retira
+  `fitit_entreno_crece`. Quien lo hubiera apagado vuelve a tenerlo encendido una vez.
+- **Si sigue fallando:** conectar el Xiaomi por USB y, justo después de un descanso,
+  `adb shell dumpsys vibrator_manager`: lista las últimas vibraciones, lo que duró cada
+  una y si se cortó y por qué.
+- **Comprobar en el teléfono:** bloqueado, con un descanso corriendo: tres toques, dos,
+  uno, y el largo termina cuando la notificación marca `00:00`.
