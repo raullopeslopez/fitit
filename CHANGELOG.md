@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   llegar a cero, un toque corto en cada uno de los tres últimos segundos y uno largo en el
   cero. Se sigue callando apagando «Fin del descanso» en Ajustes de Android (es un canal
   nuevo: si lo tenías apagado, apágalo otra vez).
+- **APK 0.15.0: el botón de pausa se ve en todas partes.** En el 3×2 bajo (el del Xiaomi)
+  vuelve el aro ❚❚ junto a Terminar en vez de tocar el tiempo, aunque el nombre se corte
+  mientras descansas. Y la notificación lo lleva también, cerrada y desplegada, a la
+  derecha del tiempo.
 
 ### Added
 - **APK 0.14.0: pausar el descanso desde el widget.** En el 4×2 y el 3×2, mientras corre

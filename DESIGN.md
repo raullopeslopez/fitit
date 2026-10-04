@@ -564,12 +564,12 @@ en ese entreno: **añadir o cambiar de ejercicio se hace dentro de la app**, no 
   `--border-strong` y no en `--danger`, porque pausar se deshace; dentro, ❚❚ en
   `--text`. Al tocarlo, el tiempo se queda quieto en `--muted` con lo que quedaba
   (`01:23`) y el glifo pasa a ▶; tocarlo otra vez sigue desde ahí. Pasado de tiempo o
-  sin descanso, el aro no está. **En el 3×2 estrecho y bajo** (el compacto del Xiaomi,
-  ≈253 × 176 dp) no hay aro: el tiempo va en la línea del nombre y un aro más cortaba
-  `Press banca`, así que ahí el botón es el propio tiempo (tocarlo pausa y reanuda;
-  decidido con el usuario al verlo fallar en CI). `+1` en pausa registra y empieza un descanso nuevo,
-  corriendo. El 4×1 y la notificación no tienen botón, pero enseñan el tiempo quieto
-  igual; y Entreno, `En pausa` con `Reanudar` junto a `Saltar`. En pausa no vibra: la
+  sin descanso, el aro no está. **También en el 3×2 estrecho y bajo** (el compacto del
+  Xiaomi, ≈253 × 176 dp), aunque ahí el nombre se corta con «…» mientras se descansa
+  (`Pre…`): en la 0.14.0 el botón era tocar el tiempo, sin icono, y el usuario no lo
+  encontró; sobre el render eligió el aro antes que un tiempo más pequeño (0.15.0).
+  **Y en la notificación**, cerrada y desplegada: el mismo aro a la derecha del tiempo. `+1` en pausa registra y empieza un descanso nuevo,
+  corriendo. El 4×1 no tiene botón, pero enseña el tiempo quieto igual; y Entreno, `En pausa` con `Reanudar` junto a `Saltar`. En pausa no vibra: la
   alarma del fin se quita y vuelve al reanudar.
 - **Sin enviar.** La línea del ejercicio dice `5 series · 1 sin enviar`, con `1 sin enviar`
   en `--accent-ink`. Se va sola al llegar las series al servidor.

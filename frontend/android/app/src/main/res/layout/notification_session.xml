@@ -100,4 +100,18 @@
         android:textColor="@color/widget_muted"
         android:textSize="34sp"
         android:visibility="gone" />
+
+    <!-- Pausar el descanso: el aro neutro del widget, ❚❚ (▶ en pausa), sólo
+         descansando (SessionWidget4x2.pause). -->
+    <ImageView
+        android:id="@+id/widget_rest_toggle"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="-4dp"
+        android:layout_marginBottom="-4dp"
+        android:contentDescription="@string/widget_rest_pause"
+        android:scaleType="center"
+        android:src="@drawable/widget_pause_ring"
+        android:visibility="gone" />
 </LinearLayout>

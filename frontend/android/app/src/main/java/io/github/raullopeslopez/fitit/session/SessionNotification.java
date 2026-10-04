@@ -144,6 +144,7 @@ final class SessionNotification {
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
+        SessionWidget4x2.pause(context, views, control, now);
         return views;
     }
 
@@ -154,6 +155,7 @@ final class SessionNotification {
         views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
         SessionWidget4x2.block(views, control);
+        SessionWidget4x2.pause(context, views, control, now);
         tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
         tap(context, views, R.id.widget_reps_down, SessionController.ACTION_REPS_DOWN, 32);

@@ -588,4 +588,32 @@ public class SessionControllerTest {
         assertFalse(store.control().has("restPausedMs"));
         assertFalse(visible(collapsed(), R.id.widget_paused));
     }
+
+    @Test
+    public void theCardHasThePauseRingAndItPauses() throws Exception {
+        SessionController.publish(context, bench(NOW + 90_000), NOW);
+        assertTrue(visible(collapsed(), R.id.widget_rest_toggle));
+        assertTrue(visible(expanded(), R.id.widget_rest_toggle));
+        assertEquals(context.getString(R.string.widget_rest_pause),
+                collapsed().findViewById(R.id.widget_rest_toggle).getContentDescription());
+
+        tapIn(expanded(), R.id.widget_rest_toggle);
+
+        assertTrue(store.control().has("restPausedMs"));
+        assertTrue(visible(collapsed(), R.id.widget_paused));
+        assertEquals(context.getString(R.string.widget_rest_resume),
+                collapsed().findViewById(R.id.widget_rest_toggle).getContentDescription());
+
+        tapIn(collapsed(), R.id.widget_rest_toggle);
+
+        assertFalse(store.control().has("restPausedMs"));
+        assertTrue(visible(collapsed(), R.id.widget_clock));
+    }
+
+    @Test
+    public void withoutARestTheCardHasNoPauseRing() throws Exception {
+        SessionController.publish(context, bench(0), NOW);
+        assertFalse(visible(collapsed(), R.id.widget_rest_toggle));
+        assertFalse(visible(expanded(), R.id.widget_rest_toggle));
+    }
 }

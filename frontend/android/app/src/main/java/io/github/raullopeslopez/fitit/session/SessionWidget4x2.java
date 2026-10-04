@@ -110,7 +110,7 @@ public class SessionWidget4x2 extends AppWidgetProvider {
 
         block(views, control);
         fit(context, views, control, now, fit);
-        pause(context, views, control, now, fit);
+        pause(context, views, control, now);
 
         SessionNotification.tap(context, views, R.id.widget_weight_down, SessionController.ACTION_WEIGHT_DOWN, 30);
         SessionNotification.tap(context, views, R.id.widget_weight_up, SessionController.ACTION_WEIGHT_UP, 31);
@@ -158,37 +158,22 @@ public class SessionWidget4x2 extends AppWidgetProvider {
     }
 
     /**
-     * Pausar el descanso: sólo mientras corre (❚❚) o está en pausa (▶). Pasado
-     * de tiempo no hay nada que pausar. Es un aro al lado de Terminar, salvo en
-     * el estrecho ({@link Fit#NARROW}, el 3×2 del Xiaomi): ahí el tiempo va en la
-     * línea del nombre y un aro más lo cortaba, así que el botón es el propio
-     * tiempo (DESIGN.md, «En pausa»).
+     * Pausar el descanso: un aro al lado de Terminar, sólo mientras corre (❚❚) o
+     * está en pausa (▶). Pasado de tiempo no hay nada que pausar. En todos los
+     * tamaños, también el 3×2 estrecho, donde el nombre se corta con «…»
+     * mientras se descansa (decidido con el usuario sobre el render, 0.15.0). Lo
+     * usa también la notificación.
      */
-    static void pause(Context context, RemoteViews views, JSONObject control, long now, Fit fit) {
+    static void pause(Context context, RemoteViews views, JSONObject control, long now) {
         SessionControl.Rest rest = SessionControl.rest(control, now);
         boolean resting = rest == SessionControl.Rest.RUNNING || rest == SessionControl.Rest.PAUSED;
-        boolean ring = resting && fit != Fit.NARROW;
-        boolean onTheClock = resting && fit == Fit.NARROW;
-        views.setViewVisibility(R.id.widget_rest_toggle, ring ? View.VISIBLE : View.GONE);
-        // Todo en los dos sentidos: un widget estirado conserva lo del tamaño de antes.
-        for (int id : new int[] {R.id.widget_clock_inline, R.id.widget_paused_inline}) {
-            views.setOnClickPendingIntent(id, onTheClock
-                    ? SessionNotification.broadcast(context, SessionController.ACTION_REST_TOGGLE, 36)
-                    : null);
-        }
+        views.setViewVisibility(R.id.widget_rest_toggle, resting ? View.VISIBLE : View.GONE);
         if (!resting) return;
         boolean paused = rest == SessionControl.Rest.PAUSED;
-        String description = context.getString(
-                paused ? R.string.widget_rest_resume : R.string.widget_rest_pause);
-        if (onTheClock) {
-            // Sólo el quieto: un cronómetro reescribe su descripción con el tiempo
-            // en cada tic, y ése es el que se lee mientras corre.
-            views.setContentDescription(R.id.widget_paused_inline, description);
-            return;
-        }
         views.setImageViewResource(R.id.widget_rest_toggle,
                 paused ? R.drawable.widget_resume_ring : R.drawable.widget_pause_ring);
-        views.setContentDescription(R.id.widget_rest_toggle, description);
+        views.setContentDescription(R.id.widget_rest_toggle, context.getString(
+                paused ? R.string.widget_rest_resume : R.string.widget_rest_pause));
         SessionNotification.tap(context, views, R.id.widget_rest_toggle,
                 SessionController.ACTION_REST_TOGGLE, 36);
     }
