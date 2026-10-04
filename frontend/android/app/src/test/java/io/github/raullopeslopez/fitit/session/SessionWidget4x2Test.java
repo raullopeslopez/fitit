@@ -137,7 +137,7 @@ public class SessionWidget4x2Test {
             assertFalse(shownText, shownText.contains("Pecho"));
         }
         // Una línea: «Press banca · 4 series».
-        assertEquals(" · 4 series", text(R.id.widget_count));
+        assertEquals("4", text(R.id.widget_count_n));
         assertFalse(shown(R.id.widget_unsent));
         assertEquals("32,5", text(R.id.widget_weight));
         assertEquals("12", text(R.id.widget_reps));
@@ -166,13 +166,13 @@ public class SessionWidget4x2Test {
         // Ajustar no registra: sólo cambia la serie que está a la vista.
         assertTrue(store.queue().isEmpty());
         assertEquals("37,5", text(R.id.widget_weight));
-        assertEquals(" · 4 series", text(R.id.widget_count));
+        assertEquals("4", text(R.id.widget_count_n));
 
         tap(R.id.widget_log, now + 3_000);
 
         assertEquals(1, store.queue().size());
         assertEquals(37.5, store.queue().get(0).getJSONObject("payload").getDouble("weight"), 0);
-        assertEquals(" · 5 series", text(R.id.widget_count));
+        assertEquals("5", text(R.id.widget_count_n));
         // Y es lo que repite desde ahora la notificación, y el 4×1.
         assertEquals("37,5 kg × 12 · 5 series",
                 notification().extras.getCharSequence(Notification.EXTRA_TEXT).toString());
@@ -352,7 +352,7 @@ public class SessionWidget4x2Test {
         SessionWidget.updateAll(context);
 
         assertTrue(shown(R.id.widget_idle));
-        assertEquals("Sin entreno en curso", text(R.id.widget_idle_title));
+        assertTrue(shown(R.id.widget_idle_start));
         view().findViewById(R.id.widget_start).performClick();
 
         Intent started = shadowOf((Application) context).getNextStartedActivity();
@@ -360,7 +360,7 @@ public class SessionWidget4x2Test {
         assertEquals(SessionLaunch.START, started.getStringExtra(SessionLaunch.EXTRA_ACTION));
     }
 
-    // --- Sin entreno: dos pantallas (DESIGN.md, «Sin entreno») ---------------
+    // --- Sin entreno: pestañas (DESIGN.md, «Sin entreno») ---------------------
 
     private static String day(int ago) {
         return LocalDate.now().minusDays(ago).toString();
@@ -385,84 +385,127 @@ public class SessionWidget4x2Test {
                 .put("weekAverage", weekAverage == null ? JSONObject.NULL : weekAverage));
     }
 
-    // Toca los puntitos y entrega lo que emitió, como Android.
-    private void tapDots() {
+    // Toca una pestaña y entrega lo que emitió, como Android.
+    private void tapTab(int id) {
         List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
         int seen = before.size();
-        view().findViewById(R.id.widget_dots).performClick();
+        view().findViewById(id).performClick();
         List<Intent> sent = shadowOf((Application) context).getBroadcastIntents();
-        assertEquals("los puntitos emiten una acción", seen + 1, sent.size());
+        assertEquals("la pestaña emite una acción", seen + 1, sent.size());
         SessionController.handle(context, sent.get(sent.size() - 1), now());
     }
 
+    private boolean active(int label) {
+        return ((TextView) view().findViewById(label)).getCurrentTextColor()
+                == context.getColor(R.color.widget_text);
+    }
+
     @Test
-    public void pageOneSaysWhenAndWhatTheLastWorkoutWas() throws Exception {
+    public void entrenoSaysHowManyDaysSinceTheLastAndWhatItWas() throws Exception {
         summary(last(2, "Cuádriceps", "Glúteo"));
 
         assertTrue(shown(R.id.widget_idle_start));
-        assertEquals("Sin entreno en curso", text(R.id.widget_idle_title));
-        assertEquals("Último: hace 2 días · Cuádriceps, Glúteo", text(R.id.widget_idle_date));
+        assertEquals("2", text(R.id.widget_train_days));
+        assertEquals("días", text(R.id.widget_train_unit));
+        assertEquals("desde el último · ", text(R.id.widget_train_since));
+        assertEquals("Cuádriceps · Glúteo", text(R.id.widget_train_groups));
+        // Dos grupos: la franja partida en dos mitades.
+        assertTrue(shown(R.id.widget_train_stripe_2));
         assertEquals("Empezar entreno", text(R.id.widget_start));
 
         summary(last(1, "Pecho"));
-        assertEquals("Último: ayer · Pecho", text(R.id.widget_idle_date));
+        assertEquals("1", text(R.id.widget_train_days));
+        assertEquals("día", text(R.id.widget_train_unit));
+        assertFalse("un grupo, una franja entera", shown(R.id.widget_train_stripe_2));
 
-        summary(last(0));
-        assertEquals("Último: hoy", text(R.id.widget_idle_date));
+        summary(last(0, "Core"));
+        assertTrue(shown(R.id.widget_train_today));
+        assertFalse(shown(R.id.widget_train_days));
+        assertFalse(shown(R.id.widget_train_unit));
+        assertEquals("último entreno · ", text(R.id.widget_train_since));
     }
 
     @Test
-    public void withNoStepsThereIsOnlyPageOneAndNoDots() throws Exception {
-        store.flipIdlePage();
+    public void theStripeTakesTheColourOfItsGroup() {
+        assertEquals(R.color.widget_m_cuadriceps, SessionWidget4x2.groupColor("Cuádriceps"));
+        assertEquals(R.color.widget_m_gluteo, SessionWidget4x2.groupColor("Glúteo"));
+        assertEquals(R.color.widget_m_triceps, SessionWidget4x2.groupColor("Tríceps"));
+        assertEquals(R.color.widget_m_core, SessionWidget4x2.groupColor("Core"));
+        // Cardio no tiene color de grupo: la franja va en border-strong.
+        assertEquals(R.color.widget_border_strong, SessionWidget4x2.groupColor("Cardio"));
+    }
+
+    @Test
+    public void withNoLastWorkoutEntrenoIsJustTheButton() throws Exception {
         SessionWidget.updateAll(context);
 
         assertTrue(shown(R.id.widget_idle_start));
-        assertFalse(shown(R.id.widget_idle_steps));
-        assertFalse(shown(R.id.widget_dots));
+        assertFalse(shown(R.id.widget_train));
+        assertTrue(shown(R.id.widget_start));
     }
 
     @Test
-    public void withStepsTodayTheyAreTheFirstPageAndTheDotsGoToStart() throws Exception {
+    public void withNoStepsThereIsNoPasosTab() throws Exception {
+        store.setIdleTab("STEPS");
+        SessionWidget.updateAll(context);
+
+        assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_tab_steps));
+        assertFalse(shown(R.id.widget_tab_food));
+        assertTrue(shown(R.id.widget_tab_train));
+        assertTrue(active(R.id.widget_tab_train_label));
+    }
+
+    @Test
+    public void withStepsTodayPasosIsTheFirstTabAndEntrenoIsATapAway() throws Exception {
         summary(stepsToday(8432, 7910).put("stepsGoal", 10000));
-        assertTrue(shown(R.id.widget_dots));
-        assertFalse(shown(R.id.widget_idle_start));
+        assertTrue(shown(R.id.widget_tab_steps));
+        assertTrue(active(R.id.widget_tab_steps_label));
+        assertTrue(shown(R.id.widget_tab_steps_line));
+        assertFalse(active(R.id.widget_tab_train_label));
+        assertFalse(shown(R.id.widget_tab_train_line));
         assertTrue(shown(R.id.widget_idle_steps));
         assertEquals("8.432", text(R.id.widget_steps));
-        assertEquals("/ 10.000", text(R.id.widget_steps_goal));
+        assertTrue(shown(R.id.widget_steps_left_line));
+        assertEquals("1.568", text(R.id.widget_steps_left));
         assertEquals("7.910", text(R.id.widget_steps_week));
-        assertTrue(shown(R.id.widget_steps_bar));
         ProgressBar bar = view().findViewById(R.id.widget_steps_bar);
+        assertTrue(shown(R.id.widget_steps_bar));
         assertEquals(843, bar.getProgress());
 
-        tapDots();
+        tapTab(R.id.widget_tab_train);
 
         assertTrue(shown(R.id.widget_idle_start));
         assertFalse(shown(R.id.widget_idle_steps));
+        assertTrue(active(R.id.widget_tab_train_label));
         // Y se acuerda: repintar no la devuelve a los pasos.
         SessionWidget.updateAll(context);
         assertTrue(shown(R.id.widget_idle_start));
 
-        tapDots();
+        tapTab(R.id.widget_tab_steps);
 
         assertTrue(shown(R.id.widget_idle_steps));
     }
 
     @Test
-    public void aGoalMetFillsTheBarAndStopsThere() throws Exception {
+    public void aGoalMetFillsTheBarAndDropsFaltan() throws Exception {
         summary(stepsToday(12000, null).put("stepsGoal", 10000));
 
         assertEquals(1000, ((ProgressBar) view().findViewById(R.id.widget_steps_bar)).getProgress());
+        assertFalse("meta cumplida: no falta nada", shown(R.id.widget_steps_left_line));
         // Sin media, la línea no se inventa una.
         assertFalse(shown(R.id.widget_steps_week_line));
     }
 
     @Test
-    public void withNoGoalThereIsNoBarAndNoSlash() throws Exception {
+    public void withNoGoalThereIsNoBarAndNoFaltan() throws Exception {
         summary(stepsToday(8432, 7910));
 
         assertEquals("8.432", text(R.id.widget_steps));
-        assertFalse(shown(R.id.widget_steps_goal));
+        assertFalse(shown(R.id.widget_steps_left_line));
         assertFalse(shown(R.id.widget_steps_bar));
+        // Y su hueco se va con ella: el aire sigue repartido por igual.
+        assertFalse(shown(R.id.widget_steps_bar_gap));
     }
 
     @Test
@@ -470,11 +513,9 @@ public class SessionWidget4x2Test {
         // Pasada la medianoche, lo que se leyó ayer no son «pasos hoy».
         summary(new JSONObject().put("steps",
                 new JSONObject().put("date", day(1)).put("today", 8432)));
-        store.flipIdlePage();
-        SessionWidget.updateAll(context);
 
         assertTrue(shown(R.id.widget_idle_start));
-        assertFalse(shown(R.id.widget_dots));
+        assertFalse(shown(R.id.widget_tab_steps));
     }
 
     @Test
@@ -491,13 +532,13 @@ public class SessionWidget4x2Test {
         }
         assertTrue("hay una alarma al cambiar de día", armed);
 
-        // Y la alarma repinta aunque no haya entreno: «hace 2 días» pasa a 3.
+        // Y la alarma repinta aunque no haya entreno: «2 días» pasa a 3.
         SessionController.handle(context, new Intent(SessionController.ACTION_DAY), now());
         assertTrue(shown(R.id.widget_idle_start));
-        assertEquals("Último: hace 2 días", text(R.id.widget_idle_date));
+        assertEquals("2", text(R.id.widget_train_days));
     }
 
-    // --- La pantalla Comida (DESIGN.md, «Pantalla Comida») -------------------
+    // --- La pestaña Comida (DESIGN.md, «Pestaña Comida») ---------------------
 
     private static String foodDay(int ago) {
         return IdleSummary.foodDay(java.time.LocalDateTime.now()).minusDays(ago).toString();
@@ -521,76 +562,96 @@ public class SessionWidget4x2Test {
     }
 
     @Test
-    public void foodSitsBetweenStepsAndStartAndTheDotsGoRound() throws Exception {
+    public void comidaSitsBetweenPasosAndEntreno() throws Exception {
         store.mergeSummary(stepsToday(8432, 7910));
         summary(halfDay());
 
-        // Tres pantallas, tres puntitos; la primera sigue siendo la de pasos.
-        assertTrue(shown(R.id.widget_dot_3));
+        // Tres pestañas; la que se ve sigue siendo Pasos.
+        assertTrue(shown(R.id.widget_tab_steps));
+        assertTrue(shown(R.id.widget_tab_food));
+        assertTrue(shown(R.id.widget_tab_train));
         assertTrue(shown(R.id.widget_idle_steps));
         assertFalse(shown(R.id.widget_idle_food));
 
-        tapDots();
+        tapTab(R.id.widget_tab_food);
 
         assertTrue(shown(R.id.widget_idle_food));
         assertFalse(shown(R.id.widget_idle_steps));
         assertFalse(shown(R.id.widget_idle_start));
-        assertEquals("84", text(R.id.widget_food_left));
-        assertEquals("g faltan", text(R.id.widget_food_caption));
-        assertEquals("118 / 202 g", text(R.id.widget_food_protein));
-        assertEquals("1460 / 2569", text(R.id.widget_food_kcal));
-        assertEquals("quedan 1109", text(R.id.widget_food_note));
+        // Cada cifra una vez: «118/202 G» y «1460/2569 KCAL», nada en el centro.
+        assertEquals("118", text(R.id.widget_food_protein));
+        assertEquals("/202", text(R.id.widget_food_protein_target));
+        assertEquals(" G", text(R.id.widget_food_protein_unit));
+        assertEquals("1460", text(R.id.widget_food_kcal));
+        assertEquals("/2569", text(R.id.widget_food_kcal_target));
+        assertEquals(" KCAL", text(R.id.widget_food_kcal_unit));
+        assertEquals(context.getColor(R.color.widget_accent_ink),
+                ((TextView) view().findViewById(R.id.widget_food_protein)).getCurrentTextColor());
+        assertEquals(context.getColor(R.color.widget_text),
+                ((TextView) view().findViewById(R.id.widget_food_kcal)).getCurrentTextColor());
         android.widget.ImageView rings = view().findViewById(R.id.widget_food_rings);
         assertNotNull("los anillos se pintan", rings.getDrawable());
 
-        tapDots();
+        tapTab(R.id.widget_tab_train);
         assertTrue(shown(R.id.widget_idle_start));
-
-        // De la última se vuelve a la primera.
-        tapDots();
-        assertTrue(shown(R.id.widget_idle_steps));
     }
 
     @Test
-    public void withoutStepsFoodIsTheFirstPageOfTwo() throws Exception {
+    public void theChosenTabSurvivesATabThatComesAndGoes() throws Exception {
+        summary(halfDay());
+        tapTab(R.id.widget_tab_train);
+
+        // Llegan los pasos de hoy: aparece Pasos delante, y Entreno sigue elegida.
+        summary(stepsToday(8432, 7910));
+        assertTrue(shown(R.id.widget_tab_steps));
+        assertTrue(shown(R.id.widget_idle_start));
+    }
+
+    @Test
+    public void withoutStepsComidaIsTheFirstTab() throws Exception {
         summary(halfDay());
 
         assertTrue(shown(R.id.widget_idle_food));
-        assertTrue(shown(R.id.widget_dots));
-        assertFalse(shown(R.id.widget_dot_3));
+        assertFalse(shown(R.id.widget_tab_steps));
+        assertTrue(active(R.id.widget_tab_food_label));
     }
 
     @Test
-    public void withoutAProteinTargetThereIsNoFoodPage() throws Exception {
+    public void withoutAProteinTargetThereIsNoComidaTab() throws Exception {
         JSONObject part = halfDay();
         part.getJSONObject("food").put("targetProtein", JSONObject.NULL);
         summary(part);
 
         assertTrue(shown(R.id.widget_idle_start));
+        assertFalse(shown(R.id.widget_tab_food));
         assertFalse(shown(R.id.widget_idle_food));
-        assertFalse(shown(R.id.widget_dots));
     }
 
     @Test
     public void yesterdaysFoodIsAnEmptyDayWithTheSameTargets() throws Exception {
-        // Pasadas las 04:00, lo apuntado ayer no es de hoy: anillos vacíos, nada
-        // comido («—», no 0) y todo por delante.
+        // Pasadas las 04:00, lo apuntado ayer no es de hoy: anillos vacíos y nada
+        // comido («—», no 0).
         summary(food(foodDay(1), 118, 1460, 84, 1109, 2569));
 
         assertTrue(shown(R.id.widget_idle_food));
-        assertEquals("202", text(R.id.widget_food_left));
-        assertEquals("— / 202 g", text(R.id.widget_food_protein));
-        assertEquals("— / 2569", text(R.id.widget_food_kcal));
-        assertEquals("quedan 2569", text(R.id.widget_food_note));
+        assertEquals("—", text(R.id.widget_food_protein));
+        assertEquals("/202", text(R.id.widget_food_protein_target));
+        assertEquals("—", text(R.id.widget_food_kcal));
     }
 
     @Test
-    public void closedProteinIsAScoreAndOverKcalSaysHowMuch() throws Exception {
+    public void closedProteinTurnsToTheRecordColour() throws Exception {
         summary(food(foodDay(0), 205, 2769, -3, -200, 2569));
 
-        assertEquals("205/202", text(R.id.widget_food_left));
-        assertEquals("Cerrado", text(R.id.widget_food_caption));
-        assertEquals("200 de más", text(R.id.widget_food_note));
+        assertEquals("205", text(R.id.widget_food_protein));
+        for (int id : new int[] {R.id.widget_food_protein, R.id.widget_food_protein_target,
+                R.id.widget_food_protein_unit}) {
+            assertEquals(context.getColor(R.color.widget_pr),
+                    ((TextView) view().findViewById(id)).getCurrentTextColor());
+        }
+        // Las kcal no cambian de color: el récord es de la proteína.
+        assertEquals(context.getColor(R.color.widget_text),
+                ((TextView) view().findViewById(R.id.widget_food_kcal)).getCurrentTextColor());
     }
 
     @Test
@@ -598,7 +659,7 @@ public class SessionWidget4x2Test {
         summary(food(foodDay(0), 118, 1460, 84, JSONObject.NULL, JSONObject.NULL));
 
         assertTrue(shown(R.id.widget_idle_food));
-        assertEquals("118 / 202 g", text(R.id.widget_food_protein));
+        assertEquals("118", text(R.id.widget_food_protein));
         assertFalse(shown(R.id.widget_food_kcal_group));
     }
 
@@ -622,11 +683,11 @@ public class SessionWidget4x2Test {
 
         new WidgetRefreshReceiver().onReceive(context, new Intent(Intent.ACTION_MY_PACKAGE_REPLACED));
         assertTrue(shown(R.id.widget_idle_food));
-        assertEquals("84", text(R.id.widget_food_left));
+        assertEquals("118", text(R.id.widget_food_protein));
 
         store.mergeSummary(food(foodDay(0), 150, 2000, 52, 569, 2569));
         new WidgetRefreshReceiver().onReceive(context, new Intent(Intent.ACTION_BOOT_COMPLETED));
-        assertEquals("52", text(R.id.widget_food_left));
+        assertEquals("150", text(R.id.widget_food_protein));
     }
 
     @Test
@@ -679,8 +740,8 @@ public class SessionWidget4x2Test {
 
         assertEquals(1, store.queue().size());
         // Y lo repinta el mismo updateAll que a los otros dos.
-        assertEquals(" · 5 series", ((TextView) widgets.getViewFor(mid)
-                .findViewById(R.id.widget_count)).getText().toString());
+        assertEquals("5", ((TextView) widgets.getViewFor(mid)
+                .findViewById(R.id.widget_count_n)).getText().toString());
     }
 
     @Test
@@ -766,9 +827,11 @@ public class SessionWidget4x2Test {
         View compact = SessionWidget4x2.views(context, store.control(), now(),
                 SessionWidget4x2.Fit.COMPACT).apply(context, new android.widget.FrameLayout(context));
 
-        assertEquals(View.VISIBLE, compact.findViewById(R.id.widget_paused_inline).getVisibility());
-        assertEquals(View.GONE, compact.findViewById(R.id.widget_paused).getVisibility());
-        assertEquals(View.GONE, compact.findViewById(R.id.widget_clock_inline).getVisibility());
+        // El compacto tiene su propio tiempo, en la línea del nombre a 24sp.
+        TextView paused = compact.findViewById(R.id.widget_paused);
+        assertEquals(View.VISIBLE, paused.getVisibility());
+        assertEquals(24 * context.getResources().getDisplayMetrics().scaledDensity, paused.getTextSize(), 0.5f);
+        assertEquals(View.GONE, compact.findViewById(R.id.widget_clock).getVisibility());
     }
 
     @Test
@@ -780,7 +843,7 @@ public class SessionWidget4x2Test {
         View narrow = SessionWidget4x2.views(context, store.control(), now(),
                 SessionWidget4x2.Fit.NARROW).apply(context, new android.widget.FrameLayout(context));
         assertEquals(View.VISIBLE, narrow.findViewById(R.id.widget_rest_toggle).getVisibility());
-        assertFalse(narrow.findViewById(R.id.widget_clock_inline).hasOnClickListeners());
+        assertFalse(narrow.findViewById(R.id.widget_clock).hasOnClickListeners());
 
         List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
         int seen = before.size();

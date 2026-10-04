@@ -177,7 +177,7 @@ public class SessionControllerTest {
         View root = collapsed();
         assertEquals("Press banca", text(root, R.id.widget_exercise));
         assertEquals("32,5 kg × 12", text(root, R.id.widget_set));
-        assertEquals(" · 4 series", text(root, R.id.widget_count));
+        assertEquals("4", text(root, R.id.widget_count_n));
         Chronometer clock = root.findViewById(R.id.widget_clock);
         assertTrue(visible(root, R.id.widget_clock));
         assertTrue(clock.isCountDown());
@@ -192,7 +192,7 @@ public class SessionControllerTest {
 
         View root = expanded();
         assertEquals("Press banca", text(root, R.id.widget_exercise));
-        assertEquals(" · 4 series", text(root, R.id.widget_count));
+        assertEquals("4", text(root, R.id.widget_count_n));
         assertTrue(visible(root, R.id.widget_clock));
         assertTrue(visible(root, R.id.widget_block));
         assertEquals("32,5", text(root, R.id.widget_weight));
@@ -235,7 +235,7 @@ public class SessionControllerTest {
         tapIn(expanded(), R.id.widget_log);
         assertEquals(1, store.queue().size());
         assertEquals(35, store.head().getJSONObject("payload").getDouble("weight"), 0);
-        assertEquals(" · 5 series", text(expanded(), R.id.widget_count));
+        assertEquals("5", text(expanded(), R.id.widget_count_n));
         // Sólo el widget vibra.
         assertFalse(shadowOf(context.getSystemService(Vibrator.class)).isVibrating());
     }
@@ -287,7 +287,7 @@ public class SessionControllerTest {
         // Sin esperar: la serie sale con el peso nuevo y la tarjeta ya la cuenta.
         assertEquals(1, store.queue().size());
         assertEquals(35, store.head().getJSONObject("payload").getDouble("weight"), 0);
-        assertEquals(" · 5 series", text(expanded(), R.id.widget_count));
+        assertEquals("5", text(expanded(), R.id.widget_count_n));
         assertEquals("35", text(expanded(), R.id.widget_weight));
         // El repintado del + se fundió en el del +1: no sale otro después.
         Notification logged = shown();

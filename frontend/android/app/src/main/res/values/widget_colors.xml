@@ -21,6 +21,16 @@
     <color name="widget_press">#FBE6DC</color>
     <!-- El récord (pr en DESIGN.md): el anillo de proteína al cerrar el día. -->
     <color name="widget_pr">#A83208</color>
-    <!-- El anillo de kcal: la tinta al 70 %, un paso detrás de la proteína. -->
-    <color name="widget_ring_kcal">#B316181B</color>
+    <!-- Los grupos musculares (los m-* de styles.css), para la franja de la pestaña
+         Entreno. Sólo marca, nunca texto: no todos pasan el contraste de lectura. -->
+    <color name="widget_m_pecho">#2A78D6</color>
+    <color name="widget_m_espalda">#008300</color>
+    <color name="widget_m_cuadriceps">#E87BA4</color>
+    <color name="widget_m_gluteo">#7D3F17</color>
+    <color name="widget_m_femoral">#8B4BC0</color>
+    <color name="widget_m_gemelo">#0089A0</color>
+    <color name="widget_m_hombro">#EDA100</color>
+    <color name="widget_m_biceps">#1BAF7A</color>
+    <color name="widget_m_triceps">#4A3AA7</color>
+    <color name="widget_m_core">#E34948</color>
 </resources>

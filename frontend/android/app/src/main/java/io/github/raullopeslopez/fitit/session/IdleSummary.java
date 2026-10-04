@@ -10,8 +10,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Lo que dicen el 4×2 y el 3×2 sin entreno en curso (DESIGN.md, «Sin entreno — dos
- * pantallas»), sin Android dentro. Los datos los publica la app (widgetSummary.js)
+ * Lo que dicen el 4×2 y el 3×2 sin entreno en curso (DESIGN.md, «Sin entreno —
+ * pestañas»), sin Android dentro. Los datos los publica la app (widgetSummary.js)
  * en piezas que {@link SessionStore#mergeSummary} junta:
  *
  * <pre>
@@ -32,7 +32,7 @@ final class IdleSummary {
         final int today;
         /** Null: ningún día de la semana tiene cifra, y no se inventa una. */
         final Integer weekAverage;
-        /** Null: sin objetivo no hay barra ni «/ 10.000». */
+        /** Null: sin objetivo no hay barra ni «faltan». */
         final Integer goal;
 
         Steps(int today, Integer weekAverage, Integer goal) {
@@ -46,13 +46,19 @@ final class IdleSummary {
             if (goal == null || goal <= 0) return 0;
             return (int) Math.min(1000, Math.round(today * 1000.0 / goal));
         }
+
+        /** Lo que falta hasta el objetivo; null sin objetivo o con la meta cumplida. */
+        Integer left() {
+            if (goal == null || today >= goal) return null;
+            return goal - today;
+        }
     }
 
-    /** Las pantallas del widget sin entreno, en el orden en que se recorren. */
+    /** Las pestañas del widget sin entreno, en su orden: Pasos, Comida, Entreno. */
     enum Page { STEPS, FOOD, START }
 
     /**
-     * Pasos (si hay de hoy), comida (si hay objetivo de proteína) y empezar, que
+     * Pasos (si hay de hoy), Comida (si hay objetivo de proteína) y Entreno, que
      * está siempre. DESIGN.md, «Sin entreno»: los pasos van primero.
      */
     static List<Page> pages(JSONObject summary, LocalDate today, LocalDate foodToday) {
@@ -64,6 +70,19 @@ final class IdleSummary {
     }
 
     /**
+     * La pestaña que se ve: la que eligió el usuario ({@code chosen}, el nombre que
+     * guarda {@link SessionStore#idleTab}), si sigue habiéndola; si no, la primera.
+     * Por nombre y no por posición: si mañana a las 00:00 desaparece «Pasos», quien
+     * estaba en Entreno sigue en Entreno.
+     */
+    static Page tab(String chosen, List<Page> pages) {
+        for (Page page : pages) {
+            if (page.name().equals(chosen)) return page;
+        }
+        return pages.get(0);
+    }
+
+    /**
      * El día de comida: corta a las 04:00 locales, como {@code food_log_date()} en
      * el servidor y {@code foodDayIso()} en la app. Una cena de la 01:00 es de ayer.
      */
@@ -72,27 +91,23 @@ final class IdleSummary {
     }
 
     /**
-     * La pantalla Comida (DESIGN.md, «Pantalla Comida»): proteína y kcal de hoy
-     * frente al objetivo, con lo que queda ya restado por el servidor.
+     * La pestaña Comida (DESIGN.md, «Pestaña Comida»): proteína y kcal de hoy frente
+     * al objetivo. Cada cifra sale una vez, «118/202 G»; lo que falta ya no se
+     * imprime, lo dicen los anillos.
      */
     static final class Food {
         /** Null: nada apuntado, o un total desconocido. Se imprime «—», no 0. */
         final Double protein;
         final double targetProtein;
-        final Double remainingProtein;
         final Double kcal;
-        /** Null: sin objetivo de kcal no hay anillo de dentro ni línea de kcal. */
+        /** Null: sin objetivo de kcal no hay anillo de dentro ni bloque KCAL. */
         final Double targetKcal;
-        final Double remainingKcal;
 
-        Food(Double protein, double targetProtein, Double remainingProtein,
-                Double kcal, Double targetKcal, Double remainingKcal) {
+        Food(Double protein, double targetProtein, Double kcal, Double targetKcal) {
             this.protein = protein;
             this.targetProtein = targetProtein;
-            this.remainingProtein = remainingProtein;
             this.kcal = kcal;
             this.targetKcal = targetKcal;
-            this.remainingKcal = remainingKcal;
         }
 
         boolean closed() {
@@ -107,30 +122,6 @@ final class IdleSummary {
         /** Del anillo de dentro, de 0 a 1; sin objetivo de kcal, 0. */
         float kcalDone() {
             return targetKcal == null ? 0f : fraction(kcal, targetKcal);
-        }
-
-        /** El centro: lo que falta de proteína, o «205/202» al cerrar. */
-        String center() {
-            if (closed()) return macro(protein) + "/" + macro(targetProtein);
-            return macro(remainingProtein == null ? targetProtein : remainingProtein);
-        }
-
-        /** «118 / 202 g»; sin dato, «— / 202 g». */
-        String proteinLine() {
-            return macro(protein) + " / " + macro(targetProtein) + " g";
-        }
-
-        /** «1460 / 2569», sin unidad: la lleva el rótulo KCAL. */
-        String kcalLine() {
-            return macro(kcal) + " / " + macro(targetKcal);
-        }
-
-        /** «quedan 1109», o «200 de más» al pasarse; null si el servidor no lo restó. */
-        String kcalNote() {
-            if (remainingKcal == null) return null;
-            return remainingKcal < 0
-                    ? macro(-remainingKcal) + " de más"
-                    : "quedan " + macro(remainingKcal);
         }
 
         private static float fraction(Double eaten, double target) {
@@ -151,10 +142,9 @@ final class IdleSummary {
         if (targetProtein == null || targetProtein <= 0) return null;
         Double targetKcal = number(food, "targetKcal");
         if (!foodToday.equals(parse(food.optString("date", "")))) {
-            return new Food(null, targetProtein, targetProtein, null, targetKcal, targetKcal);
+            return new Food(null, targetProtein, null, targetKcal);
         }
-        return new Food(number(food, "protein"), targetProtein, number(food, "remainingProtein"),
-                number(food, "kcal"), targetKcal, number(food, "remainingKcal"));
+        return new Food(number(food, "protein"), targetProtein, number(food, "kcal"), targetKcal);
     }
 
     /**
@@ -173,24 +163,41 @@ final class IdleSummary {
         return Double.isNaN(value) ? null : value;
     }
 
-    /** «Último: hace 2 días · Cuádriceps, Glúteo», o null si no hay último entreno. */
-    static String lastLine(JSONObject summary, LocalDate today) {
+    /** El último entreno: cuántos días hace y sus grupos, del que más series tuvo al que menos. */
+    static final class Last {
+        final long days;
+        final List<String> groups;
+
+        Last(long days, List<String> groups) {
+            this.days = days;
+            this.groups = groups;
+        }
+    }
+
+    /** El último entreno, o null si no hay (o la fecha no se lee). */
+    static Last last(JSONObject summary, LocalDate today) {
         JSONObject last = summary == null ? null : summary.optJSONObject("lastWorkout");
         if (last == null) return null;
         LocalDate date = parse(last.optString("date", ""));
         if (date == null) return null;
-        long ago = ChronoUnit.DAYS.between(date, today);
-        String when = ago <= 0 ? "hoy" : ago == 1 ? "ayer" : "hace " + ago + " días";
-        StringBuilder line = new StringBuilder("Último: ").append(when);
-        JSONArray groups = last.optJSONArray("groups");
-        if (groups != null && groups.length() > 0) {
-            line.append(" · ");
-            for (int i = 0; i < groups.length(); i++) {
-                if (i > 0) line.append(", ");
-                line.append(groups.optString(i));
-            }
+        List<String> groups = new ArrayList<>();
+        JSONArray names = last.optJSONArray("groups");
+        for (int i = 0; names != null && i < names.length(); i++) {
+            String name = names.optString(i, "");
+            if (!name.isEmpty()) groups.add(name);
         }
-        return line.toString();
+        return new Last(Math.max(0, ChronoUnit.DAYS.between(date, today)), groups);
+    }
+
+    /**
+     * El nombre de un grupo sin tildes y en minúsculas («Cuádriceps» → «cuadriceps»),
+     * que es como se llaman sus colores (widget_m_cuadriceps). Como
+     * {@code fold_exercise_name()} del servidor, en pequeño.
+     */
+    static String groupKey(String name) {
+        String folded = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return folded.toLowerCase(java.util.Locale.ROOT).trim();
     }
 
     static Steps steps(JSONObject summary, LocalDate today) {

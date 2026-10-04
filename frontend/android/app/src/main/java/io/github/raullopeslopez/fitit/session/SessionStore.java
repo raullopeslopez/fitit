@@ -34,7 +34,7 @@ public final class SessionStore {
     private static final String CONTROL = "control";
     private static final String EXPIRED = "expired";
     private static final String SUMMARY = "summary";
-    private static final String IDLE_PAGE = "idle_page_steps_first";
+    private static final String IDLE_TAB = "idle_tab";
 
     private final SharedPreferences prefs;
     private final TokenCipher cipher;
@@ -256,23 +256,19 @@ public final class SessionStore {
     }
 
     /**
-     * La pantalla del widget sin entreno, por su posición entre las que hay
-     * ({@link IdleSummary#pages}): pasos, comida, empezar. Se recuerda. La
-     * clave cambió al poner los pasos delante: con la vieja, quien los estaba
-     * mirando habría caído en «empezar».
+     * La pestaña del widget sin entreno que eligió el usuario, por su nombre
+     * ({@link IdleSummary.Page}), o null si no eligió ninguna. Se recuerda, también
+     * al reiniciar; si esa pestaña no está hoy, se ve la primera
+     * ({@link IdleSummary#tab}). Clave nueva: la de la 0.18, una posición entre
+     * los puntitos, no dice qué pestaña era.
      */
-    public synchronized int idlePage() {
-        return prefs.getInt(IDLE_PAGE, 0);
+    public synchronized String idleTab() {
+        return prefs.getString(IDLE_TAB, null);
     }
 
-    public synchronized void flipIdlePage() {
-        flipIdlePage(2);
-    }
-
-    /** La siguiente de {@code count} pantallas, y de la última a la primera. */
-    public synchronized void flipIdlePage(int count) {
-        int pages = Math.max(1, count);
-        prefs.edit().putInt(IDLE_PAGE, (idlePage() % pages + 1) % pages).apply();
+    public synchronized void setIdleTab(String tab) {
+        if (tab == null) return;
+        prefs.edit().putString(IDLE_TAB, tab).apply();
     }
 
     // --- Series rechazadas -------------------------------------------------

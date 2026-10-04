@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.19.0: el widget 4×2 se lee como la serie.** Arriba `Press banca · 4 series`; en
+  medio el tiempo grande (40sp) con pausar y Terminar a la derecha; abajo una fila de dos
+  marcos, `− 32,5 kg +` y `− × 12 +`, y el `+1`. Ya no dice `reps`. En el 3×2 (y en
+  cualquier widget de menos de 300 dp de ancho o 190 de alto) se queda el bloque de dos
+  filas de antes, con las leyendas nuevas (`kg` detrás, `×` delante). Entre el + de los
+  kilos y el +1, 6 dp, para que un toque desviado no registre una serie.
+- **APK 0.19.0: sin entreno, pestañas con nombre en vez de puntitos.** `Pasos`, `Comida` y
+  `Entreno` arriba; el widget recuerda la elegida, también al reiniciar. Pasos dice
+  `faltan 1.568`; Comida enseña `118/202 G` y `1460/2569 KCAL` una sola vez, con anillos
+  gruesos al estilo de un reloj; Entreno dice cuántos días hace del último, con una franja
+  del color de su grupo muscular, y `Empezar entreno`.
+- **APK 0.19.0: la notificación, como el widget.** Cerrada, la serie en tinta y el tiempo
+  a 30sp con el botón de pausa detrás; desplegada, el tiempo a 40sp y la misma fila de dos
+  marcos y `+1` que el 4×2 (sin Terminar).
 - **APK 0.18.0: la cuenta atrás del descanso se cuenta con toques.** Tres toques cortos en
   el 3, dos en el 2, uno en el 1 y uno largo que acaba en el cero. Sustituye a pi, pii,
   piiii, cuyo toque largo no llegaba entero. Canal nuevo «Fin del descanso»: si lo tenías

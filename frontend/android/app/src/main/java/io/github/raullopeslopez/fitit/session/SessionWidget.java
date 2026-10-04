@@ -17,8 +17,8 @@ import org.json.JSONObject;
  * El widget 4×1 de la pantalla de inicio.
  *
  * <pre>
- * Press banca                            01:23
- * 32,5 kg × 12 · 4 series        [ +1 serie ]
+ * 01:23  Press banca                    [ +1 ]
+ * 32,5 kg × 12 · 4 series
  * </pre>
  *
  * <p>Sin sesión: «Sin entreno en curso», el día, y «Empezar entreno».
@@ -52,9 +52,13 @@ public class SessionWidget extends AppWidgetProvider {
         if (ids != null && ids.length > 0) render(context, manager, ids, System.currentTimeMillis());
         else SessionAlarms.cancelBarTick(context);
         int[] large = manager.getAppWidgetIds(new ComponentName(context, SessionWidget4x2.class));
-        if (large != null && large.length > 0) SessionWidget4x2.render(context, manager, large);
+        if (large != null && large.length > 0) {
+            SessionWidget4x2.render(context, manager, large, SessionWidget4x2.Fit.FULL);
+        }
         int[] mid = manager.getAppWidgetIds(new ComponentName(context, SessionWidget3x2.class));
-        if (mid != null && mid.length > 0) SessionWidget4x2.render(context, manager, mid);
+        if (mid != null && mid.length > 0) {
+            SessionWidget4x2.render(context, manager, mid, SessionWidget4x2.Fit.NARROW);
+        }
         if ((ids != null && ids.length > 0) || (large != null && large.length > 0)
                 || (mid != null && mid.length > 0)) {
             SessionAlarms.armDay(context, System.currentTimeMillis());
@@ -112,7 +116,7 @@ public class SessionWidget extends AppWidgetProvider {
         header(context, views, control, now);
         bar(views, control, now);
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
-        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        count(views, control);
         views.setOnClickPendingIntent(R.id.widget_repeat,
                 SessionNotification.broadcast(context, SessionController.ACTION_WIDGET_REPEAT, 20));
         return views;
@@ -127,6 +131,16 @@ public class SessionWidget extends AppWidgetProvider {
     }
 
     // Lo que comparten los dos tamaños; los ids se llaman igual en los dos layouts.
+
+    /**
+     * « · 4 series» (widget_series): el número va en su propio texto, en Mono, y
+     * la palabra detrás. Lo usan los widgets y la notificación.
+     */
+    static void count(RemoteViews views, JSONObject control) {
+        int count = control.optInt("count", 0);
+        views.setTextViewText(R.id.widget_count_n, String.valueOf(count));
+        views.setTextViewText(R.id.widget_count_word, count == 1 ? " serie" : " series");
+    }
 
     /**
      * «Sesión caducada»: el servidor rechazó el token. Gana a los demás estados,

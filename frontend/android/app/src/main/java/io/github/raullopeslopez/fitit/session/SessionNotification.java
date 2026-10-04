@@ -19,13 +19,12 @@ import org.json.JSONObject;
  *
  * <pre>
  * Fitit · Entreno                                  (lo pone Android)
- * Press banca                                  01:23      cerrada
+ * Press banca                              01:23 (❚❚)     cerrada
  * 32,5 kg × 12 · 4 series
  *
  * Press banca · 4 series                                  desplegada
- * 01:23
- * [ −  32,5 kg  + |    ]
- * [ −  12 reps  + | +1 ]
+ * 01:23                                          (❚❚)
+ * [ −  32,5 kg  + ] [ −  × 12  + ] [ +1 ]
  * </pre>
  *
  * <p>Sin botones del sistema: el bloque de ajuste ocupa su sitio, y con ellos se
@@ -155,7 +154,7 @@ final class SessionNotification {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.notification_session);
         views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
         views.setTextViewText(R.id.widget_set, SessionControl.set(control));
-        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        SessionWidget.count(views, control);
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
         SessionWidget4x2.pause(context, views, control, now);
         openFromLine(context, views, control);
@@ -168,11 +167,11 @@ final class SessionNotification {
                 SessionLaunch.open(context, control.optInt("workoutId", -1)));
     }
 
-    /** Desplegada: la línea, el tiempo y el bloque de ajuste del widget. */
+    /** Desplegada: la línea, y el tiempo y la fila de ajuste del 4×2, sin Terminar. */
     private static RemoteViews expanded(Context context, JSONObject control, long now) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.notification_session_big);
         views.setTextViewText(R.id.widget_exercise, SessionControl.title(control));
-        views.setTextViewText(R.id.widget_count, " · " + SessionControl.series(control));
+        SessionWidget.count(views, control);
         SessionWidget.clock(views, R.id.widget_clock, R.id.widget_over, R.id.widget_paused, control, now);
         SessionWidget4x2.block(views, control);
         SessionWidget4x2.pause(context, views, control, now);
@@ -191,7 +190,10 @@ final class SessionNotification {
     }
 
     static PendingIntent broadcast(Context context, String action, int code) {
-        Intent intent = new Intent(context, SessionActionReceiver.class).setAction(action);
+        return broadcast(context, new Intent(context, SessionActionReceiver.class).setAction(action), code);
+    }
+
+    static PendingIntent broadcast(Context context, Intent intent, int code) {
         return PendingIntent.getBroadcast(context, code, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }

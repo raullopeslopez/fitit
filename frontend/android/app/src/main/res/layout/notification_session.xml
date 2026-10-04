@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- La notificación del entreno, cerrada (DESIGN.md, «La notificación del entreno»;
-     vista previa v17, N4): «Press banca» / «32,5 kg × 12 · 4 series» a la
-     izquierda y el tiempo en Mono 34sp a la derecha. Cabecera y marco los pone
+     APK 0.19.0): «Press banca» / «32,5 kg × 12 · 4 series» a la izquierda (la serie
+     en Mono y tinta, el resto en muted) y, a la derecha, el tiempo en Mono 30sp y
+     el aro de pausa. Cabecera y marco los pone
      Android (DecoratedCustomViewStyle): aquí no hay fondo. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -40,24 +41,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/geist_mono_medium"
+                android:includeFontPadding="false"
                 android:maxLines="1"
-                android:textColor="@color/widget_muted"
+                android:textColor="@color/widget_text"
                 android:textSize="13sp" />
 
-            <TextView
-                android:id="@+id/widget_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:fontFamily="@font/geist_regular"
-                android:maxLines="1"
-                android:textColor="@color/widget_muted"
-                android:textSize="13sp" />
+            <include layout="@layout/widget_series" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- El tiempo, Mono 34sp. La caja es la línea entera de la fuente (1,3 em):
-         una caja de 34 dp le cortaba el pie a las cifras. El aire de más (5 dp
+    <!-- El tiempo, Mono 30sp. La caja es la línea entera de la fuente (1,3 em):
+         una caja de 30 dp le cortaba el pie a las cifras. El aire de más (4,5 dp
          por lado) se descuenta con márgenes negativos para que la fila siga
          midiendo lo que el texto de la izquierda. -->
     <Chronometer
@@ -65,27 +59,27 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:layout_marginTop="-5dp"
-        android:layout_marginBottom="-5dp"
+        android:layout_marginTop="-4.5dp"
+        android:layout_marginBottom="-4.5dp"
         android:fontFamily="@font/geist_mono_medium"
         android:gravity="center_vertical"
         android:includeFontPadding="false"
         android:textColor="@color/widget_text"
-        android:textSize="34sp" />
+        android:textSize="30sp" />
 
     <Chronometer
         android:id="@+id/widget_over"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:layout_marginTop="-5dp"
-        android:layout_marginBottom="-5dp"
+        android:layout_marginTop="-4.5dp"
+        android:layout_marginBottom="-4.5dp"
         android:fontFamily="@font/geist_mono_medium"
         android:format="+%s"
         android:gravity="center_vertical"
         android:includeFontPadding="false"
         android:textColor="@color/widget_accent_ink"
-        android:textSize="34sp"
+        android:textSize="30sp"
         android:visibility="gone" />
 
     <!-- En pausa (botón del 4×2 y del 3×2): lo que quedaba, quieto y en muted.
@@ -96,13 +90,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:layout_marginTop="-5dp"
-        android:layout_marginBottom="-5dp"
+        android:layout_marginTop="-4.5dp"
+        android:layout_marginBottom="-4.5dp"
         android:fontFamily="@font/geist_mono_medium"
         android:gravity="center_vertical"
         android:includeFontPadding="false"
         android:textColor="@color/widget_muted"
-        android:textSize="34sp"
+        android:textSize="30sp"
         android:visibility="gone" />
 
     <!-- Pausar el descanso: el aro neutro del widget, ❚❚ (▶ en pausa), sólo

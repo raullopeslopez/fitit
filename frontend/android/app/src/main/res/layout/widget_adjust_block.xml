@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- El bloque de ajuste (DESIGN.md, «El bloque de ajuste»): una sola pieza con las
-     dos filas de 48 dp apiladas (− 32,5 kg +, − 12 reps +) y el +1 como su extremo
-     derecho, 60 dp de ancho y todo el alto, a 6 dp de las filas. Los − y + tocan
-     en 52 dp (44 en el 3×2 compacto: SessionWidget4x2.fit). Marco común de 1 dp border-strong y
-     radio 14, filete de 1 dp border entre filas. Lo incluyen el 4×2, el 3×2 y la
-     notificación desplegada, con los mismos ids. -->
+<!-- El bloque de ajuste apilado (DESIGN.md, «El bloque de ajuste»): el del 3×2 y de
+     cualquier widget compacto (< 300 dp de ancho o < 190 de alto), donde no cabe la
+     fila de dos marcos (widget_adjust_row). Dos filas de 44 dp —el mínimo de toque—
+     apiladas (− 32,5 kg +, − × 12 +) y el +1 como su extremo derecho, 56 dp de ancho
+     y todo el alto, a 6 dp de las filas. Los − y + tocan en 44 dp: a 52, en los
+     ≈253 dp del Xiaomi, un «102,5 kg» pisaba el −. Marco común de 1 dp border-strong
+     y radio 14, filete de 1 dp border entre filas. Las leyendas son las de la fila:
+     «kg» detrás, «×» delante y sin «reps». -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_block"
     android:layout_width="match_parent"
@@ -23,13 +25,13 @@
         <LinearLayout
             android:id="@+id/widget_weight_box"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/widget_weight_down"
-                android:layout_width="52dp"
+                android:layout_width="44dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone_top_start"
                 android:contentDescription="@string/widget_weight_down"
@@ -44,7 +46,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center"
+                android:gravity="center_horizontal"
                 android:orientation="horizontal">
 
                 <TextView
@@ -61,17 +63,17 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
+                    android:layout_marginStart="3dp"
                     android:fontFamily="@font/geist_regular"
                     android:includeFontPadding="false"
                     android:text="@string/widget_weight_unit"
                     android:textColor="@color/widget_muted"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
                 android:id="@+id/widget_weight_up"
-                android:layout_width="52dp"
+                android:layout_width="44dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone"
                 android:contentDescription="@string/widget_weight_up"
@@ -93,13 +95,13 @@
         <LinearLayout
             android:id="@+id/widget_reps_box"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/widget_reps_down"
-                android:layout_width="52dp"
+                android:layout_width="44dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone_bottom_start"
                 android:contentDescription="@string/widget_reps_down"
@@ -114,34 +116,34 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center"
+                android:gravity="center_horizontal"
                 android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/geist_mono_medium"
+                    android:includeFontPadding="false"
+                    android:text="@string/widget_reps_sign"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/widget_reps"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
                     android:fontFamily="@font/geist_mono_medium"
                     android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="12"
                     android:textColor="@color/widget_text"
                     android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
-                    android:fontFamily="@font/geist_regular"
-                    android:includeFontPadding="false"
-                    android:text="@string/widget_reps_unit"
-                    android:textColor="@color/widget_muted"
-                    android:textSize="12sp" />
             </LinearLayout>
 
             <TextView
                 android:id="@+id/widget_reps_up"
-                android:layout_width="52dp"
+                android:layout_width="44dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/widget_zone"
                 android:contentDescription="@string/widget_reps_up"
@@ -154,12 +156,12 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- El +1: el único relleno ámbar. Dice sólo +1: la serie ya está escrita a
-         su izquierda. A 6 dp del + de los kilos (0.17.0): pegados, un toque
+    <!-- El +1: el único relleno ámbar, 56 dp. Dice sólo +1: la serie ya está escrita
+         a su izquierda. A 6 dp del + de los kilos (0.17.0): pegados, un toque
          desviado registraba una serie. -->
     <TextView
         android:id="@+id/widget_log"
-        android:layout_width="60dp"
+        android:layout_width="56dp"
         android:layout_marginStart="6dp"
         android:layout_height="match_parent"
         android:background="@drawable/widget_plus_one"

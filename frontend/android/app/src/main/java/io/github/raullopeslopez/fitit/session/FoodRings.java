@@ -8,64 +8,75 @@ import android.graphics.RectF;
 import io.github.raullopeslopez.fitit.R;
 
 /**
- * Los dos anillos de la pantalla Comida del widget (DESIGN.md, «Pantalla Comida»),
+ * Los dos anillos de la pestaña Comida del widget (DESIGN.md, «Pestaña Comida»),
  * pintados en un bitmap: un widget no dibuja arcos, y una ProgressBar circular no
  * deja elegir el grosor ni el extremo redondo.
  *
- * <p>Proteína fuera (9 dp, ámbar), kcal dentro (5 dp, tinta al 70 %), sobre su
- * carril en el color del borde. Las mismas reglas que la tarjeta de Comida: un
- * arco de 0 no se pinta (con el extremo redondo sería un punto, que se lee «algo
- * comido»), y con la proteína cerrada su anillo entero pasa al color de récord.
+ * <p>Al estilo de los anillos de actividad de un reloj (APK 0.19.0): a 136 dp, el de
+ * fuera mide 20 dp, en ámbar sobre un carril del mismo ámbar al 22 %; 3 dp de hueco;
+ * el de dentro, otros 20, en tinta sobre la tinta al 14 %. Extremos redondos y nada
+ * en el centro: las cifras están a la izquierda, una vez cada una. Un arco de 0 no se
+ * pinta (con el extremo redondo sería un punto, que se lee «algo comido»), y con la
+ * proteína cerrada su anillo entero pasa al color de récord.
  */
 final class FoodRings {
-    /**
-     * El lado de los anillos en dp cuando el launcher no dice su tamaño, y el
-     * mínimo: lo que mide en widget_session_4x2. Grosores y cifra crecen con él.
-     */
-    static final int SIZE_DP = 96;
-    /** Hasta aquí: más grande, en un 4×3, sería un cartel y no una cifra de reojo. */
-    static final int MAX_DP = 180;
-    /** Los márgenes del widget sin entreno (14 arriba y abajo, 16 a los lados). */
-    private static final int EDGE_DP = 14;
+    /** El lado de los anillos en dp, y el máximo: lo que mide en widget_idle_tabs. */
+    static final int SIZE_DP = 136;
+    /** Menos no: los dos anillos de 20 dejarían un agujero de nada. */
+    static final int MIN_DP = 88;
+    /** Arriba del contenido: el margen de 4, la fila de pestañas (40) y el filete. */
+    private static final int TABS_DP = 4 + 40 + 1;
+    /** El aire mínimo que se deja arriba y abajo del anillo. */
+    private static final int AIR_DP = 6;
     private static final int SIDE_DP = 16;
-    /** Lo que ocupan los puntitos dentro del alto: 44 de fila menos 12 metidos en el margen. */
-    private static final int DOTS_DP = 32;
-    /** Entre los anillos y la leyenda (marginStart en el layout). */
-    private static final int GAP_TO_LEGEND_DP = 14;
-    private static final float OUTER_DP = 9f;
-    private static final float INNER_DP = 5f;
-    /** Lo que separa el carril de fuera del de dentro. */
-    private static final float GAP_DP = 4.5f;
+    /** Lo mínimo entre la columna de cifras y los anillos. */
+    private static final int GAP_TO_LEGEND_DP = 12;
+    private static final float STROKE_DP = 20f;
+    private static final float GAP_DP = 3f;
+    private static final float OUTER_TRACK_ALPHA = 0.22f;
+    private static final float INNER_TRACK_ALPHA = 0.14f;
 
     private FoodRings() {}
 
     /**
-     * Lo que cabe, en dp: todo el alto libre (sin márgenes ni puntitos), salvo
-     * que la leyenda pida el ancho. La leyenda se mide con su fuente y sus
-     * cifras de hoy, así que una de cinco dígitos le quita sitio al anillo y no
-     * se corta. Sin tamaño del launcher, {@link #SIZE_DP}.
+     * Lo que cabe, en dp: {@link #SIZE_DP}, o menos si el alto que dejan las
+     * pestañas o el ancho que deja la columna de cifras no da para tanto. Sin
+     * tamaño del launcher, {@link #SIZE_DP}.
      */
-    static int sizeFor(Context context, IdleSummary.Food food, int widthDp, int heightDp) {
+    static int sizeFor(Context context, IdleSummary.Food food, int widthDp, int heightDp, boolean units) {
         if (widthDp <= 0 || heightDp <= 0) return SIZE_DP;
-        int byHeight = heightDp - 2 * EDGE_DP - DOTS_DP;
-        int byWidth = widthDp - 2 * SIDE_DP - GAP_TO_LEGEND_DP - legendDp(context, food);
-        return Math.max(SIZE_DP, Math.min(MAX_DP, Math.min(byHeight, byWidth)));
+        int byHeight = heightDp - TABS_DP - 2 * AIR_DP;
+        int byWidth = widthDp - 2 * SIDE_DP - GAP_TO_LEGEND_DP - legendDp(context, food, units);
+        return Math.max(MIN_DP, Math.min(SIZE_DP, Math.min(byHeight, byWidth)));
     }
 
-    /** El ancho de la leyenda: su línea más larga, con su fuente y su tamaño. */
-    static int legendDp(Context context, IdleSummary.Food food) {
+    /**
+     * ¿Caben « G» y « KCAL» detrás de las cifras? En un 3×2 (≈253 dp) no: con ellos,
+     * «1460/2569 KCAL» dejaba al anillo por debajo de {@link #MIN_DP}. Ahí se quitan,
+     * y la unidad la dice el sello de encima. Se quitan sólo si eso le da más anillo.
+     */
+    static boolean unitsFit(Context context, IdleSummary.Food food, int widthDp, int heightDp) {
+        return sizeFor(context, food, widthDp, heightDp, true)
+                >= sizeFor(context, food, widthDp, heightDp, false);
+    }
+
+    /** El ancho de la columna de cifras: su línea más larga, con sus fuentes y sus tamaños. */
+    static int legendDp(Context context, IdleSummary.Food food, boolean units) {
         float density = context.getResources().getDisplayMetrics().density;
         float sp = context.getResources().getDisplayMetrics().scaledDensity;
-        Paint mono = paint(context, R.font.geist_mono_medium, 15 * sp);
-        Paint label = paint(context, R.font.geist_mono_semibold, 11 * sp);
-        label.setLetterSpacing(0.1f);
-        Paint note = paint(context, R.font.geist_regular, 13 * sp);
-        float widest = Math.max(mono.measureText(food.proteinLine()),
-                label.measureText(context.getString(R.string.widget_food_protein)) + 12 * density);
+        Paint big = paint(context, R.font.geist_mono_medium, 24 * sp);
+        Paint target = paint(context, R.font.geist_mono_medium, 15 * sp);
+        Paint unit = paint(context, R.font.geist_mono_semibold, 11 * sp);
+        Paint stamp = paint(context, R.font.geist_mono_semibold, 11 * sp);
+        stamp.setLetterSpacing(0.1f);
+        float widest = Math.max(stamp.measureText(context.getString(R.string.widget_food_protein)),
+                big.measureText(IdleSummary.macro(food.protein))
+                        + target.measureText("/" + IdleSummary.macro(food.targetProtein))
+                        + (units ? unit.measureText(context.getString(R.string.widget_food_protein_unit)) : 0));
         if (food.targetKcal != null) {
-            widest = Math.max(widest, mono.measureText(food.kcalLine()));
-            String text = food.kcalNote();
-            if (text != null) widest = Math.max(widest, note.measureText(text));
+            widest = Math.max(widest, big.measureText(IdleSummary.macro(food.kcal))
+                    + target.measureText("/" + IdleSummary.macro(food.targetKcal))
+                    + (units ? unit.measureText(context.getString(R.string.widget_food_kcal_unit)) : 0));
         }
         return (int) Math.ceil(widest / density) + 2;
     }
@@ -86,6 +97,7 @@ final class FoodRings {
         return draw(context, food, SIZE_DP);
     }
 
+    /** Grosores y hueco crecen y menguan con el lado: las medidas de arriba son las de 136. */
     static Bitmap draw(Context context, IdleSummary.Food food, int sizeDp) {
         float density = context.getResources().getDisplayMetrics().density;
         float scale = sizeDp / (float) SIZE_DP;
@@ -93,23 +105,28 @@ final class FoodRings {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
-        float outer = OUTER_DP * scale * density;
-        float inner = INNER_DP * scale * density;
-        RectF outerBox = inset(size, outer / 2f);
-        RectF innerBox = inset(size, outer + GAP_DP * scale * density + inner / 2f);
+        float stroke = STROKE_DP * scale * density;
+        RectF outerBox = inset(size, stroke / 2f);
+        RectF innerBox = inset(size, stroke + GAP_DP * scale * density + stroke / 2f);
 
-        int track = context.getColor(R.color.widget_border);
-        ring(canvas, outerBox, outer, track, 1f);
+        int accent = context.getColor(R.color.widget_accent);
+        ring(canvas, outerBox, stroke, alpha(accent, OUTER_TRACK_ALPHA), 1f);
         if (food.closed()) {
-            ring(canvas, outerBox, outer, context.getColor(R.color.widget_pr), 1f);
+            ring(canvas, outerBox, stroke, context.getColor(R.color.widget_pr), 1f);
         } else {
-            ring(canvas, outerBox, outer, context.getColor(R.color.widget_accent), food.proteinDone());
+            ring(canvas, outerBox, stroke, accent, food.proteinDone());
         }
         if (food.targetKcal != null) {
-            ring(canvas, innerBox, inner, track, 1f);
-            ring(canvas, innerBox, inner, context.getColor(R.color.widget_ring_kcal), food.kcalDone());
+            int ink = context.getColor(R.color.widget_text);
+            ring(canvas, innerBox, stroke, alpha(ink, INNER_TRACK_ALPHA), 1f);
+            ring(canvas, innerBox, stroke, ink, food.kcalDone());
         }
         return bitmap;
+    }
+
+    /** El color al {@code share} de opacidad: sobre el fondo del widget, el carril. */
+    private static int alpha(int color, float share) {
+        return (Math.round(share * 255) << 24) | (color & 0x00FFFFFF);
     }
 
     private static RectF inset(int size, float by) {

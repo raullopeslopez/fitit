@@ -30,10 +30,8 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="16dp"
-        android:paddingTop="10dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="10dp">
+        android:paddingStart="18dp"
+        android:paddingEnd="12dp">
 
         <LinearLayout
             android:id="@+id/widget_session"
@@ -107,10 +105,11 @@
                         android:textSize="15sp" />
                 </LinearLayout>
 
+                <!-- 3 dp debajo: «32,5 kg × 12» en Mono y tinta, « · 4 series» en muted. -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="3dp"
                     android:orientation="horizontal">
 
                     <TextView
@@ -118,22 +117,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/geist_mono_medium"
+                        android:includeFontPadding="false"
                         android:maxLines="1"
                         android:text="32,5 kg × 12"
                         android:textColor="@color/widget_text"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
-                    <TextView
-                        android:id="@+id/widget_count"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:fontFamily="@font/geist_regular"
-                        android:maxLines="1"
-                        android:text=" · 4 series"
-                        android:textColor="@color/widget_muted"
-                        android:textSize="14sp" />
+                    <include layout="@layout/widget_series" />
                 </LinearLayout>
             </LinearLayout>
 
