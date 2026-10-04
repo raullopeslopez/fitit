@@ -870,8 +870,10 @@ dure más que el anterior conforme se acerca el cero.
 - **Mismo ritmo, más duración.** Cada pulso sigue empezando en su segundo; lo que crece
   es lo que dura: `{0, 100, 900, 250, 750, 500, 500, 800}` — 100 ms en el 3, 250 en el 2,
   500 en el 1 y 800 en el cero.
-- **Los del 3, 2 y 1 no pasan del segundo**, o se pegarían con el siguiente y dejarían de
-  contarse. **El cero acaba antes de los 900 ms** del repintado a positivo, que lo cortaría.
+- **El último acaba en el cero, no empieza en él (0.16.1).** La alarma salta lo que dura el patrón
+  entero antes del final (`COUNTDOWN_MS` es su suma: 3,8 s, no 3), así que el pulso largo
+  termina justo cuando el contador llega a `00:00`. Los del 3, 2 y 1 no pasan del segundo,
+  o se pegarían con el siguiente y dejarían de contarse.
 - **Canal nuevo, `fitit_entreno_crece`**, con el mismo nombre en Ajustes («Fin del
   descanso»); se retira `fitit_entreno_cuenta`, porque Android no deja cambiar el patrón
   de un canal ya creado. Quien lo hubiera apagado vuelve a tener la vibración una vez.
@@ -879,4 +881,5 @@ dure más que el anterior conforme se acerca el cero.
   último además pegue más fuerte pediría vibrar desde la app, que con el Xiaomi bloqueado
   no llega (0.10.6).
 - **Comprobar en el teléfono:** con el móvil bloqueado y en vibración, a tres segundos del
-  cero se notan tres toques cada vez más largos y uno largo en el cero.
+  cero se notan cuatro toques cada vez más largos, y el último se acaba cuando el reloj
+  marca `00:00`.
