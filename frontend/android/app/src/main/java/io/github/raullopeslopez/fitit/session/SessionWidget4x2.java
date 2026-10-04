@@ -181,7 +181,8 @@ public class SessionWidget4x2 extends AppWidgetProvider {
         String description = context.getString(
                 paused ? R.string.widget_rest_resume : R.string.widget_rest_pause);
         if (onTheClock) {
-            views.setContentDescription(R.id.widget_clock_inline, description);
+            // Sólo el quieto: un cronómetro reescribe su descripción con el tiempo
+            // en cada tic, y ése es el que se lee mientras corre.
             views.setContentDescription(R.id.widget_paused_inline, description);
             return;
         }

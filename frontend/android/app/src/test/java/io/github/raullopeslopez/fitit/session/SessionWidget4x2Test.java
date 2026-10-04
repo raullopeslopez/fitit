@@ -770,8 +770,6 @@ public class SessionWidget4x2Test {
         View narrow = SessionWidget4x2.views(context, store.control(), now(),
                 SessionWidget4x2.Fit.NARROW).apply(context, new android.widget.FrameLayout(context));
         assertEquals(View.GONE, narrow.findViewById(R.id.widget_rest_toggle).getVisibility());
-        assertEquals(context.getString(R.string.widget_rest_pause),
-                narrow.findViewById(R.id.widget_clock_inline).getContentDescription());
 
         List<Intent> before = shadowOf((Application) context).getBroadcastIntents();
         int seen = before.size();
