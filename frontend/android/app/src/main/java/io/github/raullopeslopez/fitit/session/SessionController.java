@@ -43,6 +43,7 @@ public final class SessionController {
     /**
      * La cuenta atrás empieza lo que dura su patrón antes del cero, para que el
      * último pulso, el largo, acabe justo en el cero y no empiece en él (0.16.1).
+     * Con los toques de la 0.18.0 son 3 s justos.
      */
     static final long COUNTDOWN_MS = java.util.Arrays.stream(SessionNotification.COUNTDOWN_PATTERN).sum();
     /**
