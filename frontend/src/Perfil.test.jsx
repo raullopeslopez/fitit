@@ -207,28 +207,11 @@ describe('Perfil', () => {
       expect(api.saveTargetProfile).not.toHaveBeenCalled()
     })
 
-    it('Revisión semanal enseña el día en palabras', async () => {
-      api.getTargetProfile.mockResolvedValue({ ...PERFIL, review_weekday: 6 })
+    // La revisión no tiene día: va con planificar la semana que viene.
+    it('no hay día de revisión que elegir', async () => {
       renderPerfil()
-      expect(await fila('Revisión semanal')).toHaveTextContent('Domingo')
-    })
-
-    it('Revisión semanal son siete chips, el actual elegido, y tocar uno guarda y cierra', async () => {
-      api.getTargetProfile.mockResolvedValue({ ...PERFIL, review_weekday: 6 })
-      renderPerfil()
-      await userEvent.click(await fila('Revisión semanal'))
-      const hoja = await screen.findByRole('dialog', { name: 'Revisión semanal' })
-      const grupo = within(hoja).getByRole('group', { name: 'Día de la revisión' })
-      expect(within(grupo).getAllByRole('button').map((b) => b.textContent)).toEqual([
-        'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom',
-      ])
-      expect(within(grupo).getByRole('button', { name: 'Dom' })).toHaveAttribute('aria-pressed', 'true')
-      expect(within(grupo).getByRole('button', { name: 'Lun' })).toHaveAttribute('aria-pressed', 'false')
-
-      await userEvent.click(within(grupo).getByRole('button', { name: 'Lun' }))
-
-      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ review_weekday: 0 }))
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await fila('Peso meta')
+      expect(screen.queryByText('Revisión semanal')).not.toBeInTheDocument()
     })
   })
 

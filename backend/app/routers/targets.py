@@ -38,7 +38,6 @@ from ..schemas import (
 )
 from ..session_length import session_length
 from ..targets import (
-    fecha_de_revision,
     gasto_medido,
     gasto_por_formula,
     kcal_entreno,
@@ -53,6 +52,12 @@ router = APIRouter(prefix="/targets", tags=["targets"])
 # La ventana sobre la que se mide el gasto real. Cuatro semanas: bastante para
 # que el agua se promedie, poco para que siga hablando del cuerpo de ahora.
 VENTANA = 28
+
+# Cada cuánto se pregunta «¿apuntaste todo?». La revisión no tiene día de la
+# semana: va con planificar la semana siguiente, y eso cae el día que compras,
+# que no es siempre el mismo. Lo fijo es el intervalo — una semana desde la
+# última respuesta, que es lo que cubre cada una.
+CADA = timedelta(days=7)
 
 
 async def _user(session: AsyncSession, user_id: int) -> User:
@@ -357,13 +362,17 @@ async def accept(
 
 
 async def _revision_actual(session: AsyncSession, user: User) -> WeeklyReview | None:
-    """La revisión guardada del último día de revisión, si hay."""
-    dia = fecha_de_revision(date.today(), user.review_weekday)
+    """La revisión contestada hace menos de una semana, si hay. Mientras exista
+    no se vuelve a preguntar, y contestar otra vez la sobrescribe."""
     return (
         await session.execute(
-            select(WeeklyReview).where(
-                WeeklyReview.user_id == user.id, WeeklyReview.review_date == dia
+            select(WeeklyReview)
+            .where(
+                WeeklyReview.user_id == user.id,
+                WeeklyReview.review_date > date.today() - CADA,
             )
+            .order_by(WeeklyReview.review_date.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
 
@@ -379,9 +388,9 @@ async def read_review(
     semana que revisar, y preguntarle por una que no registró sería ruido.
     """
     user = await _user(session, user_id)
-    dia = fecha_de_revision(date.today(), user.review_weekday)
-    desde, hasta = periodo_revisado(dia)
     revision = await _revision_actual(session, user)
+    dia = revision.review_date if revision else date.today()
+    desde, hasta = periodo_revisado(dia)
     apuntado = (
         await session.execute(
             select(func.count(LogEntry.id)).where(
@@ -413,10 +422,9 @@ async def answer_review(
     (decisión 18).
     """
     user = await _user(session, user_id)
-    dia = fecha_de_revision(date.today(), user.review_weekday)
     revision = await _revision_actual(session, user)
     if revision is None:
-        revision = WeeklyReview(user_id=user_id, review_date=dia, answer=payload.answer)
+        revision = WeeklyReview(user_id=user_id, review_date=date.today(), answer=payload.answer)
         session.add(revision)
     revision.answer = payload.answer
     # La respuesta tiene que estar en la base antes de proponer: `_medido` la lee

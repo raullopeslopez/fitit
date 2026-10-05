@@ -11,8 +11,6 @@ from app.main import app
 
 scenarios("../features/weekly_review.feature")
 
-DOMINGO = 6
-
 
 def _perfil(client, **fields):
     resp = client.patch("/targets", json=fields)
@@ -58,11 +56,23 @@ def _filas():
     return _en_la_base(leer)
 
 
-@given("today is my review day")
-def given_review_day(client):
-    # No hay congelador de fecha en la suite: en vez de mover «hoy», se mueve el
-    # día de revisión hasta él.
-    _perfil(client, review_weekday=date.today().weekday())
+@given(parsers.parse("I answered the weekly review {dias:d} days ago"))
+def given_answered_before(client, dias):
+    # Por debajo y no por HTTP: la API sólo contesta con fecha de hoy, y lo que
+    # se fija aquí es cuánto hace que se contestó.
+    from app.models import WeeklyReview
+
+    user_id = client.get("/auth/me").json()["id"]
+
+    async def escribir(session):
+        session.add(
+            WeeklyReview(
+                user_id=user_id, review_date=date.today() - timedelta(days=dias), answer="all"
+            )
+        )
+        await session.commit()
+
+    _en_la_base(escribir)
 
 
 @given("I logged food two days ago")
@@ -96,24 +106,6 @@ def given_two_weeks(client, antes, semana):
     # La semana revisada es [hoy−7, hoy−1]; las dos de antes, hasta hoy−21.
     _comer(client, semana, dias=7, desde=1)
     _comer(client, antes, dias=14, desde=8)
-
-
-@when("I ask for my profile", target_fixture="perfil")
-def when_profile(client):
-    return client.get("/targets").json()
-
-
-@then("my review day is Sunday")
-def then_sunday(perfil):
-    assert perfil["review_weekday"] == DOMINGO
-
-
-@then("the review day it asks about is a Sunday")
-def then_review_date_sunday(client):
-    d = date.fromisoformat(client.get("/targets/review").json()["review_date"])
-    assert d.weekday() == DOMINGO
-    assert d <= date.today()
-    assert date.today() - d < timedelta(days=7)
 
 
 @when("I ask about the weekly review", target_fixture="revision")

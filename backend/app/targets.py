@@ -152,12 +152,6 @@ def gasto_medido(*, kcal_por_dia: list[float], dias: int, delta_kg: float | None
     return Gasto(kcal=round(media - ajuste, 0), source="measured", days=dias)
 
 
-def fecha_de_revision(hoy: date, weekday: int) -> date:
-    """El último día ≤ `hoy` que cae en `weekday` (lunes 0 … domingo 6). Si hoy
-    es ese día, es hoy: la pregunta sale el propio día de revisión."""
-    return hoy - timedelta(days=(hoy.weekday() - weekday) % 7)
-
-
 def periodo_revisado(review_date: date) -> tuple[date, date]:
     """Los siete días que cubre una revisión: [D−7, D−1]. El propio día de
     revisión no entra, por la misma razón que hoy no entra en la medición: está

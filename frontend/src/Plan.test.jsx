@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import PlanDelDia, { Adherencia, Semana, lunesDe } from './Plan.jsx'
+import PlanDelDia, { Adherencia, Semana, lunesDe, lunesSiguiente } from './Plan.jsx'
 
 const LUNES = '2026-09-21'
 const MARTES = '2026-09-22'
@@ -45,6 +45,14 @@ describe('lunesDe', () => {
     expect(lunesDe('2026-09-24')).toBe(LUNES)
     expect(lunesDe(LUNES)).toBe(LUNES)
     expect(lunesDe('2026-09-27')).toBe(LUNES)
+  })
+})
+
+describe('lunesSiguiente', () => {
+  it('lleva cualquier día al lunes de la semana siguiente', () => {
+    expect(lunesSiguiente('2026-09-24')).toBe('2026-09-28')
+    expect(lunesSiguiente(LUNES)).toBe('2026-09-28')
+    expect(lunesSiguiente('2026-09-27')).toBe('2026-09-28')
   })
 })
 
@@ -144,6 +152,41 @@ describe('el plan del día', () => {
     render(<PlanDelDia plan={null} dayIso={LUNES} isToday onChanged={vi.fn()} generar={generar} />)
     await userEvent.click(screen.getByRole('button', { name: 'Generar la semana' }))
     expect(await screen.findByText(/Necesitas platos/)).toBeInTheDocument()
+  })
+})
+
+// La semana que viene se planifica cualquier día: compras una vez a la semana
+// pero no siempre el mismo, y para comprar hace falta el plan antes del lunes.
+describe('la semana que viene, desde el plan del día', () => {
+  it('sin plan para la que viene, ofrece planificarla', async () => {
+    const onPlanificar = vi.fn()
+    render(
+      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} siguiente={null} onPlanificar={onPlanificar} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Planificar la semana que viene' }))
+    expect(onPlanificar).toHaveBeenCalledOnce()
+  })
+
+  it('también cuando esta semana tampoco tiene plan', () => {
+    render(
+      <PlanDelDia plan={null} dayIso={LUNES} isToday onChanged={vi.fn()} siguiente={null} onPlanificar={vi.fn()} />,
+    )
+    expect(screen.getByRole('button', { name: 'Planificar la semana que viene' })).toBeInTheDocument()
+  })
+
+  it('con la que viene ya planificada, se ve', () => {
+    render(
+      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} siguiente={PLAN} onPlanificar={vi.fn()} />,
+    )
+    expect(screen.getByRole('button', { name: 'Ver la semana que viene' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Planificar la semana que viene' })).not.toBeInTheDocument()
+  })
+
+  it('mirando otro día no se ofrece: «la que viene» es la de hoy', () => {
+    render(
+      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday={false} onChanged={vi.fn()} siguiente={null} onPlanificar={vi.fn()} />,
+    )
+    expect(screen.queryByRole('button', { name: /semana que viene/ })).not.toBeInTheDocument()
   })
 })
 
