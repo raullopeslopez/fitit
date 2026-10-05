@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.20.0: planificar la semana que viene, con la revisión dentro.** Comida → «Tu
+  plan» ofrece `Planificar la semana que viene` cualquier día (o `Ver la semana que viene`
+  si ya está generada); antes sólo se podía generar la semana en curso. La hoja pasa
+  primero por «¿Apuntaste todo lo que comiste?» —se salta si no toca—, dice
+  `Se planifica con tu objetivo de N kcal al día.` y genera la semana del lunes siguiente.
+  La revisión ya no tiene día fijo: toca a la semana de la última respuesta. Desaparece la
+  tarjeta de revisión de arriba de Comida y la fila `Revisión semanal` de Perfil.
 - **APK 0.19.0: el widget 4×2 se lee como la serie.** Arriba `Press banca · 4 series`; en
   medio el tiempo grande (40sp) con pausar y Terminar a la derecha; abajo una fila de dos
   marcos, `− 32,5 kg +` y `− × 12 +`, y el `+1`. Ya no dice `reps`. En el 3×2 (y en
