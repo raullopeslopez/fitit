@@ -16,8 +16,11 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 
 import httpx
+
+log = logging.getLogger("app.label")
 
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -65,10 +68,15 @@ class ModelUnavailable(Exception):
     etiqueta y quien pide platos, porque las dos fallan igual y por lo mismo.
     `quota` es `None | 'minute' | 'day'`, y la distinción no es cosmética — una
     cuota por minuto se pasa esperando y la del día no se pasa hasta mañana.
+
+    `detail` es lo que contestó la API, sin su mensaje: el código HTTP (`"503"`)
+    o la clase del fallo de red (`"ReadTimeout"`). Es lo que va al log, y lo que
+    el 2026-10-05 faltaba para saber que el modelo estaba saturado.
     """
 
-    def __init__(self, message: str, *, quota: str | None = None):
+    def __init__(self, message: str, *, quota: str | None = None, detail: str | None = None):
         self.quota = quota
+        self.detail = detail
         super().__init__(message)
 
 
@@ -153,6 +161,7 @@ async def _ask(
     backoff: float = BACKOFF,
     tools: list[dict] | None = None,
     as_text: bool = False,
+    fallback: str | None = None,
 ) -> dict | str:
     """Manda las partes, devuelve el JSON del modelo y no lo juzga.
 
@@ -164,6 +173,11 @@ async def _ask(
     porque lo que se reusa es el transporte: los reintentos medidos contra la
     API, el 429 con su alcance, y el timeout pensado para alguien esperando.
     Lo que cambia entre los dos usos es qué se manda y con cuánta temperatura.
+
+    Con `fallback`, el reintento va a **otro modelo** en vez de al mismo. No
+    suma intentos: ocupa el sitio del segundo. Un 503 es un modelo saturado, y
+    preguntarle otra vez dos segundos después le pide lo mismo a quien acaba de
+    decir que no puede; otro modelo tiene su propia carga y su propia cuota.
     """
     config: dict = {"temperature": temperature}
     if not as_text:
@@ -173,10 +187,11 @@ async def _ask(
         body["tools"] = tools
     last: Exception | None = None
     for attempt in range(ATTEMPTS):
+        asked = _model_for(attempt, model, fallback, last)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
-                    API.format(model=model),
+                    API.format(model=asked),
                     json=body,
                     # En cabecera y no en la query: una clave en la URL acaba en
                     # cualquier log de acceso que haya por el camino.
@@ -195,7 +210,9 @@ async def _ask(
                 # Ni se reintenta ni se disfraza: cada intento gastaría de lo
                 # que ya no hay, y quien está delante necesita saber que no es
                 # cuestión de repetir la foto.
-                raise ModelUnavailable(str(exc), quota=_quota_scope(exc.response)) from exc
+                raise ModelUnavailable(
+                    str(exc), quota=_quota_scope(exc.response), detail=_detail(exc)
+                ) from exc
             if exc.response.status_code not in RETRIABLE:
                 break
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
@@ -209,7 +226,25 @@ async def _ask(
     # El mensaje se queda aquí. Río arriba sólo se sabe que no hubo lectura: lo
     # que cuenta un error de la API no le dice nada a quien está delante de la
     # cámara, y puede llevar dentro trozos de la petición.
-    raise ModelUnavailable(str(last)) from last
+    raise ModelUnavailable(str(last), detail=_detail(last)) from last
+
+
+def _model_for(attempt: int, model: str, fallback: str | None, last: Exception | None) -> str:
+    """El principal en el primer intento; el respaldo, si lo hay, en el resto."""
+    if not attempt or not fallback:
+        return model
+    # Una línea y sin la causa entera: basta con saber que pasó, y a qué.
+    log.info("gemini fallback: from=%s to=%s after=%s", model, fallback, _detail(last))
+    return fallback
+
+
+def _detail(exc: Exception | None) -> str | None:
+    """El código HTTP si lo hubo; si no, la clase del fallo. Nunca el mensaje."""
+    if exc is None:
+        return None
+    if isinstance(exc, httpx.HTTPStatusError):
+        return str(exc.response.status_code)
+    return type(exc).__name__
 
 
 async def read_label(
@@ -220,6 +255,7 @@ async def read_label(
     mime_type: str = "image/jpeg",
     timeout: float = TIMEOUT,
     backoff: float = BACKOFF,
+    fallback: str | None = None,
 ) -> dict:
     """Manda la foto y devuelve el JSON del modelo, sin juzgarlo.
 
@@ -238,11 +274,12 @@ async def read_label(
             temperature=0,
             timeout=timeout,
             backoff=backoff,
+            fallback=fallback,
         )
     except ModelUnavailable as exc:
         # Se traduce al error del camino de la etiqueta: río arriba, `foods.py`
         # distingue «sin cuota» de «no se lee» y eso no cambia.
-        raise LabelUnreadable(str(exc), quota=exc.quota) from exc
+        raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
 
 
 # Lo que se le pide para llenar el repertorio, y por qué así.

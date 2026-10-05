@@ -121,3 +121,80 @@ async def test_a_daily_quota_is_told_apart_from_a_per_minute_one(monkeypatch):
     with pytest.raises(LabelUnreadable) as raised:
         await _read(monkeypatch, handler, backoff=0)
     assert raised.value.quota == "day"
+
+
+# El segundo intento, a otro modelo.
+#
+# Medido el 2026-10-05: una etiqueta perfectamente legible volvió en blanco
+# porque `gemini-3.8-flash` contestó `503 high demand` a los dos intentos. La
+# misma foto, a `gemini-3.5-flash`, se leyó entera. Insistir al mismo modelo
+# saturado es pedirle lo mismo a quien acaba de decir que no puede; otro modelo
+# tiene su propia carga y, en el tier gratuito, su propia cuota.
+
+
+def _models_seen(*statuses):
+    seen = []
+    handler, _ = _transport(*statuses)
+
+    def recording(request):
+        seen.append(request.url.path.rsplit("/", 1)[-1].split(":")[0])
+        return handler(request)
+
+    return recording, seen
+
+
+async def test_the_retry_goes_to_the_fallback_model(monkeypatch):
+    handler, seen = _models_seen(503, 200)
+    read = await _read(monkeypatch, handler, backoff=0, fallback="f")
+    assert read["name"] == "Yogur"
+    assert seen == ["m", "f"]
+
+
+async def test_without_a_fallback_it_retries_the_same_model(monkeypatch):
+    handler, seen = _models_seen(503, 200)
+    await _read(monkeypatch, handler, backoff=0)
+    assert seen == ["m", "m"]
+
+
+async def test_a_fallback_does_not_add_attempts(monkeypatch):
+    """Sigue siendo dos peticiones por foto: el respaldo ocupa el sitio del
+    reintento, no se suma a él."""
+    handler, seen = _models_seen(503)
+    with pytest.raises(LabelUnreadable):
+        await _read(monkeypatch, handler, backoff=0, fallback="f")
+    assert seen == ["m", "f"]
+
+
+async def test_a_good_first_answer_never_touches_the_fallback(monkeypatch):
+    handler, seen = _models_seen(200)
+    await _read(monkeypatch, handler, backoff=0, fallback="f")
+    assert seen == ["m"]
+
+
+async def test_the_failure_says_what_the_api_answered(monkeypatch):
+    """El código, no el mensaje: «503» distingue un modelo saturado de una clave
+    mala sin arrastrar trozos de la petición."""
+    handler, _ = _transport(503)
+    with pytest.raises(LabelUnreadable) as raised:
+        await _read(monkeypatch, handler, backoff=0)
+    assert raised.value.detail == "503"
+
+
+async def test_a_timeout_is_named_as_one(monkeypatch):
+    def handler(request):
+        raise httpx.ReadTimeout("lento", request=request)
+
+    with pytest.raises(LabelUnreadable) as raised:
+        await _read(monkeypatch, handler, backoff=0)
+    assert raised.value.detail == "ReadTimeout"
+
+
+async def test_the_switch_leaves_a_line_in_the_log(monkeypatch, caplog):
+    """Que se pueda ver en Render cuántas lecturas salva el respaldo."""
+    import logging
+
+    handler, _ = _models_seen(503, 200)
+    with caplog.at_level(logging.INFO, logger="app.label"):
+        await _read(monkeypatch, handler, backoff=0, fallback="f")
+    lines = [r.message for r in caplog.records if r.message.startswith("gemini fallback")]
+    assert lines == ["gemini fallback: from=m to=f after=503"]

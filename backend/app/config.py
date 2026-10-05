@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     # proyecto y no está publicado: se mira en AI Studio y se pone aquí, sin
     # tocar código.
     gemini_model: str = "gemini-3.8-flash"
+    # A quién va el reintento de una etiqueta cuando el principal falla. Vacío,
+    # el reintento vuelve al mismo. El 2026-10-05 `gemini-3.8-flash` contestó
+    # `503 high demand` dos veces seguidas a una foto que `gemini-3.5-flash`
+    # leyó entera: otro modelo, otra carga y otra cuota del tier gratuito.
+    gemini_fallback_model: str = "gemini-3.5-flash"
     # Orígenes a los que se abre CORS, separados por comas. La app nativa lleva
     # la interfaz dentro del APK y llama desde su propio origen: `https://localhost`
     # en Android y `capacitor://localhost` en iOS (los de Capacitor por defecto).
