@@ -86,17 +86,6 @@ const DATOS = {
   },
 }
 
-// 0 = lunes … 6 = domingo, como el servidor (`review_weekday`).
-const DIAS_REVISION = [
-  ['Lun', 'Lunes'],
-  ['Mar', 'Martes'],
-  ['Mié', 'Miércoles'],
-  ['Jue', 'Jueves'],
-  ['Vie', 'Viernes'],
-  ['Sáb', 'Sábado'],
-  ['Dom', 'Domingo'],
-]
-
 // Lo que se fija una vez y se corrige rara vez, en un solo sitio: el peso, de
 // dónde salen las calorías (y con ellas los macros), tus datos, las reglas y
 // las preferencias de Entreno. Antes vivía repartido —el objetivo en un cajón
@@ -186,11 +175,6 @@ export default function Perfil({ onLogout }) {
             value={DATOS.pesoMeta.valor(p)}
             onClick={() => setHoja('pesoMeta')}
           />
-          <ListRow
-            label="Revisión semanal"
-            value={DIAS_REVISION[p.review_weekday]?.[1] ?? null}
-            onClick={() => setHoja('revision')}
-          />
         </div>
       </section>
 
@@ -248,7 +232,6 @@ export default function Perfil({ onLogout }) {
       {DATOS[hoja] && (
         <HojaDato dato={DATOS[hoja]} perfil={p} onClose={cerrar} onSaved={recargar} />
       )}
-      {hoja === 'revision' && <HojaRevision perfil={p} onClose={cerrar} onSaved={recargar} />}
       {hoja === 'sexo' && <HojaSexo perfil={p} onClose={cerrar} onSaved={recargar} />}
 
       {reglasOpen && <Reglas onChanged={() => {}} onClose={() => setReglasOpen(false)} />}
@@ -307,40 +290,6 @@ function HojaDato({ dato, perfil, onClose, onSaved }) {
         </div>
         <Acciones busy={busy} onCancel={onClose} />
       </form>
-    </Sheet>
-  )
-}
-
-// El día de la revisión semanal: siete opciones, y se elige, no se teclea. Tocar
-// un chip guarda y cierra a la vez —no hay nada que confirmar en un día—, y es
-// lo único que no lleva «Guardar».
-function HojaRevision({ perfil, onClose, onSaved }) {
-  const [busy, setBusy] = useState(false)
-
-  async function elegir(dia) {
-    setBusy(true)
-    try {
-      await saveTargetProfile({ review_weekday: dia })
-      onClose()
-      await onSaved()
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Sheet open title="Revisión semanal" onClose={onClose}>
-      <div className="perfil-chips" role="group" aria-label="Día de la revisión">
-        {DIAS_REVISION.map(([corto], dia) => (
-          <Chip
-            key={corto}
-            selected={perfil.review_weekday === dia}
-            onClick={() => !busy && elegir(dia)}
-          >
-            {corto}
-          </Chip>
-        ))}
-      </div>
     </Sheet>
   )
 }

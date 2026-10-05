@@ -24,8 +24,8 @@ import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
-import RevisionSemanal from './RevisionSemanal.jsx'
-import PlanDelDia, { Semana, lunesDe } from './Plan.jsx'
+import PlanDelDia, { Semana, lunesDe, lunesSiguiente } from './Plan.jsx'
+import PlanificarSemana from './PlanificarSemana.jsx'
 import { Fab } from './ui'
 import {
   MACROS,
@@ -129,6 +129,10 @@ export default function Comida() {
   // La semana entera, a pantalla completa: siete días por cuatro huecos no
   // caben debajo del día que estás mirando.
   const [semanaOpen, setSemanaOpen] = useState(false)
+  // El plan de la semana que viene, la que se planifica para comprar con ella.
+  // Siempre la de hoy, mires el día que mires.
+  const [planSiguiente, setPlanSiguiente] = useState(null)
+  const [planificarOpen, setPlanificarOpen] = useState(false)
   // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
   // El nombre no está congelado en la entrada a propósito: es una etiqueta de
   // agrupación, no un dato del día, así que renombrar el plato retitula bien.
@@ -179,6 +183,11 @@ export default function Comida() {
       setPlan(await getPlan(lunesDe(iso)))
     } catch {
       setPlan(null)
+    }
+    try {
+      setPlanSiguiente(await getPlan(lunesSiguiente(foodDayIso())))
+    } catch {
+      setPlanSiguiente(null)
     }
   }, [])
 
@@ -323,27 +332,31 @@ export default function Comida() {
         />
       )}
 
+      {/* La revisión semanal vive aquí dentro, no arriba de Comida: va con
+          planificar, que es cuando el objetivo tiene que estar decidido. */}
+      {planificarOpen && (
+        <PlanificarSemana
+          weekStart={lunesSiguiente(foodDayIso())}
+          plan={planSiguiente}
+          onChanged={async () => {
+            setLineaKey((k) => k + 1)
+            await load(dayIso)
+          }}
+          onClose={() => setPlanificarOpen(false)}
+        />
+      )}
+
       {error && <p className="alert">{error}</p>}
 
       {/* Qué plan llevas y cuánto toca hoy, o que todavía no hay objetivo. Sólo
           hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
           lado haría creer que aquel día se comía a este ritmo. */}
       {day && isToday && (
-        <>
-          {/* Sólo hoy, y encima de la línea: la pregunta es de esta semana, y
-              un día pasado no se contesta desde el diario de otro día. */}
-          <RevisionSemanal
-            onAccepted={async () => {
-              setLineaKey((k) => k + 1)
-              await load(dayIso)
-            }}
-          />
-          <ObjetivoLinea
-            key={lineaKey}
-            targetKcal={day.target_kcal ?? null}
-            onAccepted={() => load(dayIso)}
-          />
-        </>
+        <ObjetivoLinea
+          key={lineaKey}
+          targetKcal={day.target_kcal ?? null}
+          onAccepted={() => load(dayIso)}
+        />
       )}
 
       {day && <MacroCard day={day} />}
@@ -362,6 +375,8 @@ export default function Comida() {
         onChanged={() => load(dayIso)}
         onVerSemana={plan ? () => setSemanaOpen(true) : null}
         platos={platos}
+        siguiente={planSiguiente}
+        onPlanificar={() => setPlanificarOpen(true)}
       />
 
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
@@ -440,7 +455,7 @@ export default function Comida() {
           v2). Sin comida elegida: la pantalla de añadir la deduce de la hora,
           igual que cuando se entra por el diario sin tocar una tarjeta. Se
           esconde con cualquier hoja abierta, que ya es lo que estás haciendo. */}
-      {!adding && !editingEntry && !confirming && !summaryOpen && !semanaOpen && (
+      {!adding && !editingEntry && !confirming && !summaryOpen && !semanaOpen && !planificarOpen && (
         <Fab icon="+" label="Añadir comida" onClick={() => setAdding({ slot: null })} />
       )}
 

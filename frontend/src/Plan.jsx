@@ -67,6 +67,12 @@ export function lunesDe(iso) {
   return fecha.toISOString().slice(0, 10)
 }
 
+// El lunes de la semana que viene: la que se planifica para comprar con ella.
+export function lunesSiguiente(iso) {
+  const [y, m, d] = lunesDe(iso).split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10)
+}
+
 function diasDe(weekStart) {
   const [y, m, d] = weekStart.split('-').map(Number)
   return Array.from({ length: 7 }, (_, i) => {
@@ -88,7 +94,7 @@ function delDia(plan, iso) {
 // Por qué no se ha podido generar. Cada forma de no haber podido se nombra por
 // separado: una despensa vacía manda a dar de alta platos, y un hueco sin
 // candidatos manda a mirar ese hueco. «No se ha podido» no dice qué hacer.
-function motivo(err) {
+export function motivo(err) {
   const detalle = err?.detail
   if (detalle?.slot) {
     return `No hay platos que puedan ir en la ${NOMBRE[detalle.slot]?.toLowerCase() ?? detalle.slot}.`
@@ -189,6 +195,10 @@ export default function PlanDelDia({
   onChanged,
   onVerSemana = null,
   platos = [],
+  // El plan de la semana que viene: `null` si no lo hay, el plan si lo hay.
+  // Sin `onPlanificar` la línea no se ofrece.
+  siguiente = null,
+  onPlanificar = null,
   // Inyectables para que los tests no tengan que interceptar el módulo de red.
   generar = generatePlan,
   setEntry = setPlanEntry,
@@ -226,6 +236,14 @@ export default function PlanDelDia({
     }
   }
 
+  // La semana que viene se planifica cualquier día —el de compra no es fijo—, y
+  // sólo desde hoy: mirando otro día, «la que viene» no sabría de cuál.
+  const laQueViene = isToday && onPlanificar && (
+    <button type="button" className="link-btn plan-ver" onClick={onPlanificar}>
+      {siguiente ? 'Ver la semana que viene' : 'Planificar la semana que viene'}
+    </button>
+  )
+
   if (!plan) {
     return (
       <section className="card plan-card">
@@ -235,6 +253,7 @@ export default function PlanDelDia({
         <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
           Generar la semana
         </button>
+        {laQueViene}
       </section>
     )
   }
@@ -273,6 +292,7 @@ export default function PlanDelDia({
           Ver la semana
         </button>
       )}
+      {laQueViene}
     </section>
   )
 }
@@ -346,6 +366,8 @@ export function Semana({
   weekStart,
   onClose,
   onChanged,
+  titulo = 'Tu semana',
+  antetitulo = 'Lo que toca',
   generar = generatePlan,
   hoy = foodDayIso(),
   leerAdherencia = getAdherence,
@@ -383,11 +405,11 @@ export function Semana({
   }
 
   return (
-    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Tu semana">
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label={titulo}>
       <header className="food-screen-head">
         <p className="food-screen-title">
-          <span className="card-eyebrow">Lo que toca</span>
-          <span className="food-screen-slot">Tu semana</span>
+          <span className="card-eyebrow">{antetitulo}</span>
+          <span className="food-screen-slot">{titulo}</span>
         </p>
         <button type="button" className="link-btn" onClick={onClose}>
           Cerrar

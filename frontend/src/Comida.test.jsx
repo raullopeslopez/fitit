@@ -176,29 +176,43 @@ describe('Comida', () => {
       ).toBeInTheDocument()
     })
 
-    describe('la revisión semanal', () => {
+    // La revisión va con planificar la semana que viene, no arriba de Comida
+    // un día fijo: el objetivo se decide antes de generar y comprar.
+    describe('planificar la semana que viene', () => {
       beforeEach(() => {
         api.getReview.mockResolvedValue({ due: true, answer: null })
-      })
-
-      it('hoy, cuando toca, pregunta encima de la línea del objetivo', async () => {
-        render(<Comida />)
-        expect(await screen.findByText('¿Apuntaste todo lo que comiste?')).toBeInTheDocument()
-      })
-
-      it('un día pasado no la enseña', async () => {
-        render(<Comida />)
-        await screen.findByText('¿Apuntaste todo lo que comiste?')
-        await userEvent.click(screen.getByRole('button', { name: 'Día anterior' }))
-        await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
-        expect(screen.queryByText('¿Apuntaste todo lo que comiste?')).not.toBeInTheDocument()
-      })
-
-      it('aceptar la propuesta recarga el día', async () => {
         api.getTargetProfile.mockResolvedValue({ objetivo_kcal: 2150 })
         api.answerReview.mockResolvedValue({ kcal: 2230, source: 'measured', expenditure: 2780 })
         api.acceptTarget.mockResolvedValue({})
+        api.generatePlan.mockResolvedValue({ id: 2, week_start: '2026-09-07', entries: [], verdicts: [] })
+      })
+
+      it('la revisión ya no pregunta arriba de Comida', async () => {
         render(<Comida />)
+        await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-31'))
+        await screen.findByRole('button', { name: 'Planificar la semana que viene' })
+        expect(screen.queryByText('¿Apuntaste todo lo que comiste?')).not.toBeInTheDocument()
+      })
+
+      it('pide al servidor el plan de la semana que viene', async () => {
+        render(<Comida />)
+        await waitFor(() => expect(api.getPlan).toHaveBeenCalledWith('2026-09-07'))
+      })
+
+      it('revisa primero y genera la semana del lunes siguiente', async () => {
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Planificar la semana que viene' }))
+        expect(await screen.findByText('Semana del 7 sep')).toBeInTheDocument()
+        await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+        await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
+        const hoja = screen.getByRole('dialog', { name: 'Planificar la semana que viene' })
+        await userEvent.click(await within(hoja).findByRole('button', { name: 'Generar la semana' }))
+        expect(api.generatePlan).toHaveBeenCalledWith('2026-09-07', null)
+      })
+
+      it('aceptar el objetivo en la revisión recarga el día', async () => {
+        render(<Comida />)
+        await userEvent.click(await screen.findByRole('button', { name: 'Planificar la semana que viene' }))
         await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
         const antes = api.getFoodDay.mock.calls.length
         await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2230' }))

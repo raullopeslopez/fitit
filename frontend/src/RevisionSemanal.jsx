@@ -10,7 +10,7 @@ const RESPUESTAS = [
 ]
 
 /**
- * «¿Apuntaste todo lo que comiste?», una vez por semana, arriba de Comida.
+ * «¿Apuntaste todo lo que comiste?», el primer paso de planificar la semana que viene.
  *
  * El gasto medido sale de lo que comiste y de lo que pesaste: una semana con
  * días a medias lo da más bajo de lo real, y proponer comer menos por eso sería
@@ -22,10 +22,14 @@ const RESPUESTAS = [
  * línea del objetivo. Si GET /targets/review falla no se pinta nada: una
  * pregunta que no llega no puede bloquear el diario.
  *
- * Una vez contestada, de cualquier manera, desaparece hasta la sesión siguiente;
- * el servidor deja de decir `due` por su cuenta.
+ * Va con planificar y no con un día de la semana: el objetivo tiene que estar
+ * decidido antes de generar la semana y comprar con ella, y el día de compra
+ * cambia. El servidor dice `due` si hace una semana de la última respuesta.
+ *
+ * `onDone` avisa de que el paso ha acabado, por la vía que sea —contestada,
+ * mantenida, aceptada, o porque no tocaba o no llegó— y el flujo sigue.
  */
-export default function RevisionSemanal({ onAccepted }) {
+export default function RevisionSemanal({ onAccepted, onDone = () => {} }) {
   // 'cargando' | 'oculta' | 'pregunta' | { propuesta, actual } | 'no'
   const [fase, setFase] = useState('cargando')
   const [busy, setBusy] = useState(false)
@@ -36,14 +40,20 @@ export default function RevisionSemanal({ onAccepted }) {
     ;(async () => {
       try {
         const r = await getReview()
-        if (vivo) setFase(r?.due ? 'pregunta' : 'oculta')
+        if (!vivo) return
+        setFase(r?.due ? 'pregunta' : 'oculta')
+        if (!r?.due) onDone()
       } catch {
-        if (vivo) setFase('oculta')
+        if (!vivo) return
+        setFase('oculta')
+        onDone()
       }
     })()
     return () => {
       vivo = false
     }
+    // Sólo al montar: `onDone` es del padre y cambia en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (fase === 'cargando' || fase === 'oculta') return null
@@ -78,6 +88,7 @@ export default function RevisionSemanal({ onAccepted }) {
       await acceptTarget(kcal)
       setFase('oculta')
       await onAccepted()
+      onDone()
     } catch {
       setError(true)
     } finally {
@@ -85,7 +96,10 @@ export default function RevisionSemanal({ onAccepted }) {
     }
   }
 
-  const cerrar = () => setFase('oculta')
+  const cerrar = () => {
+    setFase('oculta')
+    onDone()
+  }
 
   return (
     <section className="revision" aria-labelledby="revision-sello">

@@ -132,4 +132,50 @@ describe('La revisión semanal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Vale' }))
     expect(screen.queryByText('REVISIÓN SEMANAL')).not.toBeInTheDocument()
   })
+
+  // Al planificar, la revisión es un paso: cuando acaba —por la vía que sea—
+  // el flujo pasa a generar la semana. Si no toca, se salta sin pintarse.
+  describe('como paso de planificar', () => {
+    it('si no toca, avisa de que ha acabado sin pintarse', async () => {
+      getReview.mockResolvedValue({ due: false })
+      const onDone = vi.fn()
+      const { container } = render(<RevisionSemanal onAccepted={() => {}} onDone={onDone} />)
+      await waitFor(() => expect(onDone).toHaveBeenCalledOnce())
+      expect(container).toBeEmptyDOMElement()
+    })
+
+    it('si la consulta falla, también: una pregunta que no llega no bloquea el plan', async () => {
+      getReview.mockRejectedValue(new Error('offline'))
+      const onDone = vi.fn()
+      render(<RevisionSemanal onAccepted={() => {}} onDone={onDone} />)
+      await waitFor(() => expect(onDone).toHaveBeenCalledOnce())
+    })
+
+    it('«Aceptar» acaba después de avisar del objetivo nuevo', async () => {
+      const orden = []
+      render(
+        <RevisionSemanal onAccepted={() => orden.push('aceptado')} onDone={() => orden.push('hecho')} />,
+      )
+      await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Aceptar 2230' }))
+      await waitFor(() => expect(orden).toEqual(['aceptado', 'hecho']))
+    })
+
+    it('«Mantener» acaba sin aceptar', async () => {
+      const onDone = vi.fn()
+      render(<RevisionSemanal onAccepted={() => {}} onDone={onDone} />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
+      expect(onDone).toHaveBeenCalledOnce()
+      expect(acceptTarget).not.toHaveBeenCalled()
+    })
+
+    it('«No» y luego «Vale» acaba', async () => {
+      const onDone = vi.fn()
+      render(<RevisionSemanal onAccepted={() => {}} onDone={onDone} />)
+      await userEvent.click(await screen.findByRole('button', { name: 'No' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Vale' }))
+      expect(onDone).toHaveBeenCalledOnce()
+    })
+  })
 })
