@@ -127,3 +127,14 @@ def test_the_log_never_carries_the_key_or_the_photo(client, caplog):
     assert "AIza" not in line and "AQ." not in line
     # Ni el nombre del alimento: lo que se registra es qué pasó, no qué comes.
     assert "Yogur" not in line
+
+
+def test_a_failure_carries_the_api_status(client, caplog):
+    """El fallo del 2026-10-05 dejó `error=ModelUnavailable` en el log, que es el
+    nombre del envoltorio y no dice nada. Lo que hacía falta era el `503`."""
+    _reader(raises=LabelUnreadable("...", detail="503"))
+    with caplog.at_level(logging.INFO, logger="app.label"):
+        _photograph(client)
+    line = _line(caplog)
+    assert "outcome=unreadable" in line
+    assert "error=503" in line

@@ -115,7 +115,11 @@ async def get_label_reader():
 
     async def reader(image: bytes, mime_type: str) -> dict:
         return await read_label(
-            image, api_key=key, model=settings.gemini_model, mime_type=mime_type
+            image,
+            api_key=key,
+            model=settings.gemini_model,
+            mime_type=mime_type,
+            fallback=settings.gemini_fallback_model or None,
         )
 
     return reader
@@ -495,10 +499,15 @@ async def read_a_label(
                 quota_scope=exc.quota,
                 nutrients=dict(UNKNOWN_NUTRIENTS),
             )
-        # La clase del error de debajo, no su mensaje: distingue un timeout de
-        # una respuesta que no era JSON, y no puede llevar dentro trozos de la
-        # petición.
-        note("unreadable", model=settings.gemini_model, error=type(exc.__cause__).__name__)
+        # Lo que contestó la API —`503`, `ReadTimeout`—, no su mensaje: no puede
+        # llevar dentro trozos de la petición. Sin `detail`, la clase del error
+        # de debajo; con ella sola, hasta el 2026-10-05 el log decía
+        # `ModelUnavailable` a todo, que es el nombre del envoltorio.
+        note(
+            "unreadable",
+            model=settings.gemini_model,
+            error=exc.detail or type(exc.__cause__).__name__,
+        )
         return LabelReadOut(refusal="unreadable", nutrients=dict(UNKNOWN_NUTRIENTS))
     try:
         read = read_from_payload(payload)
