@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.21.0: Tus platos.** Comida → Tu plan → «Planificar la semana que viene» tiene
+  la fila `Tus platos · N`: tus platos con sus comidas (o `Cualquier comida`) y `P` y
+  `kcal` por ración; tocar uno abre `Sirve para: Desayuno · Comida · Cena · Snack`.
+  «Proponme platos» se muda ahí desde la hoja de añadir. Y el catálogo del súper: 7.865
+  envasados de Hacendado y Eroski en la búsqueda y en el escáner, sin red.
 - **APK 0.20.0: planificar la semana que viene, con la revisión dentro.** Comida → «Tu
   plan» ofrece `Planificar la semana que viene` cualquier día (o `Ver la semana que viene`
   si ya está generada); antes sólo se podía generar la semana en curso. La hoja pasa
