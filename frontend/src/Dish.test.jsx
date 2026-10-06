@@ -140,4 +140,26 @@ describe('ProposeDishes', () => {
     expect(await screen.findByText('Tofu salteado')).toBeInTheDocument()
     expect(screen.getByText(/Tofu ahumado/)).toBeInTheDocument()
   })
+
+  // El modelo propone; la aritmética tumba. Lo que tumba se enseña con su
+  // cifra, para que el descarte se entienda y no parezca que el modelo falló.
+  it('dice qué descartó por poca proteína, con cuánto daba y cuánto hacía falta', async () => {
+    generateDishes.mockResolvedValue({
+      created: [],
+      suggestions: [],
+      discarded: [
+        { name: 'Pasta al pesto', protein: 18, floor: 40.4 },
+        { name: 'Pechuga sin medir', protein: null, floor: 40.4 },
+      ],
+    })
+    render(<ProposeDishes onCreated={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Proponme platos' }))
+    expect(await screen.findByText('Descartados por poca proteína')).toBeInTheDocument()
+    expect(screen.getByText('Pasta al pesto')).toBeInTheDocument()
+    expect(screen.getByText('18 P · mínimo 40')).toBeInTheDocument()
+    expect(screen.getByText('proteína sin medir · mínimo 40')).toBeInTheDocument()
+    // Hubo respuesta: no es el «no ha salido nada» de cuando no hay ninguna.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
 })
+

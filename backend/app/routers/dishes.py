@@ -22,12 +22,13 @@ from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
 from ..gemini import ModelUnavailable, suggest_dishes
-from ..models import Dish, DishIdea, DishIngredient, Food, LogEntry, visible_foods
+from ..models import Dish, DishIdea, DishIngredient, Food, LogEntry, User, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
-from ..nutrition import macros_por_racion
+from ..nutrition import macros_por_racion, proteina_minima
 from ..repertoire import ProposalRefused, read_proposals
 from ..schemas import (
+    DishDiscardedOut,
     DishGenerateIn,
     DishGenerateOut,
     DishIn,
@@ -361,6 +362,72 @@ async def _despensa(session: AsyncSession, user_id: int) -> list[Food]:
     return list(foods)
 
 
+def _plato(propuesta, user_id: int, folded: str) -> Dish:
+    """La propuesta, convertida en un plato tuyo, con las comidas que dijo."""
+    return Dish(
+        user_id=user_id,
+        name=propuesta.name,
+        name_folded=folded,
+        method=propuesta.method,
+        basis=propuesta.basis,
+        servings=propuesta.servings,
+        slots=",".join(propuesta.slots) if propuesta.slots else None,
+        ingredients=[DishIngredient(food_id=i.food_id, grams=i.grams) for i in propuesta.ingredients],
+    )
+
+
+def _repartir(propuestas, objetivo, foods, tomados: set[str], user_id: int):
+    """Cada propuesta a su sitio: plato nuevo, cajón de sugerencias o descartada
+    por poca proteína. Un plato que ya tienes no se duplica ni se pisa: lo tuyo
+    manda sobre lo propuesto, que es lo mismo que hace el import de CIQUAL."""
+    creados: list[Dish] = []
+    sugerencias: list[DishSuggestionOut] = []
+    descartados: list[DishDiscardedOut] = []
+    for propuesta in propuestas:
+        if not propuesta.usable:
+            sugerencias.append(_sugerencia(propuesta))
+            continue
+        descarte = _poca_proteina(propuesta, objetivo, foods)
+        if descarte is not None:
+            descartados.append(descarte)
+            continue
+        folded = fold(propuesta.name)
+        if folded in tomados:
+            continue
+        tomados.add(folded)
+        creados.append(_plato(propuesta, user_id, folded))
+    return creados, sugerencias, descartados
+
+
+def _sugerencia(propuesta) -> DishSuggestionOut:
+    """Al cajón: nombra un alimento que no tienes."""
+    return DishSuggestionOut(
+        name=propuesta.name,
+        method=propuesta.method,
+        basis=propuesta.basis,
+        servings=propuesta.servings,
+        ingredients=[{"food_name": i.food_name, "grams": i.grams} for i in propuesta.ingredients],
+        missing=propuesta.unknown,
+    )
+
+
+def _poca_proteina(propuesta, objetivo: float | None, foods: dict[int, Food]) -> DishDiscardedOut | None:
+    """El control determinista: el modelo propone, la aritmética tumba.
+
+    Una comida o una cena que no llega a la proteína de tu objetivo no entra, y
+    se dice cuánto daba. Sin la cifra (algún ingrediente sin medir) no se puede
+    prometer que llega, y tampoco entra: `NULL` no es `0`, ni es «suficiente».
+    """
+    minimo = proteina_minima(objetivo, propuesta.slots)
+    if minimo is None:
+        return None
+    totales, _ = macros_de_plato([(foods[i.food_id], i.grams) for i in propuesta.ingredients])
+    proteina = macros_por_racion(totales, propuesta.servings)["protein"]
+    if proteina is not None and proteina >= minimo:
+        return None
+    return DishDiscardedOut(name=propuesta.name, protein=proteina, floor=minimo)
+
+
 @router.post("/generate", response_model=DishGenerateOut)
 async def generate_dishes(
     payload: DishGenerateIn,
@@ -393,12 +460,17 @@ async def generate_dishes(
     if proposer is None:
         return DishGenerateOut(refusal="off")
 
+    objetivo = (await session.get(User, user_id)).objetivo_proteina
+
     try:
         raw = await proposer(
             foods=[food.name for food in despensa],
             methods=list(payload.methods),
             minutes=payload.minutes,
             n=payload.n,
+            # Se le dice para que proponga mejor, no para que lo cumpla: quien
+            # decide es `proteina_minima` sobre las cifras del catálogo.
+            protein_floor=proteina_minima(objetivo, ("comida",)),
         )
     except ModelUnavailable as exc:
         # Nunca un 500: las cuatro formas de no haber podido acaban en la misma
@@ -420,44 +492,10 @@ async def generate_dishes(
         ).all()
     }
 
-    creados: list[Dish] = []
-    sugerencias: list[DishSuggestionOut] = []
-    for propuesta in propuestas:
-        if not propuesta.usable:
-            sugerencias.append(
-                DishSuggestionOut(
-                    name=propuesta.name,
-                    method=propuesta.method,
-                    basis=propuesta.basis,
-                    servings=propuesta.servings,
-                    ingredients=[
-                        {"food_name": i.food_name, "grams": i.grams} for i in propuesta.ingredients
-                    ],
-                    missing=propuesta.unknown,
-                )
-            )
-            continue
-
-        folded = fold(propuesta.name)
-        # Un plato que ya tienes no se duplica ni se pisa: lo tuyo manda sobre
-        # lo propuesto, que es lo mismo que hace el import de CIQUAL.
-        if folded in tomados:
-            continue
-        tomados.add(folded)
-
-        dish = Dish(
-            user_id=user_id,
-            name=propuesta.name,
-            name_folded=folded,
-            method=propuesta.method,
-            basis=propuesta.basis,
-            servings=propuesta.servings,
-            ingredients=[
-                DishIngredient(food_id=i.food_id, grams=i.grams) for i in propuesta.ingredients
-            ],
-        )
+    por_id = {food.id: food for food in despensa}
+    creados, sugerencias, descartados = _repartir(propuestas, objetivo, por_id, tomados, user_id)
+    for dish in creados:
         session.add(dish)
-        creados.append(dish)
 
     if creados:
         await session.commit()
@@ -467,4 +505,5 @@ async def generate_dishes(
     return DishGenerateOut(
         created=[await _out(session, dish, user_id) for dish in creados],
         suggestions=sugerencias,
+        discarded=descartados,
     )

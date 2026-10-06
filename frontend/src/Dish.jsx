@@ -374,7 +374,9 @@ export function ProposeDishes({ onCreated }) {
 
   const creados = resultado?.created ?? []
   const sugerencias = resultado?.suggestions ?? []
-  const sinNada = resultado && creados.length === 0 && sugerencias.length === 0
+  const descartados = resultado?.discarded ?? []
+  const sinNada =
+    resultado && creados.length === 0 && sugerencias.length === 0 && descartados.length === 0
 
   return (
     <section className="propose">
@@ -411,6 +413,25 @@ export function ProposeDishes({ onCreated }) {
           <p className="propose-note">
             Dalos de alta y vuelve a pedir, y estos platos se podrán guardar.
           </p>
+        </div>
+      )}
+
+      {/* Lo que la aritmética tumbó, con su cifra: una comida o una cena que no
+          llega a la proteína de tu objetivo. Sin ella el descarte parecería un
+          fallo del modelo. */}
+      {descartados.length > 0 && (
+        <div className="propose-drawer">
+          <p className="card-eyebrow">Descartados por poca proteína</p>
+          <ul className="propose-list">
+            {descartados.map((d) => (
+              <li key={d.name}>
+                <span className="propose-suggestion">{d.name}</span>
+                <span className="propose-missing">
+                  {`${d.protein == null ? 'proteína sin medir' : `${Math.round(d.protein)} P`} · mínimo ${Math.round(d.floor)}`}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

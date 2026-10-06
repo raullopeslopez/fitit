@@ -137,6 +137,30 @@ def macros_de_plato(ingredientes) -> tuple[dict, dict]:
     return sumar_nutrientes([calcular_nutrientes(food, grams) for food, grams in ingredientes])
 
 
+# Qué parte de tu proteína diaria tiene que aportar una comida o una cena para
+# entrar en el repertorio cuando la propone el modelo. Con cuatro tomas, las dos
+# principales cargan con más que un desayuno o una merienda: el 20 % de 202 g son
+# 40 g, que es una pechuga y no una pizza. Desayuno y merienda no se juzgan: una
+# tostada no es un fallo, es un desayuno.
+FRACCION_COMIDA_PRINCIPAL = 0.20
+COMIDAS_PRINCIPALES = ("comida", "cena")
+
+
+def proteina_minima(objetivo_proteina: float | None, slots) -> float | None:
+    """Los gramos de proteína por ración que tiene que dar un plato propuesto
+    para las comidas en las que va, o `None` si no hay mínimo que cumplir.
+
+    Sin objetivo de proteína no hay mínimo: no hay de qué sacar el 20 %. Un
+    plato sin comidas dichas puede acabar en cualquiera —también en una comida
+    o una cena—, así que se juzga como si fuera una.
+    """
+    if not objetivo_proteina:
+        return None
+    if slots and not any(s in COMIDAS_PRINCIPALES for s in slots):
+        return None
+    return round(objetivo_proteina * FRACCION_COMIDA_PRINCIPAL, 1)
+
+
 def macros_por_racion(totales: dict, servings: float) -> dict:
     """Los totales del plato entre sus raciones, que es la cifra que se come.
 

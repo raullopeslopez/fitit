@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 # se aproxima: se queda en nada, que es lo que significa «no lo sé».
 METHODS = ("air_fryer", "plancha", "sarten", "horno", "cocido", "crudo")
 BASES = ("raw", "cooked")
+# Las cuatro comidas del día, como `MealSlot`. Una que no esté aquí se ignora.
+SLOTS = ("desayuno", "comida", "cena", "snack")
 
 # Gramos creíbles para un ingrediente de un plato. El suelo y el techo no son
 # paranoia: son la misma postura que `_sane()` en `label.py` — una cifra
@@ -69,6 +71,9 @@ class DishProposal:
     basis: str
     servings: float
     ingredients: list[ProposedIngredient] = field(default_factory=list)
+    # Para qué comidas lo propone, en el orden del día. `None` es que no lo
+    # dijo, y se lee como en un plato tuyo: «vale para cualquiera».
+    slots: tuple[str, ...] | None = None
 
     @property
     def unknown(self) -> list[str]:
@@ -144,7 +149,17 @@ def _one(raw, resolve) -> DishProposal | None:
         basis=basis if basis in BASES else "raw",
         servings=servings,
         ingredients=ingredientes,
+        slots=_slots(raw.get("slots")),
     )
+
+
+def _slots(raw) -> tuple[str, ...] | None:
+    """Las comidas que dijo, sólo las que existen y en el orden del día. Una que
+    no conocemos no se aproxima a la más parecida: se ignora."""
+    if not isinstance(raw, list):
+        return None
+    dichas = {s.strip().lower() for s in raw if isinstance(s, str)}
+    return tuple(s for s in SLOTS if s in dichas) or None
 
 
 def read_proposals(payload, *, resolve) -> list[DishProposal]:

@@ -977,6 +977,18 @@ class DishSuggestionOut(BaseModel):
     missing: list[str] = Field(default_factory=list)
 
 
+class DishDiscardedOut(BaseModel):
+    """Una propuesta que el modelo hizo y la aritmética tumbó: una comida o una
+    cena que no llega a la proteína que pide tu objetivo. Se dice cuánto daba y
+    cuánto hacía falta, para que el descarte se pueda entender y discutir."""
+
+    name: str
+    # `None`: algún ingrediente no tiene la proteína medida, y sin la cifra no
+    # se puede prometer que llega.
+    protein: float | None = None
+    floor: float
+
+
 class DishGenerateOut(BaseModel):
     """Lo que salió de pedir platos.
 
@@ -988,6 +1000,7 @@ class DishGenerateOut(BaseModel):
 
     created: list[DishOut] = Field(default_factory=list)
     suggestions: list[DishSuggestionOut] = Field(default_factory=list)
+    discarded: list[DishDiscardedOut] = Field(default_factory=list)
     # 'off' | 'empty_pantry' | 'quota' | 'unavailable' | 'unusable'
     refusal: str | None = None
     # 'minute' | 'day' cuando `refusal` es 'quota': esperar un minuto y esperar
