@@ -27,9 +27,14 @@ Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo 
   su alcance a más de un día es rediscutir esta regla, no un detalle de implementación.
 - **Toda la aritmética nutricional vive en `backend/app/nutrition.py`.** No la dupliques
   y no la muevas al router.
-- **`POST /foods` es la única puerta.** Ni un import, ni un parser, ni el servidor al
-  resolver un código: nada escribe en `foods` por otro sitio, y `GET /foods/barcode/{ean}`
-  devuelve una propuesta sin tocar la base — hay escenarios que lo fijan por los dos lados.
+- **`POST /foods` es la única puerta para tus alimentos** (`user_id` no nulo). Ni un
+  parser, ni el servidor al resolver un código: nada escribe tus alimentos por otro sitio,
+  y `GET /foods/barcode/{ean}` devuelve una propuesta sin tocar la base — hay escenarios
+  que lo fijan por los dos lados. El catálogo compartido (`user_id IS NULL`) es la otra
+  cara y tiene su propia puerta: **sólo lo escriben los scripts de import** (CIQUAL y Open
+  Food Facts, `docs/catalogo-supermercado.md`), a mano, idempotentes y sin tocar nada tuyo.
+  Precisado el 2026-10-06: `import_ciqual` ya lo hacía, y la regla siempre se refirió a lo
+  tuyo.
   Lo que cambió (2026-09-09) es **quién** la cruza. La regla decía «desde un formulario que
   el usuario rellenó», y eso ponía un formulario delante de un dato que nadie iba a
   corregir: el código de barras identifica el producto mejor que cualquier nombre tecleado,
