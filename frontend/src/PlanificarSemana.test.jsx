@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import PlanificarSemana from './PlanificarSemana.jsx'
-import { acceptTarget, answerReview, generatePlan, getAdherence, getReview, getTargetProfile } from './api.js'
+import { acceptTarget, answerReview, generatePlan, getAdherence, getReview, getTargetProfile, listDishes } from './api.js'
 
 vi.mock('./api.js')
 
@@ -115,5 +115,25 @@ describe('Planificar la semana que viene', () => {
     await screen.findByText('¿Apuntaste todo lo que comiste?')
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  // Los platos se miran justo antes de generar: es ahí donde importa qué hay.
+  it('enseña cuántos platos tienes y abre «Tus platos»', async () => {
+    getReview.mockResolvedValue({ due: false })
+    listDishes.mockResolvedValue([])
+    render(
+      <PlanificarSemana weekStart={LUNES} plan={null} onClose={vi.fn()} onChanged={vi.fn()} platos={[{ id: 1 }, { id: 2 }]} />,
+    )
+    await userEvent.click(await screen.findByRole('button', { name: /Tus platos/ }))
+    expect(screen.getByRole('dialog', { name: 'Tus platos' })).toBeInTheDocument()
+  })
+
+  it('la fila dice cuántos son', async () => {
+    getReview.mockResolvedValue({ due: false })
+    render(
+      <PlanificarSemana weekStart={LUNES} plan={null} onClose={vi.fn()} onChanged={vi.fn()} platos={[{ id: 1 }, { id: 2 }]} />,
+    )
+    const fila = await screen.findByRole('button', { name: /Tus platos/ })
+    expect(fila).toHaveTextContent('2')
   })
 })
