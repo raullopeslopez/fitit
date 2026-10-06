@@ -241,3 +241,8 @@ def then_one_with_barcode(results, ean):
 @then(parsers.parse('that result is "{name}"'))
 def then_that_result(results, name):
     assert any(r["name"] == name for r in results)
+
+
+@then(parsers.parse('"{name}" appears once'))
+def then_appears_once(results, name):
+    assert [r["name"] for r in results].count(name) == 1, results

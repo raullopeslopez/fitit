@@ -248,7 +248,21 @@ def _sin_repetidos(rows: list[Food]) -> list[Food]:
     preguntarte cuál es cuál. Lo tuyo manda porque es lo que corregiste.
     """
     tuyos = {f.barcode for f in rows if f.barcode and f.user_id is not None}
-    return [f for f in rows if not (f.user_id is None and f.barcode in tuyos)]
+    # Y el mismo producto del catálogo en dos envases —brik y pack— son dos
+    # códigos que tienen que poder escanearse, pero una sola fila al buscar.
+    # Mismo nombre, marca y cifras: no hay nada que elegir entre ellos.
+    vistos: set[tuple] = set()
+    fuera = []
+    for f in rows:
+        if f.user_id is None and f.barcode in tuyos:
+            continue
+        if f.user_id is None and f.barcode:
+            clave = (f.name_folded, f.brand_folded, f.kcal_100g, f.protein_100g)
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+        fuera.append(f)
+    return fuera
 
 
 @router.post(

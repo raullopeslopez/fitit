@@ -74,3 +74,11 @@ Feature: Scan a barcode
     When I search for "queso fresco batido"
     Then only one result carries the barcode "8480000510716"
     And that result is "Queso fresco batido mío"
+
+  # El mismo producto en dos envases (brik y pack) son dos códigos, y los dos
+  # tienen que poder escanearse; en la búsqueda, son uno.
+  Scenario: The same catalogue product in two packs shows once in search
+    Given the catalogue has "Leche entera" with the barcode "8480000101143"
+    And the catalogue has "Leche entera" with the barcode "8480000101150"
+    When I search for "leche entera"
+    Then "Leche entera" appears once

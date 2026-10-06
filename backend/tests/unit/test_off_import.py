@@ -59,6 +59,27 @@ def test_las_marcas_en_lista_del_buscador_valen_igual():
     assert product_to_food(ficha(brands=["Hacendado", "Mercadona"]))["brand"] == "Hacendado"
 
 
+def test_un_codigo_que_no_se_puede_escanear_no_entra():
+    # OFF guarda códigos internos de tienda de hasta 24 dígitos (producto al
+    # peso). No caben en `barcode` (14) y ningún escáner los va a leer: la
+    # misma regla que el escáner, `looks_like_a_barcode`.
+    assert product_to_food(ficha(code="233833460000100260002609")) is None
+
+
+def test_un_codigo_de_tienda_no_entra():
+    # EAN-13 que empieza por 2: circulación restringida, el que imprime la
+    # báscula del súper con el peso o el precio dentro. Cada bandeja lleva uno
+    # distinto, así que en OFF hay 89 «alitas asadas». No identifica un
+    # producto, identifica un paquete.
+    assert product_to_food(ficha(code="2383346000010")) is None
+
+
+def test_nombre_y_marca_caben_en_sus_columnas():
+    food = product_to_food(ficha(product_name="Queso " * 40, brands="Marca " * 30))
+    assert len(food["name"]) <= 160
+    assert len(food["brand"]) <= 120
+
+
 def test_macros_que_no_cuadran_con_sus_kcal_no_entran():
     # Visto en Open Food Facts: un «lomo adobado» con 40 g de proteína y 117
     # kcal. Sólo la proteína ya son 160 kcal.
