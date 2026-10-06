@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 
-from app.openfoodfacts import NotFound, Unusable, read_product
+from app.openfoodfacts import NotFound, Unusable, looks_like_a_barcode, read_product
 
 # Cuánto pueden separarse las kcal declaradas de las que salen de las macros
 # (4 por gramo de proteína e hidrato, 9 por gramo de grasa) antes de dar la
@@ -26,6 +26,10 @@ from app.openfoodfacts import NotFound, Unusable, read_product
 # OFF separa 60.
 TOLERANCIA_ABS = 25
 TOLERANCIA_REL = 0.25
+
+# `Food.name` y `Food.brand`.
+NOMBRE_MAX = 160
+MARCA_MAX = 120
 
 _GRAMOS = re.compile(r"(\d+(?:[.,]\d+)?)\s*g\b", re.IGNORECASE)
 
@@ -72,7 +76,14 @@ def product_to_food(product: dict) -> dict | None:
         leida = read_product(code, {"status": 1, "product": product})
     except (NotFound, Unusable):
         return None
-    if not code or not leida.name:
+    # La misma regla que el escáner: OFF guarda códigos internos de tienda de
+    # hasta 24 dígitos que ningún escáner leerá y que no caben en `barcode`.
+    if not looks_like_a_barcode(code) or not leida.name:
+        return None
+    # EAN-13 que empieza por 2: circulación restringida (GS1), el que imprime la
+    # báscula del súper con el peso o el precio dentro. Cada bandeja lleva uno
+    # distinto —89 «alitas asadas» en OFF—: no identifica un producto.
+    if len(code) == 13 and code.startswith("2"):
         return None
 
     n = leida.nutrients
@@ -82,8 +93,10 @@ def product_to_food(product: dict) -> dict | None:
     return {
         "barcode": code,
         "source_ref": code,
-        "name": leida.name,
-        "brand": leida.brand,
+        # Las longitudes de sus columnas. SQLite no las impone y Postgres sí,
+        # así que se cortan aquí y no se descubren en prod.
+        "name": leida.name[:NOMBRE_MAX].rstrip(),
+        "brand": leida.brand[:MARCA_MAX].rstrip() if leida.brand else None,
         "kcal_100g": n["kcal"],
         "protein_100g": n["protein"],
         "fat_100g": n["fat"],
