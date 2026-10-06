@@ -6382,3 +6382,37 @@ button.draft-save {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+
+/* --- El peso de hoy, en la tarjeta del plan ---------------------------------
+   Una pregunta dentro de la tarjeta, no una tarjeta más: aparece al confirmar
+   una comida y se va al contestarla. */
+.peso-hoy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.peso-hoy-pregunta {
+  margin: 0;
+  font-weight: 600;
+}
+.peso-hoy-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.peso-hoy-input {
+  width: 6.5rem;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+}
+.peso-hoy-hecho {
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
