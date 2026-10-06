@@ -50,6 +50,9 @@ design_handoff_*/
 # ochenta llamadas a un LLM.
 backend/data/*
 !backend/data/ciqual_es.json
+# El catálogo del súper, por lo mismo: bajarlo son ~130 consultas a Open Food
+# Facts, y prod no debe depender de que su buscador conteste el día del import.
+!backend/data/off_supermercados.json
 
 # Entregas de marca y diseño que llegan por email o descarga y se miran, no se
 # ejecutan: los zips de branding, los PDF de exploración y los prototipos

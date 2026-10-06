@@ -236,7 +236,19 @@ async def search_foods(
         .all()
     )
     rows.sort(key=lambda f: _rank(f, needle, alias_hits))
+    rows = _sin_repetidos(rows)
     return [to_food_out(f, user_id) for f in rows[:SEARCH_LIMIT]]
+
+
+def _sin_repetidos(rows: list[Food]) -> list[Food]:
+    """Un mismo código de barras sale una vez, y es el tuyo.
+
+    Con el catálogo del súper importado, el queso batido que diste de alta
+    escaneando y el del catálogo son el mismo producto: enseñar los dos es
+    preguntarte cuál es cuál. Lo tuyo manda porque es lo que corregiste.
+    """
+    tuyos = {f.barcode for f in rows if f.barcode and f.user_id is not None}
+    return [f for f in rows if not (f.user_id is None and f.barcode in tuyos)]
 
 
 @router.post(
@@ -409,6 +421,24 @@ async def scan_barcode(
         # cosas que ya tienes, el escáner ha dejado de ser la puerta barata.
         note("mine", asked="no")
         return BarcodeLookupOut(barcode=code, food=to_food_out(mine, user_id))
+
+    # Después de lo tuyo, el catálogo compartido: los productos del súper que
+    # importa `scripts/import_off.py` ya están en la base, y escanear uno es lo
+    # mismo que escanear uno tuyo. Lo tuyo va antes porque es lo que corregiste.
+    shared = (
+        (
+            await session.execute(
+                select(Food)
+                .options(selectinload(Food.portions))
+                .where(Food.barcode == code, Food.user_id.is_(None), Food.archived.is_(False))
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if shared is not None:
+        note("catalogue", asked="no")
+        return BarcodeLookupOut(barcode=code, food=to_food_out(shared, user_id))
 
     try:
         payload = await lookup(code)
