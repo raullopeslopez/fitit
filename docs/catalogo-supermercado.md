@@ -103,6 +103,19 @@ interpretado y va por revisión, en otra spec.
 - Escanear un EAN que tienes tuyo y está en el catálogo devuelve el tuyo.
 - Buscar no enseña dos veces el mismo EAN.
 
+## Orden de las fases (decidido el 6 oct)
+
+El plan no depende de la lista; la lista sí depende del plan. Así que primero se
+termina el plan y la lista va al final:
+
+1. Catálogo del súper — **hecho** (#228, #229; 7.865 productos en prod).
+2. **Tus platos** — la pantalla del plan: ver tus platos, editarlos y decir a qué
+   comida va cada uno. No estaba en la primera versión de esta spec.
+3. Platos desde tu súper (§5).
+4. Que no se pudra (§6).
+5. Lista de la compra (§4), con el envío a Taski preparado y apagado hasta que
+   Taski viva en la Raspberry Pi.
+
 ## 4. Fase 2 — La lista de la compra
 
 - Sale de la semana generada: la suma de ingredientes de los 7 días.

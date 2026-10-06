@@ -5,6 +5,8 @@ import { formatDayMonth } from './format.js'
 import { conMiles } from './Objetivo.jsx'
 import { Semana, motivo } from './Plan.jsx'
 import RevisionSemanal from './RevisionSemanal.jsx'
+import TusPlatos from './TusPlatos.jsx'
+import { ListRow } from './ui'
 
 /**
  * Planificar la semana que viene: revisar, y con el objetivo ya decidido,
@@ -16,12 +18,22 @@ import RevisionSemanal from './RevisionSemanal.jsx'
  * números con la compra ya hecha. Así que la revisión va primero —se salta sola
  * si no toca— y la semana se genera con lo que salga de ella.
  */
-export default function PlanificarSemana({ weekStart, plan, onClose, onChanged, generar = generatePlan }) {
+export default function PlanificarSemana({
+  weekStart,
+  plan,
+  onClose,
+  onChanged,
+  // Tus platos, para decir cuántos hay; y a quién avisar si cambian.
+  platos = [],
+  onPlatosChanged = () => {},
+  generar = generatePlan,
+}) {
   // 'revision' | 'semana'
   const [paso, setPaso] = useState('revision')
   const [objetivo, setObjetivo] = useState(undefined)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [platosOpen, setPlatosOpen] = useState(false)
 
   // El objetivo con el que se va a planificar, leído **después** de la revisión:
   // si en ella aceptaste otro, es ése.
@@ -35,6 +47,12 @@ export default function PlanificarSemana({ weekStart, plan, onClose, onChanged, 
       vivo = false
     }
   }, [paso])
+
+  // Tus platos, a pantalla completa por encima de todo: es lo que el plan va a
+  // barajar, y se mira antes de generar.
+  if (platosOpen) {
+    return <TusPlatos onClose={() => setPlatosOpen(false)} onChanged={onPlatosChanged} />
+  }
 
   if (paso === 'semana' && plan) {
     return (
@@ -89,6 +107,7 @@ export default function PlanificarSemana({ weekStart, plan, onClose, onChanged, 
                   : 'Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.'}
               </p>
             )}
+            <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
             {error && <p className="alert">{error}</p>}
             <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
               Generar la semana

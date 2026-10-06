@@ -20,7 +20,7 @@ import {
   usualAmounts,
   weighLeftoverBone,
 } from './api.js'
-import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
+import { DishChips, NewDish } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
@@ -338,6 +338,8 @@ export default function Comida() {
         <PlanificarSemana
           weekStart={lunesSiguiente(foodDayIso())}
           plan={planSiguiente}
+          platos={platos}
+          onPlatosChanged={loadSiempre}
           onChanged={async () => {
             setLineaKey((k) => k + 1)
             await load(dayIso)
@@ -1679,11 +1681,10 @@ function AddFood({
           </button>
         </p>
 
-        {/* El arranque en frío: sin repertorio los chips de arriba están
-            vacíos, y teclear quince platos con sus ingredientes es la tarde en
-            la que esta clase de app se abandona. Debajo de «Nuevo plato»
-            porque es la otra forma de llenar la misma lista — y la barata. */}
-        <ProposeDishes onCreated={onDishesChanged} />
+        {/* «Proponme platos» ya no vive aquí: pedir una tanda de platos es
+            planificar, no apuntar lo que comes, y su casa es «Tus platos»
+            (Planificar la semana que viene). «Nuevo plato» sí se queda: desde
+            aquí crea el plato **y lo registra** en esta comida. */}
 
         {/* Una cámara, no dos.
             Antes había que elegir entre «Código de barras» y «Etiqueta»: dos
