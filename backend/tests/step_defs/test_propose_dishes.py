@@ -148,3 +148,43 @@ def then_still_readable(client):
 @then("it says there is nothing in the pantry yet")
 def then_empty_pantry(generated):
     assert generated["refusal"] == "empty_pantry"
+
+
+@given(parsers.parse('I have "{name}" with {protein:g} g of protein and {kcal:g} kcal per 100 g'))
+def given_food_with_protein(client, name, protein, kcal):
+    food = client.post("/foods", json={"name": name, "kcal_100g": kcal, "protein_100g": protein}).json()
+    # Registrado una vez, que es lo que lo mete en la despensa.
+    assert client.post("/food-log", json={"food_id": food["id"], "grams": 100}).status_code == 201
+
+
+@given(parsers.parse("my protein target is {grams:g} g a day"))
+def given_protein_target(client, grams):
+    resp = client.patch(
+        "/auth/me",
+        json={"objetivo_kcal": 2569, "objetivo_proteina": grams, "objetivo_grasa": 71, "objetivo_hidratos": 288},
+    )
+    assert resp.status_code == 200, resp.text
+
+
+@given(parsers.parse('the model proposes "{name}" with {grams:g} g of "{food}" for "{slots}"'))
+def given_proposal_for(name, grams, food, slots):
+    _proponer(_dish_payload(name, grams, food, slots=slots.split(",")))
+
+
+@then(parsers.parse('"{name}" serves "{slots}"'))
+def then_serves(client, name, slots):
+    dish = next(d for d in _mine(client) if d["name"] == name)
+    assert dish["slots"] == slots.split(",")
+
+
+@then(parsers.parse('"{name}" is discarded with {protein:g} g of protein against a floor of {floor:g} g'))
+def then_discarded(generated, name, protein, floor):
+    d = next(x for x in generated["discarded"] if x["name"] == name)
+    assert d["protein"] == protein
+    assert d["floor"] == floor
+
+
+@then(parsers.parse('"{name}" is discarded with unknown protein'))
+def then_discarded_unknown(generated, name):
+    d = next(x for x in generated["discarded"] if x["name"] == name)
+    assert d["protein"] is None

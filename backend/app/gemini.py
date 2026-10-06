@@ -307,6 +307,7 @@ objeto JSON. Sin markdown, sin explicación:
       "basis": "<raw|cooked>",
       "servings": <número de raciones que salen>,
       "minutes": <minutos de preparación>,
+      "slots": [<para qué comidas es: "desayuno", "comida", "cena", "snack">],
       "ingredients": [{"food": "<nombre EXACTO de la lista>", "grams": <gramos>}]
     }
   ]
@@ -322,6 +323,8 @@ REGLAS:
   los nombres de la lista que estés usando.
 - Platos que alguien cocinaría de verdad, no combinaciones aritméticas.
 - Varía el modo de cocinado entre unos platos y otros.
+- `slots` dice en qué comidas del día tiene sentido el plato. Un desayuno no es
+  una cena: no los pongas todos en todas.
 """
 
 
@@ -331,6 +334,7 @@ async def suggest_dishes(
     methods: list[str] | None = None,
     minutes: int | None = None,
     n: int = 6,
+    protein_floor: float | None = None,
     api_key: str,
     model: str,
     timeout: float = TIMEOUT,
@@ -348,6 +352,11 @@ async def suggest_dishes(
         condiciones.append("Prioriza estos modos de cocinado: " + ", ".join(methods) + ".")
     if minutes:
         condiciones.append(f"Ninguno debe pasar de {minutes} minutos de preparación.")
+    if protein_floor:
+        condiciones.append(
+            f"Los platos de comida y cena deben aportar al menos {protein_floor:g} g de "
+            "proteína por ración: elige y dosifica la fuente de proteína para llegar."
+        )
 
     texto = (
         DISHES_PROMPT

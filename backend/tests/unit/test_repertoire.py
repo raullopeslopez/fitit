@@ -96,3 +96,45 @@ def test_una_respuesta_que_no_trae_platos_se_rechaza_en_vez_de_adivinar():
 def test_y_una_que_no_es_un_objeto_tampoco():
     with pytest.raises(ProposalRefused):
         read_proposals(["pollo"], resolve=resolve)
+
+
+# --- para qué comidas, y cuánta proteína (catálogo del súper) --------------------
+
+from app.nutrition import proteina_minima  # noqa: E402
+from app.repertoire import read_proposals as _leer  # noqa: E402
+
+
+def _con_slots(slots):
+    return {"dishes": [{"name": "Plato", "ingredients": [{"food": "Pollo", "grams": 200}], "slots": slots}]}
+
+
+def test_las_comidas_propuestas_salen_en_el_orden_del_dia():
+    (p,) = _leer(_con_slots(["cena", "Comida"]), resolve=lambda n: 1)
+    assert p.slots == ("comida", "cena")
+
+
+def test_una_comida_que_no_existe_se_ignora():
+    (p,) = _leer(_con_slots(["merienda", "cena"]), resolve=lambda n: 1)
+    assert p.slots == ("cena",)
+
+
+def test_sin_comidas_dichas_es_ninguna_dicha():
+    (p,) = _leer(_con_slots("comida"), resolve=lambda n: 1)
+    assert p.slots is None
+
+
+def test_el_minimo_es_el_20_por_ciento_en_comida_y_cena():
+    assert proteina_minima(202, ("comida",)) == 40.4
+    assert proteina_minima(202, ("desayuno", "cena")) == 40.4
+
+
+def test_desayuno_y_merienda_no_tienen_minimo():
+    assert proteina_minima(202, ("desayuno", "snack")) is None
+
+
+def test_sin_comidas_dichas_se_juzga_como_principal():
+    assert proteina_minima(200, None) == 40.0
+
+
+def test_sin_objetivo_no_hay_minimo():
+    assert proteina_minima(None, ("comida",)) is None
