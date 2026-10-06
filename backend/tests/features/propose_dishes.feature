@@ -100,3 +100,32 @@ Feature: Filling the repertoire without typing it
     And the model proposes "Pasta con tomate" with 100 g of "Pasta seca" for "comida"
     When I ask for dishes
     Then "Pasta con tomate" is in my dishes
+
+  # Opción A (6 oct): la despensa sola es lo que ya comes. Para proponer desde
+  # tu súper, el modelo recibe además una selección de básicos de definición:
+  # proteína cruda del catálogo con buena proteína por caloría, y los básicos
+  # que completan un plato.
+  Scenario: The model is offered lean protein I have never logged
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And the catalogue has raw meat "Pavo, filete, crudo" with 24 g of protein and 109 kcal per 100 g
+    When I ask for dishes and the model sees the list
+    Then the model was offered "Pavo, filete, crudo"
+
+  Scenario: Fatty protein is not offered as a basic
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And the catalogue has raw meat "Cerdo, panceta, cruda" with 15 g of protein and 400 kcal per 100 g
+    When I ask for dishes and the model sees the list
+    Then the model was not offered "Cerdo, panceta, cruda"
+
+  Scenario: The staples that complete a plate are offered
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And the catalogue has the staple "Brócoli, crudo"
+    When I ask for dishes and the model sees the list
+    Then the model was offered "Brócoli, crudo"
+
+  Scenario: A dish built with a basic saves itself
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And the catalogue has raw meat "Pavo, filete, crudo" with 24 g of protein and 109 kcal per 100 g
+    And the model proposes "Pavo a la plancha" with 200 g of "Pavo, filete, crudo"
+    When I ask for dishes
+    Then "Pavo a la plancha" is in my dishes

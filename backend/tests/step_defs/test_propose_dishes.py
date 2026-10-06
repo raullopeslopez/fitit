@@ -188,3 +188,62 @@ def then_discarded(generated, name, protein, floor):
 def then_discarded_unknown(generated, name):
     d = next(x for x in generated["discarded"] if x["name"] == name)
     assert d["protein"] is None
+
+
+def _sembrar_catalogo(client, **campos):
+    """El catálogo compartido no tiene puerta HTTP: se siembra por debajo."""
+    import asyncio
+
+    from app.db import get_session
+    from app.models import Food
+    from app.naming import fold_exercise_name as fold
+
+    async def go():
+        gen = app.dependency_overrides[get_session]()
+        session = await gen.__anext__()
+        try:
+            session.add(Food(user_id=None, name_folded=fold(campos["name"]), **campos))
+            await session.commit()
+        finally:
+            await gen.aclose()
+
+    asyncio.run(go())
+
+
+@given(parsers.parse('the catalogue has raw meat "{name}" with {protein:g} g of protein and {kcal:g} kcal per 100 g'))
+def given_catalogue_raw_meat(client, name, protein, kcal):
+    _sembrar_catalogo(client, name=name, source="ciqual", source_ref=name, subgroup_code="0402",
+                      protein_100g=protein, kcal_100g=kcal)
+
+
+@given(parsers.parse('the catalogue has the staple "{name}"'))
+def given_catalogue_staple(client, name):
+    _sembrar_catalogo(client, name=name, source="ciqual", source_ref=name, subgroup_code="0201",
+                      protein_100g=4.0, kcal_100g=33)
+
+
+@pytest.fixture()
+def ofrecidos():
+    return []
+
+
+@when("I ask for dishes and the model sees the list", target_fixture="generated")
+def when_generate_watching(client, ofrecidos):
+    async def proposer(**kwargs):
+        ofrecidos.extend(kwargs["foods"])
+        return {"dishes": []}
+
+    app.dependency_overrides[get_dish_proposer] = lambda: proposer
+    resp = client.post("/dishes/generate", json={"n": 3})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@then(parsers.parse('the model was offered "{name}"'))
+def then_offered(ofrecidos, name):
+    assert name in ofrecidos, ofrecidos
+
+
+@then(parsers.parse('the model was not offered "{name}"'))
+def then_not_offered(ofrecidos, name):
+    assert name not in ofrecidos, ofrecidos

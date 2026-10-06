@@ -341,6 +341,47 @@ async def get_dish_proposer():
 PANTRY_LIMIT = 60
 
 
+# Los básicos de definición que el modelo recibe además de tu despensa (opción A,
+# docs/catalogo-supermercado.md): la despensa sola es lo que ya comes, y con ella
+# no aparece nunca la merluza que no has comprado todavía.
+#
+# **Una lista, no un cálculo.** Elegir por proteína por caloría sobre el catálogo
+# entero se probó contra prod (6 oct) y salía faneca, pintarroja, sangre de
+# vacuno y clara en polvo de CIQUAL, y sacarina e infusiones de Open Food Facts.
+# Esto es lo que se vende en un súper español, crudo como se compra, con buena
+# proteína por caloría; y lo que completa un plato, porque sin hidrato ni verdura
+# el modelo sólo podría combinar proteína con proteína. Nombres exactos de CIQUAL.
+# Los envasados de marca no van aquí: entran cuando los escaneas, por tu despensa.
+BASICOS = (
+    # Proteína
+    "Pollo, pechuga, sin piel, cruda", "Pollo, contramuslo, carne, crudo", "Pavo, filete, crudo",
+    "Cerdo, lomo magro, crudo", "Cerdo, solomillo, crudo", "Vacuno, solomillo, crudo",
+    "Vacuno, carne picada 10 % MG, cruda", "Conejo, carne cruda", "Merluza, cruda",
+    "Merluza, filete, congelado, crudo", "Bacalao fresco, crudo", "Rape, crudo", "Lenguado, crudo",
+    "Dorada, cruda, de acuicultura", "Lubina (Mediterráneo), cruda, de acuicultura",
+    "Salmón, crudo, de acuicultura", "Sepia, cruda", "Calamar, crudo", "Gamba, cruda",
+    "Atún, al natural, en conserva, escurrido", "Huevo, crudo", "Huevo, clara, cruda",
+    "Queso batido natural, 0 % MG", "Queso fresco tipo petit suisse, natural, 0 % MG",
+    # Lo que completa el plato
+    "Arroz blanco, crudo", "Arroz integral, crudo", "Patata, sin piel, cruda", "Copos de avena",
+    "Lenteja, seca", "Garbanzo, seco", "Brócoli, crudo", "Calabacín, pulpa y piel, crudo",
+    "Pimiento rojo, crudo", "Tomate, crudo", "Cebolla, cruda", "Espinaca, cruda",
+    "Judía verde, cruda", "Aceite de oliva virgen extra", "Plátano, pulpa, crudo", "Fresa, cruda",
+)
+
+
+async def _basicos(session: AsyncSession) -> list[Food]:
+    """Los básicos del catálogo compartido, en el orden de la lista."""
+    filas = (
+        await session.execute(
+            select(Food).where(
+                Food.user_id.is_(None), Food.archived.is_(False), Food.name.in_(BASICOS)
+            )
+        )
+    ).scalars().all()
+    return sorted(filas, key=lambda f: BASICOS.index(f.name))
+
+
 async def _despensa(session: AsyncSession, user_id: int) -> list[Food]:
     """Lo que tienes: lo que has dado de alta y lo que has registrado alguna vez.
 
@@ -461,6 +502,9 @@ async def generate_dishes(
         return DishGenerateOut(refusal="off")
 
     objetivo = (await session.get(User, user_id)).objetivo_proteina
+    # Tu despensa primero; los básicos detrás, sin repetir lo que ya tienes.
+    ya = {food.id for food in despensa}
+    despensa = despensa + [food for food in await _basicos(session) if food.id not in ya]
 
     try:
         raw = await proposer(
