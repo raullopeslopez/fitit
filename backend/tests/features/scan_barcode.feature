@@ -52,3 +52,25 @@ Feature: Scan a barcode
   Scenario: Something that is not a barcode is refused before anyone is asked
     When I scan "pollo"
     Then the app refuses it as malformed
+
+  # El catálogo del súper (docs/catalogo-supermercado.md): un producto
+  # importado de Open Food Facts ya está en la base, así que escanearlo es lo
+  # mismo que escanear uno tuyo — nadie sale a la red.
+  Scenario: A product in the shared catalogue asks nobody
+    Given the catalogue has "Queso fresco batido 0%" with the barcode "8480000510716"
+    When I scan "8480000510716"
+    Then it hands me back "Queso fresco batido 0%" straight away
+    And Open Food Facts is never asked
+
+  Scenario: My own food wins over the catalogue's with the same code
+    Given the catalogue has "Queso fresco batido 0%" with the barcode "8480000510716"
+    And I already have "Mi queso batido" with the barcode "8480000510716"
+    When I scan "8480000510716"
+    Then it hands me back "Mi queso batido" straight away
+
+  Scenario: Searching does not show the same product twice
+    Given the catalogue has "Queso fresco batido 0%" with the barcode "8480000510716"
+    And I already have "Queso fresco batido mío" with the barcode "8480000510716"
+    When I search for "queso fresco batido"
+    Then only one result carries the barcode "8480000510716"
+    And that result is "Queso fresco batido mío"

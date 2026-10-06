@@ -184,3 +184,60 @@ def then_offline(response):
 def then_malformed(response, asked):
     assert response.status_code == 422
     assert asked["veces"] == 0, "no se pregunta por algo que no es un código"
+
+
+def _en_la_base(fn):
+    """Ejecuta `fn(session)` sobre la base que ve `client`. El catálogo
+    compartido no tiene puerta HTTP —lo escriben los scripts de import—, así
+    que se siembra por debajo."""
+    import asyncio
+
+    from app.db import get_session
+
+    async def go():
+        gen = app.dependency_overrides[get_session]()
+        session = await gen.__anext__()
+        try:
+            return await fn(session)
+        finally:
+            await gen.aclose()
+
+    return asyncio.run(go())
+
+
+@given(parsers.parse('the catalogue has "{name}" with the barcode "{ean}"'))
+def given_catalogue_has(client, asked, name, ean):
+    from app.models import Food
+    from app.naming import fold_exercise_name as fold
+
+    # Instalado para poder comprobar que **no** se llama.
+    _install(asked, FICHA)
+
+    async def sembrar(session):
+        session.add(
+            Food(
+                user_id=None, name=name, name_folded=fold(name), brand="Hacendado",
+                brand_folded="hacendado", barcode=ean, source="off", source_ref=ean,
+                kcal_100g=46, protein_100g=8.0, fat_100g=0.1, carbs_100g=3.5,
+            )
+        )
+        await session.commit()
+
+    _en_la_base(sembrar)
+
+
+@when(parsers.parse('I search for "{q}"'), target_fixture="results")
+def when_search(client, q):
+    resp = client.get("/foods", params={"q": q})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@then(parsers.parse('only one result carries the barcode "{ean}"'))
+def then_one_with_barcode(results, ean):
+    assert [r["barcode"] for r in results].count(ean) == 1, results
+
+
+@then(parsers.parse('that result is "{name}"'))
+def then_that_result(results, name):
+    assert any(r["name"] == name for r in results)

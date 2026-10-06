@@ -70,6 +70,13 @@ fabricante. Así que entra sola como `Portion` («1 tarrina = 125 g», «1 lonch
 que hay hoy. La otra mitad, lo fresco («1 pechuga ≈ 180 g»), sigue siendo dato
 interpretado y va por revisión, en otra spec.
 
+> **Descubierto al construirla (6 oct):** el buscador de Open Food Facts
+> (`search.openfoodfacts.org`), que es lo que permite bajar una marca entera, no
+> devuelve `serving_size` ni `nutrition_data_per`. La ración sólo está en la ficha
+> por producto, y pedirla para ~10.000 productos es otra escala de import. El
+> código ya sabe convertirla (`serving_portion`); queda sin datos hasta que se
+> decida si se pide producto a producto, o sólo para los que acaban en un plato.
+
 ### Dos cambios fuera del script
 1. **Escanear mira también el catálogo compartido.** Hoy `GET /foods/barcode/{ean}`
    sólo busca entre tus alimentos (`Food.user_id == user_id`). Con el catálogo
