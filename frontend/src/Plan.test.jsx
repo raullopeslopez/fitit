@@ -81,6 +81,37 @@ describe('el plan del día', () => {
     expect(onChanged).toHaveBeenCalled()
   })
 
+  // Confirmar es el momento en que ya tienes el móvil en la mano: si hoy no te
+  // has pesado, se pregunta ahí, dentro de la tarjeta.
+  it('tras confirmar, pregunta el peso de hoy si falta', async () => {
+    const setPlanEntry = vi.fn().mockResolvedValue({ ...entrada(), status: 'done' })
+    render(
+      <PlanDelDia
+        plan={PLAN}
+        dayIso={LUNES}
+        isToday
+        onChanged={vi.fn()}
+        setEntry={setPlanEntry}
+        leerPesadas={vi.fn().mockResolvedValue([])}
+        guardarPeso={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText('¿Te has pesado hoy?')).not.toBeInTheDocument()
+    await userEvent.click(screen.getAllByRole('button', { name: /Lo comí/ })[1])
+    expect(await screen.findByText('¿Te has pesado hoy?')).toBeInTheDocument()
+  })
+
+  it('saltarse una comida no pregunta el peso', async () => {
+    const setPlanEntry = vi.fn().mockResolvedValue({ ...entrada(), status: 'skipped' })
+    const leer = vi.fn().mockResolvedValue([])
+    render(
+      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} setEntry={setPlanEntry} leerPesadas={leer} guardarPeso={vi.fn()} />,
+    )
+    await userEvent.click(screen.getAllByRole('button', { name: /Me lo salté/ })[1])
+    await waitFor(() => expect(setPlanEntry).toHaveBeenCalled())
+    expect(screen.queryByText('¿Te has pesado hoy?')).not.toBeInTheDocument()
+  })
+
   it('una comida confirmada lo dice y ya no se puede volver a confirmar', () => {
     const plan = {
       ...PLAN,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import { generatePlan, getAdherence, setPlanEntry } from './api.js'
+import { generatePlan, getAdherence, listBodyWeights, logBodyWeight, setPlanEntry } from './api.js'
+import PesoDeHoy from './PesoDeHoy.jsx'
 import { foodDayIso, formatMacro } from './food.js'
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
@@ -202,8 +203,12 @@ export default function PlanDelDia({
   // Inyectables para que los tests no tengan que interceptar el módulo de red.
   generar = generatePlan,
   setEntry = setPlanEntry,
+  leerPesadas = listBodyWeights,
+  guardarPeso = logBodyWeight,
 }) {
   const [busy, setBusy] = useState(false)
+  // Tras confirmar una comida, la pregunta del peso de hoy (si falta).
+  const [pedirPeso, setPedirPeso] = useState(false)
   const [error, setError] = useState(null)
   // La fila cuyo sustituto se está eligiendo, o `null`.
   const [cambiando, setCambiando] = useState(null)
@@ -215,6 +220,9 @@ export default function PlanDelDia({
     try {
       await setEntry(entrada.id, status, dishId)
       setCambiando(null)
+      // Comer —lo planificado o un cambio— es cuando tienes el móvil en la
+      // mano; saltarse una comida no es momento de preguntar nada.
+      if (status !== 'skipped') setPedirPeso(true)
       await onChanged()
     } catch (err) {
       setError(err?.detail?.motivo ?? 'No se ha podido guardar.')
@@ -285,6 +293,7 @@ export default function PlanDelDia({
       </ul>
       {/* El día que tienes delante no es el que estás viviendo: una entrada del
           diario se fecha por el instante en que la escribes. */}
+      {pedirPeso && isToday && <PesoDeHoy leer={leerPesadas} guardar={guardarPeso} />}
       {!isToday && <p className="hint">Sólo se confirma el día de hoy.</p>}
       {error && <p className="alert">{error}</p>}
       {onVerSemana && (
