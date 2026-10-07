@@ -466,6 +466,15 @@ def gramos_comestibles(grams: float, refuse_pct: float) -> float:
     return _round(grams * (100 - refuse_pct) / 100, _MACRO_PLACES)
 
 
+def gramos_de_compra(grams: float, refuse_pct: float) -> float:
+    """Lo que hay que comprar para comerse `grams`, si el `refuse_pct` % de lo que
+    se compra es hueso. El inverso de `gramos_comestibles`: 4200 g de muslo
+    comidos con un 25 % de hueso son 5600 g de bandeja."""
+    if not 0 <= refuse_pct < 100:
+        raise ValueError("refuse_pct must be in [0, 100)")
+    return _round(grams * 100 / (100 - refuse_pct), _MACRO_PLACES)
+
+
 def escalar_gramos(grams: float | None, *, old_grams: float, new_grams: float) -> float | None:
     """Unos gramos congelados, repesados en la misma proporción que la entrada.
 

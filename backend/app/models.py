@@ -270,6 +270,10 @@ class Food(Base):
     # manda la tabla de `app/refuse.py`; 0 es «no lleva hueso». Sólo lo escribe
     # quien es dueño del alimento, a mano o pesando el hueso que sobró.
     refuse_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Cuántos gramos trae el envase con el que se vende («500 g», «4 × 125 g» son
+    # 500). Lo trae Open Food Facts en `quantity`; sirve para que la lista de la
+    # compra hable en envases. NULL es «no se sabe»: entonces se compra al peso.
+    package_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
     # A qué se refieren las kcal: 'edible' (la parte que se come), 'as_sold'
     # (el producto con su hueso) o 'unknown'. NULL es que nadie lo ha dicho, y
     # entonces se supone (`refuse.hueso_de`) — y la suposición no se guarda.

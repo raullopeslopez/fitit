@@ -64,6 +64,29 @@ def serving_portion(texto: str | None) -> tuple[str, float] | None:
     return etiqueta, peso
 
 
+# «500 g», «1 kg», «4 x 125 g», «330 ml». Los mililitros cuentan como gramos,
+# igual que las cifras «por 100 ml» que la app ya acepta: en lo que se bebe la
+# diferencia es de un 3 %, y para contar envases sobra.
+_CANTIDAD = re.compile(
+    r"(?:(\d+)\s*[x×]\s*)?(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|cl)\b", re.IGNORECASE
+)
+_FACTOR = {"kg": 1000, "g": 1, "l": 1000, "ml": 1, "cl": 10}
+
+
+def package_grams(texto: str | None) -> float | None:
+    """Cuántos gramos trae el envase, o `None` si el texto no lo dice.
+
+    Un pack cuenta entero —«4 x 125 g» son 500—: es lo que se coge del lineal.
+    """
+    m = _CANTIDAD.search(str(texto or ""))
+    if not m:
+        return None
+    unidades = int(m.group(1)) if m.group(1) else 1
+    cantidad = float(m.group(2).replace(",", ".")) * _FACTOR[m.group(3).lower()]
+    total = unidades * cantidad
+    return round(total, 1) if total > 0 else None
+
+
 def product_to_food(product: dict) -> dict | None:
     """La fila para `foods`, o `None` si la ficha no vale."""
     code = str(product.get("code") or "").strip()
@@ -103,4 +126,5 @@ def product_to_food(product: dict) -> dict | None:
         "carbs_100g": n["carbs"],
         "fiber_100g": n["fiber"],
         "portion": serving_portion(product.get("serving_size")),
+        "package_grams": package_grams(product.get("quantity")),
     }

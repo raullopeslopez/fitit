@@ -110,6 +110,7 @@ async def load(session: AsyncSession, foods: list[dict]) -> tuple[int, int]:
             "fat_100g": row["fat_100g"],
             "carbs_100g": row["carbs_100g"],
             "fiber_100g": row["fiber_100g"],
+            "package_grams": row.get("package_grams"),
         }
         food = existing.get(row["source_ref"])
         if food is None:
