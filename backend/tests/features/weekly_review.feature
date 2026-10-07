@@ -94,3 +94,23 @@ Feature: When I plan the next week, the app asks whether I logged everything
     And I answer the weekly review with "all"
     Then there is one review stored
     And the stored answer in the database is "all"
+
+  # Opción B (7 oct): un día cuenta para el gasto medido si tiene al menos tres
+  # de las cuatro comidas apuntadas. Uno con una o dos es un día a medias, y
+  # contarlo como entero hace que el gasto salga bajo y la app proponga comer
+  # menos de lo que necesitas.
+  Scenario: Days with fewer than three meals logged do not count
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I ate 2000 kcal a day in the two weeks before and 1000 in 2 meals a day in the week to review
+    When I ask what I should eat
+    Then the proposal is 2000 kcal
+    And the proposal says 7 days were left out as half-logged
+
+  Scenario: Three meals logged is a whole day
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I ate 2000 kcal a day in the two weeks before and 1000 in 3 meals a day in the week to review
+    When I ask what I should eat
+    Then the proposal is 1667 kcal
+    And the proposal says 0 days were left out as half-logged

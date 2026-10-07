@@ -178,4 +178,35 @@ describe('La revisión semanal', () => {
       expect(onDone).toHaveBeenCalledOnce()
     })
   })
+
+  // Opción B (7 oct): los días con menos de tres comidas apuntadas no cuentan
+  // para el gasto. Se dice, para que la cifra se entienda.
+  describe('días a medias', () => {
+    it('dice cuántos no cuentan y por qué', async () => {
+      answerReview.mockResolvedValue({ ...PROPUESTA, partial_days: 3 })
+      render(<RevisionSemanal onAccepted={() => {}} />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+      expect(
+        await screen.findByText('3 días a medias no cuentan: tenían menos de 3 comidas apuntadas.'),
+      ).toBeInTheDocument()
+    })
+
+    it('uno, en singular', async () => {
+      answerReview.mockResolvedValue({ ...PROPUESTA, partial_days: 1 })
+      render(<RevisionSemanal onAccepted={() => {}} />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+      expect(
+        await screen.findByText('1 día a medias no cuenta: tenía menos de 3 comidas apuntadas.'),
+      ).toBeInTheDocument()
+    })
+
+    it('sin días a medias, no dice nada', async () => {
+      answerReview.mockResolvedValue({ ...PROPUESTA, partial_days: 0 })
+      render(<RevisionSemanal onAccepted={() => {}} />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
+      await screen.findByText('2150 → 2230 kcal')
+      expect(screen.queryByText(/a medias/)).not.toBeInTheDocument()
+    })
+  })
 })
+

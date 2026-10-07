@@ -133,15 +133,18 @@ def _comer(client, kcal_dia, *, dias, desde=1):
     food = client.post("/foods", json={"name": "Comida de prueba", "kcal_100g": 100}).json()
     for atras in range(desde, desde + dias):
         momento = datetime.now(UTC).replace(hour=12) - timedelta(days=atras)
-        resp = client.post(
-            "/food-log",
-            json={
-                "food_id": food["id"],
-                "grams": kcal_dia,  # 100 kcal/100 g ⇒ los gramos son las kcal
-                "logged_at": momento.isoformat(),
-            },
-        )
-        assert resp.status_code == 201, resp.text
+        # Las cuatro comidas: con menos de tres apuntadas el día no cuenta.
+        for slot in ("desayuno", "comida", "cena", "snack"):
+            resp = client.post(
+                "/food-log",
+                json={
+                    "food_id": food["id"],
+                    "grams": kcal_dia / 4,  # 100 kcal/100 g ⇒ los gramos son las kcal
+                    "logged_at": momento.isoformat(),
+                    "meal_slot": slot,
+                },
+            )
+            assert resp.status_code == 201, resp.text
 
 
 @when("I ask what I should eat", target_fixture="propuesta")

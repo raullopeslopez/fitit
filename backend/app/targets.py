@@ -135,6 +135,19 @@ def gasto_por_formula(
     return Gasto(kcal=round(basal * factor_actividad(dias_entreno), 0), source="formula")
 
 
+# Cuántas de las cuatro comidas tiene que tener apuntadas un día para contar en
+# el gasto medido (opción B, 7 oct). Uno con una o dos es un día a medias, y
+# contarlo como entero hace que el gasto salga bajo y se proponga comer menos de
+# lo que necesitas. Se mira por comidas y no por kcal: un día ligero apuntado
+# entero es un dato, no un hueco.
+COMIDAS_MINIMAS = 3
+
+
+def dia_completo(comidas: int) -> bool:
+    """Si un día con estas comidas apuntadas cuenta para medir el gasto."""
+    return comidas >= COMIDAS_MINIMAS
+
+
 def gasto_medido(*, kcal_por_dia: list[float], dias: int, delta_kg: float | None) -> Gasto | None:
     """Tu gasto real: lo que comiste de media, corregido por lo que se movió el peso.
 
