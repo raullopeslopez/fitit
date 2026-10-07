@@ -39,6 +39,7 @@ from ..schemas import (
 from ..session_length import session_length
 from ..targets import (
     gasto_medido,
+    dia_completo,
     gasto_por_formula,
     kcal_entreno,
     periodo_revisado,
@@ -171,17 +172,25 @@ async def _dias_sin_apuntar(session: AsyncSession, user_id: int, desde: date) ->
     return dias
 
 
-async def _medido(session: AsyncSession, user_id: int):
-    """El gasto medido en tus datos, o `None` si todavía no hay con qué."""
-    desde = date.today() - timedelta(days=VENTANA)
+async def _dias_medibles(session: AsyncSession, user_id: int, desde: date):
+    """Las kcal de cada día de la ventana que cuenta, y cuántos días a medias se
+    quedaron fuera.
+
+    Fuera, dos clases de día: los de una semana que contestaste «No» en la
+    revisión, y los que tienen menos de tres comidas apuntadas (`dia_completo`).
+    Hoy tampoco: todavía se está comiendo.
+    """
     excluidos = await _dias_sin_apuntar(session, user_id, desde)
     filas = (
         await session.execute(
-            select(LogEntry.log_date, func.sum(LogEntry.kcal))
-            # Hoy no: todavía se está comiendo, y un día a medias cuenta en la
-            # media como uno entero. `date.today()` es la fecha del servidor, no
-            # el día alimentario con su corte de las 04:00 — para excluir el
-            # día en curso basta, salvo un par de horas de madrugada.
+            # `date.today()` es la fecha del servidor, no el día alimentario con
+            # su corte de las 04:00 — para excluir el día en curso basta, salvo
+            # un par de horas de madrugada.
+            select(
+                LogEntry.log_date,
+                func.sum(LogEntry.kcal),
+                func.count(func.distinct(LogEntry.meal_slot)),
+            )
             .where(
                 LogEntry.user_id == user_id,
                 LogEntry.log_date >= desde,
@@ -190,14 +199,27 @@ async def _medido(session: AsyncSession, user_id: int):
             .group_by(LogEntry.log_date)
         )
     ).all()
-    # Las pesadas no se excluyen: lo que pesaste, pesaste. Sólo lo comido es lo
-    # que pudo quedarse sin apuntar.
-    por_dia = [
-        float(total) for dia, total in filas if total is not None and dia not in excluidos
-    ]
+    kcal = []
+    a_medias = 0
+    for dia, total, comidas in filas:
+        if total is None or dia in excluidos:
+            continue
+        if not dia_completo(comidas):
+            a_medias += 1
+            continue
+        kcal.append(float(total))
+    return kcal, a_medias
+
+
+async def _medido(session: AsyncSession, user_id: int):
+    """El gasto medido en tus datos, o `None` si todavía no hay con qué."""
+    desde = date.today() - timedelta(days=VENTANA)
+    por_dia, _ = await _dias_medibles(session, user_id, desde)
     if not por_dia:
         return None
 
+    # Las pesadas no se excluyen: lo que pesaste, pesaste. Sólo lo comido es lo
+    # que pudo quedarse sin apuntar.
     pesadas = (
         await session.execute(
             select(BodyWeight.measured_on, BodyWeight.kg)
@@ -291,7 +313,9 @@ async def _proponer(session: AsyncSession, user_id: int) -> TargetProposalOut:
     meta = "maintain" if el_plan and el_plan.reached else user.goal or "maintain"
     propuesta = proponer(gasto, goal=meta, rate_kg_week=user.goal_rate)
     macros = reparto_macros(kcal=propuesta.kcal, kg=kg) or {}
+    _, a_medias = await _dias_medibles(session, user_id, date.today() - timedelta(days=VENTANA))
     return TargetProposalOut(
+        partial_days=a_medias,
         kcal=propuesta.kcal,
         source=propuesta.source,
         days=propuesta.days,

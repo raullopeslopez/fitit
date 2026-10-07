@@ -158,6 +158,15 @@ function Propuesta({ propuesta, actual, busy, onAceptar, onCerrar }) {
       {gasto != null && (
         <p className="revision-texto">{`Gastaste unas ${conMiles(gasto)} kcal al día`}</p>
       )}
+      {/* Los días con menos de tres comidas apuntadas no cuentan para el gasto
+          (opción B): se dice cuántos, para que la cifra se entienda. */}
+      {propuesta?.partial_days > 0 && (
+        <p className="revision-texto">
+          {propuesta.partial_days === 1
+            ? '1 día a medias no cuenta: tenía menos de 3 comidas apuntadas.'
+            : `${propuesta.partial_days} días a medias no cuentan: tenían menos de 3 comidas apuntadas.`}
+        </p>
+      )}
       {kcal != null && (
         <p className="revision-cambio">
           {igual

@@ -17,19 +17,26 @@ def _perfil(client, **fields):
     assert resp.status_code == 200, resp.text
 
 
-def _comer(client, kcal_dia, *, dias, desde):
+COMIDAS = ("desayuno", "comida", "cena", "snack")
+
+
+def _comer(client, kcal_dia, *, dias, desde, comidas=4):
     """Un alimento de 100 kcal/100 g, `dias` días seguidos desde hace `desde`
-    hacia atrás (100 kcal/100 g ⇒ los gramos son las kcal)."""
+    hacia atrás (100 kcal/100 g ⇒ los gramos son las kcal), repartido en
+    `comidas` comidas. Cuatro por defecto: un día del que se mide el gasto es un
+    día entero, y con menos de tres comidas apuntadas no cuenta."""
     food = client.post(
-        "/foods", json={"name": f"Comida {kcal_dia}-{desde}", "kcal_100g": 100}
+        "/foods", json={"name": f"Comida {kcal_dia}-{desde}-{comidas}", "kcal_100g": 100}
     ).json()
     for atras in range(desde, desde + dias):
         momento = datetime.now(UTC).replace(hour=12) - timedelta(days=atras)
-        resp = client.post(
-            "/food-log",
-            json={"food_id": food["id"], "grams": kcal_dia, "logged_at": momento.isoformat()},
-        )
-        assert resp.status_code == 201, resp.text
+        for slot in COMIDAS[:comidas]:
+            resp = client.post(
+                "/food-log",
+                json={"food_id": food["id"], "grams": kcal_dia / comidas,
+                      "logged_at": momento.isoformat(), "meal_slot": slot},
+            )
+            assert resp.status_code == 201, resp.text
 
 
 def _en_la_base(fn):
@@ -205,3 +212,20 @@ def then_one_row():
 def then_db_answer(answer):
     (fila,) = _filas()
     assert fila.answer == answer
+
+
+
+@given(
+    parsers.parse(
+        "I ate {antes:d} kcal a day in the two weeks before "
+        "and {semana:d} in {comidas:d} meals a day in the week to review"
+    )
+)
+def given_two_weeks_meals(client, antes, semana, comidas):
+    _comer(client, semana, dias=7, desde=1, comidas=comidas)
+    _comer(client, antes, dias=14, desde=8)
+
+
+@then(parsers.parse("the proposal says {n:d} days were left out as half-logged"))
+def then_half_logged(propuesta, n):
+    assert propuesta["partial_days"] == n

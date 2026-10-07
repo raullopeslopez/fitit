@@ -1075,6 +1075,9 @@ class TargetProposalOut(BaseModel):
     source: str | None = None
     # Sobre cuántos días de registro se midió. 0 en la fórmula.
     days: int = 0
+    # Días de la ventana con menos de tres comidas apuntadas: no cuentan para el
+    # gasto medido, y se dice cuántos para que la cifra se pueda entender.
+    partial_days: int = 0
     # Qué falta para poder proponer nada, por su nombre.
     missing: list[str] = Field(default_factory=list)
     # Cómo se reparten esas kcal (`reparto_macros`), en gramos. `None` sin peso.
