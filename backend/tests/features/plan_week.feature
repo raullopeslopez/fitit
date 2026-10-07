@@ -136,3 +136,24 @@ Feature: The week, generated
   Scenario: A week I never planned has nothing to measure
     When I ask how the week of 2026-10-12 went
     Then there is no plan
+
+  # Lo que «Lo comí» escribió en el diario se puede borrar del diario, y el plan
+  # tiene que enterarse: si no queda nada de ese plato en esa comida, la comida
+  # vuelve a no tener respuesta. Antes se quedaba «Comido» sin nada detrás
+  # (prod, desayuno del 4 oct).
+  Scenario: Deleting from the diary what a confirmation wrote undoes it
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I confirm the comida of today
+    And I delete from the diary everything that meal wrote
+    Then the plan now says nothing for the comida of today
+
+  # Un plato de dos ingredientes son dos entradas; el plan enlaza una. Borrar
+  # ésa —el aceite, por ejemplo— no es deshacer la comida si queda la otra.
+  Scenario: Deleting one ingredient of a confirmed dish keeps it confirmed
+    Given a repertoire of 12 dishes of two ingredients
+    When I generate this week
+    And I confirm the comida of today
+    And I delete from the diary only the entry the plan points to
+    Then the plan still says the comida of today is done
+    And the plan points to the ingredient left in the diary
