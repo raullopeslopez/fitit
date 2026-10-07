@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import PlanificarSemana from './PlanificarSemana.jsx'
-import { acceptTarget, answerReview, generatePlan, getAdherence, getReview, getTargetProfile, listDishes } from './api.js'
+import { acceptTarget, answerReview, generatePlan, getAdherence, getReview, getShoppingList, getTargetProfile, listDishes } from './api.js'
 
 vi.mock('./api.js')
 
@@ -27,6 +27,7 @@ beforeEach(() => {
   acceptTarget.mockResolvedValue({})
   generatePlan.mockResolvedValue(PLAN)
   getAdherence.mockResolvedValue(null)
+  getShoppingList.mockResolvedValue({ week_start: LUNES, aisles: [] })
 })
 
 // Revisar y planificar son un solo momento: el objetivo se decide antes de
@@ -136,4 +137,13 @@ describe('Planificar la semana que viene', () => {
     const fila = await screen.findByRole('button', { name: /Tus platos/ })
     expect(fila).toHaveTextContent('2')
   })
+
+  // La lista sale de la semana generada: se ofrece encima de sus días.
+  it('con la semana generada, ofrece su lista de la compra', async () => {
+    getReview.mockResolvedValue({ due: false })
+    render(<PlanificarSemana weekStart={LUNES} plan={PLAN} onClose={vi.fn()} onChanged={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: /Lista de la compra/ }))
+    expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
+  })
 })
+

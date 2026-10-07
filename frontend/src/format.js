@@ -31,6 +31,14 @@ export function formatDayMonth(value) {
   return `${d.getDate()} ${MESES[d.getMonth()]}`
 }
 
+// "2026-10-12" → "12 oct", por sus partes: `new Date(iso)` es medianoche UTC y al
+// oeste de Greenwich sería el día anterior. Para una fecha civil, como el lunes
+// de una semana del plan.
+export function formatIsoDayMonth(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return formatDayMonth(new Date(y, m - 1, d))
+}
+
 // "2026-07-16" -> "jue, 16 jul 2026". Built from parts (not new Date(iso)) so
 // the date doesn't shift a day across timezones, and with fixed Spanish labels
 // so it's deterministic regardless of the runtime locale.

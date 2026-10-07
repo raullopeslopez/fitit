@@ -542,6 +542,12 @@ export async function getPlan(weekStart) {
 // Genera la semana y la guarda, pisando la que hubiera. Sin `seed` el servidor
 // usa una derivada de la semana, para que pedir el mismo lunes dos veces no dé
 // dos semanas distintas; mandarla es lo que permite «dame otra».
+// La lista de la compra de una semana planificada: por pasillo, en gramos de
+// compra y en envases cuando se sabe el del producto.
+export function getShoppingList(weekStart) {
+  return apiFetch(`/plans/${weekStart}/shopping`)
+}
+
 export function generatePlan(weekStart, seed = null) {
   return apiFetch('/plans', {
     method: 'POST',

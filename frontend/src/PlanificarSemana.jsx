@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 
 import { generatePlan, getTargetProfile } from './api.js'
-import { formatDayMonth } from './format.js'
+import { formatIsoDayMonth as semanaDel } from './format.js'
 import { conMiles } from './Objetivo.jsx'
 import { Semana, motivo } from './Plan.jsx'
 import RevisionSemanal from './RevisionSemanal.jsx'
+import ListaCompra from './ListaCompra.jsx'
 import TusPlatos from './TusPlatos.jsx'
 import { ListRow } from './ui'
 
@@ -34,6 +35,7 @@ export default function PlanificarSemana({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [platosOpen, setPlatosOpen] = useState(false)
+  const [listaOpen, setListaOpen] = useState(false)
 
   // El objetivo con el que se va a planificar, leído **después** de la revisión:
   // si en ella aceptaste otro, es ése.
@@ -54,6 +56,10 @@ export default function PlanificarSemana({
     return <TusPlatos onClose={() => setPlatosOpen(false)} onChanged={onPlatosChanged} />
   }
 
+  if (listaOpen) {
+    return <ListaCompra weekStart={weekStart} onClose={() => setListaOpen(false)} />
+  }
+
   if (paso === 'semana' && plan) {
     return (
       <Semana
@@ -62,6 +68,7 @@ export default function PlanificarSemana({
         onClose={onClose}
         onChanged={onChanged}
         antetitulo="La semana que viene"
+        onLista={() => setListaOpen(true)}
         titulo={`Semana del ${semanaDel(weekStart)}`}
       />
     )
@@ -117,11 +124,4 @@ export default function PlanificarSemana({
       </div>
     </div>
   )
-}
-
-// "2026-10-12" → "12 oct", por sus partes: `new Date(iso)` es medianoche UTC y
-// al oeste de Greenwich sería el día anterior.
-function semanaDel(iso) {
-  const [y, m, d] = iso.split('-').map(Number)
-  return formatDayMonth(new Date(y, m - 1, d))
 }

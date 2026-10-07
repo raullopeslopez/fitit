@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { generatePlan, getAdherence, listBodyWeights, logBodyWeight, setPlanEntry } from './api.js'
 import PesoDeHoy from './PesoDeHoy.jsx'
+import { ListRow } from './ui'
 import { foodDayIso, formatMacro } from './food.js'
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
@@ -377,6 +378,8 @@ export function Semana({
   onChanged,
   titulo = 'Tu semana',
   antetitulo = 'Lo que toca',
+  // Si llega, la semana ofrece su lista de la compra encima de los días.
+  onLista = null,
   generar = generatePlan,
   hoy = foodDayIso(),
   leerAdherencia = getAdherence,
@@ -426,6 +429,7 @@ export function Semana({
       </header>
 
       <div className="food-screen-body">
+        {onLista && <ListRow label="Lista de la compra" value="" onClick={onLista} />}
         <Adherencia informe={informe} />
 
         {diasDe(weekStart).map((iso, i) => {
