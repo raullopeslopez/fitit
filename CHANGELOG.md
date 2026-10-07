@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.22.0: la lista de la compra.** «Ver la semana que viene» → `Lista de la compra`:
+  contador `N / M en el carro`, pasillos (Carne, Charcutería, Pescado…), cantidades en
+  envases (`3 × 500 g`) o al peso, y `Lo tengo` → `Ya lo tengo`. Además: `¿Te has pesado
+  hoy?` al confirmar una comida; la revisión dice cuántos días a medias no cuentan; y
+  borrar del diario lo que escribió «Lo comí» deshace la confirmación.
 - **APK 0.21.0: Tus platos.** Comida → Tu plan → «Planificar la semana que viene» tiene
   la fila `Tus platos · N`: tus platos con sus comidas (o `Cualquier comida`) y `P` y
   `kcal` por ración; tocar uno abre `Sirve para: Desayuno · Comida · Cena · Snack`.
