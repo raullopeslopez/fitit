@@ -12,17 +12,66 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 
 from .food_groups import familia
+from .naming import fold_exercise_name as fold
 from .nutrition import gramos_de_compra
 from .refuse import hueso_de
 
 # Los pasillos, en el orden en que se recorre un súper. Una familia de CIQUAL va
 # a su pasillo; lo que no tiene familia (lo tuyo sin decir, los envasados de
-# Open Food Facts) va a «Otros» en vez de adivinarle uno.
-PASILLOS = ("Carne", "Pescado", "Lácteos y huevos", "Hidratos", "Fruta y verdura", "Despensa", "Otros")
+# Open Food Facts) se clasifica por el nombre, y sólo lo que no casa con nada
+# va a «Otros».
+PASILLOS = (
+    "Carne", "Charcutería", "Pescado", "Lácteos y huevos", "Hidratos", "Fruta y verdura",
+    "Despensa", "Otros",
+)
+# Derivados cárnicos de CIQUAL: jamón cocido, fiambres. En el súper están en la
+# charcutería, no junto a la carne fresca.
+_CHARCUTERIA_CIQUAL = "0404"
+
+# Por el nombre, en este orden: lo más concreto primero. «Tomate frito» es una
+# conserva antes que un tomate; «filetes de merluza» es pescado antes que
+# «filete»; «pechuga de pavo cocida» es charcutería antes que carne. Palabras
+# enteras, sobre el nombre plegado: «pan» no es «panceta».
+_POR_NOMBRE = (
+    ("Despensa", ("tomate frito", "crema de cacahuete", "aceite", "vinagre", "salsa", "especias",
+                  "caldo", "miel", "azucar", "cafe", "frutos secos", "almendras?", "nueces",
+                  "cacahuetes?", "sal", "nuez", "pistachos?", "pipas?", "anacardos?", "avellanas?",
+                  "turron", "mazapan", "galletas?", "chocolate", "cacao", "mermelada",
+                  "levadura")),
+    ("Charcutería", ("lonchas", "loncheado", "jamon", "chorizo", "salchichon", "fuet",
+                     "mortadela", "embuchado", "cecina", "bacon", "salami", "fiambre", "cocida",
+                     "braseada", "longaniza", "chistorra", "pate", "salchichas?", "sobrasada")),
+    ("Pescado", ("merluza", "salmon", "atun", "bacalao", "dorada", "lubina", "sepia", "calamar",
+                 "gambas?", "gambon", "langostinos?", "mejillon(es)?", "sardinas?", "boquerones?",
+                 "pulpo", "rape", "emperador", "surimi", "bonito", "caballa", "trucha", "lenguado",
+                 "pota", "pescadilla", "marisco", "berberechos", "almejas?", "anchoas?",
+                 "sardinillas", "navajas?", "chipirones", "tiburon", "mariscos?")),
+    ("Carne", ("carne", "pollo", "pechugas?", "pavo", "ternera", "vacuno", "cerdo", "lomos?", "solomillos?",
+               "hamburguesas?", "burger", "picada", "conejo", "cordero", "muslos?",
+               "contramuslos?", "alitas", "costillas?", "filetes?")),
+    ("Lácteos y huevos", ("leche", "yogur(es)?", "queso", "kefir", "skyr", "natillas", "cuajada",
+                          "requeson", "nata", "mantequilla", "batido", "flan", "postre lacteo",
+                          "bifidus", "huevos?", "claras", "curado", "camembert", "emmental",
+                          "mozzarella", "parmesano", "gouda", "cheddar", "roquefort", "burgos",
+                          "grana padano", "manchego")),
+    ("Hidratos", ("arroz", "pasta", "macarrones?", "espaguetis?", "spaghetti", "tallarines",
+                  "fideos?", "pan", "avena", "copos", "cereales", "patatas?", "tortillas?",
+                  "tortitas", "quinoa", "cuscus", "harina", "lentejas?", "garbanzos?",
+                  "alubias?", "picos", "reganas?", "panecillos?", "biscotes?", "tostadas")),
+    ("Fruta y verdura", ("platanos?", "manzanas?", "fresas?", "naranjas?", "kiwis?", "peras?",
+                         "uvas?", "frutos rojos", "tomates?", "lechuga", "brocoli", "calabacin",
+                         "pimientos?", "cebollas?", "espinacas?", "zanahorias?", "judias? verdes?",
+                         "champinones?", "verduras?", "ensalada", "aguacates?", "berenjenas?",
+                         "pepinos?", "ajos?")),
+)
+_PATRONES = tuple(
+    (nombre, re.compile(r"\b(" + "|".join(palabras) + r")\b")) for nombre, palabras in _POR_NOMBRE
+)
 _POR_FAMILIA = {
     "carne": "Carne",
     "pescado": "Pescado",
@@ -48,7 +97,19 @@ class Articulo:
 
 
 def pasillo(food) -> str:
-    return _POR_FAMILIA.get(familia(getattr(food, "subgroup_code", None)), "Otros")
+    """El pasillo de un alimento: el de su familia si la tiene, y si no, el que
+    diga su nombre. Lo que no casa con nada va a «Otros» en vez de adivinarlo."""
+    subgrupo = getattr(food, "subgroup_code", None)
+    if subgrupo == _CHARCUTERIA_CIQUAL:
+        return "Charcutería"
+    por_familia = _POR_FAMILIA.get(familia(subgrupo))
+    if por_familia:
+        return por_familia
+    nombre = fold(getattr(food, "name", "") or "")
+    for pasillo_, patron in _PATRONES:
+        if patron.search(nombre):
+            return pasillo_
+    return "Otros"
 
 
 def lista(entradas, platos: dict, foods: dict) -> dict[str, list[Articulo]]:
