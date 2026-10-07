@@ -211,3 +211,39 @@ def test_no_toca_un_alimento_tuyo_con_el_mismo_codigo(db):
     run(db, lambda s: load(s, [product_to_food(QUESO)]))
     foods = sorted(todos(db, Food), key=lambda f: f.user_id is None)
     assert [(f.name, f.kcal_100g) for f in foods] == [("Mi queso", 50), ("Queso Fresco Batido", 46)]
+
+
+# --- el envase, para la lista de la compra ------------------------------------------
+
+from scripts.off_catalogue import package_grams  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    ("texto", "gramos"),
+    [
+        ("500 g", 500.0),
+        ("125g", 125.0),
+        ("1 kg", 1000.0),
+        ("0,5 kg", 500.0),
+        ("4 x 125 g", 500.0),
+        ("4 × 125 g", 500.0),
+        ("1 L", 1000.0),
+        ("330 ml", 330.0),
+        ("6 x 1 L", 6000.0),
+        ("FALTA INFORMACIÓN.", None),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_el_envase_sale_del_quantity(texto, gramos):
+    assert package_grams(texto) == gramos
+
+
+def test_el_envase_viaja_con_el_alimento():
+    assert product_to_food(QUESO)["package_grams"] == 500.0
+
+
+def test_el_envase_se_guarda(db):
+    run(db, lambda s: load(s, [product_to_food(QUESO)]))
+    (food,) = todos(db, Food)
+    assert food.package_grams == 500.0

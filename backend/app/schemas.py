@@ -1418,3 +1418,28 @@ class DishDraftOut(BaseModel):
     refusal: str | None = None
     # Tu plato hecho con esta idea, si ya la guardaste.
     dish_id: int | None = None
+
+
+class ShoppingItemOut(BaseModel):
+    """Un artículo de la lista: lo que hay que comprar de un alimento en la semana."""
+
+    food_id: int
+    name: str
+    brand: str | None = None
+    # Gramos de compra: con el hueso dentro si el alimento lo lleva.
+    grams: float
+    # Envases enteros, si se sabe en cuántos gramos se vende. `None`: al peso.
+    packs: int | None = None
+    package_grams: float | None = None
+
+
+class ShoppingAisleOut(BaseModel):
+    name: str
+    items: list[ShoppingItemOut]
+
+
+class ShoppingListOut(BaseModel):
+    """La semana planificada, sumada como se compra y agrupada por pasillo."""
+
+    week_start: Date
+    aisles: list[ShoppingAisleOut]

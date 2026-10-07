@@ -38,10 +38,12 @@ from ..models import (
 )
 from ..nutrition import NUTRIENTS, Ajustable, food_log_date, macros_de_plato
 from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar
+from ..shopping import lista
 from .dishes import registrar_plato
 from ..rules import desde_fila
 from ..schemas import (
     AdherenceOut,
+    ShoppingListOut,
     PlanEntryOut,
     PlanAheadOut,
     PlanEntryPatch,
@@ -464,6 +466,48 @@ async def read_plan(
             (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
         )
     return _to_out(plan, nombres, (), 0.0, await _kcal_congeladas(session, plan))
+
+
+@router.get("/{week_start}/shopping", response_model=ShoppingListOut)
+async def shopping_list(
+    week_start: date,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ShoppingListOut:
+    """Lo que hay que comprar para la semana planificada, por pasillo.
+
+    Sale de los gramos que el plan congeló en cada comida, no de las recetas:
+    es lo que la semana dice que vas a comer. El cálculo es de `app/shopping.py`.
+    """
+    plan = (
+        await session.execute(
+            select(Plan)
+            .options(selectinload(Plan.entries))
+            .where(Plan.user_id == user_id, Plan.week_start == week_start)
+        )
+    ).scalar_one_or_none()
+    if plan is None:
+        raise HTTPException(status_code=404, detail="plan not found")
+
+    ids = {fila.dish_id for fila in plan.entries}
+    platos = {
+        dish.id: dish
+        for dish in (
+            await session.execute(
+                select(Dish).options(selectinload(Dish.ingredients)).where(Dish.id.in_(ids))
+            )
+        ).scalars()
+    } if ids else {}
+    food_ids = {i.food_id for dish in platos.values() for i in dish.ingredients}
+    foods = {
+        food.id: food
+        for food in (await session.execute(select(Food).where(Food.id.in_(food_ids)))).scalars()
+    } if food_ids else {}
+    por_pasillo = lista(plan.entries, platos, foods)
+    return ShoppingListOut(
+        week_start=week_start,
+        aisles=[{"name": nombre, "items": [vars(a) for a in articulos]} for nombre, articulos in por_pasillo.items()],
+    )
 
 
 __all__ = ["HUECOS", "router"]

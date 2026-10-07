@@ -54,6 +54,9 @@ COLUMN_MIGRATIONS = (
     # Añade el hueso: `foods.refuse_pct`, `foods.kcal_basis` y
     # `log_entries.edible_grams`.
     "c3f1a7e2b940_bone_in_foods.py",
+    # Añade `foods.package_grams`: el envase con el que se vende, para que la
+    # lista de la compra hable en envases.
+    "d3f7a1c9e254_add_food_package_grams.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")
