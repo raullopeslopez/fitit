@@ -426,3 +426,59 @@ def then_no_plan_informe(request):
     # Vale para las dos formas de preguntar: leyendo el plan y pidiendo el informe.
     resp = request.getfixturevalue("informe" if "informe" in request.fixturenames else "leido")
     assert resp.status_code == 404
+
+
+@given(parsers.parse("a repertoire of {cuantos:d} dishes of two ingredients"), target_fixture="repertorio")
+def given_repertoire_two(client, cuantos):
+    pollo = _food(client, "Pollo", kcal_100g=165, protein_100g=31, fat_100g=3.6, carbs_100g=0, familia="carne")
+    aceite = _food(client, "Aceite", kcal_100g=900, protein_100g=0, fat_100g=100, carbs_100g=0)
+    platos = []
+    for i in range(1, cuantos + 1):
+        resp = client.post("/dishes", json={
+            "name": f"Plato {i}", "servings": 1,
+            "ingredients": [{"food_id": pollo, "grams": 150}, {"food_id": aceite, "grams": 10}],
+        })
+        assert resp.status_code == 201, resp.text
+        platos.append(resp.json())
+    return platos
+
+
+def _entradas_de(client, confirmada):
+    return [e for e in _diario(client)["entries"] if e["dish_id"] == confirmada["dish_id"]]
+
+
+@when("I delete from the diary everything that meal wrote")
+def when_delete_all(client, confirmada):
+    filas = _entradas_de(client, confirmada)
+    assert filas
+    for e in filas:
+        assert client.delete(f"/food-log/{e['id']}").status_code == 204
+
+
+@when("I delete from the diary only the entry the plan points to")
+def when_delete_linked(client, confirmada):
+    assert len(_entradas_de(client, confirmada)) == 2
+    assert client.delete(f"/food-log/{confirmada['log_entry_id']}").status_code == 204
+
+
+def _ahora(client, slot):
+    plan = client.get(f"/plans/{_lunes().isoformat()}").json()
+    return _entrada(plan, _hoy(), slot)
+
+
+@then(parsers.parse("the plan now says nothing for the {slot:w} of today"))
+def then_now_nothing(client, slot):
+    fila = _ahora(client, slot)
+    assert fila["status"] is None
+    assert fila["log_entry_id"] is None
+
+
+@then(parsers.parse("the plan still says the {slot:w} of today is done"))
+def then_still_done(client, slot):
+    assert _ahora(client, slot)["status"] == "done"
+
+
+@then("the plan points to the ingredient left in the diary")
+def then_points_left(client, confirmada):
+    (queda,) = _entradas_de(client, confirmada)
+    assert _ahora(client, "comida")["log_entry_id"] == queda["id"]

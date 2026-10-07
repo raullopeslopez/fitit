@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
-from ..models import Food, LogEntry, User, visible_foods
+from ..models import Food, LogEntry, PlanEntry, User, visible_foods
 from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
@@ -375,7 +375,37 @@ async def delete_entry(
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> None:
+    """Borra una entrada del diario, y el plan se entera.
+
+    Si la entrada la escribió «Lo comí» (la comida del plan la enlaza), lo que
+    pasa con el plan depende de lo que quede de ese plato en esa comida: si
+    queda otro ingrediente —un plato de dos son dos entradas—, el enlace pasa a
+    él y la comida sigue confirmada; si no queda nada, la confirmación se
+    deshace y la comida vuelve a no tener respuesta. Antes el enlace se vaciaba
+    solo (`ON DELETE SET NULL`) y el plan seguía diciendo «Comido» sin nada
+    detrás. Se hace aquí y no confiando en la base: SQLite ni lo vacía.
+    """
     entry = await _load_entry(session, entry_id, user_id)
+    enlazadas = (
+        await session.execute(select(PlanEntry).where(PlanEntry.log_entry_id == entry.id))
+    ).scalars().all()
+    hermana = None
+    if enlazadas and entry.dish_id is not None:
+        hermana = (
+            await session.execute(
+                select(LogEntry.id).where(
+                    LogEntry.user_id == user_id,
+                    LogEntry.log_date == entry.log_date,
+                    LogEntry.meal_slot == entry.meal_slot,
+                    LogEntry.dish_id == entry.dish_id,
+                    LogEntry.id != entry.id,
+                ).order_by(LogEntry.id).limit(1)
+            )
+        ).scalar_one_or_none()
+    for fila in enlazadas:
+        fila.log_entry_id = hermana
+        if hermana is None:
+            fila.status = None
     await session.delete(entry)
     await session.commit()
 
