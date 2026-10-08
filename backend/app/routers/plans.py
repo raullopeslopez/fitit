@@ -39,11 +39,15 @@ from ..models import (
 from ..nutrition import NUTRIENTS, Ajustable, food_log_date, macros_de_plato
 from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar
 from ..shopping import lista
+from ..taski import Taski, get_taski, pendientes
+from ..taski import Unreachable as TaskiUnreachable
 from .dishes import registrar_plato
 from ..rules import desde_fila
 from ..schemas import (
     AdherenceOut,
     ShoppingListOut,
+    ShoppingToTaskiIn,
+    ShoppingToTaskiOut,
     PlanEntryOut,
     PlanAheadOut,
     PlanEntryPatch,
@@ -468,17 +472,8 @@ async def read_plan(
     return _to_out(plan, nombres, (), 0.0, await _kcal_congeladas(session, plan))
 
 
-@router.get("/{week_start}/shopping", response_model=ShoppingListOut)
-async def shopping_list(
-    week_start: date,
-    user_id: int = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-) -> ShoppingListOut:
-    """Lo que hay que comprar para la semana planificada, por pasillo.
-
-    Sale de los gramos que el plan congeló en cada comida, no de las recetas:
-    es lo que la semana dice que vas a comer. El cálculo es de `app/shopping.py`.
-    """
+async def _lista_de(session: AsyncSession, user_id: int, week_start: date):
+    """La lista de una semana planificada, por pasillo. 404 si no se planificó."""
     plan = (
         await session.execute(
             select(Plan)
@@ -503,11 +498,48 @@ async def shopping_list(
         food.id: food
         for food in (await session.execute(select(Food).where(Food.id.in_(food_ids)))).scalars()
     } if food_ids else {}
-    por_pasillo = lista(plan.entries, platos, foods)
+    return lista(plan.entries, platos, foods)
+
+
+@router.get("/{week_start}/shopping", response_model=ShoppingListOut)
+async def shopping_list(
+    week_start: date,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ShoppingListOut:
+    """Lo que hay que comprar para la semana planificada, por pasillo.
+
+    Sale de los gramos que el plan congeló en cada comida, no de las recetas:
+    es lo que la semana dice que vas a comer. El cálculo es de `app/shopping.py`.
+    """
+    por_pasillo = await _lista_de(session, user_id, week_start)
     return ShoppingListOut(
         week_start=week_start,
         aisles=[{"name": nombre, "items": [vars(a) for a in articulos]} for nombre, articulos in por_pasillo.items()],
     )
+
+
+@router.post("/{week_start}/shopping/taski", response_model=ShoppingToTaskiOut)
+async def shopping_to_taski(
+    week_start: date,
+    payload: ShoppingToTaskiIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+    taski: Taski | None = Depends(get_taski),
+) -> ShoppingToTaskiOut:
+    """Manda a Taski lo que falta de la lista. En un solo sentido; las reglas
+    —qué se manda, con qué nombre, en qué categoría— son de `app/taski.py`."""
+    if taski is None:
+        raise HTTPException(status_code=503, detail="taski not configured")
+    por_pasillo = await _lista_de(session, user_id, week_start)
+    total = sum(1 for articulos in por_pasillo.values() for a in articulos if a.food_id not in payload.skip_food_ids)
+    try:
+        nuevos = pendientes(por_pasillo, await taski.listar(), week_start, set(payload.skip_food_ids))
+        for item in nuevos:
+            await taski.anadir(item)
+    except TaskiUnreachable as exc:
+        raise HTTPException(status_code=502, detail="taski unreachable") from exc
+    return ShoppingToTaskiOut(added=len(nuevos), already=total - len(nuevos))
 
 
 __all__ = ["HUECOS", "router"]

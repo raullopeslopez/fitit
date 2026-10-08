@@ -164,3 +164,34 @@ describe('La lista de la compra', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 })
+
+describe('Enviar a Taski', () => {
+  function montarConEnvio(enviar) {
+    const leer = vi.fn().mockResolvedValue(LISTA)
+    render(<ListaCompra weekStart={SEMANA} onClose={vi.fn()} leer={leer} enviar={enviar} />)
+  }
+
+  it('manda la semana sin lo que ya tengo y dice cuánto ha añadido', async () => {
+    localStorage.setItem('fitit_ya_lo_tengo', JSON.stringify([4]))
+    const enviar = vi.fn().mockResolvedValue({ added: 2, already: 1 })
+    montarConEnvio(enviar)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar a Taski' }))
+
+    expect(enviar).toHaveBeenCalledWith(SEMANA, [4])
+    expect(await screen.findByText('2 añadidos a Taski · 1 ya estaba')).toBeInTheDocument()
+  })
+
+  it('si Taski ya lo tenía todo, lo dice', async () => {
+    montarConEnvio(vi.fn().mockResolvedValue({ added: 0, already: 4 }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar a Taski' }))
+    expect(await screen.findByText('Taski ya lo tenía todo')).toBeInTheDocument()
+  })
+
+  it('si Taski no contesta, lo dice y deja reintentar', async () => {
+    montarConEnvio(vi.fn().mockRejectedValue(new Error('502')))
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar a Taski' }))
+    expect(await screen.findByText('Taski no ha contestado. Prueba otra vez en un rato.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar a Taski' })).toBeEnabled()
+  })
+})

@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # `503 high demand` dos veces seguidas a una foto que `gemini-3.5-flash`
     # leyó entera: otro modelo, otra carga y otra cuota del tier gratuito.
     gemini_fallback_model: str = "gemini-3.5-flash"
+    # Envía la lista de la compra a Taski (`app/taski.py`). El identificador es
+    # el de un miembro del hogar —Taski no tiene otra autenticación—, así que es
+    # un secreto. Vacío, la función está apagada y el botón contesta 503.
+    taski_device_id: SecretStr = SecretStr("")
+    taski_api_url: str = "https://taski-api-g8ai.onrender.com"
     # Orígenes a los que se abre CORS, separados por comas. La app nativa lleva
     # la interfaz dentro del APK y llama desde su propio origen: `https://localhost`
     # en Android y `capacitor://localhost` en iOS (los de Capacitor por defecto).

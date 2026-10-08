@@ -6547,3 +6547,15 @@ button.draft-save {
   text-align: left;
   cursor: pointer;
 }
+
+/* Enviar a Taski: al pie de la lista, cuando ya se ha repasado. */
+.lista-taski {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.lista-taski > button {
+  /* 44: DESIGN.md. El `.secondary` de serie mide 39. */
+  min-height: 44px;
+}

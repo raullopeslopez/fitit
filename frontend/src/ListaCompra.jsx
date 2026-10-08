@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { getShoppingList } from './api.js'
+import { getShoppingList, sendShoppingToTaski } from './api.js'
 import { formatIsoDayMonth } from './format.js'
 import { storage } from './platform/storage.js'
 
@@ -42,6 +42,14 @@ export function cantidad(item) {
   return `~${peso(Math.round(item.grams / 10) * 10)}`
 }
 
+/** Lo que ha pasado al enviar, en una línea. */
+export function resumenEnvio({ added, already }) {
+  if (added === 0) return 'Taski ya lo tenía todo'
+  const anadidos = `${added} ${added === 1 ? 'añadido' : 'añadidos'} a Taski`
+  if (already === 0) return anadidos
+  return `${anadidos} · ${already} ${already === 1 ? 'ya estaba' : 'ya estaban'}`
+}
+
 /**
  * La lista de la compra de una semana planificada (diseño A, design-shotgun 6
  * oct): contador de lo que va en el carro, pasillos con su cuenta, una casilla
@@ -50,12 +58,14 @@ export function cantidad(item) {
  * Lo marcado baja al final de su pasillo: lo que queda por coger es lo que se
  * busca con la vista, y tiene que estar arriba.
  */
-export default function ListaCompra({ weekStart, onClose, leer = getShoppingList }) {
+export default function ListaCompra({ weekStart, onClose, leer = getShoppingList, enviar = sendShoppingToTaski }) {
   const [lista, setLista] = useState(null)
   const [error, setError] = useState(false)
   const [carro, setCarro] = useState(() => leerIds(claveCarro(weekStart)))
   const [loTengo, setLoTengo] = useState(() => leerIds(CLAVE_LO_TENGO))
   const [verTengo, setVerTengo] = useState(false)
+  // null · 'enviando' · { ok: texto } · { error: texto }
+  const [envio, setEnvio] = useState(null)
 
   useEffect(() => {
     let vivo = true
@@ -81,6 +91,15 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
     else nuevo.add(id)
     setLoTengo(nuevo)
     guardarIds(CLAVE_LO_TENGO, nuevo)
+  }
+
+  async function enviarATaski() {
+    setEnvio('enviando')
+    try {
+      setEnvio({ ok: resumenEnvio(await enviar(weekStart, apartados.map((i) => i.food_id))) })
+    } catch {
+      setEnvio({ error: 'Taski no ha contestado. Prueba otra vez en un rato.' })
+    }
   }
 
   const pasillos = (lista?.aisles ?? [])
@@ -185,6 +204,21 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
               </ul>
             )}
           </section>
+        )}
+
+        {total > 0 && (
+          <div className="lista-taski">
+            <button
+              type="button"
+              className="secondary btn-full"
+              disabled={envio === 'enviando'}
+              onClick={enviarATaski}
+            >
+              {envio === 'enviando' ? 'Enviando a Taski…' : 'Enviar a Taski'}
+            </button>
+            {envio?.ok && <p className="hint">{envio.ok}</p>}
+            {envio?.error && <p className="alert">{envio.error}</p>}
+          </div>
         )}
       </div>
     </div>

@@ -1,14 +1,16 @@
-"""La lista de la compra, sacada de la semana planificada."""
+"""La lista de la compra, sacada de la semana planificada, y su envío a Taski."""
 
 import asyncio
 from datetime import date, timedelta
 
+import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from app.db import get_session
 from app.main import app
+from app.taski import Unreachable, get_taski
 
-scenarios("../features/shopping_list.feature")
+scenarios("../features/shopping_list.feature", "../features/shopping_to_taski.feature")
 
 
 def _lunes():
@@ -105,3 +107,114 @@ def then_packs(lista, name, packs, pack):
 @then("there is no list")
 def then_no_list(respuesta):
     assert respuesta.status_code == 404
+
+
+# --- Taski -------------------------------------------------------------------
+# En la suite no hay red: Taski es una lista en memoria con las dos llamadas que
+# Fitit le hace. Lo que se fija no es que Taski conteste, sino qué le mandamos.
+
+
+class TaskiFalso:
+    def __init__(self, items=None, *, caido=False):
+        self.items = list(items or [])
+        self.caido = caido
+
+    async def listar(self) -> list[dict]:
+        if self.caido:
+            raise Unreachable("sin red")
+        return list(self.items)
+
+    async def anadir(self, item: dict) -> None:
+        if self.caido:
+            raise Unreachable("sin red")
+        self.items.append({**item, "checked": False})
+
+
+@pytest.fixture()
+def taski():
+    caja = {"taski": None}
+    app.dependency_overrides[get_taski] = lambda: caja["taski"]
+    yield caja
+    app.dependency_overrides.pop(get_taski, None)
+
+
+@given("Taski is reachable with an empty list")
+def given_taski_empty(taski):
+    taski["taski"] = TaskiFalso()
+
+
+@given(parsers.parse('Taski already has "{name}" ticked off'))
+def given_taski_ticked(taski, name):
+    taski["taski"] = TaskiFalso([{"name": name, "checked": True}])
+
+
+@given("Taski cannot be reached")
+def given_taski_down(taski):
+    taski["taski"] = TaskiFalso(caido=True)
+
+
+@given("Taski is not configured")
+def given_taski_off(taski):
+    taski["taski"] = None
+
+
+def _enviar(client, fuera=()):
+    lista = client.get(f"/plans/{_lunes().isoformat()}/shopping").json()
+    ids = [i["food_id"] for a in lista["aisles"] for i in a["items"] if i["name"] in fuera]
+    return client.post(f"/plans/{_lunes().isoformat()}/shopping/taski", json={"skip_food_ids": ids})
+
+
+@when("I send the shopping list of that week to Taski", target_fixture="envio")
+def when_send(client):
+    resp = _enviar(client)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse('I send the shopping list of that week to Taski leaving out "{name}"'))
+def when_send_skip(client, name):
+    resp = _enviar(client, fuera=(name,))
+    assert resp.status_code == 200, resp.text
+
+
+@when("I try to send the shopping list of that week to Taski", target_fixture="respuesta")
+def when_try_send(client):
+    return _enviar(client)
+
+
+def _en_taski(taski, name):
+    return [i for i in taski["taski"].items if i["name"] == name]
+
+
+@then(parsers.parse('Taski has "{name}" with quantity "{quantity}" in "{category}"'))
+def then_taski_item(taski, name, quantity, category):
+    (item,) = _en_taski(taski, name)
+    assert item["quantity"] == quantity
+    assert item["category"] == category
+
+
+@then("the note on it says it comes from Fitit's plan")
+def then_taski_note(taski):
+    (item,) = taski["taski"].items
+    assert item["notes"].startswith("Plan de Fitit · semana del ")
+
+
+@then(parsers.parse('Taski has "{name}" once'))
+def then_taski_once(taski, name):
+    assert len(_en_taski(taski, name)) == 1
+
+
+@then("Taski has nothing")
+def then_taski_empty(taski):
+    assert taski["taski"].items == []
+
+
+@then(parsers.parse("{n:d} item was added"))
+@then(parsers.parse("{n:d} items were added"))
+def then_added(envio, n):
+    assert envio["added"] == n
+
+
+@then(parsers.parse("the answer is {status:d}"))
+def then_status(respuesta, status):
+    assert respuesta.status_code == status, respuesta.text

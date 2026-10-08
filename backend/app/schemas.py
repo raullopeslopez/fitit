@@ -1438,6 +1438,18 @@ class ShoppingAisleOut(BaseModel):
     items: list[ShoppingItemOut]
 
 
+class ShoppingToTaskiIn(BaseModel):
+    """Lo que se deja fuera del envío: lo marcado «Lo tengo», que sólo sabe el móvil."""
+
+    skip_food_ids: list[int] = []
+
+
+class ShoppingToTaskiOut(BaseModel):
+    # Lo que se ha añadido, y lo que no porque Taski ya lo tenía pendiente.
+    added: int
+    already: int
+
+
 class ShoppingListOut(BaseModel):
     """La semana planificada, sumada como se compra y agrupada por pasillo."""
 
