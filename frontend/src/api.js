@@ -548,6 +548,15 @@ export function getShoppingList(weekStart) {
   return apiFetch(`/plans/${weekStart}/shopping`)
 }
 
+// Manda a Taski lo que falta de la lista, sin lo marcado «Lo tengo». La
+// primera llamada despierta a Taski y puede tardar un minuto.
+export function sendShoppingToTaski(weekStart, skipFoodIds) {
+  return apiFetch(`/plans/${weekStart}/shopping/taski`, {
+    method: 'POST',
+    body: JSON.stringify({ skip_food_ids: skipFoodIds }),
+  })
+}
+
 export function generatePlan(weekStart, seed = null) {
   return apiFetch('/plans', {
     method: 'POST',

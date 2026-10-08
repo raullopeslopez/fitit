@@ -1,0 +1,137 @@
+"""La lista de la compra, enviada a Taski.
+
+En un solo sentido: Fitit manda y Taski no contesta nada. Lo que se tacha en
+Taski no vuelve, porque en Fitit lo que importa es confirmar lo que comes, no lo
+que compraste.
+
+Taski no tiene usuarios ni claves: un miembro del hogar es una cabecera
+`X-Device-ID`, y un hogar admite dos. Fitit no puede entrar como tercero, así
+que envía como tú, con tu identificador guardado como secreto
+(`TASKI_DEVICE_ID`). Vacío, la función está apagada, igual que la de Gemini.
+
+Enviar dos veces no duplica: antes se mira qué tiene Taski pendiente y sólo se
+añade lo que falta. Lo ya tachado sí se vuelve a mandar — es otra compra.
+"""
+
+from __future__ import annotations
+
+import re
+from datetime import date
+
+import httpx
+
+from .config import settings
+from .naming import fold_exercise_name as fold
+from .shopping import Articulo
+
+# Las categorías de Taski son las suyas (`_kCategories` en la app) y Taski no
+# las valida: una que no conozca se pinta aparte. Por eso se traducen aquí, y lo
+# que no tiene equivalente va a «Otros».
+_CATEGORIA = {
+    "Carne": "Carne y pescado",
+    "Charcutería": "Carne y pescado",
+    "Pescado": "Carne y pescado",
+    "Lácteos y huevos": "Lácteos",
+    "Fruta y verdura": "Frutas y verduras",
+}
+# El pan está en «Hidratos» con el arroz y la pasta; en Taski tiene panadería.
+_PAN = re.compile(r"\b(pan|panecillos?|barra|baguette|chapata|biscotes?)\b")
+
+_MESES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
+
+class Unreachable(Exception):
+    """Taski no ha contestado, o ha contestado con un error."""
+
+
+def categoria(pasillo: str, nombre: str) -> str:
+    if pasillo == "Hidratos" and _PAN.search(fold(nombre)):
+        return "Panadería"
+    return _CATEGORIA.get(pasillo, "Otros")
+
+
+def nombre(articulo: Articulo) -> str:
+    """El nombre con la marca, si la marca no va ya dentro: en el súper se busca
+    «Queso fresco batido 0% Hacendado», no un queso cualquiera."""
+    if articulo.brand and fold(articulo.brand) not in fold(articulo.name):
+        return f"{articulo.name} {articulo.brand}"
+    return articulo.name
+
+
+def _peso(gramos: float) -> str:
+    if gramos >= 1000:
+        kg = round(gramos / 100) / 10
+        return f"{kg:g} kg".replace(".", ",")
+    return f"{gramos:g} g"
+
+
+def cantidad(articulo: Articulo) -> str:
+    """Lo mismo que pinta la lista (`cantidad()` en `ListaCompra.jsx`): en
+    envases si se sabe el envase, al peso si no."""
+    if articulo.packs and articulo.package_grams:
+        return f"{articulo.packs} × {_peso(articulo.package_grams)}"
+    return f"~{_peso(round(articulo.grams / 10) * 10)}"
+
+
+def nota(semana: date) -> str:
+    return f"Plan de Fitit · semana del {semana.day} {_MESES[semana.month - 1]}"
+
+
+def pendientes(por_pasillo: dict[str, list[Articulo]], en_taski: list[dict], semana: date,
+               saltar: set[int]) -> list[dict]:
+    """Lo que hay que añadir a Taski: la lista menos lo que se deja fuera («Lo
+    tengo») y menos lo que Taski ya tiene sin tachar, por nombre plegado."""
+    ya = {fold(i["name"]) for i in en_taski if not i.get("checked")}
+    nuevos = []
+    for pasillo, articulos in por_pasillo.items():
+        for articulo in articulos:
+            if articulo.food_id in saltar:
+                continue
+            n = nombre(articulo)
+            if fold(n) in ya:
+                continue
+            ya.add(fold(n))
+            nuevos.append({
+                "name": n,
+                "category": categoria(pasillo, articulo.name),
+                "quantity": cantidad(articulo),
+                "notes": nota(semana),
+                "is_recurring": False,
+            })
+    return nuevos
+
+
+class Taski:
+    """Las dos llamadas que Fitit hace a la API de Taski."""
+
+    # Taski duerme en el plan gratuito de Render y la primera llamada lo
+    # despierta: puede tardar un minuto en contestar.
+    TIMEOUT = 90.0
+
+    def __init__(self, url: str, device_id: str):
+        self.url = url.rstrip("/")
+        self.headers = {"X-Device-ID": device_id}
+
+    async def _llamar(self, metodo: str, ruta: str, **kwargs) -> httpx.Response:
+        try:
+            async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
+                respuesta = await client.request(metodo, self.url + ruta, headers=self.headers, **kwargs)
+                respuesta.raise_for_status()
+                return respuesta
+        except httpx.HTTPError as exc:
+            raise Unreachable(str(exc)) from exc
+
+    async def listar(self) -> list[dict]:
+        return (await self._llamar("GET", "/shopping")).json()
+
+    async def anadir(self, item: dict) -> None:
+        await self._llamar("POST", "/shopping", json=item)
+
+
+async def get_taski() -> Taski | None:
+    """Quien habla con Taski, o nadie si no hay identificador. Dependencia para
+    que la suite lo cambie por una lista en memoria: no hay red."""
+    device_id = settings.taski_device_id.get_secret_value()
+    if not device_id:
+        return None
+    return Taski(settings.taski_api_url, device_id)
