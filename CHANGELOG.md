@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.23.0: enviar la lista a Taski.** Al pie de `Lista de la compra`, `Enviar a Taski`
+  manda la semana a la lista compartida de Taski: sólo lo que no tiene pendiente, sin lo
+  marcado `Lo tengo`, con cantidad, categoría y la nota «Plan de Fitit · semana del …».
 - **APK 0.22.0: la lista de la compra.** «Ver la semana que viene» → `Lista de la compra`:
   contador `N / M en el carro`, pasillos (Carne, Charcutería, Pescado…), cantidades en
   envases (`3 × 500 g`) o al peso, y `Lo tengo` → `Ya lo tengo`. Además: `¿Te has pesado
