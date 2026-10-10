@@ -28,6 +28,9 @@ export default function PlanificarSemana({
   platos = [],
   onPlatosChanged = () => {},
   generar = generatePlan,
+  // Dentro de la pestaña Plan: sin cabecera ni «Cerrar», porque no es una
+  // pantalla encima de otra sino el contenido de la pestaña.
+  embebida = false,
 }) {
   // 'revision' | 'semana'
   const [paso, setPaso] = useState('revision')
@@ -63,6 +66,7 @@ export default function PlanificarSemana({
   if (paso === 'semana' && plan) {
     return (
       <Semana
+        embebida={embebida}
         plan={plan}
         weekStart={weekStart}
         onClose={onClose}
@@ -90,6 +94,34 @@ export default function PlanificarSemana({
     }
   }
 
+  const cuerpo = (
+    <>
+      {paso === 'revision' && <RevisionSemanal onAccepted={onChanged} onDone={() => setPaso('semana')} />}
+
+      {paso === 'semana' && (
+        <section className="card plan-card">
+          <p className="card-eyebrow">Tu plan</p>
+          {/* Sin perfil que leer no se dice nada: una línea que no llega no
+              es «no tienes objetivo». */}
+          {objetivo !== undefined && (
+            <p className="hint">
+              {objetivo != null
+                ? `Se planifica con tu objetivo de ${conMiles(objetivo)} kcal al día.`
+                : 'Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.'}
+            </p>
+          )}
+          <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
+          {error && <p className="alert">{error}</p>}
+          <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
+            Generar la semana
+          </button>
+        </section>
+      )}
+    </>
+  )
+
+  if (embebida) return <div className="plan-planificar">{cuerpo}</div>
+
   return (
     <div className="food-screen" role="dialog" aria-modal="true" aria-label="Planificar la semana que viene">
       <header className="food-screen-head">
@@ -102,29 +134,7 @@ export default function PlanificarSemana({
         </button>
       </header>
 
-      <div className="food-screen-body">
-        {paso === 'revision' && <RevisionSemanal onAccepted={onChanged} onDone={() => setPaso('semana')} />}
-
-        {paso === 'semana' && (
-          <section className="card plan-card">
-            <p className="card-eyebrow">Tu plan</p>
-            {/* Sin perfil que leer no se dice nada: una línea que no llega no
-                es «no tienes objetivo». */}
-            {objetivo !== undefined && (
-              <p className="hint">
-                {objetivo != null
-                  ? `Se planifica con tu objetivo de ${conMiles(objetivo)} kcal al día.`
-                  : 'Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.'}
-              </p>
-            )}
-            <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
-            {error && <p className="alert">{error}</p>}
-            <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
-              Generar la semana
-            </button>
-          </section>
-        )}
-      </div>
+      <div className="food-screen-body">{cuerpo}</div>
     </div>
   )
 }

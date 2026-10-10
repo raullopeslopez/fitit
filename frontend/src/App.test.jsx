@@ -138,8 +138,8 @@ describe('App', () => {
       expect(api.createWorkout).toHaveBeenCalledTimes(1)
     })
 
-    // «review», el aviso del domingo; «food», la pantalla Comida del widget.
-    it.each(['review', 'food'])('«%s» abre Comida', async (action) => {
+    // «food», la pantalla Comida del widget.
+    it.each(['food'])('«%s» abre Comida', async (action) => {
       setToken('tok')
       api.listDays.mockResolvedValue([])
       api.listExercises.mockResolvedValue([])
@@ -157,6 +157,24 @@ describe('App', () => {
 
       expect(await screen.findByRole('button', { name: 'Añadir a desayuno' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')
+    })
+
+    // «review», el aviso de la revisión semanal: la revisión vive al planificar
+    // la semana que viene, que ahora está en su propia pestaña.
+    it('«review» abre Plan, en la semana que viene', async () => {
+      setToken('tok')
+      api.listDays.mockResolvedValue([])
+      api.getPlan.mockResolvedValue(null)
+      api.listDishes.mockResolvedValue([])
+      api.getReview.mockResolvedValue({ due: false })
+      api.getTargetProfile.mockResolvedValue({})
+      render(<App />)
+      await vi.waitFor(() => expect(launch.listener).toBeTypeOf('function'))
+
+      act(() => launch.listener({ action: 'review' }))
+
+      expect(await screen.findByRole('button', { name: 'La que viene' })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
     })
 
     it('sin sesión no escucha: la orden espera a que entres', () => {
@@ -228,9 +246,23 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
   })
 
-  // Cuarta pestaña: lo que se fija una vez (objetivo, reparto, reglas, peso,
-  // preferencias de Entreno) sale de Comida y de Entreno y vive aquí.
-  it('Perfil es la cuarta pestaña, y la cabecera ya no lleva «Salir»', async () => {
+  // Plan sale de Comida: registrar y planificar son dos trabajos, y la lista de
+  // la compra se abre en el súper, no tres toques dentro de una tarjeta.
+  it('Plan es su propia pestaña, entre Comida y Perfil', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    api.getPlan.mockResolvedValue(null)
+    api.listDishes.mockResolvedValue([])
+    render(<App />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Plan' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Plan' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  // Lo que se fija una vez (objetivo, reparto, reglas, peso, preferencias de
+  // Entreno) sale de Comida y de Entreno y vive aquí.
+  it('Perfil es la última pestaña, y la cabecera ya no lleva «Salir»', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([])
     stubPerfil()
@@ -239,7 +271,7 @@ describe('App', () => {
     const nav = await screen.findByRole('navigation', { name: 'Navegación principal' })
     expect(
       [...nav.querySelectorAll('button')].map((b) => b.lastChild.textContent.trim()),
-    ).toEqual(['Días', 'Progreso', 'Comida', 'Perfil'])
+    ).toEqual(['Días', 'Progreso', 'Comida', 'Plan', 'Perfil'])
     expect(screen.queryByRole('button', { name: /^salir$/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Perfil' }))
