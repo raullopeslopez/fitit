@@ -70,6 +70,9 @@ export default function PlanificarSemana({
         antetitulo="La semana que viene"
         onLista={() => setListaOpen(true)}
         titulo={`Semana del ${semanaDel(weekStart)}`}
+        platos={platos}
+        onPlatos={() => setPlatosOpen(true)}
+        onPlatosChanged={onPlatosChanged}
       />
     )
   }

@@ -30,6 +30,7 @@ const GLYPHS = new Set([
   '.link-row::after',
   'button.idea-to-dish > span',
   '.idea-saved-tick',
+  '.plan-plato-chev',
 ])
 
 function blocks() {

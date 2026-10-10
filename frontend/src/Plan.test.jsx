@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import PlanDelDia, { Adherencia, Semana, lunesDe, lunesSiguiente } from './Plan.jsx'
@@ -245,6 +245,151 @@ describe('la semana', () => {
     // Otra semilla, o saldría exactamente la misma semana.
     expect(generar.mock.calls[0][1]).not.toBe(null)
     expect(generar.mock.calls[0][1]).not.toBe(PLAN.seed)
+  })
+})
+
+describe('iterar la semana: platos sin comida y cambiar un plato', () => {
+  const SEMANA = {
+    ...PLAN,
+    entries: [
+      entrada({ id: 11, slot: 'desayuno', dish_id: 1, dish_name: 'Lentejas con chorizo', kcal: 640 }),
+      entrada({ id: 12, slot: 'comida', dish_id: 2, dish_name: 'Pollo al curry', kcal: 720 }),
+    ],
+  }
+  const plato = (id, name, slots, kcal) => ({ id, name, slots, per_serving: { kcal, protein: 20 } })
+  const PLATOS = [
+    plato(1, 'Lentejas con chorizo', null, 640),
+    plato(2, 'Pollo al curry', ['comida', 'cena'], 720),
+    plato(3, 'Avena con yogur', ['desayuno'], 455),
+    plato(4, 'Tostadas con huevo', null, 410),
+  ]
+
+  function pintar(over = {}) {
+    const props = {
+      plan: SEMANA,
+      weekStart: LUNES,
+      onClose: vi.fn(),
+      onChanged: vi.fn(),
+      platos: PLATOS,
+      hoy: LUNES,
+      leerAdherencia: vi.fn().mockResolvedValue(null),
+      replanear: vi.fn().mockResolvedValue({}),
+      corregirPlato: vi.fn().mockResolvedValue({}),
+      onPlatos: vi.fn(),
+      onPlatosChanged: vi.fn(),
+      ...over,
+    }
+    render(<Semana {...props} />)
+    return props
+  }
+
+  it('avisa de los platos sin comida y lleva a decir a cuál van', async () => {
+    const props = pintar()
+    expect(screen.getByText('2 platos sin comida')).toBeInTheDocument()
+    expect(
+      screen.getByText('Valen para cualquier comida, y por eso pueden salir en el desayuno.'),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Decir a qué comida van' }))
+    expect(props.onPlatos).toHaveBeenCalled()
+  })
+
+  it('concuerda en singular con un solo plato sin comida', () => {
+    pintar({ platos: [PLATOS[0], PLATOS[1]] })
+    expect(screen.getByText('1 plato sin comida')).toBeInTheDocument()
+    expect(
+      screen.getByText('Vale para cualquier comida, y por eso puede salir en el desayuno.'),
+    ).toBeInTheDocument()
+  })
+
+  it('sin platos sin comida no avisa', () => {
+    pintar({ platos: [PLATOS[1], PLATOS[2]] })
+    expect(screen.queryByText(/sin comida$/)).not.toBeInTheDocument()
+  })
+
+  it('tocar un plato abre la hoja con los otros platos que caben en ese hueco', async () => {
+    pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+    expect(hoja).toHaveTextContent('Lunes · Desayuno')
+    expect(hoja).toHaveTextContent('Otros platos de desayuno')
+    // Avena (sólo desayuno) y Tostadas (cualquiera) caben; el pollo no, y las
+    // lentejas son las que ya estaban.
+    expect(within(hoja).getByRole('button', { name: /Avena con yogur/ })).toBeInTheDocument()
+    expect(within(hoja).getByRole('button', { name: /Tostadas con huevo/ })).toBeInTheDocument()
+    expect(within(hoja).queryByRole('button', { name: /Pollo al curry/ })).not.toBeInTheDocument()
+    expect(hoja).toHaveTextContent('Sólo cambia el lunes. El resto del día no se reajusta.')
+  })
+
+  it('elegir otro plato lo pone en el plan de ese día', async () => {
+    const props = pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    await userEvent.click(screen.getByRole('button', { name: /Avena con yogur/ }))
+    await waitFor(() => expect(props.replanear).toHaveBeenCalledWith(11, 3, LUNES))
+    await waitFor(() => expect(props.onChanged).toHaveBeenCalled())
+    expect(screen.queryByRole('dialog', { name: 'Cambiar este plato' })).not.toBeInTheDocument()
+  })
+
+  it('si no se puede cambiar dice por qué y la hoja sigue abierta', async () => {
+    pintar({ replanear: vi.fn().mockRejectedValue({ detail: { motivo: 'ese día ya pasó' } }) })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    await userEvent.click(screen.getByRole('button', { name: /Avena con yogur/ }))
+    expect(await screen.findByText('No se ha podido cambiar: ese día ya pasó.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Cambiar este plato' })).toBeInTheDocument()
+  })
+
+  it('«No en desayunos» quita el desayuno de un plato que valía para cualquiera', async () => {
+    const props = pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'No en desayunos' }))
+    await waitFor(() =>
+      expect(props.corregirPlato).toHaveBeenCalledWith(1, { slots: ['comida', 'cena', 'snack'] }),
+    )
+    expect(props.onPlatosChanged).toHaveBeenCalled()
+    expect(
+      await screen.findByText('Ya no saldrá en desayunos. Elige por cuál cambiarlo.'),
+    ).toBeInTheDocument()
+  })
+
+  it('a un plato con comidas sólo le quita ésa', async () => {
+    const semana = {
+      ...SEMANA,
+      entries: [entrada({ id: 12, slot: 'comida', dish_id: 2, dish_name: 'Pollo al curry' })],
+    }
+    const props = pintar({ plan: semana })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Pollo al curry' }))
+    await userEvent.click(screen.getByRole('button', { name: 'No en comidas' }))
+    await waitFor(() => expect(props.corregirPlato).toHaveBeenCalledWith(2, { slots: ['cena'] }))
+  })
+
+  it('no ofrece quitar la única comida de un plato: lo dejaría para cualquiera', async () => {
+    const semana = {
+      ...SEMANA,
+      entries: [entrada({ id: 13, slot: 'desayuno', dish_id: 3, dish_name: 'Avena con yogur' })],
+    }
+    pintar({ plan: semana })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Avena con yogur' }))
+    expect(screen.queryByRole('button', { name: 'No en desayunos' })).not.toBeInTheDocument()
+  })
+
+  it('un día que ya pasó no se puede cambiar', () => {
+    pintar({ hoy: MARTES })
+    expect(screen.queryByRole('button', { name: /^Cambiar / })).not.toBeInTheDocument()
+    expect(screen.getByText('Lentejas con chorizo')).toBeInTheDocument()
+  })
+
+  it('una comida ya dicha no se puede cambiar', () => {
+    const semana = {
+      ...SEMANA,
+      entries: [entrada({ id: 11, slot: 'desayuno', dish_id: 1, dish_name: 'Lentejas con chorizo', status: 'done' })],
+    }
+    pintar({ plan: semana })
+    expect(screen.queryByRole('button', { name: 'Cambiar Lentejas con chorizo' })).not.toBeInTheDocument()
+  })
+
+  it('sin tus platos a mano no hay ni aviso ni cambio', () => {
+    pintar({ platos: null })
+    expect(screen.queryByText(/sin comida$/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Cambiar / })).not.toBeInTheDocument()
   })
 })
 

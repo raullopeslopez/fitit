@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 
-import { generatePlan, getAdherence, listBodyWeights, logBodyWeight, setPlanEntry } from './api.js'
+import {
+  correctDish,
+  generatePlan,
+  getAdherence,
+  listBodyWeights,
+  logBodyWeight,
+  replanEntry,
+  setPlanEntry,
+} from './api.js'
 import PesoDeHoy from './PesoDeHoy.jsx'
-import { ListRow } from './ui'
+import { ListRow, Sheet } from './ui'
 import { foodDayIso, formatMacro } from './food.js'
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
@@ -14,6 +22,15 @@ const NOMBRE = {
   comida: 'Comida',
   cena: 'Cena',
   snack: 'Snack',
+}
+
+// En plural, para «No en desayunos»: lo que se quita es la comida entera, no
+// la de ese día.
+const EN_PLURAL = {
+  desayuno: 'desayunos',
+  comida: 'comidas',
+  cena: 'cenas',
+  snack: 'snacks',
 }
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -107,15 +124,44 @@ export function motivo(err) {
   return 'No se ha podido generar la semana.'
 }
 
-function Fila({ entrada, puedeConfirmar, busy, onMarcar, onCambiar, cambiando, platos, onElegir, onCancelar }) {
+function Fila({
+  entrada,
+  puedeConfirmar,
+  busy,
+  onMarcar,
+  onCambiar,
+  cambiando,
+  platos,
+  onElegir,
+  onCancelar,
+  onAbrir = null,
+}) {
   const hecho = entrada.status === 'done'
   const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
   return (
     <li className={`plan-fila${hecho ? ' is-done' : ''}${saltado ? ' is-skipped' : ''}`}>
       <span className="card-eyebrow plan-slot">{NOMBRE[entrada.slot] ?? entrada.slot}</span>
-      <span className="plan-plato">{entrada.dish_name}</span>
-      {entrada.kcal != null && (
-        <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
+      {/* En la semana, un plato que todavía no ha llegado se toca para cambiarlo.
+          La fila entera es el botón —nombre, kcal y `›` al final—: la fila no
+          tiene otro control que le dispute el toque. */}
+      {onAbrir ? (
+        <button
+          type="button"
+          className="plan-plato-btn"
+          aria-label={`Cambiar ${entrada.dish_name}`}
+          onClick={() => onAbrir(entrada)}
+        >
+          <span className="plan-plato">{entrada.dish_name}</span>
+          {entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>}
+          <span className="plan-plato-chev" aria-hidden="true">›</span>
+        </button>
+      ) : (
+        <>
+          <span className="plan-plato">{entrada.dish_name}</span>
+          {entrada.kcal != null && (
+            <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
+          )}
+        </>
       )}
       {/* El estado se dice distinto de la acción: «Me lo salté» es lo que
           pulsas, «Saltado» es lo que quedó. Las mismas palabras para las dos
@@ -383,10 +429,24 @@ export function Semana({
   generar = generatePlan,
   hoy = foodDayIso(),
   leerAdherencia = getAdherence,
+  // Tus platos. Sin ellos la semana sólo se mira: no hay con qué cambiar un
+  // plato ni forma de saber cuáles valen para cualquier comida.
+  platos = null,
+  // Abre Tus platos, para decir a qué comida va cada uno.
+  onPlatos = null,
+  onPlatosChanged = () => {},
+  replanear = replanEntry,
+  corregirPlato = correctDish,
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [informe, setInforme] = useState(null)
+  // La fila del plan que se está cambiando, o `null`.
+  const [cambiando, setCambiando] = useState(null)
+  const dias = diasDe(weekStart)
+  // Un hueco que ya pasó o del que ya dijiste algo no se replanifica: el
+  // servidor lo rechazaría, y ofrecerlo sería prometer lo que no se puede.
+  const cambiable = (entrada) => Array.isArray(platos) && !entrada.status && entrada.log_date >= hoy
 
   useEffect(() => {
     let vivo = true
@@ -429,10 +489,11 @@ export function Semana({
       </header>
 
       <div className="food-screen-body">
+        {onPlatos && <SinComida platos={platos} onPlatos={onPlatos} />}
         {onLista && <ListRow label="Lista de la compra" value="" onClick={onLista} />}
         <Adherencia informe={informe} />
 
-        {diasDe(weekStart).map((iso, i) => {
+        {dias.map((iso, i) => {
           const filas = delDia(plan, iso)
           return (
             <section key={iso} className="plan-dia">
@@ -445,7 +506,12 @@ export function Semana({
               ) : (
                 <ul className="plan-lista">
                   {filas.map((entrada) => (
-                    <Fila key={entrada.id} entrada={entrada} puedeConfirmar={false} />
+                    <Fila
+                      key={entrada.id}
+                      entrada={entrada}
+                      puedeConfirmar={false}
+                      onAbrir={cambiable(entrada) ? setCambiando : null}
+                    />
                   ))}
                 </ul>
               )}
@@ -458,6 +524,138 @@ export function Semana({
           Generar otra
         </button>
       </div>
+
+      {cambiando && (
+        <CambiarPlato
+          entrada={cambiando}
+          dia={DIAS[dias.indexOf(cambiando.log_date)] ?? ''}
+          platos={platos}
+          hoy={hoy}
+          replanear={replanear}
+          corregirPlato={corregirPlato}
+          onPlatosChanged={onPlatosChanged}
+          onClose={() => setCambiando(null)}
+          onCambiado={async () => {
+            setCambiando(null)
+            await onChanged()
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+// Cuántos de tus platos valen para cualquier comida, y por qué importa. Es la
+// causa de las lentejas en el desayuno: un plato sin comidas marcadas el
+// planificador lo lee como «vale para todas» (`PlatoCandidato.slots`). Se dice
+// aquí, delante de la semana que lo ha hecho, y no sólo dentro de Tus platos.
+function SinComida({ platos, onPlatos }) {
+  const n = (platos ?? []).filter((p) => !p.slots?.length).length
+  if (n === 0) return null
+  return (
+    <section className="platos-aviso plan-sin-comida">
+      <p className="card-eyebrow">{n === 1 ? '1 plato sin comida' : `${n} platos sin comida`}</p>
+      <p className="plan-sin-comida-texto">
+        {n === 1
+          ? 'Vale para cualquier comida, y por eso puede salir en el desayuno.'
+          : 'Valen para cualquier comida, y por eso pueden salir en el desayuno.'}
+      </p>
+      <button type="button" className="secondary plan-sin-comida-btn" onClick={onPlatos}>
+        Decir a qué comida van
+      </button>
+    </section>
+  )
+}
+
+// Cambiar un plato de un día que no ha llegado. **No es «Lo cambié»**: aquel es
+// «hoy comí otra cosa» y escribe el diario; esto cambia lo que el plan dice que
+// vas a comer, y la fila sigue por confirmar (`replanEntry`).
+function CambiarPlato({ entrada, dia, platos, hoy, replanear, corregirPlato, onPlatosChanged, onClose, onCambiado }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const [quitado, setQuitado] = useState(false)
+  const slot = entrada.slot
+  const otros = candidatos(platos, slot, entrada.dish_id)
+
+  // Las comidas del plato tal y como el planificador las lee: sin ninguna
+  // marcada, todas. Quitar la única que tiene lo dejaría sin ninguna, que es
+  // «cualquiera» — justo lo contrario de lo que se pide —, así que entonces no
+  // se ofrece.
+  const plato = (platos ?? []).find((p) => p.id === entrada.dish_id)
+  const suyas = plato?.slots?.length ? plato.slots : HUECOS
+  const puedeQuitar = Boolean(plato) && suyas.includes(slot) && suyas.length > 1
+
+  async function elegir(otro) {
+    setBusy(true)
+    setError(null)
+    try {
+      await replanear(entrada.id, otro.id, hoy)
+      await onCambiado()
+    } catch (err) {
+      const porque = err?.detail?.motivo
+      setError(porque ? `No se ha podido cambiar: ${porque}.` : 'No se ha podido cambiar.')
+      setBusy(false)
+    }
+  }
+
+  async function quitar() {
+    setBusy(true)
+    setError(null)
+    try {
+      // En el orden del día, como lo guarda Tus platos.
+      await corregirPlato(plato.id, { slots: HUECOS.filter((s) => suyas.includes(s) && s !== slot) })
+      setQuitado(true)
+      await onPlatosChanged()
+    } catch {
+      setError('No se ha podido guardar.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Sheet open title="Cambiar este plato" onClose={onClose}>
+      <p className="card-eyebrow">{`${dia} · ${NOMBRE[slot] ?? slot}`}</p>
+
+      <div className="plan-propuesto">
+        <span className="card-eyebrow">Propuesto</span>
+        <span className="plan-propuesto-nombre">{entrada.dish_name}</span>
+        {entrada.kcal != null && <span className="plan-kcal">{`${formatMacro(entrada.kcal)} kcal`}</span>}
+      </div>
+
+      <p className="card-eyebrow">{`Otros platos de ${(NOMBRE[slot] ?? slot).toLowerCase()}`}</p>
+      {otros.length === 0 ? (
+        <p className="hint">No tienes otro plato para esta comida.</p>
+      ) : (
+        <ul className="plan-otros">
+          {otros.map((otro) => (
+            <li key={otro.id}>
+              <button type="button" className="plan-otro" disabled={busy} onClick={() => elegir(otro)}>
+                <span>{otro.name}</span>
+                {otro.per_serving?.kcal != null && (
+                  <span className="plan-kcal">{`${formatMacro(otro.per_serving.kcal)} kcal`}</span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="hint">{`Sólo cambia el ${dia.toLowerCase()}. El resto del día no se reajusta.`}</p>
+
+      {(puedeQuitar || quitado) && (
+        <>
+          <p className="card-eyebrow">Para que no vuelva a pasar</p>
+          {quitado ? (
+            <p className="plan-quitado">{`Ya no saldrá en ${EN_PLURAL[slot]}. Elige por cuál cambiarlo.`}</p>
+          ) : (
+            <button type="button" className="secondary plan-quitar" disabled={busy} onClick={quitar}>
+              {`No en ${EN_PLURAL[slot]}`}
+            </button>
+          )}
+        </>
+      )}
+
+      {error && <p className="alert">{error}</p>}
+    </Sheet>
   )
 }
