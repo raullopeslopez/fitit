@@ -388,7 +388,7 @@ export function Semana({
         {dias.map((iso, i) => {
           const filas = delDia(plan, iso)
           return (
-            <section key={iso} className="plan-dia">
+            <section key={iso} className={`plan-dia${iso === hoy ? ' is-today' : ''}`}>
               <h3 className="plan-dia-nombre">
                 {DIAS[i]}
                 {iso === hoy && <span className="plan-dia-hoy">Hoy</span>}

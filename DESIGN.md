@@ -226,8 +226,9 @@ que **el color codifica progreso, no categoría**: las cuatro comidas del día
 llevan tono propio para poder barrer el scroll sin leer. Igual que la paleta de
 músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
 
-- **El tono es marca, nunca dato.** Tiñe la banda del nombre de la tarjeta al
-  20 %, pinta el punto de 7 px que va antes del nombre y el filete que cierra la
+- **El tono es marca, nunca dato.** Tiñe la banda del nombre de la comida al
+  24 % sobre el fondo (era el 20 % sobre la tarjeta: desde 2026-10-10 el diario
+  no va en tarjetas, y contra `--bg` oscuro el 20 % se quedaba en 1,15), pinta el punto de 7 px que va antes del nombre y el filete que cierra la
   banda. **No toca una cifra, no toca una barra, no toca el héroe.** El contrato
   de color de la cabecera de macros —el anillo y las barras se llenan al comer,
   en ámbar la proteína y en tinta las kcal, los hidratos y la grasa, `--pr` al
@@ -245,7 +246,7 @@ músculos, vive dentro de una frontera, y aquí la frontera es más estrecha:
   que se quedó sin elegir; darle color lo pondría a competir con las cuatro que
   sí decidiste. En el DOM se marca por ausencia: las cuatro llevan `data-slot`,
   ese montón no lleva el atributo.
-- **Un hueco no pesa más que lo registrado.** La tarjeta vacía se tiñe al 10 %,
+- **Un hueco no pesa más que lo registrado.** La comida vacía se tiñe al 12 %,
   la mitad que una con contenido. Al 20 % la tarjeta entera pesaba más que una
   comida con tres cosas dentro.
 
@@ -717,6 +718,8 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
 |---|---|
 | Perfil | migrada (H1, 2026-10-02) |
 | Comida | migrada (H2 y revisión semanal, 2026-10-02). La tarjeta de macros mantiene la proteína como cifra grande: decisión del usuario. Con objetivo son dos anillos (proteína fuera, 12 de trazo; kcal dentro, 7) con su leyenda al lado, e hidratos y grasa en barra de 6 px a pares debajo |
+| Comida (v3, 2026-10-10) | Diario sin tarjetas: título «Hoy»/«Ayer»/día con la fecha en sello, tira de la semana en vez de flechas, resumen de macros sin caja, comidas como secciones a todo el ancho con el `+` en su banda, y lo planificado dentro de su comida en un recuadro discontinuo |
+| Plan (2026-10-10) | Pestaña nueva: «Esta semana / La que viene» en control segmentado, la semana en tarjetas por día, la revisión y generar en la que viene |
 | Días, Progreso, Entreno | fuera de esta tanda |
 
 ### Reglas nuevas
@@ -739,6 +742,15 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
   sola tinta: aquí es un velo, no un color nuevo. Sobre ella el texto es `--text`.
 - **Radios v2:** tarjeta 20px (`--radius-card`), hoja 24px arriba (`--radius-sheet`),
   chip y botón flotante 16px (`--radius-pill`). Las pantallas v1 conservan 8/6.
+
+- **La barra de pestañas lleva iconos de trazo** (SVG en `currentColor`, 1,8 de
+  trazo) dentro de una píldora de 56×30; la activa se marca llenando la píldora
+  con el ámbar al 18 % y pasando la etiqueta a tinta. Sustituye a los glifos
+  `▮▮ ↗ ◒ ◍`, que no tenían uno para Plan. Cinco pestañas: Días, Progreso,
+  Comida, Plan, Perfil.
+- **Elegir entre dos vistas de lo mismo es un control segmentado**, no dos chips:
+  «Esta semana / La que viene» en Plan. Un chip sigue siendo una opción o un
+  filtro suelto.
 
 ### Componentes (`frontend/src/ui/`)
 Cuatro, porque son los que piden Comida y Perfil. Un componente nuevo entra aquí cuando
@@ -771,6 +783,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-10 | Plan sale de Comida a su pestaña; Comida pasa a diario sin tarjetas | Usuario: *"se mezclan funcionalidades… el plan y el registro"*. Eligió en el lienzo de diseño la separación y, con los cambios ya dibujados, *"todo de golpe"*: pestaña Plan (Esta semana / La que viene, con revisión, generar, lista y tus platos), lo planificado de hoy dentro de su comida con los tres botones de siempre (descartó el círculo + ⋯), botón flotante para añadir (descartó la búsqueda fija abajo), tira de la semana, título del día, resumen sin caja e iconos de trazo en las pestañas. La banda de cada comida sube del 20 al 24 % porque ahora se mide contra el fondo y no contra la tarjeta. |
 | 2026-10-04 | Widgets 0.19.0: el 4×2 se lee como la serie, pestañas con nombre y anillos de reloj | Encargo del usuario con la maqueta cerrada. **4×2:** tres partes (nombre; tiempo en 40sp con los aros; fila de dos marcos `32,5 kg` `× 12` y `+1` de 56): el bloque apilado decía `12 reps` y se leía como un formulario; la fila se lee como la serie. El valor va **encima** de las zonas de 44, no entre ellas, porque entre dos zonas no cabía `32,5 kg` en un marco de 129 dp. **Compacto por ancho también** (< 300 dp): la fila no cabe en un 3×2, que se queda con el bloque apilado (con las leyendas nuevas) y el tiempo en la línea del nombre; hasta ahora el compacto era sólo por alto. **Sin entreno:** pestañas `Pasos` `Comida` `Entreno` en vez de puntitos, recordadas por nombre (por posición, al aparecer «Pasos» por la mañana quien miraba Entreno caía en Comida). **Comida:** anillos de 20 dp al estilo de un reloj, cada cifra una vez; en el 3×2 se quitan ` G` y ` KCAL` porque si no el anillo se quedaba en 73 dp. **Entreno:** días desde el último con la franja del color de su grupo; con dos grupos que no caben se nombra el principal. Colores de grupo nuevos en el widget, sólo para marcar. **Notificación:** cerrada a 30sp con la serie en tinta; desplegada como el 4×2 sin Terminar, conservando la línea del ejercicio (abrir la app). La barra del 4×1 se queda con su radio propio a la izquierda en vez de recortarla con el fondo: se ve igual (un rectángulo recortado por la esquina del fondo es eso mismo) y no depende de que el launcher recorte (`android:clipToOutline` sólo existe desde Android 12). |
 | 2026-10-04 | La cuenta atrás se cuenta con toques cortos | Pedido del usuario: en la 0.16.0 (pi, pii, piiii) *"el tercero largo no sale"*. No se encontró la causa sin el teléfono conectado, y de las alternativas eligió contar con toques: tres en el 3, dos en el 2, uno en el 1 y uno largo en el cero. Dice cuánto queda sin mirar y sólo depende de toques cortos, que son los que llegan; el único largo, el del cero, es más corto que antes (500 ms frente a 800). |
 | 2026-10-04 | El cuerpo de la notificación no abre la app, y −/+ seguidos se pintan una vez | Problema del usuario: con el móvil bloqueado, tocar varias veces −/+ en la notificación desplegada pedía el código. Los botones son broadcasts (no piden desbloquear), pero el cuerpo tenía un `contentIntent` de actividad: cada toque repintaba la tarjeta, y uno que caía mientras tanto (o con la tarjeta ya cerrada por HyperOS) llegaba al cuerpo. Se quita el `contentIntent` y abrir Fitit pasa a ser un toque concreto, la línea del ejercicio; se pierde «tocar en cualquier sitio abre la app», que es justo lo que pedía el código. Además, los ajustes se pintan agrupados (300 ms tras el último) para que haya menos repintados que pisar; el `+1` no se agrupa porque registra. |

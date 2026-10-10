@@ -6805,3 +6805,22 @@ button.draft-save {
 .plan-otro .plan-kcal {
   white-space: nowrap;
 }
+/* `.platos-aviso` va más abajo en la hoja y le pisaba el margen: con las dos
+   clases gana el de aquí, y el aviso no se pega al primer día. */
+.platos-aviso.plan-sin-comida {
+  margin: 0 0 1rem;
+}
+/* En la pestaña, cada día es una tarjeta: la semana se barre por días, y el
+   día es la unidad que se compara con el de al lado. Hoy, con el velo ámbar. */
+.plan-semana .plan-dia {
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border-radius: var(--radius-card, 20px);
+}
+.plan-semana .plan-dia.is-today {
+  background: var(--surface-tonal);
+}
+.plan-semana .plan-dia .hint {
+  margin: 0;
+}
