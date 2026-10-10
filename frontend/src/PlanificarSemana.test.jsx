@@ -1,3 +1,4 @@
+import { onTestFinished } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
@@ -144,6 +145,45 @@ describe('Planificar la semana que viene', () => {
     render(<PlanificarSemana weekStart={LUNES} plan={PLAN} onClose={vi.fn()} onChanged={vi.fn()} />)
     await userEvent.click(await screen.findByRole('button', { name: /Lista de la compra/ }))
     expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
+  })
+
+  // La causa de un plato fuera de sitio se dice delante de la semana que lo ha
+  // hecho, y lleva a donde se arregla.
+  it('con la semana generada, avisa de los platos sin comida y abre «Tus platos»', async () => {
+    getReview.mockResolvedValue({ due: false })
+    listDishes.mockResolvedValue([])
+    render(
+      <PlanificarSemana
+        weekStart={LUNES}
+        plan={PLAN}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+        platos={[{ id: 7, name: 'Pollo con arroz', slots: null }]}
+      />,
+    )
+    expect(await screen.findByText('1 plato sin comida')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Decir a qué comida van' }))
+    expect(screen.getByRole('dialog', { name: 'Tus platos' })).toBeInTheDocument()
+  })
+
+  it('con la semana generada, un plato se toca para cambiarlo', async () => {
+    // El sábado antes de esa semana: sólo se cambia lo que no ha llegado, y sin
+    // fijar el reloj este test caducaría el mismo lunes.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-10T12:00:00'))
+    onTestFinished(() => vi.useRealTimers())
+    getReview.mockResolvedValue({ due: false })
+    render(
+      <PlanificarSemana
+        weekStart={LUNES}
+        plan={PLAN}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+        platos={[{ id: 7, name: 'Pollo con arroz', slots: ['comida'] }]}
+      />,
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Cambiar Pollo con arroz' }))
+    expect(screen.getByRole('dialog', { name: 'Cambiar este plato' })).toBeInTheDocument()
   })
 })
 

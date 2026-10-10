@@ -329,6 +329,8 @@ export default function Comida() {
           weekStart={lunesDe(dayIso)}
           onChanged={() => load(dayIso)}
           onClose={() => setSemanaOpen(false)}
+          platos={platos}
+          onPlatosChanged={loadSiempre}
         />
       )}
 
