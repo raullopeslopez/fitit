@@ -256,12 +256,28 @@ h2 {
   color: var(--text);
 }
 .tab.is-active {
+  color: var(--text);
+}
+/* El icono va en una píldora, y la pestaña activa se marca llenándola: el
+   indicador de Material que Android ya enseña a leer (DESIGN.md → Sistema v2).
+   El ámbar es un velo, no un color nuevo, y la etiqueta pasa a tinta. */
+.tab-ind {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 30px;
+  border-radius: 15px;
+  transition: background-color 150ms ease-out;
+}
+.tab.is-active .tab-ind {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent-ink);
 }
-.tab-icon {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  line-height: 1;
+@media (prefers-reduced-motion: reduce) {
+  .tab-ind {
+    transition: none;
+  }
 }
 
 /* The list scrolls; the way into a session doesn't. Pinned directly above the
@@ -3743,58 +3759,97 @@ button.set-chip:active:not(:disabled) {
   padding-bottom: 9rem;
 }
 
-/* La fecha en su propia línea, con los dos pasos a los lados. Es un sello de
-   datos, no prosa: mono y en mayúscula, como el de la lista de días. */
-.food-daynav {
+/* El día como título: la fecha en sello encima y, debajo, «Hoy», «Ayer» o el
+   nombre del día en Hero. Contesta la pregunta más simple de la pantalla con
+   una palabra, en vez de dejarla deducir de una flecha apagada. */
+.food-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0.2rem 0 0.9rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0.25rem;
 }
-.food-daystamp {
-  flex: 1;
-  /* Flex y no `text-align: center`: el sello de «Hoy» va al lado de la fecha y
-     centrarlos como texto los alinea por la línea base, que no es su centro —
-     el borde y el relleno del sello son más altos que las letras que rodean. */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+.food-head .card-eyebrow {
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--muted);
 }
-/* «Hoy» es un sello, no una etiqueta que se lea como palabra: mayúscula,
-   letterspaced y en el escalón Micro que DESIGN.md reserva para eso. Va en
-   `--muted` y con el borde del sistema — el ámbar significa que algo ha pasado,
-   y estar en el día de hoy no es un logro. */
-.food-today {
-  padding: 0.1rem 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: 9999px;
-  font-family: var(--font-body);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  /* No crece la fila: `.food-daystamp` lo centra, y el sello es más bajo que el
-     objetivo de dedo de 44 px que ya gobierna el renglón. */
-  line-height: 1.3;
+.food-title,
+.plan-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
-.food-daystep {
-  min-width: 44px;
-  min-height: 44px;
+/* La semana del día que miras, en una tira: siete días a un toque y las
+   flechas de los lados saltan de semana. Se come medio relleno lateral para
+   que siete objetivos de dedo quepan a 390 px sin bajar de 44. */
+.food-week {
+  display: grid;
+  grid-template-columns: 28px repeat(7, minmax(0, 1fr)) 28px;
+  gap: 2px;
+  align-items: center;
+  margin: 0.75rem -0.5rem 1rem;
+}
+.food-week-step {
+  width: 28px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
   font-family: var(--font-mono);
   font-size: 1.4rem;
   line-height: 1;
 }
-.food-daystep:disabled {
+.food-week-step:disabled {
   opacity: 0.35;
+}
+.food-week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: none;
+  color: var(--text);
+}
+.food-week-letter {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.food-week-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.food-week-day.is-on {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+.food-week-day.is-on .food-week-letter {
+  color: var(--accent-ink);
+}
+/* Lo que no ha llegado se ve, pero no se toca. */
+.food-week-day:disabled {
+  opacity: 0.35;
+}
+
+/* El resumen del día sin caja: es la cabecera del diario, no una tarjeta más
+   de la pila. Los anillos y las cifras van directamente sobre el fondo. */
+.comida .food-macros {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0.25rem 0 0.5rem;
 }
 
 .food-unknown {
@@ -5145,25 +5200,38 @@ button.draft-save {
 }
 
 /* ------------------------------------------------------------------ *
- * Comida: una tarjeta por comida.
+ * Comida: un diario, no una pila de tarjetas.
+ *
+ * Las cuatro comidas son secciones a todo el ancho, una detrás de otra, con su
+ * banda de color. Antes eran tarjetas —y los huecos, tarjetas a pares—, y la
+ * pantalla entera era el mismo componente repetido: nada decía qué era el
+ * resumen del día y qué el registro. El diario se come el relleno lateral del
+ * contenedor (1rem) para que las bandas lleguen al canto.
  * ------------------------------------------------------------------ */
+.food-diario {
+  margin: 0.25rem -1rem 1rem;
+}
 .food-slot {
-  padding: 0;
   overflow: hidden;
-  margin-bottom: 0.7rem;
+}
+.food-slot + .food-slot {
+  margin-top: 0.75rem;
 }
 .food-slot-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 0.7rem;
   margin: 0;
-  padding: 0.85rem 1rem;
+  min-height: 52px;
+  padding: 0 0.5rem 0 1rem;
+  border-bottom: 1px solid var(--border);
 }
 .food-slot-name {
+  flex: 1;
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 .food-slot-meta {
   font-family: var(--font-mono);
@@ -5172,50 +5240,79 @@ button.draft-save {
   color: var(--muted);
   white-space: nowrap;
 }
-/* Las filas y el pie se separan con una regla, no con hueco: la tarjeta es una
-   sola superficie y lo que la divide son líneas dentro de ella. */
-.food-slot .food-entry-swipe,
-.food-slot-foot {
-  border-top: 1px solid var(--border);
-}
-.food-slot-foot {
-  margin: 0;
-}
+/* El `+` de la comida, en su banda: 44 px de objetivo, el icono a 20. */
 .food-slot-add {
+  flex: none;
   display: flex;
   align-items: center;
-  width: 100%;
-  min-height: 44px;
-  padding: 0 1rem;
-  color: var(--accent);
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--accent-ink);
+}
+.food-slot-add:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+/* Entre filas, una regla; entre un plato y el siguiente, también. Lo que separa
+   el diario son líneas, no huecos. */
+.food-slot .food-entry-swipe + .food-entry-swipe,
+.food-slot > div + div {
+  border-top: 1px solid var(--border);
+}
+.food-slot-empty {
+  margin: 0;
+  padding: 0.85rem 1rem;
   font-size: 0.85rem;
+  color: var(--muted);
 }
 
-/* Los huecos: dos por fila, en `dashed` y sin sombra. Una tarjeta que todavía
-   no contiene nada no puede pesar lo mismo que una que sí — y sigue siendo
-   objetivo de un toque, que es por donde se registra en esa comida. */
-.food-blanks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  margin-bottom: 1rem;
-}
-.food-blank {
-  flex: 1 1 40%;
+/* Lo planificado, dentro de su comida: en un recuadro discontinuo, que es lo
+   que el plan dice, no algo que hayas comido. El mismo trazo que tenía el hueco
+   vacío — y por lo mismo: pesa menos que lo registrado. */
+.plan-en-comida {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.25rem;
-  min-height: 44px;
+  gap: 0.5rem;
+  margin: 0.75rem 1rem;
   padding: 0.85rem 1rem;
-  border-style: dashed;
-  box-shadow: none;
-  text-align: left;
+  border: 1px dashed color-mix(in srgb, var(--text) 28%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
 }
-.food-blank-add {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
+.plan-en-comida .card-eyebrow {
+  margin: 0;
+}
+.plan-en-comida-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+.plan-en-comida-nombre {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.plan-en-comida .plan-kcal {
+  white-space: nowrap;
+}
+.plan-en-comida.is-skipped .plan-en-comida-nombre {
   color: var(--muted);
+}
+.plan-en-comida-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.plan-en-comida .hint {
+  margin: 0;
 }
 
 /* ── El tono de cada comida ────────────────────────────────────────────────
@@ -5263,22 +5360,12 @@ button.draft-save {
    la tarjeta y sencillamente no se veía; a 20 % mide 1,25–1,30 y el rótulo de
    encima sigue a 12,5. Lo mide `comida.browser-test.jsx` por los dos lados. */
 .food-slot[data-slot] .food-slot-head {
-  background: color-mix(in srgb, var(--slot) 20%, var(--surface));
+  background: color-mix(in srgb, var(--slot) 24%, var(--bg));
+  border-bottom-color: color-mix(in srgb, var(--slot) 45%, var(--border));
 }
-/* El filete que cierra la banda es el borde superior de lo que viene debajo, no
-   un `border-bottom` de la cabecera: puestos los dos, se suman y la raya mide
-   2 px donde las demás miden 1. Debajo hay una fila, o el pie cuando el filtro
-   de «sin fibra» deja la comida sin ninguna. */
-.food-slot[data-slot] .food-slot-head + .food-entry-swipe,
-.food-slot[data-slot] .food-slot-head + .food-slot-foot {
-  border-top-color: color-mix(in srgb, var(--slot) 45%, var(--border));
-}
-/* La vacía se tiñe a la mitad. Al 20 % la tarjeta entera pesaba más que una
-   comida con tres cosas dentro, que es justo al revés de lo que dice la
-   pantalla: un hueco no compite con lo registrado. */
-.food-blank[data-slot] {
-  background: color-mix(in srgb, var(--slot) 10%, var(--surface));
-  border-color: color-mix(in srgb, var(--slot) 40%, var(--border));
+/* La vacía se tiñe a la mitad: un hueco no compite con lo registrado. */
+.food-slot.is-empty[data-slot] .food-slot-head {
+  background: color-mix(in srgb, var(--slot) 12%, var(--bg));
 }
 /* El punto. Es lo que hace que el tono se lea como una marca deliberada y no
    como una tarjeta que se ha manchado. */
@@ -5346,12 +5433,11 @@ button.draft-save {
 .food-entry-swipe > .food-entry {
   position: relative;
   width: 100%;
-  /* Opaca, y del color de la superficie que la contiene: es lo que tapa el
-     «Borrar» que espera detrás mientras la fila no se ha deslizado. Pintaba
-     `--bg` de cuando las filas vivían sueltas sobre la página; dentro de una
-     tarjeta eso las dejaba de otro color que la tarjeta —#f4f2ee sobre #ffffff
-     en claro—, una banda por fila que no separaba nada. */
-  background: var(--surface);
+  /* Opaca, y del color de lo que la contiene: es lo que tapa el «Borrar» que
+     espera detrás mientras la fila no se ha deslizado. Dentro de una tarjeta
+     era `--surface`; desde que el diario va suelto sobre la página vuelve a ser
+     `--bg`, o cada fila sería una banda blanca sobre el papel. */
+  background: var(--bg);
   /* Sigue al dedo mientras se arrastra (JS, en línea) y sólo anima el salto
      final —abrir del todo o volver a cerrar— para que el gesto en curso no se
      sienta pastoso. */
@@ -6669,4 +6755,53 @@ button.draft-save {
 .lista-taski > button {
   /* 44: DESIGN.md. El `.secondary` de serie mide 39. */
   min-height: 44px;
+}
+
+/* ------------------------------------------------------------------ *
+ * La pestaña Plan.
+ * ------------------------------------------------------------------ */
+.plan-pantalla {
+  padding-bottom: 2rem;
+}
+.plan-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.2rem 0 1rem;
+}
+.plan-head .card-eyebrow {
+  margin: 0;
+}
+/* Dos semanas, un control segmentado: es una elección entre dos vistas de lo
+   mismo, no dos filtros sueltos. */
+.seg {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.seg-btn {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--border);
+}
+.seg-btn.is-on {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--text);
+}
+.plan-semana .plan-otra {
+  width: 100%;
+}
+.plan-otro .plan-kcal {
+  white-space: nowrap;
 }

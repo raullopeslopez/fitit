@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import PlanDelDia, { Adherencia, Semana, lunesDe, lunesSiguiente } from './Plan.jsx'
+import { Adherencia, PlanEnComida, Semana, lunesDe, lunesSiguiente, planDelDia } from './Plan.jsx'
 
 const LUNES = '2026-09-21'
 const MARTES = '2026-09-22'
@@ -56,168 +56,113 @@ describe('lunesSiguiente', () => {
   })
 })
 
-describe('el plan del día', () => {
-  it('pinta las cuatro comidas con lo que suman', () => {
-    render(<PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} />)
+// Lo planificado vive dentro de su comida en el diario: se confirma donde se
+// registra, con la comida delante, y no en una tarjeta aparte que partía el día
+// en dos.
+describe('lo planificado, dentro de su comida', () => {
+  const COMIDA = entrada({ id: 2, slot: 'comida' })
+
+  function pintar(over = {}) {
+    const props = {
+      entrada: COMIDA,
+      isToday: true,
+      onChanged: vi.fn(),
+      onComido: vi.fn(),
+      platos: [],
+      setEntry: vi.fn().mockResolvedValue({ ...COMIDA, status: 'done' }),
+      ...over,
+    }
+    render(<PlanEnComida {...props} />)
+    return props
+  }
+
+  it('dice qué toca y lo que suma', () => {
+    pintar()
+    expect(screen.getByText('Planificado')).toBeInTheDocument()
     expect(screen.getByText('Pollo con arroz')).toBeInTheDocument()
-    expect(screen.getByText('Tostada')).toBeInTheDocument()
     expect(screen.getByText('620 kcal')).toBeInTheDocument()
   })
 
-  it('sólo enseña las comidas de ese día', () => {
-    const plan = { ...PLAN, entries: [...PLAN.entries, entrada({ id: 9, log_date: MARTES, dish_name: 'De mañana' })] }
-    render(<PlanDelDia plan={plan} dayIso={LUNES} isToday onChanged={vi.fn()} />)
-    expect(screen.queryByText('De mañana')).not.toBeInTheDocument()
+  it('confirma de un toque y avisa de que se ha comido', async () => {
+    const props = pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'Lo comí' }))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'done', null))
+    expect(props.onChanged).toHaveBeenCalled()
+    // Comer es cuando tienes el móvil en la mano: el diario pregunta el peso.
+    expect(props.onComido).toHaveBeenCalled()
   })
 
-  it('confirma una comida de un toque', async () => {
-    const onChanged = vi.fn()
-    const setPlanEntry = vi.fn().mockResolvedValue({ ...entrada(), status: 'done' })
-    render(
-      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={onChanged} setEntry={setPlanEntry} />,
+  it('saltarse una comida no cuenta como comerla', async () => {
+    const props = pintar({ setEntry: vi.fn().mockResolvedValue({ ...COMIDA, status: 'skipped' }) })
+    await userEvent.click(screen.getByRole('button', { name: 'Me lo salté' }))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'skipped', null))
+    expect(props.onComido).not.toHaveBeenCalled()
+  })
+
+  it('«Lo cambié» ofrece tus platos que caben en esa comida y manda el cambio', async () => {
+    const props = pintar({
+      platos: [
+        { id: 8, name: 'Merluza', slots: ['comida', 'cena'], per_serving: { kcal: 400 } },
+        { id: 9, name: 'Avena', slots: ['desayuno'], per_serving: { kcal: 300 } },
+      ],
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Lo cambié' }))
+    expect(screen.queryByRole('button', { name: /Avena/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Merluza/ }))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'swapped', 8))
+    expect(props.onComido).toHaveBeenCalled()
+  })
+
+  it('sin otro plato para esa comida lo dice', async () => {
+    pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'Lo cambié' }))
+    expect(screen.getByText('No tienes otro plato para esta comida.')).toBeInTheDocument()
+  })
+
+  // Lo comido ya está en el diario, con sus cifras: repetirlo encima sería
+  // contar dos veces lo mismo.
+  it('lo ya comido no se pinta: está en el diario', () => {
+    const { container } = render(
+      <PlanEnComida entrada={entrada({ status: 'done', log_entry_id: 40 })} isToday onChanged={vi.fn()} />,
     )
-    await userEvent.click(screen.getAllByRole('button', { name: /Lo comí/ })[1])
-    await waitFor(() => expect(setPlanEntry).toHaveBeenCalledWith(2, 'done', null))
-    expect(onChanged).toHaveBeenCalled()
+    expect(container).toBeEmptyDOMElement()
   })
 
-  // Confirmar es el momento en que ya tienes el móvil en la mano: si hoy no te
-  // has pesado, se pregunta ahí, dentro de la tarjeta.
-  it('tras confirmar, pregunta el peso de hoy si falta', async () => {
-    const setPlanEntry = vi.fn().mockResolvedValue({ ...entrada(), status: 'done' })
-    render(
-      <PlanDelDia
-        plan={PLAN}
-        dayIso={LUNES}
-        isToday
-        onChanged={vi.fn()}
-        setEntry={setPlanEntry}
-        leerPesadas={vi.fn().mockResolvedValue([])}
-        guardarPeso={vi.fn()}
-      />,
-    )
-    expect(screen.queryByText('¿Te has pesado hoy?')).not.toBeInTheDocument()
-    await userEvent.click(screen.getAllByRole('button', { name: /Lo comí/ })[1])
-    expect(await screen.findByText('¿Te has pesado hoy?')).toBeInTheDocument()
-  })
-
-  it('saltarse una comida no pregunta el peso', async () => {
-    const setPlanEntry = vi.fn().mockResolvedValue({ ...entrada(), status: 'skipped' })
-    const leer = vi.fn().mockResolvedValue([])
-    render(
-      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} setEntry={setPlanEntry} leerPesadas={leer} guardarPeso={vi.fn()} />,
-    )
-    await userEvent.click(screen.getAllByRole('button', { name: /Me lo salté/ })[1])
-    await waitFor(() => expect(setPlanEntry).toHaveBeenCalled())
-    expect(screen.queryByText('¿Te has pesado hoy?')).not.toBeInTheDocument()
-  })
-
-  it('una comida confirmada lo dice y ya no se puede volver a confirmar', () => {
-    const plan = {
-      ...PLAN,
-      entries: [entrada({ id: 2, status: 'done', log_entry_id: 40 })],
-    }
-    render(<PlanDelDia plan={plan} dayIso={LUNES} isToday onChanged={vi.fn()} />)
-    expect(screen.getByText('Comido')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Lo comí/ })).not.toBeInTheDocument()
-  })
-
-  it('una comida saltada se distingue de una que no has dicho nada', () => {
-    const plan = {
-      ...PLAN,
-      entries: [entrada({ id: 2, status: 'skipped' }), entrada({ id: 3, slot: 'cena' })],
-    }
-    render(<PlanDelDia plan={plan} dayIso={LUNES} isToday onChanged={vi.fn()} />)
+  it('una comida saltada lo dice y ya no ofrece nada', () => {
+    pintar({ entrada: entrada({ id: 2, status: 'skipped' }) })
     expect(screen.getByText('Saltado')).toBeInTheDocument()
-    // La que no dice nada sigue ofreciendo confirmar: no confirmada no es saltada.
-    expect(screen.getAllByRole('button', { name: /Lo comí/ })).toHaveLength(1)
-    // Y el botón no se llama igual que el estado, o la fila parecería ofrecer
-    // lo que ya hizo.
-    expect(screen.getAllByRole('button', { name: 'Me lo salté' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
   })
 
-  // Una entrada del diario se fecha por el instante en que la escribes, así que
-  // confirmar el jueves desde el lunes pondría comida del jueves en el lunes.
-  it('en un día que no es hoy enseña el plan pero no deja confirmarlo', () => {
-    render(<PlanDelDia plan={PLAN} dayIso={LUNES} isToday={false} onChanged={vi.fn()} />)
+  // Una entrada del diario se fecha por el instante en que la escribes: confirmar
+  // el jueves desde el lunes pondría comida del jueves en el lunes.
+  it('en un día que no es hoy enseña lo planificado pero no deja confirmarlo', () => {
+    pintar({ isToday: false })
     expect(screen.getByText('Pollo con arroz')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Lo comí/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
     expect(screen.getByText('Sólo se confirma el día de hoy.')).toBeInTheDocument()
+  })
+
+  it('si no se puede guardar lo dice, con el motivo del servidor', async () => {
+    pintar({ setEntry: vi.fn().mockRejectedValue({ detail: { motivo: 'ese día ya pasó' } }) })
+    await userEvent.click(screen.getByRole('button', { name: 'Lo comí' }))
+    expect(await screen.findByText('ese día ya pasó')).toBeInTheDocument()
+  })
+})
+
+describe('las comidas planificadas de un día', () => {
+  it('sólo las de ese día, una por comida', () => {
+    const plan = { ...PLAN, entries: [...PLAN.entries, entrada({ id: 9, log_date: MARTES, dish_name: 'De mañana' })] }
+    expect(planDelDia(plan, LUNES).comida.dish_name).toBe('Pollo con arroz')
+    expect(planDelDia(plan, MARTES).comida.dish_name).toBe('De mañana')
+    expect(planDelDia(plan, MARTES).desayuno).toBeUndefined()
   })
 
   it('un cuerpo con otra forma se lee como que no hay plan, y no revienta', () => {
     // `[]` es lo que devuelve un servidor que no conoce la ruta. `[].entries`
     // existe —es el iterador de Array— y un `?? []` lo daría por bueno.
-    render(<PlanDelDia plan={[]} dayIso={LUNES} isToday onChanged={vi.fn()} />)
-    expect(screen.queryByText('Pollo con arroz')).not.toBeInTheDocument()
-  })
-
-  it('sin plan para esa semana ofrece generarla', async () => {
-    const generar = vi.fn().mockResolvedValue(PLAN)
-    const onChanged = vi.fn()
-    render(<PlanDelDia plan={null} dayIso={LUNES} isToday onChanged={onChanged} generar={generar} />)
-    expect(screen.getByText('Todavía no hay plan para esta semana.')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Generar la semana' }))
-    await waitFor(() => expect(generar).toHaveBeenCalledWith(LUNES, null))
-  })
-
-  it('dice por qué no se ha podido generar, con el hueco', async () => {
-    const generar = vi.fn().mockRejectedValue(
-      Object.assign(new Error('unprocessable'), {
-        status: 422,
-        detail: { slot: 'cena', motivo: 'sin candidatos' },
-      }),
-    )
-    render(<PlanDelDia plan={null} dayIso={LUNES} isToday onChanged={vi.fn()} generar={generar} />)
-    await userEvent.click(screen.getByRole('button', { name: 'Generar la semana' }))
-    expect(await screen.findByText(/No hay platos que puedan ir en la cena/)).toBeInTheDocument()
-  })
-
-  it('sin platos dice que empieces por ahí', async () => {
-    const generar = vi.fn().mockRejectedValue(
-      Object.assign(new Error('unprocessable'), {
-        status: 422,
-        detail: { slot: null, motivo: 'no hay platos en el repertorio' },
-      }),
-    )
-    render(<PlanDelDia plan={null} dayIso={LUNES} isToday onChanged={vi.fn()} generar={generar} />)
-    await userEvent.click(screen.getByRole('button', { name: 'Generar la semana' }))
-    expect(await screen.findByText(/Necesitas platos/)).toBeInTheDocument()
-  })
-})
-
-// La semana que viene se planifica cualquier día: compras una vez a la semana
-// pero no siempre el mismo, y para comprar hace falta el plan antes del lunes.
-describe('la semana que viene, desde el plan del día', () => {
-  it('sin plan para la que viene, ofrece planificarla', async () => {
-    const onPlanificar = vi.fn()
-    render(
-      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} siguiente={null} onPlanificar={onPlanificar} />,
-    )
-    await userEvent.click(screen.getByRole('button', { name: 'Planificar la semana que viene' }))
-    expect(onPlanificar).toHaveBeenCalledOnce()
-  })
-
-  it('también cuando esta semana tampoco tiene plan', () => {
-    render(
-      <PlanDelDia plan={null} dayIso={LUNES} isToday onChanged={vi.fn()} siguiente={null} onPlanificar={vi.fn()} />,
-    )
-    expect(screen.getByRole('button', { name: 'Planificar la semana que viene' })).toBeInTheDocument()
-  })
-
-  it('con la que viene ya planificada, se ve', () => {
-    render(
-      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} siguiente={PLAN} onPlanificar={vi.fn()} />,
-    )
-    expect(screen.getByRole('button', { name: 'Ver la semana que viene' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Planificar la semana que viene' })).not.toBeInTheDocument()
-  })
-
-  it('mirando otro día no se ofrece: «la que viene» es la de hoy', () => {
-    render(
-      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday={false} onChanged={vi.fn()} siguiente={null} onPlanificar={vi.fn()} />,
-    )
-    expect(screen.queryByRole('button', { name: /semana que viene/ })).not.toBeInTheDocument()
+    expect(planDelDia([], LUNES)).toEqual({})
+    expect(planDelDia(null, LUNES)).toEqual({})
   })
 })
 
@@ -390,92 +335,6 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     pintar({ platos: null })
     expect(screen.queryByText(/sin comida$/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Cambiar / })).not.toBeInTheDocument()
-  })
-})
-
-describe('qué me queda por comer', () => {
-  it('nombra las comidas que quedan y lo que suman', () => {
-    render(<PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} />)
-    expect(
-      screen.getByText('Te quedan el desayuno, la comida, la cena y el snack: 1680 kcal.'),
-    ).toBeInTheDocument()
-  })
-
-  it('con una sola concuerda en singular', () => {
-    const plan = {
-      ...PLAN,
-      entries: [
-        entrada({ id: 1, slot: 'desayuno', status: 'done' }),
-        entrada({ id: 2, slot: 'cena', kcal: 500 }),
-      ],
-    }
-    render(<PlanDelDia plan={plan} dayIso={LUNES} isToday onChanged={vi.fn()} />)
-    expect(screen.getByText('Te queda la cena: 500 kcal.')).toBeInTheDocument()
-  })
-
-  it('cuando ya has dicho de todas, lo dice', () => {
-    const plan = {
-      ...PLAN,
-      entries: [entrada({ id: 1, status: 'done' }), entrada({ id: 2, slot: 'cena', status: 'skipped' })],
-    }
-    render(<PlanDelDia plan={plan} dayIso={LUNES} isToday onChanged={vi.fn()} />)
-    expect(screen.getByText('Nada más por hoy.')).toBeInTheDocument()
-  })
-
-  it('en un día que no es hoy no cuenta lo que queda', () => {
-    render(<PlanDelDia plan={PLAN} dayIso={LUNES} isToday={false} onChanged={vi.fn()} />)
-    expect(screen.queryByText(/Te quedan/)).not.toBeInTheDocument()
-  })
-})
-
-const PLATOS = [
-  { id: 7, name: 'Pollo con arroz', slots: null, per_serving: { kcal: 620 } },
-  { id: 8, name: 'Merluza al horno', slots: ['comida', 'cena'], per_serving: { kcal: 500 } },
-  { id: 9, name: 'Tostada', slots: ['desayuno'], per_serving: { kcal: 380 } },
-]
-
-describe('cambiar una comida', () => {
-  it('ofrece los platos tuyos que caben en ese hueco', async () => {
-    render(
-      <PlanDelDia plan={PLAN} dayIso={LUNES} isToday onChanged={vi.fn()} platos={PLATOS} />,
-    )
-    await userEvent.click(screen.getAllByRole('button', { name: 'Lo cambié' })[1])
-    expect(screen.getByText('¿Por cuál?')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Merluza al horno/ })).toBeInTheDocument()
-    // El que ya estaba planificado no se ofrece, y el del desayuno tampoco.
-    expect(screen.queryByRole('button', { name: /Pollo con arroz/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Tostada/ })).not.toBeInTheDocument()
-  })
-
-  it('al elegir uno lo manda como cambio', async () => {
-    const setEntry = vi.fn().mockResolvedValue({ ...entrada(), status: 'swapped' })
-    render(
-      <PlanDelDia
-        plan={PLAN}
-        dayIso={LUNES}
-        isToday
-        onChanged={vi.fn()}
-        platos={PLATOS}
-        setEntry={setEntry}
-      />,
-    )
-    await userEvent.click(screen.getAllByRole('button', { name: 'Lo cambié' })[1])
-    await userEvent.click(screen.getByRole('button', { name: /Merluza al horno/ }))
-    await waitFor(() => expect(setEntry).toHaveBeenCalledWith(2, 'swapped', 8))
-  })
-
-  it('sin ningún plato que quepa lo dice en vez de enseñar una lista vacía', async () => {
-    render(
-      <PlanDelDia
-        plan={PLAN}
-        dayIso={LUNES}
-        isToday
-        onChanged={vi.fn()}
-        platos={[PLATOS[0], PLATOS[2]]}
-      />,
-    )
-    await userEvent.click(screen.getAllByRole('button', { name: 'Lo cambié' })[1])
-    expect(screen.getByText('No tienes otro plato para esta comida.')).toBeInTheDocument()
   })
 })
 

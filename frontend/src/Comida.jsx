@@ -24,8 +24,8 @@ import { DishChips, NewDish } from './Dish.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
-import PlanDelDia, { Semana, lunesDe, lunesSiguiente } from './Plan.jsx'
-import PlanificarSemana from './PlanificarSemana.jsx'
+import PesoDeHoy from './PesoDeHoy.jsx'
+import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
 import { Fab } from './ui'
 import {
   MACROS,
@@ -77,24 +77,6 @@ function rails(day) {
     .filter((rail) => rail.key !== null || rail.entries.length > 0)
 }
 
-// Las comidas que ya tienen algo dentro, en el orden en que se comen. Cada una
-// se dibuja como una tarjeta con su subtotal, sus filas y su propio
-// «+ Añadir a …»: entrar por el slot es lo que deja el destino ya resuelto,
-// así que la pantalla de Añadir no tiene que preguntarlo.
-function filled(day) {
-  return rails(day).filter((rail) => rail.entries.length > 0)
-}
-
-// Las que están vacías. Van juntas al final y en `dashed`, no intercaladas: un
-// hueco no compite por la atención con una comida registrada, y agrupándolos
-// caben dos por fila en vez de ocupar cuatro tarjetas de alto.
-//
-// El montón sin asignar no aparece aquí — no tiene `+`, porque nadie quiere
-// *decidir* no decidir, así que sólo existe cuando ya hay algo en él.
-function empty(day) {
-  return rails(day).filter((rail) => rail.key !== null && rail.entries.length === 0)
-}
-
 // Una entrada está completa cuando ninguno de sus nutrientes es `null`. Sirve
 // para el filtro que abre el chip de «sin fibra»: no hay una bandera para
 // esto en el servidor porque no hace falta una — se lee directamente de la
@@ -122,17 +104,12 @@ export default function Comida() {
   // Van juntas porque un veredicto sin su regla es un id y un estado.
   const [reglas, setReglas] = useState([])
   const [veredictos, setVeredictos] = useState([])
-  // El plan de la semana a la que pertenece el día que se está mirando. `null`
-  // es «esa semana no se ha generado», que no es lo mismo que «no ha llegado»:
-  // la pantalla ofrece generarla.
+  // El plan de la semana a la que pertenece el día que se está mirando, para
+  // poner cada plato planificado dentro de su comida. `null` es «esa semana no
+  // se ha generado»: planificarla es de la pestaña Plan, no de aquí.
   const [plan, setPlan] = useState(null)
-  // La semana entera, a pantalla completa: siete días por cuatro huecos no
-  // caben debajo del día que estás mirando.
-  const [semanaOpen, setSemanaOpen] = useState(false)
-  // El plan de la semana que viene, la que se planifica para comprar con ella.
-  // Siempre la de hoy, mires el día que mires.
-  const [planSiguiente, setPlanSiguiente] = useState(null)
-  const [planificarOpen, setPlanificarOpen] = useState(false)
+  // Tras confirmar una comida del plan, la pregunta del peso de hoy (si falta).
+  const [pedirPeso, setPedirPeso] = useState(false)
   // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
   // El nombre no está congelado en la entrada a propósito: es una etiqueta de
   // agrupación, no un dato del día, así que renombrar el plato retitula bien.
@@ -156,9 +133,6 @@ export default function Comida() {
   // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
   const [deleted, setDeleted] = useState(null)
   const [undoing, setUndoing] = useState(false)
-  // Aceptar en la revisión cambia el perfil que la línea del objetivo ya leyó:
-  // se remonta con otra `key` para que vuelva a pedirlo y diga «mañana …».
-  const [lineaKey, setLineaKey] = useState(0)
 
   const load = useCallback(async (iso) => {
     try {
@@ -183,11 +157,6 @@ export default function Comida() {
       setPlan(await getPlan(lunesDe(iso)))
     } catch {
       setPlan(null)
-    }
-    try {
-      setPlanSiguiente(await getPlan(lunesSiguiente(foodDayIso())))
-    } catch {
-      setPlanSiguiente(null)
     }
   }, [])
 
@@ -225,6 +194,7 @@ export default function Comida() {
   // vive en el raíl en el que se hizo, y ese raíl ya no está en pantalla.
   useEffect(() => {
     setDeleted(null)
+    setPedirPeso(false)
   }, [dayIso])
 
   // Hoy es el último día al que se puede llegar: no se registra por adelantado.
@@ -290,65 +260,19 @@ export default function Comida() {
     }
   }
 
+  const planHoy = planDelDia(plan, dayIso)
+
   return (
     <div className="comida">
-      <div className="food-daynav">
-        <button
-          type="button"
-          className="link-btn food-daystep"
-          aria-label="Día anterior"
-          onClick={() => setDayIso(shiftDay(dayIso, -1))}
-        >
-          ‹
-        </button>
-        {/* La fecha en su propio `span` y no suelta en el `h2`: el sello de
-            «Hoy» va al lado, y con los dos como texto plano del mismo elemento
-            no hay forma de leer la fecha sola —ni desde una prueba ni desde un
-            lector de pantalla—. */}
-        <h2 className="food-daystamp">
-          <span className="food-daystamp-date">{formatDayShort(dayIso)}</span>
-          {/* Que estés en hoy se deducía de que la flecha derecha estaba
-              apagada, que es pedirle al ojo que compare dos controles para
-              contestar a la pregunta más simple de la pantalla. */}
-          {isToday && <span className="food-today">Hoy</span>}
-        </h2>
-        <button
-          type="button"
-          className="link-btn food-daystep"
-          aria-label="Día siguiente"
-          disabled={isToday}
-          onClick={() => setDayIso(shiftDay(dayIso, 1))}
-        >
-          ›
-        </button>
-      </div>
+      {/* El día como título —«Hoy», «Ayer», o su nombre— y la fecha encima en
+          sello. Que estés en hoy se dice con una palabra, no se deduce de una
+          flecha apagada. */}
+      <header className="food-head">
+        <span className="card-eyebrow food-daystamp-date">{formatDayShort(dayIso)}</span>
+        <h1 className="food-title">{tituloDia(dayIso)}</h1>
+      </header>
 
-      {semanaOpen && plan && (
-        <Semana
-          plan={plan}
-          weekStart={lunesDe(dayIso)}
-          onChanged={() => load(dayIso)}
-          onClose={() => setSemanaOpen(false)}
-          platos={platos}
-          onPlatosChanged={loadSiempre}
-        />
-      )}
-
-      {/* La revisión semanal vive aquí dentro, no arriba de Comida: va con
-          planificar, que es cuando el objetivo tiene que estar decidido. */}
-      {planificarOpen && (
-        <PlanificarSemana
-          weekStart={lunesSiguiente(foodDayIso())}
-          plan={planSiguiente}
-          platos={platos}
-          onPlatosChanged={loadSiempre}
-          onChanged={async () => {
-            setLineaKey((k) => k + 1)
-            await load(dayIso)
-          }}
-          onClose={() => setPlanificarOpen(false)}
-        />
-      )}
+      <FranjaSemana dayIso={dayIso} hoy={foodDayIso()} onPick={setDayIso} />
 
       {error && <p className="alert">{error}</p>}
 
@@ -356,11 +280,7 @@ export default function Comida() {
           hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
           lado haría creer que aquel día se comía a este ritmo. */}
       {day && isToday && (
-        <ObjetivoLinea
-          key={lineaKey}
-          targetKcal={day.target_kcal ?? null}
-          onAccepted={() => load(dayIso)}
-        />
+        <ObjetivoLinea targetKcal={day.target_kcal ?? null} onAccepted={() => load(dayIso)} />
       )}
 
       {day && <MacroCard day={day} />}
@@ -368,20 +288,6 @@ export default function Comida() {
       {/* Sólo se pinta lo que pide algo: una regla cumplida no necesita
           decirse, y una que hoy no aplica menos todavía. */}
       <Veredictos verdicts={veredictos} rules={reglas} />
-
-      {/* Lo que toca, antes que lo que ya has comido. El plan propone; el
-          diario de abajo sigue siendo el registro, y sigue abierto a lo que
-          comas y no estuviera planificado. */}
-      <PlanDelDia
-        plan={plan}
-        dayIso={dayIso}
-        isToday={isToday}
-        onChanged={() => load(dayIso)}
-        onVerSemana={plan ? () => setSemanaOpen(true) : null}
-        platos={platos}
-        siguiente={planSiguiente}
-        onPlanificar={() => setPlanificarOpen(true)}
-      />
 
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
           contrario de lo que dice. Así que se explica en voz alta — y ahora se
@@ -400,48 +306,40 @@ export default function Comida() {
 
       {day && (
         <>
-          {filled(day).map((rail) => (
-            <SlotCard
-              key={rail.key ?? 'sin-asignar'}
-              rail={rail}
-              entries={onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries}
-              dishNames={dishNames}
-              deleted={deleted && (deleted.meal_slot ?? null) === rail.key ? deleted : null}
-              undoing={undoing}
-              onUndo={handleUndo}
-              onAdd={() => setAdding({ slot: rail.key })}
-              onEdit={setEditing}
-              onDelete={setConfirming}
-            />
-          ))}
-          {/* Los vacíos, en fila de dos y en `dashed`: una tarjeta que todavía
-              no contiene nada no puede pesar lo mismo que una que sí. Siguen
-              siendo objetivo de un toque —es por donde se entra a registrar en
-              esa comida— y por eso son `button` y no `div` con un enlace
-              dentro: el área que se toca es la tarjeta entera. */}
-          {empty(day).length > 0 && (
-            <div className="food-blanks">
-              {empty(day).map((rail) => (
-                <button
-                  type="button"
-                  key={rail.key}
-                  className="card food-blank"
-                  // El tono llega antes que el contenido: Cena y Snack ya se
-                  // reconocen cuando todavía no tienen nada dentro.
-                  data-slot={rail.key}
-                  /* El nombre calculado de la tarjeta sería «Desayuno + añadir»,
-                     que describe lo que se ve y no lo que hace. Explícito, y el
-                     mismo que lleva el pie de una comida con contenido: es el
-                     mismo control, cambia sólo qué tarjeta lo aloja. */
-                  aria-label={`Añadir a ${slotLabel(rail.key).toLowerCase()}`}
-                  onClick={() => setAdding({ slot: rail.key })}
-                >
-                  <span className="food-slot-name">{slotLabel(rail.key)}</span>
-                  <span className="food-blank-add">+ añadir</span>
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Un diario continuo, no una pila de tarjetas: las cuatro comidas
+              siempre, en el orden en que se comen, cada una con su banda de
+              color. Una comida vacía también se dibuja —es por donde se entra a
+              registrar en ella— y lleva dentro lo que el plan ponía, si algo. */}
+          <div className="food-diario">
+            {rails(day).map((rail) => (
+              <SlotCard
+                key={rail.key ?? 'sin-asignar'}
+                rail={rail}
+                entries={onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries}
+                dishNames={dishNames}
+                deleted={deleted && (deleted.meal_slot ?? null) === rail.key ? deleted : null}
+                undoing={undoing}
+                onUndo={handleUndo}
+                onAdd={() => setAdding({ slot: rail.key })}
+                onEdit={setEditing}
+                onDelete={setConfirming}
+                planificado={
+                  rail.key && planHoy[rail.key] ? (
+                    <PlanEnComida
+                      entrada={planHoy[rail.key]}
+                      isToday={isToday}
+                      platos={platos}
+                      onChanged={() => load(dayIso)}
+                      onComido={() => setPedirPeso(true)}
+                    />
+                  ) : null
+                }
+              />
+            ))}
+          </div>
+          {/* El día que tienes delante no es el que estás viviendo: una entrada
+              del diario se fecha por el instante en que la escribes. */}
+          {pedirPeso && isToday && <PesoDeHoy />}
           <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />
         </>
       )}
@@ -459,7 +357,7 @@ export default function Comida() {
           v2). Sin comida elegida: la pantalla de añadir la deduce de la hora,
           igual que cuando se entra por el diario sin tocar una tarjeta. Se
           esconde con cualquier hoja abierta, que ya es lo que estás haciendo. */}
-      {!adding && !editingEntry && !confirming && !summaryOpen && !semanaOpen && !planificarOpen && (
+      {!adding && !editingEntry && !confirming && !summaryOpen && (
         <Fab icon="+" label="Añadir comida" onClick={() => setAdding({ slot: null })} />
       )}
 
@@ -522,6 +420,76 @@ export default function Comida() {
         </div>
       )}
     </div>
+  )
+}
+
+const DIAS_LARGOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+const DIAS_CORTOS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+// El día de la semana de un ISO, con el lunes en 0. En UTC: un `Date` local de
+// un `YYYY-MM-DD` es medianoche UTC, y en Madrid eso cae el día anterior.
+function diaSemana(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
+}
+
+// El título del día: «Hoy», «Ayer», o el nombre del día. Es la pregunta más
+// simple de la pantalla —¿qué día estoy mirando?— y se contesta con una palabra.
+function tituloDia(iso, hoy = foodDayIso()) {
+  if (iso === hoy) return 'Hoy'
+  if (iso === shiftDay(hoy, -1)) return 'Ayer'
+  return DIAS_LARGOS[diaSemana(iso)]
+}
+
+/**
+ * La semana del día que miras, en una tira: siete días a un toque, y las
+ * flechas de los lados saltan de semana.
+ *
+ * Sustituye a las flechas de día en día. Volver al martes desde el viernes eran
+ * tres toques y tres cargas por días que no querías ver; aquí es uno. Lo que no
+ * ha llegado se ve pero no se toca: no se registra por adelantado.
+ */
+function FranjaSemana({ dayIso, hoy, onPick }) {
+  const lunes = lunesDe(dayIso)
+  const dias = Array.from({ length: 7 }, (_, i) => shiftDay(lunes, i))
+  const esLaDeHoy = lunes === lunesDe(hoy)
+  const siguiente = shiftDay(dayIso, 7)
+  return (
+    <nav className="food-week" aria-label="Elegir día">
+      <button
+        type="button"
+        className="food-week-step"
+        aria-label="Semana anterior"
+        onClick={() => onPick(shiftDay(dayIso, -7))}
+      >
+        ‹
+      </button>
+      {dias.map((iso, i) => (
+        <button
+          key={iso}
+          type="button"
+          className={`food-week-day${iso === dayIso ? ' is-on' : ''}`}
+          aria-label={`${DIAS_LARGOS[i]} ${Number(iso.slice(8))}`}
+          aria-pressed={iso === dayIso}
+          disabled={iso > hoy}
+          onClick={() => onPick(iso)}
+        >
+          <span className="food-week-letter">{DIAS_CORTOS[i]}</span>
+          <span className="food-week-num">{Number(iso.slice(8))}</span>
+        </button>
+      ))}
+      {/* Hacia delante, el mismo día una semana después — o hoy, si esa semana
+          todavía no ha terminado de llegar. */}
+      <button
+        type="button"
+        className="food-week-step"
+        aria-label="Semana siguiente"
+        disabled={esLaDeHoy}
+        onClick={() => onPick(siguiente > hoy ? hoy : siguiente)}
+      >
+        ›
+      </button>
+    </nav>
   )
 }
 
@@ -896,7 +864,14 @@ function MacroRow({ label, eaten, target = null, decimals = 0 }) {
   )
 }
 
-// Una comida con algo dentro: subtotal, filas, y su propia puerta de entrada.
+// Una comida del diario: su banda con el nombre, el subtotal y el `+`; lo que
+// el plan ponía, si algo; y lo registrado.
+//
+// Ya no es una tarjeta: el día se lee de arriba abajo como un diario, y cada
+// comida es una sección a todo el ancho. La banda de color sigue siendo de la
+// comida (DESIGN.md → Color por comida) y el `+` vive en ella, donde está el
+// nombre de lo que vas a añadir — antes era un pie con «+ Añadir a …» que se
+// repetía cuatro veces.
 function SlotCard({
   rail,
   entries,
@@ -907,21 +882,44 @@ function SlotCard({
   onAdd,
   onEdit,
   onDelete,
+  planificado = null,
 }) {
   const label = slotLabel(rail.key)
+  const vacia = entries.length === 0
   return (
     // `data-slot` y no una clase: la hoja de estilos escribe `[data-slot]` para
-    // «esta tarjeta tiene tono» y `[data-slot='cena']` para cuál, en vez de
+    // «esta comida tiene tono» y `[data-slot='cena']` para cuál, en vez de
     // repetir las cuatro clases en cada regla. El montón sin asignar se queda
     // sin atributo —no es una comida que elegiste— y por eso `?? undefined`:
     // React omite el atributo entero, que es lo que `[data-slot]` comprueba.
-    <section className="card food-slot" data-slot={rail.key ?? undefined}>
+    <section
+      className={`food-slot${vacia ? ' is-empty' : ''}`}
+      data-slot={rail.key ?? undefined}
+    >
       <h3 className="food-slot-head">
         <span className="food-slot-name">{label}</span>
-        <span className="food-slot-meta">
-          {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
-        </span>
+        {/* Un hueco no suma: el subtotal sólo lo lleva lo que tiene algo. */}
+        {!vacia && (
+          <span className="food-slot-meta">
+            {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
+          </span>
+        )}
+        {/* El montón sin asignar no tiene puerta: no se registra «en sin
+            asignar», se acaba ahí por no haber dicho nada. */}
+        {rail.key !== null && (
+          <button
+            type="button"
+            className="food-slot-add"
+            aria-label={`Añadir a ${label.toLowerCase()}`}
+            onClick={onAdd}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        )}
       </h3>
+      {planificado}
       {/* Un plato registrado son varias filas de alimento —es lo que mantiene
           vivos repesar y corregir un ingrediente—, así que se agrupan bajo su
           nombre. Sin esto, unas lentejas se leen como cinco alimentos sueltos
@@ -942,6 +940,7 @@ function SlotCard({
           ))}
         </div>
       ))}
+      {vacia && !planificado && !deleted && <p className="food-slot-empty">Nada todavía</p>}
       {deleted && (
         <p className="retag-undo">
           <span>{deleted.food_name} borrada.</span>
@@ -953,20 +952,6 @@ function SlotCard({
             disabled={undoing}
           >
             Deshacer
-          </button>
-        </p>
-      )}
-      {/* El montón sin asignar no tiene puerta: no se registra «en sin asignar»,
-          se acaba ahí por no haber dicho nada. */}
-      {rail.key !== null && (
-        <p className="food-slot-foot">
-          <button
-            type="button"
-            className="link-btn food-slot-add"
-            aria-label={`Añadir a ${label.toLowerCase()}`}
-            onClick={onAdd}
-          >
-            + Añadir a {label.toLowerCase()}
           </button>
         </p>
       )}

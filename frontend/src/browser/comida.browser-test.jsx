@@ -64,34 +64,23 @@ describe('Comida', () => {
     expect(macroRows()).toHaveLength(2)
   })
 
-  it('la fecha y sus dos pasos van en un solo renglón', async () => {
+  it('la semana cabe en una fila, y cada día es un objetivo de dedo', async () => {
     await mountComida()
-    const nav = document.querySelector('.food-daynav')
-    const [prev, next] = [...nav.querySelectorAll('.food-daystep')].map(paintedRect)
-    const stamp = paintedRect(nav.querySelector('.food-daystamp'))
-
-    // Un renglón, no tres. La fila mide lo que mide un objetivo de dedo, y no
-    // la suma de sus tres hijos apilados: cuando `.food-daynav` no llega a
-    // pintarse —un comentario sin abrir más arriba en la hoja se lo comió— los
-    // hijos se apilan y esto pasa de 44 a 110 px sin que falle nada más.
-    expect(paintedRect(nav).height).toBeLessThanOrEqual(56)
-
-    // Y los tres a la misma altura: el sello entre los dos pasos, cada uno a un
-    // lado. Con `‹` encima de la fecha y `›` debajo no hay «alineación» que
-    // arreglar — no es una fila.
+    const tira = document.querySelector('.food-week')
+    const hijos = [...tira.children].map(paintedRect)
+    // Nueve en un renglón —dos flechas y siete días—, no apilados: la fila mide
+    // lo que mide un día, y todos comparten la misma línea media.
+    expect(hijos).toHaveLength(9)
     const middle = (box) => box.top + box.height / 2
-    expect(middle(prev)).toBeCloseTo(middle(stamp), 0)
-    expect(middle(next)).toBeCloseTo(middle(stamp), 0)
-    expect(prev.right).toBeLessThanOrEqual(stamp.left + 0.5)
-    expect(next.left).toBeGreaterThanOrEqual(stamp.right - 0.5)
-
-    // El sello «Hoy» va dentro del renglón, no lo estira: su borde y su relleno
-    // son más altos que el texto que rodean, y sin corregir la línea base la
-    // fila crecía por un adorno de 11 px.
-    const hoy = paintedRect(document.querySelector('.food-today'))
-    const fecha = paintedRect(document.querySelector('.food-daystamp-date'))
-    expect(middle(hoy)).toBeCloseTo(middle(fecha), 0)
-    expect(paintedRect(nav).height).toBeLessThanOrEqual(48)
+    for (const box of hijos) expect(middle(box)).toBeCloseTo(middle(hijos[0]), 0)
+    expect(paintedRect(tira).height).toBeLessThanOrEqual(64)
+    // A 430 px los siete días caben sin bajar de 44: se pulsan con el pulgar.
+    for (const dia of tira.querySelectorAll('.food-week-day')) {
+      const box = paintedRect(dia)
+      expect(box.width, dia.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
+      expect(box.height, dia.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
+    }
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   })
 
   it('la raya de un dato desconocido se pinta como una cifra, no como un hueco', async () => {
@@ -225,18 +214,15 @@ describe('Comida', () => {
     }
   })
 
-  it('una comida vacía es un hueco en dashed, sin subtotal', async () => {
+  it('una comida vacía lo dice con palabras, y no lleva subtotal', async () => {
     await mountComida()
-    // Snack es la única comida sin entradas en el fixture: se pinta como hueco,
-    // no como tarjeta, y no imprime ni una raya. Un hueco no suma nada.
-    const blanks = [...document.querySelectorAll('.food-blank')]
-    expect(blanks).toHaveLength(1)
-    expect(blanks[0]).toHaveTextContent('Snack')
-    expect(blanks[0].querySelector('.food-slot-meta')).toBeNull()
-    // Y el borde es de verdad discontinuo, que es lo que lo separa de una
-    // tarjeta con contenido sin gastar un color.
-    expect(getComputedStyle(blanks[0]).borderTopStyle).toBe('dashed')
-    expect(getComputedStyle(blanks[0]).boxShadow).toBe('none')
+    // Snack es la única comida sin entradas en el fixture. Un hueco no suma: ni
+    // cifra ni raya, sólo que no hay nada.
+    const vacias = [...document.querySelectorAll('.food-slot.is-empty')]
+    expect(vacias).toHaveLength(1)
+    expect(vacias[0]).toHaveTextContent('Snack')
+    expect(vacias[0]).toHaveTextContent('Nada todavía')
+    expect(vacias[0].querySelector('.food-slot-meta')).toBeNull()
   })
 
   it('dentro de una tarjeta de comida hay un solo borde izquierdo', async () => {
@@ -253,27 +239,17 @@ describe('Comida', () => {
     await settle()
 
     const izquierda = paintedRect(card.querySelector('.food-slot-name')).left
-    const add = card.querySelector('.food-slot-add')
-    // El borde del *contenido* del enlace, no el de su caja: lleva su propio
-    // relleno de 1rem, así que su caja empieza antes que su texto.
-    expect(
-      paintedRect(add).left + parseFloat(getComputedStyle(add).paddingLeft),
-      '«+ Añadir» no cae donde la cabecera',
-    ).toBeCloseTo(izquierda, 0)
     for (const name of card.querySelectorAll('.food-entry-name')) {
       expect(paintedRect(name).left, name.textContent).toBeCloseTo(izquierda, 0)
     }
 
-    // Y la derecha por lo mismo. Se mide la caja de la fila y no la cifra de
-    // proteína, porque después de la cifra va el `›` de `.link-row::after` —un
-    // pseudo-elemento, o sea un ítem flex más que `querySelector` no alcanza—.
-    // Lo que tiene que coincidir es el canto del contenido, que es lo que fija
-    // dónde acaba la fila; que la cifra quede 20 px por dentro es el sitio que
-    // ocupa el chevrón, y ése es otro asunto.
-    const derecha = paintedRect(card.querySelector('.food-slot-meta')).right
+    // Y la derecha: el contenido de cada fila acaba a 1rem del canto, el mismo
+    // margen que la cabecera deja a su izquierda. Se mide la caja de la fila y
+    // no la cifra, porque después de la cifra va el `›` de `.link-row::after`.
+    const canto = paintedRect(card).right
     for (const row of card.querySelectorAll('.food-entry')) {
       const fin = paintedRect(row).right - parseFloat(getComputedStyle(row).paddingRight)
-      expect(fin, row.textContent).toBeCloseTo(derecha, 0)
+      expect(canto - fin, row.textContent).toBeCloseTo(izquierda - paintedRect(card).left, 0)
     }
   })
 
@@ -695,8 +671,9 @@ describe('Comida', () => {
       for (const theme of ['light', 'dark']) {
         forceTheme(theme)
         await settle()
-        // La superficie de referencia: el cuerpo de la tarjeta, donde van las
-        // filas. Es contra eso contra lo que la banda tiene que destacar.
+        // La superficie de referencia: el cuerpo de la comida, donde van las
+        // filas —el fondo de la página desde que el diario no va en tarjetas—.
+        // Es contra eso contra lo que la banda tiene que destacar.
         const superficie = backdropOf(tarjeta('Desayuno').querySelector('.food-entry'))
         for (const nombre of CON_TONO) {
           const banda = backdropOf(tarjeta(nombre).querySelector('.food-slot-head'))

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import ColdStart from './ColdStart.jsx'
 import Comida from './Comida.jsx'
 import Perfil from './Perfil.jsx'
+import PlanPantalla from './PlanPantalla.jsx'
 import Days from './Days.jsx'
 import Login from './Login.jsx'
 import Progress from './Progress.jsx'
@@ -34,6 +35,9 @@ export default function App() {
   // cuanto sabe si hoy ya hay entreno.
   const [startOnArrival, setStartOnArrival] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
+  // Con qué semana se abre Plan. El aviso de la revisión la abre en la que
+  // viene; entrar por la pestaña, en la que estás viviendo.
+  const [planInicial, setPlanInicial] = useState('esta')
   // Is the backend awake? Only asked once per launch, and only ever seen on the
   // launch that has to wake it.
   const boot = useColdStart({ enabled: Boolean(token) })
@@ -83,10 +87,15 @@ export default function App() {
         openWorkout(null)
         setView('days')
         setStartOnArrival(true)
-      } else if (action === 'review' || action === 'food') {
-        // El aviso de la revisión semanal (la tarjeta está en Comida) y la
-        // pantalla Comida del widget. Si había un entreno abierto se cierra, o
-        // taparía la vista.
+      } else if (action === 'review') {
+        // El aviso de la revisión semanal: la revisión es el primer paso de
+        // planificar la semana que viene, y eso vive en Plan.
+        openWorkout(null)
+        setPlanInicial('viene')
+        setView('plan')
+      } else if (action === 'food') {
+        // La pantalla Comida del widget. Si había un entreno abierto se
+        // cierra, o taparía la vista.
         openWorkout(null)
         setView('food')
       }
@@ -114,6 +123,7 @@ export default function App() {
 
   function go(target) {
     openWorkout(null)
+    if (target === 'plan') setPlanInicial('esta')
     setView(target)
   }
 
@@ -154,7 +164,16 @@ export default function App() {
   const daysActive = view === 'days'
   const progressActive = view === 'progress' && !openWorkoutId
   const foodActive = view === 'food' && !openWorkoutId
+  const planActive = view === 'plan' && !openWorkoutId
   const profileActive = view === 'profile' && !openWorkoutId
+
+  const tabs = [
+    { key: 'days', label: 'Días', active: daysActive, icon: <IconoDias /> },
+    { key: 'progress', label: 'Progreso', active: progressActive, icon: <IconoProgreso /> },
+    { key: 'food', label: 'Comida', active: foodActive, icon: <IconoComida /> },
+    { key: 'plan', label: 'Plan', active: planActive, icon: <IconoPlan /> },
+    { key: 'profile', label: 'Perfil', active: profileActive, icon: <IconoPerfil /> },
+  ]
 
   return (
     <div className="container">
@@ -173,6 +192,8 @@ export default function App() {
           <Progress />
         ) : view === 'food' ? (
           <Comida />
+        ) : view === 'plan' ? (
+          <PlanPantalla key={planInicial} inicial={planInicial} />
         ) : view === 'profile' ? (
           // Lo que se fija una vez: objetivo, reparto, reglas, peso y las
           // preferencias de Entreno. «Salir» vive al final, no en la cabecera.
@@ -187,43 +208,90 @@ export default function App() {
       </main>
       {/* Bottom bar puts navigation in thumb reach for one-handed gym use. */}
       <nav className="bottom-nav" aria-label="Navegación principal">
-        <button
-          type="button"
-          className={`tab${daysActive ? ' is-active' : ''}`}
-          aria-current={daysActive ? 'page' : undefined}
-          onClick={() => go('days')}
-        >
-          <span className="tab-icon" aria-hidden="true">▮▮</span>
-          Días
-        </button>
-        <button
-          type="button"
-          className={`tab${progressActive ? ' is-active' : ''}`}
-          aria-current={progressActive ? 'page' : undefined}
-          onClick={() => go('progress')}
-        >
-          <span className="tab-icon" aria-hidden="true">↗</span>
-          Progreso
-        </button>
-        <button
-          type="button"
-          className={`tab${foodActive ? ' is-active' : ''}`}
-          aria-current={foodActive ? 'page' : undefined}
-          onClick={() => go('food')}
-        >
-          <span className="tab-icon" aria-hidden="true">◒</span>
-          Comida
-        </button>
-        <button
-          type="button"
-          className={`tab${profileActive ? ' is-active' : ''}`}
-          aria-current={profileActive ? 'page' : undefined}
-          onClick={() => go('profile')}
-        >
-          <span className="tab-icon" aria-hidden="true">◍</span>
-          Perfil
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`tab${tab.active ? ' is-active' : ''}`}
+            aria-current={tab.active ? 'page' : undefined}
+            onClick={() => go(tab.key)}
+          >
+            {/* El icono va dentro de su píldora: la pestaña activa se marca con
+                el fondo de la píldora, no sólo con el color del texto. */}
+            <span className="tab-ind" aria-hidden="true">
+              {tab.icon}
+            </span>
+            {tab.label}
+          </button>
+        ))}
       </nav>
     </div>
+  )
+}
+
+// Iconos de trazo para la barra de pestañas. Inline y en `currentColor`: toman
+// la tinta de la pestaña, apagada o activa, sin una hoja de iconos aparte.
+function Trazo({ children }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </svg>
+  )
+}
+
+function IconoDias() {
+  return (
+    <Trazo>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M4 10h16M9 3v4M15 3v4" />
+    </Trazo>
+  )
+}
+
+function IconoProgreso() {
+  return (
+    <Trazo>
+      <path d="M4 17l5-5 4 4 7-8" />
+      <path d="M15 8h5v5" />
+    </Trazo>
+  )
+}
+
+function IconoComida() {
+  return (
+    <Trazo>
+      <circle cx="12" cy="13" r="7" />
+      <path d="M5 13h14" />
+    </Trazo>
+  )
+}
+
+// La celda de la marca, en cuatro: la semana como rejilla.
+function IconoPlan() {
+  return (
+    <Trazo>
+      <rect x="4" y="4" width="6" height="6" rx="1" />
+      <rect x="14" y="4" width="6" height="6" rx="1" />
+      <rect x="4" y="14" width="6" height="6" rx="1" />
+      <rect x="14" y="14" width="6" height="6" rx="1" />
+    </Trazo>
+  )
+}
+
+function IconoPerfil() {
+  return (
+    <Trazo>
+      <circle cx="12" cy="9" r="4" />
+      <path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" />
+    </Trazo>
   )
 }

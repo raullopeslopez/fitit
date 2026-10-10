@@ -4,12 +4,9 @@ import {
   correctDish,
   generatePlan,
   getAdherence,
-  listBodyWeights,
-  logBodyWeight,
   replanEntry,
   setPlanEntry,
 } from './api.js'
-import PesoDeHoy from './PesoDeHoy.jsx'
 import { ListRow, Sheet } from './ui'
 import { foodDayIso, formatMacro } from './food.js'
 
@@ -41,27 +38,6 @@ const CON_ARTICULO = {
   comida: 'la comida',
   cena: 'la cena',
   snack: 'el snack',
-}
-
-// Enumeración en castellano: comas y una «y» antes del último.
-function enumerar(cosas) {
-  if (cosas.length <= 1) return cosas.join('')
-  return `${cosas.slice(0, -1).join(', ')} y ${cosas[cosas.length - 1]}`
-}
-
-// Lo que queda por comer hoy, que es una lista de platos y no un número de
-// macros: accionable sin traducir nada (§3 del brainstorming). La cabecera de
-// arriba sigue diciendo cuánto falta de cada macro; esto dice qué hacer.
-export function queQueda(filas) {
-  const pendientes = filas.filter((e) => !e.status)
-  if (pendientes.length === 0) return 'Nada más por hoy.'
-  const huecos = enumerar(pendientes.map((e) => CON_ARTICULO[e.slot] ?? e.slot))
-  const verbo = pendientes.length === 1 ? 'Te queda' : 'Te quedan'
-  const kcal = pendientes.map((e) => e.kcal)
-  // Un `null` deja la suma desconocida: no se puede decir cuánto queda si una
-  // de las comidas no sabe lo que suma.
-  if (kcal.some((k) => k == null)) return `${verbo} ${huecos}.`
-  return `${verbo} ${huecos}: ${formatMacro(kcal.reduce((a, b) => a + b, 0))} kcal.`
 }
 
 // Los platos tuyos que caben en ese hueco, menos el que ya estaba planificado.
@@ -110,6 +86,12 @@ function delDia(plan, iso) {
   return HUECOS.map((slot) => filas.find((e) => e.slot === slot)).filter(Boolean)
 }
 
+// Lo planificado de un día, por comida: `{ desayuno: fila, comida: fila, … }`.
+// Es lo que el diario necesita para poner cada plato dentro de su comida.
+export function planDelDia(plan, iso) {
+  return Object.fromEntries(delDia(plan, iso).map((fila) => [fila.slot, fila]))
+}
+
 // Por qué no se ha podido generar. Cada forma de no haber podido se nombra por
 // separado: una despensa vacía manda a dar de alta platos, y un hueco sin
 // candidatos manda a mirar ese hueco. «No se ha podido» no dice qué hacer.
@@ -124,25 +106,16 @@ export function motivo(err) {
   return 'No se ha podido generar la semana.'
 }
 
-function Fila({
-  entrada,
-  puedeConfirmar,
-  busy,
-  onMarcar,
-  onCambiar,
-  cambiando,
-  platos,
-  onElegir,
-  onCancelar,
-  onAbrir = null,
-}) {
+// Una fila de la semana: la comida, el plato y lo que suma, y cómo quedó. En la
+// semana no se confirma —eso se hace en el diario, con la comida delante—; un
+// plato que todavía no ha llegado se toca para cambiarlo.
+function Fila({ entrada, onAbrir = null }) {
   const hecho = entrada.status === 'done'
   const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
   return (
     <li className={`plan-fila${hecho ? ' is-done' : ''}${saltado ? ' is-skipped' : ''}`}>
       <span className="card-eyebrow plan-slot">{NOMBRE[entrada.slot] ?? entrada.slot}</span>
-      {/* En la semana, un plato que todavía no ha llegado se toca para cambiarlo.
-          La fila entera es el botón —nombre, kcal y `›` al final—: la fila no
+      {/* La fila entera es el botón —nombre, kcal y `›` al final—: la fila no
           tiene otro control que le dispute el toque. */}
       {onAbrir ? (
         <button
@@ -158,118 +131,56 @@ function Fila({
       ) : (
         <>
           <span className="plan-plato">{entrada.dish_name}</span>
-          {entrada.kcal != null && (
-            <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
-          )}
+          {entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>}
         </>
       )}
       {/* El estado se dice distinto de la acción: «Me lo salté» es lo que
-          pulsas, «Saltado» es lo que quedó. Las mismas palabras para las dos
-          cosas hacen que la fila parezca ofrecer lo que ya hizo. */}
+          pulsas, «Saltado» es lo que quedó. */}
       {hecho && <span className="plan-estado">Comido</span>}
       {saltado && (
-        <span className="plan-estado">
-          {entrada.status === 'swapped' ? 'Cambiado' : 'Saltado'}
-        </span>
-      )}
-      {/* Ni comido ni saltado es **no dicho**, no incumplido: sigue ofreciendo
-          las dos cosas hasta que alguien diga una. */}
-      {!hecho && !saltado && puedeConfirmar && (
-        <span className="plan-acciones">
-          <button
-            type="button"
-            className="primary plan-comer"
-            disabled={busy}
-            onClick={() => onMarcar(entrada, 'done')}
-          >
-            Lo comí
-          </button>
-          <button
-            type="button"
-            className="link-btn plan-saltar"
-            disabled={busy}
-            onClick={() => onMarcar(entrada, 'skipped')}
-          >
-            Me lo salté
-          </button>
-          {/* Cambiar es de primera clase, no borrar y volver a añadir (§4):
-              cambiar no es incumplir. */}
-          <button
-            type="button"
-            className="link-btn plan-saltar"
-            disabled={busy}
-            onClick={() => onCambiar(entrada)}
-          >
-            Lo cambié
-          </button>
-        </span>
-      )}
-      {cambiando && (
-        <span className="plan-cambiar">
-          <span className="card-eyebrow">¿Por cuál?</span>
-          {platos.length === 0 ? (
-            <span className="hint">No tienes otro plato para esta comida.</span>
-          ) : (
-            platos.map((plato) => (
-              <button
-                key={plato.id}
-                type="button"
-                className="chip plan-sustituto"
-                disabled={busy}
-                onClick={() => onElegir(entrada, plato)}
-              >
-                {plato.name}
-                {plato.per_serving?.kcal != null && (
-                  <span className="plan-sustituto-kcal">
-                    {formatMacro(plato.per_serving.kcal)} kcal
-                  </span>
-                )}
-              </button>
-            ))
-          )}
-          <button type="button" className="link-btn plan-cancelar" onClick={onCancelar}>
-            Cancelar
-          </button>
-        </span>
+        <span className="plan-estado">{entrada.status === 'swapped' ? 'Cambiado' : 'Saltado'}</span>
       )}
     </li>
   )
 }
 
-export default function PlanDelDia({
-  plan,
-  dayIso,
+/**
+ * Lo planificado para una comida, dentro de esa comida del diario.
+ *
+ * Antes era una tarjeta aparte —«Tu plan»— entre los macros y las comidas, y
+ * partía el día en dos: lo que toca arriba, lo que has comido abajo, y el mismo
+ * desayuno contado en los dos sitios. Aquí el plato planificado está donde se
+ * registra, y confirmarlo lo convierte en una entrada más de esa comida.
+ *
+ * Lo ya comido no se pinta: está en el diario con sus cifras, y repetirlo
+ * encima contaría dos veces lo mismo. Lo saltado o cambiado sí, en voz baja,
+ * porque es lo único que dice que el plan ponía otra cosa.
+ */
+export function PlanEnComida({
+  entrada,
   isToday,
   onChanged,
-  onVerSemana = null,
+  // Comer —lo planificado o un cambio— es cuando tienes el móvil en la mano:
+  // el diario aprovecha para preguntar el peso de hoy si falta.
+  onComido = () => {},
   platos = [],
-  // El plan de la semana que viene: `null` si no lo hay, el plan si lo hay.
-  // Sin `onPlanificar` la línea no se ofrece.
-  siguiente = null,
-  onPlanificar = null,
-  // Inyectables para que los tests no tengan que interceptar el módulo de red.
-  generar = generatePlan,
   setEntry = setPlanEntry,
-  leerPesadas = listBodyWeights,
-  guardarPeso = logBodyWeight,
 }) {
   const [busy, setBusy] = useState(false)
-  // Tras confirmar una comida, la pregunta del peso de hoy (si falta).
-  const [pedirPeso, setPedirPeso] = useState(false)
   const [error, setError] = useState(null)
-  // La fila cuyo sustituto se está eligiendo, o `null`.
-  const [cambiando, setCambiando] = useState(null)
-  const filas = delDia(plan, dayIso)
+  const [cambiando, setCambiando] = useState(false)
 
-  async function marcar(entrada, status, dishId = null) {
+  if (entrada.status === 'done') return null
+
+  const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
+
+  async function marcar(status, dishId = null) {
     setBusy(true)
     setError(null)
     try {
       await setEntry(entrada.id, status, dishId)
-      setCambiando(null)
-      // Comer —lo planificado o un cambio— es cuando tienes el móvil en la
-      // mano; saltarse una comida no es momento de preguntar nada.
-      if (status !== 'skipped') setPedirPeso(true)
+      setCambiando(false)
+      if (status !== 'skipped') onComido()
       await onChanged()
     } catch (err) {
       setError(err?.detail?.motivo ?? 'No se ha podido guardar.')
@@ -278,78 +189,69 @@ export default function PlanDelDia({
     }
   }
 
-  async function generarSemana() {
-    setBusy(true)
-    setError(null)
-    try {
-      await generar(lunesDe(dayIso), null)
-      await onChanged()
-    } catch (err) {
-      setError(motivo(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // La semana que viene se planifica cualquier día —el de compra no es fijo—, y
-  // sólo desde hoy: mirando otro día, «la que viene» no sabría de cuál.
-  const laQueViene = isToday && onPlanificar && (
-    <button type="button" className="link-btn plan-ver" onClick={onPlanificar}>
-      {siguiente ? 'Ver la semana que viene' : 'Planificar la semana que viene'}
-    </button>
-  )
-
-  if (!plan) {
-    return (
-      <section className="card plan-card">
-        <p className="card-eyebrow">Tu plan</p>
-        <p className="hint">Todavía no hay plan para esta semana.</p>
-        {error && <p className="alert">{error}</p>}
-        <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
-          Generar la semana
-        </button>
-        {laQueViene}
-      </section>
-    )
-  }
-
-  if (filas.length === 0) return null
+  const otros = candidatos(platos, entrada.slot, entrada.dish_id)
 
   return (
-    <section className="card plan-card">
-      <p className="card-eyebrow">Tu plan</p>
-      {/* Qué te queda por comer, que es una lista de platos y no un número de
-          macros. Sólo en el día que estás viviendo: en otro, «te quedan» no
-          significa nada. */}
-      {isToday && <p className="plan-queda">{queQueda(filas)}</p>}
-      <ul className="plan-lista">
-        {filas.map((entrada) => (
-          <Fila
-            key={entrada.id}
-            entrada={entrada}
-            puedeConfirmar={isToday}
-            busy={busy}
-            onMarcar={marcar}
-            onCambiar={(fila) => setCambiando(fila.id)}
-            cambiando={cambiando === entrada.id}
-            platos={candidatos(platos, entrada.slot, entrada.dish_id)}
-            onElegir={(fila, plato) => marcar(fila, 'swapped', plato.id)}
-            onCancelar={() => setCambiando(null)}
-          />
-        ))}
-      </ul>
-      {/* El día que tienes delante no es el que estás viviendo: una entrada del
+    <div className={`plan-en-comida${saltado ? ' is-skipped' : ''}`}>
+      <span className="card-eyebrow">Planificado</span>
+      <p className="plan-en-comida-top">
+        <span className="plan-en-comida-nombre">{entrada.dish_name}</span>
+        {saltado ? (
+          <span className="plan-estado">{entrada.status === 'swapped' ? 'Cambiado' : 'Saltado'}</span>
+        ) : (
+          entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
+        )}
+      </p>
+
+      {/* Ni comido ni saltado es **no dicho**, no incumplido: sigue ofreciendo
+          las tres cosas hasta que alguien diga una. Y sólo hoy: una entrada del
           diario se fecha por el instante en que la escribes. */}
-      {pedirPeso && isToday && <PesoDeHoy leer={leerPesadas} guardar={guardarPeso} />}
-      {!isToday && <p className="hint">Sólo se confirma el día de hoy.</p>}
-      {error && <p className="alert">{error}</p>}
-      {onVerSemana && (
-        <button type="button" className="link-btn plan-ver" onClick={onVerSemana}>
-          Ver la semana
-        </button>
+      {!saltado && isToday && !cambiando && (
+        <div className="plan-en-comida-acciones">
+          <button type="button" className="primary plan-comer" disabled={busy} onClick={() => marcar('done')}>
+            Lo comí
+          </button>
+          {/* Cambiar es de primera clase, no borrar y volver a añadir: cambiar
+              no es incumplir. */}
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => setCambiando(true)}>
+            Lo cambié
+          </button>
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => marcar('skipped')}>
+            Me lo salté
+          </button>
+        </div>
       )}
-      {laQueViene}
-    </section>
+
+      {cambiando && (
+        <div className="plan-cambiar">
+          <span className="card-eyebrow">¿Por cuál?</span>
+          {otros.length === 0 ? (
+            <span className="hint">No tienes otro plato para esta comida.</span>
+          ) : (
+            otros.map((plato) => (
+              <button
+                key={plato.id}
+                type="button"
+                className="chip plan-sustituto"
+                disabled={busy}
+                onClick={() => marcar('swapped', plato.id)}
+              >
+                {plato.name}
+                {plato.per_serving?.kcal != null && (
+                  <span className="plan-sustituto-kcal">{formatMacro(plato.per_serving.kcal)} kcal</span>
+                )}
+              </button>
+            ))
+          )}
+          <button type="button" className="link-btn plan-cancelar" onClick={() => setCambiando(false)}>
+            Cancelar
+          </button>
+        </div>
+      )}
+
+      {!saltado && !isToday && <p className="hint">Sólo se confirma el día de hoy.</p>}
+      {error && <p className="alert">{error}</p>}
+    </div>
   )
 }
 
@@ -437,6 +339,7 @@ export function Semana({
   onPlatosChanged = () => {},
   replanear = replanEntry,
   corregirPlato = correctDish,
+  embebida = false,
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -476,19 +379,8 @@ export function Semana({
     }
   }
 
-  return (
-    <div className="food-screen" role="dialog" aria-modal="true" aria-label={titulo}>
-      <header className="food-screen-head">
-        <p className="food-screen-title">
-          <span className="card-eyebrow">{antetitulo}</span>
-          <span className="food-screen-slot">{titulo}</span>
-        </p>
-        <button type="button" className="link-btn" onClick={onClose}>
-          Cerrar
-        </button>
-      </header>
-
-      <div className="food-screen-body">
+  const cuerpo = (
+    <>
         {onPlatos && <SinComida platos={platos} onPlatos={onPlatos} />}
         {onLista && <ListRow label="Lista de la compra" value="" onClick={onLista} />}
         <Adherencia informe={informe} />
@@ -509,7 +401,6 @@ export function Semana({
                     <Fila
                       key={entrada.id}
                       entrada={entrada}
-                      puedeConfirmar={false}
                       onAbrir={cambiable(entrada) ? setCambiando : null}
                     />
                   ))}
@@ -519,13 +410,21 @@ export function Semana({
           )
         })}
 
+        {onPlatos && (
+          <ListRow
+            label="Tus platos"
+            value={Array.isArray(platos) ? String(platos.length) : ''}
+            onClick={onPlatos}
+          />
+        )}
         {error && <p className="alert">{error}</p>}
         <button type="button" className="primary plan-otra" disabled={busy} onClick={otra}>
           Generar otra
         </button>
-      </div>
+    </>
+  )
 
-      {cambiando && (
+  const hoja = cambiando && (
         <CambiarPlato
           entrada={cambiando}
           dia={DIAS[dias.indexOf(cambiando.log_date)] ?? ''}
@@ -540,7 +439,32 @@ export function Semana({
             await onChanged()
           }}
         />
-      )}
+      )
+
+  // Dentro de la pestaña Plan la semana es el contenido, no una pantalla encima
+  // de otra: sin cabecera ni «Cerrar».
+  if (embebida) {
+    return (
+      <div className="plan-semana">
+        {cuerpo}
+        {hoja}
+      </div>
+    )
+  }
+
+  return (
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label={titulo}>
+      <header className="food-screen-head">
+        <p className="food-screen-title">
+          <span className="card-eyebrow">{antetitulo}</span>
+          <span className="food-screen-slot">{titulo}</span>
+        </p>
+        <button type="button" className="link-btn" onClick={onClose}>
+          Cerrar
+        </button>
+      </header>
+      <div className="food-screen-body">{cuerpo}</div>
+      {hoja}
     </div>
   )
 }
