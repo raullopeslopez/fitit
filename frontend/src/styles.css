@@ -6992,3 +6992,17 @@ button.draft-save {
 .importar-guardar {
   min-height: 44px;
 }
+
+/* Lo que un día del plan se sale de su objetivo. El rótulo en `--muted` y la
+   cifra en Mono `--text`: es un dato, no una nota (DESIGN.md). */
+.plan-desvios {
+  margin: -0.3rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.plan-desvio-cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}

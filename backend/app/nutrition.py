@@ -333,6 +333,17 @@ def kcal_disagreement(
 # margen sin que cueste nada medible.
 _AJUSTE_PASOS = 6
 
+# Cuánto más pesa fallar en kcal que fallar en un macro, a igual error relativo.
+#
+# Con el mismo peso, un día que no puede dar la proteína (arroz y aceite) se
+# pasaba de kcal para acercarse a una cifra imposible, y el día no cuadraba en
+# lo único que siempre se puede cuadrar subiendo o bajando cantidades. Con
+# cien, las kcal se clavan en cuanto las bandas lo permiten y los macros
+# quedan lo más cerca que dejan los platos: es lo que se le pide a la app
+# (2026-10-11). Cien y no infinito: entre dos repartos con las mismas kcal,
+# sigue eligiendo el que más se acerca a los macros.
+_PESO_KCAL = 100.0
+
 
 @dataclass(frozen=True)
 class Ajustable:
@@ -420,6 +431,8 @@ def ajustar_gramos(
                 # doscientas veces más que 165 g de proteína sin que nadie lo
                 # haya decidido.
                 peso = 1.0 / (abs(meta) or 1.0) ** 2
+                if field == "kcal":
+                    peso *= _PESO_KCAL
                 por_gramo = (pieza.por_100g.get(field) or 0.0) / 100.0
                 resto = base[field] + sum(aporta(j, field) for j in range(len(piezas)) if j != i)
                 numerador += peso * por_gramo * (meta - resto)

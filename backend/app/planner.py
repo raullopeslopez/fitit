@@ -181,7 +181,8 @@ def _elegir(pool, rng: random.Random, exploracion: float) -> PlatoCandidato:
 # --- el día -------------------------------------------------------------------
 def _macros_de(plato: PlatoCandidato, gramos) -> dict:
     """Lo que suma un plato con estos gramos en lo ajustable."""
-    filas = [{campo: plato.fijo.get(campo) for campo in NUTRIENTS}]
+    # Sin nada fijo, nada que sumar: ver `_resolver_dia`.
+    filas = [{campo: plato.fijo.get(campo) for campo in NUTRIENTS}] if plato.fijo else []
     for pieza, g in zip(plato.ajustables, gramos):
         # Cero gramos aportan **cero**, y eso sí es un número. Dejar la fila
         # vacía volvería desconocido el plato entero por un ingrediente que
@@ -230,7 +231,12 @@ def _resolver_dia(elegidos, objetivo: dict) -> list[tuple[str, PlatoCandidato, t
     # (índice del plato, índice de su ingrediente) en el orden en que se apilan.
     mapa: list[tuple[int, int]] = []
     for i, (_slot, plato) in enumerate(elegidos):
-        filas_fijas.append({campo: plato.fijo.get(campo) for campo in NUTRIENTS})
+        # `{}` es un plato sin nada fijo, y eso aporta **cero** (`_candidatos`).
+        # Pasado como fila serían cinco `None`, y un desconocido en lo fijo
+        # deja al día sin nada que perseguir: un plato con todo ajustable —los
+        # de la pauta— se quedaba en los gramos de la receta.
+        if plato.fijo:
+            filas_fijas.append({campo: plato.fijo.get(campo) for campo in NUTRIENTS})
         for j, pieza in enumerate(plato.ajustables):
             if plato.bloque or not _se_deja_ajustar(pieza, objetivo):
                 filas_fijas.append(calcular_nutrientes(_Porcion(pieza.por_100g), pieza.gramos))

@@ -1227,6 +1227,19 @@ class PlanEntryOut(BaseModel):
     log_entry_id: int | None = None
 
 
+class PlanDesvioOut(BaseModel):
+    """Un día del plan que se sale de su objetivo en un nutriente.
+
+    `diff` es lo planificado menos el objetivo, en gramos (o kcal): negativo
+    es que falta, positivo que sobra. Se calcula al leer el plan, contra el
+    objetivo de ese día, con los gramos que el plan congeló.
+    """
+
+    log_date: Date
+    nutrient: Literal["kcal", "protein", "fat", "carbs"]
+    diff: float
+
+
 class PlanOut(BaseModel):
     id: int
     week_start: Date
@@ -1235,6 +1248,9 @@ class PlanOut(BaseModel):
     # Hay una pauta vigente para esta semana: los platos que fija no los eligió
     # el generador, y «generar otra» no tiene sentido sobre ellos.
     has_pauta: bool = False
+    # Los días que no llegan a su objetivo, o se pasan, más allá de la
+    # tolerancia: lo que las cantidades no han podido arreglar.
+    desvios: list["PlanDesvioOut"] = Field(default_factory=list)
     # El porqué: qué dicen tus reglas de esta semana. Se devuelven todas, no
     # sólo las rotas — enseñar sólo lo roto deja sin saber si lo demás se miró.
     verdicts: list[VerdictOut] = Field(default_factory=list)

@@ -73,6 +73,36 @@ def given_pauta(client, inicio, name, slot):
     assert resp.status_code == 201, resp.text
 
 
+@given(parsers.parse("my targets add up to {kcal:d} kcal a day"))
+def given_kcal_target(client, kcal):
+    # Las kcal salen del reparto (`atwater_kcal`): 135 g de proteína y 60 de
+    # grasa son 1.080 kcal, y los hidratos ponen el resto. El único alimento de
+    # los platos no tiene esas proporciones, así que los macros no caben y lo
+    # que se comprueba es que las kcal sí.
+    resp = client.patch(
+        "/auth/me",
+        json={
+            "objetivo_proteina": 135,
+            "objetivo_grasa": 60,
+            "objetivo_hidratos": (kcal - 135 * 4 - 60 * 9) / 4,
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["objetivo_kcal"] == kcal
+
+
+@given(parsers.parse("a pauta from {inicio} with a fixed recipe for every meal of every day"))
+def given_fixed_pauta(client, inicio):
+    slots = ("desayuno", "comida", "cena", "snack")
+    resp = _guardar(
+        client,
+        inicio,
+        [_nuevo(client, f"Receta de {slot}", slots=(slot,)) for slot in slots],
+        [{"day": d, "slot": slot, "dish": i} for d in range(7) for i, slot in enumerate(slots)],
+    )
+    assert resp.status_code == 201, resp.text
+
+
 @when(
     parsers.parse('I save a pauta with "{mine}" as mine and "{new}" as new'),
     target_fixture="guardada",
@@ -170,3 +200,36 @@ def then_incomplete(client, respuesta):
     assert respuesta.status_code == 422
     assert client.get("/dishes").json() == []
 
+
+
+@then(parsers.parse("every day of the week adds up to {kcal:d} kcal, give or take 2%"))
+def then_day_kcal(plan, kcal):
+    por_dia: dict[str, float] = {}
+    for e in plan["entries"]:
+        por_dia[e["log_date"]] = por_dia.get(e["log_date"], 0) + e["kcal"]
+    assert len(por_dia) == 7
+    for dia, total in por_dia.items():
+        assert abs(total - kcal) <= kcal * 0.02, (dia, total)
+
+
+def _desvios(plan):
+    por_dia: dict[str, dict[str, float]] = {}
+    for d in plan["desvios"]:
+        por_dia.setdefault(d["log_date"], {})[d["nutrient"]] = d["diff"]
+    return por_dia
+
+
+@then("every day says its carbs fall short and its protein runs over")
+def then_desvios(client, plan):
+    # Leído también de vuelta: el aviso se calcula al leer el plan, no se guarda.
+    for cuerpo in (plan, client.get(f"/plans/{plan['week_start']}").json()):
+        por_dia = _desvios(cuerpo)
+        assert len(por_dia) == 7
+        for dia in por_dia.values():
+            assert dia["carbs"] < 0
+            assert dia["protein"] > 0
+
+
+@then("no day says its kcal are off")
+def then_kcal_ok(plan):
+    assert all(d["nutrient"] != "kcal" for d in plan["desvios"])
