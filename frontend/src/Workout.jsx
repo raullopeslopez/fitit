@@ -186,6 +186,9 @@ function ExerciseCard({
   // Unfolds the card without the toggle's "or fold it again": a chip has to
   // open the card it stands on, never close it.
   onOpen,
+  // El reloj del descanso, cuando es esta tarjeta la que descansa. Lo monta el
+  // padre, que es quien tiene la hora de fin; aquí sólo se le da sitio.
+  rest = null,
 }) {
   const seed = previous?.found ? previous.sets?.[0] : null
   const [reps, setReps] = useState(seed ? String(seed.reps) : '')
@@ -489,6 +492,7 @@ function ExerciseCard({
 
       {!open ? null : (
         <>
+      {rest}
       {/* The standing note, read before the first rep — which is why it sits
           above the form rather than in it. It is the exercise's, not the
           session's, so it is here every time this card opens until you take it
@@ -1139,6 +1143,85 @@ function RestBar({ endsAt, total, pausedMs = null, onSkip, onResume }) {
   )
 }
 
+// ── El descanso en el centro ─────────────────────────────────────────────
+// Mientras descansas no hay otra cosa que mirar, así que el reloj va dentro
+// de la tarjeta en la que acabas de registrar, grande y bajo el nombre: un
+// anillo que se vacía. Cuenta contra una hora de fin, igual que la barra, y
+// ±15 s mueven esa hora — un toque por ajuste. En pausa (desde el widget del
+// APK) sólo se puede reanudar o saltar, como en la barra.
+const RING_R = 88
+const RING_C = 2 * Math.PI * RING_R
+
+function RestRing({ endsAt, total, pausedMs = null, onSkip, onResume, onAdjust }) {
+  const [now, setNow] = useState(() => Date.now())
+  const paused = pausedMs != null
+
+  useEffect(() => {
+    if (paused) return undefined
+    const id = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(id)
+  }, [endsAt, paused])
+
+  const remaining = paused ? Math.ceil(pausedMs / 1000) : Math.max(0, (endsAt - now) / 1000)
+  const left = total > 0 ? Math.min(1, remaining / total) : 0
+  const label = paused ? 'En pausa' : 'Descanso'
+
+  return (
+    <div className="rest-ring" role="timer" aria-label={`${label} ${formatClock(remaining)}`}>
+      <div className="rest-ring-dial">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle className="rest-ring-track" cx="100" cy="100" r={RING_R} />
+          <circle
+            className="rest-ring-left"
+            cx="100"
+            cy="100"
+            r={RING_R}
+            strokeDasharray={RING_C}
+            strokeDashoffset={RING_C * (1 - left)}
+            transform="rotate(-90 100 100)"
+          />
+        </svg>
+        <div className="rest-ring-face">
+          <span className="rest-label">{label}</span>
+          <span className={paused ? 'rest-num rest-num-paused' : 'rest-num'}>
+            {formatClock(remaining)}
+          </span>
+          <span className="rest-total">{`de ${formatClock(total)}`}</span>
+        </div>
+      </div>
+      <div className="rest-ring-actions">
+        {paused ? (
+          <button type="button" className="secondary" onClick={onResume}>
+            Reanudar
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="secondary"
+            aria-label="Quitar 15 segundos"
+            onClick={() => onAdjust(-15)}
+          >
+            −15 s
+          </button>
+        )}
+        <button type="button" className="secondary" onClick={onSkip}>
+          Saltar
+        </button>
+        {!paused && (
+          <button
+            type="button"
+            className="secondary"
+            aria-label="Añadir 15 segundos"
+            onClick={() => onAdjust(15)}
+          >
+            +15 s
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // `initialWorkout` is the workout Días already had in hand — /days returns the
 // same shape /workouts/{id} does, so waiting on a second round trip for it
 // bought a blank screen and nothing else. Absent (a resume from storage, or a
@@ -1241,6 +1324,12 @@ export default function Workout({
   // Paused from the widget: what was left, in ms. Only the native control
   // brings it; `restEndsAt` is null meanwhile.
   const [restPausedMs, setRestPausedMs] = useState(null)
+  // Lo que dura este descanso, que ±15 s cambian: es la vuelta entera del
+  // anillo y el «de 01:30» bajo la cifra.
+  const [restTotal, setRestTotal] = useState(restSeconds)
+  // El último control publicado al nativo, para volver a publicarlo con otra
+  // hora de fin cuando ajustas: la notificación cuenta con el mismo reloj.
+  const lastControl = useRef(null)
   // The screen staying lit while you are at the rack. Chosen in Perfil with the
   // rest of what gets set once; read here.
   const [screenAwake] = useState(getScreenAwake)
@@ -1281,6 +1370,8 @@ export default function Workout({
   // with no clock takes it away. Only for this workout.
   function followNativeRest(control) {
     if (!control || control.workoutId !== workoutId) return
+    lastControl.current = control
+    if (control.restSeconds > 0) setRestTotal(control.restSeconds)
     if (control.restPausedMs > 0) {
       // Paused from the widget. Nothing to resume from storage on a reload:
       // the native control says it again when Entreno opens.
@@ -1314,7 +1405,27 @@ export default function Workout({
     setRestUntil(until)
     setRestEndsAt(until)
     setRestPausedMs(null)
+    setRestTotal(restSeconds)
     return until
+  }
+
+  // ±15 s: mueve la hora de fin. Quitar más de lo que queda es saltarlo. En el
+  // APK la notificación recibe la hora nueva: dos relojes que no coinciden es
+  // peor que ninguno.
+  function adjustRest(deltaSeconds) {
+    if (restEndsAt == null) return
+    const until = restEndsAt + deltaSeconds * 1000
+    if (until <= Date.now()) {
+      skipRest()
+      return
+    }
+    setRestUntil(until)
+    setRestEndsAt(until)
+    setRestTotal((t) => Math.max(1, t + deltaSeconds))
+    if (nativeSession() && lastControl.current) {
+      lastControl.current = { ...lastControl.current, restEndsAt: until }
+      session.publish(lastControl.current).catch(() => {})
+    }
   }
 
   // Retire the bar the moment it runs out, without waiting for the next tick.
@@ -1564,19 +1675,18 @@ export default function Workout({
   function publishControl(name, fields, endsAt) {
     if (!nativeSession()) return
     const now = Date.now()
-    session
-      .publish({
-        workoutId: workout.id,
-        exercise: name,
-        group: muscleByName[name] ?? null,
-        template: { exercise_name: name, reps: fields.reps, weight: fields.weight ?? null },
-        // `workout` is this render's: the set just queued isn't in it yet.
-        count: setsFor(name).length + 1,
-        restSeconds,
-        restEndsAt: endsAt ?? 0,
-        lastSetAt: now,
-      })
-      .catch(() => {})
+    lastControl.current = {
+      workoutId: workout.id,
+      exercise: name,
+      group: muscleByName[name] ?? null,
+      template: { exercise_name: name, reps: fields.reps, weight: fields.weight ?? null },
+      // `workout` is this render's: the set just queued isn't in it yet.
+      count: setsFor(name).length + 1,
+      restSeconds,
+      restEndsAt: endsAt ?? 0,
+      lastSetAt: now,
+    }
+    session.publish(lastControl.current).catch(() => {})
     if (!askedNotifications.current) {
       askedNotifications.current = true
       session.ensureNotifications().catch(() => {})
@@ -1901,6 +2011,17 @@ export default function Workout({
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
+  // ¿Dónde va el reloj? En la tarjeta del ejercicio de la última serie, si está
+  // abierta y es de fuerza. Si no —plegada, cardio, o un descanso que vino del
+  // widget sin series aquí todavía—, en la barra de arriba de siempre: el
+  // descanso no puede quedarse sin sitio.
+  const resting = restEndsAt != null || restPausedMs != null
+  const lastSet = workout?.sets?.length ? workout.sets[workout.sets.length - 1] : null
+  const restOn = resting ? (lastControl.current?.exercise ?? lastSet?.exercise_name ?? null) : null
+  const restIndex = restOn == null ? -1 : exercises.findIndex((e) => e.name === restOn)
+  const ringShown =
+    restIndex >= 0 && exercises[restIndex].kind !== 'cardio' && isOpen(restOn, restIndex)
+
   // How long this session took, from its own sets. Empty while it is still
   // running, so the header simply doesn't carry it yet.
   const took = sessionLength(workout)
@@ -2059,10 +2180,10 @@ export default function Workout({
         )}
       </div>
 
-      {(restEndsAt != null || restPausedMs != null) && (
+      {resting && !ringShown && (
         <RestBar
           endsAt={restEndsAt}
-          total={restSeconds}
+          total={restTotal}
           pausedMs={restPausedMs}
           onSkip={skipRest}
           onResume={resumeRest}
@@ -2183,6 +2304,18 @@ export default function Workout({
             open={isOpen(ex.name, index)}
             onToggle={() => toggleCard(ex.name, index)}
             onOpen={() => openCard(ex.name)}
+            rest={
+              ringShown && ex.name === restOn ? (
+                <RestRing
+                  endsAt={restEndsAt}
+                  total={restTotal}
+                  pausedMs={restPausedMs}
+                  onSkip={skipRest}
+                  onResume={resumeRest}
+                  onAdjust={adjustRest}
+                />
+              ) : null
+            }
           />
         ),
       )}

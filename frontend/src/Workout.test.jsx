@@ -986,6 +986,44 @@ describe('Workout', () => {
     expect(container.querySelector('.rest-num').textContent).toMatch(/^01:[0-3]\d$/)
   })
 
+  // El descanso es lo que haces entre serie y serie, así que va en el centro de
+  // la tarjeta en la que acabas de registrar, no en una barra arriba del todo.
+  it('shows the rest as a ring inside the card of the set just logged', async () => {
+    const { container } = renderWorkout()
+    await logOneSet()
+
+    const timer = await screen.findByRole('timer')
+    expect(timer.closest('.card-hero')).not.toBeNull()
+    expect(timer).toHaveClass('rest-ring')
+    expect(container.querySelector('.rest-bar')).toBeNull()
+  })
+
+  it('moves the end of the rest fifteen seconds either way', async () => {
+    const { container } = renderWorkout()
+    await logOneSet()
+    await screen.findByRole('timer')
+
+    // 90 s por defecto: +15 lo deja en 1:4x, y −15 dos veces en 1:1x.
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir 15 segundos' }))
+    expect(container.querySelector('.rest-num').textContent).toMatch(/^01:4\d$/)
+    expect(container.querySelector('.rest-total').textContent).toBe('de 01:45')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar 15 segundos' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar 15 segundos' }))
+    expect(container.querySelector('.rest-num').textContent).toMatch(/^01:1\d$/)
+  })
+
+  it('keeps the bar on top when the card that is resting is folded', async () => {
+    const { container } = renderWorkout()
+    await logOneSet()
+    await screen.findByRole('timer')
+
+    await userEvent.click(cardToggles('Bench Press')[0])
+
+    expect(container.querySelector('.rest-ring')).toBeNull()
+    expect(container.querySelector('.rest-bar')).not.toBeNull()
+  })
+
   it('dismisses the rest countdown with Saltar', async () => {
     const { container } = renderWorkout()
     await logOneSet()

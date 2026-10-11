@@ -389,6 +389,73 @@ h2 {
     transition: width 250ms linear;
   }
 }
+/* El descanso en el centro de la tarjeta que descansa: un anillo ámbar que se
+   vacía, con la cifra dentro a tamaño Display — mientras descansas es el único
+   número que lees desde el banco. La barra de arriba sigue para cuando esa
+   tarjeta está plegada. */
+.rest-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 1rem;
+}
+.rest-ring-dial {
+  position: relative;
+  width: 13rem;
+  height: 13rem;
+}
+.rest-ring-dial svg {
+  width: 100%;
+  height: 100%;
+}
+.rest-ring-track,
+.rest-ring-left {
+  fill: none;
+  stroke-width: 10;
+}
+.rest-ring-track {
+  stroke: var(--border);
+}
+.rest-ring-left {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rest-ring-left {
+    transition: stroke-dashoffset 250ms linear;
+  }
+}
+.rest-ring-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.rest-ring .rest-num {
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.rest-total {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.rest-ring-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.rest-ring-actions button {
+  min-height: 44px;
+  min-width: 4.5rem;
+}
 
 .workout-head {
   display: flex;
