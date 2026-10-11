@@ -36,3 +36,29 @@ test('«← Días» va en tinta ámbar, sin relleno, y sigue siendo tocable', as
     restore()
   }
 })
+
+// Descansando, el anillo ocupa el centro y las fichas se compactan. Lo que no
+// puede pasar es que eso empuje «Registrar» debajo del pie: la serie siguiente
+// pediría desplazar antes de poder tocarla, que es un toque de más por serie.
+test('descansando, «Registrar» se ve entero por encima del pie, sin desplazar', async () => {
+  const { container, restore } = await mountEntreno({ restSeconds: 80 })
+  try {
+    // El caso peor del pie: con la fila «↩ anterior», que aparece en cuanto has
+    // ido a otro ejercicio y vuelto (un superset).
+    container.querySelector('#exercise').focus()
+    await settle()
+    container.querySelector('.dock-today .set-row').click()
+    await settle()
+    container.querySelector('.dock-shortcut').click()
+    await settle()
+    expect(container.querySelector('.dock-shortcut')).toBeTruthy()
+    window.scrollTo(0, 0)
+    await settle()
+    expect(container.querySelector('.rest-ring')).toBeTruthy()
+    const log = container.querySelector('.btn-log').getBoundingClientRect()
+    const dock = container.querySelector('.workout-dock').getBoundingClientRect()
+    expect(log.bottom).toBeLessThanOrEqual(dock.top + 1)
+  } finally {
+    restore()
+  }
+})

@@ -405,7 +405,9 @@ describe('Workout', () => {
     expect(api.getPreviousMarks).toHaveBeenCalledWith('Bench Press', 1)
   })
 
-  it('seeds the steppers from the previous set so a repeat is one tap', async () => {
+  // Los mínimos toques: peso y reps vienen ya con el objetivo, así que hacer
+  // lo previsto se registra con un toque.
+  it('rellena peso y reps con el objetivo, y registrarlo es un toque', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
@@ -417,10 +419,44 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByText(/última vez/i)
 
-    expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
+    await waitFor(() => expect(screen.getByLabelText(/reps/i)).toHaveValue('9'))
     expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
     // The button states exactly what pressing it will log.
-    expect(screen.getByRole('button', { name: /registrar 60 × 8/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /registrar 60 × 9/i })).toBeInTheDocument()
+  })
+
+  // Las marcas llegan después de montar la tarjeta. Antes la siembra miraba
+  // sólo el primer render, así que al reabrir un entreno los campos salían
+  // vacíos y registrar lo previsto costaba teclearlo.
+  it('rellena con el objetivo aunque las marcas lleguen tarde', async () => {
+    let answer
+    api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1, reps: 8, weight: 60 })))
+    api.getPreviousMarks.mockReturnValue(new Promise((res) => (answer = res)))
+    renderWorkout()
+
+    await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+    // Con una serie hoy ya hecha, lo que se repite es esa serie: el objetivo
+    // no pisa lo que acabas de hacer.
+    answer({ exercise_name: 'Bench Press', found: true, sets: [benchSet({ reps: 7, weight: 55 })] })
+    await screen.findByText(/última vez/i)
+    expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
+    expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
+  })
+
+  it('la serie dice cuál es y qué hay que batir, en los términos de la regla', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ reps: 8, weight: 60 })],
+    })
+    const { container } = renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    expect(await findTarget()).toHaveTextContent(/^A batir · 60 kg × 9$/)
+    expect(container.querySelector('.serie-n')).toHaveTextContent('1.ª serie')
+    expect(container.querySelector('.target-why')).toHaveTextContent('una rep más')
   })
 
   it('keeps the just-logged weight and reps so straight sets repeat in one tap', async () => {
@@ -508,7 +544,7 @@ describe('Workout', () => {
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-    expect(await findTarget()).toHaveTextContent(/^Objetivo · 60 kg × 9$/)
+    expect(await findTarget()).toHaveTextContent(/^A batir · 60 kg × 9$/)
   })
 
   // El objetivo es de la sesión. Una vez batido hoy, seguir diciendo «a
@@ -543,7 +579,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    expect(await findTarget()).toHaveTextContent(/^Objetivo · 60 kg × 9$/)
+    expect(await findTarget()).toHaveTextContent(/^A batir · 60 kg × 9$/)
   })
 
   it('moves the weight up when the last session ended with 3 or more in reserve', async () => {
@@ -560,7 +596,7 @@ describe('Workout', () => {
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-    expect(await findTarget()).toHaveTextContent(/^Objetivo · 62.5 kg × 8$/)
+    expect(await findTarget()).toHaveTextContent(/^A batir · 62.5 kg × 8$/)
   })
 
   it('asks how many were left after a set and stores the answer as RPE', async () => {
@@ -2522,7 +2558,11 @@ describe('Workout', () => {
     }
 
     async function logBench({ reps = '8', weight = '60' } = {}) {
+      // Los campos vienen rellenos (la última serie de hoy, o el objetivo):
+      // escribir otra cifra es vaciarlos primero.
+      await userEvent.clear(screen.getByLabelText(/reps/i))
       await userEvent.type(screen.getByLabelText(/reps/i), reps)
+      await userEvent.clear(screen.getByLabelText(/peso/i))
       await userEvent.type(screen.getByLabelText(/peso/i), weight)
       await userEvent.click(screen.getByRole('button', { name: /^registrar/i }))
     }

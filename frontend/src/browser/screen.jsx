@@ -386,9 +386,11 @@ function stubNetwork(catalogue = FOODS) {
 // entradas del historial (el editor marca «abierto» para que el gesto de atrás
 // lo cierre). Sin devolver el scroll a cero cada prueba empieza donde acabó la
 // anterior, que es la peor forma de que un barrido salga verde.
-export async function mountApp({ openWorkout = null, catalogue = FOODS } = {}) {
+export async function mountApp({ openWorkout = null, catalogue = FOODS, restSeconds = 0 } = {}) {
   localStorage.clear()
   localStorage.setItem('fitit_token', 'browser-geometry')
+  // Un descanso en marcha al abrir: Entreno lo recoge de aquí al montar.
+  if (restSeconds > 0) localStorage.setItem('fitit_rest_until', String(Date.now() + restSeconds * 1000))
   // Por la misma puerta que la app: la marca lleva un sello de tiempo y sólo
   // vale cuatro horas, así que escribir el id a pelo deja a `App` en Días.
   if (openWorkout != null) setOpenWorkout(openWorkout)
@@ -399,8 +401,8 @@ export async function mountApp({ openWorkout = null, catalogue = FOODS } = {}) {
 }
 
 /** Entreno con la sesión abierta y la tarjeta de `Press militar` desplegada. */
-export async function mountEntreno() {
-  const view = await mountApp({ openWorkout: 1 })
+export async function mountEntreno({ restSeconds = 0 } = {}) {
+  const view = await mountApp({ openWorkout: 1, restSeconds })
   await screen.findByRole('button', { name: `Editar ejercicio ${MAIN}` }, { timeout: 5000 })
   await settle()
   return view

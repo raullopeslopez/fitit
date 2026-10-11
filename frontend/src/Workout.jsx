@@ -190,13 +190,21 @@ function ExerciseCard({
   // padre, que es quien tiene la hora de fin; aquí sólo se le da sitio.
   rest = null,
 }) {
-  const seed = previous?.found ? previous.sets?.[0] : null
-  const [reps, setReps] = useState(seed ? String(seed.reps) : '')
+  const [reps, setReps] = useState('')
   // Empty for a bodyweight seed too: the field says "no weight" by being empty,
   // which is exactly what you want to log again.
-  const [weight, setWeight] = useState(
-    seed && seed.weight != null ? String(showKg(seed.weight)) : '',
-  )
+  const [weight, setWeight] = useState('')
+  // ¿Has tocado peso o reps a mano? Mientras no, los campos los rellena la
+  // pantalla (ver la siembra más abajo); en cuanto sí, son tuyos.
+  const touched = useRef(false)
+  const editReps_ = (v) => {
+    touched.current = true
+    setReps(v)
+  }
+  const editWeight_ = (v) => {
+    touched.current = true
+    setWeight(v)
+  }
   // ¿Está abierta la hoja del editor? Renombrar, reetiquetar y escribir la nota
   // son cosas que se hacen una vez en la vida de un ejercicio, así que comparten
   // una hoja que se pone encima de la tarjeta que abres veinte veces por sesión.
@@ -359,6 +367,31 @@ function ExerciseCard({
     : null
   // La serie de hoy que ya lo batió, si alguna. Ver `beatenAt`.
   const beatenIn = beatenAt(target, sets)
+  // Cómo se llega al objetivo desde la última vez, dicho en la regla
+  // (progression.js): una rep más, o más peso.
+  const targetWhy = !target
+    ? null
+    : target.reason === 'rep'
+      ? 'una rep más'
+      : target.reason === 'top'
+        ? `+${showKg(target.weight - lastTop.weight)} kg, vuelta a ${target.reps}`
+        : `+${showKg(target.weight - lastTop.weight)} kg`
+
+  // ── La siembra ───────────────────────────────────────────────────────────
+  // Los mínimos toques: si haces lo previsto, registrar es un toque. Lo
+  // previsto es repetir la última serie de hoy si ya hay alguna y, si no, el
+  // objetivo. Las marcas llegan después de montar la tarjeta, así que esto se
+  // vuelve a mirar cuando llegan — antes sólo miraba el primer render, y al
+  // reabrir un entreno los campos salían vacíos. Lo que tecleaste no se pisa.
+  const lastToday = sets[sets.length - 1]
+  const seedSet = lastToday ?? (target ? { reps: target.reps, weight: target.weight } : null)
+  const seedReps = seedSet?.reps ?? null
+  const seedWeight = seedSet ? (seedSet.weight ?? null) : undefined
+  useEffect(() => {
+    if (touched.current || seedReps == null) return
+    setReps(String(seedReps))
+    setWeight(seedWeight == null ? '' : String(showKg(seedWeight)))
+  }, [seedReps, seedWeight])
 
   const latestSet = sets[sets.length - 1]
   const latestIndex = sets.length - 1
@@ -631,33 +664,40 @@ function ExerciseCard({
           se queda sin proteger hasta que la colocación deje de depender de su
           propia altura. */}
       {lastTop ? (
-        <div className="target">
-          <div className="target-label">
-            Última vez{lastWhen ? ` · ${lastWhen}` : ''}
+        // ── La serie que toca ────────────────────────────────────────────────
+        // Qué serie es y qué tiene que batir, junto a los controles a los que
+        // se refiere. «Objetivo» a secas, solo en una esquina, no decía de
+        // qué; aquí lo dice la serie que lo lleva y la marca de la que sale.
+        // Sin cifra de tamaño Display: en esta pantalla la tiene el descanso.
+        <div className="target serie-block">
+          <div className="serie-head">
+            <span className="serie-n">{`${sets.length + 1}.ª serie`}</span>
+            <span className="target-label">
+              Última vez{lastWhen ? ` · ${lastWhen}` : ''}
+              {': '}
+              <span className="target-line">
+                {lastTop.weight == null ? (
+                  <>
+                    <span className="target-today">{lastTop.reps}</span>
+                    <span className="target-unit"> reps · sin peso</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="target-today">{showKg(lastTop.weight)}</span>
+                    <span className="target-unit"> kg × {lastTop.reps}</span>
+                  </>
+                )}
+              </span>
+            </span>
           </div>
-          <div className="target-line">
-            {lastTop.weight == null ? (
-              <>
-                <span className="target-today">{lastTop.reps}</span>
-                <span className="target-unit">reps · sin peso</span>
-              </>
-            ) : (
-              <>
-                <span className="target-today">{showKg(lastTop.weight)}</span>
-                <span className="target-unit">kg × {lastTop.reps}</span>
-              </>
-            )}
-          </div>
-          {/* Says why no record can fire, once, quietly. Without it a set that
-              plainly beat the number above looks like a bug. */}
-          {/* Sólo la cifra: el porqué («llegaste a 12») al lado de un × 8
-              se leía como otro número que cuadrar. La regla está en
-              progression.js para quien quiera saberlo. */}
           {target && (
-            <div className={`target-next${beatenIn ? ' is-beaten' : ''}`}>
-              {beatenIn
-                ? `✓ Batido en la S${beatenIn} · ${targetFigure}`
-                : `Objetivo · ${targetFigure}`}
+            <div className="serie-goal">
+              <span className={`target-next${beatenIn ? ' is-beaten' : ''}`}>
+                {beatenIn
+                  ? `✓ Batido en la S${beatenIn} · ${targetFigure}`
+                  : `A batir · ${targetFigure}`}
+              </span>
+              {!beatenIn && targetWhy && <span className="target-why">{`· ${targetWhy}`}</span>}
             </div>
           )}
           {previous?.stale && (
@@ -675,7 +715,13 @@ function ExerciseCard({
           que ninguna regla saltaba— y dejaba los seis controles de peso y reps
           más `Registrar serie` y `Repetir serie` tapados e `inert` mientras
           cambiabas una etiqueta. */}
-      <form className="log-form" data-editor-protect onSubmit={handleLogSet}>
+      {/* Fichas grandes de peso y reps; mientras descansas, el anillo es lo
+          grande y las fichas se compactan. */}
+      <form
+        className={`log-form log-form-tiles${rest ? ' is-resting' : ''}`}
+        data-editor-protect
+        onSubmit={handleLogSet}
+      >
         <div className="row">
           <div className="field stepper-field">
             <label htmlFor={`weight-${name}`}>Peso · kg</label>
@@ -684,7 +730,7 @@ function ExerciseCard({
                 type="button"
                 className="stepper-btn"
                 aria-label={`Restar kg`}
-                onClick={() => setWeight((w) => bump(w, -WEIGHT_STEP, 0))}
+                onClick={() => editWeight_(bump(weight, -WEIGHT_STEP, 0))}
               >
                 −
               </button>
@@ -692,13 +738,13 @@ function ExerciseCard({
                 id={`weight-${name}`}
                 inputMode="decimal"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => editWeight_(e.target.value)}
               />
               <button
                 type="button"
                 className="stepper-btn stepper-plus"
                 aria-label={`Sumar kg`}
-                onClick={() => setWeight((w) => bump(w, WEIGHT_STEP, 0))}
+                onClick={() => editWeight_(bump(weight, WEIGHT_STEP, 0))}
               >
                 +
               </button>
@@ -711,7 +757,7 @@ function ExerciseCard({
                 type="button"
                 className="stepper-btn"
                 aria-label="Restar rep"
-                onClick={() => setReps((r) => bump(r, -1, 1))}
+                onClick={() => editReps_(bump(reps, -1, 1))}
               >
                 −
               </button>
@@ -719,13 +765,13 @@ function ExerciseCard({
                 id={`reps-${name}`}
                 inputMode="numeric"
                 value={reps}
-                onChange={(e) => setReps(e.target.value)}
+                onChange={(e) => editReps_(e.target.value)}
               />
               <button
                 type="button"
                 className="stepper-btn stepper-plus"
                 aria-label="Sumar rep"
-                onClick={() => setReps((r) => bump(r, 1, 1))}
+                onClick={() => editReps_(bump(reps, 1, 1))}
               >
                 +
               </button>

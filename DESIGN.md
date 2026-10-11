@@ -723,7 +723,8 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
 | Comida | migrada (H2 y revisión semanal, 2026-10-02). La tarjeta de macros mantiene la proteína como cifra grande: decisión del usuario. Con objetivo son dos anillos (proteína fuera, 12 de trazo; kcal dentro, 7) con su leyenda al lado, e hidratos y grasa en barra de 6 px a pares debajo |
 | Comida (v3, 2026-10-10) | Diario sin tarjetas: título «Hoy»/«Ayer»/día con la fecha en sello, tira de la semana en vez de flechas, resumen de macros sin caja, comidas como secciones a todo el ancho con el `+` en su banda, y lo planificado dentro de su comida en un recuadro discontinuo |
 | Plan (2026-10-10) | Pestaña nueva: «Esta semana / La que viene» en control segmentado, la semana en tarjetas por día, la revisión y generar en la que viene |
-| Días, Progreso, Entreno | fuera de esta tanda |
+| Entreno (en curso, desde 2026-10-11) | Un ejercicio a la vez; lo demás desde un pie pegado encima de la barra (`↩ anterior`, `Siguiente ›`, buscador con «Hoy»). La serie que toca: «N.ª serie» con la marca de la última vez y «A batir · … · una rep más». Peso y reps en fichas grandes rellenas con lo previsto. El descanso es un anillo en el centro con −15 s · Saltar · +15 s, y mientras corre las fichas se compactan. **Excepción a «una cifra Display por pantalla»:** sin descanso, las dos fichas llevan la cifra a tamaño Display (son lo que vas a registrar); descansando, sólo el anillo. Pack de diseño y decisiones en el lienzo «Fitit · Editar ejercicio» |
+| Días, Progreso | fuera de esta tanda |
 
 ### Reglas nuevas
 - **Un dato del servidor es una cifra, no una frase.** Si el backend devuelve un número,
