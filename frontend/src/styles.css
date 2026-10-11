@@ -686,6 +686,71 @@ button.workout-title:active:not(:disabled) {
   margin: 0.25rem 0 0.5rem;
 }
 
+/* ── La hoja de Entreno: un buscador, no un editor ───────────────────────
+   Título que dice qué se mueve, «Quitar» y el aspa en la misma fila, y debajo
+   el campo ya enfocado. Sin el renglón del nombre: aquí no se renombra. */
+.editor-head.is-search {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.625rem;
+  width: 100%;
+  margin: 0 0 0.25rem;
+  padding: 0;
+}
+.editor-head.is-search:focus-within {
+  background: none;
+  box-shadow: none;
+}
+.editor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.editor-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+button.editor-quit {
+  flex: none;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.editor-search-field {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 0.875rem;
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  background: var(--surface-raised);
+  font-size: 1rem;
+}
+/* El aspa propia del navegador en un campo de búsqueda: al lado del aspa
+   de la hoja eran dos «×» que hacían cosas distintas. Borrar es el teclado. */
+.editor-search-field::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.editor-search-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.editor-match-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* La puerta al editor del ejercicio, idéntica en Entreno y en Progreso.
    Eran tres: `Editar ejercicio` en la tarjeta abierta, `Corregir` al pie de la
    gráfica y —en la misma pantalla— tocar el título para renombrar. Tres puertas

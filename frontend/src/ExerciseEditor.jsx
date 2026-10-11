@@ -58,8 +58,14 @@ export function ExerciseEditor({
   // renombra.
   candidates,
   onPick,
+  // Modo buscador (Entreno): un título que dice qué se mueve, una acción al
+  // lado del aspa, y el campo vacío y enfocado. Se abre escribiendo: antes el
+  // campo traía el nombre y había que borrarlo para buscar otro.
+  title,
+  headAction,
 }) {
   const sheetRef = useRef(null)
+  const fieldRef = useRef(null)
 
   // `onClose` llega como una lambda nueva en cada render de quien llama; los
   // efectos de abajo la leen de aquí para no volver a montarse en cada uno —
@@ -97,7 +103,7 @@ export function ExerciseEditor({
   // la nota — el teclado taparía justo lo que venías a tocar. Corregir el
   // nombre cuesta un toque más; cambiar el grupo no cuesta bajar un teclado.
   useEffect(() => {
-    if (open) sheetRef.current?.focus()
+    if (open) (title ? fieldRef : sheetRef).current?.focus()
   }, [open])
 
   // Escape cierra.
@@ -204,7 +210,7 @@ export function ExerciseEditor({
         className="sheet editor-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={`Editar ${name}`}
+        aria-label={title ? `${name}: cambiar o quitar` : `Editar ${name}`}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={drag ? { transform: `translateY(${drag}px)` } : undefined}
@@ -223,7 +229,7 @@ export function ExerciseEditor({
             ejercicio en cualquier otra pantalla, porque es el mismo dato. Lo
             que lo delata como editable es el marco. Intro guarda y cierra. */}
         <form
-          className="editor-head"
+          className={`editor-head${title ? ' is-search' : ''}`}
           onSubmit={(e) => {
             // Sin `onSubmitName` el campo sólo busca (Entreno): Intro toma el
             // primer resultado, y sin resultado no hace nada — no hay nombre
@@ -240,19 +246,43 @@ export function ExerciseEditor({
             onCloseRef.current()
           }}
         >
-          <input
-            className="editor-name-field"
-            // Con el nombre dentro porque en un superset hay varias tarjetas
-            // abiertas y un «Nombre» a secas no dice de cuál.
-            aria-label={`Nombre de ${name}`}
-            value={nameDraft}
-            onChange={(e) => onNameDraftChange(e.target.value)}
-            maxLength={120}
-            enterKeyHint="done"
-          />
-          <button type="button" className="editor-close" aria-label="Cerrar" onClick={leave}>
-            <span aria-hidden="true">×</span>
-          </button>
+          {title ? (
+            <>
+              <div className="editor-title-row">
+                <span className="editor-title">{title}</span>
+                {headAction}
+                <button type="button" className="editor-close" aria-label="Cerrar" onClick={leave}>
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+              <input
+                ref={fieldRef}
+                className="editor-search-field"
+                type="search"
+                aria-label="Buscar ejercicio"
+                placeholder="Buscar otro ejercicio…"
+                value={nameDraft}
+                onChange={(e) => onNameDraftChange(e.target.value)}
+                maxLength={120}
+                enterKeyHint="search"
+                autoComplete="off"
+              />
+            </>
+          ) : (
+            <>
+              <input
+                className="editor-name-field"
+                aria-label={`Nombre de ${name}`}
+                value={nameDraft}
+                onChange={(e) => onNameDraftChange(e.target.value)}
+                maxLength={120}
+                enterKeyHint="done"
+              />
+              <button type="button" className="editor-close" aria-label="Cerrar" onClick={leave}>
+                <span aria-hidden="true">×</span>
+              </button>
+            </>
+          )}
         </form>
         {/* Elegir uno no renombra nada: es decir «esto era otro ejercicio». Lo
             que haga con ello lo decide quien llama; la hoja se cierra sin
@@ -275,6 +305,11 @@ export function ExerciseEditor({
                     style={{ '--chip': muscleColor(c.muscle_group) }}
                   />
                   {c.name}
+                  {title && c.set_count != null && (
+                    <span className="editor-match-count" aria-hidden="true">
+                      {c.set_count}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

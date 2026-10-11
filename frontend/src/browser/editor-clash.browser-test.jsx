@@ -190,12 +190,12 @@ describe('lo que la hoja tapa queda fuera de alcance', () => {
 describe('cada pantalla toca lo suyo', () => {
   // Entreno sólo alcanza a la sesión: buscar otro ejercicio y quitarlo de hoy.
   // Grupo, nota y borrar el ejercicio entero son de Progreso.
-  it('Entreno: sin grupo ni nota, y «Quitar del entreno»; Progreso: todo, y «Eliminar ejercicio»', async () => {
+  it('Entreno: sin grupo ni nota, y «Quitar»; Progreso: todo, y «Eliminar ejercicio»', async () => {
     await mountEntreno()
     await openEditor(user)
     expect(screen.queryByLabelText(`Grupo muscular de ${MAIN}`)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(`Nota de ${MAIN}`)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Quitar del entreno' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar' })).toBeInTheDocument()
     await user.keyboard('{Escape}')
     await settle()
 
