@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
+import { beatenAt, lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
 
 describe('RIR stored as RPE', () => {
   // RPE on the RIR scale is 10 − RIR, so no column changes: the set keeps the
@@ -76,5 +76,39 @@ describe('what to aim for today', () => {
 
   it('has nothing to aim for without a previous set', () => {
     expect(nextTarget(null, null)).toBeNull()
+  })
+})
+
+// El objetivo es de la sesión: en cuanto una serie de hoy lo iguala o lo
+// supera, deja de pedirse. Más peso cuenta aunque haga menos reps.
+describe('beatenAt', () => {
+  const target = { weight: 60, reps: 9 }
+
+  it('says which set of today met the target first', () => {
+    const sets = [
+      { weight: 60, reps: 8 },
+      { weight: 60, reps: 9 },
+      { weight: 60, reps: 10 },
+    ]
+    expect(beatenAt(target, sets)).toBe(2)
+  })
+
+  it('counts more weight as beating it, even with fewer reps', () => {
+    expect(beatenAt(target, [{ weight: 62.5, reps: 6 }])).toBe(1)
+  })
+
+  it('is null while nothing today reaches it', () => {
+    expect(beatenAt(target, [{ weight: 60, reps: 8 }, { weight: 57.5, reps: 12 }])).toBeNull()
+    expect(beatenAt(target, [])).toBeNull()
+  })
+
+  it('without weight, only reps count', () => {
+    const bodyweight = { weight: null, reps: 11 }
+    expect(beatenAt(bodyweight, [{ weight: null, reps: 10 }])).toBeNull()
+    expect(beatenAt(bodyweight, [{ weight: null, reps: 11 }])).toBe(1)
+  })
+
+  it('has nothing to beat without a target', () => {
+    expect(beatenAt(null, [{ weight: 60, reps: 9 }])).toBeNull()
   })
 })

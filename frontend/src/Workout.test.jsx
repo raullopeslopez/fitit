@@ -527,6 +527,41 @@ describe('Workout', () => {
     expect(await findTarget()).toHaveTextContent(/^Objetivo · 60 kg × 9$/)
   })
 
+  // El objetivo es de la sesión. Una vez batido hoy, seguir diciendo «a
+  // batir» pide algo que ya hiciste; ahora dice en qué serie cayó.
+  it('says the target was beaten, and in which set, once a set of today meets it', async () => {
+    api.getWorkout.mockResolvedValue(
+      workoutWith(
+        benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
+        benchSet({ id: 2, set_index: 1, reps: 9, weight: 60 }),
+      ),
+    )
+    api.listExercises.mockResolvedValue([{ id: 2, name: 'Bench Press', muscle_group: 'Pecho' }])
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ id: 5, reps: 8, weight: 60 })],
+    })
+    renderWorkout()
+
+    expect(await findTarget()).toHaveTextContent(/^✓ Batido en la S2 · 60 kg × 9$/)
+  })
+
+  it('keeps asking for the target while no set of today reaches it', async () => {
+    api.getWorkout.mockResolvedValue(
+      workoutWith(benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 })),
+    )
+    api.listExercises.mockResolvedValue([{ id: 2, name: 'Bench Press', muscle_group: 'Pecho' }])
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ id: 5, reps: 8, weight: 60 })],
+    })
+    renderWorkout()
+
+    expect(await findTarget()).toHaveTextContent(/^Objetivo · 60 kg × 9$/)
+  })
+
   it('moves the weight up when the last session ended with 3 or more in reserve', async () => {
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',

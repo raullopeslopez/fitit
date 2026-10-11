@@ -54,3 +54,20 @@ export function nextTarget(top, rir) {
   }
   return { weight: top.weight, reps: top.reps + 1, reason: 'rep' }
 }
+
+// ── El objetivo es de la sesión ──────────────────────────────────────────
+// Se bate una vez. Seguir pidiéndolo después es pedir algo que ya hiciste, y
+// subirlo dentro del mismo entreno sería pedir una marca que el cansancio casi
+// nunca deja: la progresión va de una sesión a la siguiente. Devuelve el número
+// (desde 1) de la primera serie de hoy que lo iguala o lo supera, o null. Más
+// peso cuenta aunque haga menos reps; sin peso, sólo cuentan las reps.
+export function beatenAt(target, sets) {
+  if (!target || !sets?.length) return null
+  const index = sets.findIndex((s) => {
+    if (s.reps == null) return false
+    if (target.weight == null) return s.weight == null && s.reps >= target.reps
+    if (s.weight == null) return false
+    return s.weight > target.weight || (s.weight === target.weight && s.reps >= target.reps)
+  })
+  return index === -1 ? null : index + 1
+}

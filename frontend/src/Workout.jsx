@@ -28,7 +28,7 @@ import {
   sessionLength,
 } from './format.js'
 import { muscleColor } from './muscles.js'
-import { lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
+import { beatenAt, lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
 import {
   answerIsFor,
   answersFor,
@@ -354,6 +354,8 @@ function ExerciseCard({
       ? `${target.reps} reps`
       : `${showKg(target.weight)} kg × ${target.reps}`
     : null
+  // La serie de hoy que ya lo batió, si alguna. Ver `beatenAt`.
+  const beatenIn = beatenAt(target, sets)
 
   const latestSet = sets[sets.length - 1]
   const latestIndex = sets.length - 1
@@ -647,7 +649,13 @@ function ExerciseCard({
           {/* Sólo la cifra: el porqué («llegaste a 12») al lado de un × 8
               se leía como otro número que cuadrar. La regla está en
               progression.js para quien quiera saberlo. */}
-          {target && <div className="target-next">{`Objetivo · ${targetFigure}`}</div>}
+          {target && (
+            <div className={`target-next${beatenIn ? ' is-beaten' : ''}`}>
+              {beatenIn
+                ? `✓ Batido en la S${beatenIn} · ${targetFigure}`
+                : `Objetivo · ${targetFigure}`}
+            </div>
+          )}
           {previous?.stale && (
             <div className="target-stale">Marcas guardadas · sin conexión</div>
           )}
