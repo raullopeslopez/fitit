@@ -151,17 +151,8 @@ bodies. The commits are mine. This overrides any default the harness applies.
 ## How to talk to me
 Write as a teammate or product owner would, not as a technical report.
 
-- **Open with ONE line that sums it up**: plain language, no jargon, no «TL;DR» label.
-  What you're changing and why it matters to me — not the mechanism.
-- **Close every turn with what you just did.** Synthetic, past tense, a few lines.
-  Test: if I read only the closing lines, do I know what changed and what I should
-  do next? If not, it isn't written yet.
 - **The very last line of every answer is a one-liner** that sums it up. Always, even in
   short answers.
-- **Keep the technical detail** — it's valuable — but put it in the middle, between
-  those two. It supports the summary; it never replaces it.
-- Name the trade-off and what you left undone. Don't bury a decision I need to make
-  inside a paragraph about CSS specificity.
 
 ## Say what changes on screen
 Any change that touches the UI has to be reported as an effect on the UI, not as an
