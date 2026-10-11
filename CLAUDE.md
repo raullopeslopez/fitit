@@ -10,6 +10,22 @@ All font choices, colors, spacing, and aesthetic direction are defined there.
 Do not deviate without explicit user approval.
 In QA/review mode, flag any code that doesn't match `DESIGN.md`.
 
+## Principio de producto: los mínimos toques
+Regla de toda la app, por encima de cualquier pantalla: **minimizar los toques que hacen
+falta para conseguir lo que el usuario venía a hacer.** Se cuentan, no se intuyen.
+
+- **El caso normal cuesta un toque.** Lo más probable va ya puesto: el objetivo en la
+  serie siguiente, lo de ayer en la comida de hoy. Si haces lo previsto, un toque lo
+  registra; corregir es la excepción y cuesta lo justo (un toque por incremento).
+- **Nada de pasos que no deciden nada.** Ni «Guardar» cuando salir ya guarda, ni un
+  diálogo para un acto que se deshace con «Deshacer», ni un segundo paso para llegar a un
+  control que cabía en el primero.
+- **Al proponer o revisar un diseño, di cuántos toques cuesta** el camino principal y
+  si baja o sube respecto a lo que hay. Un diseño que añade toques al caso normal necesita
+  una razón explícita y mi visto bueno.
+- Lo irreversible (borrar historial) sí puede costar un toque de más: ahí la confirmación
+  es la decisión, no un trámite.
+
 ## Comida (registro de alimentos)
 Reglas permanentes. Valen para todas las fases del tracking de comida, no sólo la 1.
 
