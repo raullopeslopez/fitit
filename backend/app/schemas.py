@@ -1232,6 +1232,9 @@ class PlanOut(BaseModel):
     week_start: Date
     seed: int
     entries: list[PlanEntryOut] = Field(default_factory=list)
+    # Hay una pauta vigente para esta semana: los platos que fija no los eligió
+    # el generador, y «generar otra» no tiene sentido sobre ellos.
+    has_pauta: bool = False
     # El porqué: qué dicen tus reglas de esta semana. Se devuelven todas, no
     # sólo las rotas — enseñar sólo lo roto deja sin saber si lo demás se miró.
     verdicts: list[VerdictOut] = Field(default_factory=list)
@@ -1442,6 +1445,37 @@ class PlanImportOut(BaseModel):
     refusal: str | None = None
     # 'minute' | 'day', con `refusal=quota`.
     quota_scope: str | None = None
+
+
+class PautaDishIn(BaseModel):
+    """Un plato de lo revisado: uno tuyo (`dish_id`) o uno nuevo con sus
+    ingredientes ya casados con alimentos."""
+
+    name: str = Field(min_length=1, max_length=160)
+    slots: list[MealSlot] = Field(default_factory=list)
+    dish_id: int | None = None
+    ingredients: list[DishIngredientIn] = Field(default_factory=list)
+
+
+class PautaSlotIn(BaseModel):
+    day: int = Field(ge=0, le=6)
+    slot: MealSlot
+    # Posición del plato en `PautaSaveIn.dishes`.
+    dish: int = Field(ge=0)
+
+
+class PautaSaveIn(BaseModel):
+    # Desde qué semana vale. Se lleva a su lunes.
+    week_start: Date
+    dishes: list[PautaDishIn] = Field(default_factory=list)
+    week: list[PautaSlotIn] = Field(default_factory=list)
+
+
+class PautaSaveOut(BaseModel):
+    pauta_id: int
+    active_from: Date
+    # El id de cada plato, en el orden en que llegaron.
+    dish_ids: list[int] = Field(default_factory=list)
 
 
 class DishDraftOut(BaseModel):

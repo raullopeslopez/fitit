@@ -283,15 +283,26 @@ def _una_semana(
     rng,
     enfriamiento,
     exploracion,
+    fijados,
 ):
     inicio = dias[0]
     usados: dict[int, date] = {}
+    por_id = {p.id: p for p in candidatos}
     por_dia = []
     for fecha in dias:
         objetivo = objetivos.get(fecha, {})
         elegidos: list[tuple[str, PlatoCandidato]] = []
         hoy = set()
         for slot in huecos:
+            # Lo que fija la pauta no se elige: ni reglas de hueco, ni
+            # enfriamiento, ni memoria. Lo dijo el nutricionista. Sólo las
+            # cantidades siguen siendo de aquí (`_resolver_dia`).
+            fijo = por_id.get(fijados.get((fecha.weekday(), slot)))
+            if fijo is not None:
+                usados[fijo.id] = fecha
+                hoy.add(fijo.id)
+                elegidos.append((slot, fijo))
+                continue
             opciones = [p for p in candidatos if _cabe(p, slot, fecha, objetivo, reglas)]
             disponibles = [p for p in opciones if p.id not in hoy]
             if not disponibles:
@@ -394,13 +405,18 @@ def generar(
     reinicios: int = REINICIOS,
     enfriamiento: int = ENFRIAMIENTO,
     exploracion: float = EXPLORACION,
+    fijados=None,
 ) -> Plan:
     """La mejor de `reinicios` semanas, con la semilla por delante.
 
     Determinista: los mismos argumentos y la misma semilla dan el mismo plan.
     Levanta `PlanImposible` cuando ningún reinicio consigue llenar un hueco, y
     dice cuál.
+
+    `fijados` es la pauta: `{(día de la semana, hueco): dish_id}`. Esos huecos
+    llevan ese plato; el resto se elige como siempre.
     """
+    fijados = dict(fijados or {})
     dias = tuple(dias)
     candidatos = list(candidatos)
     objetivos = dict(objetivos or {})
@@ -424,6 +440,7 @@ def generar(
             rng=rng,
             enfriamiento=enfriamiento,
             exploracion=exploracion,
+            fijados=fijados,
         )
         if por_dia is None:
             fallos[fallo] += 1

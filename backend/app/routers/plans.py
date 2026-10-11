@@ -31,6 +31,7 @@ from ..models import (
     Dish,
     Food,
     LogEntry,
+    Pauta,
     Plan,
     PlanEntry,
     Rule,
@@ -340,6 +341,19 @@ async def _congelado(
     return kcal, items
 
 
+async def _pauta_vigente(session: AsyncSession, user_id: int, week_start: date) -> Pauta | None:
+    """La pauta que manda en esa semana: la más reciente que ya había empezado."""
+    return (
+        await session.execute(
+            select(Pauta)
+            .options(selectinload(Pauta.entries))
+            .where(Pauta.user_id == user_id, Pauta.active_from <= week_start)
+            .order_by(Pauta.active_from.desc(), Pauta.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
 def _to_out(
     plan: Plan,
     nombres: dict[int, str],
@@ -347,11 +361,14 @@ def _to_out(
     score: float,
     kcal: dict[int, float | None] | None = None,
     items: dict[int, list[PlanItemOut]] | None = None,
+    *,
+    has_pauta: bool = False,
 ) -> PlanOut:
     return PlanOut(
         id=plan.id,
         week_start=plan.week_start,
         seed=plan.seed,
+        has_pauta=has_pauta,
         entries=[
             PlanEntryOut(
                 id=fila.id,
@@ -393,6 +410,8 @@ async def generate_plan(
         )
 
     seed = payload.seed if payload.seed is not None else payload.week_start.toordinal()
+    pauta = await _pauta_vigente(session, user_id, payload.week_start)
+    fijados = {(e.weekday, e.slot): e.dish_id for e in pauta.entries} if pauta else {}
     try:
         propuesta = generar(
             dias=dias,
@@ -403,6 +422,7 @@ async def generate_plan(
             historial=await _historial(session, user_id, payload.week_start),
             kg=await _peso(session, user_id),
             seed=seed,
+            fijados=fijados,
         )
     except PlanImposible as refusal:
         # 422 y no 500: no poder llenar un hueco es una respuesta, y lleva
@@ -449,6 +469,7 @@ async def generate_plan(
         propuesta.veredictos,
         propuesta.puntuacion,
         *(await _congelado(session, plan)),
+        has_pauta=pauta is not None,
     )
 
 
@@ -481,7 +502,14 @@ async def read_plan(
         nombres = dict(
             (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
         )
-    return _to_out(plan, nombres, (), 0.0, *(await _congelado(session, plan)))
+    return _to_out(
+        plan,
+        nombres,
+        (),
+        0.0,
+        *(await _congelado(session, plan)),
+        has_pauta=await _pauta_vigente(session, user_id, week_start) is not None,
+    )
 
 
 async def _lista_de(session: AsyncSession, user_id: int, week_start: date):

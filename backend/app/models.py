@@ -675,6 +675,51 @@ class PlanEntry(Base):
     plan: Mapped["Plan"] = relationship(back_populates="entries")
 
 
+class Pauta(Base):
+    """El plan que no genera la app: el del nutricionista, leído de un PDF.
+
+    Fija qué plato va en cada comida de cada día de la semana, y se repite
+    cada semana hasta que llega otra. La vigente para una semana es la más
+    reciente con `active_from` en o antes de su lunes. No se borra: la
+    adherencia de las semanas que vivió se midió contra ella.
+
+    Lo que la pauta no dice —una comida sin plato— lo sigue eligiendo el
+    generador. Las cantidades tampoco son suyas: las calcula el ajustador
+    contra tu objetivo, igual que en una semana generada.
+    """
+
+    __tablename__ = "pautas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    # Un lunes: el de la semana en que se subió.
+    active_from: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    entries: Mapped[list["PautaEntry"]] = relationship(
+        back_populates="pauta",
+        cascade="all, delete-orphan",
+        order_by="PautaEntry.id",
+    )
+
+
+class PautaEntry(Base):
+    __tablename__ = "pauta_entries"
+    __table_args__ = (
+        UniqueConstraint("pauta_id", "weekday", "slot", name="uq_pauta_entries_slot"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pauta_id: Mapped[int] = mapped_column(ForeignKey("pautas.id", ondelete="CASCADE"), index=True)
+    # Lunes es 0, como `date.weekday()`.
+    weekday: Mapped[int] = mapped_column(Integer)
+    slot: Mapped[str] = mapped_column(String(16))
+    # Sin `ondelete`: un plato no se borra en esta app, se corrige.
+    dish_id: Mapped[int] = mapped_column(ForeignKey("dishes.id"))
+
+    pauta: Mapped["Pauta"] = relationship(back_populates="entries")
+
+
 class DishIdea(Base):
     """Una receta de la web con un alimento dentro. **No es un plato.**
 

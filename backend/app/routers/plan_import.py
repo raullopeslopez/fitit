@@ -15,6 +15,7 @@ pantalla enseña; guardar es otra petición.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from time import perf_counter
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -26,7 +27,7 @@ from ..config import settings
 from ..db import get_session
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, read_plan
-from ..models import Dish
+from ..models import Dish, DishIngredient, Pauta, PautaEntry
 from ..naming import fold_exercise_name
 from ..plan_import import read_plan_payload
 from ..schemas import (
@@ -34,8 +35,12 @@ from ..schemas import (
     DraftLineOut,
     ImportedDishOut,
     ImportedSlotOut,
+    PautaDishIn,
+    PautaSaveIn,
+    PautaSaveOut,
     PlanImportOut,
 )
+from .dishes import _foods
 
 log = logging.getLogger("uvicorn.error")
 
@@ -167,3 +172,79 @@ async def import_plan(
         dishes=dishes,
         week=[ImportedSlotOut(day=c.day, slot=c.slot, dish=c.dish) for c in read.week],
     )
+
+
+async def _plato_de(session: AsyncSession, user_id: int, dish: PautaDishIn) -> Dish:
+    """El plato de una casilla: el tuyo, o uno nuevo dado de alta aquí."""
+    if dish.dish_id is not None:
+        mio = await session.get(Dish, dish.dish_id)
+        if mio is None or mio.user_id != user_id:
+            raise HTTPException(status_code=404, detail="dish not found")
+        return mio
+    # Un nombre que ya tienes es ese plato, igual que al leer el PDF: guardar
+    # dos veces lo mismo no puede abrir un segundo plato con el mismo nombre.
+    folded = fold_exercise_name(dish.name)
+    mismo = (
+        await session.execute(
+            select(Dish).where(Dish.user_id == user_id, Dish.name_folded == folded)
+        )
+    ).scalar_one_or_none()
+    if mismo is not None:
+        return mismo
+    # Un plato sin ingredientes no es un plato: es un nombre (`DishIn`).
+    if not dish.ingredients:
+        raise HTTPException(
+            status_code=422, detail=f"«{dish.name}» no tiene ingredientes"
+        )
+    await _foods(session, user_id, [i.food_id for i in dish.ingredients])
+    nuevo = Dish(
+        user_id=user_id,
+        name=dish.name,
+        name_folded=folded,
+        basis="raw",
+        servings=1,
+        slots=",".join(dish.slots) if dish.slots else None,
+        ingredients=[
+            DishIngredient(
+                food_id=i.food_id, grams=i.grams, min_grams=i.min_grams, max_grams=i.max_grams
+            )
+            for i in dish.ingredients
+        ],
+    )
+    session.add(nuevo)
+    await session.flush()
+    return nuevo
+
+
+@router.post("/import/save", response_model=PautaSaveOut, status_code=status.HTTP_201_CREATED)
+async def save_imported(
+    payload: PautaSaveIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PautaSaveOut:
+    """Guarda lo revisado de una vez: los platos nuevos y la pauta.
+
+    Todo o nada: si un plato no se puede guardar, no queda ni él ni la pauta.
+    Una pauta a medias pondría en la semana platos que no dijiste.
+    """
+    if any(c.dish >= len(payload.dishes) for c in payload.week):
+        raise HTTPException(status_code=422, detail="una casilla apunta a un plato que no existe")
+
+    platos = [await _plato_de(session, user_id, d) for d in payload.dishes]
+    lunes = payload.week_start - timedelta(days=payload.week_start.weekday())
+    vistas: set[tuple[int, str]] = set()
+    entries = []
+    for celda in payload.week:
+        if (celda.day, celda.slot) in vistas:
+            continue
+        vistas.add((celda.day, celda.slot))
+        entries.append(
+            PautaEntry(weekday=celda.day, slot=celda.slot, dish_id=platos[celda.dish].id)
+        )
+    pauta = Pauta(user_id=user_id, active_from=lunes, entries=entries)
+    session.add(pauta)
+    await session.commit()
+    log.info(
+        "plan import: outcome=saved dishes=%d slots=%d", len(platos), len(entries)
+    )
+    return PautaSaveOut(pauta_id=pauta.id, active_from=lunes, dish_ids=[p.id for p in platos])
