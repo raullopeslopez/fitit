@@ -129,3 +129,15 @@ Feature: Filling the repertoire without typing it
     And the model proposes "Pavo a la plancha" with 200 g of "Pavo, filete, crudo"
     When I ask for dishes
     Then "Pavo a la plancha" is in my dishes
+
+  # Con sólo la despensa el modelo proponía al azar entre lo que hay. Tus
+  # platos —los que das de alta y los que trae la pauta del nutricionista—
+  # dicen qué cocinas en cada comida, y se le pasan como ejemplos para que
+  # proponga variaciones cercanas en vez de platos que nunca harías.
+  Scenario: The model is shown my dishes, meal by meal, to propose ones like them
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And a dish "Pollo con arroz" for the comida with 150 g of "Pollo, pechuga, cruda"
+    And a dish "Arroz con leche" for no meal in particular with 100 g of "Arroz blanco cocido"
+    When I ask for dishes and the model sees the list
+    Then the model was shown "Pollo con arroz" as an example of comida
+    And the model was shown "Arroz con leche" as an example of any meal

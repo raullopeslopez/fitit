@@ -51,6 +51,30 @@ def given_dish(client, name, servings, grams, food):
     assert resp.status_code == 201, resp.text
 
 
+def _alta(client, name, food, grams, slots):
+    match = next(f for f in client.get(f"/foods?q={food}").json() if f["name"] == food)
+    resp = client.post(
+        "/dishes",
+        json={
+            "name": name,
+            "servings": 1,
+            "slots": slots,
+            "ingredients": [{"food_id": match["id"], "grams": grams}],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@given(parsers.parse('a dish "{name}" for the {slot:w} with {grams:g} g of "{food}"'))
+def given_dish_for(client, name, slot, grams, food):
+    _alta(client, name, food, grams, [slot])
+
+
+@given(parsers.parse('a dish "{name}" for no meal in particular with {grams:g} g of "{food}"'))
+def given_dish_any(client, name, grams, food):
+    _alta(client, name, food, grams, None)
+
+
 def _dish_payload(name, grams, food, **extra):
     return {
         "dishes": [
@@ -227,10 +251,16 @@ def ofrecidos():
     return []
 
 
+@pytest.fixture()
+def pedido():
+    return {}
+
+
 @when("I ask for dishes and the model sees the list", target_fixture="generated")
-def when_generate_watching(client, ofrecidos):
+def when_generate_watching(client, ofrecidos, pedido):
     async def proposer(**kwargs):
         ofrecidos.extend(kwargs["foods"])
+        pedido.update(kwargs)
         return {"dishes": []}
 
     app.dependency_overrides[get_dish_proposer] = lambda: proposer
@@ -247,3 +277,13 @@ def then_offered(ofrecidos, name):
 @then(parsers.parse('the model was not offered "{name}"'))
 def then_not_offered(ofrecidos, name):
     assert name not in ofrecidos, ofrecidos
+
+
+@then(parsers.parse('the model was shown "{name}" as an example of {slot:w}'))
+def then_example(pedido, name, slot):
+    assert name in pedido["examples"].get(slot, []), pedido["examples"]
+
+
+@then(parsers.parse('the model was shown "{name}" as an example of any meal'))
+def then_example_any(pedido, name):
+    assert name in pedido["examples"].get("cualquiera", []), pedido["examples"]

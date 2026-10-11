@@ -336,6 +336,33 @@ async def get_dish_proposer():
     return proposer
 
 
+# Cuántos platos tuyos se le enseñan por comida. Bastan para que vea qué
+# cocinas; más alarga el prompt y empuja a copiar en vez de variar.
+MAX_EJEMPLOS = 12
+
+
+async def _ejemplos(session: AsyncSession, user_id: int) -> dict[str, list[str]]:
+    """Tus platos por comida, para que el modelo proponga parecidos.
+
+    Los que no dicen comida van a `cualquiera`: valen para todas, y repetirlos
+    en las cuatro listas los contaría cuatro veces. Los más recientes primero:
+    lo último que diste de alta —la pauta del nutricionista— es lo que más se
+    parece a lo que comes ahora.
+    """
+    dishes = (
+        await session.execute(
+            select(Dish.name, Dish.slots).where(Dish.user_id == user_id).order_by(Dish.id.desc())
+        )
+    ).all()
+    ejemplos: dict[str, list[str]] = {}
+    for name, slots in dishes:
+        for slot in (slots.split(",") if slots else ["cualquiera"]):
+            lista = ejemplos.setdefault(slot, [])
+            if len(lista) < MAX_EJEMPLOS:
+                lista.append(name)
+    return ejemplos
+
+
 # Cuántos nombres se le mandan como despensa. Más que esto no afina la
 # propuesta: alarga el prompt y le da sitio para irse por las ramas.
 PANTRY_LIMIT = 60
@@ -512,6 +539,7 @@ async def generate_dishes(
             methods=list(payload.methods),
             minutes=payload.minutes,
             n=payload.n,
+            examples=await _ejemplos(session, user_id),
             # Se le dice para que proponga mejor, no para que lo cumpla: quien
             # decide es `proteina_minima` sobre las cifras del catálogo.
             protein_floor=proteina_minima(objetivo, ("comida",)),
