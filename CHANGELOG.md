@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.25.0: subir el plan del nutricionista.** Al fondo de `Plan`, `Subir plan` lee un
+  PDF y abre `Platos identificados` para revisarlo antes de guardar (#251). Con pauta, cada
+  día clava sus kcal y dice lo que no cabe (`Fuera del objetivo: Proteína −25 g`), y
+  `Generar otra` desaparece (#252). Bajo cada plato del plan, sus ingredientes con gramos
+  (#247).
 - **APK 0.24.0: la pestaña Plan y el diario de Comida sin tarjetas.** Barra inferior con
   cinco pestañas (Días · Progreso · Comida · Plan · Perfil). En Comida, tira de la semana
   y lo planificado de hoy dentro de su comida (`Lo comí`, `Lo cambié`, `Me lo salté`); en
