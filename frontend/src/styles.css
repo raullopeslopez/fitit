@@ -3450,7 +3450,18 @@ button.set-chip:active:not(:disabled) {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding-top: 2.5rem;
+  padding-top: calc(1.25rem + env(safe-area-inset-top));
+}
+/* La marca arriba y lo demás en el centro del hueco que queda: con una sola
+   tarjeta, apilarlo todo arriba dejaba media pantalla vacía debajo. Los dos
+   márgenes `auto` se reparten el sobrante a partes iguales; la salida, cuando
+   aparece, cae dentro del bloque centrado. */
+.cold-card,
+.cold-fail-title {
+  margin-top: auto;
+}
+.cold > :last-child {
+  margin-bottom: auto;
 }
 .cold-brand {
   display: flex;
@@ -3465,7 +3476,6 @@ button.set-chip:active:not(:disabled) {
   justify-content: space-between;
   gap: 1.15rem;
   min-height: 15rem;
-  margin-bottom: 0;
 }
 .cold-kicker {
   font-size: 0.7rem;
@@ -3591,7 +3601,7 @@ button.set-chip:active:not(:disabled) {
   margin: 0;
 }
 .cold-fail-title {
-  margin: 0;
+  margin-bottom: 0;
   text-wrap: pretty;
 }
 /* Lo que tranquiliza no va en rojo: el rojo es lo destructivo en esta app. Una
