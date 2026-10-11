@@ -101,11 +101,18 @@ jobs:
           version=$(node -p "require('./package.json').version")
           cp android/app/build/outputs/apk/debug/app-debug.apk "fitit-$version.apk"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      # Sólo en una PR: es la única forma de probar ese APK antes de fusionar. En
+      # `main` el APK va a la Release, y una copia de 30 días por cada push llenó
+      # la cuota de artefactos del repo, que tumbó el job antes de publicar la
+      # 0.24.0. Por eso además no puede tumbarlo: sin copia, la PR sigue siendo
+      # verde (el APK compiló, que es lo que se comprueba).
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
         with:
           name: fitit-${{ steps.apk.outputs.version }}
           path: frontend/fitit-${{ steps.apk.outputs.version }}.apk
-          retention-days: 30
+          retention-days: 7
       # Una Release por versión (`android-v0.1.1`) con un solo APK, que lleva la
       # versión en el nombre. Ya no hay copia con nombre fijo (`fitit.apk`): el
       # enlace estable es la página de la última Release,
