@@ -10,6 +10,7 @@ import {
   setScreenAwake,
 } from './prefs.js'
 import Reglas from './Reglas.jsx'
+import { applyTheme, getThemePref, setThemePref } from './theme.js'
 import { Chip, ListRow, Sheet } from './ui'
 import Weight from './Weight.jsx'
 import { publishStepsGoal } from './widgetSummary.js'
@@ -210,6 +211,13 @@ export default function Perfil({ onLogout }) {
         </div>
       </section>
 
+      <section className="perfil-seccion" aria-labelledby="perfil-apariencia">
+        <h2 id="perfil-apariencia">Apariencia</h2>
+        <div className="perfil-card perfil-card-pad">
+          <PreferenciaTema />
+        </div>
+      </section>
+
       {/* Lo más raro que se hace, al final. */}
       <p className="perfil-salir">
         <button type="button" className="link-btn" onClick={onLogout}>
@@ -396,5 +404,40 @@ function PreferenciasEntreno() {
         </div>
       </div>
     </>
+  )
+}
+
+// Claro u oscuro, o lo que diga el teléfono. Se aplica al tocarlo: no hay
+// nada que guardar aparte.
+const TEMAS = [
+  ['system', 'Sistema'],
+  ['light', 'Claro'],
+  ['dark', 'Oscuro'],
+]
+
+function PreferenciaTema() {
+  const [pref, setPref] = useState(getThemePref)
+
+  return (
+    <div className="menu-pref">
+      <span className="prefs-label">Tema</span>
+      <div className="unit-toggle" role="group" aria-label="Tema">
+        {TEMAS.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className="unit-option"
+            aria-pressed={pref === value}
+            onClick={() => {
+              setThemePref(value)
+              applyTheme(value)
+              setPref(value)
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

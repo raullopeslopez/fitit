@@ -385,6 +385,40 @@ describe('Perfil', () => {
     })
   })
 
+  describe('Apariencia', () => {
+    beforeEach(() => {
+      window.matchMedia = vi.fn(() => ({
+        matches: false,
+        addEventListener() {},
+        removeEventListener() {},
+      }))
+      delete document.documentElement.dataset.theme
+    })
+
+    it('el tema se elige aquí, se aplica al momento y se recuerda', async () => {
+      renderPerfil()
+      const tema = await screen.findByRole('group', { name: 'Tema' })
+
+      // Sin elegir nada, sigue al sistema.
+      expect(within(tema).getByRole('button', { name: 'Sistema' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      await userEvent.click(within(tema).getByRole('button', { name: 'Oscuro' }))
+
+      expect(within(tema).getByRole('button', { name: 'Oscuro' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      expect(document.documentElement.dataset.theme).toBe('dark')
+      expect(localStorage.getItem('fitit_theme')).toBe('dark')
+
+      await userEvent.click(within(tema).getByRole('button', { name: 'Sistema' }))
+      expect(document.documentElement.dataset.theme).toBe('light')
+      expect(localStorage.getItem('fitit_theme')).toBe('system')
+    })
+  })
+
   it('«Salir» cierra la sesión', async () => {
     const onLogout = vi.fn()
     renderPerfil({ onLogout })

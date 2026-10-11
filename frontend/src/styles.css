@@ -67,43 +67,49 @@
   --font-body: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
   /* Let native controls (date picker, scrollbars) follow the theme. */
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark-first instrument surface — the design's primary target. */
-    --bg: #0b0c0e;
-    --surface: #15171a;
-    --surface-raised: #1d2024;
-    --text: #f2f3f5;
-    --muted: #9ba1a9;
-    --accent: #ff6a2c;
-    --accent-hover: #e4571b;
-    /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
-    --accent-ink: #ff6a2c;
-    --pr: #ffa733;
-    /* `#EF4444` daba 4,345 sobre `--surface-raised` y 3,676 con el velo de
-       `:hover`: suspendía en reposo y suspendía más al tocarlo. 16 px a 600
-       no es «texto grande» para WCAG, así que el suelo es 4,5 y no 3.
-       `#F87171`: 5,911 en reposo, 5,001 en hover. */
-    --danger: #f87171;
-    --on-danger: #0b0c0e;
-    --border: #24272c;
-    --ring: rgba(255, 106, 44, 0.3);
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-    /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
-    --m-pecho: #3987e5;
-    --m-espalda: #008300;
-    --m-cuadriceps: #d55181;
-    --m-gluteo: #a16336;
-    --m-femoral: #8046c8;
-    --m-gemelo: #0093a8;
-    --m-hombro: #c98500;
-    --m-biceps: #199e70;
-    --m-triceps: #9085e9;
-    --m-core: #e66767;
-  }
+/* The theme is `<html data-theme>`, never the media query: `src/theme.js`
+   resolves it from the system or from Perfil → Apariencia (and the inline
+   script in index.html does it before first paint). Light is the bare `:root`
+   so a page without the attribute still has every token. Per-rule overrides
+   scope with `:where(:root[data-theme=…])`, which adds no specificity: they
+   used to sit in a media query, and `.card.is-folded` must still beat the
+   dark `.card` the way it did there. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  /* Dark-first instrument surface — the design's primary target. */
+  --bg: #0b0c0e;
+  --surface: #15171a;
+  --surface-raised: #1d2024;
+  --text: #f2f3f5;
+  --muted: #9ba1a9;
+  --accent: #ff6a2c;
+  --accent-hover: #e4571b;
+  /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
+  --accent-ink: #ff6a2c;
+  --pr: #ffa733;
+  /* `#EF4444` daba 4,345 sobre `--surface-raised` y 3,676 con el velo de
+     `:hover`: suspendía en reposo y suspendía más al tocarlo. 16 px a 600
+     no es «texto grande» para WCAG, así que el suelo es 4,5 y no 3.
+     `#F87171`: 5,911 en reposo, 5,001 en hover. */
+  --danger: #f87171;
+  --on-danger: #0b0c0e;
+  --border: #24272c;
+  --ring: rgba(255, 106, 44, 0.3);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
+  --m-pecho: #3987e5;
+  --m-espalda: #008300;
+  --m-cuadriceps: #d55181;
+  --m-gluteo: #a16336;
+  --m-femoral: #8046c8;
+  --m-gemelo: #0093a8;
+  --m-hombro: #c98500;
+  --m-biceps: #199e70;
+  --m-triceps: #9085e9;
+  --m-core: #e66767;
 }
 
 * {
@@ -1039,11 +1045,9 @@ button.workout-title:active:not(:disabled) {
   line-height: 1;
   letter-spacing: 0.08em;
 }
-@media (prefers-color-scheme: dark) {
-  .day-live {
-    background: color-mix(in srgb, var(--accent) 16%, transparent);
-    box-shadow: none;
-  }
+:where(:root[data-theme='dark']) .day-live {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: none;
 }
 .day-live-dot {
   width: 5px;
@@ -1699,22 +1703,18 @@ button.editor-row-danger {
 }
 /* On paper a card is lifted by its shadow; on a dark screen there is no light
    to cast one, so the top edge catches it instead. */
-@media (prefers-color-scheme: dark) {
-  .card {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.045),
-      var(--shadow);
-  }
-  .card-quiet {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-  }
+:where(:root[data-theme='dark']) .card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    var(--shadow);
 }
-@media (prefers-color-scheme: light) {
-  .card-raised {
-    box-shadow:
-      0 4px 14px rgba(16, 24, 40, 0.09),
-      0 1px 2px rgba(16, 24, 40, 0.05);
-  }
+:where(:root[data-theme='dark']) .card-quiet {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+:where(:root:not([data-theme='dark'])) .card-raised {
+  box-shadow:
+    0 4px 14px rgba(16, 24, 40, 0.09),
+    0 1px 2px rgba(16, 24, 40, 0.05);
 }
 /* A card's kicker: what this card is, in the smallest type on the screen. */
 .card-eyebrow {

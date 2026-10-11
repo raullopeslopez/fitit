@@ -177,48 +177,17 @@ export function describe(el) {
   return `${el.tagName.toLowerCase()}${cls} «${label}» [${r.top.toFixed(1)}–${r.bottom.toFixed(1)}]`
 }
 
-// ── El tema, forzado desde la hoja de verdad ───────────────────────────────
-// El tema lo elige `prefers-color-scheme`, así que una suite que no lo fije
-// mide el que tenga la máquina y el contraste del otro no lo mira nadie. Los
-// tokens no se copian aquí: se levantan de la hoja cargada y se re-afirman,
-// igual que hace `src/harness/theme.js` para los bancos de desarrollo. Una
-// prueba que copie hex deja de medir el diseño en cuanto el diseño cambie.
-let themeStyle = null
-
+// ── El tema, forzado ───────────────────────────────────────────────────────
+// La hoja pinta lo que diga `<html data-theme>` (src/theme.js), así que una
+// suite que no lo fije mide el que haya dejado otra y el contraste del otro no
+// lo mira nadie. Fijar el atributo es exactamente lo que hace la app al elegir
+// tema en Perfil: se mide la misma hoja, sin copiar un solo hex.
 export function forceTheme(theme) {
-  themeStyle?.remove()
-  themeStyle = null
-  const want = '(prefers-color-scheme: dark)'
-  const out = []
-  for (const sheet of document.styleSheets) {
-    let rules
-    try {
-      rules = sheet.cssRules
-    } catch {
-      continue // hoja de otro origen: no hay reglas que leer, y ninguna es nuestra
-    }
-    for (const rule of rules) {
-      if (theme === 'dark') {
-        if (rule.media?.mediaText?.includes(want)) {
-          out.push(rule.cssText.replace(/^@media[^{]*\{/, '').replace(/\}\s*$/, ''))
-        }
-      } else if (rule.selectorText === ':root') {
-        out.push(rule.cssText)
-      }
-    }
-  }
-  if (out.length === 0) throw new Error(`no encuentro los tokens del tema ${theme} en la hoja`)
-  themeStyle = document.createElement('style')
-  themeStyle.dataset.forcedTheme = theme
-  // Va al final del `head`: misma especificidad que el bloque original y más
-  // tarde en el documento, así que gana en los dos sentidos.
-  themeStyle.textContent = out.join('\n')
-  document.head.appendChild(themeStyle)
+  document.documentElement.dataset.theme = theme
 }
 
 export function clearForcedTheme() {
-  themeStyle?.remove()
-  themeStyle = null
+  delete document.documentElement.dataset.theme
 }
 
 // ── Contraste sobre el color realmente pintado ─────────────────────────────
