@@ -375,6 +375,80 @@ async def suggest_dishes(
     )
 
 
+# Lo que se le pide a un PDF de plan, y por qué así.
+#
+# Es una **transcripción**, como la etiqueta: temperatura 0, y nada que el
+# documento no diga. Las líneas de ingrediente vuelven como texto, sin
+# interpretar: la cantidad la saca `parse_line` y el alimento
+# `match_ingredient`, que son deterministas y ya están probados. Al modelo sólo
+# se le pide lo que no sabe hacer una expresión regular: entender la tabla —qué
+# es un día, qué una comida y qué un plato—.
+PLAN_PROMPT = """Transcribes un plan de comidas en PDF: el de un nutricionista, o una
+lista de platos.
+
+Devuelve SOLO un objeto JSON. Sin markdown, sin explicación:
+
+{
+  "dishes": [
+    {
+      "name": "<nombre del plato, como lo escribe el documento>",
+      "slots": [<en qué comidas aparece: "desayuno", "comida", "cena", "snack">],
+      "ingredients": ["<una línea por ingrediente, tal cual: '80 g de lentejas'>"]
+    }
+  ],
+  "week": [
+    {"day": "<lunes|martes|miércoles|jueves|viernes|sábado|domingo>",
+     "slot": "<desayuno|comida|cena|snack>",
+     "dish": "<nombre del plato, igual que en dishes>"}
+  ]
+}
+
+REGLAS:
+- Cada plato distinto aparece **una sola vez** en `dishes`, aunque se repita en
+  la semana. En `week` se nombra igual que allí.
+- `ingredients` copia lo que dice el documento, con su cantidad y su unidad. Si
+  el documento no da ingredientes de un plato, la lista va vacía. **No inventes
+  ingredientes ni cantidades.**
+- Media mañana, merienda, recena o cualquier toma entre comidas es "snack".
+- Si el documento no reparte los platos por días, `week` va vacía.
+- Ni calorías ni macros: se calculan aquí.
+"""
+
+# Leer un plan entero tarda más que una etiqueta: es una tabla de una semana y la
+# respuesta es larga. Con los doce segundos de la etiqueta cortaría lecturas
+# buenas a medias, y aquí nadie está con un yogur en la mano: se sube el PDF y
+# se espera.
+PLAN_TIMEOUT = 60.0
+
+
+async def read_plan(
+    document: bytes,
+    *,
+    api_key: str,
+    model: str,
+    timeout: float = PLAN_TIMEOUT,
+    backoff: float = BACKOFF,
+    fallback: str | None = None,
+) -> dict:
+    """Manda el PDF y devuelve el JSON del modelo, sin juzgarlo."""
+    parts = [
+        {"inline_data": {"mime_type": "application/pdf", "data": base64.b64encode(document).decode()}},
+        {"text": PLAN_PROMPT},
+    ]
+    try:
+        return await _ask(
+            parts,
+            api_key=api_key,
+            model=model,
+            temperature=0,
+            timeout=timeout,
+            backoff=backoff,
+            fallback=fallback,
+        )
+    except ModelUnavailable as exc:
+        raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
+
+
 # Lo que se le pide para traer ideas con un alimento, y por qué así.
 #
 # Aquí el modelo no inventa: **busca**. Va con la herramienta `google_search` y
