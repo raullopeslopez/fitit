@@ -50,6 +50,7 @@ from ..schemas import (
     ShoppingToTaskiIn,
     ShoppingToTaskiOut,
     PlanEntryOut,
+    PlanDesvioOut,
     PlanItemOut,
     PlanAheadOut,
     PlanEntryPatch,
@@ -101,13 +102,26 @@ class Repertorio:
         return gramos
 
 
-async def _candidatos(session: AsyncSession, user_id: int) -> Repertorio:
+# La banda que reciben los ingredientes de un plato de la pauta cuando nadie le
+# puso una: entre la mitad y el doble de la receta. La pauta dice qué comer, no
+# cuánto, y su receta da las proporciones; sin banda, «a la plancha con 150 g»
+# se quedaría en 150 g aunque el día pidiera el doble. La mitad y el doble y no
+# más: por debajo deja de ser el plato, y por encima es otra comida.
+HOLGURA_PAUTA = (0.5, 2.0)
+
+
+async def _candidatos(
+    session: AsyncSession, user_id: int, holgura: frozenset[int] = frozenset()
+) -> Repertorio:
     """Los platos, vistos como el generador los necesita.
 
     Todo se expresa **por ración**: los gramos de la receta y su banda se
     dividen entre las raciones, porque lo que el plan propone es una ración. Un
     plato de cuatro raciones con 400 g de arroz y banda 200–800 entra como 100 g
     con banda 50–200.
+
+    Los platos de `holgura` —los que fija la pauta— mueven también lo que no
+    tiene banda, dentro de `HOLGURA_PAUTA`.
     """
     dishes = (
         (
@@ -148,7 +162,19 @@ async def _candidatos(session: AsyncSession, user_id: int) -> Repertorio:
             if gramos <= 0:
                 continue
             base[dish.id].append(gramos)
-            if ing.min_grams is None and ing.max_grams is None:
+            sin_banda = ing.min_grams is None and ing.max_grams is None
+            if sin_banda and dish.id in holgura:
+                movibles[dish.id].append(len(base[dish.id]) - 1)
+                ajustables.append(
+                    Ajustable(
+                        por_100g={campo: getattr(food, f"{campo}_100g", None) for campo in NUTRIENTS},
+                        gramos=gramos,
+                        minimo=gramos * HOLGURA_PAUTA[0],
+                        maximo=gramos * HOLGURA_PAUTA[1],
+                    )
+                )
+                continue
+            if sin_banda:
                 # Sin banda no es «desconocido»: es que nadie ha dicho que se
                 # pueda tocar, y se queda donde la receta lo puso.
                 fijos.append((food, gramos))
@@ -297,7 +323,7 @@ async def _kcal_congeladas(session: AsyncSession, plan: Plan) -> dict[int, float
 
 async def _congelado(
     session: AsyncSession, plan: Plan
-) -> tuple[dict[int, float | None], dict[int, list[PlanItemOut]]]:
+) -> tuple[dict[int, float | None], dict[int, list[PlanItemOut]], dict[int, dict | None]]:
     """Lo que suma cada fila del plan, y qué lleva, con los gramos que congeló.
 
     Se recalcula desde los gramos guardados y no desde la receta: es la misma
@@ -306,7 +332,7 @@ async def _congelado(
     """
     ids = {fila.dish_id for fila in plan.entries}
     if not ids:
-        return {}, {}
+        return {}, {}, {}
     dishes = {
         dish.id: dish
         for dish in (
@@ -324,21 +350,51 @@ async def _congelado(
     }
     kcal: dict[int, float | None] = {}
     items: dict[int, list[PlanItemOut]] = {}
+    macros: dict[int, dict | None] = {}
     for fila in plan.entries:
         dish = dishes.get(fila.dish_id)
         gramos = json.loads(fila.grams_json) if fila.grams_json else []
         if dish is None or not gramos:
             kcal[fila.id] = None
             items[fila.id] = []
+            macros[fila.id] = None
             continue
         pares = [
             (foods[i.food_id], g)
             for i, g in zip(dish.ingredients, gramos)
             if i.food_id in foods and g > 0
         ]
-        kcal[fila.id] = macros_de_plato(pares)[0].get("kcal") if pares else None
+        macros[fila.id] = macros_de_plato(pares)[0] if pares else None
+        kcal[fila.id] = macros[fila.id].get("kcal") if macros[fila.id] else None
         items[fila.id] = [PlanItemOut(food_name=food.name, grams=g) for food, g in pares]
-    return kcal, items
+    return kcal, items, macros
+
+
+def _desvios(plan: Plan, macros: dict[int, dict | None], objetivos: dict) -> list[PlanDesvioOut]:
+    """Los días que se salen de su objetivo más allá de `TOLERANCIA`.
+
+    Un día con un plato desconocido en un nutriente no dice nada de ese
+    nutriente: una suma parcial comparada con el objetivo avisaría de una falta
+    que puede no existir (la regla del `NULL`).
+    """
+    por_dia: dict[date, list[dict | None]] = {}
+    for fila in plan.entries:
+        por_dia.setdefault(fila.log_date, []).append(macros.get(fila.id))
+    desvios = []
+    for dia in sorted(por_dia):
+        filas = por_dia[dia]
+        objetivo = objetivos.get(dia, {})
+        for nutriente in ("kcal", "protein", "fat", "carbs"):
+            meta = objetivo.get(nutriente)
+            if not meta:
+                continue
+            valores = [f.get(nutriente) if f else None for f in filas]
+            if any(v is None for v in valores):
+                continue
+            diff = sum(valores) - meta
+            if abs(diff) > meta * TOLERANCIA:
+                desvios.append(PlanDesvioOut(log_date=dia, nutrient=nutriente, diff=round(diff)))
+    return desvios
 
 
 async def _pauta_vigente(session: AsyncSession, user_id: int, week_start: date) -> Pauta | None:
@@ -363,12 +419,14 @@ def _to_out(
     items: dict[int, list[PlanItemOut]] | None = None,
     *,
     has_pauta: bool = False,
+    desvios: list[PlanDesvioOut] | None = None,
 ) -> PlanOut:
     return PlanOut(
         id=plan.id,
         week_start=plan.week_start,
         seed=plan.seed,
         has_pauta=has_pauta,
+        desvios=desvios or [],
         entries=[
             PlanEntryOut(
                 id=fila.id,
@@ -402,7 +460,9 @@ async def generate_plan(
     criterio. Lo que sí se conserva es la semilla, que es lo que permite volver.
     """
     dias = _semana(payload.week_start)
-    repertorio = await _candidatos(session, user_id)
+    pauta = await _pauta_vigente(session, user_id, payload.week_start)
+    fijados = {(e.weekday, e.slot): e.dish_id for e in pauta.entries} if pauta else {}
+    repertorio = await _candidatos(session, user_id, frozenset(fijados.values()))
     if not repertorio.candidatos:
         raise HTTPException(
             status_code=422,
@@ -410,8 +470,6 @@ async def generate_plan(
         )
 
     seed = payload.seed if payload.seed is not None else payload.week_start.toordinal()
-    pauta = await _pauta_vigente(session, user_id, payload.week_start)
-    fijados = {(e.weekday, e.slot): e.dish_id for e in pauta.entries} if pauta else {}
     try:
         propuesta = generar(
             dias=dias,
@@ -463,13 +521,16 @@ async def generate_plan(
     await session.refresh(plan, ["entries"])
 
     nombres = {plato.id: plato.nombre for plato in repertorio.candidatos}
+    kcal, items, macros = await _congelado(session, plan)
     return _to_out(
         plan,
         nombres,
         propuesta.veredictos,
         propuesta.puntuacion,
-        *(await _congelado(session, plan)),
+        kcal,
+        items,
         has_pauta=pauta is not None,
+        desvios=_desvios(plan, macros, await _objetivos(session, user_id, dias)),
     )
 
 
@@ -502,13 +563,16 @@ async def read_plan(
         nombres = dict(
             (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
         )
+    kcal, items, macros = await _congelado(session, plan)
     return _to_out(
         plan,
         nombres,
         (),
         0.0,
-        *(await _congelado(session, plan)),
+        kcal,
+        items,
         has_pauta=await _pauta_vigente(session, user_id, week_start) is not None,
+        desvios=_desvios(plan, macros, await _objetivos(session, user_id, _semana(week_start))),
     )
 
 

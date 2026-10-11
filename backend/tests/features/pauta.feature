@@ -39,3 +39,14 @@ Feature: The plan from the nutritionist, followed every week
   Scenario: A new dish without ingredients is not saved
     When I save a pauta with "Merluza al horno" as new and no ingredients
     Then it is refused as incomplete
+
+  # La pauta dice qué comer, no cuánto: su receta da las proporciones, y el
+  # ajustador mueve sus ingredientes —entre la mitad y el doble— hasta que el día
+  # da sus kcal, aunque nadie le haya puesto banda a ninguno.
+  Scenario: A pauta with fixed recipes still lands every day on its kcal
+    Given my targets add up to 1800 kcal a day
+    And a pauta from 2026-09-21 with a fixed recipe for every meal of every day
+    When I generate the week of 2026-09-21
+    Then every day of the week adds up to 1800 kcal, give or take 2%
+    And every day says its carbs fall short and its protein runs over
+    And no day says its kcal are off

@@ -136,6 +136,35 @@ function Ingredientes({ items }) {
   )
 }
 
+// Las kcal no llevan rótulo: «−230 kcal» ya dice qué es.
+const NUTRIENTE = { protein: 'Proteína', fat: 'Grasa', carbs: 'Hidratos' }
+
+// Lo que el día se sale de su objetivo, con signo: «+83 g», «−71 g», «+120 kcal».
+// El menos es el signo tipográfico (U+2212), no un guion.
+function desvioTexto({ nutrient, diff }) {
+  const signo = diff > 0 ? '+' : '−'
+  const cifra = formatMacro(Math.abs(diff))
+  return nutrient === 'kcal' ? `${signo}${cifra} kcal` : `${signo}${cifra} g`
+}
+
+// Lo que las cantidades no han podido arreglar en ese día: con estos platos,
+// el objetivo no cabe. Se dice con la cifra, no con un color.
+function Desvios({ desvios, dia }) {
+  if (!desvios?.length) return null
+  return (
+    <p className="plan-desvios" aria-label={`Fuera del objetivo el ${dia.toLowerCase()}`}>
+      Fuera del objetivo:{' '}
+      {desvios.map((d, i) => (
+        <span key={d.nutrient}>
+          {i > 0 && ' · '}
+          {NUTRIENTE[d.nutrient] && `${NUTRIENTE[d.nutrient]} `}
+          <span className="plan-desvio-cifra">{desvioTexto(d)}</span>
+        </span>
+      ))}
+    </p>
+  )
+}
+
 // Una fila de la semana: la comida, el plato y lo que suma, y cómo quedó. En la
 // semana no se confirma —eso se hace en el diario, con la comida delante—; un
 // plato que todavía no ha llegado se toca para cambiarlo.
@@ -430,6 +459,7 @@ export function Semana({
                 {DIAS[i]}
                 {iso === hoy && <span className="plan-dia-hoy">Hoy</span>}
               </h3>
+              <Desvios desvios={(plan.desvios ?? []).filter((d) => d.log_date === iso)} dia={DIAS[i]} />
               {filas.length === 0 ? (
                 <p className="hint">Sin comidas planificadas.</p>
               ) : (

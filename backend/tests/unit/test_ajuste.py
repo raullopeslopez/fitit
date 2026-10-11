@@ -141,3 +141,16 @@ def test_los_gramos_son_enteros():
         objetivo={"kcal": 2137.0},
     )
     assert gramos[0] == int(gramos[0])
+
+
+def test_las_kcal_mandan_cuando_los_macros_no_caben():
+    """Arroz y aceite no dan 100 g de proteína en 1.000 kcal. Perseguir la
+    proteína con el mismo peso que las kcal se pasaba de kcal para acercarse a
+    una cifra imposible; con las kcal primero, el día da sus kcal y la proteína
+    se queda lo más cerca que permiten esos dos ingredientes."""
+    arroz = _ajustable({"kcal": 350, "protein": 7, "fat": 1, "carbs": 77}, gramos=100)
+    aceite = _ajustable({"kcal": 900, "protein": 0, "fat": 100, "carbs": 0}, gramos=10)
+    _, totales = ajustar_gramos(
+        {}, [arroz, aceite], {"kcal": 1000, "protein": 100, "fat": 20, "carbs": 150}
+    )
+    assert abs(totales["kcal"] - 1000) <= 20

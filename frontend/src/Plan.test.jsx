@@ -202,6 +202,23 @@ describe('la semana', () => {
     expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Merluza 200 g')
   })
 
+  it('un día que se sale de su objetivo dice en qué y cuánto', () => {
+    const plan = {
+      ...PLAN,
+      desvios: [
+        { log_date: LUNES, nutrient: 'protein', diff: 83 },
+        { log_date: LUNES, nutrient: 'carbs', diff: -71 },
+        { log_date: LUNES, nutrient: 'kcal', diff: 230 },
+      ],
+    }
+    render(<Semana plan={plan} weekStart={LUNES} onClose={vi.fn()} onChanged={vi.fn()} />)
+    expect(screen.getByLabelText('Fuera del objetivo el lunes')).toHaveTextContent(
+      'Fuera del objetivo: Proteína +83 g · Hidratos −71 g · +230 kcal',
+    )
+    // Sólo el día que se sale: el martes no dice nada.
+    expect(screen.queryByLabelText('Fuera del objetivo el martes')).not.toBeInTheDocument()
+  })
+
   it('con una pauta no ofrece generar otra semana', () => {
     render(<Semana plan={{ ...PLAN, has_pauta: true }} weekStart={LUNES} onClose={vi.fn()} onChanged={vi.fn()} />)
     expect(screen.queryByRole('button', { name: 'Generar otra' })).not.toBeInTheDocument()
