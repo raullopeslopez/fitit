@@ -6,6 +6,12 @@ import ErrorBoundary from './ErrorBoundary.jsx'
 import './styles.css'
 import { handleBackButton } from './platform/backButton.js'
 import { registerServiceWorker } from './platform/serviceWorker.js'
+import { applyTheme, watchSystemTheme } from './theme.js'
+
+// index.html ya lo puso antes de pintar; esto lo repite con el módulo de
+// verdad y se queda escuchando al sistema por si eliges «Sistema».
+applyTheme()
+watchSystemTheme()
 
 // Dev benches, on a query string and nothing else: `volume` is the per-muscle
 // row on its own, `dias` is the whole screen with a fixture behind it.
