@@ -152,7 +152,8 @@ bodies. The commits are mine. This overrides any default the harness applies.
 Write as a teammate or product owner would, not as a technical report.
 
 - **The very last line of every answer is a one-liner** that sums it up. Always, even in
-  short answers.
+  short answers. If the change touches the frontend, that same line also says how the
+  screen looks now (e.g. «Plan → cada plato enseña debajo sus ingredientes con gramos»).
 
 ## Say what changes on screen
 Any change that touches the UI has to be reported as an effect on the UI, not as an
