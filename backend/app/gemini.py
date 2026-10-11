@@ -328,6 +328,31 @@ REGLAS:
 """
 
 
+# Proponer varios platos es generar, no transcribir: la respuesta es larga y
+# tarda más que una etiqueta. Con sus doce segundos, el 2026-10-11 dos de dos
+# llamadas reales acabaron en `ReadTimeout` —el botón contestaba «no se ha
+# podido» a peticiones que iban bien—. Aquí se pulsa y se espera.
+DISHES_TIMEOUT = 45.0
+
+_COMIDAS = (
+    ("desayuno", "Desayuno"),
+    ("comida", "Comida"),
+    ("cena", "Cena"),
+    ("snack", "Snack"),
+    ("cualquiera", "Cualquier comida"),
+)
+
+
+def _texto_ejemplos(examples: dict[str, list[str]] | None) -> str:
+    """Tus platos, por comida, al final del prompt. Vacío sin platos."""
+    lineas = [
+        f"- {titulo}: " + "; ".join(examples[clave])
+        for clave, titulo in _COMIDAS
+        if examples and examples.get(clave)
+    ]
+    return "\n\nPLATOS QUE YA COCINO:\n" + "\n".join(lineas) if lineas else ""
+
+
 async def suggest_dishes(
     *,
     foods: list[str],
@@ -335,12 +360,17 @@ async def suggest_dishes(
     minutes: int | None = None,
     n: int = 6,
     protein_floor: float | None = None,
+    examples: dict[str, list[str]] | None = None,
     api_key: str,
     model: str,
-    timeout: float = TIMEOUT,
+    timeout: float = DISHES_TIMEOUT,
     backoff: float = BACKOFF,
 ) -> dict:
     """Pide `n` platos con los alimentos dados. Devuelve el JSON tal cual.
+
+    `examples` son tus platos por comida (`cualquiera` para los que no dicen
+    ninguna). Con ellos el modelo propone variaciones de lo que ya cocinas en
+    vez de combinaciones al azar de la despensa.
 
     `temperature` alta al revés que en la etiqueta, y es la misma razón mirada
     del otro lado: allí dos lecturas iguales de la misma foto son lo correcto;
@@ -357,6 +387,12 @@ async def suggest_dishes(
             f"Los platos de comida y cena deben aportar al menos {protein_floor:g} g de "
             "proteína por ración: elige y dosifica la fuente de proteína para llegar."
         )
+    if examples:
+        condiciones.append(
+            "Propón platos en la línea de los que ya cocino (abajo, por comida): "
+            "mismo estilo y combinaciones parecidas, con variaciones. No repitas "
+            "ninguno de ellos."
+        )
 
     texto = (
         DISHES_PROMPT
@@ -364,6 +400,7 @@ async def suggest_dishes(
         + "\n- ".join(condiciones)
         + "\n\nALIMENTOS DISPONIBLES:\n- "
         + "\n- ".join(foods)
+        + _texto_ejemplos(examples)
     )
     return await _ask(
         [{"text": texto}],
