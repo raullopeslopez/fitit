@@ -1258,6 +1258,15 @@ export default function Workout({
   // means "use the default": only the newest card starts open, so the screen
   // shows what you're doing rather than everything you've already done.
   const [toggled, setToggled] = useState({})
+  // ── Un ejercicio a la vez ────────────────────────────────────────────────
+  // El que ocupa la pantalla. Null hasta que eliges uno: entonces manda el
+  // primero de la lista, que es el último trabajado o, en una sesión de
+  // «Repetir» recién abierta, el primero de la plantilla. `previous` es aquel
+  // del que vienes, para que volver (un superset) cueste un toque.
+  const [activeName, setActiveName] = useState(null)
+  const [cameFrom, setCameFrom] = useState(null)
+  // El buscador del pie, enfocado: es cuando enseña lo demás de hoy.
+  const [searching, setSearching] = useState(false)
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
   // Los mismos, enteros: el buscador del editor necesita el grupo para el punto
   // y el tipo para no ofrecer cardio a una tarjeta de fuerza.
@@ -1618,12 +1627,37 @@ export default function Workout({
     // The go key takes the name you typed if it is one you have, then the first
     // thing you found — so a half-typed `gemelo` stands up `Gemelo Máq.` rather
     // than a second exercise called `gemelo`.
-    await addExercise(knownExact ?? matches[0] ?? exerciseInput)
+    // Uno de hoy que encaja gana a uno del catálogo: a mitad de sesión, lo que
+    // buscas casi siempre es volver.
+    await addExercise(knownExact ?? todayOthers[0]?.name ?? matches[0] ?? exerciseInput)
+  }
+
+  // Poner un ejercicio en pantalla, recordando de cuál vienes.
+  function goTo(name) {
+    const current = activeExercise?.name ?? null
+    // Ir al que ya está en pantalla no cambia de ejercicio, pero sí cierra la
+    // búsqueda igual que cualquier otra llegada.
+    if (name !== current) {
+      setCameFrom(current)
+      setActiveName(name)
+    }
+    setSearching(false)
+    setExerciseInput('')
+    // Fuera el teclado: lo que toca ahora es el ejercicio. Y así volver a tocar
+    // el buscador vuelve a ser enfocarlo, que es lo que abre la lista de hoy.
+    const field = document.getElementById('exercise')
+    if (field && document.activeElement === field) field.blur()
   }
 
   async function addExercise(rawName) {
     const name = rawName.trim()
     if (!name) return
+    // Uno que ya está en esta sesión no se añade otra vez: se va a él.
+    const standingOne = exercises.find((e) => fold(e.name) === fold(name))
+    if (standingOne) {
+      goTo(standingOne.name)
+      return
+    }
     setError('')
     setAdding(true)
     // No longer able to fail: with no signal the marks come from the cache, and
@@ -1638,8 +1672,9 @@ export default function Workout({
     )
     // Written down, or leaving the app before its first set loses the card.
     if (!setsFor(name).length) rememberAddedExercise(workoutId, { name, kind })
-    setExerciseInput('')
     setAdding(false)
+    // Lo acabas de añadir: es lo que vas a hacer ahora.
+    goTo(name)
   }
 
   async function logSetFor(name, fields) {
@@ -1901,6 +1936,10 @@ export default function Workout({
           }
         : w,
     )
+    // Si era el de la pantalla, la pantalla se va con él: sin esto volvería al
+    // primero de la lista, que puede ser otro.
+    if (activeExercise?.name === from) setActiveName(to)
+    if (cameFrom === from) setCameFrom(to)
     focusEditorTrigger(to)
   }
 
@@ -2011,16 +2050,33 @@ export default function Workout({
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
 
-  // ¿Dónde va el reloj? En la tarjeta del ejercicio de la última serie, si está
-  // abierta y es de fuerza. Si no —plegada, cardio, o un descanso que vino del
-  // widget sin series aquí todavía—, en la barra de arriba de siempre: el
-  // descanso no puede quedarse sin sitio.
+  // El ejercicio en pantalla: el elegido si sigue en la sesión, y si no (aún no
+  // elegiste, o lo quitaste) el primero de la lista.
+  const activeExercise = exercises.find((e) => e.name === activeName) ?? exercises[0] ?? null
+  // Los atajos del pie. Volver: aquel del que vienes, si sigue aquí. Siguiente:
+  // el primero sin series de hoy que no es éste — lo que queda de «Repetir» o
+  // lo que añadiste y aún no empezaste.
+  const backTo =
+    cameFrom && cameFrom !== activeExercise?.name && exercises.some((e) => e.name === cameFrom)
+      ? cameFrom
+      : null
+  const nextUp =
+    exercises.find(
+      (e) => e.name !== activeExercise?.name && e.name !== backTo && setsFor(e.name).length === 0,
+    )?.name ?? null
+
+  // ¿Dónde va el reloj? En la tarjeta en pantalla, si es la de la última serie,
+  // está abierta y es de fuerza. Si no —otro ejercicio, plegada, cardio, o un
+  // descanso que vino del widget sin series aquí todavía—, en la barra de
+  // arriba de siempre: el descanso no puede quedarse sin sitio.
   const resting = restEndsAt != null || restPausedMs != null
   const lastSet = workout?.sets?.length ? workout.sets[workout.sets.length - 1] : null
   const restOn = resting ? (lastControl.current?.exercise ?? lastSet?.exercise_name ?? null) : null
-  const restIndex = restOn == null ? -1 : exercises.findIndex((e) => e.name === restOn)
   const ringShown =
-    restIndex >= 0 && exercises[restIndex].kind !== 'cardio' && isOpen(restOn, restIndex)
+    restOn != null &&
+    restOn === activeExercise?.name &&
+    activeExercise.kind !== 'cardio' &&
+    isOpen(restOn, 0)
 
   // How long this session took, from its own sets. Empty while it is still
   // running, so the header simply doesn't carry it yet.
@@ -2040,6 +2096,12 @@ export default function Workout({
   const matches = typedName
     ? known.filter((n) => fold(n).includes(fold(typedName)) && !standing.has(fold(n))).slice(0, 8)
     : []
+  // Los demás de hoy, arriba de lo que encuentra el buscador: volver a uno es
+  // la búsqueda más común a mitad de sesión. Filtrados por lo que escribas.
+  const todayOthers = exercises.filter(
+    (e) =>
+      e.name !== activeExercise?.name && (!typedName || fold(e.name).includes(fold(typedName))),
+  )
   // The way out of the substring trap: `Peso Muerto` is contained in `Peso
   // Muerto Rumano`, so the go key below would forever stand up the Rumano and
   // the lift you meant could never be created. Only offered when something did
@@ -2071,7 +2133,9 @@ export default function Workout({
   }
 
   return (
-    <section>
+    // Columna que llena la pantalla: con poco contenido el pie baja igual hasta
+    // el pulgar en vez de quedarse a media altura.
+    <section className="workout-screen">
       {/* One toolbar, one row: back on the left, the workout (name + date) as the
           anchor, and the rare/destructive actions folded into an overflow on the
           right — instead of four buttons and a title staggered across the top. */}
@@ -2196,18 +2260,117 @@ export default function Workout({
           when there is nothing to say, since most sessions have nothing. */}
       {recentLine && <p className="recent-note">{recentLine}</p>}
 
-      {/* The mechanism, not the log — dashed and unfilled so it reads as an
-          empty slot rather than as one more exercise in the stack below it. */}
-      <form className="card card-compose" onSubmit={handleAddExercise}>
-        <div className="field">
-          <label htmlFor="exercise">Ejercicio</label>
-          <input
-            id="exercise"
-            value={exerciseInput}
-            onChange={(e) => setExerciseInput(e.target.value)}
-            placeholder="Buscar o escribir…"
+
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+
+      {/* Sin nada todavía: el pie es el principio. */}
+      {!activeExercise && <p className="hint workout-empty">Busca abajo tu primer ejercicio.</p>}
+
+      {[activeExercise].filter(Boolean).map((ex) =>
+        ex.kind === 'cardio' ? (
+          <CardioCard
+            key={keyFor(ex.name)}
+            name={ex.name}
+            previous={ex.previous}
+            sets={setsFor(ex.name)}
+            onLogSet={logSetFor}
+            onDeleteSet={deleteSetFor}
+            open={isOpen(ex.name, 0)}
+            onToggle={() => toggleCard(ex.name, 0)}
           />
-        </div>
+        ) : (
+          <ExerciseCard
+            key={keyFor(ex.name)}
+            name={ex.name}
+            muscle={muscleByName[ex.name] ?? null}
+            note={noteByName[ex.name] ?? null}
+            previous={ex.previous}
+            sets={setsFor(ex.name)}
+            onLogSet={logSetFor}
+            onEditSet={editSetFor}
+            onAnswerRir={answerRirFor}
+            onDeleteSet={deleteSetFor}
+            candidates={catalog.filter((e) => e.kind !== 'cardio' && e.name !== ex.name)}
+            onSwitchExercise={switchExerciseFor}
+            onRemoveFromWorkout={removeFromWorkoutFor}
+            open={isOpen(ex.name, 0)}
+            onToggle={() => toggleCard(ex.name, 0)}
+            onOpen={() => openCard(ex.name)}
+            rest={
+              ringShown && ex.name === restOn ? (
+                <RestRing
+                  endsAt={restEndsAt}
+                  total={restTotal}
+                  pausedMs={restPausedMs}
+                  onSkip={skipRest}
+                  onResume={resumeRest}
+                  onAdjust={adjustRest}
+                />
+              ) : null
+            }
+          />
+        ),
+      )}
+      {/* ── El pie ─────────────────────────────────────────────────────────
+          Todo lo que no es el ejercicio en pantalla se alcanza desde aquí,
+          pegado al pulgar: volver al anterior (un superset, un toque), el
+          siguiente de «Repetir» (un toque) y el buscador, que añade uno nuevo
+          o lleva a uno de hoy. */}
+      <div className="workout-dock">
+        {(backTo || nextUp) && (
+          <div className="dock-shortcuts">
+            {backTo && (
+              <button
+                type="button"
+                className="secondary dock-shortcut"
+                aria-label={`Volver a ${backTo}`}
+                onClick={() => goTo(backTo)}
+              >
+                <span aria-hidden="true">↩ </span>
+                {backTo}
+              </button>
+            )}
+            {nextUp && (
+              <button
+                type="button"
+                className="secondary dock-shortcut"
+                aria-label={`Siguiente: ${nextUp}`}
+                onClick={() => goTo(nextUp)}
+              >
+                {nextUp}
+                <span aria-hidden="true"> ›</span>
+              </button>
+            )}
+          </div>
+        )}
+      <form className="card card-compose" onSubmit={handleAddExercise}>
+        {/* Lo demás de hoy, al enfocar el buscador: volver a uno es la búsqueda
+            más común a mitad de sesión. Encima de lo que encuentra en tu
+            catálogo, y filtrado por lo que escribas. */}
+        {(searching || typedName) && todayOthers.length > 0 && (
+          <div className="dock-today">
+            <p className="dock-heading">Hoy</p>
+            <ul className="search-results">
+              {todayOthers.map((e) => (
+                <li key={e.name}>
+                  <button type="button" className="set-row" onClick={() => goTo(e.name)}>
+                    <span
+                      className="dot"
+                      aria-hidden="true"
+                      style={{ '--chip': muscleColor(muscleByName[e.name]) }}
+                    />
+                    <span className="dock-name">{e.name}</span>
+                    <span className="dock-count">{setsFor(e.name).length}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {matches.length > 0 && (
           <ul className="search-results">
             {matches.map((name) => (
@@ -2239,6 +2402,19 @@ export default function Workout({
             )}
           </ul>
         )}
+        <div className="field">
+          <label htmlFor="exercise" className="dock-label">
+            Ejercicio
+          </label>
+          <input
+            id="exercise"
+            value={exerciseInput}
+            onChange={(e) => setExerciseInput(e.target.value)}
+            onFocus={() => setSearching(true)}
+            placeholder={exercises.length ? 'Otro ejercicio…' : 'Buscar o escribir…'}
+            autoComplete="off"
+          />
+        </div>
         {/* Kind only decides anything for a name the backend has never seen —
             an autocompleted exercise keeps its stored kind. Shown always, it
             was a question asked on every add and answered by one in twenty. */}
@@ -2263,62 +2439,15 @@ export default function Workout({
             </div>
           </div>
         )}
-        <button type="submit" className="primary btn-full" disabled={adding}>
-          {adding ? 'Comprobando…' : 'Añadir ejercicio'}
-        </button>
+        {/* Sólo con algo escrito: con el campo vacío no hay nada que añadir, e
+            Intro ya lo hace sin tocarlo. */}
+        {(typedName || adding) && (
+          <button type="submit" className="primary btn-full" disabled={adding}>
+            {adding ? 'Comprobando…' : 'Añadir ejercicio'}
+          </button>
+        )}
       </form>
-
-      {error && (
-        <p role="alert" className="alert">
-          {error}
-        </p>
-      )}
-
-      {exercises.map((ex, index) =>
-        ex.kind === 'cardio' ? (
-          <CardioCard
-            key={keyFor(ex.name)}
-            name={ex.name}
-            previous={ex.previous}
-            sets={setsFor(ex.name)}
-            onLogSet={logSetFor}
-            onDeleteSet={deleteSetFor}
-            open={isOpen(ex.name, index)}
-            onToggle={() => toggleCard(ex.name, index)}
-          />
-        ) : (
-          <ExerciseCard
-            key={keyFor(ex.name)}
-            name={ex.name}
-            muscle={muscleByName[ex.name] ?? null}
-            note={noteByName[ex.name] ?? null}
-            previous={ex.previous}
-            sets={setsFor(ex.name)}
-            onLogSet={logSetFor}
-            onEditSet={editSetFor}
-            onAnswerRir={answerRirFor}
-            onDeleteSet={deleteSetFor}
-            candidates={catalog.filter((e) => e.kind !== 'cardio' && e.name !== ex.name)}
-            onSwitchExercise={switchExerciseFor}
-            onRemoveFromWorkout={removeFromWorkoutFor}
-            open={isOpen(ex.name, index)}
-            onToggle={() => toggleCard(ex.name, index)}
-            onOpen={() => openCard(ex.name)}
-            rest={
-              ringShown && ex.name === restOn ? (
-                <RestRing
-                  endsAt={restEndsAt}
-                  total={restTotal}
-                  pausedMs={restPausedMs}
-                  onSkip={skipRest}
-                  onResume={resumeRest}
-                  onAdjust={adjustRest}
-                />
-              ) : null
-            }
-          />
-        ),
-      )}
+      </div>
     </section>
   )
 }

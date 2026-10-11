@@ -426,13 +426,15 @@ describe('Entreno y el ejercicio del control', () => {
     expect(session.publish.mock.calls[0][0]).not.toHaveProperty('candidates')
   })
 
-  it('un control de fuera con otro ejercicio no mueve las tarjetas', async () => {
+  // Un ejercicio a la vez: el control que llega de la notificación no cambia el
+  // que tienes en pantalla.
+  it('un control de fuera con otro ejercicio no cambia el de la pantalla', async () => {
     render(<Workout workoutId={1} onExit={() => {}} />)
     await add('Remo')
     await add('Bench Press')
     await logOpenCard('8', '60')
     await waitFor(() => expect(session.publish).toHaveBeenCalled())
-    expect(titles()).toEqual(['Bench Press', 'Remo'])
+    expect(titles()).toEqual(['Bench Press'])
 
     act(() =>
       changed({
@@ -441,6 +443,6 @@ describe('Entreno y el ejercicio del control', () => {
       }),
     )
 
-    expect(titles()).toEqual(['Bench Press', 'Remo'])
+    expect(titles()).toEqual(['Bench Press'])
   })
 })

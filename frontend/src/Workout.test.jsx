@@ -48,8 +48,30 @@ const cardToggles = (name) =>
   screen
     .queryAllByRole('button', { name: new RegExp(name, 'i') })
     .filter(
-      (b) => b.getAttribute('aria-haspopup') !== 'dialog' && !b.classList.contains('editor-more'),
+      (b) =>
+        b.getAttribute('aria-haspopup') !== 'dialog' &&
+        !b.classList.contains('editor-more') &&
+        // El pie también nombra ejercicios (volver, siguiente, los de hoy):
+        // hablan de ellos, no son su tarjeta.
+        !b.closest('.workout-dock'),
     )
+
+// Los atajos del pie: volver al anterior, el siguiente de «Repetir» y la lista
+// de lo de hoy que sale al enfocar el buscador.
+const dock = () => within(document.querySelector('.workout-dock'))
+
+// El orden de la sesión tal como se ve ahora: el ejercicio en pantalla y, debajo,
+// los demás de hoy en la lista que abre el buscador del pie.
+async function sessionOrder() {
+  await userEvent.click(screen.getByLabelText('Ejercicio'))
+  const onScreen = [...document.querySelectorAll('.card-toggle .card-name')].map((el) =>
+    el.textContent.trim(),
+  )
+  const today = [...document.querySelectorAll('.dock-today .dock-name')].map((el) =>
+    el.textContent.trim(),
+  )
+  return [...onScreen, ...today]
+}
 
 const cardToggle = (name) => {
   const [found] = cardToggles(name)
@@ -135,12 +157,8 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      const titles = await screen.findAllByRole('heading', { level: 2 })
-      // A folded header also carries its digest, so match the name, not the whole row.
-      expect(titles.map((h) => h.textContent)).toEqual([
-        expect.stringContaining('Dominadas'),
-        expect.stringContaining('Bench Press'),
-      ])
+      await screen.findByRole('heading', { level: 2, name: /Dominadas/i })
+      expect(await sessionOrder()).toEqual(['Dominadas', 'Bench Press'])
     })
 
     it('given an open workout, when I add an exercise, it appears first', async () => {
@@ -152,14 +170,8 @@ describe('Workout', () => {
       await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
 
-      await waitFor(() =>
-        expect(
-          screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
-        ).toEqual([
-          expect.stringContaining('Sentadilla'),
-          expect.stringContaining('Bench Press'),
-        ]),
-      )
+      await screen.findByRole('heading', { level: 2, name: /Sentadilla/i })
+      expect(await sessionOrder()).toEqual(['Sentadilla', 'Bench Press'])
     })
 
     it('when I log a set, the cards do not reorder under my thumb', async () => {
@@ -177,51 +189,35 @@ describe('Workout', () => {
       )
       renderWorkout()
 
-      // Bench is second and collapsed; open it and log to it. Dominadas stays
-      // open as well, so everything below is scoped to the Bench card.
+      // Bench is second; go to it from the dock and log to it.
       await screen.findByRole('heading', { level: 2, name: /Dominadas/i })
-      await userEvent.click(cardToggle('Bench Press'))
+      await userEvent.click(screen.getByLabelText('Ejercicio'))
+      await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
       const bench = within(cardToggle('Bench Press').closest('.card'))
       await userEvent.type(bench.getByLabelText(/reps/i), '8')
       await userEvent.type(bench.getByLabelText(/peso/i), '60')
       await userEvent.click(bench.getByRole('button', { name: /registrar/i }))
 
       await waitFor(() => expect(api.logSet).toHaveBeenCalled())
-      expect(
-        screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
-      ).toEqual([
-        expect.stringContaining('Dominadas'),
-        expect.stringContaining('Bench Press'),
-      ])
+      // Still on Bench, and the rest of the session keeps its place.
+      expect(await sessionOrder()).toEqual(['Bench Press', 'Dominadas'])
     })
   })
 
   describe('collapsing', () => {
-    it('opens only the newest card and folds the rest', async () => {
-      api.getWorkout.mockResolvedValue(
-        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
-      )
-      renderWorkout()
-
-      await waitFor(() => expect(cardToggle('Dominadas')).toHaveAttribute('aria-expanded', 'true'))
-      expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'false')
-      // One log form on screen, belonging to the open card.
-      expect(screen.getAllByLabelText(/reps/i)).toHaveLength(1)
-    })
-
     it('a folded card still reports what I did', async () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
           benchSet({ id: 2, set_index: 1, reps: 8, weight: 60 }),
           benchSet({ id: 3, set_index: 2, reps: 8, weight: 80 }),
-          pullSet({ id: 4, set_index: 3 }),
         ),
       )
       renderWorkout()
 
       // Sets varied (60/60/80), so the digest names the top set by est. 1RM
       // (80 × 8) with the "tope" label, not a decoupled range.
+      await userEvent.click(await screen.findByRole('button', { name: /Bench Press/, expanded: true }))
       expect(await foldedDigest(/^3 series · tope 80 kg × 8$/)).toBeInTheDocument()
     })
 
@@ -230,13 +226,13 @@ describe('Workout', () => {
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
           benchSet({ id: 2, set_index: 1, reps: 8, weight: 60 }),
-          pullSet({ id: 3, set_index: 2 }),
         ),
       )
       renderWorkout()
 
       // Identical sets: one pair speaks for all, so no "tope" — there's no peak
       // to single out.
+      await userEvent.click(await screen.findByRole('button', { name: /Bench Press/, expanded: true }))
       expect(await foldedDigest(/^2 series · 60 kg × 8$/)).toBeInTheDocument()
       expect(screen.queryByText(/tope/)).not.toBeInTheDocument()
     })
@@ -246,13 +242,13 @@ describe('Workout', () => {
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
           benchSet({ id: 2, set_index: 1, reps: 5, weight: 70 }),
-          pullSet({ id: 3, set_index: 2 }),
         ),
       )
       renderWorkout()
 
       // A flat "2 × 8" would lie about the second set. 70 × 5 (e1RM 81.7) beats
       // 60 × 8 (76.0), so it's the tope — one real, paired working set.
+      await userEvent.click(await screen.findByRole('button', { name: /Bench Press/, expanded: true }))
       expect(await foldedDigest(/^2 series · tope 70 kg × 5$/)).toBeInTheDocument()
     })
 
@@ -265,12 +261,12 @@ describe('Workout', () => {
         workoutWith(
           benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 }),
           benchSet({ id: 2, set_index: 1, reps: 5, weight: 70 }),
-          pullSet({ id: 3, set_index: 2 }),
         ),
       )
       renderWorkout()
 
-      // Bench is folded, so its two sets are on screen only as chips.
+      // Fold Bench, so its two sets are on screen only as chips.
+      await userEvent.click(await screen.findByRole('button', { name: /Bench Press/, expanded: true }))
       await waitFor(() => expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'false'))
       await userEvent.click(screen.getByRole('button', { name: 'Editar serie 2' }))
 
@@ -327,18 +323,6 @@ describe('Workout', () => {
       expect(queued[0].payload.performed_at).toBe(sent.performed_at)
     })
 
-    it('lets me keep two cards open at once, for supersets', async () => {
-      api.getWorkout.mockResolvedValue(
-        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
-      )
-      renderWorkout()
-
-      await waitFor(() => expect(cardToggle('Dominadas')).toHaveAttribute('aria-expanded', 'true'))
-      await userEvent.click(cardToggle('Bench Press'))
-
-      expect(cardToggle('Bench Press')).toHaveAttribute('aria-expanded', 'true')
-      expect(cardToggle('Dominadas')).toHaveAttribute('aria-expanded', 'true')
-    })
   })
 
   it('says plainly that there is no mark yet, rather than inventing one', async () => {
@@ -1425,7 +1409,7 @@ describe('Workout', () => {
     expect(api.logSet).not.toHaveBeenCalled()
   })
 
-  it('keeps every exercise of the session visible', async () => {
+  it('keeps every exercise of the session within reach', async () => {
     api.getPreviousMarks.mockResolvedValue({ found: false, sets: [] })
     renderWorkout()
 
@@ -1437,9 +1421,9 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
     await screen.findByRole('heading', { name: /Squat/i })
 
-    // Both still on screen; the older one is folded, not gone.
-    expect(screen.getByRole('heading', { name: /Bench Press/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /Squat/i })).toBeInTheDocument()
+    // Squat is on screen and Bench Press is a tap away, not gone.
+    expect(screen.queryByRole('heading', { name: /Bench Press/i })).not.toBeInTheDocument()
+    expect(dock().getByRole('button', { name: 'Volver a Bench Press' })).toBeInTheDocument()
   })
 
   it('shows the muscle group tag on an exercise', async () => {
@@ -1715,8 +1699,8 @@ describe('Workout', () => {
       renderWorkout({ initialWorkout: seed })
 
       expect(await screen.findByRole('heading', { level: 2, name: /Dominadas/i })).toBeInTheDocument()
-      expect(cardToggle('Bench Press')).toBeInTheDocument()
       expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
+      expect(await sessionOrder()).toEqual(['Dominadas', 'Bench Press'])
     })
 
     it('still refetches, so a stale seed is corrected', async () => {
@@ -2023,9 +2007,10 @@ describe('Workout', () => {
 
     const search = async (typed) => {
       await screen.findAllByRole('button', { name: /editar ejercicio/i })
-      // Con dos tarjetas, la de Bench Press puede estar plegada.
+      // Con dos ejercicios, Bench Press puede no ser el que está en pantalla.
       if (!screen.queryByRole('button', { name: /editar ejercicio Bench Press/i })) {
-        await userEvent.click(cardToggles('Bench Press')[0])
+        await userEvent.click(screen.getByLabelText('Ejercicio'))
+        await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
       }
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio Bench Press/i }))
       const field = screen.getByLabelText(/nombre de Bench Press/i)
@@ -2118,6 +2103,19 @@ describe('Workout', () => {
       ).toBeInTheDocument()
     })
 
+    it('tras el cambio, en pantalla queda el ejercicio elegido', async () => {
+      // Dominadas es la más reciente, así que Bench Press no es el primero de
+      // la lista: si la pantalla volviera al primero, enseñaría Dominadas.
+      standing(benchSet(), pullSet({ id: 11 }))
+      renderWorkout()
+
+      await search('remo')
+      await userEvent.click(results().getByRole('button', { name: 'Remo en máquina' }))
+
+      await waitFor(() => expect(cardToggles('Remo en máquina')).toHaveLength(1))
+      expect(cardToggles('Dominadas')).toHaveLength(0)
+    })
+
     it('si el elegido ya tiene tarjeta en la sesión, las dos quedan en una', async () => {
       standing(benchSet(), pullSet({ id: 11 }))
       renderWorkout()
@@ -2133,6 +2131,105 @@ describe('Workout', () => {
   // Repetir (from Días) hands the session over as a list of names. The cards
   // are already standing when you arrive, each with its previous marks loaded,
   // so a repeat session is taps on steppers rather than five lookups.
+  // ── Un ejercicio a la vez ────────────────────────────────────────────────
+  // Lo que estás haciendo ocupa la pantalla; lo demás se alcanza desde el pie.
+  // Volver al anterior (supersets) y pasar al siguiente de «Repetir» cuestan un
+  // toque; ir a cualquier otro de hoy, dos (enfocar el buscador y elegirlo).
+  describe('un ejercicio a la vez', () => {
+    const twoLogged = () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+    }
+
+    it('enseña sólo el ejercicio en el que estás, el último trabajado', async () => {
+      twoLogged()
+      renderWorkout()
+
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+      expect(cardToggles('Bench Press')).toHaveLength(0)
+    })
+
+    it('añadir un ejercicio lo pone en pantalla, y el anterior queda a un toque', async () => {
+      twoLogged()
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'Press militar')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+      await waitFor(() => expect(cardToggles('Press militar')).toHaveLength(1))
+      expect(cardToggles('Dominadas')).toHaveLength(0)
+
+      await userEvent.click(dock().getByRole('button', { name: 'Volver a Dominadas' }))
+      expect(cardToggles('Dominadas')).toHaveLength(1)
+      expect(cardToggles('Press militar')).toHaveLength(0)
+      // Y de vuelta, igual de corto: un superset es ir y volver.
+      expect(dock().getByRole('button', { name: 'Volver a Press militar' })).toBeInTheDocument()
+    })
+
+    it('al enfocar el buscador ofrece los demás de hoy, y elegir uno lleva a él', async () => {
+      twoLogged()
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+
+      await userEvent.click(screen.getByLabelText('Ejercicio'))
+      await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
+
+      expect(cardToggles('Bench Press')).toHaveLength(1)
+      expect(cardToggles('Dominadas')).toHaveLength(0)
+    })
+
+    it('al llegar a un ejercicio suelta el buscador, y volver a tocarlo enseña los de hoy', async () => {
+      twoLogged()
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'Press militar{Enter}')
+      await waitFor(() => expect(cardToggles('Press militar')).toHaveLength(1))
+      // El teclado se va: lo que toca ahora es el ejercicio, no el buscador.
+      expect(screen.getByLabelText('Ejercicio')).not.toHaveFocus()
+
+      await userEvent.click(screen.getByLabelText('Ejercicio'))
+      const today = within(document.querySelector('.dock-today'))
+      expect(today.getByRole('button', { name: /Dominadas/ })).toBeInTheDocument()
+    })
+
+    it('escribir el nombre de uno de hoy lleva a él en vez de añadirlo otra vez', async () => {
+      twoLogged()
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'bench{Enter}')
+
+      await waitFor(() => expect(cardToggles('Bench Press')).toHaveLength(1))
+      expect(cardToggles('Dominadas')).toHaveLength(0)
+    })
+
+    it('«Repetir» abre el primero y deja el siguiente a un toque', async () => {
+      localStorage.setItem(
+        'fitit_repeat_template',
+        JSON.stringify({ workoutId: 1, names: ['Dominadas', 'Remo', 'Curl'] }),
+      )
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({ exercise_name: name, found: false, sets: [] }),
+      )
+      renderWorkout()
+
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+      expect(cardToggles('Remo')).toHaveLength(0)
+
+      await userEvent.click(dock().getByRole('button', { name: 'Siguiente: Remo' }))
+      expect(cardToggles('Remo')).toHaveLength(1)
+      // El de antes queda para volver; el siguiente es el que viene después.
+      expect(dock().getByRole('button', { name: 'Volver a Dominadas' })).toBeInTheDocument()
+      expect(dock().getByRole('button', { name: 'Siguiente: Curl' })).toBeInTheDocument()
+    })
+  })
+
   describe('repeated session', () => {
     it('stands the cards up from the template, in the order they were worked', async () => {
       localStorage.setItem(
@@ -2145,7 +2242,7 @@ describe('Workout', () => {
       renderWorkout()
 
       await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
-      expect(cardToggle('Remo')).toBeInTheDocument()
+      expect(dock().getByRole('button', { name: 'Siguiente: Remo' })).toBeInTheDocument()
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Dominadas', 1)
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Remo', 1)
     })
@@ -2209,13 +2306,11 @@ describe('Workout', () => {
       api.getWorkout.mockResolvedValue(
         workoutWith(benchSet({ exercise_name: 'Remo', exercise_id: 4 })),
       )
-      const { container } = renderWorkout()
+      renderWorkout()
 
-      await screen.findByRole('button', { name: /Curl/i })
-      const names = [...container.querySelectorAll('.card-toggle .card-name')].map((el) =>
-        el.textContent.trim(),
-      )
-      expect(names).toEqual(['Remo', 'Dominadas', 'Curl'])
+      await screen.findByRole('heading', { level: 2, name: /Remo/i })
+      await screen.findByRole('button', { name: 'Siguiente: Dominadas' })
+      expect(await sessionOrder()).toEqual(['Remo', 'Dominadas', 'Curl'])
     })
   })
 
@@ -2239,13 +2334,10 @@ describe('Workout', () => {
       await addSentadilla()
       first.unmount()
 
-      const { container } = renderWorkout()
+      renderWorkout()
 
       await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(1))
-      const names = [...container.querySelectorAll('.card-toggle .card-name')].map((el) =>
-        el.textContent.trim(),
-      )
-      expect(names).toEqual(['Sentadilla', 'Bench Press'])
+      expect(await sessionOrder()).toEqual(['Sentadilla', 'Bench Press'])
       expect(api.getPreviousMarks).toHaveBeenCalledWith('Sentadilla', 1)
     })
 

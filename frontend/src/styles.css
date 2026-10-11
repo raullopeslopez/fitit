@@ -1762,6 +1762,90 @@ button.editor-row-danger {
   border-style: dashed;
   box-shadow: none;
 }
+/* ── El pie de Entreno ───────────────────────────────────────────────────────
+   Lo que no es el ejercicio en pantalla vive aquí, pegado al pulgar y encima de
+   la barra de pestañas: volver al anterior, el siguiente y el buscador. Pegajoso
+   y no fijo: al final de la página se posa en su sitio y no tapa nada. Los
+   resultados crecen hacia arriba, hacia el ejercicio, y se cortan con scroll
+   antes de taparlo entero. */
+/* La pantalla ocupa al menos el alto que queda entre la cabecera de la app y la
+   barra de pestañas, y el pie empuja hasta el fondo con `margin-top: auto`. */
+.workout-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 9rem - env(safe-area-inset-bottom));
+}
+.workout-dock {
+  position: sticky;
+  bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  z-index: 5;
+  margin: auto -1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.workout-dock .card-compose {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.workout-dock .card-compose .field {
+  margin: 0;
+}
+.workout-dock .search-results {
+  margin: 0;
+}
+.dock-shortcuts {
+  display: flex;
+  gap: 0.5rem;
+}
+.dock-shortcut {
+  flex: 1;
+  min-height: 44px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Rótulo de sello: «Hoy» anota la lista, no se lee como frase. */
+.dock-heading {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dock-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--muted);
+}
+/* El rótulo «Ejercicio» se queda para el lector de pantalla; a la vista, el
+   marcador de posición del campo ya dice para qué es. */
+.dock-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.workout-empty {
+  margin: 2rem 0;
+  text-align: center;
+}
 /* What is still recovering, sitting between the header and the add form. No
    card, no border, no colour: it is a note on the session, not a surface in it,
    and colour here would read as a verdict on a line whose whole point is that
