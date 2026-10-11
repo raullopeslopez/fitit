@@ -722,7 +722,7 @@ button.editor-quit {
   background: none;
   color: var(--danger);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 .editor-search-field {
   width: 100%;
