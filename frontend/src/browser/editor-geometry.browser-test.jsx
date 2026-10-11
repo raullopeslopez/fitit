@@ -63,9 +63,11 @@ const navBar = () => document.querySelector('nav.bottom-nav')
 /** Lo que el dedo encuentra en un punto de la pantalla. */
 const hitAt = (x, y) => document.elementFromPoint(x, y)
 
-for (const [screenName, mount, deleteLabel] of [
-  ['Entreno', () => mountEntreno(), 'Eliminar'],
-  ['Progreso', () => mountProgreso(), 'Eliminar ejercicio'],
+// En Entreno la hoja sólo toca la sesión: ni grupo ni nota, y quitar es
+// «Quitar del entreno». El grupo es del ejercicio entero y vive en Progreso.
+for (const [screenName, mount, deleteLabel, hasGroups] of [
+  ['Entreno', () => mountEntreno(), 'Quitar del entreno', false],
+  ['Progreso', () => mountProgreso(), 'Eliminar ejercicio', true],
 ]) {
   describe(`${screenName} · la hoja del editor`, () => {
     it('se pega al pie y tapa la barra de pestañas', async () => {
@@ -100,7 +102,7 @@ for (const [screenName, mount, deleteLabel] of [
       expect(small).toEqual([])
     })
 
-    it('las diez fichas del grupo caben a lo ancho, sin desplazarse de lado', async () => {
+    if (hasGroups) it('las diez fichas del grupo caben a lo ancho, sin desplazarse de lado', async () => {
       await mount()
       const sheet = await openEditor(user)
       const chips = [...sheet.querySelectorAll('[role="radio"]')]

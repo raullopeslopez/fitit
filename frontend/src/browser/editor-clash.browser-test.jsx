@@ -39,7 +39,6 @@ import {
 } from './geometry.js'
 import {
   MAIN,
-  TAKEN,
   mountEntreno,
   mountProgreso,
   openClash,
@@ -90,11 +89,10 @@ function buriedAt(block, y) {
   return out
 }
 
+// Renombrar —y con él el choque y la oferta de fusión— sólo existe en
+// Progreso: desde Entreno el campo del nombre busca, no renombra.
 describe('el bloque de la oferta se puede contestar', () => {
-  for (const [screenName, mount] of [
-    ['Entreno', mountEntreno],
-    ['Progreso', mountProgreso],
-  ]) {
+  for (const [screenName, mount] of [['Progreso', mountProgreso]]) {
     it(`${screenName} · las dos respuestas se tocan, desde tres posiciones de scroll`, async () => {
       await mount()
       const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
@@ -121,71 +119,6 @@ describe('el bloque de la oferta se puede contestar', () => {
     })
   }
 
-  // ── Y con la barra ocupando de verdad el sitio del bloque ────────────────
-  // «Una prueba de geometría que nunca se ha visto fallar no vale nada», dice
-  // la suite de al lado, y las tres paradas de arriba nunca ven el caso: en
-  // esta siembra el bloque cae con 19 px de sobra por encima de la barra, así
-  // que pasan aunque el desplazamiento no funcione. El defecto del banco vivía
-  // justo ahí — y su segunda mitad también, porque el `focus()` con el que el
-  // panel devuelve el foco a su disparador **deshacía** el desplazamiento que
-  // este bloque acababa de pedir.
-  //
-  // Se fuerza el caso en lugar de esperarlo: se sube el canto de la barra fija
-  // hasta donde estorba, que es el mismo sabotaje controlado con el que la otra
-  // suite comprueba sus detectores.
-  it('Entreno · con la barra fija subida, la respuesta sigue estando delante', async () => {
-    await mountEntreno()
-    const style = document.createElement('style')
-    style.textContent = '.bottom-nav .tab { min-height: 560px; }'
-    document.head.appendChild(style)
-    try {
-      await settle()
-      const navTop = navBar().getBoundingClientRect().top
-      // Sin esto la prueba no mide nada: la barra tiene que estar de verdad
-      // metida en la mitad de abajo de la pantalla.
-      expect(navTop).toBeLessThan(400)
-
-      const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
-      const problems = []
-      for (const start of [0, Math.round(max / 2), max]) {
-        await scrollPageTo(start)
-        const block = await openClash(user)
-        problems.push(...buriedAt(block, start))
-        await user.click(screen.getByRole('button', { name: 'Escribir otro nombre' }))
-        await settle()
-        await user.keyboard('{Escape}')
-        await settle()
-      }
-      expect(problems).toEqual([])
-    } finally {
-      style.remove()
-      await settle()
-    }
-  })
-})
-
-describe('un choque rechazado no dibuja la fusión', () => {
-  const cards = () => [...document.querySelectorAll('button.card-toggle')]
-  const cardsFor = (text) => cards().filter((b) => b.textContent.includes(text))
-
-  it('Entreno · ni funde las dos tarjetas ni pregunta dos veces', async () => {
-    await mountEntreno()
-    const before = cards().length
-    expect(cardsFor(MAIN)).toHaveLength(1)
-    await openClash(user)
-
-    // Una tarjeta por ejercicio, ni una más ni una menos: la del ejercicio que
-    // renombras sigue estando y no se ha duplicado.
-    expect(cardsFor(MAIN)).toHaveLength(1)
-    expect(cards()).toHaveLength(before)
-    // El nombre con el que chocaste no está en esta sesión, así que no puede
-    // aparecer una tarjeta suya.
-    expect(cardsFor(TAKEN)).toHaveLength(0)
-    // Y una sola oferta. Dos bloques `role="alert"` idénticos son dos preguntas
-    // para una sola decisión.
-    expect(screen.getAllByRole('alert')).toHaveLength(1)
-    expect(screen.getAllByRole('button', { name: 'Sí, fusionar' })).toHaveLength(1)
-  })
 })
 
 describe('lo que la hoja tapa queda fuera de alcance', () => {
@@ -217,10 +150,7 @@ describe('lo que la hoja tapa queda fuera de alcance', () => {
   // Con la hoja arriba, lo de detrás —la fila de deshacer incluida— queda
   // fuera de alcance: ni tabulable ni tocable. Es lo que respalda el
   // `aria-modal` de la hoja; sin esto sería una promesa sin cumplir.
-  for (const [screenName, mount] of [
-    ['Entreno', mountEntreno],
-    ['Progreso', mountProgreso],
-  ]) {
+  for (const [screenName, mount] of [['Progreso', mountProgreso]]) {
     it(`${screenName} · la fila de deshacer la nota queda inerte y tapada bajo la hoja`, async () => {
       await mount()
       const undo = await clearTheNote()
@@ -238,8 +168,8 @@ describe('lo que la hoja tapa queda fuera de alcance', () => {
   // mismo nombre, distinto alcance y distinta vida. Se quedan las dos —perder
   // un deshacer para arreglar una etiqueta es un mal cambio— y lo que se
   // arregla es el nombre.
-  it('Entreno · las dos vueltas atrás no se llaman igual', async () => {
-    await mountEntreno()
+  it('Progreso · las dos vueltas atrás no se llaman igual', async () => {
+    await mountProgreso()
     await clearTheNote()
     await openEditor(user)
     await openDrawer(user)
@@ -257,22 +187,25 @@ describe('lo que la hoja tapa queda fuera de alcance', () => {
   })
 })
 
-describe('las dos pantallas llevan grupo, nota y eliminar', () => {
-  // Mismo cajón en las dos, y un «Eliminar» que dice su alcance: en Entreno
-  // quita el ejercicio de la sesión; en Progreso, el ejercicio entero.
-  it('Entreno dice «Eliminar»; Progreso, «Eliminar ejercicio»', async () => {
-    for (const [mount, label] of [
-      [mountEntreno, 'Eliminar'],
-      [mountProgreso, 'Eliminar ejercicio'],
-    ]) {
-      await mount()
-      await openEditor(user)
-      expect(screen.getByLabelText(`Grupo muscular de ${MAIN}`)).toBeInTheDocument()
-      expect(screen.getByLabelText(`Nota de ${MAIN}`)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
-      await user.keyboard('{Escape}')
-      await settle()
-    }
+describe('cada pantalla toca lo suyo', () => {
+  // Entreno sólo alcanza a la sesión: buscar otro ejercicio y quitarlo de hoy.
+  // Grupo, nota y borrar el ejercicio entero son de Progreso.
+  it('Entreno: sin grupo ni nota, y «Quitar del entreno»; Progreso: todo, y «Eliminar ejercicio»', async () => {
+    await mountEntreno()
+    await openEditor(user)
+    expect(screen.queryByLabelText(`Grupo muscular de ${MAIN}`)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(`Nota de ${MAIN}`)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar del entreno' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await settle()
+
+    await mountProgreso()
+    await openEditor(user)
+    expect(screen.getByLabelText(`Grupo muscular de ${MAIN}`)).toBeInTheDocument()
+    expect(screen.getByLabelText(`Nota de ${MAIN}`)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Eliminar ejercicio' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await settle()
   })
 })
 
@@ -284,7 +217,7 @@ describe('las dos pantallas llevan grupo, nota y eliminar', () => {
 describe('el bloque de la oferta lee bien en los dos temas', () => {
   for (const theme of ['dark', 'light']) {
     it(`tema ${theme}`, async () => {
-      await mountEntreno()
+      await mountProgreso()
       forceTheme(theme)
       const block = await openClash(user)
       const rows = textContrastReport(block)

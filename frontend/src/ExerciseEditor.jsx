@@ -46,6 +46,8 @@ export function ExerciseEditor({
   onCommit,
   nameDraft,
   onNameDraftChange,
+  // Intro en el nombre. Sin él (Entreno) el nombre no se renombra: el campo
+  // sólo busca, e Intro elige el primer resultado.
   onSubmitName,
   // Las filas de debajo del nombre: grupo, nota y eliminar. Las pone quien
   // llama porque cada pantalla sabe qué hace «eliminar» en ella.
@@ -223,6 +225,17 @@ export function ExerciseEditor({
         <form
           className="editor-head"
           onSubmit={(e) => {
+            // Sin `onSubmitName` el campo sólo busca (Entreno): Intro toma el
+            // primer resultado, y sin resultado no hace nada — no hay nombre
+            // que mandar.
+            if (!onSubmitName) {
+              e.preventDefault()
+              if (matches.length > 0) {
+                onPick(matches[0].name)
+                onCloseRef.current()
+              }
+              return
+            }
             onSubmitName(e)
             onCloseRef.current()
           }}
