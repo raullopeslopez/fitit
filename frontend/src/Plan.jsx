@@ -455,9 +455,14 @@ export function Semana({
           />
         )}
         {error && <p className="alert">{error}</p>}
-        <button type="button" className="primary plan-otra" disabled={busy} onClick={otra}>
-          Generar otra
-        </button>
+        {/* Con pauta, los platos los dijo el nutricionista: otra semana
+            sólo barajaría lo que la pauta deja libre, y se leería como que
+            el plan se puede cambiar entero. */}
+        {!plan.has_pauta && (
+          <button type="button" className="primary plan-otra" disabled={busy} onClick={otra}>
+            Generar otra
+          </button>
+        )}
     </>
   )
 

@@ -564,6 +564,20 @@ export function generatePlan(weekStart, seed = null) {
   })
 }
 
+// Lee un PDF de plan y devuelve los platos y la semana que ha identificado.
+// No guarda nada. Como la etiqueta, contesta 200 aunque no haya podido leer, y
+// lo dice en `refusal` ('unreadable' | 'quota').
+export function importPlan(file) {
+  const form = new FormData()
+  form.append('document', file)
+  return apiFetch('/plans/import', { method: 'POST', body: form })
+}
+
+// Guarda lo revisado de una vez: los platos nuevos y la pauta.
+export function saveImportedPlan(body) {
+  return apiFetch('/plans/import/save', { method: 'POST', body: JSON.stringify(body) })
+}
+
 // Confirmar, saltar o cambiar una comida del plan. `done` escribe el diario con
 // los gramos que el plan congeló. El sello va con el offset del móvil, igual
 // que al registrar a mano: es lo que decide en qué día alimentario cae.

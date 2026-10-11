@@ -9,7 +9,9 @@ import {
   getReview,
   getShoppingList,
   getTargetProfile,
+  importPlan,
   listDishes,
+  saveImportedPlan,
 } from './api.js'
 
 vi.mock('./api.js')
@@ -111,5 +113,71 @@ describe('la pantalla Plan', () => {
     getPlan.mockRejectedValue(new Error('red'))
     render(<PlanPantalla hoy={HOY} />)
     expect(await screen.findByText('No se ha podido cargar el plan.')).toBeInTheDocument()
+  })
+
+  describe('subir el plan del nutricionista', () => {
+    const LECTURA = {
+      dishes: [
+        { name: 'Pollo con arroz', slots: ['comida'], status: 'existing', dish_id: 7, lines: [] },
+      ],
+      week: [{ day: 0, slot: 'comida', dish: 0 }],
+      refusal: null,
+    }
+    const pdf = () => new File(['%PDF'], 'plan.pdf', { type: 'application/pdf' })
+
+    it('subir un PDF lo lee y enseña los platos identificados', async () => {
+      importPlan.mockResolvedValue(LECTURA)
+      render(<PlanPantalla hoy={HOY} />)
+      expect(await screen.findByRole('button', { name: /Subir plan/ })).toHaveTextContent('PDF del nutricionista')
+      await userEvent.upload(screen.getByLabelText('PDF del plan'), pdf())
+      expect(await screen.findByRole('dialog', { name: 'Platos identificados' })).toBeInTheDocument()
+      expect(importPlan).toHaveBeenCalled()
+    })
+
+    it('si no se puede leer lo dice, y no abre nada', async () => {
+      importPlan.mockResolvedValue({ dishes: [], week: [], refusal: 'unreadable' })
+      render(<PlanPantalla hoy={HOY} />)
+      await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
+      expect(await screen.findByText('No se ha podido leer el plan. Prueba otra vez.')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: 'Platos identificados' })).not.toBeInTheDocument()
+    })
+
+    it('sin cuota en el día lo dice distinto', async () => {
+      importPlan.mockResolvedValue({ dishes: [], week: [], refusal: 'quota', quota_scope: 'day' })
+      render(<PlanPantalla hoy={HOY} />)
+      await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
+      expect(await screen.findByText('Se ha gastado la lectura de hoy. Prueba mañana.')).toBeInTheDocument()
+    })
+
+    it('guardar rehace las semanas que no tienen nada confirmado y lo dice', async () => {
+      importPlan.mockResolvedValue(LECTURA)
+      saveImportedPlan.mockResolvedValue({ pauta_id: 1 })
+      getPlan.mockImplementation(async (week) => plan(week, 'Pollo con arroz'))
+      render(<PlanPantalla hoy={HOY} />)
+      await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
+      await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
+      await waitFor(() => expect(saveImportedPlan).toHaveBeenCalled())
+      expect(saveImportedPlan.mock.calls[0][0].week_start).toBe(ESTA)
+      await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(VIENE, null))
+      expect(generatePlan).toHaveBeenCalledWith(ESTA, null)
+      expect(await screen.findByText('Pauta guardada. Tu semana ya sigue el plan.')).toBeInTheDocument()
+    })
+
+    it('una semana con comidas ya confirmadas no se rehace', async () => {
+      importPlan.mockResolvedValue(LECTURA)
+      saveImportedPlan.mockResolvedValue({ pauta_id: 1 })
+      getPlan.mockImplementation(async (week) =>
+        week === ESTA ? plan(ESTA, 'Pollo con arroz', { status: 'done' }) : null,
+      )
+      render(<PlanPantalla hoy={HOY} />)
+      await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
+      await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
+      expect(
+        await screen.findByText(
+          'Pauta guardada. Esta semana ya tiene comidas confirmadas: el plan se aplica desde la que viene.',
+        ),
+      ).toBeInTheDocument()
+      expect(generatePlan).not.toHaveBeenCalled()
+    })
   })
 })

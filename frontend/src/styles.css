@@ -6848,3 +6848,147 @@ button.draft-save {
 .plan-semana .plan-dia .hint {
   margin: 0;
 }
+
+/* --- Subir plan: los platos identificados ---------------------------------- */
+/* Lo que avisa de que algo terminó bien va con la tinta del texto: es lo que
+   ha pasado, no una nota al pie. */
+.plan-aviso {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+.importar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 6rem;
+}
+.importar-resumen {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.importar-plato {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+.importar-plato.is-descartado .importar-plato-nombre,
+.importar-plato.is-descartado .importar-lineas {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.importar-plato .card-eyebrow {
+  margin: 0;
+}
+.importar-plato-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.importar-plato-nombre {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+/* Nuevo / Ya lo tienes: un sello, como el estado de una comida del plan. */
+.importar-estado {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.importar-lineas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.importar-linea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+.importar-linea.is-falta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.importar-alimento {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.importar-g {
+  flex: none;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.importar-pregunta {
+  font-weight: 600;
+}
+.importar-candidatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.importar-sin-gramos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.importar-gramos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+}
+.importar-gramos input {
+  width: 6rem;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.importar-descartar {
+  align-self: flex-start;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.importar-semana {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+}
+.importar-semana .card-eyebrow {
+  margin: 0;
+}
+.importar-dia-nombre {
+  margin: 0;
+  font-weight: 600;
+}
+.importar-celdas {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.importar-celdas .is-app {
+  color: var(--muted);
+}
+.importar-guardar {
+  min-height: 44px;
+}
