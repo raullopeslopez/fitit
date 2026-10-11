@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
+import { currentWeek, isDeload, toggleDeload } from './deload.js'
+import { formatRange } from './format.js'
 import ObjetivoSheet, { conMiles, procedencia, ritmo } from './Objetivo.jsx'
 import {
   REST_OPTIONS,
@@ -403,7 +405,44 @@ function PreferenciasEntreno() {
           ))}
         </div>
       </div>
+      <PreferenciaDescarga />
     </>
+  )
+}
+
+// Una semana de cada seis u ocho entrenas a un tercio de tu volumen, con el
+// mismo peso. Sólo la semana en curso: una descarga se planea, no se archiva
+// después. Series por músculo la lee y cambia su referencia mientras dure.
+function PreferenciaDescarga() {
+  const week = currentWeek()
+  const [on, setOn] = useState(() => isDeload(week.start))
+
+  return (
+    <div className="menu-pref">
+      <span className="prefs-label">Semana de descarga</span>
+      <div className="unit-toggle" role="group" aria-label="Semana de descarga">
+        {[
+          [true, 'Sí'],
+          [false, 'No'],
+        ].map(([value, label]) => (
+          <button
+            key={label}
+            type="button"
+            className="unit-option"
+            aria-pressed={on === value}
+            onClick={() => {
+              if (value !== on) toggleDeload(week.start)
+              setOn(value)
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="hint prefs-hint">
+        {formatRange(week.start, week.end)}: 1/3 de tu volumen típico, mismo peso.
+      </p>
+    </div>
   )
 }
 

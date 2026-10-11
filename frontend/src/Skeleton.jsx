@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { MEV_AT, MRV_AT } from './volume.js'
 
 /* Lo que Fitit enseña mientras el dato no ha llegado.
  *
@@ -183,48 +182,39 @@ export function WorkoutSkeleton({ onExit }) {
   )
 }
 
-// Tres carriles. La franja y el eje no son bloques: la zona cae siempre en el
-// mismo tramo del carril —`bandPosition` está construido para garantizarlo—,
-// así que se dibujan de verdad y lo único que falta es la aguja.
-const ZONE = { left: `${MEV_AT * 100}%`, width: `${(MRV_AT - MEV_AT) * 100}%` }
+// La forma de la tarjeta: la cifra con su medidor de diez celdas y tres
+// filas de la lista de debajo. Los números no se inventan; sólo se reserva
+// su sitio.
 const SUM_NAMES = [52, 64, 46]
 
 export function SummarySkeleton() {
   return (
-    <div className="card">
+    <div className="card sum-card">
       <h2 className="sum-title">Series por músculo</h2>
       <p className="sum-sub">
         <Bar w={132} h={11} />
       </p>
-      <div className="sum-rows">
-        <div className="sum-cols">
-          <span className="sum-colgap" aria-hidden="true" />
-          <span className="sum-collab">series</span>
-          <span className="sum-colzone">
-            <span className="sum-zonelab" style={ZONE}>
-              zona
-            </span>
-          </span>
+      <div className="sum-tally">
+        <p className="sum-tally-line">
+          <Bar w={64} h={36} strong />
+        </p>
+        <div className="sum-meter" aria-hidden="true">
+          {Array.from({ length: 10 }, (_, i) => (
+            <span key={i} className="sum-cell" />
+          ))}
         </div>
-        {SUM_NAMES.map((w, i) => (
-          <div className="sum-row" key={i}>
-            <span className="sum-id is-bare">
-              <span className="sum-label">
-                <Dot size={7} />
-                <Bar w={w} h={12} />
-              </span>
-              <span className="sum-state" />
-            </span>
-            <span className="sum-val">
-              <Bar w={22} h={12} strong />
-            </span>
-            <span className="sum-track">
-              <span className="sum-axis" aria-hidden="true" />
-              <span className="sum-zone" style={ZONE} aria-hidden="true" />
-            </span>
-          </div>
-        ))}
       </div>
+      <ul className="sum-items">
+        {SUM_NAMES.map((w, i) => (
+          <li className="sum-item" key={i}>
+            <span className="sum-label">
+              <Dot size={7} />
+              <Bar w={w} h={12} />
+            </span>
+            <Bar w={22} h={18} strong />
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

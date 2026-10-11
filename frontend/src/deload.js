@@ -21,6 +21,22 @@ function read() {
   }
 }
 
+const isoOf = (dt) =>
+  `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(
+    dt.getDate(),
+  ).padStart(2, '0')}`
+
+// The week a deload can be switched on for: the one you are in, Monday to
+// Sunday. Perfil only ever offers this one — a deload is planned, not filed
+// afterwards — so it needs the dates without having the log.
+export function currentWeek(today = new Date()) {
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  return { start: isoOf(monday), end: isoOf(sunday) }
+}
+
 export function deloadWeeks() {
   return read()
 }
