@@ -1203,6 +1203,11 @@ class PlanIn(BaseModel):
     seed: int | None = None
 
 
+class PlanItemOut(BaseModel):
+    food_name: str
+    grams: float
+
+
 class PlanEntryOut(BaseModel):
     id: int
     log_date: Date
@@ -1212,6 +1217,10 @@ class PlanEntryOut(BaseModel):
     # Los gramos resueltos de lo ajustable, en el orden de los ingredientes del
     # plato. Vacío si el plato no tenía nada que mover.
     grams: list[float] = Field(default_factory=list)
+    # Los mismos gramos con el nombre de su alimento al lado: lo que hay que
+    # cocinar. Emparejarlos aquí evita que la pantalla tenga que alinear dos
+    # listas por posición.
+    items: list[PlanItemOut] = Field(default_factory=list)
     kcal: float | None = None
     # `None` es «no dicho», **nunca «saltado»**.
     status: str | None = None

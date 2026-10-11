@@ -310,6 +310,15 @@ def then_kcal(respuesta):
 
 
 # --- cambiar y adherencia -----------------------------------------------------
+@then("every meal lists its ingredients with their grams")
+def then_items(respuesta):
+    for e in respuesta["entries"]:
+        assert [i["food_name"] for i in e["items"]] == ["Pollo", "Aceite"]
+        # Los mismos gramos que congeló el plan, ya con su nombre al lado.
+        assert [i["grams"] for i in e["items"]] == e["grams"]
+        assert all(i["grams"] > 0 for i in e["items"])
+
+
 @given(parsers.parse("a week planned for {inicio}"), target_fixture="respuesta")
 def given_past_week(client, repertorio, inicio):
     resp = client.post("/plans", json={"week_start": inicio})

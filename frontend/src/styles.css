@@ -5914,6 +5914,30 @@ button.draft-save {
   grid-row: auto;
   grid-column: auto;
 }
+/* Qué lleva el plato, debajo de su nombre: el nombre del alimento en Geist 0.85rem
+   `--muted` y los gramos en Mono `--text`, que es lo que se pesa. */
+.plan-items {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.plan-item-g {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.plan-propuesto .plan-items {
+  grid-column: 1 / -1;
+}
+.plan-otro-nombre {
+  min-width: 0;
+}
 .plan-otros {
   list-style: none;
   margin: 0.5rem 0 0;
