@@ -202,6 +202,11 @@ describe('la semana', () => {
     expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Merluza 200 g')
   })
 
+  it('con una pauta no ofrece generar otra semana', () => {
+    render(<Semana plan={{ ...PLAN, has_pauta: true }} weekStart={LUNES} onClose={vi.fn()} onChanged={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Generar otra' })).not.toBeInTheDocument()
+  })
+
   it('un día sin comidas lo dice en vez de quedarse en blanco', () => {
     render(<Semana plan={PLAN} weekStart={LUNES} onClose={vi.fn()} onChanged={vi.fn()} />)
     expect(screen.getAllByText('Sin comidas planificadas.')).toHaveLength(6)

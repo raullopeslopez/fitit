@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { generatePlan, getPlan, listDishes } from './api.js'
+import { generatePlan, getPlan, importPlan, listDishes, saveImportedPlan } from './api.js'
 import { foodDayIso } from './food.js'
+import ImportarPlan from './ImportarPlan.jsx'
 import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import PlanificarSemana from './PlanificarSemana.jsx'
 import TusPlatos from './TusPlatos.jsx'
+import { ListRow } from './ui'
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
@@ -35,6 +37,29 @@ export function rangoSemana(weekStart) {
  * que viene (revisar el objetivo, generar, comprar). No hay una tercera que
  * tenga sentido mirar desde aquí.
  */
+// Por qué no se ha podido leer un PDF, en lo que hay que hacer al respecto.
+function porQueNoSeLee(respuesta) {
+  if (respuesta?.refusal === 'quota') {
+    return respuesta.quota_scope === 'day'
+      ? 'Se ha gastado la lectura de hoy. Prueba mañana.'
+      : 'Demasiadas lecturas seguidas. Espera un minuto y prueba otra vez.'
+  }
+  return 'No se ha podido leer el plan. Prueba otra vez.'
+}
+
+function errorDeSubida(err) {
+  if (err?.status === 415) return 'Sólo se leen PDF.'
+  if (err?.status === 413) return 'El PDF es demasiado grande.'
+  if (err?.status === 503) return 'La lectura de planes no está disponible.'
+  return 'No se ha podido leer el plan. Prueba otra vez.'
+}
+
+// Una semana sin nada dicho todavía se puede rehacer con la pauta. Una con
+// comidas confirmadas no: regenerarla se llevaría lo que ya marcaste.
+function rehacible(plan) {
+  return !plan || plan.entries.every((e) => e.status == null)
+}
+
 export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   const [segmento, setSegmento] = useState(inicial)
   const esta = lunesDe(hoy)
@@ -45,6 +70,12 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   const [error, setError] = useState(null)
   const [platosOpen, setPlatosOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Subir plan: `leyendo` mientras el PDF va y vuelve; `lectura` es lo leído,
+  // y mientras la hay la pantalla es la de revisarlo.
+  const [leyendo, setLeyendo] = useState(false)
+  const [lectura, setLectura] = useState(null)
+  const [aviso, setAviso] = useState(null)
+  const archivo = useRef(null)
 
   const cargar = useCallback(async () => {
     try {
@@ -85,6 +116,56 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function subir(file) {
+    if (!file) return
+    setLeyendo(true)
+    setError(null)
+    setAviso(null)
+    try {
+      const respuesta = await importPlan(file)
+      if (respuesta?.refusal) setError(porQueNoSeLee(respuesta))
+      else setLectura(respuesta)
+    } catch (err) {
+      setError(errorDeSubida(err))
+    } finally {
+      setLeyendo(false)
+    }
+  }
+
+  async function guardado() {
+    // La que viene sólo si ya estaba generada: si no, se generará con la pauta
+    // cuando toque revisarla. Esta, si no tiene nada confirmado.
+    const rehacerEsta = rehacible(planes[esta])
+    const semanas = [...(rehacerEsta ? [esta] : []), ...(planes[viene] ? [viene] : [])]
+    for (const semana of semanas) {
+      try {
+        await generatePlan(semana, null)
+      } catch {
+        // La pauta ya está guardada; una semana que no se rehace ahora se
+        // rehará al pulsar «Generar la semana».
+      }
+    }
+    setLectura(null)
+    setAviso(
+      rehacerEsta
+        ? 'Pauta guardada. Tu semana ya sigue el plan.'
+        : 'Pauta guardada. Esta semana ya tiene comidas confirmadas: el plan se aplica desde la que viene.',
+    )
+    await Promise.all([cargar(), cargarPlatos()])
+  }
+
+  if (lectura) {
+    return (
+      <ImportarPlan
+        lectura={lectura}
+        weekStart={esta}
+        guardar={saveImportedPlan}
+        onGuardado={guardado}
+        onClose={() => setLectura(null)}
+      />
+    )
   }
 
   if (platosOpen) {
@@ -128,6 +209,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       </div>
 
       {error && <p className="alert">{error}</p>}
+      {aviso && <p className="plan-aviso">{aviso}</p>}
 
       {segmento === 'esta' &&
         plan !== undefined &&
@@ -166,6 +248,27 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
           onPlatosChanged={cargarPlatos}
         />
       )}
+
+      {/* El input no se ve: la fila es lo que se toca, y abre el selector del
+          móvil. `value = ''` después, para que subir el mismo PDF dos veces
+          vuelva a disparar el cambio. */}
+      <ListRow
+        label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
+        hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
+        value=""
+        onClick={() => !leyendo && archivo.current?.click()}
+      />
+      <input
+        ref={archivo}
+        type="file"
+        accept="application/pdf"
+        aria-label="PDF del plan"
+        hidden
+        onChange={(e) => {
+          subir(e.target.files?.[0])
+          e.target.value = ''
+        }}
+      />
     </div>
   )
 }
