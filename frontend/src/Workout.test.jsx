@@ -855,6 +855,70 @@ describe('Workout', () => {
     expect(document.querySelector('.dot-cardio')).toBeInTheDocument()
   })
 
+  // Los mínimos toques también en cardio: lo de la última vez va ya puesto en
+  // las fichas, y repetirlo es un toque.
+  it('cardio: la serie que toca, con las fichas rellenas con la última vez', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Correr',
+      found: true,
+      sets: [cardioSet()],
+      kind: 'cardio',
+    })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [cardioSet({ id: 31 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Correr')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    expect(await screen.findByText('1.ª serie')).toBeInTheDocument()
+    expect(screen.getByText(/Última vez/).closest('.serie-block')).toHaveTextContent(
+      /Última vez: 24:30 · 5\.2 km/,
+    )
+    expect(screen.getByLabelText(/duración/i)).toHaveValue('24:30')
+    expect(screen.getByLabelText(/distancia/i)).toHaveValue('5.2')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar 5.2 km · 24:30' }))
+    await waitFor(() =>
+      expect(api.logSet).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ duration_seconds: 1470, distance: 5.2 }),
+      ),
+    )
+    // La siguiente sigue puesta: otra igual es otro toque.
+    expect(await screen.findByText('2.ª serie')).toBeInTheDocument()
+    expect(screen.getByLabelText(/duración/i)).toHaveValue('24:30')
+    expect(screen.getByLabelText(/distancia/i)).toHaveValue('5.2')
+  })
+
+  it('cardio: los − y + mueven un minuto y medio kilómetro', async () => {
+    api.getPreviousMarks.mockResolvedValue({
+      exercise_name: 'Correr',
+      found: true,
+      sets: [cardioSet()],
+      kind: 'cardio',
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Correr')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar minuto' }))
+    expect(screen.getByLabelText(/duración/i)).toHaveValue('25:30')
+    await userEvent.click(screen.getByRole('button', { name: 'Restar minuto' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Restar minuto' }))
+    expect(screen.getByLabelText(/duración/i)).toHaveValue('23:30')
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar km' }))
+    expect(screen.getByLabelText(/distancia/i)).toHaveValue('5.7')
+    await userEvent.click(screen.getByRole('button', { name: 'Restar km' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Restar km' }))
+    expect(screen.getByLabelText(/distancia/i)).toHaveValue('4.7')
+  })
+
   // The record is marked where the record is: on the row, not in a banner that
   // covers the log for a moment and then leaves nothing behind.
   it('marks a real weight record on the set that took it', async () => {

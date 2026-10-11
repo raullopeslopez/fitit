@@ -160,6 +160,14 @@ function bump(current, delta, min) {
   return String(bumped)
 }
 
+// Cardio: el − y el + de la duración mueven un minuto; los segundos que
+// tecleaste se quedan. Nunca por debajo de cero.
+const KM_STEP = 0.5
+function bumpDuration(current, deltaSeconds) {
+  const base = parseDuration(current) ?? 0
+  return formatDuration(Math.max(0, base + deltaSeconds))
+}
+
 function ExerciseCard({
   name,
   muscle,
@@ -948,11 +956,28 @@ function CardioCard({
   open = true,
   onToggle,
 }) {
-  const seed = previous?.found ? previous.sets?.[0] : null
-  const [duration, setDuration] = useState(
-    seed?.duration_seconds ? formatDuration(seed.duration_seconds) : '',
-  )
-  const [distance, setDistance] = useState(seed?.distance ? String(seed.distance) : '')
+  const [duration, setDuration] = useState('')
+  const [distance, setDistance] = useState('')
+  // La misma siembra que la fuerza: lo previsto es repetir la última de hoy
+  // o, si no hay, la primera de la última vez. Lo que tocas no se pisa.
+  const touched = useRef(false)
+  const editDuration = (v) => {
+    touched.current = true
+    setDuration(v)
+  }
+  const editDistance = (v) => {
+    touched.current = true
+    setDistance(v)
+  }
+  const lastTime = previous?.found ? previous.sets?.[0] : null
+  const seedSet = sets[sets.length - 1] ?? lastTime
+  const seedSeconds = seedSet?.duration_seconds ?? null
+  const seedDistance = seedSet?.distance ?? null
+  useEffect(() => {
+    if (touched.current || seedSeconds == null) return
+    setDuration(formatDuration(seedSeconds))
+    setDistance(seedDistance == null ? '' : String(seedDistance))
+  }, [seedSeconds, seedDistance])
   const [note, setNote] = useState('')
   const [openMenuId, setOpenMenuId] = useState(null)
   const [error, setError] = useState('')
@@ -974,10 +999,8 @@ function CardioCard({
       dist = d
     }
     setError('')
-    // Cleared before the request, like the strength card: the row is already
-    // in the list, so the form has nothing left to hold on to.
-    setDuration('')
-    setDistance('')
+    // Duración y distancia se quedan: otra igual es otro toque. La nota sí se
+    // vacía, es de esa serie.
     setNote('')
     try {
       await onLogSet(name, {
@@ -1040,36 +1063,83 @@ function CardioCard({
 
       {!open ? null : (
         <>
-      {previous && previous.found ? (
-        <div className="target">
-          <div className="target-label">Última vez</div>
-          <div className="target-meta">{previous.sets.map(formatCardioSet).join(' · ')}</div>
+      {lastTime ? (
+        // La serie que toca, como en la fuerza. Sin «A batir»: en cardio no
+        // hay una progresión que proponer, sólo la referencia.
+        <div className="target serie-block">
+          <div className="serie-head">
+            <span className="serie-n">{`${sets.length + 1}.ª serie`}</span>
+            <span className="target-label">
+              Última vez{': '}
+              {/* Sin el ritmo, que partía la línea en dos: ya va en cada fila. */}
+              <span className="target-line">
+                {formatDuration(lastTime.duration_seconds)}
+                {lastTime.distance ? ` · ${lastTime.distance} km` : ''}
+              </span>
+            </span>
+          </div>
         </div>
       ) : (
         <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
       )}
 
-      <form onSubmit={handleLog}>
+      <form className="log-form log-form-tiles" onSubmit={handleLog}>
         <div className="row">
-          <div className="field">
+          <div className="field stepper-field">
             <label htmlFor={`dur-${name}`}>Duración</label>
-            <input
-              id={`dur-${name}`}
-              inputMode="numeric"
-              placeholder="mm:ss"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-            />
+            <div className="stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                aria-label="Restar minuto"
+                onClick={() => editDuration(bumpDuration(duration, -60))}
+              >
+                −
+              </button>
+              <input
+                id={`dur-${name}`}
+                inputMode="numeric"
+                placeholder="mm:ss"
+                value={duration}
+                onChange={(e) => editDuration(e.target.value)}
+              />
+              <button
+                type="button"
+                className="stepper-btn stepper-plus"
+                aria-label="Sumar minuto"
+                onClick={() => editDuration(bumpDuration(duration, 60))}
+              >
+                +
+              </button>
+            </div>
           </div>
-          <div className="field">
+          <div className="field stepper-field">
             <label htmlFor={`dist-${name}`}>Distancia · km</label>
-            <input
-              id={`dist-${name}`}
-              inputMode="decimal"
-              placeholder="opcional"
-              value={distance}
-              onChange={(e) => setDistance(e.target.value)}
-            />
+            <div className="stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                aria-label="Restar km"
+                onClick={() => editDistance(bump(distance, -KM_STEP, 0))}
+              >
+                −
+              </button>
+              <input
+                id={`dist-${name}`}
+                inputMode="decimal"
+                placeholder="—"
+                value={distance}
+                onChange={(e) => editDistance(e.target.value)}
+              />
+              <button
+                type="button"
+                className="stepper-btn stepper-plus"
+                aria-label="Sumar km"
+                onClick={() => editDistance(bump(distance, KM_STEP, 0))}
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
         <div className="field">
