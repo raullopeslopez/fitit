@@ -189,6 +189,10 @@ function ExerciseCard({
   // cuando no es cosa del padre, que es quien tiene la superficie que sobrevive
   // al cierre del panel. Ver `EditTrouble.jsx`.
   onChangeName,
+  // Los ejercicios a los que se pueden mudar las series de esta tarjeta, y la
+  // mudanza. Ver `switchExerciseFor`.
+  candidates,
+  onSwitchExercise,
   // Quita el ejercicio de este entreno: sus series de hoy y la tarjeta. El
   // ejercicio y su historial se quedan; borrarlos es cosa de Progreso.
   onRemoveFromWorkout,
@@ -757,6 +761,16 @@ function ExerciseCard({
             onSubmitName={(e) => {
               e.preventDefault()
               commitName()
+            }}
+            candidates={candidates}
+            // Elegir otro ejercicio no es renombrar: el borrador vuelve al
+            // nombre que tiene para que ninguna salida lo mande. La nota sí,
+            // que es de este ejercicio y se queda con él.
+            onPick={(target) => {
+              setNameDraft(name)
+              sentName.current = null
+              commitNote()
+              onSwitchExercise(name, target)
             }}
             // Debajo del nombre, a la vista: el grupo, la nota y quitarlo del
             // entreno. En la hoja caben los tres sin tapar el registro — lo tapa
@@ -1423,6 +1437,9 @@ export default function Workout({
   // shows what you're doing rather than everything you've already done.
   const [toggled, setToggled] = useState({})
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
+  // Los mismos, enteros: el buscador del editor necesita el grupo para el punto
+  // y el tipo para no ofrecer cardio a una tarjeta de fuerza.
+  const [catalog, setCatalog] = useState([])
   // Lo que salió mal en la última edición de un ejercicio, con el nombre del
   // ejercicio dentro para que lo pinte su tarjeta. Vive aquí y no dentro del
   // panel porque el panel se desmonta justo cuando llega la respuesta: el
@@ -1735,6 +1752,7 @@ export default function Workout({
     listExercises()
       .then((list) => {
         setKnown(list.map((e) => e.name))
+        setCatalog(list)
         setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
         setNoteByName(Object.fromEntries(list.map((e) => [e.name, e.note ?? null])))
         setIdByName(Object.fromEntries(list.map((e) => [e.name, e.id])))
@@ -2113,6 +2131,81 @@ export default function Workout({
     )
   }
 
+  // ── Estas series eran de otro ejercicio ──────────────────────────────────
+  // Apuntaste en el ejercicio equivocado. Renombrar no sirve —el nombre es de
+  // toda su historia— y fusionar es irreversible y se lleva esa historia
+  // entera. Esto mueve sólo las series de esta sesión: cada una se corrige con
+  // el mismo `PATCH` que corrige sus reps, ahora con otro `exercise_name`, y el
+  // ejercicio de antes se queda como estaba en todas las demás sesiones.
+  //
+  // Primero el servidor y después la pantalla: es un acto raro, y pintar una
+  // mudanza que luego hay que deshacer serie a serie es peor que medio segundo
+  // de espera. Lo que sigue en la bandeja de salida se muda por nombre.
+  async function switchExerciseFor(from, to) {
+    if (!to || from === to) return
+    setError('')
+    const moving = setsFor(from)
+    let updated
+    try {
+      updated = await Promise.all(
+        moving
+          .filter((set) => !set.pending)
+          .map((set) =>
+            editSet(set.id, {
+              exercise_name: to,
+              reps: set.reps,
+              weight: set.weight,
+              rpe: set.rpe ?? null,
+              note: set.note ?? null,
+            }),
+          ),
+      )
+    } catch {
+      setError('No se pudo cambiar el ejercicio.')
+      // Alguna pudo pasar y otra no: lo que hay lo dice el servidor.
+      resyncWorkout().catch(() => {})
+      return
+    }
+    const byId = new Map(updated.map((set) => [set.id, set]))
+    renameQueued(from, to)
+    const standing = exercises.some((e) => e.name === to)
+    if (standing) {
+      // Ya tenía tarjeta: las series se suman a ella y la de antes se va.
+      forgetAddedExercise(workoutId, from)
+      dropFromRepeatTemplate(workoutId, from)
+      setExercises((list) => list.filter((e) => e.name !== from))
+    } else {
+      // La tarjeta se queda en su sitio con otro nombre —la misma llave, así
+      // que no se desmonta— y pide las marcas del ejercicio que ahora es.
+      renameAddedExercise(workoutId, from, to)
+      moveCardKey(from, to)
+      setToggled((map) => {
+        if (!(from in map)) return map
+        const { [from]: value, ...rest } = map
+        return { ...rest, [to]: value }
+      })
+      setExercises((list) =>
+        list.map((e) => (e.name === from ? { ...e, name: to, previous: undefined } : e)),
+      )
+      marksFor(to, workoutId).then((marks) => {
+        const previous = marks ?? { found: false, sets: [] }
+        setExercises((list) => list.map((e) => (e.name === to ? { ...e, previous } : e)))
+      })
+    }
+    setWorkout((w) =>
+      w
+        ? {
+            ...w,
+            sets: w.sets.map((set) =>
+              byId.get(set.id) ??
+              (set.exercise_name === from ? { ...set, exercise_name: to } : set),
+            ),
+          }
+        : w,
+    )
+    focusEditorTrigger(to)
+  }
+
   // ── Volver a preguntarle al servidor cómo está la sesión ─────────────────
   // Todo lo que esta pantalla sabe de un ejercicio lo lleva **por nombre**:
   // qué series son suyas, su id, su grupo, su nota y su cuenta. Eso hace que
@@ -2142,6 +2235,7 @@ export default function Workout({
     ])
     if (list) {
       setKnown(list.map((e) => e.name))
+      setCatalog(list)
       setMuscleByName(Object.fromEntries(list.map((e) => [e.name, e.muscle_group])))
       setNoteByName(Object.fromEntries(list.map((e) => [e.name, e.note ?? null])))
       setIdByName(Object.fromEntries(list.map((e) => [e.name, e.id])))
@@ -2619,6 +2713,8 @@ export default function Workout({
             onChangeMuscle={changeMuscleFor}
             onChangeNote={changeNoteFor}
             onChangeName={changeNameFor}
+            candidates={catalog.filter((e) => e.kind !== 'cardio' && e.name !== ex.name)}
+            onSwitchExercise={switchExerciseFor}
             onRemoveFromWorkout={removeFromWorkoutFor}
             // El aviso va en la tarjeta del ejercicio del que habla, y en
             // ninguna otra: en un superset hay varias abiertas y «no se pudo

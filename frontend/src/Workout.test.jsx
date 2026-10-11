@@ -2606,6 +2606,92 @@ describe('Workout', () => {
     })
   })
 
+  // Apuntaste las series en el ejercicio equivocado. Renombrarlo no sirve —se
+  // lleva el nombre de toda su historia— y fusionarlo es irreversible: lo que
+  // quieres es que **estas** series sean de otro ejercicio que ya tienes. El
+  // campo del nombre busca como el de Progreso y elegir un resultado muda sólo
+  // lo de esta sesión.
+  describe('cambiar a otro ejercicio que ya tienes', () => {
+    const standing = (...sets) => {
+      api.getWorkout.mockResolvedValue(workoutWith(...(sets.length ? sets : [benchSet()])))
+      api.listExercises.mockResolvedValue([
+        { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 3, note: null },
+        { id: 3, name: 'Dominadas', muscle_group: 'Espalda', set_count: 9, note: null },
+        { id: 4, name: 'Remo en máquina', muscle_group: 'Espalda', set_count: 2, note: null },
+        { id: 5, name: 'Carrera', muscle_group: null, set_count: 1, note: null, kind: 'cardio' },
+      ])
+      api.editSet.mockImplementation(async (id, set) =>
+        benchSet({ id, exercise_id: 3, ...set }),
+      )
+    }
+
+    const search = async (typed) => {
+      await screen.findAllByRole('button', { name: /editar ejercicio/i })
+      // Con dos tarjetas, la de Bench Press puede estar plegada.
+      if (!screen.queryByRole('button', { name: /editar ejercicio Bench Press/i })) {
+        await userEvent.click(cardToggles('Bench Press')[0])
+      }
+      await userEvent.click(screen.getByRole('button', { name: /editar ejercicio Bench Press/i }))
+      const field = screen.getByLabelText(/nombre de Bench Press/i)
+      await userEvent.clear(field)
+      await userEvent.type(field, typed)
+    }
+
+    const results = () => within(screen.getByRole('list', { name: 'Ejercicios que ya tienes' }))
+
+    it('busca entre tus ejercicios mientras escribes, sin el propio ni los de cardio', async () => {
+      standing()
+      renderWorkout()
+
+      await search('r')
+
+      const names = results()
+        .getAllByRole('button')
+        .map((b) => b.textContent)
+      expect(names).toEqual(['Remo en máquina'])
+    })
+
+    it('no enseña nada mientras el campo dice el nombre que ya tiene', async () => {
+      standing()
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+
+      expect(screen.queryByRole('list', { name: 'Ejercicios que ya tienes' })).not.toBeInTheDocument()
+    })
+
+    it('elegir uno muda las series de esta sesión, sin renombrar ni fusionar', async () => {
+      standing()
+      renderWorkout()
+
+      await search('domi')
+      await userEvent.click(results().getByRole('button', { name: 'Dominadas' }))
+
+      await waitFor(() =>
+        expect(api.editSet).toHaveBeenCalledWith(
+          10,
+          expect.objectContaining({ exercise_name: 'Dominadas', reps: 8, weight: 60 }),
+        ),
+      )
+      expect(api.renameExercise).not.toHaveBeenCalled()
+      expect(api.mergeExercise).not.toHaveBeenCalled()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+      expect(cardToggles('Bench Press')).toHaveLength(0)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('si el elegido ya tiene tarjeta en la sesión, las dos quedan en una', async () => {
+      standing(benchSet(), pullSet({ id: 11 }))
+      renderWorkout()
+
+      await search('domi')
+      await userEvent.click(results().getByRole('button', { name: 'Dominadas' }))
+
+      await waitFor(() => expect(cardToggles('Bench Press')).toHaveLength(0))
+      expect(cardToggles('Dominadas')).toHaveLength(1)
+    })
+  })
+
   // Repetir (from Días) hands the session over as a list of names. The cards
   // are already standing when you arrive, each with its previous marks loaded,
   // so a repeat session is taps on steppers rather than five lookups.

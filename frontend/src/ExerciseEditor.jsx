@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { fold } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 
 /**
@@ -49,6 +50,12 @@ export function ExerciseEditor({
   // Las filas de debajo del nombre: grupo, nota y eliminar. Las pone quien
   // llama porque cada pantalla sabe qué hace «eliminar» en ella.
   more,
+  // Los ejercicios que ya tienes, `{ name, muscle_group }`, sin el propio. Con
+  // ellos el campo del nombre busca como el de Progreso, y elegir uno llama a
+  // `onPick` con su nombre en vez de renombrar. Sin ellos, el campo sólo
+  // renombra.
+  candidates,
+  onPick,
 }) {
   const sheetRef = useRef(null)
 
@@ -178,6 +185,14 @@ export function ExerciseEditor({
 
   if (!open) return null
 
+  // Mientras el campo diga el nombre que ya tiene no hay nada que buscar: abrir
+  // la hoja no puede soltarte una lista encima del grupo y la nota.
+  const query = nameDraft.trim()
+  const matches =
+    candidates && onPick && query && fold(query) !== fold(name)
+      ? candidates.filter((c) => fold(c.name).includes(fold(query))).slice(0, 8)
+      : []
+
   // La hoja de la casa (`.sheet-scrim` / `.sheet`, la de Días y Comida), no una
   // nueva: el fondo es una salida más, y guarda como las otras.
   return createPortal(
@@ -226,6 +241,32 @@ export function ExerciseEditor({
             <span aria-hidden="true">×</span>
           </button>
         </form>
+        {/* Elegir uno no renombra nada: es decir «esto era otro ejercicio». Lo
+            que haga con ello lo decide quien llama; la hoja se cierra sin
+            mandar el nombre escrito, que ya no es un renombrado. */}
+        {matches.length > 0 && (
+          <ul className="search-results editor-matches" aria-label="Ejercicios que ya tienes">
+            {matches.map((c) => (
+              <li key={c.name}>
+                <button
+                  type="button"
+                  className="set-row"
+                  onClick={() => {
+                    onPick(c.name)
+                    onCloseRef.current()
+                  }}
+                >
+                  <span
+                    className="dot"
+                    aria-hidden="true"
+                    style={{ '--chip': muscleColor(c.muscle_group) }}
+                  />
+                  {c.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {more && <div className="sheet-body">{more}</div>}
       </div>
     </div>,

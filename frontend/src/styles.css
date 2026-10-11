@@ -610,6 +610,11 @@ button.workout-title:active:not(:disabled) {
   font-weight: 500;
   color: var(--muted);
 }
+/* La misma lista bajo el nombre del editor de Entreno: pegada al campo que la
+   abre, con el aire de una fila entre ella y el grupo. */
+.editor-matches {
+  margin: 0.25rem 0 0.5rem;
+}
 
 /* La puerta al editor del ejercicio, idéntica en Entreno y en Progreso.
    Eran tres: `Editar ejercicio` en la tarjeta abierta, `Corregir` al pie de la
