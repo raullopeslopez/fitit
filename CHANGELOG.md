@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.26.0: Series por músculo, lo que falta primero; la descarga en Perfil.** En
+  Progreso, la tarjeta abre con `N /10 EN ZONA` y sólo lo que pide algo (`PENDIENTE` /
+  `CERRÓ BAJO ZONA`, `POR ENCIMA DEL MÁXIMO`); `Ver los 10 músculos` despliega las barras
+  en series reales con la zona de cada músculo y una raya en su mínimo (#259). La semana de
+  descarga se marca en `Perfil → Entreno` (#259). El tema se elige en `Perfil → Apariencia`:
+  `Sistema` / `Claro` / `Oscuro` (#257).
 - **APK 0.25.0: subir el plan del nutricionista.** Al fondo de `Plan`, `Subir plan` lee un
   PDF y abre `Platos identificados` para revisarlo antes de guardar (#251). Con pauta, cada
   día clava sus kcal y dice lo que no cabe (`Fuera del objetivo: Proteína −25 g`), y
