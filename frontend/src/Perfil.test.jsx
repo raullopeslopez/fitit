@@ -383,6 +383,53 @@ describe('Perfil', () => {
 
       expect(localStorage.getItem('fitit_screen_awake')).toBe('off')
     })
+
+    // La descarga se marcaba con un botón al pie de Series por músculo, que es
+    // contenido que se mira cada día, para algo que se hace una semana de cada
+    // seis u ocho. Es un ajuste de la semana en curso y vive con los ajustes.
+    describe('Semana de descarga', () => {
+      beforeEach(() => {
+        vi.useFakeTimers({ shouldAdvanceTime: true })
+        vi.setSystemTime(new Date(2026, 6, 22, 12)) // miércoles, semana del 20 jul
+      })
+      afterEach(() => vi.useRealTimers())
+
+      it('marca la semana en curso, por su lunes', async () => {
+        renderPerfil()
+        const descarga = await screen.findByRole('group', { name: /semana de descarga/i })
+        expect(within(descarga).getByRole('button', { name: 'No' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+
+        await userEvent.click(within(descarga).getByRole('button', { name: 'Sí' }))
+
+        expect(JSON.parse(localStorage.getItem('fitit_deload_weeks'))).toEqual(['2026-07-20'])
+        expect(within(descarga).getByRole('button', { name: 'Sí' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+      })
+
+      it('dice qué semana es y qué pide', async () => {
+        renderPerfil()
+        await screen.findByRole('group', { name: /semana de descarga/i })
+
+        expect(
+          screen.getByText('20–26 jul: 1/3 de tu volumen típico, mismo peso.'),
+        ).toBeInTheDocument()
+      })
+
+      it('se quita igual que se pone, y no toca otras semanas', async () => {
+        localStorage.setItem('fitit_deload_weeks', JSON.stringify(['2026-06-01', '2026-07-20']))
+        renderPerfil()
+        const descarga = await screen.findByRole('group', { name: /semana de descarga/i })
+
+        await userEvent.click(within(descarga).getByRole('button', { name: 'No' }))
+
+        expect(JSON.parse(localStorage.getItem('fitit_deload_weeks'))).toEqual(['2026-06-01'])
+      })
+    })
   })
 
   describe('Apariencia', () => {

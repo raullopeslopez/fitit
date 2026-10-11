@@ -111,11 +111,11 @@ describe('placeholders de carga', () => {
 
       expect(screen.getByText('Series por músculo')).toBeInTheDocument()
       expect(screen.getByText('Ritmo por músculo')).toBeInTheDocument()
-      // El carril y su franja no dependen del dato: la zona cae siempre en el
-      // mismo tramo, así que se pintan de verdad y sólo la aguja falta.
-      expect(container.querySelector('.sum-zone')).toBeInTheDocument()
-      expect(container.querySelector('.sum-mark')).not.toBeInTheDocument()
-      expect(container.querySelectorAll('.sum-row')).toHaveLength(3)
+      // La forma de la tarjeta de verdad: la cifra con su medidor y una lista
+      // corta debajo. Ningún número inventado: sólo bloques.
+      expect(container.querySelector('.sum-tally')).toBeInTheDocument()
+      expect(container.querySelector('.sum-tally-n')).not.toBeInTheDocument()
+      expect(container.querySelectorAll('.sum-item')).toHaveLength(3)
     })
   })
 })
