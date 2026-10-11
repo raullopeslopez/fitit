@@ -5,6 +5,7 @@ import App from './App.jsx'
 import * as api from './api.js'
 import { setToken } from './auth.js'
 import * as offline from './offline.js'
+import { foodDayIso } from './food.js'
 
 vi.mock('./api.js')
 // El puente con el APK. `onLaunch` es la orden con la que el widget o la
@@ -83,12 +84,9 @@ describe('App', () => {
   // Fase 3: tocar el widget o la notificación abre la app con una orden.
   // Spec: docs/widgets-entreno.md, «2 · Widget».
   describe('abrir desde el widget o la notificación', () => {
-    const todayISO = () => {
-      const d = new Date()
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-        d.getDate(),
-      ).padStart(2, '0')}`
-    }
+    // El «hoy» de la app: corta a las 04:00 locales. Con la fecha local a
+    // secas esta prueba fallaba cada noche entre las 00:00 y las 04:00.
+    const todayISO = () => foodDayIso()
 
     beforeEach(() => {
       launch.listener = null

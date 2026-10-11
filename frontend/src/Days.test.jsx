@@ -404,6 +404,46 @@ describe('Days', () => {
     }
   })
 
+  // El día de entreno corta a las 04:00 locales, como el de comida: una sesión
+  // a la 01:30 es la del día que llevas despierto. Antes «hoy» salía en UTC, y
+  // entre las 00:00 y las 02:00 en Madrid ni se encontraba la sesión de hoy ni
+  // se fechaba bien la nueva — con la hora local a secas, la de las 23:50 y la
+  // de las 00:10 serían dos días.
+  it('a las 03:00, «hoy» sigue siendo el día anterior: continúa esa sesión', async () => {
+    const onOpen = vi.fn()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 17, 3, 0))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
+      ])
+      render(<Days onOpenWorkout={onOpen} />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^continuar entreno$/i }))
+
+      expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
+      expect(api.createWorkout).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('a las 04:00 empieza el día nuevo, en la fecha local', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 17, 4, 0))
+    try {
+      api.listDays.mockResolvedValue([])
+      api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-17', name: null, sets: [] })
+      render(<Days onOpenWorkout={vi.fn()} />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /empezar entreno/i }))
+
+      expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-17', name: null })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('backfills a workout for a chosen date and opens it', async () => {
     const onOpen = vi.fn()
     api.createWorkout.mockResolvedValue({ id: 9, date: '2026-07-10', name: 'Morning', sets: [] })

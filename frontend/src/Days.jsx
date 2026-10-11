@@ -15,9 +15,14 @@ import { setRepeatTemplate } from './prefs.js'
 import { CtaLabelSkeleton, DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
 import { STEPS_SYNCED, formatSteps, stepsByDate } from './steps.js'
 import { publishLastWorkout } from './widgetSummary.js'
+import { foodDayIso } from './food.js'
 
+// El día de entreno corta a las 04:00 locales, el mismo que el de comida: una
+// sesión a la 01:30 es la del día que llevas despierto. Antes salía en UTC, y
+// entre las 00:00 y las 02:00 en Madrid «Empezar entreno» no encontraba la
+// sesión de hoy y fechaba la nueva en ayer.
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return foodDayIso()
 }
 
 // Cardio has no muscle group by design, so it gets its own bucket in the day
