@@ -16,6 +16,7 @@ from .routers import (
     food_log,
     foods,
     ideas,
+    plan_import,
     plans,
     rules,
     steps,
@@ -128,4 +129,5 @@ app.include_router(dishes.router, dependencies=[Depends(get_current_user)])
 app.include_router(targets.router, dependencies=[Depends(get_current_user)])
 app.include_router(rules.router, dependencies=[Depends(get_current_user)])
 app.include_router(plans.router, dependencies=[Depends(get_current_user)])
+app.include_router(plan_import.router, dependencies=[Depends(get_current_user)])
 app.include_router(ideas.router, dependencies=[Depends(get_current_user)])

@@ -1406,6 +1406,44 @@ class DraftLineOut(BaseModel):
     candidates: list[DraftFoodOut] = Field(default_factory=list)
 
 
+class ImportedDishOut(BaseModel):
+    """Un plato leído de un PDF de plan, sin guardar.
+
+    `existing` es que ya tienes un plato con ese nombre (plegado), y entonces
+    no trae líneas: lo que cuenta es el tuyo. `new` trae las líneas del
+    documento casadas con alimentos, igual que el borrador de una idea.
+    """
+
+    name: str
+    slots: list[MealSlot] = Field(default_factory=list)
+    status: Literal["new", "existing"]
+    dish_id: int | None = None
+    lines: list[DraftLineOut] = Field(default_factory=list)
+
+
+class ImportedSlotOut(BaseModel):
+    # Lunes es 0.
+    day: int = Field(ge=0, le=6)
+    slot: MealSlot
+    # Posición del plato en `PlanImportOut.dishes`.
+    dish: int
+
+
+class PlanImportOut(BaseModel):
+    """Lo que se leyó de un PDF de plan. **No escribe nada.**
+
+    Siempre 200 cuando hubo a quién preguntar, como la etiqueta: un PDF que no
+    se lee es algo que se le dice a quien lo subió, no un error del servidor.
+    """
+
+    dishes: list[ImportedDishOut] = Field(default_factory=list)
+    week: list[ImportedSlotOut] = Field(default_factory=list)
+    # 'unreadable' | 'quota'
+    refusal: str | None = None
+    # 'minute' | 'day', con `refusal=quota`.
+    quota_scope: str | None = None
+
+
 class DishDraftOut(BaseModel):
     """Una idea abierta como plato, sin guardar.
 
