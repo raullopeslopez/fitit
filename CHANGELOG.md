@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.24.0: la pestaña Plan y el diario de Comida sin tarjetas.** Barra inferior con
+  cinco pestañas (Días · Progreso · Comida · Plan · Perfil). En Comida, tira de la semana
+  y lo planificado de hoy dentro de su comida (`Lo comí`, `Lo cambié`, `Me lo salté`); en
+  Plan, `Esta semana | La que viene`. Trae también el aviso de platos sin comida y el
+  cambio de un plato de la semana (#243).
 - **APK 0.23.0: enviar la lista a Taski.** Al pie de `Lista de la compra`, `Enviar a Taski`
   manda la semana a la lista compartida de Taski: sólo lo que no tiene pendiente, sin lo
   marcado `Lo tengo`, con cantidad, categoría y la nota «Plan de Fitit · semana del …».
