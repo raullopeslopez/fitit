@@ -49,6 +49,7 @@ from ..schemas import (
     ShoppingToTaskiIn,
     ShoppingToTaskiOut,
     PlanEntryOut,
+    PlanItemOut,
     PlanAheadOut,
     PlanEntryPatch,
     PlanEntryReplan,
@@ -290,7 +291,13 @@ async def _peso(session: AsyncSession, user_id: int) -> float | None:
 
 
 async def _kcal_congeladas(session: AsyncSession, plan: Plan) -> dict[int, float | None]:
-    """Lo que suma cada fila del plan, con los gramos que congeló.
+    return (await _congelado(session, plan))[0]
+
+
+async def _congelado(
+    session: AsyncSession, plan: Plan
+) -> tuple[dict[int, float | None], dict[int, list[PlanItemOut]]]:
+    """Lo que suma cada fila del plan, y qué lleva, con los gramos que congeló.
 
     Se recalcula desde los gramos guardados y no desde la receta: es la misma
     distinción que en el diario — lo que el plan dijo no se vuelve a derivar de
@@ -298,7 +305,7 @@ async def _kcal_congeladas(session: AsyncSession, plan: Plan) -> dict[int, float
     """
     ids = {fila.dish_id for fila in plan.entries}
     if not ids:
-        return {}
+        return {}, {}
     dishes = {
         dish.id: dish
         for dish in (
@@ -315,11 +322,13 @@ async def _kcal_congeladas(session: AsyncSession, plan: Plan) -> dict[int, float
         ).scalars().all()
     }
     kcal: dict[int, float | None] = {}
+    items: dict[int, list[PlanItemOut]] = {}
     for fila in plan.entries:
         dish = dishes.get(fila.dish_id)
         gramos = json.loads(fila.grams_json) if fila.grams_json else []
         if dish is None or not gramos:
             kcal[fila.id] = None
+            items[fila.id] = []
             continue
         pares = [
             (foods[i.food_id], g)
@@ -327,7 +336,8 @@ async def _kcal_congeladas(session: AsyncSession, plan: Plan) -> dict[int, float
             if i.food_id in foods and g > 0
         ]
         kcal[fila.id] = macros_de_plato(pares)[0].get("kcal") if pares else None
-    return kcal
+        items[fila.id] = [PlanItemOut(food_name=food.name, grams=g) for food, g in pares]
+    return kcal, items
 
 
 def _to_out(
@@ -336,6 +346,7 @@ def _to_out(
     veredictos,
     score: float,
     kcal: dict[int, float | None] | None = None,
+    items: dict[int, list[PlanItemOut]] | None = None,
 ) -> PlanOut:
     return PlanOut(
         id=plan.id,
@@ -350,6 +361,7 @@ def _to_out(
                 dish_name=nombres.get(fila.dish_id, ""),
                 grams=json.loads(fila.grams_json) if fila.grams_json else [],
                 kcal=(kcal or {}).get(fila.id),
+                items=(items or {}).get(fila.id, []),
                 status=fila.status,
                 log_entry_id=fila.log_entry_id,
             )
@@ -436,7 +448,7 @@ async def generate_plan(
         nombres,
         propuesta.veredictos,
         propuesta.puntuacion,
-        await _kcal_congeladas(session, plan),
+        *(await _congelado(session, plan)),
     )
 
 
@@ -469,7 +481,7 @@ async def read_plan(
         nombres = dict(
             (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
         )
-    return _to_out(plan, nombres, (), 0.0, await _kcal_congeladas(session, plan))
+    return _to_out(plan, nombres, (), 0.0, *(await _congelado(session, plan)))
 
 
 async def _lista_de(session: AsyncSession, user_id: int, week_start: date):

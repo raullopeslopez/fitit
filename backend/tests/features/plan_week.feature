@@ -93,6 +93,13 @@ Feature: The week, generated
     When I generate the week of 2026-09-21
     Then every meal says its kcal
 
+  # Las kcal dicen cuánto, no qué cocinar: sin los gramos de cada ingrediente
+  # el plan no se puede seguir.
+  Scenario: Every meal of the plan says how much of each ingredient
+    Given a repertoire of 12 dishes of two ingredients
+    When I generate the week of 2026-09-21
+    Then every meal lists its ingredients with their grams
+
   # §4: cambiar no es lo mismo que saltárselo. Lo que de verdad comiste entra
   # en el diario; lo que el plan dijo se queda como lo dijo.
   Scenario: Swapping a meal logs what I really ate

@@ -83,6 +83,24 @@ describe('lo planificado, dentro de su comida', () => {
     expect(screen.getByText('620 kcal')).toBeInTheDocument()
   })
 
+  it('dice cuánto de cada ingrediente, con el nombre corto', () => {
+    pintar({
+      entrada: entrada({
+        id: 2,
+        items: [
+          { food_name: 'Pollo, pechuga, sin piel, cruda', grams: 150 },
+          { food_name: 'Arroz blanco, crudo', grams: 80.5 },
+        ],
+      }),
+    })
+    expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Pollo 150 g · Arroz blanco 80,5 g')
+  })
+
+  it('sin ingredientes que decir no pinta la línea', () => {
+    pintar()
+    expect(screen.queryByLabelText('Ingredientes')).not.toBeInTheDocument()
+  })
+
   it('confirma de un toque y avisa de que se ha comido', async () => {
     const props = pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Lo comí' }))
@@ -175,6 +193,15 @@ describe('la semana', () => {
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(7)
   })
 
+  it('cada comida dice sus ingredientes con sus gramos', () => {
+    const plan = {
+      ...PLAN,
+      entries: [entrada({ id: 2, items: [{ food_name: 'Merluza, cruda', grams: 200 }] })],
+    }
+    render(<Semana plan={plan} weekStart={LUNES} onClose={vi.fn()} onChanged={vi.fn()} />)
+    expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Merluza 200 g')
+  })
+
   it('un día sin comidas lo dice en vez de quedarse en blanco', () => {
     render(<Semana plan={PLAN} weekStart={LUNES} onClose={vi.fn()} onChanged={vi.fn()} />)
     expect(screen.getAllByText('Sin comidas planificadas.')).toHaveLength(6)
@@ -263,6 +290,35 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     expect(within(hoja).getByRole('button', { name: /Tostadas con huevo/ })).toBeInTheDocument()
     expect(within(hoja).queryByRole('button', { name: /Pollo al curry/ })).not.toBeInTheDocument()
     expect(hoja).toHaveTextContent('Sólo cambia el lunes. El resto del día no se reajusta.')
+  })
+
+  it('la hoja dice los gramos de lo propuesto y de una ración de cada alternativa', async () => {
+    pintar({
+      plan: {
+        ...SEMANA,
+        entries: [
+          { ...SEMANA.entries[0], items: [{ food_name: 'Lentejas, crudas', grams: 70 }] },
+          SEMANA.entries[1],
+        ],
+      },
+      platos: [
+        PLATOS[0],
+        {
+          ...PLATOS[2],
+          servings: 2,
+          ingredients: [
+            { food_name: 'Avena, copos', grams: 120 },
+            { food_name: 'Yogur natural', grams: 250 },
+          ],
+        },
+      ],
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+    const lineas = within(hoja).getAllByLabelText('Ingredientes')
+    expect(lineas[0]).toHaveTextContent('Lentejas 70 g')
+    // Lo que el plan pondría si lo eliges: una ración de la receta.
+    expect(lineas[1]).toHaveTextContent('Avena 60 g · Yogur natural 125 g')
   })
 
   it('elegir otro plato lo pone en el plan de ese día', async () => {

@@ -8,7 +8,7 @@ import {
   setPlanEntry,
 } from './api.js'
 import { ListRow, Sheet } from './ui'
-import { foodDayIso, formatMacro } from './food.js'
+import { foodDayIso, formatAmount, formatMacro } from './food.js'
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
 // aquí está para que la lista no dependa de cómo vinieran las filas.
@@ -106,6 +106,36 @@ export function motivo(err) {
   return 'No se ha podido generar la semana.'
 }
 
+// El nombre del catálogo hasta la primera coma: «Pollo, pechuga, sin piel,
+// cruda» es «Pollo». En una línea de ingredientes lo que hace falta es saber qué
+// coger; el resto del nombre está en el alimento.
+function nombreCorto(nombre) {
+  return nombre.split(',')[0].trim()
+}
+
+// Una ración de la receta, que es lo que el plan pone al cambiar a ese plato.
+function racion(plato) {
+  const raciones = plato.servings || 1
+  return (plato.ingredients ?? []).map((i) => ({ food_name: i.food_name, grams: i.grams / raciones }))
+}
+
+// Qué cocinar: cada ingrediente con sus gramos. Las kcal dicen cuánto suma el
+// plato, no cuánto echar de cada cosa. El nombre va en `--muted` y la cifra en
+// la tinta de una cifra (DESIGN.md), para que se lea primero lo que se pesa.
+function Ingredientes({ items }) {
+  if (!items?.length) return null
+  return (
+    <span className="plan-items" role="group" aria-label="Ingredientes">
+      {items.map((item, i) => (
+        <span key={i} className="plan-item">
+          {i > 0 && ' · '}
+          {nombreCorto(item.food_name)} <span className="plan-item-g">{formatAmount(item.grams)}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 // Una fila de la semana: la comida, el plato y lo que suma, y cómo quedó. En la
 // semana no se confirma —eso se hace en el diario, con la comida delante—; un
 // plato que todavía no ha llegado se toca para cambiarlo.
@@ -124,13 +154,19 @@ function Fila({ entrada, onAbrir = null }) {
           aria-label={`Cambiar ${entrada.dish_name}`}
           onClick={() => onAbrir(entrada)}
         >
-          <span className="plan-plato">{entrada.dish_name}</span>
+          <span className="plan-plato">
+            {entrada.dish_name}
+            <Ingredientes items={entrada.items} />
+          </span>
           {entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>}
           <span className="plan-plato-chev" aria-hidden="true">›</span>
         </button>
       ) : (
         <>
-          <span className="plan-plato">{entrada.dish_name}</span>
+          <span className="plan-plato">
+            {entrada.dish_name}
+            <Ingredientes items={entrada.items} />
+          </span>
           {entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>}
         </>
       )}
@@ -202,6 +238,7 @@ export function PlanEnComida({
           entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
         )}
       </p>
+      {!saltado && <Ingredientes items={entrada.items} />}
 
       {/* Ni comido ni saltado es **no dicho**, no incumplido: sigue ofreciendo
           las tres cosas hasta que alguien diga una. Y sólo hoy: una entrada del
@@ -545,6 +582,7 @@ function CambiarPlato({ entrada, dia, platos, hoy, replanear, corregirPlato, onP
         <span className="card-eyebrow">Propuesto</span>
         <span className="plan-propuesto-nombre">{entrada.dish_name}</span>
         {entrada.kcal != null && <span className="plan-kcal">{`${formatMacro(entrada.kcal)} kcal`}</span>}
+        <Ingredientes items={entrada.items} />
       </div>
 
       <p className="card-eyebrow">{`Otros platos de ${(NOMBRE[slot] ?? slot).toLowerCase()}`}</p>
@@ -555,7 +593,10 @@ function CambiarPlato({ entrada, dia, platos, hoy, replanear, corregirPlato, onP
           {otros.map((otro) => (
             <li key={otro.id}>
               <button type="button" className="plan-otro" disabled={busy} onClick={() => elegir(otro)}>
-                <span>{otro.name}</span>
+                <span className="plan-otro-nombre">
+                  {otro.name}
+                  <Ingredientes items={racion(otro)} />
+                </span>
                 {otro.per_serving?.kcal != null && (
                   <span className="plan-kcal">{`${formatMacro(otro.per_serving.kcal)} kcal`}</span>
                 )}
