@@ -194,7 +194,7 @@ def main() -> None:
     parser.add_argument("--file", type=Path, default=Path("data/ciqual2020.xls"))
     parser.add_argument("--out", type=Path, default=Path("data/ciqual_es.json"))
     parser.add_argument("--apply", type=Path, help="escribe un JSON ya traducido en la BD")
-    parser.add_argument("--model", default="gemini-2.5-flash")
+    parser.add_argument("--model", default="gemini-3.8-flash")
     parser.add_argument("--batch", type=int, default=40, help="alimentos por llamada")
     parser.add_argument("--limit", type=int, help="para probar con unos pocos")
     parser.add_argument("--sleep", type=float, default=1.0, help="segundos entre llamadas")

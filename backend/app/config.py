@@ -45,7 +45,10 @@ class Settings(BaseSettings):
     # el reintento vuelve al mismo. El 2026-10-05 `gemini-3.8-flash` contestó
     # `503 high demand` dos veces seguidas a una foto que `gemini-3.5-flash`
     # leyó entera: otro modelo, otra carga y otra cuota del tier gratuito.
-    gemini_fallback_model: str = "gemini-3.5-flash"
+    # Vacío desde el 2026-10-11: Google deprecó la 3.5 y la 3.7, y un reintento
+    # a un modelo retirado falla seguro. Cuando haya otro Flash vivo que no sea
+    # el principal, va aquí (o en GEMINI_FALLBACK_MODEL, sin tocar código).
+    gemini_fallback_model: str = ""
     # Envía la lista de la compra a Taski (`app/taski.py`). El identificador es
     # el de un miembro del hogar —Taski no tiene otra autenticación—, así que es
     # un secreto. Vacío, la función está apagada y el botón contesta 503.
