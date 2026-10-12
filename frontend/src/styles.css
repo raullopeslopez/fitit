@@ -7468,11 +7468,21 @@ button.draft-save {
 }
 
 /* Enviar a Taski: al pie de la lista, cuando ya se ha repasado. */
+/* Fijo al pie mientras la lista corre por debajo: con 36 artículos, mandarla a
+   Taski no puede costar bajar hasta el final. Sobre `--bg`, como la cabecera
+   fija de los meses en Días, y con una raya encima que lo separa de la fila
+   que pasa por detrás. */
 .lista-taski {
+  position: sticky;
+  bottom: calc(-1.4rem - env(safe-area-inset-bottom));
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 1.5rem;
+  padding: 0.75rem 0 calc(1.4rem + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
 }
 .lista-taski > button {
   /* 44: DESIGN.md. El `.secondary` de serie mide 39. */
@@ -7554,6 +7564,16 @@ button.draft-save {
   margin: 0;
   font-size: 1rem;
   color: var(--text);
+}
+.plan-aviso-fila {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.plan-aviso-fila .link-btn {
+  min-height: 44px;
+  padding-left: 0;
 }
 /* Pegar plan a mano, cuando el portapapeles no se deja leer: el mismo control
    que un input, más alto. */

@@ -110,6 +110,20 @@ describe('la pantalla Plan', () => {
     expect(screen.getByRole('dialog', { name: 'Tus platos' })).toBeInTheDocument()
   })
 
+  it('esta semana con plan ofrece su lista de la compra', async () => {
+    render(<PlanPantalla hoy={HOY} />)
+    await userEvent.click(await screen.findByRole('button', { name: /Lista de la compra/ }))
+    expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
+    expect(getShoppingList).toHaveBeenCalledWith(ESTA)
+  })
+
+  it('subir y pegar plan van antes de la semana, no al final', async () => {
+    render(<PlanPantalla hoy={HOY} />)
+    const pollo = await screen.findByText('Pollo con arroz')
+    const pegar = screen.getByRole('button', { name: /Pegar plan/ })
+    expect(pegar.compareDocumentPosition(pollo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('un plan que no llega no deja la pantalla en blanco', async () => {
     getPlan.mockRejectedValue(new Error('red'))
     render(<PlanPantalla hoy={HOY} />)
@@ -202,7 +216,27 @@ describe('la pantalla Plan', () => {
       expect(saveImportedPlan.mock.calls[0][0].week_start).toBe(ESTA)
       await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(VIENE, null))
       expect(generatePlan).toHaveBeenCalledWith(ESTA, null)
-      expect(await screen.findByText('Pauta guardada. Tu semana ya sigue el plan.')).toBeInTheDocument()
+      expect(
+        await screen.findByText('Pauta guardada. Esta semana y la que viene ya siguen el plan.'),
+      ).toBeInTheDocument()
+    })
+
+    // Guardar es el momento de comprar: la que viene se genera aunque no
+    // existiera, y el aviso lleva a su lista sin pasar por la revisión.
+    it('guardar genera también la que viene aunque no existiera, y ofrece su lista', async () => {
+      importPlan.mockResolvedValue(LECTURA)
+      saveImportedPlan.mockResolvedValue({ pauta_id: 1 })
+      getPlan.mockImplementation(async (week) =>
+        week === ESTA ? plan(ESTA, 'Pollo con arroz', { status: 'done' }) : null,
+      )
+      render(<PlanPantalla hoy={HOY} />)
+      await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
+      await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
+      await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(VIENE, null))
+      expect(generatePlan).not.toHaveBeenCalledWith(ESTA, null)
+      await userEvent.click(await screen.findByRole('button', { name: 'Lista de la compra de la que viene' }))
+      expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
+      expect(getShoppingList).toHaveBeenCalledWith(VIENE)
     })
 
     it('una semana con comidas ya confirmadas no se rehace', async () => {
@@ -219,7 +253,7 @@ describe('la pantalla Plan', () => {
           'Pauta guardada. Esta semana ya tiene comidas confirmadas: el plan se aplica desde la que viene.',
         ),
       ).toBeInTheDocument()
-      expect(generatePlan).not.toHaveBeenCalled()
+      expect(generatePlan).not.toHaveBeenCalledWith(ESTA, null)
     })
   })
 })
