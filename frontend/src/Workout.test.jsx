@@ -437,7 +437,12 @@ describe('Workout', () => {
     await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
     // Con una serie hoy ya hecha, lo que se repite es esa serie: el objetivo
     // no pisa lo que acabas de hacer.
-    answer({ exercise_name: 'Bench Press', found: true, sets: [benchSet({ reps: 7, weight: 55 })] })
+    // Dos la última vez: con una hoy, aún no está terminado.
+    answer({
+      exercise_name: 'Bench Press',
+      found: true,
+      sets: [benchSet({ reps: 7, weight: 55 }), benchSet({ reps: 7, weight: 55 })],
+    })
     await screen.findByText(/última vez/i)
     expect(screen.getByLabelText(/reps/i)).toHaveValue('8')
     expect(screen.getByLabelText(/peso/i)).toHaveValue('60')
@@ -557,10 +562,12 @@ describe('Workout', () => {
       ),
     )
     api.listExercises.mockResolvedValue([{ id: 2, name: 'Bench Press', muscle_group: 'Pecho' }])
+    // Tres la última vez: con las de hoy aún no está terminado, y la serie
+    // que toca sigue en pantalla.
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
-      sets: [benchSet({ id: 5, reps: 8, weight: 60 })],
+      sets: [3, 4, 5].map((id) => benchSet({ id, reps: 8, weight: 60 })),
     })
     renderWorkout()
 
@@ -572,10 +579,12 @@ describe('Workout', () => {
       workoutWith(benchSet({ id: 1, set_index: 0, reps: 8, weight: 60 })),
     )
     api.listExercises.mockResolvedValue([{ id: 2, name: 'Bench Press', muscle_group: 'Pecho' }])
+    // Tres la última vez: con las de hoy aún no está terminado, y la serie
+    // que toca sigue en pantalla.
     api.getPreviousMarks.mockResolvedValue({
       exercise_name: 'Bench Press',
       found: true,
-      sets: [benchSet({ id: 5, reps: 8, weight: 60 })],
+      sets: [3, 4, 5].map((id) => benchSet({ id, reps: 8, weight: 60 })),
     })
     renderWorkout()
 
@@ -853,6 +862,81 @@ describe('Workout', () => {
     expect(screen.queryByLabelText(/peso/i)).not.toBeInTheDocument()
     // No muscle group to colour by, so the header dot is an amber ring instead.
     expect(document.querySelector('.dot-cardio')).toBeInTheDocument()
+  })
+
+  // ── Terminado ─────────────────────────────────────────────────────────
+  // Con tantas series como la última vez, lo principal ya no es registrar
+  // otra: es lo siguiente. Otra serie sigue a un toque, en gris.
+  describe('terminado', () => {
+    const lastTime = () =>
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: true,
+        sets: [benchSet({ id: 90 }), benchSet({ id: 91, set_index: 1 })],
+      })
+
+    it('con tantas series como la última vez, enseña el resumen y «Otra serie»', async () => {
+      lastTime()
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 10 }), benchSet({ id: 11, set_index: 1, reps: 9 })),
+      )
+      api.logSet.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 10 }),
+          benchSet({ id: 11, set_index: 1, reps: 9 }),
+          benchSet({ id: 12, set_index: 2, reps: 9 }),
+        ),
+      )
+      renderWorkout()
+
+      const block = (await screen.findByText('2 series, como la última vez')).closest('.done-block')
+      expect(block).toHaveTextContent('✓ Objetivo batido en la S2')
+      expect(block).toHaveTextContent(/60\s*kg × 9/)
+      expect(screen.queryByRole('button', { name: /^Registrar/ })).not.toBeInTheDocument()
+      expect(screen.queryByLabelText(/peso/i)).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Otra serie · 60 kg × 9' }))
+      await waitFor(() =>
+        expect(api.logSet).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ exercise_name: 'Bench Press', reps: 9, weight: 60 }),
+        ),
+      )
+      expect(await screen.findByText('3 series, una más que la última vez')).toBeInTheDocument()
+    })
+
+    it('con menos series que la última vez, sigue la serie que toca', async () => {
+      lastTime()
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 })))
+      renderWorkout()
+
+      expect(await screen.findByText('2.ª serie')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Registrar/ })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^Otra serie/ })).not.toBeInTheDocument()
+    })
+
+    it('terminado, el atajo del pie pasa a ser lo principal', async () => {
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve(
+          name === 'Bench Press'
+            ? { exercise_name: name, found: true, sets: [benchSet({ id: 90 })] }
+            : { exercise_name: name, found: false, sets: [] },
+        ),
+      )
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 })))
+      renderWorkout()
+
+      await screen.findByText('1 serie, como la última vez')
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      const back = await dock().findByRole('button', { name: 'Volver a Bench Press' })
+      // En Sentadilla, sin series: el atajo sigue en gris.
+      expect(back).not.toHaveClass('primary')
+      await userEvent.click(back)
+
+      await screen.findByText('1 serie, como la última vez')
+      expect(dock().getByRole('button', { name: 'Volver a Sentadilla' })).toHaveClass('primary')
+    })
   })
 
   // Los mínimos toques también en cardio: lo de la última vez va ya puesto en

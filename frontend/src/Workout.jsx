@@ -28,7 +28,15 @@ import {
   sessionLength,
 } from './format.js'
 import { muscleColor } from './muscles.js'
-import { beatenAt, lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
+import {
+  beatenAt,
+  doneSummary,
+  lastRir,
+  nextTarget,
+  rirToRpe,
+  rpeToRir,
+  topSet as heaviestSet,
+} from './progression.js'
 import {
   answerIsFor,
   answersFor,
@@ -375,6 +383,16 @@ function ExerciseCard({
     : null
   // La serie de hoy que ya lo batió, si alguna. Ver `beatenAt`.
   const beatenIn = beatenAt(target, sets)
+  // ¿Terminado? Hoy ya llevas tantas series como la última vez. Entonces lo
+  // principal deja de ser registrar otra: la pantalla lo resume y el pie
+  // empuja a lo siguiente. Otra serie sigue a un toque.
+  const done = doneSummary(previous, sets)
+  const best = done ? heaviestSet(sets) : null
+  const lastFigure = sets.length
+    ? sets[sets.length - 1].weight == null
+      ? `${sets[sets.length - 1].reps} reps`
+      : `${showKg(sets[sets.length - 1].weight)} kg × ${sets[sets.length - 1].reps}`
+    : null
   // Cómo se llega al objetivo desde la última vez, dicho en la regla
   // (progression.js): una rep más, o más peso.
   const targetWhy = !target
@@ -673,145 +691,178 @@ function ExerciseCard({
           depth exceeded» y la pantalla se queda en blanco, medido. La marca
           se queda sin proteger hasta que la colocación deje de depender de su
           propia altura. */}
-      {lastTop ? (
-        // ── La serie que toca ────────────────────────────────────────────────
-        // Qué serie es y qué tiene que batir, junto a los controles a los que
-        // se refiere. «Objetivo» a secas, solo en una esquina, no decía de
-        // qué; aquí lo dice la serie que lo lleva y la marca de la que sale.
-        // Sin cifra de tamaño Display: en esta pantalla la tiene el descanso.
-        <div className="target serie-block">
-          <div className="serie-head">
-            <span className="serie-n">{`${sets.length + 1}.ª serie`}</span>
-            <span className="target-label">
-              Última vez{lastWhen ? ` · ${lastWhen}` : ''}
-              {': '}
-              <span className="target-line">
-                {lastTop.weight == null ? (
-                  <>
-                    <span className="target-today">{lastTop.reps}</span>
-                    <span className="target-unit"> reps · sin peso</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="target-today">{showKg(lastTop.weight)}</span>
-                    <span className="target-unit"> kg × {lastTop.reps}</span>
-                  </>
-                )}
-              </span>
-            </span>
-          </div>
-          {target && (
-            <div className="serie-goal">
-              <span className={`target-next${beatenIn ? ' is-beaten' : ''}`}>
-                {beatenIn
-                  ? `✓ Batido en la S${beatenIn} · ${targetFigure}`
-                  : `A batir · ${targetFigure}`}
-              </span>
-              {!beatenIn && targetWhy && <span className="target-why">{`· ${targetWhy}`}</span>}
+      {done ? (
+        // ── Terminado ────────────────────────────────────────────────────────
+        // El resumen del ejercicio en vez de la serie que toca: si batiste el
+        // objetivo, tu mejor serie de hoy y cuántas llevas contra la última
+        // vez. «Otra serie» repite la última, en gris: lo principal es el pie.
+        <>
+          <div className={`target done-block${rest ? ' is-resting' : ''}`}>
+            {beatenIn && (
+              <div className="target-next is-beaten">{`✓ Objetivo batido en la S${beatenIn}`}</div>
+            )}
+            <div className="done-figure">
+              {best.weight == null ? (
+                <>
+                  <span className="done-num">{best.reps}</span>
+                  <span className="done-unit"> reps</span>
+                </>
+              ) : (
+                <>
+                  <span className="done-num">{showKg(best.weight)}</span>
+                  <span className="done-unit">{` kg × ${best.reps}`}</span>
+                </>
+              )}
             </div>
-          )}
-          {previous?.stale && (
-            <div className="target-stale">Marcas guardadas · sin conexión</div>
-          )}
-        </div>
-      ) : (
-        <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
-      )}
-
-      {/* El aparato de la serie, marcado como intocable para el editor. Es la
-          regla de DESIGN.md hecha atributo: «cuando una acción rara y una
-          acción por serie se pelean por el mismo sitio, gana la de la serie,
-          siempre». Sin esto el panel se posaba encima —sin partir nada, así
-          que ninguna regla saltaba— y dejaba los seis controles de peso y reps
-          más `Registrar serie` y `Repetir serie` tapados e `inert` mientras
-          cambiabas una etiqueta. */}
-      {/* Fichas grandes de peso y reps; mientras descansas, el anillo es lo
-          grande y las fichas se compactan. */}
-      <form
-        className={`log-form log-form-tiles${rest ? ' is-resting' : ''}`}
-        data-editor-protect
-        onSubmit={handleLogSet}
-      >
-        <div className="row">
-          <div className="field stepper-field">
-            <label htmlFor={`weight-${name}`}>Peso · kg</label>
-            <div className="stepper">
-              <button
-                type="button"
-                className="stepper-btn"
-                aria-label={`Restar kg`}
-                onClick={() => editWeight_(bump(weight, -WEIGHT_STEP, 0))}
-              >
-                −
-              </button>
-              <input
-                id={`weight-${name}`}
-                inputMode="decimal"
-                value={weight}
-                onChange={(e) => editWeight_(e.target.value)}
-              />
-              <button
-                type="button"
-                className="stepper-btn stepper-plus"
-                aria-label={`Sumar kg`}
-                onClick={() => editWeight_(bump(weight, WEIGHT_STEP, 0))}
-              >
-                +
-              </button>
-            </div>
+            <div className="done-sub">{done}</div>
           </div>
-          <div className="field stepper-field">
-            <label htmlFor={`reps-${name}`}>Reps</label>
-            <div className="stepper">
-              <button
-                type="button"
-                className="stepper-btn"
-                aria-label="Restar rep"
-                onClick={() => editReps_(bump(reps, -1, 1))}
-              >
-                −
-              </button>
-              <input
-                id={`reps-${name}`}
-                inputMode="numeric"
-                value={reps}
-                onChange={(e) => editReps_(e.target.value)}
-              />
-              <button
-                type="button"
-                className="stepper-btn stepper-plus"
-                aria-label="Sumar rep"
-                onClick={() => editReps_(bump(reps, 1, 1))}
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-        {/* The button states exactly what it will log, so a repeat is one tap.
-            It never disables itself waiting on the request: the set is already
-            in the list below, and a second tap means a second set, which is
-            what a straight-sets session is made of.
-
-            Straight sets are the common case, so the repeat sits beside it, at
-            a fixed place on the card. Under the list it sank a row per set
-            logged — by the fifth, the quickest control on the screen was off
-            the bottom of the phone. Grey, never a second amber button: there is
-            one primary act here and this isn't it. */}
-        <div className="log-actions">
-          <button type="submit" className="primary btn-full btn-log">
-            {logLabel}
+          <button type="button" className="secondary btn-full otra-serie" onClick={handleRepeatLast}>
+            {`Otra serie · ${lastFigure}`}
           </button>
-          {sets.length > 0 && (
-            <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>
-              <span className="rep-icon" aria-hidden="true">
-                ↻
+        </>
+      ) : (
+        <>
+        {lastTop ? (
+          // ── La serie que toca ────────────────────────────────────────────────
+          // Qué serie es y qué tiene que batir, junto a los controles a los que
+          // se refiere. «Objetivo» a secas, solo en una esquina, no decía de
+          // qué; aquí lo dice la serie que lo lleva y la marca de la que sale.
+          // Sin cifra de tamaño Display: en esta pantalla la tiene el descanso.
+          <div className="target serie-block">
+            <div className="serie-head">
+              <span className="serie-n">{`${sets.length + 1}.ª serie`}</span>
+              <span className="target-label">
+                Última vez{lastWhen ? ` · ${lastWhen}` : ''}
+                {': '}
+                <span className="target-line">
+                  {lastTop.weight == null ? (
+                    <>
+                      <span className="target-today">{lastTop.reps}</span>
+                      <span className="target-unit"> reps · sin peso</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="target-today">{showKg(lastTop.weight)}</span>
+                      <span className="target-unit"> kg × {lastTop.reps}</span>
+                    </>
+                  )}
+                </span>
               </span>
-              Repetir serie
+            </div>
+            {target && (
+              <div className="serie-goal">
+                <span className={`target-next${beatenIn ? ' is-beaten' : ''}`}>
+                  {beatenIn
+                    ? `✓ Batido en la S${beatenIn} · ${targetFigure}`
+                    : `A batir · ${targetFigure}`}
+                </span>
+                {!beatenIn && targetWhy && <span className="target-why">{`· ${targetWhy}`}</span>}
+              </div>
+            )}
+            {previous?.stale && (
+              <div className="target-stale">Marcas guardadas · sin conexión</div>
+            )}
+          </div>
+        ) : (
+          <p className="previous muted">Sin marcas anteriores. Marca la referencia.</p>
+        )}
+
+        {/* El aparato de la serie, marcado como intocable para el editor. Es la
+            regla de DESIGN.md hecha atributo: «cuando una acción rara y una
+            acción por serie se pelean por el mismo sitio, gana la de la serie,
+            siempre». Sin esto el panel se posaba encima —sin partir nada, así
+            que ninguna regla saltaba— y dejaba los seis controles de peso y reps
+            más `Registrar serie` y `Repetir serie` tapados e `inert` mientras
+            cambiabas una etiqueta. */}
+        {/* Fichas grandes de peso y reps; mientras descansas, el anillo es lo
+            grande y las fichas se compactan. */}
+        <form
+          className={`log-form log-form-tiles${rest ? ' is-resting' : ''}`}
+          data-editor-protect
+          onSubmit={handleLogSet}
+        >
+          <div className="row">
+            <div className="field stepper-field">
+              <label htmlFor={`weight-${name}`}>Peso · kg</label>
+              <div className="stepper">
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  aria-label={`Restar kg`}
+                  onClick={() => editWeight_(bump(weight, -WEIGHT_STEP, 0))}
+                >
+                  −
+                </button>
+                <input
+                  id={`weight-${name}`}
+                  inputMode="decimal"
+                  value={weight}
+                  onChange={(e) => editWeight_(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="stepper-btn stepper-plus"
+                  aria-label={`Sumar kg`}
+                  onClick={() => editWeight_(bump(weight, WEIGHT_STEP, 0))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="field stepper-field">
+              <label htmlFor={`reps-${name}`}>Reps</label>
+              <div className="stepper">
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  aria-label="Restar rep"
+                  onClick={() => editReps_(bump(reps, -1, 1))}
+                >
+                  −
+                </button>
+                <input
+                  id={`reps-${name}`}
+                  inputMode="numeric"
+                  value={reps}
+                  onChange={(e) => editReps_(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="stepper-btn stepper-plus"
+                  aria-label="Sumar rep"
+                  onClick={() => editReps_(bump(reps, 1, 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* The button states exactly what it will log, so a repeat is one tap.
+              It never disables itself waiting on the request: the set is already
+              in the list below, and a second tap means a second set, which is
+              what a straight-sets session is made of.
+
+              Straight sets are the common case, so the repeat sits beside it, at
+              a fixed place on the card. Under the list it sank a row per set
+              logged — by the fifth, the quickest control on the screen was off
+              the bottom of the phone. Grey, never a second amber button: there is
+              one primary act here and this isn't it. */}
+          <div className="log-actions">
+            <button type="submit" className="primary btn-full btn-log">
+              {logLabel}
             </button>
-          )}
-        </div>
-      </form>
+            {sets.length > 0 && (
+              <button type="button" className="secondary repeat-set" onClick={handleRepeatLast}>
+                <span className="rep-icon" aria-hidden="true">
+                  ↻
+                </span>
+                Repetir serie
+              </button>
+            )}
+          </div>
+        </form>
+        </>
+      )}
 
       {askRir && latestSet?.reps != null && (
         <div className="rir-ask" role="group" aria-label="¿Cuántas te quedaban?">
@@ -2182,6 +2233,14 @@ export default function Workout({
     exercises.find(
       (e) => e.name !== activeExercise?.name && e.name !== backTo && setsFor(e.name).length === 0,
     )?.name ?? null
+  // Terminado el de pantalla (tantas series como la última vez), el atajo del
+  // pie pasa a ser lo principal: el siguiente si lo hay, y si no aquel del que
+  // vienes. Ir a por él es el paso que toca, y cuesta un toque.
+  const activeDone =
+    activeExercise != null &&
+    activeExercise.kind !== 'cardio' &&
+    doneSummary(activeExercise.previous, setsFor(activeExercise.name)) != null
+  const leadShortcut = activeDone ? (nextUp ?? backTo) : null
 
   // ¿Dónde va el reloj? En la tarjeta en pantalla, si es la de la última serie,
   // está abierta y es de fuerza. Si no —otro ejercicio, plegada, cardio, o un
@@ -2444,7 +2503,7 @@ export default function Workout({
             {backTo && (
               <button
                 type="button"
-                className="secondary dock-shortcut"
+                className={`${leadShortcut === backTo ? 'primary' : 'secondary'} dock-shortcut`}
                 aria-label={`Volver a ${backTo}`}
                 onClick={() => goTo(backTo)}
               >
@@ -2455,7 +2514,7 @@ export default function Workout({
             {nextUp && (
               <button
                 type="button"
-                className="secondary dock-shortcut"
+                className={`${leadShortcut === nextUp ? 'primary' : 'secondary'} dock-shortcut`}
                 aria-label={`Siguiente: ${nextUp}`}
                 onClick={() => goTo(nextUp)}
               >

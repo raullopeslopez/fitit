@@ -71,3 +71,31 @@ export function beatenAt(target, sets) {
   })
   return index === -1 ? null : index + 1
 }
+
+// La serie más alta de una lista: más peso, y a igual peso más reps. Sin peso
+// (dominadas, fondos), las más reps.
+export function topSet(sets) {
+  const lifts = (sets ?? []).filter((s) => s.reps != null)
+  const weighted = lifts.filter((s) => s.weight != null)
+  const pool = weighted.length ? weighted : lifts
+  const best = pool.reduce((top, s) => {
+    if (top == null) return s
+    if (s.weight != null && s.weight !== top.weight) return s.weight > top.weight ? s : top
+    return s.reps > top.reps ? s : top
+  }, null)
+  return best ? { weight: best.weight ?? null, reps: best.reps } : null
+}
+
+// «Terminado»: hoy ya llevas tantas series como la última vez. Devuelve cómo
+// se dice («3 series, como la última vez») o null si todavía no. No cierra
+// nada: sólo decide qué es lo principal en pantalla. Sin última vez no hay
+// con qué medir, y nunca termina.
+export function doneSummary(previous, sets) {
+  const before = previous?.found ? previous.sets.filter((s) => s.reps != null).length : 0
+  const today = (sets ?? []).filter((s) => s.reps != null).length
+  if (before === 0 || today < before) return null
+  const n = `${today} ${today === 1 ? 'serie' : 'series'}`
+  const more = today - before
+  if (more === 0) return `${n}, como la última vez`
+  return `${n}, ${more === 1 ? 'una' : more} más que la última vez`
+}

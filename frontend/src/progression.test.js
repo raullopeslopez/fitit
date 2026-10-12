@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { beatenAt, lastRir, nextTarget, rirToRpe, rpeToRir } from './progression.js'
+import {
+  beatenAt,
+  doneSummary,
+  lastRir,
+  nextTarget,
+  rirToRpe,
+  rpeToRir,
+  topSet,
+} from './progression.js'
 
 describe('RIR stored as RPE', () => {
   // RPE on the RIR scale is 10 − RIR, so no column changes: the set keeps the
@@ -110,5 +118,60 @@ describe('beatenAt', () => {
 
   it('has nothing to beat without a target', () => {
     expect(beatenAt(null, [{ weight: 60, reps: 9 }])).toBeNull()
+  })
+})
+
+// «Terminado»: ya llevas hoy tantas series como la última vez. No cierra nada
+// —otra serie sigue a un toque—, sólo cambia qué es lo principal en pantalla.
+describe('doneSummary', () => {
+  const last = [
+    { weight: 60, reps: 8 },
+    { weight: 60, reps: 8 },
+  ]
+
+  it('is null while there are fewer sets than last time', () => {
+    expect(doneSummary({ found: true, sets: last }, [{ weight: 60, reps: 8 }])).toBeNull()
+  })
+
+  it('is null without a last time to measure against', () => {
+    expect(doneSummary({ found: false, sets: [] }, [{ weight: 60, reps: 8 }])).toBeNull()
+  })
+
+  it('says it was as many as last time', () => {
+    const sets = [
+      { weight: 60, reps: 8 },
+      { weight: 60, reps: 9 },
+    ]
+    expect(doneSummary({ found: true, sets: last }, sets)).toBe('2 series, como la última vez')
+  })
+
+  it('says how many more than last time', () => {
+    const three = [1, 2, 3].map(() => ({ weight: 60, reps: 8 }))
+    expect(doneSummary({ found: true, sets: last }, three)).toBe(
+      '3 series, una más que la última vez',
+    )
+    const four = [...three, { weight: 60, reps: 8 }]
+    expect(doneSummary({ found: true, sets: last }, four)).toBe(
+      '4 series, 2 más que la última vez',
+    )
+  })
+})
+
+describe('topSet', () => {
+  it('is the heaviest, and among equals the most reps', () => {
+    expect(
+      topSet([
+        { weight: 60, reps: 8 },
+        { weight: 60, reps: 9 },
+        { weight: 57.5, reps: 12 },
+      ]),
+    ).toEqual({ weight: 60, reps: 9 })
+  })
+
+  it('without weight, the most reps', () => {
+    expect(topSet([{ weight: null, reps: 10 }, { weight: null, reps: 12 }])).toEqual({
+      weight: null,
+      reps: 12,
+    })
   })
 })

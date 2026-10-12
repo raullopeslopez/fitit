@@ -279,7 +279,11 @@ function stubNetwork(catalogue = FOODS) {
       {
         exercise_name: MAIN,
         found: true,
-        sets: [strengthSet(MAIN_ID, MAIN, 'Hombro', 52.5, 8, iso(daysAgo(7)), 0)],
+        // Cuatro la última vez y tres hoy: la pantalla que se mide es la de la
+        // serie que toca, no la de «terminado».
+        sets: [0, 1, 2, 3].map((i) =>
+          strengthSet(MAIN_ID, MAIN, 'Hombro', 52.5, 8, iso(daysAgo(7)), i),
+        ),
         best_one_rm: 65,
         best_by_reps: [{ reps: 8, weight: 52.5 }],
       },
