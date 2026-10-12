@@ -246,6 +246,18 @@ class PreviousMarks(BaseModel):
     kind: str | None = None  # the exercise's kind, or None if it doesn't exist yet
 
 
+class NextExercise(BaseModel):
+    """An exercise I usually do after another one, and how often I did.
+
+    Spec: tests/features/next_exercise.feature
+    """
+
+    name: str
+    muscle_group: str | None
+    kind: str
+    times: int
+
+
 class RecentMuscle(BaseModel):
     """A muscle group trained inside the recovery window, and the day it was."""
 

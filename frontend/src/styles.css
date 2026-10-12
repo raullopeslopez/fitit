@@ -7385,3 +7385,27 @@ button.draft-save {
 .otra-serie {
   min-height: 48px;
 }
+
+/* «Después de press banca sueles hacer»: al terminar, lo de siempre a un
+   toque, encima del atajo y del buscador. En gris: el principal sigue siendo
+   uno solo. */
+.dock-usual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.dock-usual .dock-heading {
+  margin: 0;
+}
+.dock-usual-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.dock-usual-btn {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

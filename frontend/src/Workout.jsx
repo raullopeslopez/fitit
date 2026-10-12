@@ -8,6 +8,7 @@ import {
   getWorkout,
   listExercises,
   logSet,
+  nextExercises,
   recentlyTrained,
   removeExerciseFromWorkout,
   renameWorkout,
@@ -2241,6 +2242,29 @@ export default function Workout({
     activeExercise.kind !== 'cardio' &&
     doneSummary(activeExercise.previous, setsFor(activeExercise.name)) != null
   const leadShortcut = activeDone ? (nextUp ?? backTo) : null
+  // Fase 3: terminado, lo que sueles hacer después, a un toque desde el pie.
+  // Se pide al terminar y no antes: mientras queda serie, lo que toca es ella.
+  // Lo que ya tiene series hoy no se ofrece otra vez, ni lo que ya ofrece el
+  // atajo. Como el resto de pistas, si falla no se dice nada.
+  const [usual, setUsual] = useState({ after: null, list: [] })
+  const doneName = activeDone ? activeExercise.name : null
+  useEffect(() => {
+    if (doneName == null) return undefined
+    let live = true
+    Promise.resolve()
+      .then(() => nextExercises(doneName, workoutId))
+      .then((list) => {
+        if (live && Array.isArray(list)) setUsual({ after: doneName, list })
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [doneName, workoutId])
+  const usualShown =
+    doneName != null && usual.after === doneName
+      ? usual.list.filter((e) => setsFor(e.name).length === 0 && e.name !== leadShortcut)
+      : []
 
   // ¿Dónde va el reloj? En la tarjeta en pantalla, si es la de la última serie,
   // está abierta y es de fuerza. Si no —otro ejercicio, plegada, cardio, o un
@@ -2498,6 +2522,27 @@ export default function Workout({
           siguiente de «Repetir» (un toque) y el buscador, que añade uno nuevo
           o lleva a uno de hoy. */}
       <div className="workout-dock">
+        {usualShown.length > 0 && (
+          <div
+            className="dock-usual"
+            role="group"
+            aria-label={`Después de ${doneName} sueles hacer`}
+          >
+            <p className="dock-heading">{`Después de ${doneName.toLowerCase()} sueles hacer`}</p>
+            <div className="dock-usual-row">
+              {usualShown.map((e) => (
+                <button
+                  key={e.name}
+                  type="button"
+                  className="secondary dock-usual-btn"
+                  onClick={() => addExercise(e.name)}
+                >
+                  {e.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {(backTo || nextUp) && (
           <div className="dock-shortcuts">
             {backTo && (

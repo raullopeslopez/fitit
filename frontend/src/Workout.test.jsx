@@ -915,6 +915,59 @@ describe('Workout', () => {
       expect(screen.queryByRole('button', { name: /^Otra serie/ })).not.toBeInTheDocument()
     })
 
+    // Fase 3: lo que sueles hacer después, a un toque desde el pie. Sólo al
+    // terminar: antes, lo que toca es la serie.
+    it('terminado, el pie ofrece lo que sueles hacer después, a un toque', async () => {
+      lastTime()
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 10 }),
+          benchSet({ id: 11, set_index: 1, reps: 9 }),
+          pullSet({ id: 12, set_index: 0 }),
+        ),
+      )
+      api.nextExercises.mockResolvedValue([
+        { name: 'Dominadas', muscle_group: 'Espalda', kind: 'strength', times: 3 },
+        { name: 'Fondos', muscle_group: 'Tríceps', kind: 'strength', times: 2 },
+        { name: 'Aperturas', muscle_group: 'Pecho', kind: 'strength', times: 1 },
+      ])
+      renderWorkout()
+
+      // Dominadas es la más reciente: se abre en ella. Volver a Bench Press.
+      await screen.findAllByRole('button', { name: /editar ejercicio/i })
+      if (!screen.queryByRole('button', { name: /editar ejercicio Bench Press/i })) {
+        await userEvent.click(screen.getByLabelText('Ejercicio'))
+        await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
+      }
+      await screen.findByText('2 series, como la última vez')
+
+      const usual = within(
+        await screen.findByRole('group', { name: 'Después de Bench Press sueles hacer' }),
+      )
+      expect(api.nextExercises).toHaveBeenCalledWith('Bench Press', 1)
+      // Dominadas ya tiene series hoy: no se ofrece otra vez.
+      expect(usual.queryByRole('button', { name: 'Dominadas' })).not.toBeInTheDocument()
+      expect(usual.getAllByRole('button').map((b) => b.textContent)).toEqual([
+        'Fondos',
+        'Aperturas',
+      ])
+
+      await userEvent.click(usual.getByRole('button', { name: 'Fondos' }))
+      expect(await screen.findByRole('heading', { level: 2, name: /Fondos/ })).toBeInTheDocument()
+    })
+
+    it('sin terminar, el pie no ofrece nada', async () => {
+      lastTime()
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 })))
+      api.nextExercises.mockResolvedValue([
+        { name: 'Fondos', muscle_group: 'Tríceps', kind: 'strength', times: 2 },
+      ])
+      renderWorkout()
+
+      await screen.findByText('2.ª serie')
+      expect(screen.queryByRole('group', { name: /sueles hacer/ })).not.toBeInTheDocument()
+    })
+
     it('terminado, el atajo del pie pasa a ser lo principal', async () => {
       api.getPreviousMarks.mockImplementation((name) =>
         Promise.resolve(

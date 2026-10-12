@@ -12,6 +12,7 @@ from ..models import Day, Exercise, SetEntry, Workout
 from ..muscles import MUSCLE_GROUPS, group_for
 from ..naming import fold_exercise_name, normalize_exercise_name
 from ..schemas import (
+    NextExercise,
     BestMark,
     ExerciseIn,
     ExerciseMerge,
@@ -451,6 +452,98 @@ async def recently_trained(
         return (-day.toordinal(), index)
 
     return [RecentMuscle(group=g, last_date=d) for g, d in sorted(latest.items(), key=order)]
+
+
+# Cuántas sesiones con el ejercicio cuentan para «lo que sueles hacer después».
+# Un hábito que dejaste hace meses no es lo que sueles hacer.
+NEXT_WINDOW = 8
+NEXT_LIMIT = 3
+
+
+@router.get("/exercises/next", response_model=list[NextExercise])
+async def next_exercise(
+    after: str,
+    exclude_workout_id: int | None = None,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[NextExercise]:
+    """What I usually do after `after`, most often first.
+
+    I don't plan sessions, I log exercises as I go, so the best guess for the
+    next one is the one I did after this one before. "After" is the next
+    exercise *started* in that session — the order of each one's first set —
+    so going back to bench for one more set after the dips doesn't put bench
+    after dips. Only the last NEXT_WINDOW sessions that include it count; ties
+    go to the most recent. `exclude_workout_id` keeps the session being logged
+    out of its own habits.
+
+    Spec: tests/features/next_exercise.feature
+    """
+    exercise = await find_exercise(session, user_id, after)
+    if exercise is None:
+        return []
+
+    conditions = [Day.user_id == user_id, SetEntry.exercise_id == exercise.id]
+    if exclude_workout_id is not None:
+        conditions.append(Workout.id != exclude_workout_id)
+    recent = (
+        await session.execute(
+            select(Workout.id, Day.date)
+            .join(Day, Workout.day_id == Day.id)
+            .join(SetEntry, SetEntry.workout_id == Workout.id)
+            .where(*conditions)
+            .group_by(Workout.id, Day.date)
+            .order_by(Day.date.desc(), Workout.id.desc())
+            .limit(NEXT_WINDOW)
+        )
+    ).all()
+    if not recent:
+        return []
+    # Rank of each session by recency: 0 is the newest. Ties on the count go to
+    # the lowest rank.
+    rank = {workout_id: i for i, (workout_id, _) in enumerate(recent)}
+
+    rows = (
+        await session.execute(
+            select(SetEntry.workout_id, SetEntry.exercise_id, SetEntry.created_at, SetEntry.id)
+            .where(SetEntry.workout_id.in_(rank))
+        )
+    ).all()
+    # The moment each exercise started in each session: its first set.
+    started: dict[int, dict[int, tuple]] = {}
+    for workout_id, exercise_id, created_at, set_id in rows:
+        first = started.setdefault(workout_id, {})
+        key = (created_at, set_id)
+        if exercise_id not in first or key < first[exercise_id]:
+            first[exercise_id] = key
+
+    times: dict[int, int] = {}
+    newest: dict[int, int] = {}
+    for workout_id, first in started.items():
+        order = sorted(first, key=first.get)
+        at = order.index(exercise.id)
+        if at + 1 >= len(order):
+            continue  # it was the last thing that day
+        following = order[at + 1]
+        times[following] = times.get(following, 0) + 1
+        newest[following] = min(newest.get(following, rank[workout_id]), rank[workout_id])
+
+    chosen = sorted(times, key=lambda e: (-times[e], newest[e]))[:NEXT_LIMIT]
+    if not chosen:
+        return []
+    by_id = {
+        e.id: e
+        for e in (await session.scalars(select(Exercise).where(Exercise.id.in_(chosen)))).all()
+    }
+    return [
+        NextExercise(
+            name=by_id[e].name,
+            muscle_group=by_id[e].muscle_group or group_for(by_id[e].name, by_id[e].kind),
+            kind=by_id[e].kind,
+            times=times[e],
+        )
+        for e in chosen
+    ]
 
 
 @router.get("/exercises/previous", response_model=PreviousMarks)
