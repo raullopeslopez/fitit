@@ -608,13 +608,14 @@ describe('Days', () => {
     })
   })
 
-  // The group rides on every set now, so the list draws its breakdown from the
-  // one response it already has — no second request, no name map to keep in step.
+  // The group rides on every set, so the list draws its breakdown from the one
+  // response it already has — no second request, no name map to keep in step.
   //
-  // A row of anonymous dots said *which* groups a day worked and nothing about
-  // how much: six sets of chest and one warm-up of shoulders drew the same two
-  // dots as a real push session. The count is the part you read.
-  it('carries the breakdown as one proportional seam', async () => {
+  // «Espalda +2» decía cuál era el grupo principal y escondía los otros dos tras
+  // una cifra que nadie sabía leer. Diez celdas fijas, una por músculo y siempre
+  // en el mismo sitio: se encienden las que trabajaste, más cuantas más series,
+  // y bajando la lista se ve qué semana tocó qué sin leer un nombre.
+  it('shows the session’s muscles as ten fixed cells', async () => {
     api.listDays.mockResolvedValue([
       {
         id: 2,
@@ -641,41 +642,27 @@ describe('Days', () => {
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
     await screen.findByText('Pull')
-    await waitFor(() => expect(container.querySelector('.day-seam')).not.toBeNull())
-    // One segment per group, widest first, each weighted by its own set count —
-    // the proportion is the information, and it costs one line whatever the
-    // session was. Naming every group wrapped to three lines on a full-body day.
-    expect(
-      [...container.querySelectorAll('.day-seam span')].map((s) => s.style.flexGrow),
-    ).toEqual(['10', '6', '4'])
-    // The main group stays in ink beside it; the rest collapse to a count.
-    expect(container.querySelector('.day-parts').textContent).toBe('Espalda +2')
+    const cells = await waitFor(() => {
+      const found = container.querySelectorAll('.day-cells .day-cell')
+      expect(found).toHaveLength(10)
+      return found
+    })
+    // Canonical order, every row the same: the position is the muscle.
+    expect([...cells].map((c) => c.dataset.sets)).toEqual([
+      '0', '10', '0', '0', '0', '0', '0', '6', '0', '4',
+    ])
+    // A screen reader gets the names the colours stand for, biggest first.
+    expect(container.querySelector('.day-cells').getAttribute('aria-label')).toBe(
+      'Espalda 10, Bíceps 6, Core 4',
+    )
+    expect(container.querySelector('.day-parts')).toBeNull()
+    expect(container.querySelector('.day-seam')).toBeNull()
     expect(api.listExercises).not.toHaveBeenCalled()
   })
 
-  // One group is the whole session, so there is no remainder to report — and
-  // `Pecho +0` would be a number printed to say nothing happened.
-  it('drops the +N when a session worked one group', async () => {
-    api.listDays.mockResolvedValue([
-      {
-        id: 2,
-        date: '2026-07-16',
-        workouts: [
-          { id: 5, name: 'Banca', sets: [benchSet({ muscle_group: 'Pecho' })] },
-        ],
-      },
-    ])
-    const { container } = render(<Days onOpenWorkout={() => {}} />)
-
-    await screen.findByText('Banca')
-    await waitFor(() => expect(container.querySelector('.day-parts').textContent).toBe('Pecho'))
-  })
-
-  // The seam has to account for every set, or the proportion it draws is of
-  // something other than the session — so sets no group claims keep a segment.
-  // Cardio's is striped in `--muted` rather than coloured: it has no muscle
-  // group by design, and the palette is for muscles.
-  it('gives cardio and untagged sets their own segment', async () => {
+  // Las celdas son de músculos. El cardio y lo que no lleva grupo siguen en la
+  // cuenta de series, pero no encienden ninguna celda.
+  it('keeps cardio and untagged sets in the count, out of the cells', async () => {
     api.listDays.mockResolvedValue([
       {
         id: 2,
@@ -696,13 +683,10 @@ describe('Days', () => {
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
     await screen.findByText('Varios')
-    await waitFor(() => {
-      expect(container.querySelectorAll('.day-seam span').length).toBe(3)
-    })
-    expect(container.querySelectorAll('.day-seam .seam-cardio').length).toBe(1)
-    // Three groups of one: the leader is whichever comes first canonically, and
-    // the other two are still owed to the reader as a count.
-    expect(container.querySelector('.day-parts').textContent).toBe('Pecho +2')
+    await waitFor(() => expect(container.querySelector('.day-cells')).not.toBeNull())
+    const lit = [...container.querySelectorAll('.day-cell')].filter((c) => c.dataset.sets !== '0')
+    expect(lit.map((c) => c.dataset.group)).toEqual(['Pecho'])
+    expect(container.querySelector('.day-session-count').textContent).toBe('3 SER')
   })
 
   it('leaves an empty session with no breakdown at all', async () => {
@@ -716,8 +700,112 @@ describe('Days', () => {
     const { container } = render(<Days onOpenWorkout={() => {}} />)
 
     await screen.findByText('Vacío')
-    expect(container.querySelector('.day-parts')).toBeNull()
-    expect(container.querySelector('.day-seam')).toBeNull()
+    expect(container.querySelector('.day-cells')).toBeNull()
+  })
+
+  // Una semana cerrada se resume una vez, bajo su regla: las diez celdas con su
+  // nombre y sus series. Es lo que enseña qué sitio es cada músculo para leer
+  // las filas de debajo. La semana en curso no lo lleva: se está llenando, y
+  // mientras entrenas no es una lectura que vayas a usar.
+  it('totals a finished week per muscle, and not the one in progress', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 3, date: '2026-08-08', workouts: [{ id: 7, name: 'Pull', sets: [benchSet({ muscle_group: 'Espalda' })] }] },
+        {
+          id: 2,
+          date: '2026-08-02',
+          workouts: [
+            {
+              id: 6,
+              name: 'Push',
+              sets: [benchSet({ muscle_group: 'Pecho' }), benchSet({ id: 11, muscle_group: 'Pecho' })],
+            },
+          ],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Push')
+      const panels = container.querySelectorAll('.week-muscles')
+      expect(panels).toHaveLength(1)
+      expect(panels[0].closest('.week').querySelector('.week-label').textContent).toBe(
+        'SEMANA ANTERIOR',
+      )
+      const names = [...panels[0].querySelectorAll('.wm-name')].map((n) => n.textContent)
+      expect(names).toEqual(['PEC', 'ESP', 'CUÁ', 'GLÚ', 'FEM', 'GEM', 'HOM', 'BÍC', 'TRÍ', 'COR'])
+      // Un músculo sin series no tiene cifra: la celda vacía ya lo dice.
+      expect([...panels[0].querySelectorAll('.wm-count')].map((n) => n.textContent)).toEqual([
+        '2', '', '', '', '', '', '', '', '', '',
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Con un año dentro, la lista entera eran cientos de filas del mismo peso. Lo
+  // anterior a la semana pasada se pliega en una fila por semana, bajo el nombre
+  // de su mes, y se abre en su sitio.
+  it('folds older weeks into one row each, opened in place', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-12T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 3, date: '2026-10-06', workouts: [{ id: 7, name: 'Push', sets: [benchSet()] }] },
+        {
+          id: 1,
+          date: '2026-09-16',
+          workouts: [{ id: 5, name: 'Remo', sets: [benchSet({ muscle_group: 'Espalda' })] }],
+        },
+      ])
+      const { container } = render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Push')
+      expect(screen.getByRole('heading', { name: /Septiembre/ })).toBeInTheDocument()
+      // Una semana sin nada es una fila que lo dice, no un hueco.
+      expect(screen.getByText('21–27 SEP').closest('.hist-week')).toHaveTextContent(
+        'Sin entrenos',
+      )
+      expect(screen.queryByText('Remo')).not.toBeInTheDocument()
+
+      const row = screen.getByRole('button', { name: /14–20 SEP/ })
+      expect(row).toHaveAttribute('aria-expanded', 'false')
+      // Siete casillas, de lunes a domingo; el miércoles fue de espalda.
+      const ticks = [...row.querySelectorAll('.hist-tick')].map((t) => t.dataset.group ?? '')
+      expect(ticks).toEqual(['', '', 'Espalda', '', '', '', ''])
+
+      await userEvent.click(row)
+      expect(row).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.getByText('Remo')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Más atrás, un mes es una fila: cuántos entrenos y cuántas series. Abrirlo
+  // enseña sus semanas, y una semana sus días.
+  it('folds older months into one row each', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-12T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 3, date: '2026-10-06', workouts: [{ id: 7, name: 'Push', sets: [benchSet()] }] },
+        { id: 1, date: '2026-07-15', workouts: [{ id: 5, name: 'Legs', sets: [benchSet()] }] },
+      ])
+      render(<Days onOpenWorkout={() => {}} />)
+
+      await screen.findByText('Push')
+      const julio = screen.getByRole('button', { name: /Julio/ })
+      expect(julio).toHaveTextContent('1 entreno · 1 ser')
+      expect(screen.queryByRole('button', { name: /13–19 JUL/ })).not.toBeInTheDocument()
+
+      await userEvent.click(julio)
+      await userEvent.click(screen.getByRole('button', { name: /13–19 JUL/ }))
+      expect(screen.getByText('Legs')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // Today keeps two cues and no chip: its date in ink, and a heavier accent
