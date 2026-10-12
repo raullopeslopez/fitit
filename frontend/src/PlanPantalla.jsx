@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { generatePlan, getPlan, importPlan, listDishes, saveImportedPlan } from './api.js'
+import {
+  generatePlan,
+  getPlan,
+  importPlan,
+  importPlanText,
+  listDishes,
+  saveImportedPlan,
+} from './api.js'
 import { foodDayIso } from './food.js'
 import ImportarPlan from './ImportarPlan.jsx'
 import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
@@ -76,6 +83,8 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   const [lectura, setLectura] = useState(null)
   const [aviso, setAviso] = useState(null)
   const archivo = useRef(null)
+  // El cuadro para pegar a mano: `null` cerrado; si no, lo escrito en él.
+  const [pegado, setPegado] = useState(null)
 
   const cargar = useCallback(async () => {
     try {
@@ -134,6 +143,40 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     }
   }
 
+  // Pegar plan: lo normal es que el portapapeles ya tenga lo que escribió
+  // Claude, y entonces es un toque. Si el navegador no deja leerlo (permiso
+  // denegado, la WebView del APK), se abre un cuadro para pegarlo a mano.
+  async function pegar() {
+    if (leyendo) return
+    let texto = ''
+    try {
+      texto = (await navigator.clipboard?.readText?.()) ?? ''
+    } catch {
+      texto = ''
+    }
+    if (texto.trim()) await leerTexto(texto)
+    else setPegado('')
+  }
+
+  async function leerTexto(texto) {
+    setLeyendo(true)
+    setError(null)
+    setAviso(null)
+    try {
+      const respuesta = await importPlanText(texto)
+      if (respuesta?.refusal) {
+        setError('Eso no parece un plan. Pega la respuesta entera de Claude.')
+      } else {
+        setPegado(null)
+        setLectura({ ...respuesta, origen: 'Pegar plan' })
+      }
+    } catch {
+      setError('No se ha podido leer el plan. Prueba otra vez.')
+    } finally {
+      setLeyendo(false)
+    }
+  }
+
   async function guardado() {
     // La que viene sólo si ya estaba generada: si no, se generará con la pauta
     // cuando toque revisarla. Esta, si no tiene nada confirmado.
@@ -164,6 +207,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
         guardar={saveImportedPlan}
         onGuardado={guardado}
         onClose={() => setLectura(null)}
+        titulo={lectura.origen}
       />
     )
   }
@@ -269,6 +313,37 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
           e.target.value = ''
         }}
       />
+      <ListRow
+        label="Pegar plan"
+        hint="El que te escribe Claude"
+        value=""
+        onClick={pegar}
+      />
+      {pegado !== null && (
+        <div className="card plan-pegar">
+          <textarea
+            aria-label="Plan en texto"
+            placeholder="Pega aquí la respuesta de Claude"
+            rows={6}
+            autoFocus
+            value={pegado}
+            onChange={(e) => setPegado(e.target.value)}
+          />
+          <div className="plan-pegar-acciones">
+            <button type="button" className="link-btn" onClick={() => setPegado(null)}>
+              Cerrar
+            </button>
+            <button
+              type="button"
+              className="primary"
+              disabled={leyendo || !pegado.trim()}
+              onClick={() => leerTexto(pegado)}
+            >
+              Leer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

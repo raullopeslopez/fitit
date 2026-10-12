@@ -10,6 +10,7 @@ import {
   getShoppingList,
   getTargetProfile,
   importPlan,
+  importPlanText,
   listDishes,
   saveImportedPlan,
 } from './api.js'
@@ -132,6 +133,47 @@ describe('la pantalla Plan', () => {
       await userEvent.upload(screen.getByLabelText('PDF del plan'), pdf())
       expect(await screen.findByRole('dialog', { name: 'Platos identificados' })).toBeInTheDocument()
       expect(importPlan).toHaveBeenCalled()
+    })
+
+    describe('pegar el plan que escribe Claude', () => {
+      const TEXTO = '{"dishes": [], "week": []}'
+      function portapapeles(readText) {
+        Object.defineProperty(navigator, 'clipboard', { value: { readText }, configurable: true })
+      }
+
+      it('un toque lee el portapapeles y enseña los platos identificados', async () => {
+        portapapeles(vi.fn().mockResolvedValue(TEXTO))
+        importPlanText.mockResolvedValue(LECTURA)
+        render(<PlanPantalla hoy={HOY} />)
+        await userEvent.click(await screen.findByRole('button', { name: /Pegar plan/ }))
+        expect(await screen.findByRole('dialog', { name: 'Platos identificados' })).toBeInTheDocument()
+        expect(importPlanText).toHaveBeenCalledWith(TEXTO)
+      })
+
+      it('sin acceso al portapapeles abre un cuadro para pegarlo a mano', async () => {
+        portapapeles(vi.fn().mockRejectedValue(new Error('NotAllowedError')))
+        importPlanText.mockResolvedValue(LECTURA)
+        render(<PlanPantalla hoy={HOY} />)
+        await userEvent.click(await screen.findByRole('button', { name: /Pegar plan/ }))
+        const cuadro = await screen.findByRole('textbox', { name: 'Plan en texto' })
+        expect(screen.getByRole('button', { name: 'Leer' })).toBeDisabled()
+        await userEvent.click(cuadro)
+        await userEvent.paste(TEXTO)
+        await userEvent.click(screen.getByRole('button', { name: 'Leer' }))
+        expect(await screen.findByRole('dialog', { name: 'Platos identificados' })).toBeInTheDocument()
+        expect(importPlanText).toHaveBeenCalledWith(TEXTO)
+      })
+
+      it('un texto que no es un plan lo dice, y no abre nada', async () => {
+        portapapeles(vi.fn().mockResolvedValue('hola'))
+        importPlanText.mockResolvedValue({ dishes: [], week: [], refusal: 'unreadable' })
+        render(<PlanPantalla hoy={HOY} />)
+        await userEvent.click(await screen.findByRole('button', { name: /Pegar plan/ }))
+        expect(
+          await screen.findByText('Eso no parece un plan. Pega la respuesta entera de Claude.'),
+        ).toBeInTheDocument()
+        expect(screen.queryByRole('dialog', { name: 'Platos identificados' })).not.toBeInTheDocument()
+      })
     })
 
     it('si no se puede leer lo dice, y no abre nada', async () => {

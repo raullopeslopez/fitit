@@ -14,6 +14,7 @@ pantalla enseña; guardar es otra petición.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import timedelta
 from time import perf_counter
@@ -39,6 +40,7 @@ from ..schemas import (
     PautaSaveIn,
     PautaSaveOut,
     PlanImportOut,
+    PlanTextIn,
 )
 from .dishes import _foods
 
@@ -116,8 +118,63 @@ async def import_plan(
         )
         return PlanImportOut(refusal="unreadable")
 
-    read = read_plan_payload(payload)
+    propuesta = await _propuesta(session, user_id, read_plan_payload(payload))
+    note(
+        "ok",
+        model=settings.gemini_model,
+        dishes=len(propuesta.dishes),
+        new=sum(1 for d in propuesta.dishes if d.status == "new"),
+        week=len(propuesta.week),
+    )
+    return propuesta
 
+
+def _json_de(text: str):
+    """El objeto JSON de un texto pegado, o `None`.
+
+    Lo que se copia de un chat rara vez es sólo el JSON: viene con una frase
+    delante, el bloque de código y una pregunta detrás. Se toma desde la primera
+    llave hasta la última, que es justo eso.
+    """
+    inicio, fin = text.find("{"), text.rfind("}")
+    if inicio < 0 or fin <= inicio:
+        return None
+    try:
+        return json.loads(text[inicio : fin + 1])
+    except ValueError:
+        return None
+
+
+@router.post("/import/text", response_model=PlanImportOut)
+async def import_plan_text(
+    payload: PlanTextIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PlanImportOut:
+    """Un plan pegado como texto: el JSON que escribe Claude con el formato de
+    `PLAN_PROMPT`. Va por el mismo camino que lo que lee Gemini de un PDF,
+    pero sin modelo: aquí nadie transcribe, el texto ya es la transcripción.
+
+    Sigue sin guardar nada. Los platos y las cantidades los ha escrito un
+    modelo, y pasan por la misma pantalla de revisión que el PDF.
+    """
+    crudo = _json_de(payload.text)
+    read = read_plan_payload(crudo)
+    if not isinstance(crudo, dict) or (not read.dishes and not read.week):
+        log.info("plan import: outcome=unreadable source=text chars=%d", len(payload.text))
+        return PlanImportOut(refusal="unreadable")
+    propuesta = await _propuesta(session, user_id, read)
+    log.info(
+        "plan import: outcome=ok source=text dishes=%d week=%d",
+        len(propuesta.dishes),
+        len(propuesta.week),
+    )
+    return propuesta
+
+
+async def _propuesta(session: AsyncSession, user_id: int, read) -> PlanImportOut:
+    """Lo leído contra tu repertorio: lo tuyo se reconoce por nombre, y lo
+    nuevo trae sus líneas casadas con alimentos."""
     mine = {
         dish.name_folded: dish.id
         for dish in (await session.execute(select(Dish).where(Dish.user_id == user_id)))
@@ -161,13 +218,6 @@ async def import_plan(
             )
         )
 
-    note(
-        "ok",
-        model=settings.gemini_model,
-        dishes=len(dishes),
-        new=sum(1 for d in dishes if d.status == "new"),
-        week=len(read.week),
-    )
     return PlanImportOut(
         dishes=dishes,
         week=[ImportedSlotOut(day=c.day, slot=c.slot, dish=c.dish) for c in read.week],

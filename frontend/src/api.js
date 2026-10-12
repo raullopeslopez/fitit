@@ -582,6 +582,12 @@ export function importPlan(file) {
   return apiFetch('/plans/import', { method: 'POST', body: form })
 }
 
+// Un plan pegado como texto: el JSON que escribe Claude. Contesta lo mismo que
+// `importPlan`, y tampoco guarda nada.
+export function importPlanText(text) {
+  return apiFetch('/plans/import/text', { method: 'POST', body: JSON.stringify({ text }) })
+}
+
 // Guarda lo revisado de una vez: los platos nuevos y la pauta.
 export function saveImportedPlan(body) {
   return apiFetch('/plans/import/save', { method: 'POST', body: JSON.stringify(body) })

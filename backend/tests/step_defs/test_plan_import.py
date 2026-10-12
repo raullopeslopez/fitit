@@ -6,6 +6,8 @@ aquí es qué se hace con la respuesta —emparejar, reconocer lo tuyo, no
 guardar nada—, que es donde está el riesgo.
 """
 
+import json
+
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
@@ -56,6 +58,48 @@ def given_week(client, dish, slot, day):
             "week": [{"day": day, "slot": slot, "dish": dish}],
         }
     )
+
+
+@given(parsers.parse('I have the food "{name}"'))
+def given_food(client, name):
+    _food(client, name)
+
+
+def _plan(dish, slot, day):
+    return {
+        "dishes": [
+            {"name": dish, "slots": [slot], "ingredients": ["80 g lentejas", "50 g chorizo"]},
+        ],
+        "week": [{"day": day, "slot": slot, "dish": dish}],
+    }
+
+
+@when(
+    parsers.parse('I paste a plan with "{dish}" for the {slot} on {day}, inside a chat answer'),
+    target_fixture="respuesta",
+)
+def when_paste_chat(client, dish, slot, day):
+    # Lo que se copia de un chat: una frase, el bloque de código y otra frase.
+    texto = (
+        "Aquí tienes el plan:\n\n```json\n"
+        + json.dumps(_plan(dish, slot, day), ensure_ascii=False, indent=2)
+        + "\n```\n\n¿Quieres que ajuste algo?"
+    )
+    return client.post("/plans/import/text", json={"text": texto})
+
+
+@when(
+    parsers.parse('I paste a plan with "{dish}" for the {slot} on {day}'),
+    target_fixture="respuesta",
+)
+def when_paste(client, dish, slot, day):
+    texto = json.dumps(_plan(dish, slot, day), ensure_ascii=False)
+    return client.post("/plans/import/text", json={"text": texto})
+
+
+@when(parsers.parse('I paste "{texto}"'), target_fixture="respuesta")
+def when_paste_prose(client, texto):
+    return client.post("/plans/import/text", json={"text": texto})
 
 
 @given(parsers.parse('I already have the dish "{name}"'))
