@@ -48,6 +48,12 @@ describe('notaSinDecir', () => {
     ).toBe('Comida y cena sin decir: este total no es el del día.')
   })
 
+  it('«No sé» también cuenta como sin decir en el total', () => {
+    expect(notaSinDecir([fila({ status: 'unknown' })], '2026-09-22', HOY)).toBe(
+      'Cena sin decir: este total no es el del día.',
+    )
+  })
+
   it('hoy o con todo dicho no dice nada', () => {
     expect(notaSinDecir([fila({ log_date: HOY })], HOY, HOY)).toBeNull()
     expect(notaSinDecir([fila({ status: 'skipped' })], '2026-09-22', HOY)).toBeNull()

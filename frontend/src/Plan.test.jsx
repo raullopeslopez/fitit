@@ -169,6 +169,26 @@ describe('lo planificado, dentro de su comida', () => {
     expect(props.setEntry).toHaveBeenCalledWith(2, 'done', null, expect.stringMatching(/^2026-09-21T12:00:00/))
   })
 
+  // Registro sin huecos, fase 2: dos salidas más. «No sé» dice la comida sin
+  // inventar el dato; «Fuera» abre la hoja de comer fuera.
+  it('«No sé» la deja dicha sin escribir nada', async () => {
+    const props = pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'No sé' }))
+    expect(props.setEntry).toHaveBeenCalledWith(2, 'unknown', null, expect.any(String))
+  })
+
+  it('una comida que no sabes enseña «No sé», sin botones', () => {
+    pintar({ entrada: entrada({ id: 2, status: 'unknown' }) })
+    expect(screen.getByText('No sé')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
+  })
+
+  it('«Fuera» abre la hoja de comer fuera', async () => {
+    pintar()
+    await userEvent.click(screen.getByRole('button', { name: 'Fuera' }))
+    expect(screen.getByRole('dialog', { name: 'Comer fuera' })).toBeInTheDocument()
+  })
+
   it('con etiqueta dice de qué día y comida es', () => {
     pintar({ hoy: '2026-09-22', etiqueta: 'Ayer · Comida' })
     expect(screen.getByText('Ayer · Comida')).toBeInTheDocument()

@@ -175,21 +175,22 @@ async def _dias_sin_apuntar(session: AsyncSession, user_id: int, desde: date) ->
 
 
 async def _plan_dicho(session: AsyncSession, user_id: int, desde: date, hasta: date):
-    """Por día con plan: cuántas comidas planificadas tiene y de cuántas has
-    dicho algo (hecha, cambiada o saltada). `NULL` es «sin decir»."""
+    """Por día con plan: cuántas comidas planificadas tiene, de cuántas has
+    dicho algo (`NULL` es «sin decir») y de cuántas dijiste «no sé»."""
     filas = (
         await session.execute(
             select(
                 PlanEntry.log_date,
                 func.count(PlanEntry.id),
                 func.count(PlanEntry.status),
+                func.count(PlanEntry.id).filter(PlanEntry.status == "unknown"),
             )
             .join(Plan, Plan.id == PlanEntry.plan_id)
             .where(Plan.user_id == user_id, PlanEntry.log_date >= desde, PlanEntry.log_date <= hasta)
             .group_by(PlanEntry.log_date)
         )
     ).all()
-    return {dia: (planificadas, dichas) for dia, planificadas, dichas in filas}
+    return {dia: (planificadas, dichas, no_se) for dia, planificadas, dichas, no_se in filas}
 
 
 async def _dias_medibles(session: AsyncSession, user_id: int, desde: date):
@@ -230,8 +231,9 @@ async def _dias_medibles(session: AsyncSession, user_id: int, desde: date):
     for dia, total, comidas in filas:
         if total is None or dia in excluidos:
             continue
-        planificadas, dichas = plan.get(dia, (0, 0))
-        todo_dicho = planificadas > 0 and dichas == planificadas
+        planificadas, dichas, no_se = plan.get(dia, (0, 0, 0))
+        # «No sé» dice la comida pero no la sabe: ese día no es entero por el plan.
+        todo_dicho = planificadas > 0 and dichas == planificadas and no_se == 0
         if not dia_completo(comidas) and not todo_dicho:
             a_medias += 1
             continue
@@ -459,8 +461,8 @@ async def read_review(
         period_to=hasta,
         due=revision is None and apuntado > 0,
         answer=revision.answer if revision else None,
-        plan_meals=sum(p for p, _ in plan.values()),
-        plan_meals_said=sum(d for _, d in plan.values()),
+        plan_meals=sum(p for p, _, _ in plan.values()),
+        plan_meals_said=sum(d for _, d, _ in plan.values()),
     )
 
 

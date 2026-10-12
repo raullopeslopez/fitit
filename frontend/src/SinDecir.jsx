@@ -51,7 +51,8 @@ export function pendientes(planes, hoy) {
 export function notaSinDecir(filas, dayIso, hoy) {
   if (dayIso >= hoy) return null
   const faltan = filas
-    .filter((e) => e.status == null)
+    // «No sé» dice la comida, pero el total sigue sin ser el del día.
+    .filter((e) => e.status == null || e.status === 'unknown')
     .sort((a, b) => ORDEN.indexOf(a.slot) - ORDEN.indexOf(b.slot))
     .map((e) => NOMBRE[e.slot] ?? e.slot)
   if (faltan.length === 0) return null

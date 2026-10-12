@@ -283,3 +283,10 @@ def given_plan_some_said(client, n):
 def then_counts_said(revision, n):
     assert revision["plan_meals"] == 28
     assert revision["plan_meals_said"] == n
+
+
+@given("I said I don't know about every planned meal of the week to review")
+def given_dont_know(client):
+    for fila in _planes_de_la_semana_revisada(client):
+        resp = client.patch(f"/plans/entries/{fila['id']}", json={"status": "unknown"})
+        assert resp.status_code == 200, resp.text

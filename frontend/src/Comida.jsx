@@ -1106,7 +1106,9 @@ function EntryRow({ entry, onEdit, onDelete }) {
 
 // La cantidad de una entrada. Pesada con hueso, las dos cifras: lo que pesaste
 // y lo que se come, que es de donde salen sus números.
-function entryAmount(entry) {
+export function entryAmount(entry) {
+  // Lo comido fuera lleva gramos que puso un modelo y revisaste tú: se dice.
+  if (entry.entry_source === 'estimated') return `~${formatAmount(entry.grams)} · estimado`
   if (entry.edible_grams == null) return formatAmount(entry.grams)
   return `${formatAmount(entry.grams)} con hueso · ${formatAmount(entry.edible_grams)} comestibles`
 }

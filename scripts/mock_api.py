@@ -12,6 +12,7 @@ Datos, con «hoy» el día en que se arranca:
   anteayer sin decir, y el resto de días pasados dichos.
 - Lista de la compra de 35 artículos en 7 pasillos.
 - Revisión semanal pendiente, con el recuento del plan.
+- Una comida de fuera estimada en tres líneas, una por elegir.
 
 `ThreadingHTTPServer` a propósito: con el de un solo hilo la página se queda
 a medio cargar, porque el navegador pide varias cosas a la vez.
@@ -104,6 +105,18 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         n = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(n) or b"{}")
+        if self.path == "/plans/out/estimate":
+            return self._send(200, {"refusal": None, "lines": [
+                {"text": "250 g lentejas estofadas", "quantity": 250, "unit": "g", "recipe_grams": 250,
+                 "grams": 250, "status": "chosen", "food": {"id": 1, "name": "Lentejas estofadas"},
+                 "candidates": []},
+                {"text": "150 g filete de ternera", "quantity": 150, "unit": "g", "recipe_grams": 150,
+                 "grams": 150, "status": "ambiguous", "food": None,
+                 "candidates": [{"id": 2, "name": "Ternera, filete"}, {"id": 3, "name": "Ternera picada"}]},
+                {"text": "15 g aceite de oliva", "quantity": 15, "unit": "g", "recipe_grams": 15,
+                 "grams": 15, "status": "chosen", "food": {"id": 4, "name": "Aceite de oliva"},
+                 "candidates": []},
+            ]})
         if self.path == "/plans":
             w = body.get("week_start")
             PLANES[w] = plan(date.fromisoformat(w))

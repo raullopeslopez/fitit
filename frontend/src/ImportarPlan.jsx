@@ -68,7 +68,7 @@ function resumen(platos) {
   ].join(' · ')
 }
 
-function Linea({ linea, estado, onCambio }) {
+export function Linea({ linea, estado, onCambio }) {
   const candidatos = linea.candidates ?? []
   const elegido = linea.food ?? candidatos.find((c) => c.id === estado.alimento) ?? null
 

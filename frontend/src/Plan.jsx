@@ -9,6 +9,7 @@ import {
 } from './api.js'
 import { ListRow, Sheet } from './ui'
 import { foodDayIso, formatAmount, formatMacro, momentForDay } from './food.js'
+import Fuera from './Fuera.jsx'
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
 // aquí está para que la lista no dependa de cómo vinieran las filas.
@@ -239,10 +240,12 @@ export function PlanEnComida({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [cambiando, setCambiando] = useState(false)
+  const [fuera, setFuera] = useState(false)
 
-  if (entrada.status === 'done') return null
+  // Lo comido —hecho o fuera— ya está en el diario con sus cifras.
+  if (entrada.status === 'done' || entrada.status === 'out') return null
 
-  const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
+  const saltado = ['skipped', 'swapped', 'unknown'].includes(entrada.status)
   const futuro = entrada.log_date > hoy
 
   async function marcar(status, dishId = null) {
@@ -253,7 +256,7 @@ export function PlanEnComida({
       // `momentForDay` es «ahora»; antes, el mediodía de aquel día.
       await setEntry(entrada.id, status, dishId, momentForDay(entrada.log_date))
       setCambiando(false)
-      if (status !== 'skipped') onComido()
+      if (status !== 'skipped' && status !== 'unknown') onComido()
       await onChanged()
     } catch (err) {
       setError(err?.detail?.motivo ?? 'No se ha podido guardar.')
@@ -270,7 +273,9 @@ export function PlanEnComida({
       <p className="plan-en-comida-top">
         <span className="plan-en-comida-nombre">{entrada.dish_name}</span>
         {saltado ? (
-          <span className="plan-estado">{entrada.status === 'swapped' ? 'Cambiado' : 'Saltado'}</span>
+          <span className="plan-estado">
+            {{ swapped: 'Cambiado', unknown: 'No sé' }[entrada.status] ?? 'Saltado'}
+          </span>
         ) : (
           entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
         )}
@@ -291,10 +296,30 @@ export function PlanEnComida({
           <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => setCambiando(true)}>
             Lo cambié
           </button>
+          {/* Fase 2: comí fuera, con lo que comiste revisado; y «no sé», que
+              dice la comida sin inventar el dato. */}
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => setFuera(true)}>
+            Fuera
+          </button>
           <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => marcar('skipped')}>
             Me lo salté
           </button>
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => marcar('unknown')}>
+            No sé
+          </button>
         </div>
+      )}
+
+      {fuera && (
+        <Fuera
+          guardar={(items) => setEntry(entrada.id, 'out', null, momentForDay(entrada.log_date), items)}
+          onGuardado={async () => {
+            setFuera(false)
+            onComido()
+            await onChanged()
+          }}
+          onClose={() => setFuera(false)}
+        />
       )}
 
       {cambiando && (

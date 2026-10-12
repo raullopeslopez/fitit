@@ -37,12 +37,15 @@ from ..models import (
     Rule,
     User,
 )
-from ..nutrition import NUTRIENTS, Ajustable, food_log_date, macros_de_plato
+from ..nutrition import NUTRIENTS, Ajustable, calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
 from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar
 from ..shopping import lista
 from ..taski import Taski, get_taski, pendientes
 from ..taski import Unreachable as TaskiUnreachable
 from .dishes import registrar_plato
+from ..config import settings
+from ..dish_draft import build_draft_lines
+from ..gemini import LabelUnreadable, estimate_meal
 from ..rules import desde_fila
 from ..schemas import (
     AdherenceOut,
@@ -54,6 +57,10 @@ from ..schemas import (
     PlanItemOut,
     PlanAheadOut,
     PlanEntryPatch,
+    DraftFoodOut,
+    DraftLineOut,
+    OutEstimateIn,
+    OutEstimateOut,
     PlanEntryReplan,
     PlanIn,
     PlanOut,
@@ -649,6 +656,114 @@ async def shopping_to_taski(
 __all__ = ["HUECOS", "router"]
 
 
+def _momento_de(fila: PlanEntry, logged_at: datetime | None) -> datetime:
+    """El instante con que se apunta una comida del plan: el que mandó el móvil,
+    que tiene que caer en su día y no en el futuro."""
+    moment = logged_at or datetime.now(UTC)
+    if moment > datetime.now(UTC) + timedelta(minutes=5):
+        raise HTTPException(
+            status_code=422,
+            detail={"motivo": "eso todavía no ha pasado", "log_date": str(fila.log_date)},
+        )
+    if food_log_date(moment) != fila.log_date:
+        raise HTTPException(
+            status_code=422,
+            detail={"motivo": "sólo se confirma el día de hoy", "log_date": str(fila.log_date)},
+        )
+    return moment
+
+
+async def _registrar_fuera(session, user_id, items, moment, slot) -> list[LogEntry]:
+    """Lo comido fuera, una entrada por línea revisada, con `entry_source`
+    «estimated».
+
+    Las cifras salen del alimento, como cualquier entrada (`calcular_nutrientes`):
+    lo estimado son los **gramos**, que puso un modelo y revisaste tú. Por eso
+    la marca va en la entrada y no en el alimento.
+    """
+    ids = [i.food_id for i in items]
+    foods = {f.id: f for f in (await session.execute(select(Food).where(Food.id.in_(ids)))).scalars()}
+    entries = []
+    for item in items:
+        food = foods.get(item.food_id)
+        if food is None or (food.user_id is not None and food.user_id != user_id):
+            raise HTTPException(status_code=404, detail="food not found")
+        computed = calcular_nutrientes(food, item.grams)
+        entry = LogEntry(
+            user_id=user_id,
+            logged_at=moment.astimezone(UTC) if moment.tzinfo else moment.replace(tzinfo=UTC),
+            log_date=food_log_date(moment),
+            meal_slot=slot,
+            food_id=food.id,
+            food_name_snapshot=food.name,
+            grams=round(item.grams, 2),
+            nutrients_json=dump_nutrients(computed.pop("nutrients")),
+            entry_source="estimated",
+            **computed,
+        )
+        session.add(entry)
+        entries.append(entry)
+    await session.flush()
+    return entries
+
+
+async def get_meal_estimator():
+    """Quien describe una comida de fuera, o `None` si no hay clave. Dependencia
+    para que los tests la sustituyan, como `get_plan_reader`."""
+    key = settings.gemini_api_key.get_secret_value()
+    if not key:
+        return None
+
+    async def estimator(description: str, hidden_fat: bool) -> dict:
+        return await estimate_meal(
+            description,
+            hidden_fat,
+            api_key=key,
+            model=settings.gemini_model,
+            fallback=settings.gemini_fallback_model or None,
+        )
+
+    return estimator
+
+
+@router.post("/out/estimate", response_model=OutEstimateOut)
+async def estimate_out(
+    payload: OutEstimateIn,
+    estimator=Depends(get_meal_estimator),
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> OutEstimateOut:
+    """Una comida de fuera, en líneas casadas con alimentos. No guarda nada: lo
+    leído son gramos que ha puesto un modelo, y pasan por revisión (CLAUDE.md)."""
+    if estimator is None:
+        raise HTTPException(status_code=503, detail="la estimación no está configurada")
+    try:
+        crudo = await estimator(payload.description, payload.hidden_fat)
+    except LabelUnreadable as exc:
+        if exc.quota:
+            return OutEstimateOut(refusal="quota", quota_scope=exc.quota)
+        return OutEstimateOut(refusal="unreadable")
+    textos = [t for t in (crudo or {}).get("lines") or [] if isinstance(t, str) and t.strip()]
+    if not textos:
+        return OutEstimateOut(refusal="unreadable")
+    lineas = await build_draft_lines(session, user_id, textos, 1)
+    return OutEstimateOut(
+        lines=[
+            DraftLineOut(
+                text=line.text,
+                quantity=line.quantity,
+                unit=line.unit,
+                recipe_grams=line.recipe_grams,
+                grams=line.grams,
+                status=line.status,
+                food=DraftFoodOut(id=line.food.id, name=line.food.name) if line.food else None,
+                candidates=[DraftFoodOut(id=f.id, name=f.name) for f in line.candidates],
+            )
+            for line in lineas
+        ]
+    )
+
+
 @router.patch("/entries/{entry_id}", response_model=PlanEntryOut)
 async def correct_entry(
     entry_id: int,
@@ -681,7 +796,14 @@ async def correct_entry(
     # Confirmar y cambiar escriben las dos en el diario; lo que cambia es **qué**
     # plato y con qué gramos. Saltárselo no escribe nada.
     escribe = payload.status == "done" or (payload.status == "swapped" and payload.dish_id)
-    if escribe and fila.log_entry_id is None:
+    if payload.status == "out":
+        if not payload.items:
+            raise HTTPException(status_code=422, detail={"motivo": "falta qué comiste"})
+        if fila.log_entry_id is None:
+            moment = _momento_de(fila, payload.logged_at)
+            entries = await _registrar_fuera(session, user_id, payload.items, moment, fila.slot)
+            fila.log_entry_id = entries[0].id if entries else None
+    elif escribe and fila.log_entry_id is None:
         moment = payload.logged_at or datetime.now(UTC)
         # Un día pasado se cierra después, con la hora de aquel día (registro sin
         # huecos, fase 1): es lo que deja apuntada la cena que se olvidó. Lo que

@@ -4,7 +4,9 @@ from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from app.main import app
 from app.routers import rules as rules_router
+from app.routers.plans import get_meal_estimator
 
 scenarios("../features/plan_week.feature")
 
@@ -558,3 +560,104 @@ def then_diary_yesterday(client, confirmada):
 @then("it says that has not happened yet")
 def then_not_yet(negativa):
     assert "todavía" in negativa["motivo"]
+
+
+# --- registro sin huecos, fase 2 ---------------------------------------------
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _sin_estimador():
+    yield
+    app.dependency_overrides.pop(get_meal_estimator, None)
+
+
+@given(parsers.parse('the foods "{uno}" and "{otro}"'), target_fixture="alimentos")
+def given_foods(client, uno, otro):
+    return {name: _food(client, name, kcal_100g=300) for name in (uno, otro)}
+
+
+@given(
+    parsers.parse('the model reads "{texto}" as "{linea1}" and "{linea2}"'),
+    target_fixture="llamadas",
+)
+def given_model_reads(texto, linea1, linea2):
+    llamadas = []
+
+    async def estimator(description: str, hidden_fat: bool) -> dict:
+        llamadas.append({"description": description, "hidden_fat": hidden_fat})
+        return {"lines": [linea1, linea2]}
+
+    app.dependency_overrides[get_meal_estimator] = lambda: estimator
+    return llamadas
+
+
+@given("no model to estimate meals")
+def given_no_estimator():
+    app.dependency_overrides[get_meal_estimator] = lambda: None
+
+
+@when(parsers.parse('I estimate "{texto}" with oil or sauce'), target_fixture="estimacion")
+def when_estimate(client, texto):
+    resp = client.post("/plans/out/estimate", json={"description": texto, "hidden_fat": True})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse('I try to estimate "{texto}"'), target_fixture="negativa")
+def when_try_estimate(client, texto):
+    return client.post("/plans/out/estimate", json={"description": texto, "hidden_fat": False})
+
+
+@then(parsers.parse('the estimate has the line "{texto}" matched to "{food}"'))
+def then_estimate_line(estimacion, texto, food):
+    linea = next(line for line in estimacion["lines"] if line["text"] == texto)
+    assert linea["food"]["name"] == food
+    assert linea["grams"] == 250
+
+
+@then("the model was told there was oil or sauce")
+def then_told_oil(llamadas):
+    assert llamadas[0]["hidden_fat"] is True
+
+
+@then("it says estimating is not available")
+def then_not_available(negativa):
+    assert negativa.status_code == 503
+
+
+@when(
+    parsers.parse(
+        'I say I ate out the {slot:w} of today: {g1:d} g of "{f1}" and {g2:d} g of "{f2}"'
+    ),
+    target_fixture="confirmada",
+)
+def when_out(client, respuesta, alimentos, slot, g1, f1, g2, f2):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}",
+        json={
+            "status": "out",
+            "items": [
+                {"food_id": alimentos[f1], "grams": g1},
+                {"food_id": alimentos[f2], "grams": g2},
+            ],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse("I say I don't know about the {slot:w} of today"), target_fixture="confirmada")
+def when_unknown(client, respuesta, slot):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(f"/plans/entries/{entrada['id']}", json={"status": "unknown"})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@then(parsers.parse("the diary of today has {n:d} estimated entries in the {slot:w}"))
+def then_estimated(client, n, slot):
+    entradas = _diario(client)["entries"]
+    assert len(entradas) == n
+    assert all(e["entry_source"] == "estimated" and e["meal_slot"] == slot for e in entradas)
