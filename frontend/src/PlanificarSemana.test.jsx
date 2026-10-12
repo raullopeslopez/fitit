@@ -41,10 +41,12 @@ describe('Planificar la semana que viene', () => {
     await screen.findByText('¿Apuntaste todo lo que comiste?')
   })
 
-  it('empieza por la revisión, y generar llega después', async () => {
+  // La revisión va encima, pero no es un peaje: generar y comprar no esperan a
+  // que se conteste (auditoría del recorrido plan → compra, 12 oct).
+  it('la revisión va encima, y generar se puede sin contestarla', async () => {
     render(<PlanificarSemana weekStart={LUNES} plan={null} onClose={vi.fn()} onChanged={vi.fn()} />)
     expect(await screen.findByText('¿Apuntaste todo lo que comiste?')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Generar la semana' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generar la semana' })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Sí, todo' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
@@ -109,6 +111,14 @@ describe('Planificar la semana que viene', () => {
     expect(await screen.findByRole('dialog', { name: 'Semana del 12 oct' })).toBeInTheDocument()
     expect(screen.getByText('La semana que viene')).toBeInTheDocument()
     expect(screen.getByText('Pollo con arroz')).toBeInTheDocument()
+  })
+
+  it('con la semana generada y la revisión pendiente, la lista ya se ve', async () => {
+    render(<PlanificarSemana embebida weekStart={LUNES} plan={PLAN} onClose={vi.fn()} onChanged={vi.fn()} />)
+    expect(await screen.findByText('¿Apuntaste todo lo que comiste?')).toBeInTheDocument()
+    expect(screen.getByText('Pollo con arroz')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Lista de la compra/ }))
+    expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
   })
 
   it('«Cerrar» cierra en cualquier paso', async () => {

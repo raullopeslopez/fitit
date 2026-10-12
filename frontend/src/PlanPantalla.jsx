@@ -10,6 +10,7 @@ import {
 } from './api.js'
 import { foodDayIso } from './food.js'
 import ImportarPlan from './ImportarPlan.jsx'
+import ListaCompra from './ListaCompra.jsx'
 import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import PlanificarSemana from './PlanificarSemana.jsx'
 import TusPlatos from './TusPlatos.jsx'
@@ -81,7 +82,11 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   // y mientras la hay la pantalla es la de revisarlo.
   const [leyendo, setLeyendo] = useState(false)
   const [lectura, setLectura] = useState(null)
+  // { texto, lista }: lo que ha pasado al guardar, y de qué semana ofrecer la
+  // lista de la compra (o `null`).
   const [aviso, setAviso] = useState(null)
+  // La semana cuya lista de la compra está abierta, o `null`.
+  const [listaDe, setListaDe] = useState(null)
   const archivo = useRef(null)
   // El cuadro para pegar a mano: `null` cerrado; si no, lo escrito en él.
   const [pegado, setPegado] = useState(null)
@@ -178,24 +183,35 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   }
 
   async function guardado() {
-    // La que viene sólo si ya estaba generada: si no, se generará con la pauta
-    // cuando toque revisarla. Esta, si no tiene nada confirmado.
+    // Guardar una pauta es el momento de ir a comprar, así que deja planificadas
+    // las dos semanas que se pueden rehacer: esta si no tiene nada confirmado, y
+    // la que viene **aunque no existiera**. Antes la que viene esperaba a la
+    // revisión y a «Generar la semana», y la lista de la compra con ella.
     const rehacerEsta = rehacible(planes[esta])
-    const semanas = [...(rehacerEsta ? [esta] : []), ...(planes[viene] ? [viene] : [])]
+    const semanas = [...(rehacerEsta ? [esta] : []), ...(rehacible(planes[viene]) ? [viene] : [])]
+    const hechas = new Set()
     for (const semana of semanas) {
       try {
         await generatePlan(semana, null)
+        hechas.add(semana)
       } catch {
         // La pauta ya está guardada; una semana que no se rehace ahora se
         // rehará al pulsar «Generar la semana».
       }
     }
+    // La semana que estás mirando ya enseña su lista encima de los días. El
+    // aviso sólo lleva a la otra: la que viene, cuando miras esta y ésta no se
+    // ha podido rehacer (tiene comidas confirmadas).
+    const otraLista = segmento === 'esta' && !hechas.has(esta) && hechas.has(viene)
     setLectura(null)
-    setAviso(
-      rehacerEsta
-        ? 'Pauta guardada. Tu semana ya sigue el plan.'
+    setAviso({
+      texto: rehacerEsta
+        ? hechas.has(viene)
+          ? 'Pauta guardada. Esta semana y la que viene ya siguen el plan.'
+          : 'Pauta guardada. Tu semana ya sigue el plan.'
         : 'Pauta guardada. Esta semana ya tiene comidas confirmadas: el plan se aplica desde la que viene.',
-    )
+      lista: otraLista ? viene : null,
+    })
     await Promise.all([cargar(), cargarPlatos()])
   }
 
@@ -210,6 +226,10 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
         titulo={lectura.origen}
       />
     )
+  }
+
+  if (listaDe) {
+    return <ListaCompra weekStart={listaDe} onClose={() => setListaDe(null)} />
   }
 
   if (platosOpen) {
@@ -253,44 +273,15 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       </div>
 
       {error && <p className="alert">{error}</p>}
-      {aviso && <p className="plan-aviso">{aviso}</p>}
-
-      {segmento === 'esta' &&
-        plan !== undefined &&
-        (plan ? (
-          <Semana
-            embebida
-            plan={plan}
-            weekStart={esta}
-            hoy={hoy}
-            onChanged={cargar}
-            platos={platos}
-            onPlatos={() => setPlatosOpen(true)}
-            onPlatosChanged={cargarPlatos}
-          />
-        ) : (
-          <section className="card plan-card">
-            <p className="hint">Todavía no hay plan para esta semana.</p>
-            <button type="button" className="primary" disabled={busy} onClick={generarEsta}>
-              Generar la semana
+      {aviso && (
+        <div className="plan-aviso-fila">
+          <p className="plan-aviso">{aviso.texto}</p>
+          {aviso.lista && (
+            <button type="button" className="link-btn" onClick={() => setListaDe(aviso.lista)}>
+              Lista de la compra de la que viene
             </button>
-          </section>
-        ))}
-
-      {/* La que viene es la pantalla de planificar de siempre, sin su cabecera:
-          revisar el objetivo primero —se salta sola si no toca— y con él ya
-          decidido, generar. `key` por semana: si el día cambia con la pantalla
-          abierta, la revisión vuelve a empezar para la semana nueva. */}
-      {segmento === 'viene' && plan !== undefined && (
-        <PlanificarSemana
-          key={viene}
-          embebida
-          weekStart={viene}
-          plan={plan}
-          onChanged={cargar}
-          platos={platos}
-          onPlatosChanged={cargarPlatos}
-        />
+          )}
+        </div>
       )}
 
       {/* El input no se ve: la fila es lo que se toca, y abre el selector del
@@ -344,6 +335,45 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
           </div>
         </div>
       )}
+      {segmento === 'esta' &&
+        plan !== undefined &&
+        (plan ? (
+          <Semana
+            embebida
+            plan={plan}
+            weekStart={esta}
+            hoy={hoy}
+            onChanged={cargar}
+            onLista={() => setListaDe(esta)}
+            platos={platos}
+            onPlatos={() => setPlatosOpen(true)}
+            onPlatosChanged={cargarPlatos}
+          />
+        ) : (
+          <section className="card plan-card">
+            <p className="hint">Todavía no hay plan para esta semana.</p>
+            <button type="button" className="primary" disabled={busy} onClick={generarEsta}>
+              Generar la semana
+            </button>
+          </section>
+        ))}
+
+      {/* La que viene es la pantalla de planificar de siempre, sin su cabecera:
+          revisar el objetivo primero —se salta sola si no toca— y con él ya
+          decidido, generar. `key` por semana: si el día cambia con la pantalla
+          abierta, la revisión vuelve a empezar para la semana nueva. */}
+      {segmento === 'viene' && plan !== undefined && (
+        <PlanificarSemana
+          key={viene}
+          embebida
+          weekStart={viene}
+          plan={plan}
+          onChanged={cargar}
+          platos={platos}
+          onPlatosChanged={cargarPlatos}
+        />
+      )}
+
     </div>
   )
 }

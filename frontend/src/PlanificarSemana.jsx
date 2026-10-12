@@ -10,14 +10,14 @@ import TusPlatos from './TusPlatos.jsx'
 import { ListRow } from './ui'
 
 /**
- * Planificar la semana que viene: revisar, y con el objetivo ya decidido,
- * generar.
+ * Planificar la semana que viene: revisar, generar y comprar.
  *
- * Son un solo momento a propósito. Compras una vez a la semana con la lista del
- * plan, pero no siempre el mismo día; si la revisión fuera un domingo fijo, un
- * jueves de compra planificaría con el objetivo viejo y el domingo cambiaría los
- * números con la compra ya hecha. Así que la revisión va primero —se salta sola
- * si no toca— y la semana se genera con lo que salga de ella.
+ * La revisión sigue aquí, encima, porque es donde se decide el objetivo con el
+ * que se planifica: un jueves de compra no debe planificar con el objetivo
+ * viejo. Pero ya no es un peaje. Hasta el 12 oct había que contestarla antes de
+ * ver «Generar la semana» o la lista de la compra, y una pregunta sobre lo que
+ * registraste se ponía delante de ir a comprar (auditoría del recorrido plan →
+ * compra). Contestarla antes de generar sigue siendo lo natural: está arriba.
  */
 export default function PlanificarSemana({
   weekStart,
@@ -32,18 +32,17 @@ export default function PlanificarSemana({
   // pantalla encima de otra sino el contenido de la pestaña.
   embebida = false,
 }) {
-  // 'revision' | 'semana'
-  const [paso, setPaso] = useState('revision')
+  // Sube cada vez que la revisión termina: el objetivo se vuelve a leer, por si
+  // en ella aceptaste otro.
+  const [revisada, setRevisada] = useState(0)
   const [objetivo, setObjetivo] = useState(undefined)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [platosOpen, setPlatosOpen] = useState(false)
   const [listaOpen, setListaOpen] = useState(false)
 
-  // El objetivo con el que se va a planificar, leído **después** de la revisión:
-  // si en ella aceptaste otro, es ése.
+  // El objetivo con el que se va a planificar; si la revisión acepta otro, ése.
   useEffect(() => {
-    if (paso !== 'semana') return
     let vivo = true
     getTargetProfile()
       .then((perfil) => vivo && setObjetivo(perfil?.objetivo_kcal ?? null))
@@ -51,7 +50,7 @@ export default function PlanificarSemana({
     return () => {
       vivo = false
     }
-  }, [paso])
+  }, [revisada])
 
   // Tus platos, a pantalla completa por encima de todo: es lo que el plan va a
   // barajar, y se mira antes de generar.
@@ -63,8 +62,10 @@ export default function PlanificarSemana({
     return <ListaCompra weekStart={weekStart} onClose={() => setListaOpen(false)} />
   }
 
-  if (paso === 'semana' && plan) {
-    return (
+  const revision = <RevisionSemanal onAccepted={onChanged} onDone={() => setRevisada((n) => n + 1)} />
+
+  if (plan) {
+    const semana = (
       <Semana
         embebida={embebida}
         plan={plan}
@@ -78,6 +79,13 @@ export default function PlanificarSemana({
         onPlatos={() => setPlatosOpen(true)}
         onPlatosChanged={onPlatosChanged}
       />
+    )
+    if (!embebida) return semana
+    return (
+      <div className="plan-planificar">
+        {revision}
+        {semana}
+      </div>
     )
   }
 
@@ -96,27 +104,25 @@ export default function PlanificarSemana({
 
   const cuerpo = (
     <>
-      {paso === 'revision' && <RevisionSemanal onAccepted={onChanged} onDone={() => setPaso('semana')} />}
+      {revision}
 
-      {paso === 'semana' && (
-        <section className="card plan-card">
-          <p className="card-eyebrow">Tu plan</p>
-          {/* Sin perfil que leer no se dice nada: una línea que no llega no
-              es «no tienes objetivo». */}
-          {objetivo !== undefined && (
-            <p className="hint">
-              {objetivo != null
-                ? `Se planifica con tu objetivo de ${conMiles(objetivo)} kcal al día.`
-                : 'Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.'}
-            </p>
-          )}
-          <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
-          {error && <p className="alert">{error}</p>}
-          <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
-            Generar la semana
-          </button>
-        </section>
-      )}
+      <section className="card plan-card">
+        <p className="card-eyebrow">Tu plan</p>
+        {/* Sin perfil que leer no se dice nada: una línea que no llega no
+            es «no tienes objetivo». */}
+        {objetivo !== undefined && (
+          <p className="hint">
+            {objetivo != null
+              ? `Se planifica con tu objetivo de ${conMiles(objetivo)} kcal al día.`
+              : 'Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.'}
+          </p>
+        )}
+        <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
+        {error && <p className="alert">{error}</p>}
+        <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
+          Generar la semana
+        </button>
+      </section>
     </>
   )
 
