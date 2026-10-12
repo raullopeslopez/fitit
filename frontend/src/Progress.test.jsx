@@ -52,10 +52,38 @@ describe('Progress', () => {
     api.getExerciseHistory.mockResolvedValue([])
   })
 
+  // Three cards that answer three questions — how much, how often, how it is
+  // going — stacked in one scroll. Now one at a time, behind a tab each, so the
+  // one you came for fills the screen instead of sharing it.
+  describe('las pestañas', () => {
+    it('reparte Progreso en Series, Ritmo y Evolución, y abre en Series', async () => {
+      render(<Progress />)
+      const tabs = screen.getAllByRole('tab')
+      expect(tabs.map((t) => t.textContent)).toEqual(['Series', 'Ritmo', 'Evolución'])
+      expect(screen.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true')
+    })
+
+    it('enseña una tarjeta cada vez', async () => {
+      api.listDays.mockResolvedValue(BENCH_DAYS)
+      const { container } = render(<Progress />)
+      await waitFor(() => expect(container.querySelector('.sum-card')).not.toBeNull())
+      expect(container.querySelector('.rhythm-card')).toBeNull()
+      expect(screen.queryByLabelText('Ejercicio')).toBeNull()
+
+      await userEvent.click(screen.getByRole('tab', { name: 'Ritmo' }))
+      expect(container.querySelector('.rhythm-card')).not.toBeNull()
+      expect(container.querySelector('.sum-card')).toBeNull()
+
+      await userEvent.click(screen.getByRole('tab', { name: 'Evolución' }))
+      expect(screen.getByLabelText('Ejercicio')).toBeInTheDocument()
+      expect(container.querySelector('.rhythm-card')).toBeNull()
+    })
+  })
+
   // "Mejores marcas" was a leaderboard of your own lifts, and it answered a
   // question nobody was asking twice. Evolución shows the climb instead.
   it('has no best-marks leaderboard', async () => {
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await waitFor(() => expect(api.listDays).toHaveBeenCalled())
     expect(screen.queryByText(/mejores marcas/i)).not.toBeInTheDocument()
@@ -64,9 +92,9 @@ describe('Progress', () => {
   it('draws the climb of a lift from its real records', async () => {
     api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
     api.listDays.mockResolvedValue(BENCH_DAYS)
-    const { container } = render(<Progress />)
+    const { container } = render(<Progress initialTab="evolucion" />)
 
-    expect(await screen.findByText(/evolución/i)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Evolución' })).toBeInTheDocument()
     // Three sessions, three records — the 80 × 6 back-off is not one of them.
     expect(screen.getByText('80 × 5')).toBeInTheDocument()
     expect(screen.getByText('82.5 × 5')).toBeInTheDocument()
@@ -110,7 +138,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    const { container } = render(<Progress />)
+    const { container } = render(<Progress initialTab="evolucion" />)
 
     // Opens on Curl Predicador (only lift with more than one set).
     await charted('Curl Predicador Máq.')
@@ -119,7 +147,7 @@ describe('Progress', () => {
 
     // Ritmo por músculo names every muscle above this card, so the click has to
     // stay scoped to Evolución's own chips.
-    const evoCard = screen.getByText(/evolución/i).closest('.card')
+    const evoCard = screen.getByRole('heading', { name: 'Evolución' }).closest('.card')
     await userEvent.click(
       [...evoCard.querySelectorAll('.chip')].find((c) => /^Pecho$/i.test(c.textContent)),
     )
@@ -140,9 +168,9 @@ describe('Progress', () => {
       { id: 2, name: 'Sentadilla', muscle_group: 'Cuádriceps' },
     ])
     api.listDays.mockResolvedValue(BENCH_DAYS)
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
-    const card = (await screen.findByText(/evolución/i)).closest('.card')
+    const card = (await screen.findByRole('heading', { name: 'Evolución' })).closest('.card')
     expect(card.querySelector('.muscle-chips')).not.toBeNull()
     await userEvent.click(
       [...card.querySelectorAll('.chip')].find((c) => /cuádriceps/i.test(c.textContent)),
@@ -155,9 +183,9 @@ describe('Progress', () => {
   it('turns the last label inwards so it does not run off the chart', async () => {
     api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
     api.listDays.mockResolvedValue(BENCH_DAYS)
-    const { container } = render(<Progress />)
+    const { container } = render(<Progress initialTab="evolucion" />)
 
-    await screen.findByText(/evolución/i)
+    await screen.findByRole('heading', { name: 'Evolución' })
     const last = [...container.querySelectorAll('svg text')].find(
       (t) => t.textContent === '85 × 5',
     )
@@ -167,7 +195,7 @@ describe('Progress', () => {
   it('says how much the climb was worth, and since when', async () => {
     api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
     api.listDays.mockResolvedValue(BENCH_DAYS)
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     expect(await screen.findByText(/solo récords reales/i)).toBeInTheDocument()
     expect(screen.getByText('+5 kg')).toBeInTheDocument()
@@ -197,7 +225,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     // Bench Press is logged more often, so it charts without any typing, and
     // the charted lift is named once — by the card it titles.
@@ -222,7 +250,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     // A chip per muscle that has exercises — the picker's, inside the form.
     const chips = await screen.findAllByRole('button', { name: /pecho/i })
@@ -252,7 +280,7 @@ describe('Progress', () => {
       },
     ])
     api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
-    const { container } = render(<Progress />)
+    const { container } = render(<Progress initialTab="evolucion" />)
 
     const chart = await waitFor(() => {
       const svg = container.querySelector('svg.chart')
@@ -272,7 +300,7 @@ describe('Progress', () => {
       { id: 1, name: 'Press banca', muscle_group: 'Pecho' },
       { id: 2, name: 'Sentadilla', muscle_group: 'Cuádriceps' },
     ])
-    const { container } = render(<Progress />)
+    const { container } = render(<Progress initialTab="evolucion" />)
 
     await screen.findByRole('button', { name: /pecho/i })
     expect(container.querySelector('.lift-chips')).toBeNull()
@@ -294,7 +322,7 @@ describe('Progress', () => {
 
     it('finds an exercise from part of its name', async () => {
       api.listExercises.mockResolvedValue(exercises)
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
 
       await userEvent.type(await screen.findByLabelText('Ejercicio'), 'gemelo')
 
@@ -308,7 +336,7 @@ describe('Progress', () => {
     // "Máq." is not something anyone types with the accent on a phone keyboard.
     it('ignores accents and case', async () => {
       api.listExercises.mockResolvedValue(exercises)
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
 
       await userEvent.type(await screen.findByLabelText('Ejercicio'), 'MAQ')
       expect(await screen.findByRole('button', { name: /Gemelo Máq\./i })).toBeInTheDocument()
@@ -318,7 +346,7 @@ describe('Progress', () => {
     // has none", when the truth is there is no such exercise.
     it('says a name matches nothing, rather than blaming the data', async () => {
       api.listExercises.mockResolvedValue(exercises)
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
 
       await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Sentadilla{enter}')
 
@@ -332,7 +360,7 @@ describe('Progress', () => {
   // active chip. The box searches; the title and the chip say where you are.
   it('empties the search box once it has charted what you picked', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     const box = await screen.findByLabelText('Ejercicio')
     await userEvent.type(box, 'Press banca')
@@ -346,7 +374,7 @@ describe('Progress', () => {
   // alone demand a second tap on a button was two paths for one job.
   it('charts a known lift the moment you pick it, with no second tap', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
 
@@ -357,7 +385,7 @@ describe('Progress', () => {
   // the ones on the exercise card: rare, and they were sitting in the content.
   it('folds the corrections away until you reach for them', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
     await charted('Press banca')
@@ -380,7 +408,7 @@ describe('Progress', () => {
   // en la hoja —quien navega con teclado o lector está dentro—, no en el campo.
   it('abrir la hoja no levanta el teclado', async () => {
     api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
     await charted('Press banca')
@@ -408,7 +436,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     const csv = await screen.findByRole('button', { name: /exportar csv/i })
     expect(csv).not.toHaveClass('secondary')
@@ -434,7 +462,7 @@ describe('Progress', () => {
     ])
     api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
     api.setExerciseMuscle.mockResolvedValue({ id: 7, name: 'Press banca', muscle_group: 'Hombro' })
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
     const select = screen.getByLabelText(/grupo muscular/i)
@@ -474,7 +502,7 @@ describe('Progress', () => {
       ])
       api.listDays.mockResolvedValue(PRESS_DAYS)
       api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
       return screen.getByLabelText(/grupo muscular/i)
     }
@@ -546,7 +574,7 @@ describe('Progress', () => {
           ],
         },
       ])
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
 
       await charted('Press banca')
       const chip = screen.getByRole('button', { name: /sin grupo/i })
@@ -561,7 +589,7 @@ describe('Progress', () => {
       api.listExercises.mockResolvedValue([
         { id: 7, name: 'Press banca', muscle_group: 'Pecho', set_count: 2 },
       ])
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
 
       await waitFor(() => expect(api.listExercises).toHaveBeenCalled())
       expect(screen.queryByRole('button', { name: /sin grupo/i })).not.toBeInTheDocument()
@@ -587,7 +615,7 @@ describe('Progress', () => {
     ])
     api.getExerciseHistory.mockResolvedValue([{ date: '2026-07-16', one_rm: 93.3 }])
     api.renameExercise.mockResolvedValue({ id: 7, name: 'Press de banca', muscle_group: 'Pecho' })
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await charted('Press banca')
     await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
@@ -625,7 +653,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     expect(await screen.findByText(/no hay datos para graficar/i)).toBeInTheDocument()
     // The card is titled and renameable even with nothing to chart.
@@ -656,7 +684,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    render(<Progress />)
+    render(<Progress initialTab="ritmo" />)
 
     expect(await screen.findByText(/ritmo por músculo/i)).toBeInTheDocument()
     // Consistency scoring is gone: it never said anything about training.
@@ -690,16 +718,13 @@ describe('Progress', () => {
 
     // Series por músculo is the KPI this screen exists for, and it was the last
     // thing on it — under the calendar, the chart and the picker.
-    it('leads the screen, above the calendar', async () => {
+    it('is the tab the screen opens on', async () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
       await screen.findByText('Esta semana')
-      const summary = container.querySelector('.sum-head')
-      const rhythm = container.querySelector('.rhythm')
-      expect(summary).not.toBeNull()
-      expect(rhythm).not.toBeNull()
-      expect(summary.compareDocumentPosition(rhythm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(screen.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true')
+      expect(container.querySelector('.sum-head')).not.toBeNull()
     })
 
     // Sets in one week, spread so every band of the reference is represented.
@@ -1572,7 +1597,7 @@ describe('Progress', () => {
         const { container } = render(<Progress />)
 
         expect(container.querySelector('.sum-empty')).toBeNull()
-        expect(container.querySelector('.card')).not.toBeNull() // Evolución still draws
+        expect(screen.getByRole('tablist')).toBeInTheDocument() // the screen still draws
       })
 
       // A muscle at zero holds its row — but it only held it for one week, so
@@ -1713,7 +1738,7 @@ describe('Progress', () => {
       },
     ]
     api.listDays.mockResolvedValue(days)
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await userEvent.click(await screen.findByRole('button', { name: /exportar csv/i }))
     expect(downloadCsv).toHaveBeenCalledWith(days)
@@ -1724,7 +1749,7 @@ describe('Progress', () => {
   it('shows an empty state when a known lift has no history', async () => {
     api.listExercises.mockResolvedValue([{ id: 1, name: 'Squat', muscle_group: 'Cuádriceps' }])
     api.getExerciseHistory.mockResolvedValue([])
-    render(<Progress />)
+    render(<Progress initialTab="evolucion" />)
 
     await userEvent.type(screen.getByLabelText('Ejercicio'), 'Squat{enter}')
 
@@ -1745,7 +1770,7 @@ describe('Progress', () => {
     ]
 
     async function openFixes() {
-      render(<Progress />)
+      render(<Progress initialTab="evolucion" />)
       await charted('Fondo')
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio/i }))
     }
