@@ -39,6 +39,7 @@ from ..models import (
     User,
 )
 from ..nutrition import NUTRIENTS, Ajustable, calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
+from ..nutrition import gramos_de_fraccion
 from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar, reajustar_dia
 from ..shopping import lista
 from ..taski import Taski, get_taski, pendientes
@@ -849,6 +850,22 @@ async def estimate_out(
     )
 
 
+def _gramos_a_congelar(fila: PlanEntry, dish: Dish, payload: PlanEntryPatch) -> list[float]:
+    """Los gramos que se apuntan al confirmar: una parte de la olla, la receta
+    de un sustituto, o lo que el plan congeló."""
+    if payload.fraction is not None:
+        # Fase 5: una parte de la olla. Se congela esa fracción de la receta
+        # entera, no la ración que el plan resolvió: es lo que de verdad
+        # salió de la olla.
+        return gramos_de_fraccion([i.grams for i in dish.ingredients], payload.fraction)
+    if payload.dish_id:
+        # Lo que comiste no es lo que el plan pesó: los gramos congelados
+        # son de **otro plato**. Se usa la receta del sustituto, una ración.
+        raciones = dish.servings or 1
+        return [i.grams / raciones for i in dish.ingredients]
+    return json.loads(fila.grams_json) if fila.grams_json else []
+
+
 @router.patch("/entries/{entry_id}", response_model=PlanEntryOut)
 async def correct_entry(
     entry_id: int,
@@ -919,13 +936,7 @@ async def correct_entry(
                 await session.execute(select(Food).where(Food.id.in_(ids)))
             ).scalars().all()
         }
-        if payload.dish_id:
-            # Lo que comiste no es lo que el plan pesó: los gramos congelados
-            # son de **otro plato**. Se usa la receta del sustituto, una ración.
-            raciones = dish.servings or 1
-            gramos = [i.grams / raciones for i in dish.ingredients]
-        else:
-            gramos = json.loads(fila.grams_json) if fila.grams_json else []
+        gramos = _gramos_a_congelar(fila, dish, payload)
         entries = await registrar_plato(
             session,
             dish=dish,

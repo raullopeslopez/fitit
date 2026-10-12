@@ -274,3 +274,30 @@ Feature: The week, generated
     And the plan says the cena of today is one of my places
     And the plan of today adds up to 2000 kcal, give or take 2%
     And the shopping list of this week does not have "Lentejas"
+
+  # Registro sin huecos, fase 5: pesar una vez, al cocinar. La olla se pesa al
+  # sacarla del fuego y cada comida es una fracción de ella: lo que se congela
+  # es esa fracción de la receta entera, sin volver a sacar la báscula.
+  Scenario: Weighing the pot keeps it as the dish's batch for the week
+    Given a repertoire of 12 dishes
+    When I weigh the pot of "Plato 1" at 2400 g
+    Then "Plato 1" has a pot of 2400 g
+
+  Scenario: A pot cooked more than a week ago is no longer the batch
+    Given a repertoire of 12 dishes
+    When I weigh the pot of "Plato 1" at 2400 g 8 days ago
+    Then "Plato 1" has no pot
+
+  Scenario: Eating a quarter of the pot logs a quarter of the recipe
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I weigh the pot of the comida of today at 600 g
+    And I confirm the comida of today as 0.25 of the pot
+    Then the diary of today has 37.5 g of "Pollo"
+
+  Scenario: A share of the pot is more than nothing and at most all of it
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I weigh the pot of the comida of today at 600 g
+    And I try to confirm the comida of today as 1.5 of the pot
+    Then it is refused as invalid

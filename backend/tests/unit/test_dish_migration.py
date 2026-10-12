@@ -39,8 +39,10 @@ POSTERIORES = (
     # `dishes.kind` / `estimated`: tus sitios, platos de fuera (registro sin
     # huecos, fase 3).
     "e7b3c94a2f18_dish_kind_fuera.py",
+    # `batches`: la olla pesada al cocinar (fase 5).
+    "a3f8d51c7e20_add_batches.py",
 )
-TABLES = ("dishes", "dish_ingredients")
+TABLES = ("dishes", "dish_ingredients", "batches")
 
 
 def _migrated():

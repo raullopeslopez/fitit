@@ -79,6 +79,18 @@ SITIOS = [
 ]
 
 
+CASA = [
+    {"id": 2, "name": "Pollo con arroz", "kind": "casa", "servings": 4, "basis": "raw",
+     "slots": ["comida"], "is_block": False, "per_serving": {"kcal": 620, "protein": 45},
+     "batch": {"id": 3, "cooked_grams": 2400, "cooked_on": HOY.isoformat()},
+     "ingredients": [{"id": 9, "food_id": 5, "food_name": "Pollo, pechuga", "grams": 800},
+                     {"id": 10, "food_id": 6, "food_name": "Arroz blanco", "grams": 400}]},
+    {"id": 3, "name": "Merluza al horno", "kind": "casa", "servings": 1, "basis": "raw",
+     "slots": ["cena"], "is_block": False, "per_serving": {"kcal": 500, "protein": 40}, "batch": None,
+     "ingredients": [{"id": 11, "food_id": 7, "food_name": "Merluza", "grams": 250}]},
+]
+
+
 class H(BaseHTTPRequestHandler):
     def _send(self, code, body):
         data = json.dumps(body).encode()
@@ -104,6 +116,8 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, {"verdicts": []})
         if ruta == "/dishes" and "kind=fuera" in query:
             return self._send(200, SITIOS)
+        if ruta == "/dishes":
+            return self._send(200, CASA)
         if ruta.startswith("/plans") or "adherence" in ruta:
             return self._send(404, {"detail": "no"})
         return self._send(200, [])
@@ -149,6 +163,9 @@ class H(BaseHTTPRequestHandler):
                  "grams": 15, "status": "chosen", "food": {"id": 4, "name": "Aceite de oliva"},
                  "candidates": []},
             ]})
+        if m := re.fullmatch(r"/dishes/(\d+)/batches", self.path):
+            print("POST batch", m[1], body, flush=True)
+            return self._send(201, {"id": 9, "cooked_grams": body["cooked_grams"], "cooked_on": body["date"]})
         if self.path == "/plans":
             w = body.get("week_start")
             PLANES[w] = plan(date.fromisoformat(w))

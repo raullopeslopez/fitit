@@ -90,6 +90,44 @@ describe('lo planificado, dentro de su comida', () => {
     expect(props.onComido).toHaveBeenCalled()
   })
 
+  describe('con la olla pesada', () => {
+    const OLLA = {
+      id: 7,
+      name: 'Pollo con arroz',
+      servings: 4,
+      batch: { id: 3, cooked_grams: 2400, cooked_on: LUNES },
+    }
+
+    it('lo previsto es una parte de la olla, y se apunta de un toque', async () => {
+      const props = pintar({ platos: [OLLA], comerOlla: vi.fn().mockResolvedValue({}) })
+      expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: '¼ de la olla · 600 g' }))
+      await waitFor(() => expect(props.comerOlla).toHaveBeenCalledWith(2, 0.25, expect.any(String)))
+      expect(props.onComido).toHaveBeenCalled()
+    })
+
+    it('½ y ⅓ están a un toque', async () => {
+      const props = pintar({ platos: [OLLA], comerOlla: vi.fn().mockResolvedValue({}) })
+      expect(screen.getByRole('button', { name: '⅓ · 800 g' })).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: '½ · 1200 g' }))
+      await waitFor(() => expect(props.comerOlla).toHaveBeenCalledWith(2, 0.5, expect.any(String)))
+    })
+
+    it('«Otra» pide los gramos que te serviste y los convierte en parte de la olla', async () => {
+      const props = pintar({ platos: [OLLA], comerOlla: vi.fn().mockResolvedValue({}) })
+      await userEvent.click(screen.getByRole('button', { name: 'Otra' }))
+      await userEvent.type(screen.getByRole('textbox', { name: 'Gramos que te serviste' }), '480')
+      await userEvent.click(screen.getByRole('button', { name: 'Apuntar' }))
+      await waitFor(() => expect(props.comerOlla).toHaveBeenCalledWith(2, 0.2, expect.any(String)))
+    })
+
+    it('sin olla, «Lo comí» de siempre', () => {
+      pintar({ platos: [{ ...OLLA, batch: null }] })
+      expect(screen.getByRole('button', { name: 'Lo comí' })).toBeInTheDocument()
+      expect(screen.queryByText(/de la olla/)).not.toBeInTheDocument()
+    })
+  })
+
   it('dice qué toca y lo que suma', () => {
     pintar()
     expect(screen.getByText('Planificado')).toBeInTheDocument()

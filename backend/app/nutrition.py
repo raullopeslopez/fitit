@@ -172,6 +172,13 @@ def macros_por_racion(totales: dict, servings: float) -> dict:
     return {field: _scale(totales.get(field), 1.0 / servings, _MACRO_PLACES) for field in NUTRIENTS}
 
 
+def gramos_de_fraccion(gramos: list[float], fraccion: float) -> list[float]:
+    """Los gramos de cada ingrediente cuando te comes `fraccion` de la olla
+    (fase 5): la receta entera escalada. ¼ de una olla con 400 g de lentejas
+    son 100 g de lentejas, pese lo que pese la olla cocinada."""
+    return [g * fraccion for g in gramos]
+
+
 def gramos_por_racion(grams: float | None, servings: float | None) -> float | None:
     """Los gramos de un ingrediente de receta que caen en una ración.
 

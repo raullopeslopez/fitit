@@ -6121,6 +6121,51 @@ button.draft-save {
 .plan-en-comida-acciones .plan-comer {
   grid-column: 1 / -1;
 }
+/* Tus platos → la olla del plato: el peso con su día, o el campo para pesarla. */
+.platos-olla {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+.platos-olla-pesar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.platos-olla-pesar input {
+  width: 6rem;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+/* La olla (fase 5): las otras partes y «Otra», a lo ancho bajo lo previsto. */
+.plan-olla-partes,
+.plan-olla-otra {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.plan-olla-otra input {
+  width: 6rem;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
 /* Una comida fuera reservada trae tres salidas debajo, no cuatro. */
 .plan-en-comida-acciones.is-fuera {
   grid-template-columns: repeat(3, auto);

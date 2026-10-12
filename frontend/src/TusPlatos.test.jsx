@@ -33,6 +33,29 @@ function montar(platos = [plato(), PIZZA], props = {}) {
   return { leer, corregir, onChanged }
 }
 
+describe('Pesar la olla', () => {
+  it('sin olla, se pesa desde la hoja del plato', async () => {
+    const pesar = vi.fn().mockResolvedValue({ id: 3, cooked_grams: 2400, cooked_on: '2026-10-12' })
+    const { leer } = montar([plato()], { pesar })
+    await userEvent.click(await screen.findByRole('button', { name: /Pollo con arroz/ }))
+    const hoja = screen.getByRole('dialog', { name: 'Pollo con arroz y brócoli' })
+    expect(hoja).toHaveTextContent('Pésala al sacarla del fuego y cada comida será una parte de ella.')
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Pesar la olla' }))
+    await userEvent.type(within(hoja).getByRole('textbox', { name: 'Peso de la olla cocinada' }), '2400')
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Guardar peso' }))
+    await waitFor(() => expect(pesar).toHaveBeenCalledWith(1, 2400))
+    await waitFor(() => expect(leer).toHaveBeenCalledTimes(2))
+  })
+
+  it('con olla, dice cuánto pesó y deja pesar otra', async () => {
+    montar([plato({ batch: { id: 3, cooked_grams: 2400, cooked_on: '2026-10-12' } })])
+    await userEvent.click(await screen.findByRole('button', { name: /Pollo con arroz/ }))
+    const hoja = screen.getByRole('dialog', { name: 'Pollo con arroz y brócoli' })
+    expect(hoja).toHaveTextContent('2400 g')
+    expect(within(hoja).getByRole('button', { name: 'Pesar otra' })).toBeInTheDocument()
+  })
+})
+
 // Tus platos es lo que el plan baraja. Hasta hoy no había dónde verlos: el plan
 // podía poner una pizza de desayuno y no había forma de decirle que no.
 describe('Tus platos', () => {

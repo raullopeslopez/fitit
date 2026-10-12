@@ -1,4 +1,4 @@
-import { foodMomentIso } from './food.js'
+import { foodDayIso, foodMomentIso } from './food.js'
 import { clearToken, getToken, notifyUnauthorized } from './auth.js'
 import { apiUrl, clientHeaders } from './platform/http.js'
 
@@ -614,6 +614,24 @@ export function setPlanEntry(
   return apiFetch(`/plans/entries/${entryId}`, {
     method: 'PATCH',
     body: JSON.stringify({ status, dish_id: dishId, logged_at: loggedAt, items, place_name: placeName }),
+  })
+}
+
+// Pesar la olla (registro sin huecos, fase 5): el peso de la tanda cocinada,
+// en el día alimentario del móvil.
+export function weighBatch(dishId, cookedGrams, date = foodDayIso()) {
+  return apiFetch(`/dishes/${dishId}/batches`, {
+    method: 'POST',
+    body: JSON.stringify({ cooked_grams: cookedGrams, date }),
+  })
+}
+
+// Confirmar una comida del plan como una parte de su olla: el servidor congela
+// esa fracción de la receta entera.
+export function eatFromBatch(entryId, fraction, loggedAt = foodMomentIso()) {
+  return apiFetch(`/plans/entries/${entryId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'done', fraction, logged_at: loggedAt }),
   })
 }
 

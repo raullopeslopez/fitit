@@ -531,6 +531,26 @@ class Dish(Base):
     )
 
 
+class Batch(Base):
+    """Una olla: un plato cocinado en tanda y pesado al sacarlo del fuego
+    (registro sin huecos, fase 5).
+
+    La báscula se saca una vez por tanda. Cada comida es una fracción de la olla
+    y lo que se congela es esa fracción de la receta entera
+    (`gramos_de_fraccion`). El peso cocinado sólo traduce la fracción a gramos
+    de lo que se sirve: las cifras salen de los ingredientes, como siempre.
+    """
+
+    __tablename__ = "batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    dish_id: Mapped[int] = mapped_column(ForeignKey("dishes.id", ondelete="CASCADE"), index=True)
+    cooked_grams: Mapped[float] = mapped_column(Float)
+    cooked_on: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class DishIngredient(Base):
     """Un alimento dentro de un plato, en gramos.
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import {
   correctDish,
+  eatFromBatch,
   generatePlan,
   getAdherence,
   listDishes,
@@ -13,6 +14,78 @@ import { foodDayIso, formatAmount, formatMacro, momentForDay } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
 
 const leerTusSitios = () => listDishes('', 'fuera')
+
+// Las partes de la olla que están a un toque (fase 5).
+const PARTES = [
+  [1 / 2, '½'],
+  [1 / 3, '⅓'],
+  [1 / 4, '¼'],
+]
+
+// Lo previsto de una olla: una ración de la receta, llevada a la parte más
+// cercana de las que hay a un toque. Una receta de una ración cocinada en
+// tanda no dice cuántas salen, y se propone ¼.
+export function partePrevista(servings) {
+  if (!servings || servings < 2) return PARTES[2]
+  return PARTES.reduce((mejor, parte) =>
+    Math.abs(parte[0] - 1 / servings) < Math.abs(mejor[0] - 1 / servings) ? parte : mejor,
+  )
+}
+
+function gramosDeOlla(olla, parte) {
+  return `${formatMacro(Math.round(olla.cooked_grams * parte))} g`
+}
+
+/**
+ * Comer de la olla (registro sin huecos, fase 5): lo previsto a lo ancho —«¼
+ * de la olla · 600 g»—, las otras partes a un toque y «Otra» para los gramos
+ * que te serviste. La báscula ya se sacó al cocinar.
+ */
+function DeLaOlla({ olla, servings, busy, onParte }) {
+  const [otra, setOtra] = useState(false)
+  const [texto, setTexto] = useState('')
+  const [prevista, simbolo] = partePrevista(servings)
+  const gramos = Number(texto.replace(',', '.'))
+  const valida = texto !== '' && gramos > 0 && gramos <= olla.cooked_grams
+
+  return (
+    <>
+      <button type="button" className="primary plan-comer" disabled={busy} onClick={() => onParte(prevista)}>
+        {`${simbolo} de la olla · ${gramosDeOlla(olla, prevista)}`}
+      </button>
+      <div className="plan-olla-partes" role="group" aria-label="Otra parte de la olla">
+        {PARTES.filter(([parte]) => parte !== prevista).map(([parte, s]) => (
+          <button key={s} type="button" className="chip" disabled={busy} onClick={() => onParte(parte)}>
+            {`${s} · ${gramosDeOlla(olla, parte)}`}
+          </button>
+        ))}
+        <button type="button" className="chip" disabled={busy} onClick={() => setOtra(true)}>
+          Otra
+        </button>
+      </div>
+      {otra && (
+        <div className="plan-olla-otra">
+          <input
+            aria-label="Gramos que te serviste"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="g"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+          />
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy || !valida}
+            onClick={() => onParte(Math.round((gramos / olla.cooked_grams) * 10000) / 10000)}
+          >
+            Apuntar
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
 
 // Lo que suma una fila del plan. Una comida fuera reservada (fase 4) lo dice
 // con virgulilla y «reservadas»: es una cifra apartada, no una receta pesada.
@@ -248,6 +321,7 @@ export function PlanEnComida({
   onComido = () => {},
   platos = [],
   setEntry = setPlanEntry,
+  comerOlla = eatFromBatch,
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -278,6 +352,22 @@ export function PlanEnComida({
   }
 
   const otros = candidatos(platos, entrada.slot, entrada.dish_id)
+  const plato = (platos ?? []).find((p) => p.id === entrada.dish_id)
+  const olla = plato?.batch ?? null
+
+  async function deLaOlla(parte) {
+    setBusy(true)
+    setError(null)
+    try {
+      await comerOlla(entrada.id, parte, momentForDay(entrada.log_date))
+      onComido()
+      await onChanged()
+    } catch (err) {
+      setError(err?.detail?.motivo ?? 'No se ha podido guardar.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className={`plan-en-comida${saltado ? ' is-skipped' : ''}`}>
@@ -325,9 +415,13 @@ export function PlanEnComida({
 
       {!saltado && !futuro && !cambiando && !entrada.place && (
         <div className="plan-en-comida-acciones">
-          <button type="button" className="primary plan-comer" disabled={busy} onClick={() => marcar('done')}>
-            Lo comí
-          </button>
+          {olla ? (
+            <DeLaOlla olla={olla} servings={plato.servings} busy={busy} onParte={deLaOlla} />
+          ) : (
+            <button type="button" className="primary plan-comer" disabled={busy} onClick={() => marcar('done')}>
+              Lo comí
+            </button>
+          )}
           {/* Cambiar es de primera clase, no borrar y volver a añadir: cambiar
               no es incumplir. */}
           <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => setCambiando(true)}>

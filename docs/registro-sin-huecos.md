@@ -181,6 +181,11 @@ fracción; la aritmética, en `nutrition.py`.
 
 **Hecho cuando:** un plato en tanda se registra toda la semana sin volver a pesar.
 
+**Construido (12 oct):** la olla vale 7 días (la última pesada manda). Lo
+previsto es la parte más cercana a una ración de la receta (1/raciones; ¼ si la
+receta es de una). Cuatro cifras sin punto, como el resto de la app: «2400 g».
+Sólo en las comidas del plan; añadir un plato a mano sigue siendo por raciones.
+
 ### Fase 6 — El ticket
 
 **6.0 — Visto (12 oct, ticket del 5 jul 2025).** PDF con texto, se lee sin OCR.

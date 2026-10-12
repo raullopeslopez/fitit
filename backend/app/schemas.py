@@ -939,6 +939,20 @@ class DishIngredientOut(BaseModel):
     max_grams: float | None = None
 
 
+class BatchIn(BaseModel):
+    """La olla pesada al cocinar. `date` es el día alimentario del móvil;
+    ausente, el de ahora en el servidor."""
+
+    cooked_grams: float = Field(gt=0, le=50_000)
+    date: Date | None = None
+
+
+class BatchOut(BaseModel):
+    id: int
+    cooked_grams: float
+    cooked_on: Date
+
+
 class DishOut(BaseModel):
     id: int
     name: str
@@ -951,6 +965,8 @@ class DishOut(BaseModel):
     # que sus gramos son de un modelo y nadie los ha corregido.
     kind: str = "casa"
     estimated: bool = False
+    # La olla vigente (fase 5): la última pesada de esta semana, o `None`.
+    batch: BatchOut | None = None
     ingredients: list[DishIngredientOut] = Field(default_factory=list)
     # Lo que se come de una vez, que es el número que acaba en el diario.
     # `None` en un nutriente significa que algún ingrediente no lo tenía medido.
@@ -1299,6 +1315,9 @@ class PlanEntryPatch(BaseModel):
     # Dónde, para la próxima (fase 3): con `out` e `items`, guarda las líneas
     # como uno de tus sitios. Para apuntar uno que ya tienes, su `dish_id`.
     place_name: str | None = Field(default=None, min_length=1, max_length=160)
+    # Con `done` (fase 5): qué parte de la olla te comiste. Congela esa
+    # fracción de la receta entera en vez de los gramos que el plan resolvió.
+    fraction: float | None = Field(default=None, gt=0, le=1)
     # Con qué lo cambiaste, cuando `status` es `swapped`. Otro plato **tuyo**, y
     # no algo calculado desde el catálogo: «te propongo 210 g de tofu» suena
     # brillante y falla en la cocina, donde no hay tofu. Ausente es «lo cambié

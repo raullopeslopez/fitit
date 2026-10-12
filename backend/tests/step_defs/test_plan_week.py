@@ -822,3 +822,77 @@ def then_planned_is_place(client, slot):
 def then_shopping_without(client, food):
     lista = client.get(f"/plans/{_lunes().isoformat()}/shopping").json()
     assert food not in {item["name"] for aisle in lista["aisles"] for item in aisle["items"]}
+
+
+# --- registro sin huecos, fase 5: pesar la olla -------------------------------
+def _plato(client, nombre):
+    return next(d for d in client.get("/dishes").json() if d["name"] == nombre)
+
+
+def _pesar(client, dish_id, gramos, dias_atras=0):
+    from datetime import date, timedelta
+
+    resp = client.post(
+        f"/dishes/{dish_id}/batches",
+        json={"cooked_grams": gramos, "date": (date.today() - timedelta(days=dias_atras)).isoformat()},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+@when(parsers.parse('I weigh the pot of "{nombre}" at {gramos:d} g'))
+def when_weigh_pot(client, nombre, gramos):
+    _pesar(client, _plato(client, nombre)["id"], gramos)
+
+
+@when(parsers.parse('I weigh the pot of "{nombre}" at {gramos:d} g {dias:d} days ago'))
+def when_weigh_pot_ago(client, nombre, gramos, dias):
+    _pesar(client, _plato(client, nombre)["id"], gramos, dias)
+
+
+@when(parsers.parse("I weigh the pot of the {slot:w} of today at {gramos:d} g"))
+def when_weigh_planned_pot(client, respuesta, slot, gramos):
+    _pesar(client, _entrada(respuesta, _hoy(), slot)["dish_id"], gramos)
+
+
+@then(parsers.parse('"{nombre}" has a pot of {gramos:d} g'))
+def then_has_pot(client, nombre, gramos):
+    olla = _plato(client, nombre)["batch"]
+    assert olla["cooked_grams"] == gramos
+    assert olla["cooked_on"] == _hoy()
+
+
+@then(parsers.parse('"{nombre}" has no pot'))
+def then_no_pot(client, nombre):
+    assert _plato(client, nombre)["batch"] is None
+
+
+@when(parsers.parse("I confirm the {slot:w} of today as {fraccion:f} of the pot"))
+def when_confirm_fraction(client, respuesta, slot, fraccion):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}", json={"status": "done", "fraction": fraccion}
+    )
+    assert resp.status_code == 200, resp.text
+
+
+@when(
+    parsers.parse("I try to confirm the {slot:w} of today as {fraccion:f} of the pot"),
+    target_fixture="negativa_olla",
+)
+def when_try_confirm_fraction(client, respuesta, slot, fraccion):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    return client.patch(
+        f"/plans/entries/{entrada['id']}", json={"status": "done", "fraction": fraccion}
+    )
+
+
+@then("it is refused as invalid")
+def then_refused_invalid(negativa_olla):
+    assert negativa_olla.status_code == 422
+
+
+@then(parsers.parse('the diary of today has {gramos:f} g of "{food}"'))
+def then_diary_grams(client, gramos, food):
+    entradas = [e for e in _diario(client)["entries"] if e["food_name"] == food]
+    assert [e["grams"] for e in entradas] == [gramos]

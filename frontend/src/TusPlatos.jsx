@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { correctDish, listDishes } from './api.js'
+import { correctDish, listDishes, weighBatch } from './api.js'
+import { foodDayIso, formatMacro } from './food.js'
 import { NewDish, ProposeDishes } from './Dish.jsx'
 import { Chip, Sheet } from './ui'
 
@@ -26,7 +27,13 @@ const NOMBRE = Object.fromEntries(COMIDAS)
  * planificador lo lee como «vale para cualquiera». Por eso se enseña así y va
  * primero: es lo que hay que arreglar.
  */
-export default function TusPlatos({ onClose, onChanged = () => {}, leer = listDishes, corregir = correctDish }) {
+export default function TusPlatos({
+  onClose,
+  onChanged = () => {},
+  leer = listDishes,
+  corregir = correctDish,
+  pesar = weighBatch,
+}) {
   const [platos, setPlatos] = useState(null)
   const [abierto, setAbierto] = useState(null)
   const [nuevo, setNuevo] = useState(false)
@@ -118,6 +125,7 @@ export default function TusPlatos({ onClose, onChanged = () => {}, leer = listDi
         <HojaPlato
           plato={abierto}
           corregir={corregir}
+          pesar={pesar}
           onClose={() => setAbierto(null)}
           onSaved={async () => {
             setAbierto(null)
@@ -129,7 +137,7 @@ export default function TusPlatos({ onClose, onChanged = () => {}, leer = listDi
   )
 }
 
-function HojaPlato({ plato, corregir, onClose, onSaved }) {
+function HojaPlato({ plato, corregir, pesar, onClose, onSaved }) {
   const [elegidas, setElegidas] = useState(() => new Set(plato.slots ?? []))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
@@ -168,6 +176,8 @@ function HojaPlato({ plato, corregir, onClose, onSaved }) {
         ))}
       </ul>
 
+      <Olla plato={plato} pesar={pesar} onSaved={onSaved} />
+
       <p className="card-eyebrow">Sirve para</p>
       <div className="perfil-chips" role="group" aria-label="Sirve para">
         {COMIDAS.map(([slot, nombre]) => (
@@ -185,6 +195,78 @@ function HojaPlato({ plato, corregir, onClose, onSaved }) {
         Guardar
       </button>
     </Sheet>
+  )
+}
+
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+
+function cuando(iso) {
+  if (iso === foodDayIso()) return 'Pesada hoy'
+  const [y, m, d] = iso.split('-').map(Number)
+  return `Pesada el ${DIAS[new Date(y, m - 1, d).getDay()]}`
+}
+
+/**
+ * La olla del plato (registro sin huecos, fase 5): se pesa una vez, al
+ * sacarla del fuego, y cada comida de esa semana es una parte de ella. Pesar
+ * otra sustituye a la anterior.
+ */
+function Olla({ plato, pesar, onSaved }) {
+  const [pesando, setPesando] = useState(false)
+  const [texto, setTexto] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+  const gramos = Number(texto.replace(',', '.'))
+  const olla = plato.batch
+
+  async function guardar() {
+    setBusy(true)
+    setError(false)
+    try {
+      await pesar(plato.id, gramos)
+      await onSaved()
+    } catch {
+      setError(true)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <p className="card-eyebrow">La olla</p>
+      {pesando ? (
+        <div className="platos-olla-pesar">
+          <input
+            aria-label="Peso de la olla cocinada"
+            inputMode="decimal"
+            autoComplete="off"
+            autoFocus
+            placeholder="2400"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+          />
+          <span>g</span>
+          <button type="button" className="secondary" disabled={busy || !(gramos > 0)} onClick={guardar}>
+            Guardar peso
+          </button>
+        </div>
+      ) : olla ? (
+        <p className="platos-olla">
+          <span>{`${cuando(olla.cooked_on)} · ${formatMacro(Math.round(olla.cooked_grams))} g`}</span>
+          <button type="button" className="link-btn" onClick={() => setPesando(true)}>
+            Pesar otra
+          </button>
+        </p>
+      ) : (
+        <>
+          <p className="hint">Pésala al sacarla del fuego y cada comida será una parte de ella.</p>
+          <button type="button" className="secondary" onClick={() => setPesando(true)}>
+            Pesar la olla
+          </button>
+        </>
+      )}
+      {error && <p className="alert">No se ha podido guardar.</p>}
+    </>
   )
 }
 

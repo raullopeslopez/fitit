@@ -11,7 +11,7 @@ Dos reglas de la casa gobiernan este fichero:
   El diario sigue siendo filas de alimento; el plato es de dónde salieron.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,12 +23,14 @@ from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
 from ..gemini import ModelUnavailable, suggest_dishes
-from ..models import Dish, DishIdea, DishIngredient, Food, LogEntry, User, visible_foods
+from ..models import Batch, Dish, DishIdea, DishIngredient, Food, LogEntry, User, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
 from ..nutrition import macros_por_racion, proteina_minima
 from ..repertoire import ProposalRefused, read_proposals
 from ..schemas import (
+    BatchIn,
+    BatchOut,
     DishDiscardedOut,
     DishGenerateIn,
     DishGenerateOut,
@@ -76,7 +78,35 @@ async def _foods(session: AsyncSession, user_id: int, ids: list[int]) -> dict[in
     return found
 
 
-def _to_out(dish: Dish, foods: dict[int, Food]) -> DishOut:
+# Cuánto dura una olla: lo que se come de una tanda en una semana. Pasado eso,
+# lo que quede ya no es aquella olla.
+DURA_LA_OLLA = timedelta(days=6)
+
+
+async def _ollas(session: AsyncSession, user_id: int, dish_ids) -> dict[int, Batch]:
+    """La olla vigente de cada plato: la última pesada de los últimos días."""
+    if not dish_ids:
+        return {}
+    desde = food_log_date(datetime.now(UTC)) - DURA_LA_OLLA
+    ollas: dict[int, Batch] = {}
+    for olla in (
+        await session.execute(
+            select(Batch)
+            .where(Batch.user_id == user_id, Batch.dish_id.in_(dish_ids), Batch.cooked_on >= desde)
+            .order_by(Batch.cooked_on, Batch.id)
+        )
+    ).scalars():
+        ollas[olla.dish_id] = olla
+    return ollas
+
+
+def _olla_out(olla: Batch | None) -> BatchOut | None:
+    if olla is None:
+        return None
+    return BatchOut(id=olla.id, cooked_grams=olla.cooked_grams, cooked_on=olla.cooked_on)
+
+
+def _to_out(dish: Dish, foods: dict[int, Food], olla: Batch | None = None) -> DishOut:
     pares = [(foods[i.food_id], i.grams) for i in dish.ingredients]
     totales, unknown = macros_de_plato(pares)
     return DishOut(
@@ -89,6 +119,7 @@ def _to_out(dish: Dish, foods: dict[int, Food]) -> DishOut:
         is_block=dish.is_block,
         kind=dish.kind,
         estimated=dish.estimated,
+        batch=_olla_out(olla),
         ingredients=[
             {
                 "id": i.id,
@@ -107,7 +138,8 @@ def _to_out(dish: Dish, foods: dict[int, Food]) -> DishOut:
 
 async def _out(session: AsyncSession, dish: Dish, user_id: int) -> DishOut:
     foods = await _foods(session, user_id, [i.food_id for i in dish.ingredients])
-    return _to_out(dish, foods)
+    ollas = await _ollas(session, user_id, [dish.id])
+    return _to_out(dish, foods, ollas.get(dish.id))
 
 
 @router.post("", response_model=DishOut, status_code=status.HTTP_201_CREATED)
@@ -218,7 +250,8 @@ async def list_dishes(
     dishes = (await session.execute(query)).scalars().all()
     ids = {i.food_id for d in dishes for i in d.ingredients}
     foods = await _foods(session, user_id, sorted(ids)) if ids else {}
-    return [_to_out(dish, foods) for dish in dishes]
+    ollas = await _ollas(session, user_id, [d.id for d in dishes])
+    return [_to_out(dish, foods, ollas.get(dish.id)) for dish in dishes]
 
 
 @router.get("/{dish_id}", response_model=DishOut)
@@ -270,6 +303,27 @@ async def correct_dish(
     await session.commit()
     await session.refresh(dish, ["ingredients"])
     return await _out(session, dish, user_id)
+
+
+@router.post("/{dish_id}/batches", response_model=BatchOut, status_code=status.HTTP_201_CREATED)
+async def weigh_batch(
+    dish_id: int,
+    payload: BatchIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> BatchOut:
+    """Pesar la olla (fase 5). Una olla nueva sustituye a la anterior: la
+    vigente es siempre la última que pesaste."""
+    dish = await _load(session, dish_id, user_id)
+    olla = Batch(
+        user_id=user_id,
+        dish_id=dish.id,
+        cooked_grams=payload.cooked_grams,
+        cooked_on=payload.date or food_log_date(datetime.now(UTC)),
+    )
+    session.add(olla)
+    await session.commit()
+    return _olla_out(olla)
 
 
 @router.post("/{dish_id}/log", response_model=list[LogEntryOut], status_code=status.HTTP_201_CREATED)
