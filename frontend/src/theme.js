@@ -1,4 +1,5 @@
 import { storage } from './platform/storage.js'
+import { setSystemBarsTheme } from './platform/systemBars.js'
 
 // Claro u oscuro. Por defecto manda el teléfono (`prefers-color-scheme`), pero
 // se puede fijar uno desde Perfil → Apariencia: quien entrena de noche con el
@@ -39,6 +40,7 @@ export function applyTheme(pref = getThemePref()) {
     const own = meta.media?.includes('dark') ? 'dark' : 'light'
     meta.setAttribute('content', BAR_COLOR[pref === 'system' ? own : theme])
   }
+  setSystemBarsTheme(theme)
   return theme
 }
 

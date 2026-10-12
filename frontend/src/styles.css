@@ -154,8 +154,9 @@ h2 {
 .container {
   max-width: 480px;
   margin: 0 auto;
-  /* Leave room for the fixed bottom nav so content never hides behind it. */
-  padding: 1.25rem 1rem calc(4.5rem + env(safe-area-inset-bottom));
+  /* Leave room for the fixed bottom nav so content never hides behind it.
+     Arriba, la barra de estado: en el APK la app se pinta debajo de ella. */
+  padding: calc(1.25rem + env(safe-area-inset-top)) 1rem calc(4.5rem + env(safe-area-inset-bottom));
 }
 
 .app-header {
