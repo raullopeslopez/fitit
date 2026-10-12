@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.27.0: el Entreno nuevo, un ejercicio a la vez.** En pantalla sólo el ejercicio en
+  el que estás; lo demás desde el pie: `↩ anterior`, `Siguiente ›` y `Otro ejercicio…` (#262).
+  La serie que toca: `3.ª serie · Última vez: 60 kg × 8` y `A batir · 60 kg × 9 · una rep
+  más`, que pasa a `✓ Batido en la S2` (#258, #263); peso y reps en fichas grandes ya
+  rellenas, y lo mismo en cardio con duración y km (#263, #264). El descanso es un anillo
+  en la tarjeta con `−15 s` · `Saltar` · `+15 s`, también en el widget (#261). El `⋯` del
+  ejercicio busca otro con el teclado ya abierto (`Las 2 series de hoy son de…`) y `Quitar`
+  sólo lo saca de hoy (#256, #265). Terminado (tantas series como la última vez): el resumen,
+  `Otra serie` en gris y, en el pie, `Después de press banca sueles hacer` (#267, #268). El
+  día de entreno corta a las 04:00, como el de comida (#266).
 - **APK 0.26.0: Series por músculo, lo que falta primero; la descarga en Perfil.** En
   Progreso, la tarjeta abre con `N /10 EN ZONA` y sólo lo que pide algo (`PENDIENTE` /
   `CERRÓ BAJO ZONA`, `POR ENCIMA DEL MÁXIMO`); `Ver los 10 músculos` despliega las barras
