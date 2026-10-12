@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.28.0: Progreso en pestañas; Ritmo, una frase por músculo.** Arriba de Progreso,
+  `Series | Ritmo | Evolución`, una tarjeta cada vez. En Ritmo, cada músculo dice `Core · 1 vez
+  en 4 semanas · hace 12 días`, del más olvidado al más reciente; al tocarlo se abre
+  `Última vez · sáb 10 oct` con sus ejercicios y series, y el calendario de las cuatro semanas
+  (#271). La app se pinta bajo las barras del teléfono, sin franjas grises (#270).
 - **APK 0.27.0: el Entreno nuevo, un ejercicio a la vez.** En pantalla sólo el ejercicio en
   el que estás; lo demás desde el pie: `↩ anterior`, `Siguiente ›` y `Otro ejercicio…` (#262).
   La serie que toca: `3.ª serie · Última vez: 60 kg × 8` y `A batir · 60 kg × 9 · una rep
