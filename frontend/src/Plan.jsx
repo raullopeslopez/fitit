@@ -4,12 +4,24 @@ import {
   correctDish,
   generatePlan,
   getAdherence,
+  listDishes,
   replanEntry,
   setPlanEntry,
 } from './api.js'
 import { ListRow, Sheet } from './ui'
 import { foodDayIso, formatAmount, formatMacro, momentForDay } from './food.js'
-import Fuera from './Fuera.jsx'
+import Fuera, { rotuloSitio } from './Fuera.jsx'
+
+const leerTusSitios = () => listDishes('', 'fuera')
+
+// Lo que suma una fila del plan. Una comida fuera reservada (fase 4) lo dice
+// con virgulilla y «reservadas»: es una cifra apartada, no una receta pesada.
+function kcalDeFila(entrada) {
+  if (entrada.kcal == null) return null
+  return entrada.place
+    ? `~${formatMacro(entrada.kcal)} kcal reservadas`
+    : `${formatMacro(entrada.kcal)} kcal`
+}
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
 // aquí está para que la lista no dependa de cómo vinieran las filas.
@@ -188,7 +200,7 @@ function Fila({ entrada, onAbrir = null }) {
             {entrada.dish_name}
             <Ingredientes items={entrada.items} />
           </span>
-          {entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>}
+          {entrada.kcal != null && <span className="plan-kcal">{kcalDeFila(entrada)}</span>}
           <span className="plan-plato-chev" aria-hidden="true">›</span>
         </button>
       ) : (
@@ -197,7 +209,7 @@ function Fila({ entrada, onAbrir = null }) {
             {entrada.dish_name}
             <Ingredientes items={entrada.items} />
           </span>
-          {entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>}
+          {entrada.kcal != null && <span className="plan-kcal">{kcalDeFila(entrada)}</span>}
         </>
       )}
       {/* El estado se dice distinto de la acción: «Me lo salté» es lo que
@@ -277,7 +289,7 @@ export function PlanEnComida({
             {{ swapped: 'Cambiado', unknown: 'No sé' }[entrada.status] ?? 'Saltado'}
           </span>
         ) : (
-          entrada.kcal != null && <span className="plan-kcal">{formatMacro(entrada.kcal)} kcal</span>
+          entrada.kcal != null && <span className="plan-kcal">{kcalDeFila(entrada)}</span>
         )}
       </p>
       {!saltado && <Ingredientes items={entrada.items} />}
@@ -286,7 +298,32 @@ export function PlanEnComida({
           las tres cosas hasta que alguien diga una. También en un día pasado:
           una cena olvidada se cierra después, en su día. Lo que no ha llegado,
           no. */}
-      {!saltado && !futuro && !cambiando && (
+      {/* Fase 4: una comida fuera reservada se confirma de un toque, con las
+          cifras del sitio; si acabaste en otro, se cuenta como cualquier
+          comida fuera. */}
+      {!saltado && !futuro && entrada.place && (
+        <div className="plan-en-comida-acciones is-fuera">
+          <button
+            type="button"
+            className="primary plan-comer"
+            disabled={busy}
+            onClick={() => marcar('out', entrada.dish_id)}
+          >
+            Confirmar
+          </button>
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => setFuera(true)}>
+            Otro sitio
+          </button>
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => marcar('skipped')}>
+            Me lo salté
+          </button>
+          <button type="button" className="link-btn plan-saltar" disabled={busy} onClick={() => marcar('unknown')}>
+            No sé
+          </button>
+        </div>
+      )}
+
+      {!saltado && !futuro && !cambiando && !entrada.place && (
         <div className="plan-en-comida-acciones">
           <button type="button" className="primary plan-comer" disabled={busy} onClick={() => marcar('done')}>
             Lo comí
@@ -442,6 +479,7 @@ export function Semana({
   onPlatosChanged = () => {},
   replanear = replanEntry,
   corregirPlato = correctDish,
+  leerSitios = leerTusSitios,
   embebida = false,
 }) {
   const [busy, setBusy] = useState(false)
@@ -541,6 +579,7 @@ export function Semana({
           hoy={hoy}
           replanear={replanear}
           corregirPlato={corregirPlato}
+          leerSitios={leerSitios}
           onPlatosChanged={onPlatosChanged}
           onClose={() => setCambiando(null)}
           onCambiado={async () => {
@@ -603,7 +642,19 @@ function SinComida({ platos, onPlatos }) {
 // Cambiar un plato de un día que no ha llegado. **No es «Lo cambié»**: aquel es
 // «hoy comí otra cosa» y escribe el diario; esto cambia lo que el plan dice que
 // vas a comer, y la fila sigue por confirmar (`replanEntry`).
-function CambiarPlato({ entrada, dia, platos, hoy, replanear, corregirPlato, onPlatosChanged, onClose, onCambiado }) {
+function CambiarPlato({
+  entrada,
+  dia,
+  platos,
+  hoy,
+  replanear,
+  corregirPlato,
+  leerSitios = leerTusSitios,
+  onPlatosChanged,
+  onClose,
+  onCambiado,
+}) {
+  const [sitios, setSitios] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [quitado, setQuitado] = useState(false)
@@ -617,6 +668,18 @@ function CambiarPlato({ entrada, dia, platos, hoy, replanear, corregirPlato, onP
   const plato = (platos ?? []).find((p) => p.id === entrada.dish_id)
   const suyas = plato?.slots?.length ? plato.slots : HUECOS
   const puedeQuitar = Boolean(plato) && suyas.includes(slot) && suyas.length > 1
+
+  // Fase 4: tus sitios, para reservar una comida fuera. Sin ellos la hoja
+  // sigue como siempre.
+  useEffect(() => {
+    let vivo = true
+    Promise.resolve(leerSitios())
+      .then((lista) => vivo && setSitios((lista ?? []).filter((s) => s.id !== entrada.dish_id)))
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [leerSitios, entrada.dish_id])
 
   async function elegir(otro) {
     setBusy(true)
@@ -677,7 +740,27 @@ function CambiarPlato({ entrada, dia, platos, hoy, replanear, corregirPlato, onP
           ))}
         </ul>
       )}
-      <p className="hint">{`Sólo cambia el ${dia.toLowerCase()}. El resto del día no se reajusta.`}</p>
+      {/* Lo de casa no reajusta el día; un sitio sí (abajo). Por eso cada
+          pista va con lo suyo. */}
+      {otros.length > 0 && (
+        <p className="hint">{`Sólo cambia el ${dia.toLowerCase()}. El resto del día no se reajusta.`}</p>
+      )}
+
+      {sitios.length > 0 && (
+        <>
+          <p className="card-eyebrow">Comer fuera</p>
+          <ul className="plan-otros">
+            {sitios.map((sitio) => (
+              <li key={sitio.id}>
+                <button type="button" className="plan-otro" disabled={busy} onClick={() => elegir(sitio)}>
+                  {rotuloSitio(sitio)}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="hint">Reserva sus kcal y reajusta lo que queda del día.</p>
+        </>
+      )}
 
       {(puedeQuitar || quitado) && (
         <>

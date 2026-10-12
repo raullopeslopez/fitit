@@ -256,6 +256,17 @@ def _resolver_dia(elegidos, objetivo: dict) -> list[tuple[str, PlatoCandidato, t
     return resueltos
 
 
+def reajustar_dia(elegidos, objetivo: dict) -> list[tuple[str, PlatoCandidato, tuple[float, ...]]]:
+    """Los gramos de un día ya elegido, otra vez contra su objetivo.
+
+    Para cuando el día cambia después de generarse —una cena fuera reservada
+    (registro sin huecos, fase 4)—: lo que no se puede mover entra como
+    `bloque` con su cifra en `fijo`, y lo demás se reparte el resto. Es el
+    mismo ajuste que al generar, no otro.
+    """
+    return _resolver_dia(elegidos, objetivo)
+
+
 def _dia_para_reglas(fecha: date, resueltos, entrenado: bool) -> rules.Dia:
     comidas = []
     filas = []

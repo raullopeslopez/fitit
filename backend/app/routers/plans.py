@@ -39,7 +39,7 @@ from ..models import (
     User,
 )
 from ..nutrition import NUTRIENTS, Ajustable, calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
-from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar
+from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar, reajustar_dia
 from ..shopping import lista
 from ..taski import Taski, get_taski, pendientes
 from ..taski import Unreachable as TaskiUnreachable
@@ -433,6 +433,7 @@ def _to_out(
     *,
     has_pauta: bool = False,
     desvios: list[PlanDesvioOut] | None = None,
+    sitios: frozenset[int] = frozenset(),
 ) -> PlanOut:
     return PlanOut(
         id=plan.id,
@@ -452,6 +453,7 @@ def _to_out(
                 items=(items or {}).get(fila.id, []),
                 status=fila.status,
                 log_entry_id=fila.log_entry_id,
+                place=fila.dish_id in sitios,
             )
             for fila in plan.entries
         ],
@@ -572,10 +574,14 @@ async def read_plan(
 
     ids = {fila.dish_id for fila in plan.entries}
     nombres = {}
+    sitios: set[int] = set()
     if ids:
-        nombres = dict(
-            (await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(ids)))).all()
-        )
+        for dish_id, name, kind in (
+            await session.execute(select(Dish.id, Dish.name, Dish.kind).where(Dish.id.in_(ids)))
+        ).all():
+            nombres[dish_id] = name
+            if kind == "fuera":
+                sitios.add(dish_id)
     kcal, items, macros = await _congelado(session, plan)
     return _to_out(
         plan,
@@ -586,6 +592,7 @@ async def read_plan(
         items,
         has_pauta=await _pauta_vigente(session, user_id, week_start) is not None,
         desvios=_desvios(plan, macros, await _objetivos(session, user_id, _semana(week_start))),
+        sitios=frozenset(sitios),
     )
 
 
@@ -615,7 +622,9 @@ async def _lista_de(session: AsyncSession, user_id: int, week_start: date):
         food.id: food
         for food in (await session.execute(select(Food).where(Food.id.in_(food_ids)))).scalars()
     } if food_ids else {}
-    return lista(plan.entries, platos, foods)
+    # Una comida fuera reservada no se compra: la cocina otro.
+    de_casa = [fila for fila in plan.entries if getattr(platos.get(fila.dish_id), "kind", None) == "casa"]
+    return lista(de_casa, platos, foods)
 
 
 @router.get("/{week_start}/shopping", response_model=ShoppingListOut)
@@ -1005,6 +1014,57 @@ async def entries_ahead(
     )
 
 
+async def _reservar_fuera(session: AsyncSession, user_id: int, fila: PlanEntry) -> None:
+    """Una comida fuera puesta en el plan reserva su cifra, y lo que queda del
+    día sin decir se reparte el resto (registro sin huecos, fase 4).
+
+    Sólo se mueve lo que no tiene respuesta y es tuyo de casa; lo demás —lo
+    dicho, el propio sitio— entra fijo con lo que el plan congeló.
+
+    La regla del `NULL`, leída aquí: un macro que algo fijo no tiene medido
+    deja de dirigir el ajuste —no se puede repartir el resto de una suma que no
+    se sabe—, y sin kcal fijas o sin objetivo de kcal no se reajusta nada.
+    """
+    plan = (
+        await session.execute(
+            select(Plan).options(selectinload(Plan.entries)).where(Plan.id == fila.plan_id)
+        )
+    ).scalar_one()
+    dia = [f for f in plan.entries if f.log_date == fila.log_date]
+    pauta = await _pauta_vigente(session, user_id, plan.week_start)
+    holgura = frozenset(e.dish_id for e in pauta.entries) if pauta else frozenset()
+    repertorio = await _candidatos(session, user_id, holgura)
+    por_id = {p.id: p for p in repertorio.candidatos}
+    _, _, macros = await _congelado(session, plan)
+
+    elegidos: list[tuple[str, PlatoCandidato]] = []
+    movidas: set[int] = set()
+    fijas: list[dict] = []
+    for f in dia:
+        candidato = por_id.get(f.dish_id)
+        if f.status is None and f.id != fila.id and candidato is not None:
+            elegidos.append((f.slot, candidato))
+            movidas.add(f.id)
+            continue
+        cifra = macros.get(f.id)
+        if not cifra or cifra.get("kcal") is None:
+            return
+        fijas.append(cifra)
+        elegidos.append((f.slot, PlatoCandidato(id=f.dish_id, nombre="", bloque=True, fijo=cifra)))
+    objetivo = (await _objetivos(session, user_id, (fila.log_date,))).get(fila.log_date, {})
+    if not movidas or objetivo.get("kcal") is None:
+        return
+    objetivo = {
+        campo: meta
+        for campo, meta in objetivo.items()
+        if all(cifra.get(campo) is not None for cifra in fijas)
+    }
+
+    for f, (_slot, plato, gramos) in zip(dia, reajustar_dia(elegidos, objetivo)):
+        if f.id in movidas:
+            f.grams_json = json.dumps(repertorio.completos(plato.id, gramos))
+
+
 @router.put("/entries/{entry_id}/dish", response_model=PlanEntryOut)
 async def replan_entry(
     entry_id: int,
@@ -1058,6 +1118,8 @@ async def replan_entry(
     raciones = dish.servings or 1
     fila.dish_id = dish.id
     fila.grams_json = json.dumps([round(i.grams / raciones, 2) for i in dish.ingredients])
+    if dish.kind == "fuera":
+        await _reservar_fuera(session, user_id, fila)
     await session.commit()
     await session.refresh(fila)
 

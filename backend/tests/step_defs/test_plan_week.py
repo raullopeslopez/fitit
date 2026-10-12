@@ -743,3 +743,82 @@ def then_slot_entries(client, slot, n, origen):
 @then(parsers.parse('no meal of that week is "{nombre}"'))
 def then_week_without(respuesta, nombre):
     assert nombre not in {e["dish_name"] for e in respuesta["entries"]}
+
+
+# --- registro sin huecos, fase 4: fuera en el plan ----------------------------
+@given(parsers.parse("my targets add up to {kcal:d} kcal a day"))
+def given_kcal_target_week(client, kcal):
+    # Igual que en la pauta: las kcal salen del reparto (`atwater_kcal`).
+    resp = client.patch(
+        "/auth/me",
+        json={
+            "objetivo_proteina": 135,
+            "objetivo_grasa": 60,
+            "objetivo_hidratos": (kcal - 135 * 4 - 60 * 9) / 4,
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["objetivo_kcal"] == kcal
+
+
+@given(parsers.parse("a repertoire of {cuantos:d} dishes I can scale"), target_fixture="repertorio")
+def given_scalable_repertoire(client, cuantos):
+    food = _food(
+        client,
+        "Pollo",
+        kcal_100g=165,
+        protein_100g=31,
+        fat_100g=3.6,
+        carbs_100g=0,
+        familia="carne",
+    )
+    return [
+        _dish(
+            client,
+            f"Plato {i}",
+            food,
+            ingredients=[{"food_id": food, "grams": 150, "min_grams": 30, "max_grams": 600}],
+        )
+        for i in range(1, cuantos + 1)
+    ]
+
+
+@when(parsers.parse('I plan the {slot:w} of today at my place "{sitio}"'))
+def when_plan_place(client, respuesta, slot, sitio):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.put(
+        f"/plans/entries/{entrada['id']}/dish",
+        json={"dish_id": _sitio(client, sitio)["id"], "date": _hoy()},
+    )
+    assert resp.status_code == 200, resp.text
+
+
+def _plan_de_hoy(client):
+    plan = client.get(f"/plans/{_lunes().isoformat()}").json()
+    return [e for e in plan["entries"] if e["log_date"] == _hoy()]
+
+
+@then(parsers.parse('the {slot:w} of today is planned as "{sitio}" with {kcal:d} kcal'))
+def then_planned_place(client, slot, sitio, kcal):
+    fila = next(e for e in _plan_de_hoy(client) if e["slot"] == slot)
+    assert fila["dish_name"] == sitio
+    assert round(fila["kcal"]) == kcal
+
+
+@then(parsers.parse("the plan of today adds up to {kcal:d} kcal, give or take {pct:d}%"))
+def then_day_total(client, kcal, pct):
+    total = sum(e["kcal"] for e in _plan_de_hoy(client))
+    assert abs(total - kcal) <= kcal * pct / 100, total
+
+
+@then(parsers.parse("the plan says the {slot:w} of today is one of my places"))
+def then_planned_is_place(client, slot):
+    fila = next(e for e in _plan_de_hoy(client) if e["slot"] == slot)
+    assert fila["place"] is True
+    assert all(e["place"] is False for e in _plan_de_hoy(client) if e["slot"] != slot)
+
+
+@then(parsers.parse('the shopping list of this week does not have "{food}"'))
+def then_shopping_without(client, food):
+    lista = client.get(f"/plans/{_lunes().isoformat()}/shopping").json()
+    assert food not in {item["name"] for aisle in lista["aisles"] for item in aisle["items"]}

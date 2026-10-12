@@ -76,6 +76,20 @@ describe('lo planificado, dentro de su comida', () => {
     return props
   }
 
+  it('una comida fuera reservada se confirma de un toque', async () => {
+    const fuera = entrada({ id: 2, slot: 'comida', dish_id: 70, dish_name: 'Bar Paco', kcal: 795, place: true })
+    const props = pintar({ entrada: fuera })
+    expect(screen.getByText('~795 kcal reservadas')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Lo cambié' })).not.toBeInTheDocument()
+    for (const name of ['Otro sitio', 'Me lo salté', 'No sé']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'out', 70, expect.any(String)))
+    expect(props.onComido).toHaveBeenCalled()
+  })
+
   it('dice qué toca y lo que suma', () => {
     pintar()
     expect(screen.getByText('Planificado')).toBeInTheDocument()
@@ -383,6 +397,38 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     await waitFor(() => expect(props.replanear).toHaveBeenCalledWith(11, 3, LUNES))
     await waitFor(() => expect(props.onChanged).toHaveBeenCalled())
     expect(screen.queryByRole('dialog', { name: 'Cambiar este plato' })).not.toBeInTheDocument()
+  })
+
+  const BAR_PACO = { id: 70, name: 'Bar Paco', kind: 'fuera', per_serving: { kcal: 951.4 } }
+
+  it('en la hoja, «Comer fuera» con tus sitios: elegir uno lo reserva en el plan', async () => {
+    const props = pintar({ leerSitios: vi.fn().mockResolvedValue([BAR_PACO]) })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+    expect(await within(hoja).findByText('Comer fuera')).toBeInTheDocument()
+    expect(hoja).toHaveTextContent('Reserva sus kcal y reajusta lo que queda del día.')
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Bar Paco · ~951 kcal' }))
+    await waitFor(() => expect(props.replanear).toHaveBeenCalledWith(11, 70, LUNES))
+  })
+
+  it('sin sitios la hoja no habla de comer fuera', async () => {
+    const props = pintar({ leerSitios: vi.fn().mockResolvedValue([]) })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    await waitFor(() => expect(props.leerSitios).toHaveBeenCalled())
+    expect(screen.queryByText('Comer fuera')).not.toBeInTheDocument()
+  })
+
+  it('una comida fuera reservada dice sus kcal como reservadas', () => {
+    pintar({
+      plan: {
+        ...SEMANA,
+        entries: [
+          SEMANA.entries[0],
+          entrada({ id: 12, slot: 'comida', dish_id: 70, dish_name: 'Bar Paco', kcal: 795, place: true }),
+        ],
+      },
+    })
+    expect(screen.getByText('~795 kcal reservadas')).toBeInTheDocument()
   })
 
   it('si no se puede cambiar dice por qué y la hoja sigue abierta', async () => {

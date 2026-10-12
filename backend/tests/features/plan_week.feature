@@ -259,3 +259,18 @@ Feature: The week, generated
     And I say I ate out the comida of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
     And I generate the week of 2026-09-21
     Then no meal of that week is "Bar Paco"
+
+  # Registro sin huecos, fase 4: comer fuera dentro del plan. Poner uno de tus
+  # sitios en una comida que no ha pasado reserva su cifra, y lo que queda del
+  # día sin decir se reajusta para que el día siga dando su objetivo.
+  Scenario: A meal out planned ahead is reserved and the rest of the day makes room
+    Given my targets add up to 2000 kcal a day
+    And a repertoire of 12 dishes I can scale
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the desayuno of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    And I plan the cena of today at my place "Bar Paco"
+    Then the cena of today is planned as "Bar Paco" with 795 kcal
+    And the plan says the cena of today is one of my places
+    And the plan of today adds up to 2000 kcal, give or take 2%
+    And the shopping list of this week does not have "Lentejas"

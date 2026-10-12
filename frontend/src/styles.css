@@ -6121,6 +6121,10 @@ button.draft-save {
 .plan-en-comida-acciones .plan-comer {
   grid-column: 1 / -1;
 }
+/* Una comida fuera reservada trae tres salidas debajo, no cuatro. */
+.plan-en-comida-acciones.is-fuera {
+  grid-template-columns: repeat(3, auto);
+}
 .plan-en-comida .hint {
   margin: 0;
 }

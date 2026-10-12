@@ -13,6 +13,8 @@ Datos, con «hoy» el día en que se arranca:
 - Lista de la compra de 35 artículos en 7 pasillos.
 - Revisión semanal pendiente, con el recuento del plan.
 - Una comida de fuera estimada en tres líneas, una por elegir.
+- Dos sitios («Bar Paco», «Táper de mamá»), y la cena de hoy reservada en
+  «Bar Paco».
 
 `ThreadingHTTPServer` a propósito: con el de un solo hilo la página se queda
 a medio cargar, porque el navegador pide varias cosas a la vez.
@@ -47,6 +49,8 @@ def plan(semana):
                 "grams": [150], "items": [], "kcal": 500,
                 "status": "done" if dicho else None, "log_entry_id": None,
             })
+            if dia == HOY and slot == "cena":
+                entradas[-1].update(dish_id=70, dish_name="Bar Paco", kcal=951.4, place=True)
     return {"id": 1, "week_start": semana.isoformat(), "seed": 1, "score": 0,
             "verdicts": [], "entries": entradas}
 
@@ -113,6 +117,20 @@ class H(BaseHTTPRequestHandler):
                     if e["id"] == int(m[1]):
                         e["status"] = body.get("status")
                         print("PATCH", e["log_date"], e["slot"], body, flush=True)
+                        return self._send(200, e)
+        return self._send(404, {"detail": "no"})
+
+    def do_PUT(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        body = json.loads(self.rfile.read(n) or b"{}")
+        if m := re.fullmatch(r"/plans/entries/(\d+)/dish", self.path):
+            sitio = next((s for s in SITIOS if s["id"] == body.get("dish_id")), None)
+            for p in PLANES.values():
+                for e in p["entries"]:
+                    if e["id"] == int(m[1]) and sitio:
+                        e.update(dish_id=sitio["id"], dish_name=sitio["name"],
+                                 kcal=sitio["per_serving"]["kcal"], place=True)
+                        print("PUT", e["log_date"], e["slot"], body, flush=True)
                         return self._send(200, e)
         return self._send(404, {"detail": "no"})
 

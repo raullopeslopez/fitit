@@ -61,7 +61,7 @@ export default function Fuera({
   // cuenta como siempre: la lista es un atajo, no un paso.
   useEffect(() => {
     let vivo = true
-    leerSitios()
+    Promise.resolve(leerSitios())
       .then((lista) => vivo && setSitios(lista ?? []))
       .catch(() => {})
     return () => {

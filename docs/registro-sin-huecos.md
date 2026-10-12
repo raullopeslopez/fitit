@@ -157,6 +157,14 @@ y reparte el resto del día contra el objetivo.
 **Hecho cuando:** una semana con dos cenas fuera planificadas cuadra con el
 objetivo diario sin que las otras comidas se disparen.
 
+**Construido (12 oct):** el sitio se elige en la hoja «Cambiar este plato» de
+Plan, bajo «Comer fuera»: 2 toques (la fila y el sitio), no 1. Reajusta sólo lo
+que queda sin decir de ese día y es de casa; un macro que algo fijo no tiene
+medido deja de dirigir el ajuste. Lo reservado no entra en la lista de la
+compra. **Queda fuera «Sin decidir»** (reservar tu media sin sitio): pide que
+una fila del plan pueda no tener plato, y eso toca la lista, la adherencia y
+confirmar. Va aparte si hace falta.
+
 ### Fase 5 — Pesar una vez, al cocinar
 
 **Objetivo:** la báscula se saca una vez por tanda, no una por plato.

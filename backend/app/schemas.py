@@ -1245,6 +1245,9 @@ class PlanEntryOut(BaseModel):
     # `None` es «no dicho», **nunca «saltado»**.
     status: str | None = None
     log_entry_id: int | None = None
+    # Es uno de tus sitios, reservado en el plan (registro sin huecos, fase 4):
+    # sus kcal están apartadas, y se confirma como comida fuera.
+    place: bool = False
 
 
 class PlanDesvioOut(BaseModel):
