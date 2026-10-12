@@ -683,6 +683,15 @@ async def correct_entry(
     escribe = payload.status == "done" or (payload.status == "swapped" and payload.dish_id)
     if escribe and fila.log_entry_id is None:
         moment = payload.logged_at or datetime.now(UTC)
+        # Un día pasado se cierra después, con la hora de aquel día (registro sin
+        # huecos, fase 1): es lo que deja apuntada la cena que se olvidó. Lo que
+        # no se cierra es lo que todavía no ha pasado. Cinco minutos de margen
+        # para el reloj del móvil.
+        if moment > datetime.now(UTC) + timedelta(minutes=5):
+            raise HTTPException(
+                status_code=422,
+                detail={"motivo": "eso todavía no ha pasado", "log_date": str(fila.log_date)},
+            )
         if food_log_date(moment) != fila.log_date:
             raise HTTPException(
                 status_code=422,

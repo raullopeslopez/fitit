@@ -21,6 +21,8 @@ from ..models import (
     DailyTarget,
     Day,
     LogEntry,
+    Plan,
+    PlanEntry,
     SetEntry,
     User,
     WeeklyReview,
@@ -172,6 +174,24 @@ async def _dias_sin_apuntar(session: AsyncSession, user_id: int, desde: date) ->
     return dias
 
 
+async def _plan_dicho(session: AsyncSession, user_id: int, desde: date, hasta: date):
+    """Por día con plan: cuántas comidas planificadas tiene y de cuántas has
+    dicho algo (hecha, cambiada o saltada). `NULL` es «sin decir»."""
+    filas = (
+        await session.execute(
+            select(
+                PlanEntry.log_date,
+                func.count(PlanEntry.id),
+                func.count(PlanEntry.status),
+            )
+            .join(Plan, Plan.id == PlanEntry.plan_id)
+            .where(Plan.user_id == user_id, PlanEntry.log_date >= desde, PlanEntry.log_date <= hasta)
+            .group_by(PlanEntry.log_date)
+        )
+    ).all()
+    return {dia: (planificadas, dichas) for dia, planificadas, dichas in filas}
+
+
 async def _dias_medibles(session: AsyncSession, user_id: int, desde: date):
     """Las kcal de cada día de la ventana que cuenta, y cuántos días a medias se
     quedaron fuera.
@@ -179,8 +199,14 @@ async def _dias_medibles(session: AsyncSession, user_id: int, desde: date):
     Fuera, dos clases de día: los de una semana que contestaste «No» en la
     revisión, y los que tienen menos de tres comidas apuntadas (`dia_completo`).
     Hoy tampoco: todavía se está comiendo.
+
+    Un día con plan y **todas sus comidas dichas** cuenta aunque tenga menos de
+    tres apuntadas: saltarse la cena es un dato, no un hueco (registro sin
+    huecos, fase 1). Es una puerta más, no una regla nueva: ningún día que hoy
+    cuenta deja de contar.
     """
     excluidos = await _dias_sin_apuntar(session, user_id, desde)
+    plan = await _plan_dicho(session, user_id, desde, date.today())
     filas = (
         await session.execute(
             # `date.today()` es la fecha del servidor, no el día alimentario con
@@ -204,7 +230,9 @@ async def _dias_medibles(session: AsyncSession, user_id: int, desde: date):
     for dia, total, comidas in filas:
         if total is None or dia in excluidos:
             continue
-        if not dia_completo(comidas):
+        planificadas, dichas = plan.get(dia, (0, 0))
+        todo_dicho = planificadas > 0 and dichas == planificadas
+        if not dia_completo(comidas) and not todo_dicho:
             a_medias += 1
             continue
         kcal.append(float(total))
@@ -424,12 +452,15 @@ async def read_review(
             )
         )
     ).scalar_one()
+    plan = await _plan_dicho(session, user_id, desde, hasta)
     return WeeklyReviewOut(
         review_date=dia,
         period_from=desde,
         period_to=hasta,
         due=revision is None and apuntado > 0,
         answer=revision.answer if revision else None,
+        plan_meals=sum(p for p, _ in plan.values()),
+        plan_meals_said=sum(d for _, d in plan.values()),
     )
 
 

@@ -491,3 +491,70 @@ def then_still_done(client, slot):
 def then_points_left(client, confirmada):
     (queda,) = _entradas_de(client, confirmada)
     assert _ahora(client, "comida")["log_entry_id"] == queda["id"]
+
+
+# --- registro sin huecos, fase 1 ---------------------------------------------
+def _dia(desplazamiento):
+    from datetime import date, timedelta
+
+    return date.today() + timedelta(days=desplazamiento)
+
+
+_DIAS = {"yesterday": -1, "tomorrow": 1}
+
+
+@when(parsers.parse("I generate the week that holds {cual:w}"), target_fixture="respuesta")
+def when_generate_week_of(client, cual):
+    from datetime import timedelta
+
+    dia = _dia(_DIAS[cual])
+    lunes = dia - timedelta(days=dia.weekday())
+    resp = client.post("/plans", json={"week_start": lunes.isoformat()})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _a_las(cual, hora):
+    # Con el offset de Madrid en verano, como manda el móvil: el día alimentario
+    # sale del reloj de pared, no de UTC.
+    return f"{_dia(_DIAS[cual]).isoformat()}T{hora}:00+02:00"
+
+
+@when(
+    parsers.parse("I confirm the {slot:w} of {cual:w} at {hora} of that day"),
+    target_fixture="confirmada",
+)
+def when_confirm_at(client, respuesta, slot, cual, hora):
+    entrada = _entrada(respuesta, _dia(_DIAS[cual]).isoformat(), slot)
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}",
+        json={"status": "done", "logged_at": _a_las(cual, hora)},
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(
+    parsers.parse("I try to confirm the {slot:w} of {cual:w} at {hora} of that day"),
+    target_fixture="negativa",
+)
+def when_try_confirm_at(client, respuesta, slot, cual, hora):
+    entrada = _entrada(respuesta, _dia(_DIAS[cual]).isoformat(), slot)
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}",
+        json={"status": "done", "logged_at": _a_las(cual, hora)},
+    )
+    assert resp.status_code == 422, resp.text
+    return resp.json()["detail"]
+
+
+@then("the diary of yesterday has that meal")
+def then_diary_yesterday(client, confirmada):
+    diario = client.get(f"/food-log?date={_dia(-1).isoformat()}").json()
+    assert diario["entries"], diario
+    assert {e["meal_slot"] for e in diario["entries"]} == {confirmada["slot"]}
+
+
+@then("it says that has not happened yet")
+def then_not_yet(negativa):
+    assert "todavía" in negativa["motivo"]

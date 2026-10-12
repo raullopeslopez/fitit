@@ -34,6 +34,8 @@ export default function RevisionSemanal({ onAccepted, onDone = () => {} }) {
   const [fase, setFase] = useState('cargando')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
+  // Con plan, cuántas comidas tuvo la semana y de cuántas dijiste algo.
+  const [plan, setPlan] = useState(null)
 
   useEffect(() => {
     let vivo = true
@@ -41,6 +43,7 @@ export default function RevisionSemanal({ onAccepted, onDone = () => {} }) {
       try {
         const r = await getReview()
         if (!vivo) return
+        if (r?.plan_meals > 0) setPlan({ total: r.plan_meals, dichas: r.plan_meals_said ?? 0 })
         setFase(r?.due ? 'pregunta' : 'oculta')
         if (!r?.due) onDone()
       } catch {
@@ -109,6 +112,11 @@ export default function RevisionSemanal({ onAccepted, onDone = () => {} }) {
 
       {fase === 'pregunta' && (
         <>
+          {/* Registro sin huecos, fase 1: con plan, la pregunta llega con el
+              dato que la app ya tiene, para contestar mirando y no de memoria. */}
+          {plan && (
+            <p className="revision-plan">{`Dijiste ${plan.dichas} de ${plan.total} comidas del plan.`}</p>
+          )}
           <p className="revision-pregunta">¿Apuntaste todo lo que comiste?</p>
           <div className="revision-acciones">
             {RESPUESTAS.map(([valor, label]) => (

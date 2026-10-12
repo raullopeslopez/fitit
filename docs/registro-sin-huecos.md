@@ -69,8 +69,22 @@ contar días a medias como días de comer poco.
 
 **Toques:** ninguno nuevo; la revisión pasa de 1–2 toques a 0.
 
-**Backend:** `dia_completo` mira las `plan_entries` del día cuando hay plan;
-`GET /targets/review` devuelve resueltas, conocidas y total de la semana.
+**Backend:** un día cuenta para el gasto si cumple la regla de las tres comidas
+**o** tiene todas sus comidas del plan dichas — una puerta más, nunca menos días:
+en prod (12 oct) sólo 1 de 56 comidas del plan estaba dicha, y reemplazar la
+regla habría dejado el gasto sin datos. `GET /targets/review` devuelve
+`plan_meals` y `plan_meals_said`.
+
+**Hallazgo al construirla:** una comida del plan sólo se podía cerrar el mismo
+día. La API ya aceptaba la hora de un día pasado; era el frontend el que no lo
+ofrecía. Ahora se cierra después, con el mediodía de aquel día, y lo que no ha
+llegado no se confirma («eso todavía no ha pasado»).
+
+**Ajuste sobre lo planeado:** el total de un día pasado no se cambia por `—`
+(escondería lo que sí se sabe); debajo sale «Cena sin decir: este total no es el
+del día.». Y la revisión **conserva la pregunta** con el recuento encima («Dijiste
+3 de 28 comidas del plan.»): con los datos de prod, quitarla dejaría el gasto sin
+la única señal de semana a medias.
 
 **Escenarios:** día con una comida sin decir no entra en el gasto; día sin plan usa
 la heurística; día con todo resuelto entra aunque tenga pocas kcal.
@@ -161,9 +175,13 @@ fracción; la aritmética, en `nutrition.py`.
 
 ### Fase 6 — El ticket
 
-**6.0 — Ver uno de verdad.** Leer un ticket de Mercadona real (Gmail, con permiso)
-y decidir: si trae códigos, se casa solo con el catálogo; si sólo trae nombres, la
-casa un modelo y pasa por revisión. **Sin esto, el resto de la fase no se estima.**
+**6.0 — Visto (12 oct, ticket del 5 jul 2025).** PDF con texto, se lee sin OCR.
+Cada línea: unidades, descripción en mayúsculas cortada a 20 caracteres y precio;
+lo de peso trae los kg en una segunda línea. **Sin código de producto.** Mezcla
+comida y no comida (8 de 45 líneas) y trae datos de pago, que se descartan. Contra
+el catálogo de prod, 15 líneas de comida: 4 casan con un producto, 7 tienen varios
+candidatos, 4 ninguno. Emparejar lo hace un modelo y lo dudoso pasa por revisión
+(la pantalla de «Subir plan» sirve casi tal cual). Tamaño: medio-grande.
 
 **6.1 — Pegar el ticket.** Plan → «Pegar ticket» → «21 en tu lista · 2 fuera de
 lista · falta Merluza» → Guardar. Toques: 2 más la revisión si hay dudosos.

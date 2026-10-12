@@ -65,7 +65,7 @@ describe('lo planificado, dentro de su comida', () => {
   function pintar(over = {}) {
     const props = {
       entrada: COMIDA,
-      isToday: true,
+      hoy: LUNES,
       onChanged: vi.fn(),
       onComido: vi.fn(),
       platos: [],
@@ -104,7 +104,7 @@ describe('lo planificado, dentro de su comida', () => {
   it('confirma de un toque y avisa de que se ha comido', async () => {
     const props = pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Lo comí' }))
-    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'done', null))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'done', null, expect.any(String)))
     expect(props.onChanged).toHaveBeenCalled()
     // Comer es cuando tienes el móvil en la mano: el diario pregunta el peso.
     expect(props.onComido).toHaveBeenCalled()
@@ -113,7 +113,7 @@ describe('lo planificado, dentro de su comida', () => {
   it('saltarse una comida no cuenta como comerla', async () => {
     const props = pintar({ setEntry: vi.fn().mockResolvedValue({ ...COMIDA, status: 'skipped' }) })
     await userEvent.click(screen.getByRole('button', { name: 'Me lo salté' }))
-    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'skipped', null))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'skipped', null, expect.any(String)))
     expect(props.onComido).not.toHaveBeenCalled()
   })
 
@@ -127,7 +127,7 @@ describe('lo planificado, dentro de su comida', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Lo cambié' }))
     expect(screen.queryByRole('button', { name: /Avena/ })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Merluza/ }))
-    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'swapped', 8))
+    await waitFor(() => expect(props.setEntry).toHaveBeenCalledWith(2, 'swapped', 8, expect.any(String)))
     expect(props.onComido).toHaveBeenCalled()
   })
 
@@ -141,7 +141,7 @@ describe('lo planificado, dentro de su comida', () => {
   // contar dos veces lo mismo.
   it('lo ya comido no se pinta: está en el diario', () => {
     const { container } = render(
-      <PlanEnComida entrada={entrada({ status: 'done', log_entry_id: 40 })} isToday onChanged={vi.fn()} />,
+      <PlanEnComida entrada={entrada({ status: 'done', log_entry_id: 40 })} hoy={LUNES} onChanged={vi.fn()} />,
     )
     expect(container).toBeEmptyDOMElement()
   })
@@ -152,13 +152,26 @@ describe('lo planificado, dentro de su comida', () => {
     expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
   })
 
-  // Una entrada del diario se fecha por el instante en que la escribes: confirmar
-  // el jueves desde el lunes pondría comida del jueves en el lunes.
-  it('en un día que no es hoy enseña lo planificado pero no deja confirmarlo', () => {
-    pintar({ isToday: false })
+  // Lo que todavía no ha pasado no se confirma: confirmar el jueves desde el
+  // lunes pondría comida del jueves en el lunes.
+  it('en un día que todavía no ha llegado enseña lo planificado pero no deja confirmarlo', () => {
+    pintar({ hoy: '2026-09-20' })
     expect(screen.getByText('Pollo con arroz')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
-    expect(screen.getByText('Sólo se confirma el día de hoy.')).toBeInTheDocument()
+    expect(screen.getByText('Todavía no ha llegado.')).toBeInTheDocument()
+  })
+
+  // Registro sin huecos, fase 1: una comida que se olvidó se cierra después, y
+  // se apunta en su día —el sello es de aquel día, no de ahora—.
+  it('en un día pasado deja cerrarla, y la apunta en aquel día', async () => {
+    const props = pintar({ hoy: '2026-09-23' })
+    await userEvent.click(screen.getByRole('button', { name: 'Lo comí' }))
+    expect(props.setEntry).toHaveBeenCalledWith(2, 'done', null, expect.stringMatching(/^2026-09-21T12:00:00/))
+  })
+
+  it('con etiqueta dice de qué día y comida es', () => {
+    pintar({ hoy: '2026-09-22', etiqueta: 'Ayer · Comida' })
+    expect(screen.getByText('Ayer · Comida')).toBeInTheDocument()
   })
 
   it('si no se puede guardar lo dice, con el motivo del servidor', async () => {

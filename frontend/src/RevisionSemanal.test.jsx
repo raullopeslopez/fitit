@@ -210,3 +210,19 @@ describe('La revisión semanal', () => {
   })
 })
 
+// Registro sin huecos, fase 1: con plan, la pregunta llega con el dato que ya
+// tiene la app, para contestarla mirando algo y no de memoria.
+describe('la revisión con plan', () => {
+  it('dice cuántas comidas del plan dijiste', async () => {
+    getReview.mockResolvedValue({ due: true, answer: null, plan_meals: 28, plan_meals_said: 3 })
+    render(<RevisionSemanal onAccepted={vi.fn()} />)
+    expect(await screen.findByText('Dijiste 3 de 28 comidas del plan.')).toBeInTheDocument()
+  })
+
+  it('sin plan no dice nada de él', async () => {
+    getReview.mockResolvedValue({ due: true, answer: null, plan_meals: 0, plan_meals_said: 0 })
+    render(<RevisionSemanal onAccepted={vi.fn()} />)
+    await screen.findByText('¿Apuntaste todo lo que comiste?')
+    expect(screen.queryByText(/comidas del plan/)).not.toBeInTheDocument()
+  })
+})

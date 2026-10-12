@@ -596,10 +596,10 @@ export function saveImportedPlan(body) {
 // Confirmar, saltar o cambiar una comida del plan. `done` escribe el diario con
 // los gramos que el plan congeló. El sello va con el offset del móvil, igual
 // que al registrar a mano: es lo que decide en qué día alimentario cae.
-export function setPlanEntry(entryId, status, dishId = null) {
+export function setPlanEntry(entryId, status, dishId = null, loggedAt = foodMomentIso()) {
   return apiFetch(`/plans/entries/${entryId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, dish_id: dishId, logged_at: foodMomentIso() }),
+    body: JSON.stringify({ status, dish_id: dishId, logged_at: loggedAt }),
   })
 }
 

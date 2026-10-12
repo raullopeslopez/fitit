@@ -26,6 +26,7 @@ import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
 import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
+import SinDecir, { notaSinDecir } from './SinDecir.jsx'
 import { Fab } from './ui'
 import {
   MACROS,
@@ -261,6 +262,7 @@ export default function Comida() {
   }
 
   const planHoy = planDelDia(plan, dayIso)
+  const notaPasado = notaSinDecir(Object.values(planHoy), dayIso, foodDayIso())
 
   return (
     <div className="comida">
@@ -276,6 +278,10 @@ export default function Comida() {
 
       {error && <p className="alert">{error}</p>}
 
+      {/* Lo que quedó sin decir ayer y anteayer, para cerrarlo sin tener que ir
+          a aquel día. Sólo en hoy: es donde se abre la app. */}
+      {isToday && <SinDecir hoy={dayIso} platos={platos} />}
+
       {/* Qué plan llevas y cuánto toca hoy, o que todavía no hay objetivo. Sólo
           hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
           lado haría creer que aquel día se comía a este ritmo. */}
@@ -284,6 +290,10 @@ export default function Comida() {
       )}
 
       {day && <MacroCard day={day} />}
+
+      {/* Un día pasado con comidas del plan sin decir: lo apuntado es un dato,
+          pero no es el día entero, y el total no puede pasar por serlo. */}
+      {notaPasado && <p className="food-sin-decir">{notaPasado}</p>}
 
       {/* Sólo se pinta lo que pide algo: una regla cumplida no necesita
           decirse, y una que hoy no aplica menos todavía. */}
@@ -327,7 +337,7 @@ export default function Comida() {
                   rail.key && planHoy[rail.key] ? (
                     <PlanEnComida
                       entrada={planHoy[rail.key]}
-                      isToday={isToday}
+                      hoy={foodDayIso()}
                       platos={platos}
                       onChanged={() => load(dayIso)}
                       onComido={() => setPedirPeso(true)}
