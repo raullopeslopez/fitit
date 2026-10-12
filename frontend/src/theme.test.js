@@ -1,4 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { applyTheme, getThemePref, setThemePref, watchSystemTheme } from './theme.js'
+import { setSystemBarsTheme } from './platform/systemBars.js'
+
+vi.mock('./platform/systemBars.js', () => ({ setSystemBarsTheme: vi.fn() }))
 
 // Un `matchMedia` de mentira cuyo «sistema» se puede cambiar a mano.
 function fakeSystem(dark) {
@@ -68,5 +73,20 @@ describe('tema', () => {
     system.set(true)
     expect(document.documentElement.dataset.theme).toBe('light')
     stop()
+  })
+
+  it('los iconos de las barras del teléfono van con el tema pintado, no con el del sistema', () => {
+    fakeSystem(true)
+    applyTheme('light')
+    expect(setSystemBarsTheme).toHaveBeenLastCalledWith('light')
+    applyTheme('system')
+    expect(setSystemBarsTheme).toHaveBeenLastCalledWith('dark')
+  })
+
+  // Sin `viewport-fit=cover`, Capacitor encoge la WebView para dejar sitio a
+  // las barras del teléfono y ese hueco se pinta gris, no del fondo de la app.
+  it('la app se pinta también debajo de las barras del teléfono', () => {
+    const html = readFileSync(join(__dirname, '..', 'index.html'), 'utf8')
+    expect(html).toMatch(/name="viewport"[\s\S]*?viewport-fit=cover/)
   })
 })
