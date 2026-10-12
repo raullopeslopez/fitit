@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.32.0: de la pauta a la compra; registro sin huecos (fases 1 y 2).** En `Plan`,
+  `Lista de la compra` también en `Esta semana`; guardar una pauta genera la que viene, y
+  `Enviar a Taski` queda fijo al pie (#280). En `Comida`, arriba, `Ayer · Cena` y
+  `Anteayer · …` con lo que quedó sin decir, cerrable en su día; un día pasado avisa
+  `Cena sin decir: este total no es el del día.` (#282). Cada comida del plan: `Lo comí`, y
+  `Lo cambié · Fuera · Me lo salté · No sé`; `Fuera` estima en líneas del catálogo con
+  revisión y se apunta como `~250 g · estimado` (#283).
 - **APK 0.31.0: Pegar plan; Días, el historial se pliega con la edad.** En `Plan`, la fila
   `Pegar plan · El que te escribe Claude` lee del portapapeles el JSON que escribe Claude
   y lo abre en la revisión de siempre, sin pasar por Gemini; si el portapapeles no se deja
