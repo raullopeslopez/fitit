@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.33.0: registro sin huecos (fases 3 y 4).** En `Fuera`, arriba `Tus sitios`
+  (`Bar Paco · ~951 kcal`): tocar uno lo apunta; al revisar una comida nueva,
+  `¿Dónde? Para la próxima vez` la guarda como sitio. `Perfil → Comer fuera → Tus sitios`
+  deja corregir nombre y gramos (#285). En `Plan`, tocar una comida que no ha pasado ofrece
+  tus sitios bajo `Comer fuera`: reserva sus kcal (`~951 kcal reservadas`) y reajusta el
+  resto del día; en `Comida` se cierra con `Confirmar` (#286).
 - **APK 0.32.0: de la pauta a la compra; registro sin huecos (fases 1 y 2).** En `Plan`,
   `Lista de la compra` también en `Esta semana`; guardar una pauta genera la que viene, y
   `Enviar a Taski` queda fijo al pie (#280). En `Comida`, arriba, `Ayer · Cena` y
