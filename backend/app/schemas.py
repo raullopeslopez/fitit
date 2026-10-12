@@ -1132,6 +1132,10 @@ class WeeklyReviewOut(BaseModel):
     # Sin respuesta guardada y con algo apuntado en el periodo.
     due: bool
     answer: ReviewAnswer | None = None
+    # Las comidas del plan en la semana revisada, y de cuántas dijiste algo.
+    # 0 y 0 si esa semana no tenía plan.
+    plan_meals: int = 0
+    plan_meals_said: int = 0
 
 
 # --- Reglas -------------------------------------------------------------------

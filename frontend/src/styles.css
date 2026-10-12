@@ -5971,6 +5971,26 @@ button.draft-save {
 /* Lo planificado, dentro de su comida: en un recuadro discontinuo, que es lo
    que el plan dice, no algo que hayas comido. El mismo trazo que tenía el hueco
    vacío — y por lo mismo: pesa menos que lo registrado. */
+/* Lo que quedó sin decir ayer y anteayer, arriba de Comida. Cada fila es la
+   misma tarjeta discontinua de dentro de su comida, sin el margen lateral del
+   raíl: aquí no hay raíl. */
+.sin-decir {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.sin-decir .plan-en-comida {
+  margin: 0;
+}
+/* Debajo del total de un día pasado: lo apuntado es un dato, pero no el día
+   entero. Con la tinta del texto, no en --muted: dice algo que cambia cómo se
+   lee la cifra de arriba. */
+.food-sin-decir {
+  margin: -0.5rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
 .plan-en-comida {
   display: flex;
   flex-direction: column;
@@ -7164,6 +7184,15 @@ button.draft-save {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+/* Con plan, el dato que ya tiene la app, encima de la pregunta. Mono y con la
+   tinta del texto: es una cifra, no una nota (DESIGN.md). */
+.revision-plan {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 .revision-pregunta {
   margin: 0;

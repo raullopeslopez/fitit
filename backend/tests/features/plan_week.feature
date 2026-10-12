@@ -164,3 +164,19 @@ Feature: The week, generated
     And I delete from the diary only the entry the plan points to
     Then the plan still says the comida of today is done
     And the plan points to the ingredient left in the diary
+
+  # Registro sin huecos, fase 1 (12 oct): olvidarse de confirmar no puede dejar
+  # la comida sin cerrar para siempre. Se cierra después, con la hora de aquel
+  # día, y el diario la apunta en aquel día.
+  Scenario: A meal of yesterday is confirmed later, on yesterday
+    Given a repertoire of 12 dishes
+    When I generate the week that holds yesterday
+    And I confirm the cena of yesterday at 21:00 of that day
+    Then the diary of yesterday has that meal
+    And the plan says that meal is done
+
+  Scenario: A meal that has not come yet is not confirmed
+    Given a repertoire of 12 dishes
+    When I generate the week that holds tomorrow
+    And I try to confirm the comida of tomorrow at 14:00 of that day
+    Then it says that has not happened yet

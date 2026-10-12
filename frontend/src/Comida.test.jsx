@@ -219,7 +219,7 @@ describe('Comida', () => {
       // Con algo planificado, la comida ya no dice que está vacía: dice qué toca.
       expect(within(comida).queryByText('Nada todavía')).not.toBeInTheDocument()
       await userEvent.click(within(comida).getByRole('button', { name: 'Lo comí' }))
-      await waitFor(() => expect(api.setPlanEntry).toHaveBeenCalledWith(5, 'done', null))
+      await waitFor(() => expect(api.setPlanEntry).toHaveBeenCalledWith(5, 'done', null, expect.any(String)))
       expect(await screen.findByText('¿Te has pesado hoy?')).toBeInTheDocument()
     })
 

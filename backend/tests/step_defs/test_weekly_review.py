@@ -229,3 +229,57 @@ def given_two_weeks_meals(client, antes, semana, comidas):
 @then(parsers.parse("the proposal says {n:d} days were left out as half-logged"))
 def then_half_logged(propuesta, n):
     assert propuesta["partial_days"] == n
+
+
+# --- registro sin huecos, fase 1 ---------------------------------------------
+def _repertorio(client):
+    food = client.post(
+        "/foods",
+        json={"name": "Pollo", "kcal_100g": 165, "protein_100g": 31, "fat_100g": 3.6,
+              "carbs_100g": 0, "familia": "carne"},
+    ).json()
+    for i in range(1, 13):
+        resp = client.post(
+            "/dishes",
+            json={"name": f"Plato {i}", "servings": 1,
+                  "ingredients": [{"food_id": food["id"], "grams": 150}]},
+        )
+        assert resp.status_code == 201, resp.text
+
+
+def _planes_de_la_semana_revisada(client):
+    """Las filas del plan de los siete días revisados (de ayer hacia atrás), que
+    pueden caer en dos semanas distintas."""
+    _repertorio(client)
+    dias = {(date.today() - timedelta(days=atras)).isoformat() for atras in range(1, 8)}
+    lunes = {date.fromisoformat(d) - timedelta(days=date.fromisoformat(d).weekday()) for d in dias}
+    filas = []
+    for semana in sorted(lunes):
+        resp = client.post("/plans", json={"week_start": semana.isoformat()})
+        assert resp.status_code == 201, resp.text
+        filas += [e for e in resp.json()["entries"] if e["log_date"] in dias]
+    return filas
+
+
+def _decir(client, filas):
+    # Saltarse no escribe en el diario: lo que se comprueba es que el día quede
+    # dicho, no qué se comió.
+    for fila in filas:
+        resp = client.patch(f"/plans/entries/{fila['id']}", json={"status": "skipped"})
+        assert resp.status_code == 200, resp.text
+
+
+@given("I said something about every planned meal of the week to review")
+def given_said_everything(client):
+    _decir(client, _planes_de_la_semana_revisada(client))
+
+
+@given(parsers.parse("a plan for the week to review where I said {n:d} meals"))
+def given_plan_some_said(client, n):
+    _decir(client, _planes_de_la_semana_revisada(client)[:n])
+
+
+@then(parsers.parse("it counts {n:d} of the planned meals as said"))
+def then_counts_said(revision, n):
+    assert revision["plan_meals"] == 28
+    assert revision["plan_meals_said"] == n

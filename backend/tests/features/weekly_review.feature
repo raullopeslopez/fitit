@@ -114,3 +114,22 @@ Feature: When I plan the next week, the app asks whether I logged everything
     When I ask what I should eat
     Then the proposal is 1667 kcal
     And the proposal says 0 days were left out as half-logged
+
+  # Registro sin huecos, fase 1: un día cuyas comidas del plan están todas
+  # dichas es un día entero aunque tenga pocas apuntadas — saltarse la cena es
+  # un dato, no un hueco. La regla de las tres comidas sigue valiendo para los
+  # días sin plan, para no perder ninguno de los que hoy cuentan.
+  Scenario: A day with every planned meal said counts even with few meals logged
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I ate 2000 kcal a day in the two weeks before and 1000 in 2 meals a day in the week to review
+    And I said something about every planned meal of the week to review
+    When I ask what I should eat
+    Then the proposal is 1667 kcal
+    And the proposal says 0 days were left out as half-logged
+
+  Scenario: The review counts the planned meals of the week and the ones said
+    Given I logged food two days ago
+    And a plan for the week to review where I said 3 meals
+    When I ask about the weekly review
+    Then it counts 3 of the planned meals as said

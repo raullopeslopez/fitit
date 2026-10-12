@@ -8,7 +8,7 @@ import {
   setPlanEntry,
 } from './api.js'
 import { ListRow, Sheet } from './ui'
-import { foodDayIso, formatAmount, formatMacro } from './food.js'
+import { foodDayIso, formatAmount, formatMacro, momentForDay } from './food.js'
 
 // Los cuatro huecos, en el orden en que se comen. El mismo orden del backend;
 // aquí está para que la lista no dependa de cómo vinieran las filas.
@@ -223,7 +223,12 @@ function Fila({ entrada, onAbrir = null }) {
  */
 export function PlanEnComida({
   entrada,
-  isToday,
+  // El día alimentario de hoy: lo de antes se cierra con el sello de aquel día,
+  // lo de después todavía no se confirma.
+  hoy = foodDayIso(),
+  // Lo que dice el rótulo de arriba: «Planificado» dentro de su comida, «Ayer ·
+  // Cena» en la franja de lo que quedó sin decir.
+  etiqueta = 'Planificado',
   onChanged,
   // Comer —lo planificado o un cambio— es cuando tienes el móvil en la mano:
   // el diario aprovecha para preguntar el peso de hoy si falta.
@@ -238,12 +243,15 @@ export function PlanEnComida({
   if (entrada.status === 'done') return null
 
   const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
+  const futuro = entrada.log_date > hoy
 
   async function marcar(status, dishId = null) {
     setBusy(true)
     setError(null)
     try {
-      await setEntry(entrada.id, status, dishId)
+      // Registro sin huecos, fase 1: una comida pasada se apunta en su día. Hoy,
+      // `momentForDay` es «ahora»; antes, el mediodía de aquel día.
+      await setEntry(entrada.id, status, dishId, momentForDay(entrada.log_date))
       setCambiando(false)
       if (status !== 'skipped') onComido()
       await onChanged()
@@ -258,7 +266,7 @@ export function PlanEnComida({
 
   return (
     <div className={`plan-en-comida${saltado ? ' is-skipped' : ''}`}>
-      <span className="card-eyebrow">Planificado</span>
+      <span className="card-eyebrow">{etiqueta}</span>
       <p className="plan-en-comida-top">
         <span className="plan-en-comida-nombre">{entrada.dish_name}</span>
         {saltado ? (
@@ -270,9 +278,10 @@ export function PlanEnComida({
       {!saltado && <Ingredientes items={entrada.items} />}
 
       {/* Ni comido ni saltado es **no dicho**, no incumplido: sigue ofreciendo
-          las tres cosas hasta que alguien diga una. Y sólo hoy: una entrada del
-          diario se fecha por el instante en que la escribes. */}
-      {!saltado && isToday && !cambiando && (
+          las tres cosas hasta que alguien diga una. También en un día pasado:
+          una cena olvidada se cierra después, en su día. Lo que no ha llegado,
+          no. */}
+      {!saltado && !futuro && !cambiando && (
         <div className="plan-en-comida-acciones">
           <button type="button" className="primary plan-comer" disabled={busy} onClick={() => marcar('done')}>
             Lo comí
@@ -315,7 +324,7 @@ export function PlanEnComida({
         </div>
       )}
 
-      {!saltado && !isToday && <p className="hint">Sólo se confirma el día de hoy.</p>}
+      {!saltado && futuro && <p className="hint">Todavía no ha llegado.</p>}
       {error && <p className="alert">{error}</p>}
     </div>
   )
