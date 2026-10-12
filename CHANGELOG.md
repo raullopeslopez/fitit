@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.29.0: Evolución, la serie más pesada de cada sesión.** En `Progreso → Evolución`,
+  la serie más pesada en grande (`82.5 kg × 5`, `+7.5 kg desde julio`), una línea por cada
+  sesión con los récords en anillo ámbar, `Récords · Sesiones · Desde la última` y la lista
+  de `Marcas` (#273).
 - **APK 0.28.0: Progreso en pestañas; Ritmo, una frase por músculo.** Arriba de Progreso,
   `Series | Ritmo | Evolución`, una tarjeta cada vez. En Ritmo, cada músculo dice `Core · 1 vez
   en 4 semanas · hace 12 días`, del más olvidado al más reciente; al tocarlo se abre
