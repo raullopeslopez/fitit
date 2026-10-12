@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.34.0: registro sin huecos (fases 5 y 6).** `Tus platos → plato → Pesar la olla`
+  guarda el peso de la tanda; en `Comida` esa comida del plan se apunta con
+  `¼ de la olla · 600 g`, con `½`, `⅓` y `Otra` a un toque (#288). En `Plan`,
+  `Subir ticket` lee el PDF de la compra, se revisa y dice `21 en tu lista · 2 fuera de
+  lista` y `Falta: …` (#289). `Lo cambié` abre con `Tienes en casa`, y el generador tira
+  de lo comprado (#290).
 - **APK 0.33.0: registro sin huecos (fases 3 y 4).** En `Fuera`, arriba `Tus sitios`
   (`Bar Paco · ~951 kcal`): tocar uno lo apunta; al revisar una comida nueva,
   `¿Dónde? Para la próxima vez` la guarda como sitio. `Perfil → Comer fuera → Tus sitios`
