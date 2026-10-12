@@ -48,3 +48,20 @@ Feature: Read a plan off a PDF
     Given no model is configured
     When I upload the plan
     Then it says reading plans is not available
+
+  Scenario: A plan pasted as text is read without a model
+    Given no model is configured
+    And I have the food "Lentejas"
+    When I paste a plan with "Lentejas con chorizo" for the comida on lunes
+    Then it proposes the dish "Lentejas con chorizo" as new
+    And its line "80 g lentejas" is matched to "Lentejas"
+    And the week puts "Lentejas con chorizo" in the comida of day 0
+    And I still have no dishes
+
+  Scenario: A pasted plan wrapped in a chat answer is still read
+    When I paste a plan with "Yogur con nueces" for the merienda on martes, inside a chat answer
+    Then the week puts "Yogur con nueces" in the snack of day 1
+
+  Scenario: Pasted text that is not a plan says so
+    When I paste "Aquí tienes tu plan de la semana, ¡que aproveche!"
+    Then it says the plan could not be read

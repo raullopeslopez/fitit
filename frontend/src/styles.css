@@ -7555,6 +7555,35 @@ button.draft-save {
   font-size: 1rem;
   color: var(--text);
 }
+/* Pegar plan a mano, cuando el portapapeles no se deja leer: el mismo control
+   que un input, más alto. */
+.plan-pegar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.plan-pegar textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  outline: none;
+  resize: vertical;
+}
+.plan-pegar textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.plan-pegar-acciones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .importar {
   display: flex;
   flex-direction: column;

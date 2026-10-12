@@ -205,7 +205,14 @@ function Semana({ lectura, estados }) {
  * pantalla es obligatoria: nada entra en tu repertorio ni en la pauta hasta que
  * pulsas «Guardar». Cerrarla deja todo como estaba.
  */
-export default function ImportarPlan({ lectura, weekStart, guardar, onGuardado, onClose }) {
+export default function ImportarPlan({
+  lectura,
+  weekStart,
+  guardar,
+  onGuardado,
+  onClose,
+  titulo = 'Subir plan',
+}) {
   const [estados, setEstados] = useState(() => estadoInicial(lectura))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -229,7 +236,7 @@ export default function ImportarPlan({ lectura, weekStart, guardar, onGuardado, 
     <div className="food-screen" role="dialog" aria-modal="true" aria-label="Platos identificados">
       <header className="food-screen-head">
         <p className="food-screen-title">
-          <span className="card-eyebrow">Subir plan</span>
+          <span className="card-eyebrow">{titulo}</span>
           <span className="food-screen-slot">Platos identificados</span>
         </p>
         <button type="button" className="link-btn" onClick={onClose}>

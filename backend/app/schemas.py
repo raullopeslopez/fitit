@@ -1475,6 +1475,12 @@ class PlanImportOut(BaseModel):
     quota_scope: str | None = None
 
 
+class PlanTextIn(BaseModel):
+    # Un plan semanal en JSON son unos pocos KB; 200 000 caracteres es un tope
+    # contra pegar cualquier cosa, no un límite que un plan vaya a rozar.
+    text: str = Field(min_length=1, max_length=200_000)
+
+
 class PautaDishIn(BaseModel):
     """Un plato de lo revisado: uno tuyo (`dish_id`) o uno nuevo con sus
     ingredientes ya casados con alimentos."""
