@@ -210,6 +210,13 @@ plan de la semana siguiente tira de lo que sobró.
 
 **Hecho cuando:** después de una compra, «Otra cosa» propone platos con lo que hay.
 
+**6.2 construido (12 oct):** «Otra cosa» es «Lo cambié». Un plato está «en casa»
+si al menos la mitad de sus ingredientes salió en un ticket de las dos últimas
+semanas (la sal y el aceite no salen en cada compra); va arriba bajo «Tienes en
+casa». El generador pesa cada plato de 1 (nada en casa) a 3 (todo): empuja sin
+obligar. Casa por `food_id`: si el ticket casó con otra fila del catálogo que la
+receta, no cuenta.
+
 ### Fase 7 — Cadenas (sólo si hay datos)
 
 Importar cartas de cadenas que publiquen su información nutricional, como CIQUAL:

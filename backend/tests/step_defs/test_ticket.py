@@ -160,3 +160,39 @@ def then_not_pdf(negativa):
 @then("it says reading tickets is not available")
 def then_not_available(negativa):
     assert negativa.status_code == 503
+
+
+# --- fase 6.2: lo que hay en casa ---------------------------------------------
+@given(parsers.parse('a dish "{nombre}" with "{uno}" and "{otro}"'))
+def given_dish(client, alimentos, nombre, uno, otro):
+    resp = client.post(
+        "/dishes",
+        json={
+            "name": nombre,
+            "servings": 1,
+            "ingredients": [
+                {"food_id": alimentos[uno], "grams": 150},
+                {"food_id": alimentos[otro], "grams": 200},
+            ],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@when(parsers.parse('I save from the ticket {g:d} g of "{f}" bought {dias:d} days ago'))
+def when_save_old(client, alimentos, g, f, dias):
+    resp = client.post(
+        "/pantry",
+        json={
+            "items": [{"food_id": alimentos[f], "grams": g}],
+            "date": (date.today() - timedelta(days=dias)).isoformat(),
+        },
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@then(parsers.parse('"{nombre}" has {n:d} of its {total:d} ingredients at home'))
+def then_at_home_count(client, nombre, n, total):
+    plato = next(d for d in client.get("/dishes").json() if d["name"] == nombre)
+    assert len(plato["ingredients"]) == total
+    assert plato["at_home"] == n

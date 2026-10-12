@@ -183,6 +183,29 @@ describe('lo planificado, dentro de su comida', () => {
     expect(props.onComido).toHaveBeenCalled()
   })
 
+  it('«Lo cambié» pone arriba lo que tienes en casa', async () => {
+    const dos = [{ food_id: 1 }, { food_id: 2 }]
+    pintar({
+      platos: [
+        { id: 8, name: 'Merluza', slots: ['comida'], per_serving: { kcal: 400 }, ingredients: dos, at_home: 0 },
+        { id: 10, name: 'Pollo con patatas', slots: ['comida'], per_serving: { kcal: 600 }, ingredients: dos, at_home: 1 },
+      ],
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Lo cambié' }))
+    const casa = screen.getByRole('group', { name: 'Tienes en casa' })
+    expect(within(casa).getByRole('button', { name: /Pollo con patatas/ })).toBeInTheDocument()
+    expect(within(casa).queryByRole('button', { name: /Merluza/ })).not.toBeInTheDocument()
+    const otros = screen.getByRole('group', { name: 'Otros platos' })
+    expect(within(otros).getByRole('button', { name: /Merluza/ })).toBeInTheDocument()
+  })
+
+  it('sin nada en casa, la lista de siempre', async () => {
+    pintar({ platos: [{ id: 8, name: 'Merluza', slots: ['comida'], per_serving: { kcal: 400 } }] })
+    await userEvent.click(screen.getByRole('button', { name: 'Lo cambié' }))
+    expect(screen.getByText('¿Por cuál?')).toBeInTheDocument()
+    expect(screen.queryByText('Tienes en casa')).not.toBeInTheDocument()
+  })
+
   it('sin otro plato para esa comida lo dice', async () => {
     pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Lo cambié' }))

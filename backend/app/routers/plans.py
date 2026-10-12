@@ -23,6 +23,7 @@ from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_user
 from ..db import get_session
+from ..despensa import alimentos_en_casa
 from ..food_groups import familia
 from ..models import (
     BodyWeight,
@@ -40,7 +41,7 @@ from ..models import (
 )
 from ..nutrition import NUTRIENTS, Ajustable, calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
 from ..nutrition import gramos_de_fraccion
-from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar, reajustar_dia
+from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar, peso_en_casa, reajustar_dia
 from ..shopping import lista
 from ..taski import Taski, get_taski, pendientes
 from ..taski import Unreachable as TaskiUnreachable
@@ -121,7 +122,10 @@ HOLGURA_PAUTA = (0.5, 2.0)
 
 
 async def _candidatos(
-    session: AsyncSession, user_id: int, holgura: frozenset[int] = frozenset()
+    session: AsyncSession,
+    user_id: int,
+    holgura: frozenset[int] = frozenset(),
+    en_casa: frozenset[int] = frozenset(),
 ) -> Repertorio:
     """Los platos, vistos como el generador los necesita.
 
@@ -216,6 +220,8 @@ async def _candidatos(
                 bloque=dish.is_block,
                 fijo=fijo,
                 ajustables=tuple(ajustables),
+                # Fase 6.2: lo que hay en casa pesa más al elegir.
+                puntuacion=peso_en_casa([i.food_id for i in dish.ingredients], en_casa),
             )
         )
     return Repertorio(candidatos=candidatos, base=base, movibles=movibles)
@@ -478,7 +484,12 @@ async def generate_plan(
     dias = _semana(payload.week_start)
     pauta = await _pauta_vigente(session, user_id, payload.week_start)
     fijados = {(e.weekday, e.slot): e.dish_id for e in pauta.entries} if pauta else {}
-    repertorio = await _candidatos(session, user_id, frozenset(fijados.values()))
+    repertorio = await _candidatos(
+        session,
+        user_id,
+        frozenset(fijados.values()),
+        frozenset(await alimentos_en_casa(session, user_id)),
+    )
     if not repertorio.candidatos:
         raise HTTPException(
             status_code=422,

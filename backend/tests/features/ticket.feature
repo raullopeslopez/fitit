@@ -39,3 +39,19 @@ Feature: The supermarket ticket says what I have at home
     Given no model to read tickets
     When I try to upload the ticket
     Then it says reading tickets is not available
+
+  # Fase 6.2: lo que hay en casa se nota en tus platos. Un plato dice cuántos de
+  # sus ingredientes compraste en las dos últimas semanas, que es lo que
+  # «Lo cambié» pone arriba y lo que hace pesar al generador.
+  Scenario: A dish says how many of its ingredients I have at home
+    Given the foods "Pollo" and "Patata"
+    And a dish "Pollo con patatas" with "Pollo" and "Patata"
+    When I save from the ticket only 1000 g of "Pollo"
+    Then "Pollo con patatas" has 1 of its 2 ingredients at home
+
+  Scenario: What I bought more than two weeks ago is no longer at home
+    Given the foods "Pollo" and "Patata"
+    And a dish "Pollo con patatas" with "Pollo" and "Patata"
+    When I save from the ticket 1000 g of "Pollo" bought 15 days ago
+    Then "Pollo con patatas" has 0 of its 2 ingredients at home
+    And I have nothing at home

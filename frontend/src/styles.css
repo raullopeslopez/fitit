@@ -6121,6 +6121,14 @@ button.draft-save {
 .plan-en-comida-acciones .plan-comer {
   grid-column: 1 / -1;
 }
+/* «Lo cambié» con lo de casa arriba: cada grupo envuelve sus chips como la
+   lista de siempre. */
+.plan-sustitutos {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 /* El ticket, ya guardado: lo guardado, la cuenta contra la lista y lo que falta. */
 .ticket-guardado,
 .ticket-cuenta,

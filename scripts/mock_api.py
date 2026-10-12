@@ -88,6 +88,13 @@ CASA = [
     {"id": 3, "name": "Merluza al horno", "kind": "casa", "servings": 1, "basis": "raw",
      "slots": ["cena"], "is_block": False, "per_serving": {"kcal": 500, "protein": 40}, "batch": None,
      "ingredients": [{"id": 11, "food_id": 7, "food_name": "Merluza", "grams": 250}]},
+    {"id": 4, "name": "Lentejas con verduras", "kind": "casa", "servings": 1, "basis": "raw",
+     "slots": ["comida"], "is_block": False, "per_serving": {"kcal": 540, "protein": 28}, "batch": None,
+     "at_home": 1, "ingredients": [{"id": 12, "food_id": 8, "food_name": "Lentejas", "grams": 80},
+                                   {"id": 13, "food_id": 9, "food_name": "Zanahoria", "grams": 100}]},
+    {"id": 5, "name": "Garbanzos con espinacas", "kind": "casa", "servings": 1, "basis": "raw",
+     "slots": ["comida"], "is_block": False, "per_serving": {"kcal": 580, "protein": 26}, "batch": None,
+     "at_home": 0, "ingredients": [{"id": 14, "food_id": 10, "food_name": "Garbanzos", "grams": 80}]},
 ]
 
 

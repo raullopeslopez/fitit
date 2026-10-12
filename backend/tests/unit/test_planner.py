@@ -248,3 +248,14 @@ def test_no_se_ajusta_lo_que_no_se_midio_pero_el_plan_sale():
     plan = generar(dias=SEMANA, candidatos=candidatos, objetivos=_objetivos(), seed=14)
     assert len(plan.entradas) == 7 * len(HUECOS)
     assert all(e.gramos == (70.0,) for e in plan.entradas)
+
+
+def test_a_dish_weighs_more_the_more_of_it_is_at_home():
+    """Fase 6.2: lo que hay en casa empuja al generador sin obligarlo. Nada en
+    casa pesa lo de siempre; todo en casa, el triple."""
+    from app.planner import peso_en_casa
+
+    assert peso_en_casa([1, 2], set()) == 1.0
+    assert peso_en_casa([1, 2], {1}) == 2.0
+    assert peso_en_casa([1, 2], {1, 2}) == 3.0
+    assert peso_en_casa([], {1}) == 1.0

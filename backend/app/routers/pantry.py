@@ -10,7 +10,7 @@ pantalla de revisión (CLAUDE.md). Lo que se guarda es lo revisado.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import func, select
@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
+from ..despensa import desde_cuando
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, read_ticket
 from ..models import Food, PantryItem, visible_foods
@@ -38,11 +39,6 @@ log = logging.getLogger("uvicorn.error")
 
 # Un ticket es una página o dos.
 MAX_TICKET_BYTES = 5 * 1024 * 1024
-
-# Lo que se cuenta como «en casa»: lo comprado en las dos últimas semanas. Sin
-# apuntar lo que se gasta, más atrás ya no se sabe si queda.
-EN_CASA = timedelta(days=14)
-
 
 async def get_ticket_reader():
     """Quien lee el ticket, o `None` si no hay clave. Dependencia para que los
@@ -162,7 +158,7 @@ async def read_pantry(
 ) -> list[PantryItemOut]:
     """Lo que hay en casa: lo comprado en las dos últimas semanas, sumado por
     alimento, lo más reciente primero."""
-    desde = food_log_date(datetime.now(UTC)) - EN_CASA
+    desde = desde_cuando()
     filas = (
         await session.execute(
             select(

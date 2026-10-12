@@ -22,6 +22,7 @@ from sqlalchemy.orm import selectinload
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
+from ..despensa import alimentos_en_casa
 from ..gemini import ModelUnavailable, suggest_dishes
 from ..models import Batch, Dish, DishIdea, DishIngredient, Food, LogEntry, User, visible_foods
 from ..naming import fold_exercise_name as fold
@@ -106,7 +107,9 @@ def _olla_out(olla: Batch | None) -> BatchOut | None:
     return BatchOut(id=olla.id, cooked_grams=olla.cooked_grams, cooked_on=olla.cooked_on)
 
 
-def _to_out(dish: Dish, foods: dict[int, Food], olla: Batch | None = None) -> DishOut:
+def _to_out(
+    dish: Dish, foods: dict[int, Food], olla: Batch | None = None, en_casa: set[int] = frozenset()
+) -> DishOut:
     pares = [(foods[i.food_id], i.grams) for i in dish.ingredients]
     totales, unknown = macros_de_plato(pares)
     return DishOut(
@@ -120,6 +123,7 @@ def _to_out(dish: Dish, foods: dict[int, Food], olla: Batch | None = None) -> Di
         kind=dish.kind,
         estimated=dish.estimated,
         batch=_olla_out(olla),
+        at_home=sum(1 for i in dish.ingredients if i.food_id in en_casa),
         ingredients=[
             {
                 "id": i.id,
@@ -251,7 +255,8 @@ async def list_dishes(
     ids = {i.food_id for d in dishes for i in d.ingredients}
     foods = await _foods(session, user_id, sorted(ids)) if ids else {}
     ollas = await _ollas(session, user_id, [d.id for d in dishes])
-    return [_to_out(dish, foods, ollas.get(dish.id)) for dish in dishes]
+    en_casa = await alimentos_en_casa(session, user_id)
+    return [_to_out(dish, foods, ollas.get(dish.id), en_casa) for dish in dishes]
 
 
 @router.get("/{dish_id}", response_model=DishOut)

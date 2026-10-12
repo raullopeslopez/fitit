@@ -131,6 +131,17 @@ class Plan:
 
 
 # --- candidatos ---------------------------------------------------------------
+def peso_en_casa(food_ids, en_casa) -> float:
+    """Cuánto pesa un plato al elegir según lo que hay en casa (fase 6.2): 1 sin
+    nada, hasta 3 con todo. Empuja sin obligar —la variedad y las reglas siguen
+    mandando—, que es lo que separa «tira de lo que sobró» de «cocina lo que
+    compraste»."""
+    distintos = set(food_ids)
+    if not distintos:
+        return 1.0
+    return 1.0 + 2.0 * len(distintos & set(en_casa)) / len(distintos)
+
+
 def _reglas_de_hueco(reglas, slot: str):
     return [
         regla

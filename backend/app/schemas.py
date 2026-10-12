@@ -967,6 +967,8 @@ class DishOut(BaseModel):
     estimated: bool = False
     # La olla vigente (fase 5): la última pesada de esta semana, o `None`.
     batch: BatchOut | None = None
+    # Cuántos de sus ingredientes hay en casa (fase 6.2), según los tickets.
+    at_home: int = 0
     ingredients: list[DishIngredientOut] = Field(default_factory=list)
     # Lo que se come de una vez, que es el número que acaba en el diario.
     # `None` en un nutriente significa que algún ingrediente no lo tenía medido.

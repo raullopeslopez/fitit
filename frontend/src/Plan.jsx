@@ -139,6 +139,14 @@ export function candidatos(platos, slot, salvo) {
 // la pantalla se mueve por días, así que alguien tiene que hacer esta cuenta.
 // En ISO y sin `Date` local: construir un `Date` de un `YYYY-MM-DD` lo lee como
 // medianoche UTC y en Madrid eso es el día anterior.
+// Un plato «está en casa» (fase 6.2) cuando al menos la mitad de sus
+// ingredientes salieron en un ticket de las dos últimas semanas. La sal y el
+// aceite no salen en cada compra; exigirlos todos no dejaría ninguno.
+export function enCasa(plato) {
+  const total = plato.ingredients?.length ?? 0
+  return total > 0 && (plato.at_home ?? 0) * 2 >= total
+}
+
 export function lunesDe(iso) {
   const [y, m, d] = iso.split('-').map(Number)
   const fecha = new Date(Date.UTC(y, m - 1, d))
@@ -458,24 +466,45 @@ export function PlanEnComida({
 
       {cambiando && (
         <div className="plan-cambiar">
-          <span className="card-eyebrow">¿Por cuál?</span>
           {otros.length === 0 ? (
-            <span className="hint">No tienes otro plato para esta comida.</span>
+            <>
+              <span className="card-eyebrow">¿Por cuál?</span>
+              <span className="hint">No tienes otro plato para esta comida.</span>
+            </>
+          ) : otros.some(enCasa) ? (
+            // Fase 6.2: lo que se puede cocinar con lo comprado, primero.
+            <>
+              <span className="card-eyebrow">Tienes en casa</span>
+              <div className="plan-sustitutos" role="group" aria-label="Tienes en casa">
+                {otros.filter(enCasa).map((plato) => (
+                  <Sustituto key={plato.id} plato={plato} busy={busy} onElegir={() => marcar('swapped', plato.id)} />
+                ))}
+              </div>
+              {otros.some((p) => !enCasa(p)) && (
+                <>
+                  <span className="card-eyebrow">Otros platos</span>
+                  <div className="plan-sustitutos" role="group" aria-label="Otros platos">
+                    {otros
+                      .filter((p) => !enCasa(p))
+                      .map((plato) => (
+                        <Sustituto
+                          key={plato.id}
+                          plato={plato}
+                          busy={busy}
+                          onElegir={() => marcar('swapped', plato.id)}
+                        />
+                      ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
-            otros.map((plato) => (
-              <button
-                key={plato.id}
-                type="button"
-                className="chip plan-sustituto"
-                disabled={busy}
-                onClick={() => marcar('swapped', plato.id)}
-              >
-                {plato.name}
-                {plato.per_serving?.kcal != null && (
-                  <span className="plan-sustituto-kcal">{formatMacro(plato.per_serving.kcal)} kcal</span>
-                )}
-              </button>
-            ))
+            <>
+              <span className="card-eyebrow">¿Por cuál?</span>
+              {otros.map((plato) => (
+                <Sustituto key={plato.id} plato={plato} busy={busy} onElegir={() => marcar('swapped', plato.id)} />
+              ))}
+            </>
           )}
           <button type="button" className="link-btn plan-cancelar" onClick={() => setCambiando(false)}>
             Cancelar
@@ -486,6 +515,17 @@ export function PlanEnComida({
       {!saltado && futuro && <p className="hint">Todavía no ha llegado.</p>}
       {error && <p className="alert">{error}</p>}
     </div>
+  )
+}
+
+function Sustituto({ plato, busy, onElegir }) {
+  return (
+    <button type="button" className="chip plan-sustituto" disabled={busy} onClick={onElegir}>
+      {plato.name}
+      {plato.per_serving?.kcal != null && (
+        <span className="plan-sustituto-kcal">{formatMacro(plato.per_serving.kcal)} kcal</span>
+      )}
+    </button>
   )
 }
 
