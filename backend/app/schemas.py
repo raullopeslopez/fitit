@@ -1283,7 +1283,12 @@ class PlanEntryPatch(BaseModel):
     ya se registró se corrige en el diario, que es donde está.
     """
 
-    status: Literal["done", "skipped", "swapped"]
+    # `out` y `unknown` (registro sin huecos, fase 2): comí fuera, con las líneas
+    # que revisaste en `items`; y «no sé», que dice la comida sin dar dato.
+    status: Literal["done", "skipped", "swapped", "out", "unknown"]
+    # Lo que comiste fuera, ya revisado: alimento y gramos por línea. Sólo con
+    # `out`, y entonces obligatorio.
+    items: list["OutItemIn"] | None = None
     # Con qué lo cambiaste, cuando `status` es `swapped`. Otro plato **tuyo**, y
     # no algo calculado desde el catálogo: «te propongo 210 g de tofu» suena
     # brillante y falla en la cocina, donde no hay tofu. Ausente es «lo cambié
@@ -1292,6 +1297,29 @@ class PlanEntryPatch(BaseModel):
     # El instante con el offset del móvil, igual que al registrar a mano: es lo
     # que decide en qué día alimentario cae. Ausente significa ahora.
     logged_at: datetime | None = None
+
+
+class OutItemIn(BaseModel):
+    food_id: int
+    grams: float = Field(gt=0)
+
+
+class OutEstimateIn(BaseModel):
+    """Lo que comiste fuera, contado con tus palabras, y si llevaba aceite o
+    salsa: es lo que una foto no ve y lo que más se equivoca al estimar."""
+
+    description: str = Field(min_length=1, max_length=500)
+    hidden_fat: bool
+
+
+class OutEstimateOut(BaseModel):
+    """Las líneas que el modelo leyó, casadas con alimentos. **No escribe nada**:
+    es la pantalla de revisión la que decide qué se guarda."""
+
+    lines: list["DraftLineOut"] = Field(default_factory=list)
+    # 'unreadable' | 'quota', como al leer un plan.
+    refusal: str | None = None
+    quota_scope: str | None = None
 
 
 class PlanEntryReplan(BaseModel):

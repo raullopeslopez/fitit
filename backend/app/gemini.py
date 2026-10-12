@@ -486,6 +486,63 @@ async def read_plan(
         raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
 
 
+# Lo que se le pide a una comida fuera de casa, y por qué así.
+#
+# Como el plan en PDF: el modelo **describe**, no calcula. Devuelve líneas de
+# ingrediente con gramos y las cifras salen de casarlas con el catálogo
+# (`build_draft_lines` + `nutrition.py`). Pedirle kcal sería pedirle lo que peor
+# hace: las apps de foto se quedan ~300 kcal cortas, casi todo en grasa que no se
+# ve. Por eso la pregunta del aceite la contesta quien comió, y entra aquí: con
+# «sí», una línea de aceite o salsa es obligatoria; con «no», prohibida.
+OUT_PROMPT = """Describes una comida que alguien ha comido fuera de casa, para apuntarla.
+
+Te dice lo que comió con sus palabras. Devuelve SOLO un objeto JSON. Sin markdown,
+sin explicación:
+
+{"lines": ["<una línea por ingrediente: '200 g lentejas guisadas'>"]}
+
+REGLAS:
+- Gramos de lo que se come, en una ración normal de restaurante en España.
+- Nombres de alimento simples y genéricos («pechuga de pollo», «patatas fritas»,
+  «pan blanco»), sin marcas.
+- Un plato con varios componentes va en varias líneas.
+- Ni calorías ni macros: se calculan aquí.
+{aceite}
+"""
+
+ACEITE_SI = "- Llevaba aceite o salsa: incluye una línea con el aceite o la salsa y sus gramos."
+ACEITE_NO = "- No llevaba aceite ni salsa a la vista: no añadas líneas de aceite ni de salsa."
+
+OUT_TIMEOUT = 30.0
+
+
+async def estimate_meal(
+    description: str,
+    hidden_fat: bool,
+    *,
+    api_key: str,
+    model: str,
+    timeout: float = OUT_TIMEOUT,
+    backoff: float = BACKOFF,
+    fallback: str | None = None,
+) -> dict:
+    """Manda la descripción y devuelve el JSON del modelo, sin juzgarlo."""
+    prompt = OUT_PROMPT.replace("{aceite}", ACEITE_SI if hidden_fat else ACEITE_NO)
+    parts = [{"text": prompt}, {"text": f"Lo que comió: {description}"}]
+    try:
+        return await _ask(
+            parts,
+            api_key=api_key,
+            model=model,
+            temperature=0,
+            timeout=timeout,
+            backoff=backoff,
+            fallback=fallback,
+        )
+    except ModelUnavailable as exc:
+        raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
+
+
 # Lo que se le pide para traer ideas con un alimento, y por qué así.
 #
 # Aquí el modelo no inventa: **busca**. Va con la herramienta `google_search` y

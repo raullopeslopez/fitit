@@ -133,3 +133,14 @@ Feature: When I plan the next week, the app asks whether I logged everything
     And a plan for the week to review where I said 3 meals
     When I ask about the weekly review
     Then it counts 3 of the planned meals as said
+
+  # Fase 2: «No sé» es una respuesta, no un dato. Ese día no se sabe qué se
+  # comió, y no puede contar como entero aunque todo esté dicho.
+  Scenario: A day with a meal I don't know does not count by the plan
+    Given I am a 35 year old man, 178 cm, weighing 78 kg
+    And my goal is to maintain
+    And I ate 2000 kcal a day in the two weeks before and 1000 in 2 meals a day in the week to review
+    And I said I don't know about every planned meal of the week to review
+    When I ask what I should eat
+    Then the proposal is 2000 kcal
+    And the proposal says 7 days were left out as half-logged

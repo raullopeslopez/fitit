@@ -5971,6 +5971,42 @@ button.draft-save {
 /* Lo planificado, dentro de su comida: en un recuadro discontinuo, que es lo
    que el plan dice, no algo que hayas comido. El mismo trazo que tenía el hueco
    vacío — y por lo mismo: pesa menos que lo registrado. */
+/* Comer fuera: contar, aceite sí/no, calcular, revisar. El textarea, el
+   mismo control que pegar un plan. */
+.fuera {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 6rem;
+}
+.fuera textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.8rem;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  outline: none;
+  resize: vertical;
+}
+.fuera textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.fuera-pregunta {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+.fuera-aceite {
+  display: flex;
+  gap: 0.5rem;
+}
+.fuera-accion {
+  min-height: 44px;
+}
 /* Lo que quedó sin decir ayer y anteayer, arriba de Comida. Cada fila es la
    misma tarjeta discontinua de dentro de su comida, sin el margen lateral del
    raíl: aquí no hay raíl. */
@@ -6023,11 +6059,18 @@ button.draft-save {
 .plan-en-comida.is-skipped .plan-en-comida-nombre {
   color: var(--muted);
 }
+/* Cinco salidas no caben en una fila a 430 px: «Lo comí», que es el caso
+   normal, a lo ancho; debajo las otras cuatro repartidas, sin que ninguna se
+   quede sola en una segunda línea. */
 .plan-en-comida-acciones {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  row-gap: 0.25rem;
+}
+.plan-en-comida-acciones .plan-comer {
+  grid-column: 1 / -1;
 }
 .plan-en-comida .hint {
   margin: 0;

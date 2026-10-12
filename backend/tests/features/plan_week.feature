@@ -180,3 +180,34 @@ Feature: The week, generated
     When I generate the week that holds tomorrow
     And I try to confirm the comida of tomorrow at 14:00 of that day
     Then it says that has not happened yet
+
+  # Registro sin huecos, fase 2: comer fuera. El modelo dice qué había en el
+  # plato y cuánto, en líneas; las cifras salen del catálogo, como al leer un
+  # plan. Nada se escribe hasta que la revisas.
+  Scenario: Eating out is estimated as lines matched to foods, and nothing is written
+    Given the foods "Lentejas" and "Aceite de oliva"
+    And the model reads "menú del día de lentejas" as "250 g lentejas" and "15 g aceite de oliva"
+    When I estimate "menú del día de lentejas" with oil or sauce
+    Then the estimate has the line "250 g lentejas" matched to "Lentejas"
+    And the model was told there was oil or sauce
+    And the diary of today is empty
+
+  Scenario: Saying I ate out writes the lines as estimated on that meal
+    Given a repertoire of 12 dishes
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the comida of today: 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    Then the diary of today has 2 estimated entries in the comida
+    And the plan says that meal is out
+
+  Scenario: Saying I don't know writes nothing and says the meal
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I say I don't know about the comida of today
+    Then the diary of today is empty
+    And the plan says that meal is unknown
+
+  Scenario: Without a model there is no estimate
+    Given no model to estimate meals
+    When I try to estimate "menú del día"
+    Then it says estimating is not available
