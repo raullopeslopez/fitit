@@ -4,6 +4,7 @@ import {
   muscleByDay,
   muscleRhythm,
   recordLadder,
+  sessionOn,
   sessionsPerPeriod,
   setsPerMuscle,
   trainingStats,
@@ -76,6 +77,14 @@ describe('muscleByDay', () => {
 describe('muscleRhythm', () => {
   const rhythm = muscleRhythm(LOG, { weeks: 4, endDate: SUNDAY })
   const row = (name) => rhythm.rows.find((r) => r.group === name)
+
+  // The row's detail opens on the last session, which may lie outside the
+  // window, so the row carries the date itself rather than leaving the card to
+  // find it again.
+  it('names the last day each muscle was trained', () => {
+    expect(row('Pecho').last).toBe('2026-07-20')
+    expect(row('Cuádriceps').last).toBe('2026-06-30')
+  })
 
   it('runs whole weeks back from the one you are in, ending today', () => {
     // Four weeks counting the current one: 29 jun, 6, 13 and 20 jul. Starting
@@ -617,5 +626,29 @@ describe('typicalWeekSets', () => {
   it('stops the day before the week it is measuring', () => {
     const days = [day('2026-07-15', 2), day('2026-07-06', 20)]
     expect(typicalWeekSets(days, '2026-07-13')).toBe(20)
+  })
+})
+
+// What a muscle took on one day, for the row that opens in Ritmo: by exercise,
+// most sets first. Only the sets whose own group is that muscle — a press is
+// Pecho's, not Tríceps', even though it pays Tríceps half a set elsewhere.
+describe('sessionOn', () => {
+  const day = trained(
+    '2026-07-20',
+    group('Pecho', 2, { exercise_name: 'Aperturas' }),
+    group('Pecho', 4, { exercise_name: 'Press banca' }),
+    group('Tríceps', 3, { exercise_name: 'Extensión en polea' }),
+  )
+
+  it('lists the exercises of that muscle that day, most sets first', () => {
+    expect(sessionOn([day], '2026-07-20', 'Pecho')).toEqual([
+      { name: 'Press banca', sets: 4 },
+      { name: 'Aperturas', sets: 2 },
+    ])
+  })
+
+  it('is empty for a day or a muscle with nothing logged', () => {
+    expect(sessionOn([day], '2026-07-21', 'Pecho')).toEqual([])
+    expect(sessionOn([day], '2026-07-20', 'Espalda')).toEqual([])
   })
 })

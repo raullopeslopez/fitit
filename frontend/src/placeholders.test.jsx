@@ -104,13 +104,14 @@ describe('placeholders de carga', () => {
     beforeEach(() => vi.useFakeTimers())
     afterEach(() => vi.useRealTimers())
 
-    it('reserva las dos tarjetas en vez de dejar la pantalla en blanco', async () => {
+    it('reserva la tarjeta de la pestaña en vez de dejar la pantalla en blanco', async () => {
       api.listDays.mockImplementation(never)
       const { container } = render(<Progress />)
       await tick(SHOW_AFTER_MS + 20)
 
+      // Una pestaña cada vez: abre en Series y reserva su tarjeta.
+      expect(screen.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true')
       expect(screen.getByText('Series por músculo')).toBeInTheDocument()
-      expect(screen.getByText('Ritmo por músculo')).toBeInTheDocument()
       // La forma de la tarjeta de verdad: la cifra con su medidor y una lista
       // corta debajo. Ningún número inventado: sólo bloques.
       expect(container.querySelector('.sum-tally')).toBeInTheDocument()

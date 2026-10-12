@@ -107,6 +107,7 @@ export function muscleRhythm(days, { weeks = 4, endDate } = {}) {
       .map((group) => ({
         group,
         since: daysBetween(last[group], end),
+        last: last[group],
         days: dates.map((date) => ({ date, worked: (byDate[date]?.[group] || 0) > 0 })),
       }))
       // Longest untouched first: the row order *is* the answer to "what should I
@@ -116,6 +117,27 @@ export function muscleRhythm(days, { weeks = 4, endDate } = {}) {
           b.since - a.since || MUSCLE_GROUPS.indexOf(a.group) - MUSCLE_GROUPS.indexOf(b.group),
       ),
   }
+}
+
+// What one muscle took on one day: its exercises, most sets first. Read by the
+// row that opens in Ritmo, which shows the last session as the thing you would
+// repeat or change. Only sets whose own group is that muscle — the secondary
+// half-sets are Series' business, and listing a press under Tríceps would name
+// a lift you did not do for it.
+export function sessionOn(days, date, group) {
+  const counts = {}
+  for (const day of days) {
+    if (day.date !== date) continue
+    for (const workout of day.workouts) {
+      for (const set of workout.sets) {
+        if (set.muscle_group !== group) continue
+        counts[set.exercise_name] = (counts[set.exercise_name] || 0) + 1
+      }
+    }
+  }
+  return Object.entries(counts)
+    .map(([name, sets]) => ({ name, sets }))
+    .sort((a, b) => b.sets - a.sets || a.name.localeCompare(b.name))
 }
 
 // --- Periods -----------------------------------------------------------------

@@ -190,7 +190,7 @@ const SUM_NAMES = [52, 64, 46]
 export function SummarySkeleton() {
   return (
     <div className="card sum-card">
-      <h2 className="sum-title">Series por músculo</h2>
+      <h2 className="sum-title visually-hidden">Series por músculo</h2>
       <p className="sum-sub">
         <Bar w={132} h={11} />
       </p>
@@ -219,33 +219,30 @@ export function SummarySkeleton() {
   )
 }
 
-const RHYTHM_DAYS = 28
-
+// La forma de la lista de Ritmo: nombre y frecuencia a la izquierda, cuánto
+// hace a la derecha. Sin cifras inventadas.
 export function RhythmSkeleton() {
   return (
-    <div className="card card-raised">
-      <h2>Ritmo por músculo</h2>
-      <div className="rhythm" style={{ '--days': String(RHYTHM_DAYS) }}>
+    <div className="card card-raised rhythm-card">
+      <h2 className="visually-hidden">Ritmo por músculo</h2>
+      <ul className="rhythm-list">
         {SUM_NAMES.map((w, i) => (
-          <div className="rhythm-row" key={i}>
-            <span className="rhythm-name">
-              <Dot size={8} />
-              <Bar w={w} h={11} />
+          <li className="rhythm-item" key={i}>
+            <span className="rhythm-row">
+              <span className="rhythm-id">
+                <span className="rhythm-name">
+                  <Dot size={8} />
+                  <Bar w={w} h={12} />
+                </span>
+                <Bar w={120} h={11} />
+              </span>
+              <span className="rhythm-since">
+                <Bar w={64} h={12} strong />
+              </span>
             </span>
-            <div className="rhythm-track" aria-hidden="true">
-              {Array.from({ length: RHYTHM_DAYS }, (_, n) => (
-                <span
-                  className={`rhythm-day${n > 0 && n % 7 === 0 ? ' is-week-start' : ''}`}
-                  key={n}
-                />
-              ))}
-            </div>
-            <span className="rhythm-since">
-              <Bar w={20} h={10} strong />
-            </span>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

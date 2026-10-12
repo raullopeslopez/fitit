@@ -3039,141 +3039,241 @@ button.set-action {
   margin-bottom: 1rem;
 }
 
-/* --- Ritmo por músculo -------------------------------------------------------
+/* --- Progreso: las pestañas ---------------------------------------------------
 
-   A row per muscle, a day per column. This replaced a week-by-weekday calendar
-   whose cells carried muscle *and* volume at 21px: the volume duplicated the
-   period summary directly above (which states it as a number against a
-   reference), and the nine hues left over had to name the muscle by themselves,
-   which needs a nine-chip legend that does not fit a phone card.
-
-   Moving the muscle to the y axis pays for both. The name labels the row, so
-   the colour rides a mark beside its name — the scope the palette was approved
-   for — and the legend is gone. The marks are binary: what is left to read is
-   frequency, as density along a row, and the gap at the end of one.
-
-   The track is `1fr` columns, not a fixed cell size. A window of 22–28 days
-   (whole weeks back, cut at today) is a different number of columns every day
-   of the week, and the old fixed grid left three quarters of the card empty on
-   a young log. Here the days divide whatever width there is. */
-.rhythm {
-  --rh-gap: 2px;
+   Series, Ritmo y Evolución, una cada vez. Un selector redondo bajo la barra de
+   la app, como el de Tema en Perfil: tres palabras que se leen, 44px de alto. */
+.prog-tabs {
   display: grid;
-  /* name · track · days-since. One grid for the whole block, with the head, the
-     rows and the foot as `display: contents`, so the month labels, the marks
-     and the week numbers land on the same columns by construction — any layout
-     that measures the track twice drifts between them. */
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  column-gap: 8px;
-  row-gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  margin: 0 0 0.75rem;
+  border-radius: 9999px;
+  background: var(--surface);
 }
-.rhythm-head,
-.rhythm-row,
-.rhythm-foot {
-  display: contents;
+.prog-tab.prog-tab {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.prog-tab.is-active {
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* The card's name, kept for the screen reader: the tab above already says it
+   out loud, and saying it twice on screen is the `HOY`-chip mistake. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Ritmo por músculo ---------------------------------------------------------
+
+   One sentence per muscle — how many days in four weeks, how long ago — ordered
+   by the gap, longest first. The grid it replaced needed a legend; a sentence
+   does not. Each row opens, one at a time, on its last session and its four
+   weeks drawn day by day. */
+.rhythm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rhythm-item {
+  border-bottom: 1px solid var(--border);
+}
+.rhythm-item:last-child {
+  border-bottom: 0;
+}
+.rhythm-row.rhythm-row {
+  display: grid;
+  grid-template-columns: 1fr auto 12px;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 60px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.rhythm-id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
 }
 .rhythm-name {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
+  gap: 0.45rem;
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--text);
+}
+.rhythm-freq {
+  padding-left: calc(8px + 0.45rem);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.rhythm-since {
+  font-size: 0.85rem;
+  color: var(--muted);
   white-space: nowrap;
 }
-/* Same 8px as a Días breakdown part: on a 0.8rem line the 13px default becomes
-   the loudest thing on the row, and colour is never allowed to outrank the name
-   it belongs to. */
-.rhythm-name .dot {
+/* More than a week untouched: the one thing the order is there to surface. */
+.rhythm-row.is-cold .rhythm-since {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.rhythm-chev {
   width: 8px;
   height: 8px;
+  margin-top: -4px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 150ms ease-out;
 }
-.rhythm-track {
-  display: grid;
-  grid-template-columns: repeat(var(--days), 1fr);
-  gap: var(--rh-gap);
-  align-items: center;
+.rhythm-row[aria-expanded='true'] .rhythm-chev {
+  margin-top: 4px;
+  transform: rotate(-135deg);
 }
-.rhythm-day {
-  height: 8px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--muted) 14%, transparent);
+
+.rhythm-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0 1rem calc(8px + 0.45rem);
 }
-.rhythm-day.is-worked {
-  background: var(--m);
+/* What you would repeat or change: the last session of this muscle. */
+.rhythm-last {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  animation: rhythm-drop 220ms ease-out both;
 }
-/* Weeks are readable without a rule: the window starts on a Monday, so every
-   seventh column opens a hairline gap. It is what makes "twice a week" a shape
-   rather than a count. */
-.rhythm-day.is-week-start {
-  margin-left: 3px;
-}
-/* No mark on today's cell. The calendar outlined it, and here that outline is
-   drawn once per muscle: nine amber boxes stacked in a column that is always the
-   right-hand edge, right next to a number — they read as a row of checkboxes,
-   and they spend the effort colour on a position that never changes. Which week
-   you are in is said once instead, on the week number below. */
-.rhythm-months,
-.rhythm-weeks {
+.rhythm-last-lab {
+  margin: 0;
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text);
-}
-/* Anchored to the day the run starts on, not centred over it. A month or a week
-   can be two columns wide here, and a centred label on a 14px box overlaps its
-   neighbour; a left edge is unambiguous at any width. */
-.rhythm-months span,
-.rhythm-weeks span {
-  grid-column: span var(--cols, 1);
-  white-space: nowrap;
-  overflow: visible;
-}
-/* Micro is for stamps, and a stamp has no lowercase letter: at 0.7rem `ago`
-   read as a word set too small, `AGO` reads as a tick on a gauge. */
-.rhythm-months {
-  margin-bottom: 2px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--muted);
+}
+.rhythm-exs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.rhythm-ex {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+.rhythm-ex-sets {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* The four weeks, Monday first, the days still to come left blank. */
+.rhythm-cal {
+  display: grid;
+  grid-template-columns: 3.2rem repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.rhythm-cal-head {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+}
+.rhythm-cal-week {
+  display: contents;
+}
+.rhythm-week-lab {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.rhythm-weeks {
-  margin-top: 3px;
-}
-/* The week you are in, in accent ink — the same mark the calendar used to put
-   on its current column. */
-.rhythm-weeks span.is-current {
-  color: var(--accent-ink);
-}
-/* The only figure on the card, and the only one you can act on: everything else
-   here is something you already did. */
-.rhythm-since {
-  justify-self: end;
+.rhythm-cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border-radius: 4px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
   color: var(--muted);
+  animation: rhythm-fade 160ms ease-out both;
+  animation-delay: calc(120ms + var(--w, 0) * 70ms + var(--d, 0) * 22ms);
 }
-/* On a 390px phone the days come out around 10px each, which is the size this
-   is drawn for. On a 320px one the same 23 columns fall to 3.5px and a trained
-   day becomes a hairline — so the fixed furniture gives way first: a smaller
-   name, tighter gutters, and the marks keep something to be seen with. */
-@media (max-width: 380px) {
-  .rhythm {
-    --rh-gap: 1px;
-    column-gap: 6px;
+.rhythm-cal-day.is-worked {
+  background: var(--m);
+  color: var(--on-accent);
+  font-weight: 600;
+  animation-name: rhythm-pop;
+}
+.rhythm-cal-day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--text);
+}
+@keyframes rhythm-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
   }
-  .rhythm-name {
-    font-size: 0.8rem;
-    gap: 4px;
+}
+@keyframes rhythm-fade {
+  from {
+    opacity: 0.2;
   }
-  .rhythm-since {
-    font-size: 0.8rem;
+}
+@keyframes rhythm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
   }
-  .rhythm-day.is-week-start {
-    margin-left: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rhythm-last,
+  .rhythm-cal-day,
+  .rhythm-chev {
+    animation: none;
+    transition: none;
   }
 }
 

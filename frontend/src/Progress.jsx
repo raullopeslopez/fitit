@@ -785,7 +785,7 @@ export function PeriodSummary({ days }) {
           ("Evolución", "Ritmo por músculo"). It used to open on the period
           alone — "Esta semana" answers *when*, never *what*, so the one card
           the screen exists for was the only one that never named its subject. */}
-      <h2 className="sum-title">Series por músculo</h2>
+      <h2 className="sum-title visually-hidden">Series por músculo</h2>
       {/* An account with nothing in it has no period to be on: both arrows are
           dead, and `Mes` swaps one empty view for another. A first screen made
           of inert controls is worse than a first screen made of one sentence. */}
@@ -875,7 +875,18 @@ function frequencies(days) {
   return counts
 }
 
-export default function Progress() {
+// The three cards answer three different questions — how much (Series), how
+// often (Ritmo), how a lift is going (Evolución) — and stacked in one scroll
+// the second and third were always below the fold. One per tab, so the one you
+// came for has the screen to itself. `initialTab` opens on another one.
+const TABS = [
+  ['series', 'Series'],
+  ['ritmo', 'Ritmo'],
+  ['evolucion', 'Evolución'],
+]
+
+export default function Progress({ initialTab = 'series' }) {
+  const [tab, setTab] = useState(initialTab)
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
   const [days, setDays] = useState([]) // the whole log; everything here is derived from it
   // An empty log and a log that hasn't arrived are the same `[]`, and the
@@ -1359,25 +1370,47 @@ export default function Progress() {
 
   return (
     <section>
-      {/* First card on the screen, because it is the one number this screen
-          exists to answer: series por músculo esta semana. It used to sit at
-          the foot, under the calendar and the whole Evolución apparatus — three
-          scrolls down on a phone, which is where you put something you don't
-          expect to be read. */}
-      {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
+      <div className="prog-tabs" role="tablist" aria-label="Progreso">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`prog-tab-${id}`}
+            aria-selected={tab === id}
+            className={`prog-tab${tab === id ? ' is-active' : ''}`}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      {days.length > 0 ? (
-        <Rhythm days={days} />
-      ) : !daysLoaded && waiting ? (
-        <RhythmSkeleton />
-      ) : null}
+      {tab === 'series' && (
+        <div role="tabpanel" aria-labelledby="prog-tab-series">
+          {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
+        </div>
+      )}
+
+      {tab === 'ritmo' && (
+        <div role="tabpanel" aria-labelledby="prog-tab-ritmo">
+          {days.length > 0 ? (
+            <Rhythm days={days} />
+          ) : !daysLoaded && waiting ? (
+            <RhythmSkeleton />
+          ) : null}
+        </div>
+      )}
+
+      {tab === 'evolucion' && (
+      <div role="tabpanel" aria-labelledby="prog-tab-evolucion">
 
       {/* Not gated on exercises having loaded: the search box below is typeable
           the instant the screen mounts, so it must be on screen the instant the
           screen mounts. Gating the whole card on `exercises.length` held the
           box hostage to a request that hadn't resolved yet. */}
       <div className="card">
-        <h2>Evolución</h2>
+        <h2 className="visually-hidden">Evolución</h2>
         {/* The box finds what the chips can't reach: everything that isn't
             the most-trained lift of its group. One card, one job — a lift
             picked here or from the chips ends up on the same chart, so
@@ -1687,6 +1720,9 @@ export default function Progress() {
           onCancel={() => setConfirmingDelete(false)}
           onConfirm={deleteCurrent}
         />
+      )}
+
+      </div>
       )}
 
       {error && (
