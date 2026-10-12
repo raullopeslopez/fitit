@@ -143,6 +143,15 @@ export function recentlyTrained(excludeWorkoutId = null) {
   return apiFetch(`/exercises/recently-trained${query ? `?${query}` : ''}`)
 }
 
+// Lo que sueles hacer después de un ejercicio, lo más repetido primero (como
+// mucho 3). `excludeWorkoutId` es la sesión en curso, que aún no es costumbre.
+// Spec: backend/tests/features/next_exercise.feature
+export function nextExercises(after, excludeWorkoutId = null) {
+  const params = new URLSearchParams({ after })
+  if (excludeWorkoutId != null) params.set('exclude_workout_id', String(excludeWorkoutId))
+  return apiFetch(`/exercises/next?${params}`)
+}
+
 // The marks to beat for one exercise. `excludeWorkoutId` is the session you're
 // standing in: without it, a card rebuilt from an open workout is handed its
 // own sets as the thing to beat.
