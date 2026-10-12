@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.30.0: Evolución a peso corporal, en repeticiones.** Un ejercicio que nunca llevó
+  peso (Fondos) enseña `MÁS REPETICIONES · 30 reps`, `+10 reps desde julio`, y la línea
+  sigue las repeticiones. La gráfica va sin guías; los meses del eje no se pisan ni se cortan;
+  el récord más antiguo de `Marcas` ya no dice `primero` (#275).
 - **APK 0.29.0: Evolución, la serie más pesada de cada sesión.** En `Progreso → Evolución`,
   la serie más pesada en grande (`82.5 kg × 5`, `+7.5 kg desde julio`), una línea por cada
   sesión con los récords en anillo ámbar, `Récords · Sesiones · Desde la última` y la lista
