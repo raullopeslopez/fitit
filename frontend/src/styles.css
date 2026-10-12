@@ -7346,3 +7346,42 @@ button.draft-save {
   color: var(--text);
   white-space: nowrap;
 }
+
+/* ── Terminado ─────────────────────────────────────────────────────────────
+   Hoy ya llevas tantas series como la última vez: la serie que toca y las
+   fichas dejan sitio al resumen. Tu mejor serie de hoy es la cifra Display de
+   la pantalla; si el descanso sigue en marcha, la cifra es el anillo y ésta
+   baja un paso. «Otra serie» en gris: lo principal está en el pie. */
+.done-block {
+  border-bottom: none;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+.done-block .target-next {
+  margin: 0 0 0.5rem;
+}
+.done-figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.done-num {
+  font-size: 2.6rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.done-block.is-resting .done-num {
+  font-size: 1.6rem;
+}
+.done-unit {
+  font-size: 1rem;
+  color: var(--muted);
+}
+.done-sub {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.otra-serie {
+  min-height: 48px;
+}
