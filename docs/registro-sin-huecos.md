@@ -223,6 +223,15 @@ Importar cartas de cadenas que publiquen su información nutricional, como CIQUA
 script a mano, catálogo compartido, cifras exactas sin `~`. Antes, comprobar qué
 cadenas españolas la publican. Si ninguna, la fase no existe.
 
+**Comprobado (12 oct): no se hace.** Sólo Starbucks España publica tablas
+oficiales descargables (PDF por temporada, por ración y por 100 g). McDonald's,
+Burger King, KFC y Telepizza no dan nada oficial que se pueda descargar; lo que
+circula son bases de terceros (FatSecret, Fitia) sin garantía. En España no hay
+obligación de dar calorías en la carta. Tus datos no tienen comidas de cadena, y
+el usuario decidió cerrar la fase: el bar de siempre ya lo cubren tus sitios
+(fase 3). Si algún día vas a una cadena con frecuencia, el camino es un script
+de import al catálogo compartido, como CIQUAL.
+
 ## 5. Fuera de este plan
 
 - La foto con IA como verdad (se queda corta).
