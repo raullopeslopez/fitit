@@ -5,6 +5,7 @@ import {
   muscleRhythm,
   recordLadder,
   sessionOn,
+  sessionTops,
   sessionsPerPeriod,
   setsPerMuscle,
   trainingStats,
@@ -518,6 +519,43 @@ const BENCH = [
   trained('2026-07-10', [lift('Press banca', 82.5, 5), lift('Dominadas', 0, 10)]),
   trained('2026-07-01', [lift('Press banca', 80, 5)]),
 ]
+
+// The line Evolución draws: every session of one lift, by its heaviest set,
+// with the days that set a record marked. Nothing interpolated — a dip is a day
+// you really lifted less.
+describe('sessionTops', () => {
+  it('is one point per session, its heaviest set, oldest first', () => {
+    const days = [
+      trained('2026-07-25', [lift('Press banca', 80, 8), lift('Press banca', 82.5, 4)]),
+      ...BENCH,
+    ]
+    expect(sessionTops(days, 'Press banca')).toEqual([
+      { date: '2026-07-01', weight: 80, reps: 5, record: true },
+      { date: '2026-07-10', weight: 82.5, reps: 5, record: true },
+      { date: '2026-07-20', weight: 85, reps: 5, record: true },
+      { date: '2026-07-25', weight: 82.5, reps: 4, record: false },
+    ])
+  })
+
+  it('breaks a tie on weight by reps', () => {
+    const days = [trained('2026-07-01', [lift('Remo', 60, 6), lift('Remo', 60, 8)])]
+    expect(sessionTops(days, 'Remo')).toEqual([
+      { date: '2026-07-01', weight: 60, reps: 8, record: true },
+    ])
+  })
+
+  it('skips an unwritten 0 kg on a lift that has carried weight', () => {
+    const days = [
+      trained('2026-07-05', [lift('Curl', 0, 15)]),
+      trained('2026-07-01', [lift('Curl', 10, 12)]),
+    ]
+    expect(sessionTops(days, 'Curl').map((s) => s.date)).toEqual(['2026-07-01'])
+  })
+
+  it('is empty for an exercise that was never logged', () => {
+    expect(sessionTops(BENCH, 'Sentadilla')).toEqual([])
+  })
+})
 
 describe('recordLadder', () => {
   it('is the real records of one exercise, oldest first, first step included', () => {
