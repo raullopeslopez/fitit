@@ -593,6 +593,20 @@ export function importPlanText(text) {
   return apiFetch('/plans/import/text', { method: 'POST', body: JSON.stringify({ text }) })
 }
 
+// El ticket de la compra (fase 6.1): las líneas de comida casadas con
+// alimentos. No guarda nada; lo revisado va en `savePantry`.
+export function readTicket(file) {
+  const form = new FormData()
+  form.append('document', file)
+  return apiFetch('/pantry/ticket', { method: 'POST', body: form })
+}
+
+// Lo revisado del ticket, a lo que hay en casa. Contesta cómo fue la compra
+// contra la lista de `weekStart`.
+export function savePantry(items, weekStart) {
+  return apiFetch('/pantry', { method: 'POST', body: JSON.stringify({ items, week_start: weekStart }) })
+}
+
 // Guarda lo revisado de una vez: los platos nuevos y la pauta.
 export function saveImportedPlan(body) {
   return apiFetch('/plans/import/save', { method: 'POST', body: JSON.stringify(body) })

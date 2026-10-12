@@ -6121,6 +6121,14 @@ button.draft-save {
 .plan-en-comida-acciones .plan-comer {
   grid-column: 1 / -1;
 }
+/* El ticket, ya guardado: lo guardado, la cuenta contra la lista y lo que falta. */
+.ticket-guardado,
+.ticket-cuenta,
+.ticket-falta {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
 /* Tus platos → la olla del plato: el peso con su día, o el campo para pesarla. */
 .platos-olla {
   display: flex;

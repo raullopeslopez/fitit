@@ -12,6 +12,7 @@ import {
   importPlan,
   importPlanText,
   listDishes,
+  readTicket,
   saveImportedPlan,
 } from './api.js'
 
@@ -128,6 +129,29 @@ describe('la pantalla Plan', () => {
     getPlan.mockRejectedValue(new Error('red'))
     render(<PlanPantalla hoy={HOY} />)
     expect(await screen.findByText('No se ha podido cargar el plan.')).toBeInTheDocument()
+  })
+
+  describe('subir el ticket de la compra', () => {
+    const ticket = () => new File(['%PDF'], 'ticket.pdf', { type: 'application/pdf' })
+
+    it('subir el PDF lo lee y abre la revisión de la compra', async () => {
+      readTicket.mockResolvedValue({
+        lines: [{ text: '1000 g pollo', grams: 1000, status: 'chosen', food: { id: 1, name: 'Pollo' }, candidates: [] }],
+        refusal: null,
+      })
+      render(<PlanPantalla hoy={HOY} />)
+      expect(await screen.findByRole('button', { name: /Subir ticket/ })).toHaveTextContent('El PDF de la compra')
+      await userEvent.upload(screen.getByLabelText('PDF del ticket'), ticket())
+      expect(await screen.findByRole('dialog', { name: 'Ticket de la compra' })).toBeInTheDocument()
+      expect(readTicket).toHaveBeenCalled()
+    })
+
+    it('un ticket que no se entiende lo dice y deja la pantalla', async () => {
+      readTicket.mockResolvedValue({ lines: [], refusal: 'unreadable' })
+      render(<PlanPantalla hoy={HOY} />)
+      await userEvent.upload(await screen.findByLabelText('PDF del ticket'), ticket())
+      expect(await screen.findByText('No se ha podido leer el ticket.')).toBeInTheDocument()
+    })
   })
 
   describe('subir el plan del nutricionista', () => {

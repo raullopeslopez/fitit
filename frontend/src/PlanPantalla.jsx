@@ -5,6 +5,7 @@ import {
   getPlan,
   importPlan,
   importPlanText,
+  readTicket,
   listDishes,
   saveImportedPlan,
 } from './api.js'
@@ -13,6 +14,7 @@ import ImportarPlan from './ImportarPlan.jsx'
 import ListaCompra from './ListaCompra.jsx'
 import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import PlanificarSemana from './PlanificarSemana.jsx'
+import Ticket from './Ticket.jsx'
 import TusPlatos from './TusPlatos.jsx'
 import { ListRow } from './ui'
 
@@ -62,6 +64,18 @@ function errorDeSubida(err) {
   return 'No se ha podido leer el plan. Prueba otra vez.'
 }
 
+// Lo mismo para el ticket de la compra, que no es un plan.
+function errorDeTicket(err) {
+  if (err?.status === 415) return 'Sólo se leen PDF.'
+  if (err?.status === 413) return 'El PDF es demasiado grande.'
+  if (err?.status === 503) return 'La lectura de tickets no está disponible.'
+  return 'No se ha podido leer el ticket.'
+}
+
+function porQueNoSeLeeElTicket(respuesta) {
+  return respuesta?.refusal === 'quota' ? porQueNoSeLee(respuesta) : 'No se ha podido leer el ticket.'
+}
+
 // Una semana sin nada dicho todavía se puede rehacer con la pauta. Una con
 // comidas confirmadas no: regenerarla se llevaría lo que ya marcaste.
 function rehacible(plan) {
@@ -88,6 +102,10 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   // La semana cuya lista de la compra está abierta, o `null`.
   const [listaDe, setListaDe] = useState(null)
   const archivo = useRef(null)
+  // El ticket de la compra (fase 6.1): las líneas leídas mientras se revisan.
+  const [ticket, setTicket] = useState(null)
+  const [leyendoTicket, setLeyendoTicket] = useState(false)
+  const archivoTicket = useRef(null)
   // El cuadro para pegar a mano: `null` cerrado; si no, lo escrito en él.
   const [pegado, setPegado] = useState(null)
 
@@ -129,6 +147,22 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       setError(motivo(err))
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function subirTicket(file) {
+    if (!file) return
+    setLeyendoTicket(true)
+    setError(null)
+    setAviso(null)
+    try {
+      const respuesta = await readTicket(file)
+      if (respuesta?.refusal || !(respuesta?.lines ?? []).length) setError(porQueNoSeLeeElTicket(respuesta))
+      else setTicket(respuesta.lines)
+    } catch (err) {
+      setError(errorDeTicket(err))
+    } finally {
+      setLeyendoTicket(false)
     }
   }
 
@@ -228,6 +262,11 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     )
   }
 
+  if (ticket) {
+    const semana = segmento === 'esta' ? esta : viene
+    return <Ticket lineas={ticket} weekStart={semana} onClose={() => setTicket(null)} />
+  }
+
   if (listaDe) {
     return <ListaCompra weekStart={listaDe} onClose={() => setListaDe(null)} />
   }
@@ -309,6 +348,25 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
         hint="El que te escribe Claude"
         value=""
         onClick={pegar}
+      />
+      {/* Fase 6.1: después de comprar. Se compara con la lista de la semana
+          que se está mirando. */}
+      <ListRow
+        label={leyendoTicket ? 'Leyendo el ticket…' : 'Subir ticket'}
+        hint={leyendoTicket ? 'Puede tardar hasta un minuto.' : 'El PDF de la compra'}
+        value=""
+        onClick={() => !leyendoTicket && archivoTicket.current?.click()}
+      />
+      <input
+        ref={archivoTicket}
+        type="file"
+        accept="application/pdf"
+        aria-label="PDF del ticket"
+        hidden
+        onChange={(e) => {
+          subirTicket(e.target.files?.[0])
+          e.target.value = ''
+        }}
       />
       {pegado !== null && (
         <div className="card plan-pegar">

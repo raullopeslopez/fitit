@@ -199,6 +199,12 @@ candidatos, 4 ninguno. Emparejar lo hace un modelo y lo dudoso pasa por revisió
 **6.1 — Pegar el ticket.** Plan → «Pegar ticket» → «21 en tu lista · 2 fuera de
 lista · falta Merluza» → Guardar. Toques: 2 más la revisión si hay dudosos.
 
+**6.1 construido (12 oct):** «Subir ticket» (PDF) en Plan, no «Pegar»: el ticket
+digital llega como PDF. Con el ticket real del 5 jul el modelo devuelve 36 líneas
+de comida en gramos, sin limpieza ni pago. Lo revisado va a `pantry_items`; «en
+casa» es lo comprado en los últimos 14 días, sin descontar lo que se come. Se
+compara con la lista de la semana que se está mirando.
+
 **6.2 — Lo que tienes en casa.** «Otra cosa» abre con «Tienes en casa» arriba, y el
 plan de la semana siguiente tira de lo que sobró.
 

@@ -150,7 +150,10 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         n = int(self.headers.get("Content-Length") or 0)
-        body = json.loads(self.rfile.read(n) or b"{}")
+        crudo = self.rfile.read(n)
+        # Una subida (PDF) llega en multipart: no es JSON y no se lee.
+        es_json = "json" in (self.headers.get("Content-Type") or "")
+        body = json.loads(crudo or b"{}") if es_json else {}
         if self.path == "/plans/out/estimate":
             return self._send(200, {"refusal": None, "lines": [
                 {"text": "250 g lentejas estofadas", "quantity": 250, "unit": "g", "recipe_grams": 250,
@@ -166,6 +169,20 @@ class H(BaseHTTPRequestHandler):
         if m := re.fullmatch(r"/dishes/(\d+)/batches", self.path):
             print("POST batch", m[1], body, flush=True)
             return self._send(201, {"id": 9, "cooked_grams": body["cooked_grams"], "cooked_on": body["date"]})
+        if self.path == "/pantry/ticket":
+            return self._send(200, {"refusal": None, "lines": [
+                {"text": "1000 g melón", "grams": 1000, "status": "chosen",
+                 "food": {"id": 8, "name": "Melón"}, "candidates": []},
+                {"text": "6000 g leche semidesnatada sin lactosa", "grams": 6000, "status": "ambiguous",
+                 "food": None, "candidates": [{"id": 9, "name": "Leche semidesnatada sin lactosa"},
+                                              {"id": 10, "name": "Leche semidesnatada"}]},
+                {"text": "600 g relleno para fajitas", "grams": 600, "status": "missing",
+                 "food": None, "candidates": []},
+            ]})
+        if self.path == "/pantry":
+            print("POST pantry", body, flush=True)
+            return self._send(201, {"saved": len(body["items"]), "in_list": 21, "off_list": 2,
+                                    "missing": ["Merluza"]})
         if self.path == "/plans":
             w = body.get("week_start")
             PLANES[w] = plan(date.fromisoformat(w))

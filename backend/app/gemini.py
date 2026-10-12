@@ -543,6 +543,64 @@ async def estimate_meal(
         raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
 
 
+# Lo que se le pide a un ticket de la compra (registro sin huecos, fase 6.1).
+#
+# El de Mercadona trae unidades, una descripción en mayúsculas cortada a 20
+# caracteres y el precio; lo de peso lleva los kg en otra línea. No trae código
+# de producto, mezcla comida con lo que no lo es y acaba con los datos de pago.
+# El modelo hace lo que una expresión regular no puede: deshacer «LECHE SEMI
+# DESNAT» en «leche semidesnatada» y pasar «6 x 1 L» a gramos. Las cifras
+# siguen saliendo del catálogo.
+TICKET_PROMPT = """Lees el ticket de una compra de supermercado en PDF.
+
+Devuelve SOLO un objeto JSON. Sin markdown, sin explicación:
+
+{"lines": ["<una línea por producto de comida o bebida: '1200 g plátano'>"]}
+
+REGLAS:
+- Sólo comida y bebida. Nada de limpieza, higiene, bolsas, mascotas ni
+  descuentos.
+- Ignora la cabecera, los totales, el IVA, la forma de pago y cualquier dato de
+  la tarjeta.
+- Cada línea empieza por lo comprado **en gramos**, el total de esa línea: con
+  unidades, multiplica (6 briks de 1 L de leche son '6000 g leche'); con kg,
+  pásalos a gramos; con piezas sin peso, estima el de una pieza normal.
+- Después, el nombre del alimento simple y genérico en español, sin marca y
+  sin abreviaturas: 'LECHE SEMI DESNAT' es 'leche semidesnatada'.
+- Ni calorías ni macros: se calculan aquí.
+"""
+
+TICKET_TIMEOUT = 60.0
+
+
+async def read_ticket(
+    document: bytes,
+    *,
+    api_key: str,
+    model: str,
+    timeout: float = TICKET_TIMEOUT,
+    backoff: float = BACKOFF,
+    fallback: str | None = None,
+) -> dict:
+    """Manda el PDF del ticket y devuelve el JSON del modelo, sin juzgarlo."""
+    parts = [
+        {"inline_data": {"mime_type": "application/pdf", "data": base64.b64encode(document).decode()}},
+        {"text": TICKET_PROMPT},
+    ]
+    try:
+        return await _ask(
+            parts,
+            api_key=api_key,
+            model=model,
+            temperature=0,
+            timeout=timeout,
+            backoff=backoff,
+            fallback=fallback,
+        )
+    except ModelUnavailable as exc:
+        raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
+
+
 # Lo que se le pide para traer ideas con un alimento, y por qué así.
 #
 # Aquí el modelo no inventa: **busca**. Va con la herramienta `google_search` y

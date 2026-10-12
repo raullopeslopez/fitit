@@ -551,6 +551,22 @@ class Batch(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class PantryItem(Base):
+    """Algo que hay en casa: una línea revisada de un ticket de la compra
+    (registro sin huecos, fase 6.1). Un alimento y lo comprado en gramos, con el
+    día de la compra. No se descuenta lo que se come: «en casa» es lo comprado
+    hace poco (`EN_CASA`)."""
+
+    __tablename__ = "pantry_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"))
+    grams: Mapped[float] = mapped_column(Float)
+    bought_on: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class DishIngredient(Base):
     """Un alimento dentro de un plato, en gramos.
 

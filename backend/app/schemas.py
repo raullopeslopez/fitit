@@ -1351,6 +1351,42 @@ class OutEstimateOut(BaseModel):
     quota_scope: str | None = None
 
 
+class TicketOut(BaseModel):
+    """Las líneas de comida de un ticket, casadas con alimentos. **No escribe
+    nada**: lo leído pasa por revisión."""
+
+    lines: list["DraftLineOut"] = Field(default_factory=list)
+    # 'unreadable' | 'quota', como al leer un plan.
+    refusal: str | None = None
+    quota_scope: str | None = None
+
+
+class PantryIn(BaseModel):
+    """Lo revisado del ticket. `week_start`, la semana con cuya lista se compara
+    la compra; `date`, el día de la compra (ausente, hoy)."""
+
+    items: list[OutItemIn] = Field(min_length=1)
+    week_start: Date | None = None
+    date: Date | None = None
+
+
+class PantrySavedOut(BaseModel):
+    """Cuántos alimentos se guardaron y cómo fue la compra contra la lista.
+    `in_list` y `off_list` a `None` si esa semana no tiene lista."""
+
+    saved: int
+    in_list: int | None = None
+    off_list: int | None = None
+    missing: list[str] = Field(default_factory=list)
+
+
+class PantryItemOut(BaseModel):
+    food_id: int
+    name: str
+    grams: float
+    bought_on: Date
+
+
 class PlanEntryReplan(BaseModel):
     """Cambiar lo que el plan dice que vas a comer en un hueco que no ha pasado.
 
