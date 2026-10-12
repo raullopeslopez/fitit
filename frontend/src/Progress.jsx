@@ -14,14 +14,16 @@ import { deloadWeeks } from './deload.js'
 import { DeleteConfirm, damageFromDays } from './DeleteExercise.jsx'
 import { ExerciseEditor, MusclePicker } from './ExerciseEditor.jsx'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
-import { fold, formatMonth, formatRange } from './format.js'
+import { fold, formatIsoDayMonth, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
   deloadTargets,
+  lastTime,
   recordLadder,
+  sessionTops,
   sessionsPerPeriod,
   setsPerMuscle,
   typicalWeekSets,
@@ -33,45 +35,34 @@ const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
 
-// The climb of one lift: only the sessions where it actually went up. A step,
-// not a slope — nothing here is interpolated, so every corner is a day you did
-// it. The estimated-1RM curve this replaces drew a line through days you were
-// only maintaining, which reads as progress that never happened.
-function Ladder({ rungs, color }) {
-  const W = 320
-  const H = 130
-  const padL = 10
-  const padR = 14
-  const padT = 16
-  const padB = 26
-  const weights = rungs.map((r) => r.weight)
+// Every session of one lift, by its heaviest set, with the records ringed on
+// the line. Not an estimated 1RM: that curve was dropped because it rose
+// through days you were only maintaining. Here every point is a day you did
+// it, a dip is a day you lifted less, and the rings are the record ladder.
+function SessionChart({ sessions }) {
+  const W = 360
+  const H = 170
+  const padX = 6
+  const padT = 14
+  const padB = 28
+  const weights = sessions.map((s) => s.weight)
   const min = Math.min(...weights)
   const max = Math.max(...weights)
-  const span = max - min || 1
   const t = (iso) => {
     const [y, m, d] = iso.split('-').map(Number)
     return new Date(y, m - 1, d).getTime()
   }
-  const first = t(rungs[0].date)
-  const timeSpan = t(rungs.at(-1).date) - first || 1
-  const x = (rung) =>
-    rungs.length === 1
-      ? padL + (W - padL - padR) / 2
-      : padL + ((t(rung.date) - first) / timeSpan) * (W - padL - padR)
-  const y = (weight) => padT + (1 - (weight - min) / span) * (H - padT - padB)
-
-  // Hold the old mark until the day the new one landed, then step up.
-  const line = rungs
-    .flatMap((rung, i) => (i === 0 ? [[padL, y(rung.weight)]] : [
-      [x(rung), y(rungs[i - 1].weight)],
-      [x(rung), y(rung.weight)],
-    ]))
-    .map(([px, py]) => `${px},${py}`)
-    .join(' ')
-
+  const first = t(sessions[0].date)
+  const timeSpan = t(sessions.at(-1).date) - first || 1
+  const x = (s) =>
+    sessions.length === 1 ? W / 2 : padX + ((t(s.date) - first) / timeSpan) * (W - 2 * padX)
+  const bottom = H - padB
+  // A lift that never moved sits on the middle line, not the floor.
+  const y = (w) => (max === min ? (padT + bottom) / 2 : padT + (1 - (w - min) / (max - min)) * (bottom - padT))
+  const line = sessions.map((s) => `${x(s)},${y(s.weight)}`).join(' ')
   // A month tick only where the month changes, so the axis stays legible.
-  const ticks = rungs.filter(
-    (rung, i) => i === 0 || rung.date.slice(0, 7) !== rungs[i - 1].date.slice(0, 7),
+  const ticks = sessions.filter(
+    (s, i) => i === 0 || s.date.slice(0, 7) !== sessions[i - 1].date.slice(0, 7),
   )
 
   return (
@@ -86,57 +77,22 @@ function Ladder({ rungs, color }) {
       className="chart"
       data-editor-protect
       role="img"
-      aria-label="Récords reales"
+      aria-label="La serie más pesada de cada sesión"
     >
-      <line
-        x1="0"
-        x2={W}
-        y1={H - padB + 4}
-        y2={H - padB + 4}
-        stroke="var(--border)"
-        strokeWidth="1"
-      />
-      {rungs.length > 1 && <polyline fill="none" stroke={color} strokeWidth="2" points={line} />}
-      {rungs.map((rung, i) => {
-        const isLast = i === rungs.length - 1
-        // A label past the middle of the chart is hung to the left of its point,
-        // or it runs off the edge — the last rung sits on the right border by
-        // construction, so its label always would.
-        const inwards = x(rung) > W * 0.55
-        return (
-          <g key={`${rung.date}-${i}`}>
-            {/* Every point is the exercise's own muscle colour — mixing in the
-                PR amber for the last one reads as a different muscle when
-                that muscle happens to be Hombro's amber-adjacent hue. The
-                record gets an amber ring instead, same "outline, not a fill"
-                treatment as the PR badge on a logged set. */}
-            <circle
-              cx={x(rung)}
-              cy={y(rung.weight)}
-              r={isLast ? 5 : 4}
-              fill={color}
-              stroke={isLast ? 'var(--pr)' : 'none'}
-              strokeWidth={isLast ? 2 : 0}
-            />
-            <text
-              x={inwards ? x(rung) - 8 : x(rung) + 6}
-              y={y(rung.weight) - 6}
-              textAnchor={inwards ? 'end' : 'start'}
-              className={isLast ? 'chart-point-label is-last' : 'chart-point-label'}
-            >
-              {showKg(rung.weight)} × {rung.reps}
-            </text>
-          </g>
-        )
-      })}
-      {ticks.map((rung) => (
-        <text
-          key={`t${rung.date}`}
-          x={x(rung)}
-          y={H - 4}
-          className="chart-tick"
-        >
-          {formatMonth(rung.date).slice(0, 3)}
+      {[padT, (padT + bottom) / 2, bottom].map((gy) => (
+        <line key={gy} x1="0" x2={W} y1={gy} y2={gy} className="chart-grid" />
+      ))}
+      {sessions.length > 1 && <polyline className="chart-line" points={line} />}
+      {/* The record is an amber ring, "outline, not a fill" — the same
+          treatment as the PR badge on a logged set. */}
+      {sessions.map((s) =>
+        s.record ? (
+          <circle key={s.date} cx={x(s)} cy={y(s.weight)} r="4.5" className="chart-record" />
+        ) : null,
+      )}
+      {ticks.map((s) => (
+        <text key={`t${s.date}`} x={x(s)} y={H - 4} className="chart-tick">
+          {formatMonth(s.date).slice(0, 3)}
         </text>
       ))}
     </svg>
@@ -1347,6 +1303,8 @@ export default function Progress({ initialTab = 'series' }) {
   const current = exercises.find((e) => e.name === name)
   const rungs = name ? recordLadder(days, name) : []
   const gain = rungs.length > 1 ? rungs.at(-1).weight - rungs[0].weight : 0
+  const sessions = rungs.length ? sessionTops(days, name) : []
+  const sinceLast = rungs.length ? lastTime(days, name)?.daysAgo : null
   // What you typed, matched by substring. The native <datalist> this replaces
   // was a suggestion the browser showed when it felt like it, and never on a
   // phone — so "gemelo" found nothing and said nothing.
@@ -1505,6 +1463,7 @@ export default function Progress({ initialTab = 'series' }) {
             era la tercera puerta a lo mismo: una pantalla no puede tener dos
             formas distintas de arreglar un ejercicio. Ahora hay una, al pie, y
             el título vuelve a ser lo que parece: un título. */}
+        {current && rungs.length > 0 && <p className="evo-kicker">Serie más pesada</p>}
         {current && (
           <div className="chart-title">
             <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
@@ -1525,19 +1484,53 @@ export default function Progress({ initialTab = 'series' }) {
           </p>
         ) : (
           <>
-            <Ladder key={name} rungs={rungs} color={chartColor} />
-            <p className="chart-caption muted">
-              {name} · solo récords reales
+            {/* The heaviest set you have done, large — not an estimated 1RM:
+                nobody walks to the rack thinking "96.3 theoretical single". */}
+            <p className="evo-big">
+              <span className="evo-big-n">{showKg(rungs.at(-1).weight)}</span>
+              <span className="evo-big-unit">kg × {rungs.at(-1).reps}</span>
               {gain > 0 && (
-                <>
-                  {' · '}
-                  <span className="mono" style={{ color: 'var(--pr)' }}>
-                    +{showKg(gain)} kg
-                  </span>{' '}
-                  desde {formatMonth(rungs[0].date)}
-                </>
+                <span className="evo-gain">
+                  <span>+{showKg(gain)} kg</span> desde {formatMonth(rungs[0].date)}
+                </span>
               )}
             </p>
+            <p className="evo-note">Récord del {formatIsoDayMonth(rungs.at(-1).date)}</p>
+            <SessionChart key={name} sessions={sessions} />
+            <div className="evo-stats">
+              <div className="evo-stat">
+                <span className="evo-stat-n">{rungs.length}</span>
+                <span className="evo-stat-lab">Récords</span>
+              </div>
+              <div className="evo-stat">
+                <span className="evo-stat-n">{sessions.length}</span>
+                <span className="evo-stat-lab">Sesiones</span>
+              </div>
+              <div className="evo-stat">
+                <span className="evo-stat-n">
+                  {sinceLast == null ? '—' : sinceLast === 0 ? 'hoy' : `${sinceLast} d`}
+                </span>
+                <span className="evo-stat-lab">Desde la última</span>
+              </div>
+            </div>
+            <h3 className="evo-marks-title">Marcas</h3>
+            <ul className="evo-marks">
+              {[...rungs].reverse().map((r, i, all) => (
+                <li key={`${r.date}-${i}`} className="evo-mark">
+                  <span className="evo-mark-date">{formatIsoDayMonth(r.date)}</span>
+                  <span className="evo-mark-set">
+                    {showKg(r.weight)} × {r.reps}
+                  </span>
+                  <span className="evo-mark-up">
+                    {i < all.length - 1
+                      ? r.weight > all[i + 1].weight
+                        ? `+${showKg(r.weight - all[i + 1].weight)} kg`
+                        : `+${r.reps - all[i + 1].reps} reps`
+                      : 'primero'}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </>
         )}
         {/* Al pie de la tarjeta, según DESIGN.md — entre el título y la gráfica

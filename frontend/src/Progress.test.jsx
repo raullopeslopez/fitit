@@ -178,18 +178,59 @@ describe('Progress', () => {
     await charted('Sentadilla')
   })
 
-  // The last record sits on the right edge of the chart, so its label ran off
-  // the side: "30 × 15" rendered as "3(".
-  it('turns the last label inwards so it does not run off the chart', async () => {
+  // La gráfica es una línea por todas las sesiones, por su serie más pesada, y
+  // los récords son anillos sobre ella. Una bajada es un día que levantaste
+  // menos de verdad: nada se interpola.
+  it('draws every session by its heaviest set and rings only the records', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue([
+      { id: 4, date: '2026-07-25', workouts: [{ id: 4, sets: [bench(7, 82.5, 6)] }] },
+      ...BENCH_DAYS,
+    ])
+    const { container } = render(<Progress initialTab="evolucion" />)
+
+    await charted('Press banca')
+    const line = container.querySelector('svg.chart polyline')
+    expect(line.getAttribute('points').trim().split(/\s+/)).toHaveLength(4)
+    expect(container.querySelectorAll('svg.chart circle')).toHaveLength(3)
+  })
+
+  it('leads with the heaviest set, not an estimated 1RM', async () => {
     api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
     api.listDays.mockResolvedValue(BENCH_DAYS)
     const { container } = render(<Progress initialTab="evolucion" />)
 
-    await screen.findByRole('heading', { name: 'Evolución' })
-    const last = [...container.querySelectorAll('svg text')].find(
-      (t) => t.textContent === '85 × 5',
-    )
-    expect(last.getAttribute('text-anchor')).toBe('end')
+    await charted('Press banca')
+    expect(screen.getByText('Serie más pesada')).toBeInTheDocument()
+    expect(container.querySelector('.evo-big-n').textContent).toBe('85')
+    expect(container.querySelector('.evo-big-unit').textContent).toBe('kg × 5')
+    expect(screen.queryByText(/1RM/)).not.toBeInTheDocument()
+  })
+
+  it('counts records, sessions and the days since the last one', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue([
+      { id: 4, date: '2026-07-25', workouts: [{ id: 4, sets: [bench(7, 82.5, 6)] }] },
+      ...BENCH_DAYS,
+    ])
+    const { container } = render(<Progress initialTab="evolucion" />)
+
+    await charted('Press banca')
+    const stats = [...container.querySelectorAll('.evo-stat')].map((s) => s.textContent)
+    expect(stats[0]).toBe('3Récords')
+    expect(stats[1]).toBe('4Sesiones')
+    expect(stats[2]).toMatch(/Desde la última$/)
+  })
+
+  it('lists the records newest first, each with what it added', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    const { container } = render(<Progress initialTab="evolucion" />)
+
+    await charted('Press banca')
+    expect(screen.getByRole('heading', { name: 'Marcas' })).toBeInTheDocument()
+    const rows = [...container.querySelectorAll('.evo-mark')].map((r) => r.textContent)
+    expect(rows).toEqual(['20 jul85 × 5+2.5 kg', '10 jul82.5 × 5+2.5 kg', '1 jul80 × 5primero'])
   })
 
   it('says how much the climb was worth, and since when', async () => {
@@ -197,8 +238,7 @@ describe('Progress', () => {
     api.listDays.mockResolvedValue(BENCH_DAYS)
     render(<Progress initialTab="evolucion" />)
 
-    expect(await screen.findByText(/solo récords reales/i)).toBeInTheDocument()
-    expect(screen.getByText('+5 kg')).toBeInTheDocument()
+    expect(await screen.findByText('+5 kg')).toBeInTheDocument()
     expect(screen.getByText(/desde julio/i)).toBeInTheDocument()
   })
 

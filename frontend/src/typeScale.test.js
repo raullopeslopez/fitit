@@ -70,7 +70,6 @@ describe('escala tipográfica', () => {
     '.week-totals',
     '.day-rest-label',
     '.day-count-unit',
-    '.chart-point-label',
     '.rhythm-months, .rhythm-weeks',
     '.set-ix',
     '.idea-min small',

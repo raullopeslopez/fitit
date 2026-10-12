@@ -2983,26 +2983,146 @@ button.set-action {
   display: block;
   margin: 0.4rem 0;
 }
-.chart-caption {
-  margin: 0.2rem 0;
-  font-size: 0.85rem;
-}
-.chart-caption.muted {
+/* Evolución: the C layout — the lift's name, its heaviest set as the one big
+   figure on the screen, a line of every session with the records ringed, three
+   counts, and the records written out. */
+.evo-kicker {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--muted);
 }
-/* The chart's own type. It lived as `fontSize` attributes in the SVG, at 9–11px,
-   where no stylesheet rule could see it. Point labels are figures (`35 × 15`)
-   and axis ticks are stamps (`JUL`): both are Micro. */
-.chart-point-label {
+.evo-kicker + .chart-title {
+  min-height: 0;
+}
+.evo-kicker + .chart-title h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.evo-big {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0;
+}
+.evo-big-n {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
+  font-size: 2.6rem;
   font-weight: 400;
-  fill: var(--muted);
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
-.chart-point-label.is-last {
+.evo-big-unit {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--muted);
+}
+.evo-gain {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.evo-gain > span {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--pr);
+}
+.evo-note {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.chart-line {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-record {
+  fill: var(--surface);
+  stroke: var(--pr);
+  stroke-width: 2;
+}
+.evo-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0.75rem 0 0;
+  background: var(--border);
+  border-block: 1px solid var(--border);
+}
+.evo-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 0 0.75rem 0.75rem;
+  background: var(--surface);
+}
+.evo-stat-n {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
   font-weight: 600;
-  fill: var(--text);
+}
+.evo-stat-lab {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.evo-marks-title {
+  margin: 1.25rem 0 0.25rem;
+}
+.evo-marks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.evo-mark {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+}
+.evo-mark:last-child {
+  border-bottom: 0;
+}
+.evo-mark-date {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.evo-mark-set {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.evo-mark-up {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pr);
 }
 .chart-tick {
   font-family: var(--font-mono);

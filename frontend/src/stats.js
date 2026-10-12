@@ -503,6 +503,30 @@ export function recordLadder(days, exerciseName) {
   return rungs
 }
 
+// Every session of one exercise by its heaviest set, oldest first, with the
+// sessions that set a record marked. The line Evolución draws: one point per
+// day you did the lift, so a dip is a day you really lifted less — nothing is
+// interpolated, and the records are the ladder's own rungs, not a second rule.
+export function sessionTops(days, exerciseName) {
+  const history = historyOf(days, exerciseName).filter(isStrength)
+  const loaded = history.some((s) => s.weight > 0)
+  const records = new Set(recordLadder(days, exerciseName).map((r) => r.date))
+  const byDate = new Map()
+  for (const set of history) {
+    if (loaded && set.weight === 0) continue
+    const best = byDate.get(set.date)
+    if (!best || set.weight > best.weight || (set.weight === best.weight && set.reps > best.reps)) {
+      byDate.set(set.date, set)
+    }
+  }
+  return [...byDate.values()].map((s) => ({
+    date: s.date,
+    weight: s.weight,
+    reps: s.reps,
+    record: records.has(s.date),
+  }))
+}
+
 // The last session that included this exercise: when it was, how long ago, its
 // heaviest set (`top` — the mark to beat) and the one it ended on (`last`).
 // Null when the exercise has never been logged.
