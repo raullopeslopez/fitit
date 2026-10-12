@@ -188,6 +188,13 @@ describe('Enviar a Taski', () => {
     expect(await screen.findByText('Taski ya lo tenía todo')).toBeInTheDocument()
   })
 
+  it('mientras envía avisa de que Taski puede estar despertando', async () => {
+    montarConEnvio(vi.fn().mockReturnValue(new Promise(() => {})))
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar a Taski' }))
+    expect(screen.getByRole('button', { name: 'Enviando a Taski…' })).toBeDisabled()
+    expect(screen.getByText('Si Taski estaba dormido, tarda hasta un minuto.')).toBeInTheDocument()
+  })
+
   it('si Taski no contesta, lo dice y deja reintentar', async () => {
     montarConEnvio(vi.fn().mockRejectedValue(new Error('502')))
     await userEvent.click(await screen.findByRole('button', { name: 'Enviar a Taski' }))

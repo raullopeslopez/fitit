@@ -15,6 +15,7 @@ añade lo que falta. Lo ya tachado sí se vuelve a mandar — es otra compra.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from datetime import date
 
@@ -107,19 +108,33 @@ class Taski:
     # Taski duerme en el plan gratuito de Render y la primera llamada lo
     # despierta: puede tardar un minuto en contestar.
     TIMEOUT = 90.0
+    # Mientras arranca, Render puede contestar al momento con un 502/503/504 en
+    # vez de esperar (12 oct: el envío falló así en menos de un segundo). Esos
+    # se reintentan, unos 75 s en total; un 4xx es una respuesta y no.
+    DESPERTANDO = frozenset({502, 503, 504})
+    INTENTOS = 6
+    PAUSA = 15.0
 
-    def __init__(self, url: str, device_id: str):
+    def __init__(self, url: str, device_id: str, *, transport=None, dormir=asyncio.sleep):
         self.url = url.rstrip("/")
         self.headers = {"X-Device-ID": device_id}
+        self.transport = transport
+        self.dormir = dormir
 
     async def _llamar(self, metodo: str, ruta: str, **kwargs) -> httpx.Response:
-        try:
-            async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
-                respuesta = await client.request(metodo, self.url + ruta, headers=self.headers, **kwargs)
-                respuesta.raise_for_status()
-                return respuesta
-        except httpx.HTTPError as exc:
-            raise Unreachable(str(exc)) from exc
+        for intento in range(1, self.INTENTOS + 1):
+            try:
+                async with httpx.AsyncClient(timeout=self.TIMEOUT, transport=self.transport) as client:
+                    respuesta = await client.request(metodo, self.url + ruta, headers=self.headers, **kwargs)
+            except httpx.HTTPError as exc:
+                raise Unreachable(f"{metodo} {ruta}: {exc!r}") from exc
+            if respuesta.status_code in self.DESPERTANDO and intento < self.INTENTOS:
+                await self.dormir(self.PAUSA)
+                continue
+            if respuesta.is_error:
+                raise Unreachable(f"{metodo} {ruta}: {respuesta.status_code} {respuesta.text[:200]}")
+            return respuesta
+        raise AssertionError("inalcanzable")
 
     async def listar(self) -> list[dict]:
         return (await self._llamar("GET", "/shopping")).json()

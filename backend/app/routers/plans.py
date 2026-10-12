@@ -12,6 +12,7 @@ sólo habría una semana nueva sin nada con que medirla.
 """
 
 import json
+import logging
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -74,6 +75,7 @@ from ..schemas import (
 )
 from ..weight import tendencia
 
+log = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/plans", tags=["plans"])
 
 DIAS = 7
@@ -676,6 +678,8 @@ async def shopping_to_taski(
         for item in nuevos:
             await taski.anadir(item)
     except TaskiUnreachable as exc:
+        # Lo que contestó Taski, para que un fallo se pueda leer en el log.
+        log.warning("taski: %s", exc)
         raise HTTPException(status_code=502, detail="taski unreachable") from exc
     return ShoppingToTaskiOut(added=len(nuevos), already=total - len(nuevos))
 

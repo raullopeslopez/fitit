@@ -216,6 +216,9 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
             >
               {envio === 'enviando' ? 'Enviando a Taski…' : 'Enviar a Taski'}
             </button>
+            {/* Taski duerme en Render y el servidor lo espera hasta que arranca:
+                sin esto, un minuto con el botón gris parece colgado. */}
+            {envio === 'enviando' && <p className="hint">Si Taski estaba dormido, tarda hasta un minuto.</p>}
             {envio?.ok && <p className="hint">{envio.ok}</p>}
             {envio?.error && <p className="alert">{envio.error}</p>}
           </div>
