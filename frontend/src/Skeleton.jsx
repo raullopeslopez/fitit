@@ -90,9 +90,8 @@ export function DaysSkeleton() {
                       <Bar w={w} h={13} />
                     </span>
                     <span className="day-session-bottom">
-                      <Bar w={56} h={4} style={{ borderRadius: 2 }} />
-                      <span className="day-parts">
-                        <Bar w={62} h={11} />
+                      <span className="day-cells">
+                        <Bar w={107} h={8} style={{ borderRadius: 2 }} />
                       </span>
                       <Bar w={42} h={14} strong />
                     </span>

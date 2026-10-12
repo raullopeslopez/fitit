@@ -2,13 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
 import { buildBootSummary } from './coldstart.js'
-import {
-  formatDayStamp,
-  formatWeekLabel,
-  isoWeekStart,
-  sessionLength,
-  sessionMinutes,
-} from './format.js'
+import { buildHistory, CARDIO, muscleCounts } from './daysHistory.js'
+import { formatDayStamp, isoWeekStart, sessionLength, sessionMinutes } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { cacheBootSummary, forgetWorkout } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
@@ -25,18 +20,10 @@ function todayISO() {
   return foodDayIso()
 }
 
-// Cardio has no muscle group by design, so it gets its own bucket in the day
-// breakdown rather than falling in with the lifts nobody has tagged yet.
-const CARDIO = 'Cardio'
-
 // How long a press has to last to mean "act on this day" rather than "open it".
 // Long enough that a tap can't overshoot into it, short enough to be found by
 // somebody who suspects it's there.
 const LONG_PRESS_MS = 550
-
-// The canonical display order, used to break ties in the seam so two groups on
-// the same count don't swap places between renders.
-const PART_ORDER = [...MUSCLE_GROUPS, CARDIO, UNGROUPED]
 
 const ONE_DAY_MS = 86400000
 
@@ -52,28 +39,31 @@ function setsIn(day) {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
-// The list, cut into weeks. The one question a lifter asks this screen is "how
-// much have I done this week", and it could only be answered by counting rows —
-// so each run of days gets a mono rule naming its week and totalling it. No new
-// surface, one line of type, and the ruled entries get the section rhythm they
-// lacked. Runs, not a map: `days` arrives newest-first and stays that way, so
-// consecutive days in the same week are already adjacent.
-function weeksOf(days) {
-  const weeks = []
-  for (const day of days) {
-    const key = isoWeekStart(day.date)
-    const open = weeks[weeks.length - 1]
-    if (open && open.key === key) open.days.push(day)
-    else weeks.push({ key, days: [day] })
-  }
-  return weeks.map((week) => {
-    const sets = week.days.reduce((n, day) => n + setsIn(day), 0)
-    return {
-      ...week,
-      label: formatWeekLabel(week.key),
-      totals: `${plural(week.days.length, 'DÍA', 'DÍAS')} · ${plural(sets, 'SERIE', 'SERIES')}`,
-    }
-  })
+// Each week's rule names it and totals it: "how much have I done this week" was
+// answerable only by counting rows.
+function weekTotals(week) {
+  if (week.days.length === 0) return ''
+  return `${plural(week.days.length, 'DÍA', 'DÍAS')} · ${plural(week.sets, 'SERIE', 'SERIES')}`
+}
+
+// The muscle's colour at a strength that says how much of it there was: the
+// biggest group in full, the smallest still clearly lit, none an empty outline.
+function cellFill(group, sets, max) {
+  return `color-mix(in srgb, ${muscleColor(group)} ${Math.round(35 + (65 * sets) / max)}%, var(--surface))`
+}
+
+// A folded month's line: sessions spelled out, series as the list's unit.
+function monthTotals(item) {
+  return `${plural(item.sessions, 'entreno', 'entrenos')} · ${item.sets} ser`
+}
+
+const ABBR = (group) => group.slice(0, 3).toUpperCase()
+
+// What a day's tick is painted with: its main muscle's colour, cardio striped,
+// untagged muted, a day off empty.
+function tickStyle(part) {
+  if (!part || part === CARDIO) return undefined
+  return { background: part === UNGROUPED ? 'var(--muted)' : muscleColor(part) }
 }
 
 // The days between two trained ones, said out loud. Only trained days exist in
@@ -117,6 +107,15 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
   // Pasos por fecha, de Health Connect (steps.js). Un día que no está no tiene
   // dato y se dibuja sin cifra.
   const [steps, setSteps] = useState({})
+  // The folded rows opened in place: `w:` weeks, `m:` months, `y:` years.
+  const [expanded, setExpanded] = useState(() => new Set())
+  const toggle = (key) =>
+    setExpanded((open) => {
+      const next = new Set(open)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   // A press that became a hold must not also land as a tap on the row it was
   // held over: the sheet would open behind the session it just opened.
@@ -164,26 +163,6 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
   }, [days])
 
   useEffect(() => () => clearTimeout(pressTimer.current), [])
-
-  // What a session cost, per muscle, biggest first. Every set carries its own
-  // group, so this needs nothing the list didn't already fetch — it used to
-  // cross-reference /exercises by name, a second request and a map that went
-  // stale the moment you re-tagged a lift.
-  //
-  // Cardio and untagged sets keep their own entries rather than being dropped:
-  // the seam draws a proportion, and a proportion of some of the sets is a
-  // proportion of nothing. Ordered by size so the segment the label names is
-  // the one the eye lands on first, with the canonical order breaking ties.
-  function breakdownOf(workout) {
-    const counts = {}
-    for (const set of workout.sets) {
-      const key = set.kind === 'cardio' ? CARDIO : (set.muscle_group ?? UNGROUPED)
-      counts[key] = (counts[key] || 0) + 1
-    }
-    return PART_ORDER.filter((key) => counts[key])
-      .map((key) => ({ key, sets: counts[key] }))
-      .sort((a, b) => b.sets - a.sets || PART_ORDER.indexOf(a.key) - PART_ORDER.indexOf(b.key))
-  }
 
   function startPress(dayId) {
     heldRef.current = false
@@ -303,16 +282,10 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
 
   const currentWeek = isoWeekStart(todayISO())
   // The week you are in always has a rule, whether or not anything is written
-  // under it. `weeksOf` builds its runs out of the days that exist, so a week
-  // with nothing logged produced no rule at all and the screen opened on
-  // `SEMANA ANTERIOR` — the state this account is in every Monday morning, and
-  // the one morning the question "what should today be" is live. A week is a
-  // calendar week; the log fills it in, it does not define it.
-  const logged = days ? weeksOf(days) : []
-  const weeks =
-    days && logged[0]?.key !== currentWeek
-      ? [{ key: currentWeek, days: [], label: 'ESTA SEMANA', totals: '' }, ...logged]
-      : logged
+  // under it: a Monday with nothing logged is the one morning the question
+  // "what should today be" is live. Everything older than last week folds —
+  // `daysHistory.js` says how far.
+  const history = days ? buildHistory(days, todayISO()) : null
 
   function renderSession(day, w, isPast) {
     // The one state the list could not express: a session still running. It
@@ -320,7 +293,9 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     // by construction — an open session has no length to report yet.
     const live = day.date === todayISO() && !sessionLength(w)
     const took = sessionMinutes(w)
-    const parts = breakdownOf(w)
+    const counts = muscleCounts(w.sets)
+    const max = Math.max(1, ...Object.values(counts))
+    const named = MUSCLE_GROUPS.filter((g) => counts[g]).sort((a, b) => counts[b] - counts[a])
     return (
       <li className="day-session-row" key={w.id}>
         {/* Hand the workout over, not just its id: this list already holds
@@ -353,30 +328,29 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
             </span>
             {w.sets.length > 0 && (
               <span className="day-session-bottom">
-                {/* One fixed line whatever the session was. Naming every group
-                    wrapped to two or three lines, so a full-body day stood
-                    twice as tall as a push day and the list lost the rhythm
-                    you scan it by — and with four similar counts, marking the
-                    biggest in ink stopped saying anything at all. The seam
-                    carries the proportion on a mark, which is the only thing
-                    the muscle palette is ever allowed to do. */}
-                <span className="day-seam" aria-hidden="true">
-                  {parts.map((part) => (
+                {/* Ten fixed cells, one per muscle and always in the same
+                    place, lit by how many series it took. «Pecho +2» named the
+                    biggest group and hid the rest behind a count nobody could
+                    read; here the position is the name, taught once by the
+                    week's panel, and a column of rows reads as a pattern. */}
+                <span
+                  className="day-cells"
+                  role="img"
+                  aria-label={
+                    named.length
+                      ? named.map((g) => `${g} ${counts[g]}`).join(', ')
+                      : 'Sin grupo muscular'
+                  }
+                >
+                  {MUSCLE_GROUPS.map((g) => (
                     <span
-                      key={part.key}
-                      className={part.key === CARDIO ? 'seam-cardio' : undefined}
-                      style={{
-                        flexGrow: part.sets,
-                        ...(part.key === CARDIO ? {} : { background: muscleColor(part.key) }),
-                      }}
+                      key={g}
+                      className={`day-cell${counts[g] ? '' : ' is-empty'}`}
+                      data-group={g}
+                      data-sets={counts[g] || 0}
+                      style={counts[g] ? { background: cellFill(g, counts[g], max) } : undefined}
                     />
                   ))}
-                </span>
-                <span className="day-parts">
-                  <span className="day-part-top">{parts[0].key}</span>
-                  {parts.length > 1 && (
-                    <span className="day-part-rest"> +{parts.length - 1}</span>
-                  )}
                 </span>
                 <span className="day-session-count">
                   {w.sets.length}
@@ -419,63 +393,15 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     )
   }
 
-  return (
-    <section className="days">
-      {error && (
-        <p role="alert" className="alert">
-          {error}
-        </p>
-      )}
-
-      {days === null ? (
-        // `Cargando…` decía que la app seguía viva y nada más: ni reservaba la
-        // altura de la lista que venía ni decía en qué pantalla estabas, así
-        // que la lista entera aparecía de golpe encima de una frase.
-        waiting ? (
-          <DaysSkeleton />
-        ) : null
-      ) : days.length === 0 ? (
-        // Una cuenta nueva ve esta pantalla antes que ninguna otra, y la regla
-        // de la semana es verdad tanto si hay algo debajo como si no: sin ella
-        // la primera pantalla es una frase suelta sobre un fondo vacío. La
-        // frase, en el mismo par que usa Progreso —qué pasa, en tinta, y en qué
-        // se convierte esto, debajo y en muted— en lugar de una sola línea que
-        // decía "abajo" sin decir para qué.
-        <div className="week">
-          <div className="week-head">
-            <span className="week-label">ESTA SEMANA</span>
-            <span className="week-totals"></span>
-          </div>
-          <div className="days-first">
-            <p className="sum-empty">Aún no hay días registrados.</p>
-            <p className="hint sum-handover">
-              El botón de abajo abre la primera sesión. Al cerrarla, aparece aquí con su fecha,
-              sus músculos y sus series.
-            </p>
-          </div>
-        </div>
-      ) : (
-        weeks.map((week) => (
-          <div className="week" key={week.key}>
-            {/* One rule per week, the one you are in included. It carried the
-                whole volume block for a while — nine rows of sets per muscle,
-                above the log — and that pushed the day list, which is what this
-                tab is, below the fold to make room for a reading you cannot act
-                on mid-session. The block lives on Progreso, where the arrows and
-                the month and the deload switch already were; here the rule goes
-                back to naming a week and totalling it. */}
-            <div className="week-head">
-              <span className="week-label">{week.label}</span>
-              <span className="week-totals">{week.totals}</span>
-            </div>
-            {week.days.map((day, i) => {
-              // Rest markers only inside the week you are still filling.
-              // History doesn't need them: a week that is over is a week whose
-              // gaps you can't act on, and drawing them would make the older
-              // list mostly hairline.
+  // The days of a week, as the list has always drawn them: date in the gutter,
+  // sessions hanging off it. Rest markers only inside the week you are still
+  // filling — a week that is over has gaps you can't act on, and the folded
+  // rows already draw its seven days.
+  function renderDays(week, withRest) {
+    return week.days.map((day, i) => {
               const previous = week.days[i - 1]
               const rest =
-                week.key === currentWeek && previous ? restBetween(previous.date, day.date) : null
+                withRest && previous ? restBetween(previous.date, day.date) : null
               return (
                 <div className="day-slot" key={day.id}>
                   {rest && (
@@ -513,9 +439,177 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
                   </div>
                 </div>
               )
-            })}
+    })
+  }
+
+  // A finished week, per muscle: the ten cells with their names and series.
+  function renderWeekMuscles(week) {
+    if (week.sets === 0 || Object.keys(week.muscles).length === 0) return null
+    const max = Math.max(...Object.values(week.muscles))
+    return (
+      <div className="week-muscles">
+        {MUSCLE_GROUPS.map((g) => {
+          const n = week.muscles[g] || 0
+          return (
+            <span className="wm" key={g}>
+              <span className="wm-name">{ABBR(g)}</span>
+              <span
+                className={`wm-cell${n ? '' : ' is-empty'}`}
+                style={n ? { background: cellFill(g, n, max) } : undefined}
+              />
+              <span className="wm-count">{n || ''}</span>
+            </span>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // An older week, folded to one row: its dates, a tick per day from Monday to
+  // Sunday painted with that day's main muscle, its series. Tapping it opens the
+  // week in place. A week with nothing in it says so and opens nothing.
+  function renderWeekRow(week) {
+    if (week.sessions === 0) {
+      return (
+        <div className="hist-week is-empty" key={week.key}>
+          <span className="hist-range">{week.range}</span>
+          <span className="hist-none">Sin entrenos</span>
+        </div>
+      )
+    }
+    const open = expanded.has(`w:${week.key}`)
+    return (
+      <div className={`hist-week-wrap${open ? ' is-open' : ''}`} key={week.key}>
+        <button
+          type="button"
+          className="hist-week"
+          aria-expanded={open}
+          onClick={() => toggle(`w:${week.key}`)}
+        >
+          <span className="hist-range">{week.range}</span>
+          <span className="hist-ticks" aria-hidden="true">
+            {week.ticks.map((part, i) => (
+              <span
+                key={i}
+                className={`hist-tick${part === CARDIO ? ' is-cardio' : ''}${part ? '' : ' is-off'}`}
+                data-group={part ?? undefined}
+                style={tickStyle(part)}
+              />
+            ))}
+          </span>
+          <span className="hist-sets">{week.sets}</span>
+          <span className="hist-chevron" aria-hidden="true">›</span>
+        </button>
+        {open && (
+          <div className="week hist-open">
+            {renderWeekMuscles(week)}
+            {renderDays(week, false)}
           </div>
-        ))
+        )}
+      </div>
+    )
+  }
+
+  // A month (or a year) further back, folded to one row: how many sessions and
+  // series. A month opens into its weeks, a year into its months.
+  function renderFoldRow(item, kind) {
+    const open = expanded.has(`${kind}:${item.key}`)
+    return (
+      <div className={`hist-fold-wrap${open ? ' is-open' : ''}`} key={`${kind}:${item.key}`}>
+        <button
+          type="button"
+          className="hist-fold"
+          aria-expanded={open}
+          onClick={() => toggle(`${kind}:${item.key}`)}
+        >
+          <span className="hist-fold-name">{item.label}</span>
+          <span className="hist-totals">{monthTotals(item)}</span>
+          <span className="hist-chevron" aria-hidden="true">›</span>
+        </button>
+        {open && (
+          <div className="hist-fold-body">
+            {kind === 'y'
+              ? item.months.map((m) => renderFoldRow(m, 'm'))
+              : item.weeks.map(renderWeekRow)}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <section className="days">
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+
+      {days === null ? (
+        // `Cargando…` decía que la app seguía viva y nada más: ni reservaba la
+        // altura de la lista que venía ni decía en qué pantalla estabas, así
+        // que la lista entera aparecía de golpe encima de una frase.
+        waiting ? (
+          <DaysSkeleton />
+        ) : null
+      ) : days.length === 0 ? (
+        // Una cuenta nueva ve esta pantalla antes que ninguna otra, y la regla
+        // de la semana es verdad tanto si hay algo debajo como si no: sin ella
+        // la primera pantalla es una frase suelta sobre un fondo vacío. La
+        // frase, en el mismo par que usa Progreso —qué pasa, en tinta, y en qué
+        // se convierte esto, debajo y en muted— en lugar de una sola línea que
+        // decía "abajo" sin decir para qué.
+        <div className="week">
+          <div className="week-head">
+            <span className="week-label">ESTA SEMANA</span>
+            <span className="week-totals"></span>
+          </div>
+          <div className="days-first">
+            <p className="sum-empty">Aún no hay días registrados.</p>
+            <p className="hint sum-handover">
+              El botón de abajo abre la primera sesión. Al cerrarla, aparece aquí con su fecha,
+              sus músculos y sus series.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {history.detailed.map((week) => (
+            <div className="week" key={week.key}>
+              {/* One rule per week, the one you are in included, naming it and
+                  totalling it. A finished week also gets its muscles once,
+                  under the rule — the panel that teaches what each cell in the
+                  rows below stands for. The week in progress doesn't: it is
+                  still filling, and mid-session it is not a reading you use. */}
+              <div className="week-head">
+                <span className="week-label">{week.label}</span>
+                <span className="week-totals">{weekTotals(week)}</span>
+              </div>
+              {week.key !== currentWeek && renderWeekMuscles(week)}
+              {renderDays(week, week.key === currentWeek)}
+            </div>
+          ))}
+          {history.months.filter((m) => m.open).map((month) => (
+            <section className="hist-month" key={month.key}>
+              {/* The month's name rides the top of the screen while its weeks
+                  scroll under it: deep in the list, "where am I" is a month. */}
+              <div className="hist-month-head">
+                <h2 className="hist-month-name">{month.label}</h2>
+                <span className="hist-totals">{monthTotals(month)}</span>
+              </div>
+              {month.weeks.map(renderWeekRow)}
+            </section>
+          ))}
+          {(history.months.some((m) => !m.open) || history.years.length > 0) && (
+            <section className="hist-month">
+              <div className="hist-month-head">
+                <h2 className="week-label hist-before">ANTES</h2>
+              </div>
+              {history.months.filter((m) => !m.open).map((m) => renderFoldRow(m, 'm'))}
+              {history.years.map((y) => renderFoldRow(y, 'y'))}
+            </section>
+          )}
+        </>
       )}
 
       {/* The list scrolls; the way into a session doesn't. Pinned above the tab
