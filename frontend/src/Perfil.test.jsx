@@ -356,6 +356,17 @@ describe('Perfil', () => {
     expect(await screen.findByRole('dialog', { name: 'Tus reglas' })).toBeInTheDocument()
   })
 
+  it('«Tus sitios», en Comer fuera, abre la lista de sitios', async () => {
+    api.listDishes.mockResolvedValue([])
+    renderPerfil()
+
+    expect(await screen.findByRole('heading', { name: 'Comer fuera' })).toBeInTheDocument()
+    await userEvent.click(await fila('Tus sitios'))
+
+    expect(await screen.findByRole('dialog', { name: 'Tus sitios' })).toBeInTheDocument()
+    expect(api.listDishes).toHaveBeenCalledWith('', 'fuera')
+  })
+
   describe('Entreno', () => {
     it('el descanso entre series se elige aquí y se recuerda', async () => {
       renderPerfil()

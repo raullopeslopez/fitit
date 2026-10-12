@@ -63,6 +63,18 @@ def dia_comida(iso):
             "remaining_protein": 62, "unknown": {}}
 
 
+SITIOS = [
+    {"id": 70, "name": "Bar Paco", "kind": "fuera", "estimated": True, "servings": 1,
+     "basis": "cooked", "per_serving": {"kcal": 951.4},
+     "ingredients": [{"id": 1, "food_id": 1, "food_name": "Lentejas estofadas", "grams": 250},
+                     {"id": 2, "food_id": 2, "food_name": "Ternera, filete", "grams": 150},
+                     {"id": 3, "food_id": 4, "food_name": "Aceite de oliva", "grams": 15}]},
+    {"id": 71, "name": "Táper de mamá", "kind": "fuera", "estimated": False, "servings": 1,
+     "basis": "cooked", "per_serving": {"kcal": 620},
+     "ingredients": [{"id": 4, "food_id": 1, "food_name": "Lentejas estofadas", "grams": 400}]},
+]
+
+
 class H(BaseHTTPRequestHandler):
     def _send(self, code, body):
         data = json.dumps(body).encode()
@@ -86,6 +98,8 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, {"objetivo_kcal": 2150})
         if ruta == "/rules/verdicts":
             return self._send(200, {"verdicts": []})
+        if ruta == "/dishes" and "kind=fuera" in query:
+            return self._send(200, SITIOS)
         if ruta.startswith("/plans") or "adherence" in ruta:
             return self._send(404, {"detail": "no"})
         return self._send(200, [])

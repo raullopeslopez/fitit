@@ -29,6 +29,7 @@ from ..models import (
     DailyTarget,
     Day,
     Dish,
+    DishIngredient,
     Food,
     LogEntry,
     Pauta,
@@ -46,6 +47,7 @@ from .dishes import registrar_plato
 from ..config import settings
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, estimate_meal
+from ..naming import fold_exercise_name
 from ..rules import desde_fila
 from ..schemas import (
     AdherenceOut,
@@ -133,7 +135,11 @@ async def _candidatos(
     dishes = (
         (
             await session.execute(
-                select(Dish).options(selectinload(Dish.ingredients)).where(Dish.user_id == user_id)
+                select(Dish)
+                .options(selectinload(Dish.ingredients))
+                # Tus sitios son platos `fuera`: dónde comiste, no qué cocinas.
+                # El generador no los baraja (fase 4 los reserva aparte).
+                .where(Dish.user_id == user_id, Dish.kind == "casa")
             )
         )
         .scalars()
@@ -707,6 +713,76 @@ async def _registrar_fuera(session, user_id, items, moment, slot) -> list[LogEnt
     return entries
 
 
+async def _cerrar_fuera(session, user_id, fila: PlanEntry, payload: PlanEntryPatch) -> None:
+    """Apunta lo comido fuera: desde uno de tus sitios, desde las líneas
+    revisadas guardándolas como sitio nuevo, o desde las líneas sin más."""
+    moment = _momento_de(fila, payload.logged_at)
+    sitio = payload.dish_id
+    if payload.place_name:
+        nuevo = await _nuevo_sitio(session, user_id, payload.place_name, payload.items)
+        await session.flush()
+        sitio = nuevo.id
+    if sitio:
+        # Desde el sitio, con su `dish_id`: es lo que lo pone primero en tu
+        # lista la próxima vez.
+        entries = await _registrar_sitio(session, user_id, sitio, moment, fila.slot)
+    else:
+        entries = await _registrar_fuera(session, user_id, payload.items, moment, fila.slot)
+    fila.log_entry_id = entries[0].id if entries else None
+
+
+async def _nuevo_sitio(session, user_id, nombre, items) -> Dish:
+    """Lo comido fuera, guardado como uno de tus sitios (fase 3): un plato
+    `fuera` de una ración con las líneas que revisaste, marcado `estimated`
+    hasta que lo corrijas. Un nombre que ya usas es un 409: dos «Bar Paco» no
+    se distinguirían en la lista."""
+    folded = fold_exercise_name(nombre)
+    clash = (
+        await session.execute(select(Dish).where(Dish.user_id == user_id, Dish.name_folded == folded))
+    ).scalar_one_or_none()
+    if clash is not None:
+        raise HTTPException(status_code=409, detail={"motivo": f"ya tienes «{clash.name}»"})
+    dish = Dish(
+        user_id=user_id,
+        name=nombre.strip(),
+        name_folded=folded,
+        kind="fuera",
+        estimated=True,
+        servings=1,
+        basis="cooked",
+        ingredients=[DishIngredient(food_id=i.food_id, grams=i.grams) for i in items],
+    )
+    session.add(dish)
+    return dish
+
+
+async def _registrar_sitio(session, user_id, dish_id, moment, slot) -> list[LogEntry]:
+    """Uno de tus sitios, apuntado de un toque con sus líneas de una ración.
+    Lo escribe `registrar_plato`, que sabe si va como `estimated`."""
+    dish = (
+        await session.execute(
+            select(Dish)
+            .options(selectinload(Dish.ingredients))
+            .where(Dish.id == dish_id, Dish.user_id == user_id, Dish.kind == "fuera")
+        )
+    ).scalar_one_or_none()
+    if dish is None:
+        raise HTTPException(status_code=404, detail="place not found")
+    ids = [i.food_id for i in dish.ingredients]
+    foods = {f.id: f for f in (await session.execute(select(Food).where(Food.id.in_(ids)))).scalars()}
+    entries = await registrar_plato(
+        session,
+        dish=dish,
+        foods=foods,
+        user_id=user_id,
+        moment=moment,
+        meal_slot=slot,
+        gramos=[i.grams / (dish.servings or 1) for i in dish.ingredients],
+    )
+    await session.flush()
+    return entries
+
+
 async def get_meal_estimator():
     """Quien describe una comida de fuera, o `None` si no hay clave. Dependencia
     para que los tests la sustituyan, como `get_plan_reader`."""
@@ -797,12 +873,10 @@ async def correct_entry(
     # plato y con qué gramos. Saltárselo no escribe nada.
     escribe = payload.status == "done" or (payload.status == "swapped" and payload.dish_id)
     if payload.status == "out":
-        if not payload.items:
+        if not payload.items and not payload.dish_id:
             raise HTTPException(status_code=422, detail={"motivo": "falta qué comiste"})
         if fila.log_entry_id is None:
-            moment = _momento_de(fila, payload.logged_at)
-            entries = await _registrar_fuera(session, user_id, payload.items, moment, fila.slot)
-            fila.log_entry_id = entries[0].id if entries else None
+            await _cerrar_fuera(session, user_id, fila, payload)
     elif escribe and fila.log_entry_id is None:
         moment = payload.logged_at or datetime.now(UTC)
         # Un día pasado se cierra después, con la hora de aquel día (registro sin

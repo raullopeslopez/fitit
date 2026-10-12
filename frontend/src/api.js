@@ -417,9 +417,14 @@ export function weightTrend() {
 // Tus platos. Un plato **no es un alimento**: no sale en `searchFoods` y no se
 // da de alta por `createFood`. Un alimento es una medida; un plato es una
 // combinación tuya de medidas.
-export function listDishes(q = '') {
-  const query = q ? `?q=${encodeURIComponent(q)}` : ''
-  return apiFetch(`/dishes${query}`)
+// `kind = 'fuera'` son tus sitios (registro sin huecos, fase 3), del último en
+// que comiste al primero; sin él, tus platos de casa.
+export function listDishes(q = '', kind = null) {
+  const params = new URLSearchParams()
+  if (q) params.set('q', q)
+  if (kind) params.set('kind', kind)
+  const query = params.toString()
+  return apiFetch(`/dishes${query ? `?${query}` : ''}`)
 }
 
 export function createDish(dish) {
@@ -596,10 +601,19 @@ export function saveImportedPlan(body) {
 // Confirmar, saltar o cambiar una comida del plan. `done` escribe el diario con
 // los gramos que el plan congeló. El sello va con el offset del móvil, igual
 // que al registrar a mano: es lo que decide en qué día alimentario cae.
-export function setPlanEntry(entryId, status, dishId = null, loggedAt = foodMomentIso(), items = null) {
+// Con `out`: `items` revisados (y `placeName` para guardarlos como sitio), o
+// el `dishId` de uno de tus sitios.
+export function setPlanEntry(
+  entryId,
+  status,
+  dishId = null,
+  loggedAt = foodMomentIso(),
+  items = null,
+  placeName = null,
+) {
   return apiFetch(`/plans/entries/${entryId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, dish_id: dishId, logged_at: loggedAt, items }),
+    body: JSON.stringify({ status, dish_id: dishId, logged_at: loggedAt, items, place_name: placeName }),
   })
 }
 

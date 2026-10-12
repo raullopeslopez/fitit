@@ -515,6 +515,13 @@ class Dish(Base):
     idea_id: Mapped[int | None] = mapped_column(
         ForeignKey("dish_ideas.id"), nullable=True, index=True
     )
+    # 'casa' | 'fuera'. Un sitio donde comes fuera es un plato más, con sus
+    # líneas y su cifra por ración (registro sin huecos, fase 3), pero no es
+    # algo que cocines: ni sale en tus platos ni lo pone el generador.
+    kind: Mapped[str] = mapped_column(String(8), default="casa", server_default="casa")
+    # Los gramos los puso un modelo y nadie los ha corregido. Lo que se apunta
+    # desde aquí va como `estimated` hasta que lo corrijas.
+    estimated: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     ingredients: Mapped[list["DishIngredient"]] = relationship(

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { estimateOut } from './api.js'
+import { estimateOut, listDishes } from './api.js'
+import { formatMacro } from './food.js'
 import { Linea } from './ImportarPlan.jsx'
 
 // Lo que se guarda de lo revisado: cada línea con alimento y gramos. Una línea
@@ -11,6 +12,15 @@ export function aGuardar(estados) {
     .filter((l) => l.alimento != null && l.gramos != null && l.gramos > 0)
     .map((l) => ({ food_id: l.alimento, grams: l.gramos }))
 }
+
+// «Bar Paco · ~951 kcal». La virgulilla dice que es una cifra de fuera, no
+// una pesada; sin cifra, `—` (NULL no es 0).
+export function rotuloSitio(sitio) {
+  const kcal = sitio.per_serving?.kcal
+  return `${sitio.name} · ${kcal == null ? '—' : `~${formatMacro(kcal)}`} kcal`
+}
+
+const leerTusSitios = () => listDishes('', 'fuera')
 
 function porQueNo(respuesta) {
   if (respuesta?.refusal === 'quota') {
@@ -30,13 +40,46 @@ function porQueNo(respuesta) {
  * grasa que no se ve en una foto y por donde se quedan cortas las estimaciones.
  * Los gramos son de un modelo, así que esta pantalla es obligatoria (CLAUDE.md).
  */
-export default function Fuera({ estimar = estimateOut, guardar, onGuardado, onClose }) {
+export default function Fuera({
+  estimar = estimateOut,
+  guardar,
+  guardarSitio,
+  leerSitios = leerTusSitios,
+  onGuardado,
+  onClose,
+}) {
+  const [sitios, setSitios] = useState([])
+  const [sitio, setSitio] = useState('')
   const [texto, setTexto] = useState('')
   const [aceite, setAceite] = useState(null)
   const [lineas, setLineas] = useState(null)
   const [estados, setEstados] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+
+  // Fase 3: tus sitios, del último en que comiste al primero. Si no llegan, se
+  // cuenta como siempre: la lista es un atajo, no un paso.
+  useEffect(() => {
+    let vivo = true
+    leerSitios()
+      .then((lista) => vivo && setSitios(lista ?? []))
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [leerSitios])
+
+  async function apuntar(accion) {
+    setBusy(true)
+    setError(null)
+    try {
+      await accion()
+      await onGuardado()
+    } catch (err) {
+      setError(err?.detail?.motivo ? `No se ha podido guardar: ${err.detail.motivo}.` : 'No se ha podido guardar.')
+      setBusy(false)
+    }
+  }
 
   async function calcular() {
     setBusy(true)
@@ -56,16 +99,8 @@ export default function Fuera({ estimar = estimateOut, guardar, onGuardado, onCl
     }
   }
 
-  async function onGuardar() {
-    setBusy(true)
-    setError(null)
-    try {
-      await guardar(aGuardar(estados))
-      await onGuardado()
-    } catch (err) {
-      setError(err?.detail?.motivo ? `No se ha podido guardar: ${err.detail.motivo}.` : 'No se ha podido guardar.')
-      setBusy(false)
-    }
+  function onGuardar() {
+    return apuntar(() => guardar(aGuardar(estados), sitio.trim() || null))
   }
 
   const items = aGuardar(estados)
@@ -85,6 +120,26 @@ export default function Fuera({ estimar = estimateOut, guardar, onGuardado, onCl
       <div className="food-screen-body fuera">
         {lineas === null ? (
           <>
+            {sitios.length > 0 && (
+              <>
+                <span className="card-eyebrow">Tus sitios</span>
+                <ul className="fuera-sitios">
+                  {sitios.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        className="fuera-sitio"
+                        disabled={busy}
+                        onClick={() => apuntar(() => guardarSitio(s.id))}
+                      >
+                        {rotuloSitio(s)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <span className="card-eyebrow">Otro sitio</span>
+              </>
+            )}
             <textarea
               aria-label="Qué comiste"
               placeholder="Menú del día: lentejas, filete con patatas y flan"
@@ -132,6 +187,19 @@ export default function Fuera({ estimar = estimateOut, guardar, onGuardado, onCl
                 />
               ))}
             </ul>
+            {/* La primera vez se le pone nombre; la siguiente sale arriba y
+                cuesta un toque. Sin nombre, se apunta y no se guarda. */}
+            <label className="fuera-pregunta" htmlFor="fuera-sitio">
+              ¿Dónde? Para la próxima vez
+            </label>
+            <input
+              id="fuera-sitio"
+              className="fuera-nombre"
+              autoComplete="off"
+              placeholder="Bar Paco"
+              value={sitio}
+              onChange={(e) => setSitio(e.target.value)}
+            />
             {error && <p className="alert">{error}</p>}
             <button
               type="button"

@@ -661,3 +661,85 @@ def then_estimated(client, n, slot):
     entradas = _diario(client)["entries"]
     assert len(entradas) == n
     assert all(e["entry_source"] == "estimated" and e["meal_slot"] == slot for e in entradas)
+
+
+# --- registro sin huecos, fase 3: tus sitios ---------------------------------
+@when(
+    parsers.parse(
+        'I say I ate out the {slot:w} of today at "{sitio}": '
+        '{g1:d} g of "{f1}" and {g2:d} g of "{f2}"'
+    ),
+    target_fixture="confirmada",
+)
+def when_out_at(client, respuesta, alimentos, slot, sitio, g1, f1, g2, f2):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}",
+        json={
+            "status": "out",
+            "place_name": sitio,
+            "items": [
+                {"food_id": alimentos[f1], "grams": g1},
+                {"food_id": alimentos[f2], "grams": g2},
+            ],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def _sitio(client, nombre):
+    return next(d for d in client.get("/dishes?kind=fuera").json() if d["name"] == nombre)
+
+
+@when(
+    parsers.parse('I say I ate out the {slot:w} of today at my place "{sitio}"'),
+    target_fixture="confirmada",
+)
+def when_out_at_known(client, respuesta, slot, sitio):
+    entrada = _entrada(respuesta, _hoy(), slot)
+    resp = client.patch(
+        f"/plans/entries/{entrada['id']}",
+        json={"status": "out", "dish_id": _sitio(client, sitio)["id"]},
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(parsers.parse('I correct my place "{sitio}" to {gramos:d} g of "{food}"'))
+def when_correct_place(client, alimentos, sitio, gramos, food):
+    resp = client.patch(
+        f"/dishes/{_sitio(client, sitio)['id']}",
+        json={"ingredients": [{"food_id": alimentos[food], "grams": gramos}]},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["estimated"] is False
+
+
+@then(parsers.parse('my places are "{uno}"'))
+def then_places_one(client, uno):
+    sitios = client.get("/dishes?kind=fuera").json()
+    assert [d["name"] for d in sitios] == [uno]
+    assert sitios[0]["kind"] == "fuera" and sitios[0]["estimated"] is True
+
+
+@then(parsers.parse('my places are "{uno}" and "{otro}"'))
+def then_places_two(client, uno, otro):
+    assert [d["name"] for d in client.get("/dishes?kind=fuera").json()] == [uno, otro]
+
+
+@then(parsers.parse('my dishes do not include "{nombre}"'))
+def then_dishes_exclude(client, nombre):
+    assert nombre not in [d["name"] for d in client.get("/dishes").json()]
+
+
+@then(parsers.parse('the {slot:w} of today has {n:d} entries marked "{origen}"'))
+def then_slot_entries(client, slot, n, origen):
+    entradas = [e for e in _diario(client)["entries"] if e["meal_slot"] == slot]
+    assert len(entradas) == n
+    assert all(e["entry_source"] == origen for e in entradas)
+
+
+@then(parsers.parse('no meal of that week is "{nombre}"'))
+def then_week_without(respuesta, nombre):
+    assert nombre not in {e["dish_name"] for e in respuesta["entries"]}

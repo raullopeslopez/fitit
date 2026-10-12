@@ -12,9 +12,10 @@ Dos reglas de la casa gobiernan este fichero:
 """
 
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -86,6 +87,8 @@ def _to_out(dish: Dish, foods: dict[int, Food]) -> DishOut:
         method=dish.method,
         slots=dish.slots.split(",") if dish.slots else None,
         is_block=dish.is_block,
+        kind=dish.kind,
+        estimated=dish.estimated,
         ingredients=[
             {
                 "id": i.id,
@@ -186,14 +189,33 @@ async def preview_dish(
 @router.get("", response_model=list[DishOut])
 async def list_dishes(
     q: str = "",
+    kind: Literal["casa", "fuera"] = "casa",
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[DishOut]:
-    """Tus platos. `q` pliega igual que la búsqueda de alimentos."""
-    query = select(Dish).options(selectinload(Dish.ingredients)).where(Dish.user_id == user_id)
+    """Tus platos. `q` pliega igual que la búsqueda de alimentos.
+
+    Con `kind=fuera`, tus sitios, del último en que comiste al primero: es el
+    orden en que se vuelve a ellos. Uno sin entradas va al final, por nombre.
+    """
+    query = (
+        select(Dish)
+        .options(selectinload(Dish.ingredients))
+        .where(Dish.user_id == user_id, Dish.kind == kind)
+    )
     if q:
         query = query.where(Dish.name_folded.contains(fold(q)))
-    dishes = (await session.execute(query.order_by(Dish.name))).scalars().all()
+    if kind == "fuera":
+        ultima = (
+            select(func.max(LogEntry.id))
+            .where(LogEntry.dish_id == Dish.id)
+            .correlate(Dish)
+            .scalar_subquery()
+        )
+        query = query.order_by(ultima.desc().nulls_last(), Dish.name)
+    else:
+        query = query.order_by(Dish.name)
+    dishes = (await session.execute(query)).scalars().all()
     ids = {i.food_id for d in dishes for i in d.ingredients}
     foods = await _foods(session, user_id, sorted(ids)) if ids else {}
     return [_to_out(dish, foods) for dish in dishes]
@@ -216,7 +238,11 @@ async def correct_dish(
     session: AsyncSession = Depends(get_session),
 ) -> DishOut:
     """Corrige el plato. **No toca lo ya registrado**: las entradas del diario
-    llevan sus macros congelados y esto no las mira siquiera."""
+    llevan sus macros congelados y esto no las mira siquiera.
+
+    Corregir las líneas de un sitio lo hace tuyo: lo que se apunte desde él
+    deja de ser `estimated`. Lo ya apuntado sigue como se apuntó.
+    """
     dish = await _load(session, dish_id, user_id)
     fields = payload.model_dump(exclude_unset=True)
 
@@ -239,6 +265,7 @@ async def correct_dish(
             )
             for i in payload.ingredients
         ]
+        dish.estimated = False
 
     await session.commit()
     await session.refresh(dish, ["ingredients"])
@@ -309,7 +336,9 @@ async def registrar_plato(
             food_name_snapshot=food.name,
             grams=peso,
             nutrients_json=dump_nutrients(computed.pop("nutrients")),
-            entry_source="dish",
+            # Un sitio sin corregir apunta lo que estimó un modelo, y así se
+            # dice en el diario («~250 g · estimado»).
+            entry_source="estimated" if dish.estimated else "dish",
             dish_id=dish.id,
             **computed,
         )

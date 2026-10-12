@@ -12,6 +12,7 @@ import {
   setScreenAwake,
 } from './prefs.js'
 import Reglas from './Reglas.jsx'
+import TusSitios from './TusSitios.jsx'
 import { applyTheme, getThemePref, setThemePref } from './theme.js'
 import { Chip, ListRow, Sheet } from './ui'
 import Weight from './Weight.jsx'
@@ -206,6 +207,15 @@ export default function Perfil({ onLogout }) {
         </div>
       </section>
 
+      {/* Registro sin huecos, fase 3: donde comes fuera, con su cifra y
+          corregible. Se guardan solos al ponerles nombre en «Fuera». */}
+      <section className="perfil-seccion" aria-labelledby="perfil-fuera">
+        <h2 id="perfil-fuera">Comer fuera</h2>
+        <div className="perfil-card">
+          <ListRow label="Tus sitios" value="Ver" onClick={() => setHoja('sitios')} />
+        </div>
+      </section>
+
       <section className="perfil-seccion" aria-labelledby="perfil-entreno">
         <h2 id="perfil-entreno">Entreno</h2>
         <div className="perfil-card perfil-card-pad">
@@ -244,6 +254,7 @@ export default function Perfil({ onLogout }) {
       )}
       {hoja === 'sexo' && <HojaSexo perfil={p} onClose={cerrar} onSaved={recargar} />}
 
+      {hoja === 'sitios' && <TusSitios onClose={cerrar} />}
       {reglasOpen && <Reglas onChanged={() => {}} onClose={() => setReglasOpen(false)} />}
     </div>
   )

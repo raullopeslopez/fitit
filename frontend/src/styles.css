@@ -6007,6 +6007,55 @@ button.draft-save {
 .fuera-accion {
   min-height: 44px;
 }
+/* Tus sitios: una fila por sitio, a lo ancho, con su cifra. Tocarla lo
+   apunta: es el camino de dos toques. */
+.fuera-sitios {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.fuera-sitio {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.sitio-gramos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sitio-gramos input {
+  width: 4.5rem;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.fuera-nombre {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
 /* Lo que quedó sin decir ayer y anteayer, arriba de Comida. Cada fila es la
    misma tarjeta discontinua de dentro de su comida, sin el margen lateral del
    raíl: aquí no hay raíl. */

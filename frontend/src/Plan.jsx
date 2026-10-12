@@ -312,7 +312,10 @@ export function PlanEnComida({
 
       {fuera && (
         <Fuera
-          guardar={(items) => setEntry(entrada.id, 'out', null, momentForDay(entrada.log_date), items)}
+          guardar={(items, sitio) =>
+            setEntry(entrada.id, 'out', null, momentForDay(entrada.log_date), items, sitio)
+          }
+          guardarSitio={(dishId) => setEntry(entrada.id, 'out', dishId, momentForDay(entrada.log_date))}
           onGuardado={async () => {
             setFuera(false)
             onComido()

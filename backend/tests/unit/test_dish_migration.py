@@ -36,6 +36,9 @@ POSTERIORES = (
     "a9e4f27b0c15_add_plans.py",
     # `dishes.idea_id`: de qué idea salió el plato.
     "d6a2f84c19e3_dish_from_idea.py",
+    # `dishes.kind` / `estimated`: tus sitios, platos de fuera (registro sin
+    # huecos, fase 3).
+    "e7b3c94a2f18_dish_kind_fuera.py",
 )
 TABLES = ("dishes", "dish_ingredients")
 
@@ -90,6 +93,14 @@ def test_a_dish_always_says_how_it_is_weighed():
     schema = _migrated()
     assert schema["dishes"]["basis"] is False
     assert schema["dishes"]["user_id"] is False
+
+
+def test_a_dish_always_says_if_it_is_a_place():
+    """Todo plato que ya existía es de casa: `kind` y `estimated` no admiten
+    «no lo sé», o un sitio podría colarse en una semana generada."""
+    schema = _migrated()
+    assert schema["dishes"]["kind"] is False
+    assert schema["dishes"]["estimated"] is False
 
 
 def test_an_entry_survives_losing_its_dish():

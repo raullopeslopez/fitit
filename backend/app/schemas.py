@@ -947,6 +947,10 @@ class DishOut(BaseModel):
     method: DishMethod | None = None
     slots: list[MealSlot] | None = None
     is_block: bool = False
+    # 'fuera' es uno de tus sitios (registro sin huecos, fase 3); `estimated`,
+    # que sus gramos son de un modelo y nadie los ha corregido.
+    kind: str = "casa"
+    estimated: bool = False
     ingredients: list[DishIngredientOut] = Field(default_factory=list)
     # Lo que se come de una vez, que es el número que acaba en el diario.
     # `None` en un nutriente significa que algún ingrediente no lo tenía medido.
@@ -1289,6 +1293,9 @@ class PlanEntryPatch(BaseModel):
     # Lo que comiste fuera, ya revisado: alimento y gramos por línea. Sólo con
     # `out`, y entonces obligatorio.
     items: list["OutItemIn"] | None = None
+    # Dónde, para la próxima (fase 3): con `out` e `items`, guarda las líneas
+    # como uno de tus sitios. Para apuntar uno que ya tienes, su `dish_id`.
+    place_name: str | None = Field(default=None, min_length=1, max_length=160)
     # Con qué lo cambiaste, cuando `status` es `swapped`. Otro plato **tuyo**, y
     # no algo calculado desde el catálogo: «te propongo 210 g de tofu» suena
     # brillante y falla en la cocina, donde no hay tofu. Ausente es «lo cambié

@@ -211,3 +211,51 @@ Feature: The week, generated
     Given no model to estimate meals
     When I try to estimate "menú del día"
     Then it says estimating is not available
+
+  # Registro sin huecos, fase 3: tus sitios. La primera vez se le pone nombre al
+  # sitio y se guarda como un plato tuyo `fuera`; la segunda se apunta de un
+  # toque con su cifra. No es un plato de casa: ni sale en tus platos ni lo
+  # pone el generador en una semana.
+  Scenario: Naming where I ate out keeps it as one of my places
+    Given a repertoire of 12 dishes
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the comida of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    Then the diary of today has 2 estimated entries in the comida
+    And my places are "Bar Paco"
+    And my dishes do not include "Bar Paco"
+
+  Scenario: A known place is said in one go, with its figures
+    Given a repertoire of 12 dishes
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the comida of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    And I say I ate out the cena of today at my place "Bar Paco"
+    Then the cena of today has 2 entries marked "estimated"
+    And the plan says that meal is out
+
+  Scenario: The place I ate at last comes first
+    Given a repertoire of 12 dishes
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the comida of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    And I say I ate out the cena of today at "Táper de mamá": 300 g of "Lentejas" and 10 g of "Aceite de oliva"
+    Then my places are "Táper de mamá" and "Bar Paco"
+
+  Scenario: Correcting a place makes what I log there next mine, and leaves the old entries alone
+    Given a repertoire of 12 dishes
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the comida of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    And I correct my place "Bar Paco" to 300 g of "Lentejas"
+    And I say I ate out the cena of today at my place "Bar Paco"
+    Then the cena of today has 1 entries marked "dish"
+    And the comida of today has 2 entries marked "estimated"
+
+  Scenario: A generated week never puts one of my places in it
+    Given a repertoire of 12 dishes
+    And the foods "Lentejas" and "Aceite de oliva"
+    When I generate this week
+    And I say I ate out the comida of today at "Bar Paco": 250 g of "Lentejas" and 15 g of "Aceite de oliva"
+    And I generate the week of 2026-09-21
+    Then no meal of that week is "Bar Paco"
