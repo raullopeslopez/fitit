@@ -1558,21 +1558,6 @@ describe('Workout', () => {
     expect(card.querySelectorAll('.dot')).toHaveLength(1)
   })
 
-  // Abrir la hoja no levanta el teclado: taparía el grupo y la nota, que
-  // ahora están en la misma hoja. El foco entra en la hoja, no en el campo.
-  it('abrir la hoja no levanta el teclado', async () => {
-    api.getWorkout.mockResolvedValue(workoutWith(benchSet()))
-    api.listExercises.mockResolvedValue([
-      { id: 2, name: 'Bench Press', muscle_group: 'Pecho', set_count: 0 },
-    ])
-    renderWorkout()
-
-    await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
-    expect(document.activeElement).toBe(
-      screen.getByRole('dialog', { name: /^Editar Bench Press$/ }),
-    )
-  })
-
   // Spec: DESIGN.md "A search box must search" — the native <datalist> that
   // used to live here is surfaced by the browser when it feels like it, and on
   // a phone that is never.
@@ -1992,7 +1977,7 @@ describe('Workout', () => {
     describe('quitar el ejercicio del entreno', () => {
       const remove = async () => {
         await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio bench/i }))
-        await userEvent.click(screen.getByRole('button', { name: /^quitar del entreno$/i }))
+        await userEvent.click(screen.getByRole('button', { name: /^quitar$/i }))
       }
 
       it('no ofrece borrar el ejercicio entero desde aquí', async () => {
@@ -2001,7 +1986,7 @@ describe('Workout', () => {
 
         await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
         expect(screen.queryByRole('button', { name: /eliminar ejercicio/i })).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /^quitar del entreno$/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /^quitar$/i })).toBeInTheDocument()
       })
 
       it('dice cuántas series de hoy se van, y que el historial se queda', async () => {
@@ -2113,9 +2098,8 @@ describe('Workout', () => {
         await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
       }
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio Bench Press/i }))
-      const field = screen.getByLabelText(/nombre de Bench Press/i)
-      await userEvent.clear(field)
-      await userEvent.type(field, typed)
+      // Sin tocar el campo: la hoja se abre escribiendo.
+      await userEvent.keyboard(typed)
     }
 
     const results = () => within(screen.getByRole('list', { name: 'Ejercicios que ya tienes' }))
@@ -2126,19 +2110,38 @@ describe('Workout', () => {
 
       await search('r')
 
-      const names = results()
-        .getAllByRole('button')
-        .map((b) => b.textContent)
-      expect(names).toEqual(['Remo en máquina'])
+      const rows = results().getAllByRole('button')
+      expect(rows).toHaveLength(1)
+      // Con sus series de siempre al lado, para distinguir dos parecidos.
+      expect(results().getByRole('button', { name: 'Remo en máquina' })).toHaveTextContent(
+        /Remo en máquina\s*2/,
+      )
     })
 
-    it('no enseña nada mientras el campo dice el nombre que ya tiene', async () => {
+    // Variante B de la hoja: se abre escribiendo, con el teclado arriba. El
+    // campo ya no lleva el nombre puesto, que había que borrar antes de buscar.
+    it('se abre con el buscador vacío y enfocado, y dice qué series se mueven', async () => {
+      standing(benchSet(), benchSet({ id: 11, set_index: 1 }))
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
+
+      const sheet = screen.getByRole('dialog', { name: 'Bench Press: cambiar o quitar' })
+      expect(within(sheet).getByText('Las 2 series de hoy son de…')).toBeInTheDocument()
+      const field = within(sheet).getByRole('searchbox', { name: 'Buscar ejercicio' })
+      expect(field).toHaveValue('')
+      expect(field).toHaveAttribute('placeholder', 'Buscar otro ejercicio…')
+      expect(field).toHaveFocus()
+      expect(screen.queryByRole('list', { name: 'Ejercicios que ya tienes' })).not.toBeInTheDocument()
+    })
+
+    it('con una serie, el título va en singular', async () => {
       standing()
       renderWorkout()
 
       await userEvent.click(await screen.findByRole('button', { name: /editar ejercicio/i }))
 
-      expect(screen.queryByRole('list', { name: 'Ejercicios que ya tienes' })).not.toBeInTheDocument()
+      expect(screen.getByText('La serie de hoy es de…')).toBeInTheDocument()
     })
 
     it('elegir uno muda las series de esta sesión, sin renombrar ni fusionar', async () => {
@@ -2198,9 +2201,7 @@ describe('Workout', () => {
       const sheet = screen.getByRole('dialog')
       expect(within(sheet).queryByRole('radiogroup')).not.toBeInTheDocument()
       expect(within(sheet).queryByLabelText(/nota de/i)).not.toBeInTheDocument()
-      expect(
-        within(sheet).getByRole('button', { name: 'Quitar del entreno' }),
-      ).toBeInTheDocument()
+      expect(within(sheet).getByRole('button', { name: 'Quitar' })).toBeInTheDocument()
     })
 
     it('tras el cambio, en pantalla queda el ejercicio elegido', async () => {
@@ -2367,7 +2368,7 @@ describe('Workout', () => {
 
       await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio dominadas/i }))
-      await userEvent.click(screen.getByRole('button', { name: /^quitar del entreno$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^quitar$/i }))
 
       await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(0))
       expect(cardToggle('Remo')).toBeInTheDocument()
@@ -2460,7 +2461,7 @@ describe('Workout', () => {
     // Nunca llegó al servidor, así que no hay nada que borrar allí: «Sí,
     // eliminar» no hacía nada, y ahora que la tarjeta sobrevive a salir de la
     // app se habría quedado en el entreno sin forma de quitarla.
-    it('uno que nunca se guardó se quita con «Quitar del entreno», sin llamar al servidor', async () => {
+    it('uno que nunca se guardó se quita con «Quitar», sin llamar al servidor', async () => {
       api.listDays.mockResolvedValue([])
       api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
       api.getPreviousMarks.mockImplementation((name) =>
@@ -2472,7 +2473,7 @@ describe('Workout', () => {
       await userEvent.click(
         screen.getByRole('button', { name: /editar ejercicio sentadilla/i }),
       )
-      await userEvent.click(screen.getByRole('button', { name: /^quitar del entreno$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^quitar$/i }))
 
       // Sin series no hay nada que tasar: sale sin diálogo.
       await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(0))

@@ -587,7 +587,8 @@ function ExerciseCard({
               // salir otra cosa —no queda nada sin guardar cuando el editor se
               // cierra—, y por eso mismo se queda: es la comprobación de que lo
               // que ves al abrir es lo que hay guardado.
-              setNameDraft(name)
+              // En Entreno la hoja es un buscador: se abre vacía y escribiendo.
+              setNameDraft('')
               setEditorOpen(true)
             }}
           >
@@ -601,35 +602,36 @@ function ExerciseCard({
             onNameDraftChange={setNameDraft}
             candidates={candidates}
             onPick={(target) => onSwitchExercise(name, target)}
-            // Debajo del buscador, sólo lo que alcanza a este entreno.
-            more={
-              <>
-                {/* Quitarlo de *este* entreno. El borrado del ejercicio entero,
-                    con todo su historial, vive en Progreso: es la pantalla a la
-                    que vas a propósito (DESIGN.md), y aquí, a un pulgar de las
-                    series, un toque de más costaba meses de registro. Aquí
-                    «Eliminar» sólo alcanza a la sesión, y por eso le basta la
-                    palabra corta.
-
-                    Sin series de hoy no hay nada que perder: sale la tarjeta y
-                    ya está. Con series, se dice cuántas antes. */}
-                {onRemoveFromWorkout && (
-                  <button
-                    type="button"
-                    className="editor-row editor-row-danger delete-exercise"
-                    onClick={async () => {
-                      setEditorOpen(false)
-                      if (sets.length === 0) {
-                        await onRemoveFromWorkout(name)
-                        return
-                      }
-                      setConfirmRemove(true)
-                    }}
-                  >
-                    Quitar del entreno
-                  </button>
-                )}
-              </>
+            title={
+              sets.length === 0
+                ? 'Cambiar por…'
+                : sets.length === 1
+                  ? 'La serie de hoy es de…'
+                  : `Las ${sets.length} series de hoy son de…`
+            }
+            // Quitarlo de *este* entreno, arriba junto al aspa. El borrado del
+            // ejercicio entero, con todo su historial, vive en Progreso: es la
+            // pantalla a la que vas a propósito (DESIGN.md), y aquí, a un
+            // pulgar de las series, un toque de más costaba meses de registro.
+            // Sin series de hoy no hay nada que perder: sale y ya está. Con
+            // series, se dice cuántas antes.
+            headAction={
+              onRemoveFromWorkout && (
+                <button
+                  type="button"
+                  className="editor-quit delete-exercise"
+                  onClick={async () => {
+                    setEditorOpen(false)
+                    if (sets.length === 0) {
+                      await onRemoveFromWorkout(name)
+                      return
+                    }
+                    setConfirmRemove(true)
+                  }}
+                >
+                  Quitar
+                </button>
+              )
             }
           />
           {confirmRemove && (

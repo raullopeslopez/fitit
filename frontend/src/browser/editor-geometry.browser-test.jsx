@@ -64,9 +64,9 @@ const navBar = () => document.querySelector('nav.bottom-nav')
 const hitAt = (x, y) => document.elementFromPoint(x, y)
 
 // En Entreno la hoja sólo toca la sesión: ni grupo ni nota, y quitar es
-// «Quitar del entreno». El grupo es del ejercicio entero y vive en Progreso.
+// «Quitar», arriba junto al aspa. El grupo es del ejercicio entero y vive en Progreso.
 for (const [screenName, mount, deleteLabel, hasGroups] of [
-  ['Entreno', () => mountEntreno(), 'Quitar del entreno', false],
+  ['Entreno', () => mountEntreno(), 'Quitar', false],
   ['Progreso', () => mountProgreso(), 'Eliminar ejercicio', true],
 ]) {
   describe(`${screenName} · la hoja del editor`, () => {
