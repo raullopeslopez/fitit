@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.31.0: Pegar plan; Días, el historial se pliega con la edad.** En `Plan`, la fila
+  `Pegar plan · El que te escribe Claude` lee del portapapeles el JSON que escribe Claude
+  y lo abre en la revisión de siempre, sin pasar por Gemini; si el portapapeles no se deja
+  leer, abre un cuadro para pegarlo y `Leer` (#278). En `Días`, esta semana, la anterior y
+  la del último entreno van enteras, el resto se agrupa por semanas, meses y años, y los
+  músculos de cada sesión son diez celdas fijas (#277).
 - **APK 0.30.0: Evolución a peso corporal, en repeticiones.** Un ejercicio que nunca llevó
   peso (Fondos) enseña `MÁS REPETICIONES · 30 reps`, `+10 reps desde julio`, y la línea
   sigue las repeticiones. La gráfica va sin guías; los meses del eje no se pisan ni se cortan;
