@@ -230,7 +230,74 @@ describe('Progress', () => {
     await charted('Press banca')
     expect(screen.getByRole('heading', { name: 'Marcas' })).toBeInTheDocument()
     const rows = [...container.querySelectorAll('.evo-mark')].map((r) => r.textContent)
-    expect(rows).toEqual(['20 jul85 × 5+2.5 kg', '10 jul82.5 × 5+2.5 kg', '1 jul80 × 5primero'])
+    // El primero no lleva etiqueta: es el punto de partida, y la lista ya lo
+    // dice estando al final.
+    expect(rows).toEqual(['20 jul85 × 5+2.5 kg', '10 jul82.5 × 5+2.5 kg', '1 jul80 × 5'])
+  })
+
+  // Sin guías ni línea de base: la línea flota sola.
+  it('draws the line with no grid behind it', async () => {
+    api.listExercises.mockResolvedValue([{ id: 1, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    const { container } = render(<Progress initialTab="evolucion" />)
+
+    await charted('Press banca')
+    expect(container.querySelectorAll('svg.chart line')).toHaveLength(0)
+  })
+
+  // Fondos a peso corporal son 0 kg siempre: por peso la gráfica es una raya.
+  // Lo que sube ahí son las repeticiones, y eso es lo que se dibuja y se cuenta.
+  describe('un ejercicio a peso corporal', () => {
+    const dips = (id, date, reps) => ({
+      id,
+      date,
+      workouts: [
+        {
+          id,
+          sets: [
+            { id: id * 10, exercise_name: 'Fondos', muscle_group: 'Pecho', set_index: 0, weight: 0, reps },
+          ],
+        },
+      ],
+    })
+    const DIPS = [dips(3, '2026-08-20', 14), dips(2, '2026-08-10', 15), dips(1, '2026-07-25', 12)]
+
+    beforeEach(() => {
+      api.listExercises.mockResolvedValue([{ id: 1, name: 'Fondos', muscle_group: 'Pecho' }])
+      api.listDays.mockResolvedValue(DIPS)
+    })
+
+    it('leads with the most reps, not 0 kg', async () => {
+      const { container } = render(<Progress initialTab="evolucion" />)
+
+      await charted('Fondos')
+      expect(screen.getByText('Más repeticiones')).toBeInTheDocument()
+      expect(container.querySelector('.evo-big-n').textContent).toBe('15')
+      expect(container.querySelector('.evo-big-unit').textContent).toBe('reps')
+      expect(container.querySelector('.evo-gain > span').textContent).toBe('+3 reps')
+      expect(container.querySelector('.evo-big').textContent).not.toMatch(/kg/)
+    })
+
+    it('draws the reps, so the line moves', async () => {
+      const { container } = render(<Progress initialTab="evolucion" />)
+
+      await charted('Fondos')
+      const ys = container
+        .querySelector('svg.chart polyline')
+        .getAttribute('points')
+        .trim()
+        .split(/\s+/)
+        .map((p) => Number(p.split(',')[1]))
+      expect(new Set(ys).size).toBe(3)
+    })
+
+    it('writes the marks in reps', async () => {
+      const { container } = render(<Progress initialTab="evolucion" />)
+
+      await charted('Fondos')
+      const rows = [...container.querySelectorAll('.evo-mark')].map((r) => r.textContent)
+      expect(rows).toEqual(['10 ago15 reps+3 reps', '25 jul12 reps'])
+    })
   })
 
   it('says how much the climb was worth, and since when', async () => {

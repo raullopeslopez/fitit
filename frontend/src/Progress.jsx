@@ -39,15 +39,18 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 // the line. Not an estimated 1RM: that curve was dropped because it rose
 // through days you were only maintaining. Here every point is a day you did
 // it, a dip is a day you lifted less, and the rings are the record ladder.
-function SessionChart({ sessions }) {
+// A bodyweight lift is 0 kg every time, so there the line follows the reps.
+// No grid, no baseline: the line floats on its own.
+function SessionChart({ sessions, byReps = false }) {
   const W = 360
   const H = 170
   const padX = 6
   const padT = 14
   const padB = 28
-  const weights = sessions.map((s) => s.weight)
-  const min = Math.min(...weights)
-  const max = Math.max(...weights)
+  const value = (s) => (byReps ? s.reps : s.weight)
+  const values = sessions.map(value)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
   const t = (iso) => {
     const [y, m, d] = iso.split('-').map(Number)
     return new Date(y, m - 1, d).getTime()
@@ -59,11 +62,17 @@ function SessionChart({ sessions }) {
   const bottom = H - padB
   // A lift that never moved sits on the middle line, not the floor.
   const y = (w) => (max === min ? (padT + bottom) / 2 : padT + (1 - (w - min) / (max - min)) * (bottom - padT))
-  const line = sessions.map((s) => `${x(s)},${y(s.weight)}`).join(' ')
-  // A month tick only where the month changes, so the axis stays legible.
-  const ticks = sessions.filter(
-    (s, i) => i === 0 || s.date.slice(0, 7) !== sessions[i - 1].date.slice(0, 7),
-  )
+  const line = sessions.map((s) => `${x(s)},${y(value(s))}`).join(' ')
+  // A month tick only where the month changes, and only with room for its
+  // three letters: a session on 31 jul and one on 2 ago drew `JUL AGO` on top
+  // of each other. The one at the right edge hangs inwards, or `OCT` is `O`.
+  const MIN_GAP = 56
+  const ticks = []
+  sessions.forEach((s, i) => {
+    if (i > 0 && s.date.slice(0, 7) === sessions[i - 1].date.slice(0, 7)) return
+    if (ticks.length && x(s) - x(ticks.at(-1)) < MIN_GAP) return
+    ticks.push(s)
+  })
 
   return (
     // `data-editor-protect`: la gráfica es lo que esta pantalla *es* —«el
@@ -79,19 +88,22 @@ function SessionChart({ sessions }) {
       role="img"
       aria-label="La serie más pesada de cada sesión"
     >
-      {[padT, (padT + bottom) / 2, bottom].map((gy) => (
-        <line key={gy} x1="0" x2={W} y1={gy} y2={gy} className="chart-grid" />
-      ))}
       {sessions.length > 1 && <polyline className="chart-line" points={line} />}
       {/* The record is an amber ring, "outline, not a fill" — the same
           treatment as the PR badge on a logged set. */}
       {sessions.map((s) =>
         s.record ? (
-          <circle key={s.date} cx={x(s)} cy={y(s.weight)} r="4.5" className="chart-record" />
+          <circle key={s.date} cx={x(s)} cy={y(value(s))} r="4.5" className="chart-record" />
         ) : null,
       )}
       {ticks.map((s) => (
-        <text key={`t${s.date}`} x={x(s)} y={H - 4} className="chart-tick">
+        <text
+          key={`t${s.date}`}
+          x={x(s)}
+          y={H - 4}
+          textAnchor={x(s) > W - MIN_GAP ? 'end' : 'start'}
+          className="chart-tick"
+        >
           {formatMonth(s.date).slice(0, 3)}
         </text>
       ))}
@@ -1304,6 +1316,9 @@ export default function Progress({ initialTab = 'series' }) {
   const rungs = name ? recordLadder(days, name) : []
   const gain = rungs.length > 1 ? rungs.at(-1).weight - rungs[0].weight : 0
   const sessions = rungs.length ? sessionTops(days, name) : []
+  // Never carried weight: its climb is reps, and 0 kg said nothing.
+  const byReps = rungs.length > 0 && rungs.every((r) => r.weight === 0)
+  const repGain = byReps ? rungs.at(-1).reps - rungs[0].reps : 0
   const sinceLast = rungs.length ? lastTime(days, name)?.daysAgo : null
   // What you typed, matched by substring. The native <datalist> this replaces
   // was a suggestion the browser showed when it felt like it, and never on a
@@ -1463,7 +1478,9 @@ export default function Progress({ initialTab = 'series' }) {
             era la tercera puerta a lo mismo: una pantalla no puede tener dos
             formas distintas de arreglar un ejercicio. Ahora hay una, al pie, y
             el título vuelve a ser lo que parece: un título. */}
-        {current && rungs.length > 0 && <p className="evo-kicker">Serie más pesada</p>}
+        {current && rungs.length > 0 && (
+          <p className="evo-kicker">{byReps ? 'Más repeticiones' : 'Serie más pesada'}</p>
+        )}
         {current && (
           <div className="chart-title">
             <span className="dot" aria-hidden="true" style={{ '--chip': chartColor }} />
@@ -1487,16 +1504,19 @@ export default function Progress({ initialTab = 'series' }) {
             {/* The heaviest set you have done, large — not an estimated 1RM:
                 nobody walks to the rack thinking "96.3 theoretical single". */}
             <p className="evo-big">
-              <span className="evo-big-n">{showKg(rungs.at(-1).weight)}</span>
-              <span className="evo-big-unit">kg × {rungs.at(-1).reps}</span>
-              {gain > 0 && (
+              <span className="evo-big-n">
+                {byReps ? rungs.at(-1).reps : showKg(rungs.at(-1).weight)}
+              </span>
+              <span className="evo-big-unit">{byReps ? 'reps' : `kg × ${rungs.at(-1).reps}`}</span>
+              {(byReps ? repGain : gain) > 0 && (
                 <span className="evo-gain">
-                  <span>+{showKg(gain)} kg</span> desde {formatMonth(rungs[0].date)}
+                  <span>{byReps ? `+${repGain} reps` : `+${showKg(gain)} kg`}</span> desde{' '}
+                  {formatMonth(rungs[0].date)}
                 </span>
               )}
             </p>
             <p className="evo-note">Récord del {formatIsoDayMonth(rungs.at(-1).date)}</p>
-            <SessionChart key={name} sessions={sessions} />
+            <SessionChart key={name} sessions={sessions} byReps={byReps} />
             <div className="evo-stats">
               <div className="evo-stat">
                 <span className="evo-stat-n">{rungs.length}</span>
@@ -1519,15 +1539,17 @@ export default function Progress({ initialTab = 'series' }) {
                 <li key={`${r.date}-${i}`} className="evo-mark">
                   <span className="evo-mark-date">{formatIsoDayMonth(r.date)}</span>
                   <span className="evo-mark-set">
-                    {showKg(r.weight)} × {r.reps}
+                    {byReps ? `${r.reps} reps` : `${showKg(r.weight)} × ${r.reps}`}
                   </span>
-                  <span className="evo-mark-up">
-                    {i < all.length - 1
-                      ? r.weight > all[i + 1].weight
+                  {/* The oldest has nothing to add to: it is where the list
+                      starts, and the list already says so by ending there. */}
+                  {i < all.length - 1 && (
+                    <span className="evo-mark-up">
+                      {r.weight > all[i + 1].weight
                         ? `+${showKg(r.weight - all[i + 1].weight)} kg`
-                        : `+${r.reps - all[i + 1].reps} reps`
-                      : 'primero'}
-                  </span>
+                        : `+${r.reps - all[i + 1].reps} reps`}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
