@@ -4,11 +4,14 @@ Feature: The shopping list goes to Taski
   back — and only what Taski doesn't already have pending, so sending twice
   adds nothing the second time.
 
-  Scenario: The week arrives in Taski with its quantity and category
+  Scenario: The week arrives in Taski with its quantity and no category
+    Taski's `category` is the item's emoji, not an aisle: the app draws whatever
+    comes in it as the icon, and with nothing there it picks one from the name.
     Given a planned week of 12 dishes with 150 g of the catalogue product "Queso fresco batido 0%" sold in 500 g packs
     And Taski is reachable with an empty list
     When I send the shopping list of that week to Taski
-    Then Taski has "Queso fresco batido 0% Hacendado" with quantity "9 × 500 g" in "Lácteos"
+    Then Taski has "Queso fresco batido 0% Hacendado" with quantity "9 × 500 g"
+    And Taski picks its icon, because it was sent no category
     And the note on it says it comes from Fitit's plan
     And 1 item was added
 
