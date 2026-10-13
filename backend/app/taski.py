@@ -92,9 +92,11 @@ class Taski:
     # despierta: puede tardar un minuto en contestar.
     TIMEOUT = 90.0
     # Mientras arranca, Render puede contestar al momento con un 502/503/504 en
-    # vez de esperar (12 oct: el envío falló así en menos de un segundo). Esos
-    # se reintentan, unos 75 s en total; un 4xx es una respuesta y no.
-    DESPERTANDO = frozenset({502, 503, 504})
+    # vez de esperar (12 oct: el envío falló así en menos de un segundo), o con
+    # un 429 que no viene de Taski (13 oct: Taski no limita nada y su log estaba
+    # vacío). Esos se reintentan, unos 75 s en total; el resto de 4xx es una
+    # respuesta y no.
+    DESPERTANDO = frozenset({429, 502, 503, 504})
     INTENTOS = 6
     PAUSA = 15.0
 
