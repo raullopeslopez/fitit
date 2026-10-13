@@ -22,6 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from .. import compra
 from ..auth import get_current_user
 from ..db import get_session
 from ..despensa import alimentos_en_casa
@@ -55,6 +56,7 @@ from ..rules import desde_fila
 from ..schemas import (
     AdherenceOut,
     ShoppingListOut,
+    ShoppingOut,
     ShoppingToTaskiIn,
     ShoppingToTaskiOut,
     PlanEntryOut,
@@ -443,6 +445,7 @@ def _to_out(
     has_pauta: bool = False,
     desvios: list[PlanDesvioOut] | None = None,
     sitios: frozenset[int] = frozenset(),
+    shopping: ShoppingOut | None = None,
 ) -> PlanOut:
     return PlanOut(
         id=plan.id,
@@ -468,6 +471,7 @@ def _to_out(
         ],
         verdicts=[VerdictOut(**vars(v)) for v in veredictos],
         score=score,
+        shopping=shopping,
     )
 
 
@@ -560,6 +564,7 @@ async def generate_plan(
         items,
         has_pauta=pauta is not None,
         desvios=_desvios(plan, macros, await _objetivos(session, user_id, dias)),
+        shopping=await compra.de_la_semana(session, user_id, payload.week_start),
     )
 
 
@@ -607,6 +612,7 @@ async def read_plan(
         has_pauta=await _pauta_vigente(session, user_id, week_start) is not None,
         desvios=_desvios(plan, macros, await _objetivos(session, user_id, _semana(week_start))),
         sitios=frozenset(sitios),
+        shopping=await compra.de_la_semana(session, user_id, week_start),
     )
 
 
@@ -681,6 +687,8 @@ async def shopping_to_taski(
         # Lo que contestó Taski, para que un fallo se pueda leer en el log.
         log.warning("taski: %s", exc)
         raise HTTPException(status_code=502, detail="taski unreachable") from exc
+    # Sólo con la lista ya en Taski: un envío fallido no deja nada esperando ticket.
+    await compra.abrir(session, user_id, week_start)
     return ShoppingToTaskiOut(added=len(nuevos), already=total - len(nuevos))
 
 

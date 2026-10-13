@@ -177,6 +177,12 @@ def when_send_skip(client, name):
     assert resp.status_code == 200, resp.text
 
 
+@when("I generate that week again")
+def when_regenerate(client):
+    resp = client.post("/plans", json={"week_start": _lunes().isoformat()})
+    assert resp.status_code == 201, resp.text
+
+
 @when("I try to send the shopping list of that week to Taski", target_fixture="respuesta")
 def when_try_send(client):
     return _enviar(client)

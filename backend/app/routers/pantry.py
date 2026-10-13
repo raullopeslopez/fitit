@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .. import compra
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
@@ -138,6 +139,8 @@ async def save_pantry(
     comprado = set(ids)
     if payload.week_start is None:
         return PantrySavedOut(saved=len(ids))
+    # El ticket cierra la compra que abrió el envío a Taski, si lo hubo.
+    await compra.cerrar(session, user_id, payload.week_start)
     try:
         pasillos = await _lista_de(session, user_id, payload.week_start)
     except HTTPException:

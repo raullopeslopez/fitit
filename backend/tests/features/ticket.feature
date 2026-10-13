@@ -55,3 +55,22 @@ Feature: The supermarket ticket says what I have at home
     When I save from the ticket 1000 g of "Pollo" bought 15 days ago
     Then "Pollo con patatas" has 0 of its 2 ingredients at home
     And I have nothing at home
+
+  # Plan v2: el ticket cierra la compra de la semana que se mandó a Taski.
+  Scenario: Saving the ticket of a sent week closes its shopping
+    Given a planned week of 12 dishes with 150 g of "Pollo"
+    And that week's list was sent to Taski
+    When I save from the ticket only 1000 g of "Pollo"
+    Then that week is no longer waiting for its ticket
+
+  Scenario: Sending again after the ticket waits for a new ticket
+    Given a planned week of 12 dishes with 150 g of "Pollo"
+    And that week's list was sent to Taski
+    When I save from the ticket only 1000 g of "Pollo"
+    And that week's list is sent to Taski again
+    Then that week is waiting for its ticket
+
+  Scenario: A ticket with nothing sent closes nothing
+    Given a planned week of 12 dishes with 150 g of "Pollo"
+    When I save from the ticket only 1000 g of "Pollo"
+    Then that week is not waiting for any ticket
