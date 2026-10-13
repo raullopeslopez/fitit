@@ -16,7 +16,6 @@ añade lo que falta. Lo ya tachado sí se vuelve a mandar — es otra compra.
 from __future__ import annotations
 
 import asyncio
-import re
 from datetime import date
 
 import httpx
@@ -25,30 +24,15 @@ from .config import settings
 from .naming import fold_exercise_name as fold
 from .shopping import Articulo
 
-# Las categorías de Taski son las suyas (`_kCategories` en la app) y Taski no
-# las valida: una que no conozca se pinta aparte. Por eso se traducen aquí, y lo
-# que no tiene equivalente va a «Otros».
-_CATEGORIA = {
-    "Carne": "Carne y pescado",
-    "Charcutería": "Carne y pescado",
-    "Pescado": "Carne y pescado",
-    "Lácteos y huevos": "Lácteos",
-    "Fruta y verdura": "Frutas y verduras",
-}
-# El pan está en «Hidratos» con el arroz y la pasta; en Taski tiene panadería.
-_PAN = re.compile(r"\b(pan|panecillos?|barra|baguette|chapata|biscotes?)\b")
+# Sin `category`: en Taski ese campo es el emoji del artículo, no un pasillo. La
+# app pinta lo que venga en él como icono (un «Otros» en vez de 🥛), y si no viene
+# nada lo elige ella por el nombre (`EmojiService.suggest`). Que lo elija Taski.
 
 _MESES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
 
 class Unreachable(Exception):
     """Taski no ha contestado, o ha contestado con un error."""
-
-
-def categoria(pasillo: str, nombre: str) -> str:
-    if pasillo == "Hidratos" and _PAN.search(fold(nombre)):
-        return "Panadería"
-    return _CATEGORIA.get(pasillo, "Otros")
 
 
 def nombre(articulo: Articulo) -> str:
@@ -84,7 +68,7 @@ def pendientes(por_pasillo: dict[str, list[Articulo]], en_taski: list[dict], sem
     tengo») y menos lo que Taski ya tiene sin tachar, por nombre plegado."""
     ya = {fold(i["name"]) for i in en_taski if not i.get("checked")}
     nuevos = []
-    for pasillo, articulos in por_pasillo.items():
+    for articulos in por_pasillo.values():
         for articulo in articulos:
             if articulo.food_id in saltar:
                 continue
@@ -94,7 +78,6 @@ def pendientes(por_pasillo: dict[str, list[Articulo]], en_taski: list[dict], sem
             ya.add(fold(n))
             nuevos.append({
                 "name": n,
-                "category": categoria(pasillo, articulo.name),
                 "quantity": cantidad(articulo),
                 "notes": nota(semana),
                 "is_recurring": False,

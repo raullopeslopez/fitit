@@ -1,25 +1,13 @@
-"""Las reglas del envío a Taski: categoría, nombre y cantidad."""
+"""Las reglas del envío a Taski: nombre y cantidad."""
 
 from datetime import date
 
 from app.shopping import Articulo
-from app.taski import cantidad, categoria, nombre, nota
+from app.taski import cantidad, nombre, nota
 
 
 def _art(name="Pollo", brand=None, grams=4200, packs=None, package_grams=None):
     return Articulo(1, name, brand, grams, packs, package_grams)
-
-
-def test_el_pan_va_a_panaderia_y_el_arroz_a_otros():
-    assert categoria("Hidratos", "Pan de molde integral") == "Panadería"
-    assert categoria("Hidratos", "Arroz redondo") == "Otros"
-    assert categoria("Hidratos", "Panceta") == "Otros"
-
-
-def test_cada_pasillo_va_a_su_categoria():
-    assert categoria("Charcutería", "Jamón cocido") == "Carne y pescado"
-    assert categoria("Fruta y verdura", "Plátano") == "Frutas y verduras"
-    assert categoria("Despensa", "Aceite") == "Otros"
 
 
 def test_la_cantidad_es_la_que_pinta_la_lista():

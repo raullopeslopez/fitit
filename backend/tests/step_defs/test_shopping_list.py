@@ -186,11 +186,16 @@ def _en_taski(taski, name):
     return [i for i in taski["taski"].items if i["name"] == name]
 
 
-@then(parsers.parse('Taski has "{name}" with quantity "{quantity}" in "{category}"'))
-def then_taski_item(taski, name, quantity, category):
+@then(parsers.parse('Taski has "{name}" with quantity "{quantity}"'))
+def then_taski_item(taski, name, quantity):
     (item,) = _en_taski(taski, name)
     assert item["quantity"] == quantity
-    assert item["category"] == category
+
+
+@then("Taski picks its icon, because it was sent no category")
+def then_taski_sin_categoria(taski):
+    (item,) = taski["taski"].items
+    assert "category" not in item
 
 
 @then("the note on it says it comes from Fitit's plan")
