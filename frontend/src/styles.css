@@ -7743,6 +7743,71 @@ button.draft-save {
   margin: 0;
 }
 
+/* --- Esta semana (plan v2): la tira de días -------------------------------- */
+/* Fija arriba al bajar: es el índice de la semana, y saltar del martes al
+   sábado no debería costar volver a subir. Cada casilla es un botón de 44 px
+   como mínimo; la cuenta va en mono, como toda cifra. */
+.plan-tira {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px 0 8px;
+  margin-bottom: 0.75rem;
+  background: var(--bg);
+}
+.plan-tira-dia {
+  min-height: 64px;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.plan-tira-letra {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.plan-tira-dia.is-today .plan-tira-letra {
+  color: var(--accent-ink);
+}
+.plan-tira-num {
+  font-size: 1rem;
+  font-weight: 500;
+}
+.plan-tira-cuenta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* El salto deja el día bajo la tira, no tapado por ella. */
+.plan-semana .plan-dia {
+  scroll-margin-top: 84px;
+}
+/* «Lo siguiente» es un sello en tinta: marca dónde estás, no un logro. */
+.plan-siguiente {
+  color: var(--text);
+}
+.plan-adherencia.is-tonal {
+  background: var(--surface-tonal);
+}
+
 /* --- Subir plan: los platos identificados ---------------------------------- */
 /* Lo que avisa de que algo terminó bien va con la tinta del texto: es lo que
    ha pasado, no una nota al pie. */

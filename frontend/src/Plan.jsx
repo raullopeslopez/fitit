@@ -117,6 +117,7 @@ const EN_PLURAL = {
 }
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+const LETRAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
 // Con su artículo: la frase de lo que queda es prosa, no una lista de códigos.
 const CON_ARTICULO = {
@@ -262,12 +263,17 @@ function Desvios({ desvios, dia }) {
 // Una fila de la semana: la comida, el plato y lo que suma, y cómo quedó. En la
 // semana no se confirma —eso se hace en el diario, con la comida delante—; un
 // plato que todavía no ha llegado se toca para cambiarlo.
-function Fila({ entrada, onAbrir = null }) {
+function Fila({ entrada, onAbrir = null, siguiente = false }) {
   const hecho = entrada.status === 'done'
   const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
   return (
     <li className={`plan-fila${hecho ? ' is-done' : ''}${saltado ? ' is-skipped' : ''}`}>
-      <span className="card-eyebrow plan-slot">{NOMBRE[entrada.slot] ?? entrada.slot}</span>
+      <span className="card-eyebrow plan-slot">
+        {NOMBRE[entrada.slot] ?? entrada.slot}
+        {/* En tinta y no en ámbar: es una etiqueta, y el ámbar es para lo que
+            ha pasado (DESIGN.md). */}
+        {siguiente && <span className="plan-siguiente"> · Lo siguiente</span>}
+      </span>
       {/* La fila entera es el botón —nombre, kcal y `›` al final—: la fila no
           tiene otro control que le dispute el toque. */}
       {onAbrir ? (
@@ -593,6 +599,49 @@ export function Adherencia({ informe }) {
   )
 }
 
+// La tira de «Esta semana»: un botón por día que dice cuántas comidas llevas de
+// las planificadas y salta a ese día. Un día sin plan es «—», no «0/0»: no hay
+// nada que llevar, que es distinto de no haber llevado nada.
+function TiraSemana({ plan, dias, hoy }) {
+  return (
+    <nav className="plan-tira" aria-label="Ir a un día">
+      {dias.map((iso, i) => {
+        const filas = delDia(plan, iso)
+        const llevas = filas.filter((f) => f.status).length
+        const num = Number(iso.slice(8, 10))
+        const cuenta = filas.length ? `${llevas} de ${filas.length} comidas` : 'sin comidas planificadas'
+        return (
+          <button
+            key={iso}
+            type="button"
+            className={`plan-tira-dia${iso === hoy ? ' is-today' : ''}`}
+            aria-label={`${DIAS[i]} ${num}, ${cuenta}`}
+            onClick={() => document.getElementById(`plan-dia-${iso}`)?.scrollIntoView({ block: 'start' })}
+          >
+            <span className="plan-tira-letra">{LETRAS[i]}</span>
+            <span className="plan-tira-num">{num}</span>
+            <span className="plan-tira-cuenta">{filas.length ? `${llevas}/${filas.length}` : '—'}</span>
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
+// De cómo va la semana, en «Esta semana» sólo queda lo que se puede hacer algo:
+// dónde se cae el plan. Lo comido contra lo planificado ya lo dice Comida.
+function DondeSeCae({ informe }) {
+  if (!informe?.weakest_slot) return null
+  return (
+    <section className="card plan-adherencia is-tonal">
+      <p className="card-eyebrow">Cómo va la semana</p>
+      <p className="plan-adh-linea">
+        Donde se cae es {CON_ARTICULO[informe.weakest_slot] ?? informe.weakest_slot}.
+      </p>
+    </section>
+  )
+}
+
 export function Semana({
   plan,
   weekStart,
@@ -615,6 +664,9 @@ export function Semana({
   corregirPlato = correctDish,
   leerSitios = leerTusSitios,
   embebida = false,
+  // «Esta semana» (plan v2): la tira de días, la próxima comida de hoy marcada
+  // y, de cómo va, sólo dónde se cae.
+  seguir = false,
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -658,12 +710,13 @@ export function Semana({
     <>
         {onPlatos && <SinComida platos={platos} onPlatos={onPlatos} />}
         {onLista && <ListRow label="Lista de la compra" value="" onClick={onLista} />}
-        <Adherencia informe={informe} />
+        {seguir ? <TiraSemana plan={plan} dias={dias} hoy={hoy} /> : <Adherencia informe={informe} />}
 
         {dias.map((iso, i) => {
           const filas = delDia(plan, iso)
+          const siguiente = seguir && iso === hoy ? filas.find((f) => !f.status)?.id : undefined
           return (
-            <section key={iso} className={`plan-dia${iso === hoy ? ' is-today' : ''}`}>
+            <section key={iso} id={`plan-dia-${iso}`} className={`plan-dia${iso === hoy ? ' is-today' : ''}`}>
               <h3 className="plan-dia-nombre">
                 {DIAS[i]}
                 {iso === hoy && <span className="plan-dia-hoy">Hoy</span>}
@@ -678,6 +731,7 @@ export function Semana({
                       key={entrada.id}
                       entrada={entrada}
                       onAbrir={cambiable(entrada) ? setCambiando : null}
+                      siguiente={entrada.id === siguiente}
                     />
                   ))}
                 </ul>
@@ -685,6 +739,7 @@ export function Semana({
             </section>
           )
         })}
+        {seguir && <DondeSeCae informe={informe} />}
 
         {onPlatos && (
           <ListRow

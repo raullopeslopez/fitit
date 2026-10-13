@@ -398,6 +398,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
         (plan ? (
           <Semana
             embebida
+            seguir
             plan={plan}
             weekStart={esta}
             hoy={hoy}
