@@ -30,7 +30,9 @@ def test_la_nota_dice_la_semana():
 # --- despertar a Taski ----------------------------------------------------------
 # Taski duerme en el plan gratuito de Render. Mientras arranca, Render contesta
 # con un 502/503/504 al momento, sin esperar: el 12 oct el envío falló así en
-# menos de un segundo. Esos se reintentan; un 4xx es una respuesta y no.
+# menos de un segundo. El 13 oct fue un 429 «Too Many Requests», también al
+# momento y sin que la petición llegase a Taski (su log está vacío; Taski no
+# limita ninguna ruta). Esos se reintentan; el resto de 4xx es una respuesta y no.
 import asyncio  # noqa: E402
 
 import httpx  # noqa: E402
@@ -55,6 +57,12 @@ def _taski(codigos):
 
 def test_mientras_taski_despierta_se_vuelve_a_intentar():
     taski, llamadas = _taski([503, 502, 200])
+    assert asyncio.run(taski.listar()) == []
+    assert len(llamadas) == 3
+
+
+def test_el_429_de_render_mientras_despierta_tambien_se_reintenta():
+    taski, llamadas = _taski([429, 429, 200])
     assert asyncio.run(taski.listar()) == []
     assert len(llamadas) == 3
 
