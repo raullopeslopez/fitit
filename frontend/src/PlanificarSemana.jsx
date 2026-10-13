@@ -59,7 +59,17 @@ export default function PlanificarSemana({
   }
 
   if (listaOpen) {
-    return <ListaCompra weekStart={weekStart} onClose={() => setListaOpen(false)} />
+    // Al volver se recarga: mandar la lista a Taski abre la compra de la semana,
+    // y la pantalla tiene que preguntar «¿Ya compraste?».
+    return (
+      <ListaCompra
+        weekStart={weekStart}
+        onClose={() => {
+          setListaOpen(false)
+          onChanged()
+        }}
+      />
+    )
   }
 
   const revision = <RevisionSemanal onAccepted={onChanged} onDone={() => setRevisada((n) => n + 1)} />

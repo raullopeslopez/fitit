@@ -11,7 +11,6 @@ import {
 } from './api.js'
 import { foodDayIso } from './food.js'
 import ImportarPlan from './ImportarPlan.jsx'
-import ListaCompra from './ListaCompra.jsx'
 import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import PlanificarSemana from './PlanificarSemana.jsx'
 import Ticket from './Ticket.jsx'
@@ -76,6 +75,21 @@ function porQueNoSeLeeElTicket(respuesta) {
   return respuesta?.refusal === 'quota' ? porQueNoSeLee(respuesta) : 'No se ha podido leer el ticket.'
 }
 
+// La compra que espera su ticket (plan v2): la semana cuya lista se mandó a
+// Taski y cuyo ticket no se ha subido, mientras no haya pasado su domingo. Se
+// mira en las dos semanas que ya están cargadas: el domingo se manda la de la
+// que viene, y el lunes esa misma semana ya es «esta».
+export function compraPendiente(planes, hoy) {
+  return (
+    Object.values(planes).find((p) => {
+      if (!p?.shopping?.sent_at || p.shopping.ticket_at) return false
+      const [y, m, d] = p.week_start.split('-').map(Number)
+      const domingo = new Date(Date.UTC(y, m - 1, d + 6)).toISOString().slice(0, 10)
+      return hoy <= domingo
+    })?.week_start ?? null
+  )
+}
+
 // Una semana sin nada dicho todavía se puede rehacer con la pauta. Una con
 // comidas confirmadas no: regenerarla se llevaría lo que ya marcaste.
 function rehacible(plan) {
@@ -96,11 +110,8 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   // y mientras la hay la pantalla es la de revisarlo.
   const [leyendo, setLeyendo] = useState(false)
   const [lectura, setLectura] = useState(null)
-  // { texto, lista }: lo que ha pasado al guardar, y de qué semana ofrecer la
-  // lista de la compra (o `null`).
+  // { texto }: lo que ha pasado al guardar una pauta.
   const [aviso, setAviso] = useState(null)
-  // La semana cuya lista de la compra está abierta, o `null`.
-  const [listaDe, setListaDe] = useState(null)
   const archivo = useRef(null)
   // El ticket de la compra (fase 6.1): las líneas leídas mientras se revisan.
   const [ticket, setTicket] = useState(null)
@@ -233,10 +244,8 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
         // rehará al pulsar «Generar la semana».
       }
     }
-    // La semana que estás mirando ya enseña su lista encima de los días. El
-    // aviso sólo lleva a la otra: la que viene, cuando miras esta y ésta no se
-    // ha podido rehacer (tiene comidas confirmadas).
-    const otraLista = segmento === 'esta' && !hechas.has(esta) && hechas.has(viene)
+    // Se guarda desde «La que viene», que ya tiene su lista de la compra justo
+    // debajo: el aviso sólo dice qué semanas siguen la pauta.
     setLectura(null)
     setAviso({
       texto: rehacerEsta
@@ -244,7 +253,6 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
           ? 'Pauta guardada. Esta semana y la que viene ya siguen el plan.'
           : 'Pauta guardada. Tu semana ya sigue el plan.'
         : 'Pauta guardada. Esta semana ya tiene comidas confirmadas: el plan se aplica desde la que viene.',
-      lista: otraLista ? viene : null,
     })
     await Promise.all([cargar(), cargarPlatos()])
   }
@@ -262,13 +270,22 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     )
   }
 
-  if (ticket) {
-    const semana = segmento === 'esta' ? esta : viene
-    return <Ticket lineas={ticket} weekStart={semana} onClose={() => setTicket(null)} />
-  }
+  // La semana cuya compra espera ticket, si la hay. El ticket se compara con
+  // ella, no con la semana que se esté mirando: compraste lo de su lista.
+  const pendiente = compraPendiente(planes, hoy)
 
-  if (listaDe) {
-    return <ListaCompra weekStart={listaDe} onClose={() => setListaDe(null)} />
+  if (ticket) {
+    return (
+      <Ticket
+        lineas={ticket}
+        weekStart={pendiente ?? viene}
+        onClose={() => {
+          setTicket(null)
+          // Guardar el ticket cierra la compra: sin recargar, la fila seguiría ahí.
+          cargar()
+        }}
+      />
+    )
   }
 
   if (platosOpen) {
@@ -312,102 +329,12 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       </div>
 
       {error && <p className="alert">{error}</p>}
-      {aviso && (
-        <div className="plan-aviso-fila">
-          <p className="plan-aviso">{aviso.texto}</p>
-          {aviso.lista && (
-            <button type="button" className="link-btn" onClick={() => setListaDe(aviso.lista)}>
-              Lista de la compra de la que viene
-            </button>
-          )}
-        </div>
-      )}
+      {aviso && <p className="plan-aviso">{aviso.texto}</p>}
 
-      {/* El input no se ve: la fila es lo que se toca, y abre el selector del
-          móvil. `value = ''` después, para que subir el mismo PDF dos veces
-          vuelva a disparar el cambio. */}
-      <ListRow
-        label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
-        hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
-        value=""
-        onClick={() => !leyendo && archivo.current?.click()}
-      />
-      <input
-        ref={archivo}
-        type="file"
-        accept="application/pdf"
-        aria-label="PDF del plan"
-        hidden
-        onChange={(e) => {
-          subir(e.target.files?.[0])
-          e.target.value = ''
-        }}
-      />
-      <ListRow
-        label="Pegar plan"
-        hint="El que te escribe Claude"
-        value=""
-        onClick={pegar}
-      />
-      {/* Fase 6.1: después de comprar. Se compara con la lista de la semana
-          que se está mirando. */}
-      <ListRow
-        label={leyendoTicket ? 'Leyendo el ticket…' : 'Subir ticket'}
-        hint={leyendoTicket ? 'Puede tardar hasta un minuto.' : 'El PDF de la compra'}
-        value=""
-        onClick={() => !leyendoTicket && archivoTicket.current?.click()}
-      />
-      <input
-        ref={archivoTicket}
-        type="file"
-        accept="application/pdf"
-        aria-label="PDF del ticket"
-        hidden
-        onChange={(e) => {
-          subirTicket(e.target.files?.[0])
-          e.target.value = ''
-        }}
-      />
-      {pegado !== null && (
-        <div className="card plan-pegar">
-          <textarea
-            aria-label="Plan en texto"
-            placeholder="Pega aquí la respuesta de Claude"
-            rows={6}
-            autoFocus
-            value={pegado}
-            onChange={(e) => setPegado(e.target.value)}
-          />
-          <div className="plan-pegar-acciones">
-            <button type="button" className="link-btn" onClick={() => setPegado(null)}>
-              Cerrar
-            </button>
-            <button
-              type="button"
-              className="primary"
-              disabled={leyendo || !pegado.trim()}
-              onClick={() => leerTexto(pegado)}
-            >
-              Leer
-            </button>
-          </div>
-        </div>
-      )}
       {segmento === 'esta' &&
         plan !== undefined &&
         (plan ? (
-          <Semana
-            embebida
-            seguir
-            plan={plan}
-            weekStart={esta}
-            hoy={hoy}
-            onChanged={cargar}
-            onLista={() => setListaDe(esta)}
-            platos={platos}
-            onPlatos={() => setPlatosOpen(true)}
-            onPlatosChanged={cargarPlatos}
-          />
+          <Semana embebida seguir plan={plan} weekStart={esta} hoy={hoy} onChanged={cargar} platos={platos} />
         ) : (
           <section className="card plan-card">
             <p className="hint">Todavía no hay plan para esta semana.</p>
@@ -417,20 +344,111 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
           </section>
         ))}
 
-      {/* La que viene es la pantalla de planificar de siempre, sin su cabecera:
-          revisar el objetivo primero —se salta sola si no toca— y con él ya
-          decidido, generar. `key` por semana: si el día cambia con la pantalla
-          abierta, la revisión vuelve a empezar para la semana nueva. */}
-      {segmento === 'viene' && plan !== undefined && (
-        <PlanificarSemana
-          key={viene}
-          embebida
-          weekStart={viene}
-          plan={plan}
-          onChanged={cargar}
-          platos={platos}
-          onPlatosChanged={cargarPlatos}
-        />
+      {/* Plan v2: «La que viene» es el domingo entero, en el orden en que se
+          hace. Arriba, si una compra espera su ticket; después revisar y
+          generar (PlanificarSemana, con su lista de la compra y tus platos), y
+          al pie traer una pauta nueva. `key` por semana: si el día cambia con la
+          pantalla abierta, la revisión vuelve a empezar para la semana nueva. */}
+      {segmento === 'viene' && (
+        <>
+          {pendiente && (
+            <button
+              type="button"
+              className="plan-compra-pendiente"
+              onClick={() => !leyendoTicket && archivoTicket.current?.click()}
+            >
+              <span className="plan-compra-pendiente-titulo">
+                {leyendoTicket ? 'Leyendo el ticket…' : '¿Ya compraste? · Subir ticket'}
+              </span>
+              <span className="plan-compra-pendiente-pista">
+                {leyendoTicket
+                  ? 'Puede tardar hasta un minuto.'
+                  : `Se compara con la lista del ${rangoSemana(pendiente)}`}
+              </span>
+            </button>
+          )}
+
+          {plan !== undefined && (
+            <PlanificarSemana
+              key={viene}
+              embebida
+              weekStart={viene}
+              plan={plan}
+              onChanged={cargar}
+              platos={platos}
+              onPlatosChanged={cargarPlatos}
+            />
+          )}
+
+          {/* Sin compra pendiente el ticket se sube igual que siempre, contra
+              la lista de la que viene. */}
+          {!pendiente && (
+            <ListRow
+              label={leyendoTicket ? 'Leyendo el ticket…' : 'Subir ticket'}
+              hint={leyendoTicket ? 'Puede tardar hasta un minuto.' : 'El PDF de la compra'}
+              value=""
+              onClick={() => !leyendoTicket && archivoTicket.current?.click()}
+            />
+          )}
+          {/* El input no se ve: la fila es lo que se toca, y abre el selector
+              del móvil. `value = ''` después, para que subir el mismo PDF dos
+              veces vuelva a disparar el cambio. */}
+          <input
+            ref={archivoTicket}
+            type="file"
+            accept="application/pdf"
+            aria-label="PDF del ticket"
+            hidden
+            onChange={(e) => {
+              subirTicket(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+
+          <ListRow
+            label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
+            hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
+            value=""
+            onClick={() => !leyendo && archivo.current?.click()}
+          />
+          <input
+            ref={archivo}
+            type="file"
+            accept="application/pdf"
+            aria-label="PDF del plan"
+            hidden
+            onChange={(e) => {
+              subir(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+          <ListRow label="Pegar plan" hint="El que te escribe Claude" value="" onClick={pegar} />
+          {pegado !== null && (
+            <div className="card plan-pegar">
+              <textarea
+                aria-label="Plan en texto"
+                placeholder="Pega aquí la respuesta de Claude"
+                rows={6}
+                autoFocus
+                value={pegado}
+                onChange={(e) => setPegado(e.target.value)}
+              />
+              <div className="plan-pegar-acciones">
+                <button type="button" className="link-btn" onClick={() => setPegado(null)}>
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={leyendo || !pegado.trim()}
+                  onClick={() => leerTexto(pegado)}
+                >
+                  Leer
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
     </div>

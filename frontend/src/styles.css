@@ -7808,6 +7808,33 @@ button.draft-save {
   background: var(--surface-tonal);
 }
 
+/* «¿Ya compraste? · Subir ticket»: la tarjeta que pide una respuesta, con el
+   velo tonal (DESIGN.md, Sistema v2). Sale arriba de «La que viene» mientras la
+   compra mandada a Taski espera su ticket. */
+.plan-compra-pendiente {
+  width: 100%;
+  min-height: 72px;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  border: 0;
+  border-radius: var(--radius-card, 20px);
+  background: var(--surface-tonal);
+  color: var(--text);
+  text-align: left;
+}
+.plan-compra-pendiente-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.plan-compra-pendiente-pista {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 /* --- Subir plan: los platos identificados ---------------------------------- */
 /* Lo que avisa de que algo terminó bien va con la tinta del texto: es lo que
    ha pasado, no una nota al pie. */
