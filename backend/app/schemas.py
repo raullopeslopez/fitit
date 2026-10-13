@@ -1281,6 +1281,11 @@ class PlanDesvioOut(BaseModel):
     diff: float
 
 
+class ShoppingOut(BaseModel):
+    sent_at: datetime
+    ticket_at: datetime | None = None
+
+
 class PlanOut(BaseModel):
     id: int
     week_start: Date
@@ -1298,6 +1303,9 @@ class PlanOut(BaseModel):
     # Un coste: cuanto más bajo, mejor la semana. No es una nota para enseñar,
     # es con lo que el generador compara sus reinicios.
     score: float = 0.0
+    # La compra de esta semana (plan v2): `None` si su lista nunca se mandó a
+    # Taski. Con `ticket_at` vacío, la pantalla pregunta «¿Ya compraste?».
+    shopping: ShoppingOut | None = None
 
 
 class PlanEntryPatch(BaseModel):

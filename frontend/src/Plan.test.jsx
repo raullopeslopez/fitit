@@ -350,6 +350,88 @@ describe('la semana', () => {
   })
 })
 
+// Plan v2: «Esta semana» es para seguir el plan. Una tira de siete días arriba
+// dice cuánto llevas de cada uno y salta a él; la próxima comida de hoy se
+// marca; de cómo va la semana queda sólo dónde se cae.
+describe('esta semana, para seguir el plan', () => {
+  const SEGUIR = {
+    ...PLAN,
+    entries: [
+      entrada({ id: 1, slot: 'desayuno', dish_name: 'Tostada', status: 'done' }),
+      entrada({ id: 2, slot: 'comida', dish_name: 'Pollo con arroz' }),
+      entrada({ id: 3, slot: 'cena', dish_name: 'Merluza' }),
+      entrada({ id: 4, log_date: MARTES, slot: 'comida', dish_name: 'Lentejas' }),
+    ],
+  }
+
+  function pintar(over = {}) {
+    render(
+      <Semana
+        plan={SEGUIR}
+        weekStart={LUNES}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+        hoy={LUNES}
+        leerAdherencia={vi.fn().mockResolvedValue(null)}
+        seguir
+        embebida
+        {...over}
+      />,
+    )
+  }
+
+  it('la tira dice de cada día cuántas comidas llevas de las planificadas', () => {
+    pintar()
+    const tira = screen.getByRole('navigation', { name: 'Ir a un día' })
+    expect(within(tira).getAllByRole('button')).toHaveLength(7)
+    expect(within(tira).getByRole('button', { name: 'Lunes 21, 1 de 3 comidas' })).toHaveTextContent('1/3')
+    expect(within(tira).getByRole('button', { name: 'Martes 22, 0 de 1 comidas' })).toHaveTextContent('0/1')
+  })
+
+  it('un día sin plan es «—», no un cero', () => {
+    pintar()
+    const tira = screen.getByRole('navigation', { name: 'Ir a un día' })
+    const miercoles = within(tira).getByRole('button', { name: 'Miércoles 23, sin comidas planificadas' })
+    expect(miercoles).toHaveTextContent('—')
+    expect(miercoles).not.toHaveTextContent('0/0')
+  })
+
+  it('tocar un día de la tira lleva a ese día', async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    pintar()
+    await userEvent.click(screen.getByRole('button', { name: /^Martes 22/ }))
+    expect(scroll).toHaveBeenCalledTimes(1)
+    expect(scroll.mock.contexts[0]).toHaveAttribute('id', `plan-dia-${MARTES}`)
+  })
+
+  it('marca la primera comida de hoy que aún no tiene estado', () => {
+    pintar()
+    const siguiente = screen.getAllByText('· Lo siguiente')
+    expect(siguiente).toHaveLength(1)
+    expect(siguiente[0].closest('li')).toHaveTextContent('Pollo con arroz')
+  })
+
+  it('de cómo va la semana sólo dice dónde se cae', async () => {
+    const informe = {
+      week_start: LUNES, days: 2, eaten_kcal: 3800, planned_kcal: 4000, within_tolerance: true,
+      followed: 3, decided: 4, silent: 1, pending: 9, by_slot: [], weakest_slot: 'snack', weakest_missed: 2,
+    }
+    pintar({ leerAdherencia: vi.fn().mockResolvedValue(informe) })
+    expect(await screen.findByText('Donde se cae es el snack.')).toBeInTheDocument()
+    expect(screen.getByText('Cómo va la semana')).toBeInTheDocument()
+    expect(screen.queryByText(/Comiste/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Seguiste/)).not.toBeInTheDocument()
+  })
+
+  it('sin un sitio donde se caiga, no hay tarjeta', async () => {
+    const leer = vi.fn().mockResolvedValue({ week_start: LUNES, days: 0, weakest_slot: null, decided: 0 })
+    pintar({ leerAdherencia: leer })
+    await waitFor(() => expect(leer).toHaveBeenCalled())
+    expect(screen.queryByText('Cómo va la semana')).not.toBeInTheDocument()
+  })
+})
+
 describe('iterar la semana: platos sin comida y cambiar un plato', () => {
   const SEMANA = {
     ...PLAN,

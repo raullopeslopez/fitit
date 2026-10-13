@@ -46,3 +46,25 @@ Feature: The shopping list goes to Taski
     And Taski is not configured
     When I try to send the shopping list of that week to Taski
     Then the answer is 503
+
+  # Plan v2: enviar la lista es el momento de ir a comprar, así que la semana
+  # queda esperando su ticket. Se guarda aparte del plan: regenerar la semana
+  # borra el plan y lo vuelve a crear, y la compra ya ha pasado.
+  Scenario: Sending the list leaves the week waiting for its ticket
+    Given a planned week of 12 dishes with 150 g of "Pollo" from the meat aisle
+    And Taski is reachable with an empty list
+    When I send the shopping list of that week to Taski
+    Then that week is waiting for its ticket
+
+  Scenario: Taski down leaves no week waiting
+    Given a planned week of 12 dishes with 150 g of "Pollo" from the meat aisle
+    And Taski cannot be reached
+    When I try to send the shopping list of that week to Taski
+    Then that week is not waiting for any ticket
+
+  Scenario: Generating the week again keeps it waiting for its ticket
+    Given a planned week of 12 dishes with 150 g of "Pollo" from the meat aisle
+    And Taski is reachable with an empty list
+    When I send the shopping list of that week to Taski
+    And I generate that week again
+    Then that week is waiting for its ticket

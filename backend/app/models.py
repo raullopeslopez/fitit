@@ -567,6 +567,26 @@ class PantryItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class ShoppingRun(Base):
+    """La compra de una semana: cuándo se mandó su lista a Taski y cuándo se subió
+    el ticket que la cierra (plan v2).
+
+    Va aparte de `plans` a propósito: regenerar la semana borra el plan y crea
+    otro, y la compra ya ha pasado — un menú nuevo no la deshace. Una por semana;
+    volver a mandar la lista la reabre (`ticket_at` vuelve a `NULL`), porque es
+    otra ida a la tienda que también tendrá su ticket.
+    """
+
+    __tablename__ = "shopping_runs"
+    __table_args__ = (UniqueConstraint("user_id", "week_start", name="uq_shopping_runs_user_week"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    week_start: Mapped[date] = mapped_column(Date)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ticket_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class DishIngredient(Base):
     """Un alimento dentro de un plato, en gramos.
 
