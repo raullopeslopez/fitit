@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.35.0: entreno y plan.** En `Entreno`, un entreno sin nombre se llama por sus
+  músculos (`Pecho · Tríceps` con sello `AUTO`, también en `Días`); tocar el título abre
+  `Nombre del entreno` con tus nombres de otros días, y cerrarla guarda. Con todo lo de
+  hoy hecho, el pie ofrece `Terminar entreno ✓` (#298). Corregir una serie se hace en su
+  propia fila (#297). `Plan` separa `Esta semana` para seguir de `La que viene` para el
+  domingo (#296).
 - **APK 0.34.0: registro sin huecos (fases 5 y 6).** `Tus platos → plato → Pesar la olla`
   guarda el peso de la tanda; en `Comida` esa comida del plan se apunta con
   `¼ de la olla · 600 g`, con `½`, `⅓` y `Otra` a un toque (#288). En `Plan`,
