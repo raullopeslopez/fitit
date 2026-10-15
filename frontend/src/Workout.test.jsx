@@ -274,7 +274,7 @@ describe('Workout', () => {
       const bench = within(cardToggle('Bench Press').closest('.card'))
       expect(bench.getByLabelText('Editar reps')).toHaveValue('5')
       expect(bench.getByLabelText('Editar peso')).toHaveValue('70')
-      expect(bench.getByRole('button', { name: 'Guardar' })).toBeInTheDocument()
+      expect(bench.getByRole('button', { name: 'Cerrar serie 2' })).toBeInTheDocument()
     })
 
     it('leaves a chip for an unsaved set untappable', async () => {
@@ -1529,9 +1529,9 @@ describe('Workout', () => {
     api.deleteSet.mockResolvedValue(null)
     await logBenchSet()
 
-    // Borrar lives in the edit form now: the row itself opens it.
+    // Borrar lives in the row's editor: the row itself opens it.
     await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
-    await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar serie' }))
 
     await waitFor(() => expect(api.deleteSet).toHaveBeenCalledWith(10))
     expect(screen.queryByText(/60 kg x 8/i)).not.toBeInTheDocument()
@@ -1548,7 +1548,9 @@ describe('Workout', () => {
     await userEvent.type(reps, '10')
     await userEvent.clear(weight)
     await userEvent.type(weight, '65')
-    await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    // No «Guardar»: closing the row is what saves it.
+    expect(screen.queryByRole('button', { name: /guardar/i })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar serie 1' }))
 
     await waitFor(() =>
       expect(api.editSet).toHaveBeenCalledWith(10, {
@@ -1560,6 +1562,77 @@ describe('Workout', () => {
       }),
     )
     expect(await screen.findByText(/65 kg x 10/i)).toBeInTheDocument()
+  })
+
+  // The editor reads in the same order as the tiles above it and the row it
+  // stands in: «60 kg x 8» is kg first. It used to put reps first, so the
+  // thumb that just set weight on the left found reps there.
+  it('puts kg before reps, the same order as the tiles above', async () => {
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
+    const weight = screen.getByLabelText('Editar peso')
+    const reps = screen.getByLabelText('Editar reps')
+    expect(weight.compareDocumentPosition(reps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  // Correcting one rep is a tap on −, not a keyboard: the steppers are the
+  // tiles' own, in miniature. The row above shows the value as it changes.
+  it('corrects with steppers and saves when the row closes', async () => {
+    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 7, weight: 62.5 }))
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar kg a la serie 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Restar rep a la serie 1' }))
+    expect(screen.getByRole('button', { name: 'Cerrar serie 1' })).toHaveTextContent(
+      /62\.5 kg x 7/,
+    )
+    expect(api.editSet).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar serie 1' }))
+
+    await waitFor(() =>
+      expect(api.editSet).toHaveBeenCalledWith(10, {
+        exercise_name: 'Bench Press',
+        reps: 7,
+        weight: 62.5,
+        rpe: null,
+        note: null,
+      }),
+    )
+    expect(screen.queryByLabelText('Editar reps')).not.toBeInTheDocument()
+  })
+
+  it('closing a row nobody changed sends nothing', async () => {
+    await logBenchSet()
+
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar serie 1' }))
+
+    expect(api.editSet).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /editar serie 1/i })).toBeInTheDocument()
+  })
+
+  // Moving on is closing: tapping the next set to fix saves the one you were on.
+  it('opening another set saves the one that was open', async () => {
+    api.editSet.mockResolvedValue(benchSet({ id: 10, reps: 9, weight: 60 }))
+    api.getWorkout.mockResolvedValue(
+      workoutWith(
+        benchSet({ id: 10, set_index: 0, reps: 8, weight: 60 }),
+        benchSet({ id: 11, set_index: 1, reps: 8, weight: 60 }),
+      ),
+    )
+    renderWorkout()
+
+    await userEvent.click(await screen.findByRole('button', { name: /editar serie 1/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar rep a la serie 1' }))
+    await userEvent.click(screen.getByRole('button', { name: /editar serie 2/i }))
+
+    await waitFor(() =>
+      expect(api.editSet).toHaveBeenCalledWith(10, expect.objectContaining({ reps: 9 })),
+    )
+    expect(screen.getByRole('button', { name: 'Cerrar serie 2' })).toBeInTheDocument()
   })
 
   it('adds a copy of the last set with +1', async () => {
@@ -1589,8 +1662,12 @@ describe('Workout', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
     expect(screen.queryByLabelText(/editar rpe/i)).not.toBeInTheDocument()
+    // The note is the rare case: it waits behind «+ Nota» instead of taking a
+    // line in every correction.
+    expect(screen.queryByLabelText(/editar nota/i)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '+ Nota' }))
     await userEvent.type(screen.getByLabelText(/editar nota/i), 'tough')
-    await userEvent.click(screen.getByRole('button', { name: /^guardar$/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar serie 1' }))
 
     await waitFor(() =>
       expect(api.editSet).toHaveBeenCalledWith(10, {
@@ -1608,14 +1685,14 @@ describe('Workout', () => {
     api.deleteSet.mockRejectedValue(new Error('network'))
     await logBenchSet()
 
-    // Borrar lives in the edit form now: the row itself opens it.
+    // Borrar lives in the row's editor: the row itself opens it.
     await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
-    await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar serie' }))
 
     // The editor stays open on failure, so you can retry or back out; the set
     // is still there once you do.
     expect(await screen.findByRole('alert')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /cancelar/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar serie 1' }))
     expect(screen.getByText(/60 kg x 8/i)).toBeInTheDocument()
   })
 
@@ -1850,7 +1927,7 @@ describe('Workout', () => {
     expect(screen.queryByRole('button', { name: /más acciones/i })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /editar serie 1/i }))
     expect(screen.getByLabelText(/editar reps/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Borrar serie' })).toBeInTheDocument()
   })
 
   // Nobody starts or stops a clock: the session's own sets say when it ran, so

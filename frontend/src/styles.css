@@ -2763,20 +2763,60 @@ button.set-action {
   padding: 0.25rem 0.6rem;
   font-size: 0.85rem;
 }
+/* Corregir una serie: la fila se abre en su sitio, sobre una superficie
+   elevada, con dos steppers en el orden de las fichas (kg | reps). */
 .set-edit {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
   width: 100%;
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: -0.6rem -0.5rem;
+  padding: 0 0.5rem 0.4rem;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  /* En claro la superficie elevada es el mismo blanco que la tarjeta: el
+     borde es lo que dice dónde empieza y acaba la serie abierta. */
+  box-shadow: inset 0 0 0 1px var(--border);
 }
-.set-edit input {
-  width: 4.5rem;
-  padding: 0.4rem 0.5rem;
+.set-edit > .set-row {
+  width: 100%;
 }
-.set-edit input.set-edit-note {
-  flex: 1 1 100%;
-  width: auto;
+.set-edit-chev {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 1rem;
+}
+.set-edit-steppers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.set-edit-steppers .stepper-btn {
+  flex-basis: 2.75rem;
+  min-height: 44px;
+}
+.set-edit-steppers .stepper input {
+  font-size: 1.15rem;
+  font-weight: 600;
+  padding: 0;
+}
+.set-edit-steppers input.set-edit-note {
+  grid-column: 1 / -1;
+}
+.set-edit-actions {
+  display: flex;
+  justify-content: space-between;
+}
+.set-edit-link {
+  min-height: 44px;
+  padding: 0 0.35rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* One swipeable line. A filter over a closed, memorised set of seven can hide
