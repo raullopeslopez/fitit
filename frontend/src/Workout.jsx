@@ -263,6 +263,7 @@ function ExerciseCard({
   const [editReps, setEditReps] = useState('')
   const [editWeight, setEditWeight] = useState('')
   const [editNote, setEditNote] = useState('')
+  const [noteOpen, setNoteOpen] = useState(false)
   const [error, setError] = useState('')
 
   async function handleLogSet(event) {
@@ -311,17 +312,57 @@ function ExerciseCard({
     }
   }
 
+  // Edited in the unit you're reading in, not the one it was logged in — the
+  // row says 135 lb, so the field has to say 135 too.
+  const weightField = (set) => (set.weight == null ? '' : String(showKg(set.weight)))
+
+  // Opening a set closes the one that was open, and closing saves: moving on to
+  // the next correction is not a reason to lose this one.
   function startEdit(set) {
+    const open = editingId != null && editingId !== set.id && sets.find((s) => s.id === editingId)
+    if (open && changedEdit(open)) {
+      const valid = validateSet(editReps, editWeight)
+      if (valid.error) {
+        setError(valid.error)
+        return
+      }
+      saveEdit(open, valid).catch(() => setError('No se pudo actualizar la serie.'))
+    }
     setError('')
     setEditingId(set.id)
     setEditReps(String(set.reps))
-    // Edited in the unit you're reading in, not the one it was logged in — the
-    // row above the form says 135 lb, so the field has to say 135 too.
-    setEditWeight(set.weight == null ? '' : String(showKg(set.weight)))
+    setEditWeight(weightField(set))
     setEditNote(set.note || '')
+    setNoteOpen(Boolean(set.note))
   }
 
-  async function handleSaveEdit(set) {
+  function changedEdit(set) {
+    return (
+      editReps.trim() !== String(set.reps) ||
+      editWeight.trim() !== weightField(set) ||
+      editNote.trim() !== (set.note || '')
+    )
+  }
+
+  function saveEdit(set, valid) {
+    return onEditSet(set, {
+      reps: valid.reps,
+      weight: valid.weight,
+      // Left as it was found: correcting reps doesn't change how many were
+      // left, and only the RIR question writes it.
+      rpe: set.rpe ?? null,
+      note: editNote.trim() || null,
+    })
+  }
+
+  // No «Guardar»: closing the row is the save. Closing one nobody touched sends
+  // nothing, so opening a set to look at it costs no request.
+  async function closeEdit(set) {
+    if (!changedEdit(set)) {
+      setError('')
+      setEditingId(null)
+      return
+    }
     const valid = validateSet(editReps, editWeight)
     if (valid.error) {
       setError(valid.error)
@@ -329,14 +370,7 @@ function ExerciseCard({
     }
     setError('')
     try {
-      await onEditSet(set, {
-        reps: valid.reps,
-        weight: valid.weight,
-        // Left as it was found: correcting reps doesn't change how many were
-        // left, and only the RIR question writes it.
-        rpe: set.rpe ?? null,
-        note: editNote.trim() || null,
-      })
+      await saveEdit(set, valid)
       setEditingId(null)
     } catch {
       setError('No se pudo actualizar la serie.')
@@ -347,6 +381,7 @@ function ExerciseCard({
     setError('')
     try {
       await onDeleteSet(setId)
+      setEditingId(null)
     } catch {
       setError('No se pudo borrar la serie.')
     }
@@ -902,46 +937,118 @@ function ExerciseCard({
           {sets.map((set, index) => (
             <li key={set.id}>
               {editingId === set.id ? (
-                <form
-                  className="set-edit"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    handleSaveEdit(set)
-                  }}
-                >
-                  <input
-                    aria-label="Editar reps"
-                    inputMode="numeric"
-                    value={editReps}
-                    onChange={(e) => setEditReps(e.target.value)}
-                  />
-                  <input
-                    aria-label="Editar peso"
-                    inputMode="decimal"
-                    value={editWeight}
-                    onChange={(e) => setEditWeight(e.target.value)}
-                  />
-                  <input
-                    aria-label="Editar nota"
-                    className="set-edit-note"
-                    placeholder="nota"
-                    value={editNote}
-                    onChange={(e) => setEditNote(e.target.value)}
-                  />
-                  <button type="submit" className="primary">Guardar</button>
-                  <button type="button" className="secondary" onClick={() => setEditingId(null)}>
-                    Cancelar
-                  </button>
-                  {/* Borrar rides inside the editor: you are already looking at
-                      the set you mean, and it saves the row a control. */}
+                /* The row opens in place. kg before reps, like the tiles above
+                   and the «60 kg x 8» it stands for; − and + because a
+                   correction is almost always one rep or one plate, and the
+                   keyboard is still there for a big jump. The row itself shows
+                   the value as it changes and is what closes — and saves — it. */
+                <div className="set-edit">
                   <button
                     type="button"
-                    className="secondary set-delete"
-                    onClick={() => handleDelete(set.id)}
+                    className="set-row"
+                    aria-expanded="true"
+                    aria-label={`Cerrar serie ${index + 1}`}
+                    onClick={() => closeEdit(set)}
                   >
-                    Borrar
+                    <span className="set-ix" aria-hidden="true">
+                      S{index + 1}
+                    </span>
+                    <span className="set-val">
+                      {formatSet({
+                        weight: editWeight.trim() === '' ? null : editWeight,
+                        reps: editReps,
+                      })}
+                    </span>
+                    <span className="set-edit-chev" aria-hidden="true">
+                      ˄
+                    </span>
                   </button>
-                </form>
+                  <form
+                    className="set-edit-steppers"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      closeEdit(set)
+                    }}
+                  >
+                    <div className="stepper">
+                      <button
+                        type="button"
+                        className="stepper-btn"
+                        aria-label={`Restar kg a la serie ${index + 1}`}
+                        onClick={() => setEditWeight(bump(editWeight, -WEIGHT_STEP, 0))}
+                      >
+                        −
+                      </button>
+                      <input
+                        aria-label="Editar peso"
+                        inputMode="decimal"
+                        value={editWeight}
+                        onChange={(e) => setEditWeight(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="stepper-btn stepper-plus"
+                        aria-label={`Sumar kg a la serie ${index + 1}`}
+                        onClick={() => setEditWeight(bump(editWeight, WEIGHT_STEP, 0))}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="stepper">
+                      <button
+                        type="button"
+                        className="stepper-btn"
+                        aria-label={`Restar rep a la serie ${index + 1}`}
+                        onClick={() => setEditReps(bump(editReps, -1, 1))}
+                      >
+                        −
+                      </button>
+                      <input
+                        aria-label="Editar reps"
+                        inputMode="numeric"
+                        value={editReps}
+                        onChange={(e) => setEditReps(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="stepper-btn stepper-plus"
+                        aria-label={`Sumar rep a la serie ${index + 1}`}
+                        onClick={() => setEditReps(bump(editReps, 1, 1))}
+                      >
+                        +
+                      </button>
+                    </div>
+                    {noteOpen && (
+                      <input
+                        aria-label="Editar nota"
+                        className="set-edit-note"
+                        placeholder="nota"
+                        value={editNote}
+                        onChange={(e) => setEditNote(e.target.value)}
+                      />
+                    )}
+                  </form>
+                  <div className="set-edit-actions">
+                    {!noteOpen && (
+                      <button
+                        type="button"
+                        className="set-edit-link"
+                        onClick={() => setNoteOpen(true)}
+                      >
+                        + Nota
+                      </button>
+                    )}
+                    {/* Borrar rides inside the editor: you are already looking
+                        at the set you mean, and it saves the row a control. */}
+                    <button
+                      type="button"
+                      className="set-edit-link set-delete"
+                      onClick={() => handleDelete(set.id)}
+                    >
+                      Borrar serie
+                    </button>
+                  </div>
+                </div>
               ) : set.pending ? (
                 /* On screen, not yet on the server. Editing routes through the
                    set's server id and it hasn't got one, so the row reads
