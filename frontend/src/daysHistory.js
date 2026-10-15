@@ -67,6 +67,16 @@ export function muscleCounts(sets) {
   return counts
 }
 
+// El nombre de un entreno al que nadie se lo puso: los dos músculos con más
+// series («Pecho · Tríceps»). No se guarda —es una lectura de las series, y
+// cambia con ellas—; `null` cuando no hay ningún músculo que nombrar.
+export function autoWorkoutName(sets) {
+  const counts = muscleCounts(sets)
+  // `sort` es estable: un empate conserva el orden de MUSCLE_GROUPS.
+  const top = MUSCLE_GROUPS.filter((g) => counts[g]).sort((a, b) => counts[b] - counts[a])
+  return top.length ? top.slice(0, 2).join(' · ') : null
+}
+
 const allSets = (days) => days.flatMap((day) => day.workouts.flatMap((w) => w.sets))
 
 // El grupo que más series se llevó en un día, con cardio y sin grupo incluidos:

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
@@ -339,7 +339,9 @@ describe('Entreno y la notificación en curso', () => {
     expect(await screen.findByRole('timer')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^terminar entreno$/i }))
+    // El del menú: con el press hecho, el pie ofrece también el suyo.
+    const menu = document.querySelector('.head-menu-pop')
+    await userEvent.click(within(menu).getByRole('button', { name: /^terminar entreno$/i }))
 
     await waitFor(() => expect(screen.queryByRole('timer')).not.toBeInTheDocument())
   })

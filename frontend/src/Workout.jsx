@@ -6,6 +6,7 @@ import {
   editSet,
   getPreviousMarks,
   getWorkout,
+  listDays,
   listExercises,
   logSet,
   nextExercises,
@@ -13,6 +14,7 @@ import {
   removeExerciseFromWorkout,
   renameWorkout,
 } from './api.js'
+import { autoWorkoutName } from './daysHistory.js'
 import { focusEditorTrigger } from './EditTrouble.jsx'
 import { DeleteConfirm } from './DeleteExercise.jsx'
 import { ExerciseEditor } from './ExerciseEditor.jsx'
@@ -76,6 +78,7 @@ import {
 } from './prefs.js'
 import { showKg } from './units.js'
 import { nativeSession, session } from './platform/session.js'
+import { Chip, Sheet } from './ui'
 import { holdScreenAwake } from './platform/wakelock.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
@@ -1523,7 +1526,6 @@ export default function Workout({
   workoutId,
   onExit,
   initialWorkout = null,
-  autoRename = false,
 }) {
   const seed = initialWorkout?.id === workoutId ? initialWorkout : null
   const [workout, setWorkout] = useState(() => withQueued(seed))
@@ -1595,6 +1597,8 @@ export default function Workout({
   const recentLine = recentNote(recent)
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
+  // Los nombres que ya usaste otros días, para ponerlo con un toque.
+  const [pastNames, setPastNames] = useState([])
   // The header overflow: rename and delete are both rare, and delete is
   // irreversible, so neither sits loose next to the title where a thumb lands.
   const [menuOpen, setMenuOpen] = useState(false)
@@ -2288,25 +2292,39 @@ export default function Workout({
     setNameInput(workout.name || '')
     setRenaming(true)
     closeMenu()
+    // Como el resto de pistas: si falla, la hoja sale sin atajos y no se dice nada.
+    Promise.resolve()
+      .then(() => listDays())
+      .then((days) => {
+        if (!Array.isArray(days)) return
+        const seen = new Set()
+        for (const day of days)
+          for (const w of day.workouts ?? []) if (w.name && w.id !== workout.id) seen.add(w.name)
+        setPastNames([...seen].slice(0, 6))
+      })
+      .catch(() => {})
   }
 
-  // A workout just created with no name opens straight into naming it: the
-  // whole reason "Empezar entreno" asks for nothing up front is that it's one
-  // tap, but that shouldn't cost a second tap right after to say what it was.
-  useEffect(() => {
-    if (autoRename) startRename()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function handleRename(event) {
-    event.preventDefault()
+  // Sin «Guardar»: cerrar la hoja —velo, Atrás, Intro o un atajo— guarda, y
+  // cerrarla sin cambiar nada no manda nada. Vacío vuelve al automático.
+  async function saveName(typed) {
+    setRenaming(false)
+    const next = typed.trim() || null
+    if (next === (workout.name || null)) return
     try {
-      const updated = await renameWorkout(workout.id, nameInput.trim() || null)
+      const updated = await renameWorkout(workout.id, next)
       setWorkout((w) => ({ ...w, name: updated.name }))
-      setRenaming(false)
     } catch {
       setError('No se pudo renombrar el entreno.')
     }
+  }
+
+  // Terminar no cierra nada en el servidor —una sesión es un día—: quita la
+  // notificación en el APK, para el descanso y te devuelve a Días.
+  function finishWorkout() {
+    if (nativeSession()) session.end().catch(() => {})
+    endRest()
+    onExit()
   }
 
   async function handleDeleteWorkout() {
@@ -2348,7 +2366,17 @@ export default function Workout({
     activeExercise != null &&
     activeExercise.kind !== 'cardio' &&
     doneSummary(activeExercise.previous, setsFor(activeExercise.name)) != null
-  const leadShortcut = activeDone ? (nextUp ?? backTo) : null
+  // Y si ya no queda nada a medias, lo que toca es acabar: «Terminar entreno»
+  // ocupa ese sitio. Hecho es llegar a las series de la última vez; lo que no
+  // tiene última vez (cardio, o un ejercicio nuevo) con una serie ya lo está.
+  const exDone = (ex) => {
+    const sets = setsFor(ex.name)
+    if (sets.length === 0) return false
+    if (ex.kind === 'cardio' || !ex.previous?.found) return true
+    return doneSummary(ex.previous, sets) != null
+  }
+  const canFinish = exercises.length > 0 && exercises.every(exDone)
+  const leadShortcut = activeDone && !canFinish ? (nextUp ?? backTo) : null
   // Fase 3: terminado, lo que sueles hacer después, a un toque desde el pie.
   // Se pide al terminar y no antes: mientras queda serie, lo que toca es ella.
   // Lo que ya tiene series hoy no se ofrece otra vez, ni lo que ya ofrece el
@@ -2389,6 +2417,15 @@ export default function Workout({
   // How long this session took, from its own sets. Empty while it is still
   // running, so the header simply doesn't carry it yet.
   const took = sessionLength(workout)
+  // Sin nombre puesto, el entreno se llama por sus músculos. Una serie recién
+  // apuntada puede llegar sin grupo: lo pone el catálogo.
+  const autoName = workout
+    ? autoWorkoutName(
+        workout.sets.map((st) =>
+          st.muscle_group ? st : { ...st, muscle_group: muscleByName[st.exercise_name] },
+        ),
+      )
+    : null
 
   // A name nothing knows yet — the only case where the Fuerza/Cardio choice
   // has anything to decide.
@@ -2451,47 +2488,27 @@ export default function Workout({
         <button type="button" className="secondary head-back" onClick={onExit}>
           ← Días
         </button>
-        {renaming ? (
-          <form className="workout-rename" onSubmit={handleRename}>
-            <input
-              aria-label="Nombre del entreno"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              placeholder="Nombre del entreno"
-              autoFocus
-            />
-            <button type="submit" className="secondary set-action">
-              Guardar nombre
-            </button>
-            <button
-              type="button"
-              className="secondary set-action"
-              onClick={() => setRenaming(false)}
-            >
-              Cancelar
-            </button>
-          </form>
-        ) : (
-          <>
-            {/* The title is the rename control: tapping the name edits the
-                name. Nothing else claims this surface, unlike an exercise
-                card header, which belongs to the fold. */}
-            <button
-              type="button"
-              className="workout-title"
-              aria-label={`Renombrar el entreno ${workout.name || 'Entreno'}`}
-              onClick={startRename}
-            >
-              <strong>{workout.name || 'Entreno'}</strong>
-              {/* The length rides with the date, not on a line of its own: both
-                  answer "which session is this", and the header is already two
-                  rows tall. Empty string while the session is still running —
-                  see sessionLength. */}
-              <span className="workout-date">
-                {formatDate(workout.date)}
-                {took && ` · ${took}`}
-              </span>
-            </button>
+        {/* El título es la puerta del nombre: tocarlo abre la hoja. Sin
+            nombre puesto, el entreno se llama por sus músculos y lo dice. */}
+        <button
+          type="button"
+          className="workout-title"
+          aria-label={`Cambiar nombre del entreno ${workout.name || autoName || 'Entreno'}`}
+          onClick={startRename}
+        >
+          <span className="workout-name">
+            <strong>{workout.name || autoName || 'Entreno'}</strong>
+            {!workout.name && autoName && <span className="workout-auto">auto</span>}
+          </span>
+          {/* The length rides with the date, not on a line of its own: both
+              answer "which session is this", and the header is already two
+              rows tall. Empty string while the session is still running —
+              see sessionLength. */}
+          <span className="workout-date">
+            {formatDate(workout.date)}
+            {took && ` · ${took}`}
+          </span>
+        </button>
             <div className="head-menu">
               <button
                 type="button"
@@ -2505,6 +2522,13 @@ export default function Workout({
               </button>
               {menuOpen && (
                 <div className="head-menu-pop">
+                  <button
+                    type="button"
+                    className="secondary set-action head-menu-item"
+                    onClick={startRename}
+                  >
+                    Cambiar nombre
+                  </button>
                   {/* Rest and the screen staying lit are chosen once, in
                       Perfil; this menu keeps only what acts on this session. */}
                   {/* Only in the APK, in the spot the lock-screen switch used to
@@ -2516,11 +2540,8 @@ export default function Workout({
                       type="button"
                       className="secondary set-action head-menu-item"
                       onClick={() => {
-                        session.end().catch(() => {})
-                        // El descanso en pantalla era el de ese control: si la
-                        // notificación se va, el reloj de aquí también.
-                        endRest()
                         closeMenu()
+                        finishWorkout()
                       }}
                     >
                       Terminar entreno
@@ -2548,9 +2569,39 @@ export default function Workout({
                 </div>
               )}
             </div>
-          </>
-        )}
       </div>
+
+      {/* Un solo campo y sin «Guardar»: cerrar la hoja lo guarda (saveName). */}
+      <Sheet open={renaming} title="Nombre del entreno" onClose={() => saveName(nameInput)}>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            saveName(nameInput)
+          }}
+        >
+          <div className="field">
+            <label htmlFor="workout-name-input">
+              {autoName ? `Vacío = el automático («${autoName}»)` : 'Vacío = «Entreno»'}
+            </label>
+            <input
+              id="workout-name-input"
+              autoComplete="off"
+              autoFocus
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+            />
+          </div>
+        </form>
+        {pastNames.length > 0 && (
+          <div className="workout-name-chips" role="group" aria-label="Tus nombres de otros días">
+            {pastNames.map((n) => (
+              <Chip key={n} onClick={() => saveName(n)}>
+                {n}
+              </Chip>
+            ))}
+          </div>
+        )}
+      </Sheet>
 
       {resting && !ringShown && (
         <RestBar
@@ -2650,7 +2701,7 @@ export default function Workout({
             </div>
           </div>
         )}
-        {(backTo || nextUp) && (
+        {(backTo || nextUp || canFinish) && (
           <div className="dock-shortcuts">
             {backTo && (
               <button
@@ -2672,6 +2723,11 @@ export default function Workout({
               >
                 {nextUp}
                 <span aria-hidden="true"> ›</span>
+              </button>
+            )}
+            {canFinish && (
+              <button type="button" className="primary dock-shortcut" onClick={finishWorkout}>
+                Terminar entreno<span aria-hidden="true"> ✓</span>
               </button>
             )}
           </div>

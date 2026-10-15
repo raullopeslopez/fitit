@@ -1963,26 +1963,199 @@ describe('Workout', () => {
     expect(screen.queryByText(/1h 05/)).not.toBeInTheDocument()
   })
 
-  it('renames the current workout', async () => {
-    api.renameWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: 'Leg Day', sets: [] })
-    renderWorkout()
+  // Alternativa C (lienzo «Terminar y nombrar entreno»): el nombre se pone
+  // solo, cambiarlo es una hoja de un campo y cerrarla guarda.
+  describe('el nombre del entreno', () => {
+    it('sin nombre, se llama por sus músculos y lo marca como automático', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(
+          benchSet({ id: 1, muscle_group: 'Pecho' }),
+          benchSet({ id: 2, muscle_group: 'Pecho' }),
+          pullSet({ id: 3, exercise_name: 'Press francés', muscle_group: 'Tríceps' }),
+        ),
+      )
+      renderWorkout()
 
-    // The title is the control: tapping it opens the rename in place, so the
-    // overflow no longer carries a Renombrar item.
-    await userEvent.click(await screen.findByRole('button', { name: /renombrar el entreno/i }))
-    await userEvent.type(screen.getByLabelText(/nombre del entreno/i), 'Leg Day')
-    await userEvent.click(screen.getByRole('button', { name: /guardar nombre/i }))
+      const title = await screen.findByRole('button', { name: /cambiar nombre/i })
+      expect(within(title).getByText('Pecho · Tríceps')).toBeInTheDocument()
+      expect(within(title).getByText('auto')).toBeInTheDocument()
+    })
 
-    await waitFor(() => expect(api.renameWorkout).toHaveBeenCalledWith(1, 'Leg Day'))
-    expect(await screen.findByText('Leg Day')).toBeInTheDocument()
+    it('con nombre puesto, ni automático ni marca', async () => {
+      api.getWorkout.mockResolvedValue({
+        ...workoutWith(benchSet({ muscle_group: 'Pecho' })),
+        name: 'Día A',
+      })
+      renderWorkout()
+
+      const title = await screen.findByRole('button', { name: /cambiar nombre/i })
+      expect(within(title).getByText('Día A')).toBeInTheDocument()
+      expect(within(title).queryByText('auto')).not.toBeInTheDocument()
+    })
+
+    it('tocar el título abre la hoja y cerrarla guarda, sin «Guardar»', async () => {
+      api.renameWorkout.mockResolvedValue({ id: 1, date: '2026-07-16', name: 'Leg Day', sets: [] })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /cambiar nombre/i }))
+      const sheet = screen.getByRole('dialog', { name: 'Nombre del entreno' })
+      expect(within(sheet).queryByRole('button', { name: /guardar/i })).not.toBeInTheDocument()
+      await userEvent.type(within(sheet).getByRole('textbox'), 'Leg Day')
+      await userEvent.keyboard('{Escape}')
+
+      await waitFor(() => expect(api.renameWorkout).toHaveBeenCalledWith(1, 'Leg Day'))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(await screen.findByText('Leg Day')).toBeInTheDocument()
+    })
+
+    it('también se llega desde ⋯ › «Cambiar nombre»', async () => {
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /acciones del entreno/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^cambiar nombre$/i }))
+
+      expect(screen.getByRole('dialog', { name: 'Nombre del entreno' })).toBeInTheDocument()
+    })
+
+    it('cerrarla sin tocar nada no manda nada', async () => {
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /cambiar nombre/i }))
+      await userEvent.keyboard('{Escape}')
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(api.renameWorkout).not.toHaveBeenCalled()
+    })
+
+    it('vaciarlo vuelve al automático', async () => {
+      api.getWorkout.mockResolvedValue({
+        ...workoutWith(benchSet({ muscle_group: 'Pecho' })),
+        name: 'Día A',
+      })
+      api.renameWorkout.mockResolvedValue({ id: 1, name: null })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /cambiar nombre/i }))
+      const sheet = screen.getByRole('dialog', { name: 'Nombre del entreno' })
+      expect(within(sheet).getByText('Vacío = el automático («Pecho»)')).toBeInTheDocument()
+      await userEvent.clear(within(sheet).getByRole('textbox'))
+      await userEvent.keyboard('{Enter}')
+
+      await waitFor(() => expect(api.renameWorkout).toHaveBeenCalledWith(1, null))
+      const title = await screen.findByRole('button', { name: /cambiar nombre/i })
+      expect(within(title).getByText('auto')).toBeInTheDocument()
+    })
+
+    it('tus nombres de otros días, a un toque', async () => {
+      api.listDays.mockResolvedValue([
+        { id: 1, date: '2026-07-14', workouts: [{ id: 7, name: 'Día A', sets: [] }] },
+        {
+          id: 2,
+          date: '2026-07-12',
+          workouts: [
+            { id: 8, name: 'Día B', sets: [] },
+            { id: 9, name: null, sets: [] },
+          ],
+        },
+        { id: 3, date: '2026-07-10', workouts: [{ id: 6, name: 'Día A', sets: [] }] },
+      ])
+      api.renameWorkout.mockResolvedValue({ id: 1, name: 'Día B' })
+      renderWorkout()
+
+      await userEvent.click(await screen.findByRole('button', { name: /cambiar nombre/i }))
+      const sheet = screen.getByRole('dialog', { name: 'Nombre del entreno' })
+      const chips = await within(sheet).findAllByRole('button', { name: /^Día/ })
+      expect(chips.map((c) => c.textContent)).toEqual(['Día A', 'Día B'])
+      await userEvent.click(chips[1])
+
+      await waitFor(() => expect(api.renameWorkout).toHaveBeenCalledWith(1, 'Día B'))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
-  // A workout Días just created carries no name yet — asking for it right as
-  // Entreno opens saves the trip back to tap the title.
-  it('opens straight into naming a freshly created workout', async () => {
-    renderWorkout({ autoRename: true, initialWorkout: workoutWith() })
+  // Terminado lo último, «Terminar entreno» ocupa el sitio del atajo principal.
+  describe('terminar desde el pie', () => {
+    const benchDoneBefore = () =>
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve(
+          name === 'Bench Press'
+            ? { exercise_name: name, found: true, sets: [benchSet({ id: 90 })] }
+            : { exercise_name: name, found: false, sets: [] },
+        ),
+      )
 
-    expect(await screen.findByLabelText(/nombre del entreno/i)).toBeInTheDocument()
+    it('aparece al acabar el último y lleva a Días', async () => {
+      benchDoneBefore()
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 })))
+      const onExit = vi.fn()
+      renderWorkout({ onExit })
+
+      await screen.findByText('1 serie, como la última vez')
+      const end = await dock().findByRole('button', { name: /terminar entreno/i })
+      expect(end).toHaveClass('primary')
+      await userEvent.click(end)
+
+      expect(onExit).toHaveBeenCalled()
+    })
+
+    it('no aparece mientras al ejercicio le quedan series', async () => {
+      benchDoneBefore()
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 }), benchSet({ id: 11 })))
+      api.getPreviousMarks.mockResolvedValue({
+        exercise_name: 'Bench Press',
+        found: true,
+        sets: [benchSet({ id: 90 }), benchSet({ id: 91 }), benchSet({ id: 92 })],
+      })
+      renderWorkout()
+      await screen.findByLabelText('Ejercicio')
+      await waitFor(() => expect(api.getPreviousMarks).toHaveBeenCalled())
+
+      expect(dock().queryByRole('button', { name: /terminar entreno/i })).not.toBeInTheDocument()
+    })
+
+    it('no aparece si otro de hoy, ya empezado, está a medias', async () => {
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve({
+          exercise_name: name,
+          found: true,
+          sets:
+            name === 'Bench Press'
+              ? [benchSet({ id: 90 })]
+              : [pullSet({ id: 91 }), pullSet({ id: 92 }), pullSet({ id: 93 })],
+        }),
+      )
+      // Bench, lo último que apuntaste, es lo que sale en pantalla.
+      api.getWorkout.mockResolvedValue(workoutWith(pullSet({ id: 10 }), benchSet({ id: 11 })))
+      renderWorkout()
+
+      await screen.findByText('1 serie, como la última vez')
+      expect(dock().queryByRole('button', { name: /terminar entreno/i })).not.toBeInTheDocument()
+    })
+
+    it('un ejercicio sin historial cuenta como hecho con una serie', async () => {
+      api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 })))
+      renderWorkout()
+
+      expect(
+        await screen.findByRole('button', { name: /terminar entreno/i }),
+      ).toBeInTheDocument()
+    })
+
+    it('no aparece si aquel del que vienes está a medias', async () => {
+      benchDoneBefore()
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 10 })))
+      renderWorkout()
+
+      await screen.findByText('1 serie, como la última vez')
+      await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
+      await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+      await userEvent.click(await dock().findByRole('button', { name: 'Volver a Bench Press' }))
+      await screen.findByText('1 serie, como la última vez')
+
+      expect(dock().getByRole('button', { name: 'Volver a Sentadilla' })).toHaveClass('primary')
+      expect(dock().queryByRole('button', { name: /terminar entreno/i })).not.toBeInTheDocument()
+    })
   })
 
   // Días already holds every set of every workout — /days returns the same shape

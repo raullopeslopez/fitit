@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { createWorkout, deleteDay, listDays } from './api.js'
 import { buildBootSummary } from './coldstart.js'
-import { buildHistory, CARDIO, muscleCounts } from './daysHistory.js'
+import { autoWorkoutName, buildHistory, CARDIO, muscleCounts } from './daysHistory.js'
 import { formatDayStamp, isoWeekStart, sessionLength, sessionMinutes } from './format.js'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { cacheBootSummary, forgetWorkout } from './offline.js'
@@ -198,7 +198,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     setCreating(true)
     try {
       const workout = await createWorkout({ date: todayISO(), name: null })
-      onOpenWorkout(workout.id, workout, true)
+      onOpenWorkout(workout.id, workout)
     } catch {
       setError('No se pudo empezar el entreno.')
     } finally {
@@ -316,7 +316,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
         >
           <span className="day-session-main">
             <span className="day-session-top">
-              <span className="day-session-name">{w.name || 'Entreno'}</span>
+              <span className="day-session-name">{w.name || autoWorkoutName(w.sets) || 'Entreno'}</span>
               {live ? (
                 <span className="day-live">
                   <span className="day-live-dot" aria-hidden="true" />
@@ -375,7 +375,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
           <button
             type="button"
             className="day-repeat"
-            aria-label={`Repetir ${w.name || 'Entreno'}`}
+            aria-label={`Repetir ${w.name || autoWorkoutName(w.sets) || 'Entreno'}`}
             disabled={creating}
             onClick={() => handleRepeat(day)}
           >

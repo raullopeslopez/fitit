@@ -504,6 +504,33 @@ h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* El nombre y, si es el automático, su sello: el entreno se llama por sus
+   músculos hasta que le pones otro. */
+.workout-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  min-width: 0;
+}
+.workout-auto {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+.workout-name-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
 .workout-date {
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -917,13 +944,6 @@ button.editor-quit {
   }
 }
 
-.workout-rename {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  flex-wrap: wrap;
-}
 /* Exporting lives in Progreso now, with the numbers it exports.
 
    Y se viste como lo que es. Iba de `button.secondary`: caja, borde, tinta

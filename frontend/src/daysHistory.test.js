@@ -1,4 +1,4 @@
-import { buildHistory, muscleCounts } from './daysHistory.js'
+import { autoWorkoutName, buildHistory, muscleCounts } from './daysHistory.js'
 
 const set = (muscle_group, extra = {}) => ({ muscle_group, kind: 'strength', ...extra })
 const day = (id, date, sets = [set('Pecho')]) => ({
@@ -109,5 +109,27 @@ describe('buildHistory', () => {
     const week = h.months[1].weeks.find((w) => w.key === '2026-09-14')
     expect(week.ticks).toEqual([null, 'Cardio', null, null, 'Espalda', null, null])
     expect(week.muscles).toEqual({ Espalda: 2, Bíceps: 1 })
+  })
+})
+
+// Un entreno sin nombre se llama por lo que trabajó: los dos músculos con más
+// series, el primero el que más. Empate: el orden de siempre de los músculos.
+describe('autoWorkoutName', () => {
+  it('nombra los dos músculos con más series', () => {
+    const sets = [set('Tríceps'), set('Pecho'), set('Pecho'), set('Tríceps'), set('Pecho'), set('Core')]
+    expect(autoWorkoutName(sets)).toBe('Pecho · Tríceps')
+  })
+
+  it('con uno solo, ése', () => {
+    expect(autoWorkoutName([set('Espalda'), set('Espalda')])).toBe('Espalda')
+  })
+
+  it('en un empate manda el orden de los músculos', () => {
+    expect(autoWorkoutName([set('Bíceps'), set('Espalda')])).toBe('Espalda · Bíceps')
+  })
+
+  it('sin series de fuerza con músculo, no hay nombre', () => {
+    expect(autoWorkoutName([])).toBeNull()
+    expect(autoWorkoutName([set(null), { kind: 'cardio', muscle_group: null }])).toBeNull()
   })
 })

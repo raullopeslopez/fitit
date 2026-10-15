@@ -374,9 +374,23 @@ describe('Days', () => {
     await userEvent.click(await screen.findByRole('button', { name: /empezar entreno/i }))
 
     expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
-    // The third argument tells Entreno to open straight into naming it — no
-    // name was asked for up front, so it's asked for the moment it opens.
-    expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }), true)
+    // Ni antes ni al abrir: el nombre se pone solo con sus músculos.
+    expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }))
+  })
+
+  // Una sesión sin nombre se llama por sus músculos, como en su cabecera.
+  it('names an unnamed session after its muscles', async () => {
+    const sq = { kind: 'strength', exercise_name: 'Sentadilla', muscle_group: 'Cuádriceps' }
+    api.listDays.mockResolvedValue([
+      {
+        id: 2,
+        date: '2026-07-14',
+        workouts: [{ id: 5, name: null, sets: [{ id: 1, ...sq }, { id: 2, ...sq }] }],
+      },
+    ])
+    render(<Days onOpenWorkout={() => {}} />)
+
+    expect(await screen.findByText('Cuádriceps', { selector: '.day-session-name' })).toBeInTheDocument()
   })
 
   // Starting a second workout on a day you already trained is how you end up

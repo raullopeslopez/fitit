@@ -27,9 +27,6 @@ export default function App() {
   // Deliberately not persisted — a resume goes through the fetch, because a
   // seed from a previous launch would be an unknown number of sets out of date.
   const [openWorkoutSeed, setOpenWorkoutSeed] = useState(null)
-  // Whether the workout being opened was just created with no name, so Entreno
-  // can offer naming it immediately instead of after a trip to the rename tap.
-  const [openWorkoutAutoRename, setOpenWorkoutAutoRename] = useState(false)
   const [view, setView] = useState('days')
   // «Empezar entreno» pulsado en el widget: Días hace lo mismo que su botón en
   // cuanto sabe si hoy ya hay entreno.
@@ -42,10 +39,9 @@ export default function App() {
   // launch that has to wake it.
   const boot = useColdStart({ enabled: Boolean(token) })
 
-  function openWorkout(id, seed = null, autoRename = false) {
+  function openWorkout(id, seed = null) {
     setOpenWorkoutId(id)
     setOpenWorkoutSeed(seed)
-    setOpenWorkoutAutoRename(autoRename)
   }
 
   useEffect(() => {
@@ -185,7 +181,6 @@ export default function App() {
           <Workout
             workoutId={openWorkoutId}
             initialWorkout={openWorkoutSeed}
-            autoRename={openWorkoutAutoRename}
             onExit={() => openWorkout(null)}
           />
         ) : view === 'progress' ? (
