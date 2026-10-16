@@ -105,7 +105,8 @@ async def candidate_foods(session: AsyncSession, user_id: int, names: list[str])
     )
     query = (
         select(Food)
-        .options(selectinload(Food.aliases))
+        # Las raciones, para la voz: «2 huevos» se pesa con la tuya.
+        .options(selectinload(Food.aliases), selectinload(Food.portions))
         .where(
             visible_foods(user_id),
             or_(*(Food.name_folded.contains(w) for w in words), Food.id.in_(by_alias)),

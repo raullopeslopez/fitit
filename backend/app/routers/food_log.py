@@ -5,10 +5,10 @@ afterwards changes the catalogue, never the history — which is the whole reaso
 the macro columns are copies rather than a join.
 """
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import get_args
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -44,6 +44,11 @@ from ..schemas import (
 )
 from ..routers.targets import frozen_target
 from ..serialization import to_entry_out
+from ..dish_draft import candidate_foods
+from ..gemini import LabelUnreadable, read_voice
+from ..schemas import DraftFoodOut, VoiceBatchIn, VoiceLineOut, VoiceOut
+from ..voice import Habit, parse_heard, voice_lines
+from .foods import FREQUENT_WINDOW_DAYS, _most_repeated
 from .ideas import ideas_available
 
 router = APIRouter(prefix="/food-log", tags=["food-log"])
@@ -96,6 +101,155 @@ async def log_food(
     await session.commit()
     await session.refresh(entry)
     return to_entry_out(entry)
+
+
+# --- La voz (docs/registro-por-voz.md) ------------------------------------------
+
+# Treinta segundos de opus son unos 250 KB; esto deja margen sin dejar que una
+# subida cualquiera llegue al modelo, que cobra por lo que oye.
+VOICE_MAX_BYTES = 2 * 1024 * 1024
+
+
+async def get_voice_reader():
+    """Quien oye una nota de voz, o `None` si no hay clave. Dependencia para
+    que los tests la sustituyan, como `get_meal_estimator`."""
+    key = settings.gemini_api_key.get_secret_value()
+    if not key:
+        return None
+
+    async def reader(audio: bytes, mime_type: str) -> dict:
+        return await read_voice(
+            audio,
+            mime_type=mime_type,
+            api_key=key,
+            model=settings.gemini_model,
+            fallback=settings.gemini_fallback_model or None,
+        )
+
+    return reader
+
+
+@router.post("/voice", response_model=VoiceOut)
+async def hear(
+    audio: UploadFile = File(...),
+    reader=Depends(get_voice_reader),
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> VoiceOut:
+    """Una nota de voz, en líneas casadas con tus alimentos. **No guarda nada**,
+    ni el audio: lo oído pasa por «Revisa lo que has dicho» (CLAUDE.md)."""
+    if reader is None:
+        raise HTTPException(status_code=503, detail="la voz no está configurada")
+    data = await audio.read(VOICE_MAX_BYTES + 1)
+    if len(data) > VOICE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="la nota de voz es demasiado larga")
+    try:
+        crudo = await reader(data, audio.content_type or "audio/webm")
+    except LabelUnreadable as exc:
+        if exc.quota:
+            return VoiceOut(refusal="quota", quota_scope=exc.quota)
+        return VoiceOut(refusal="unreadable")
+    transcript, heard = parse_heard(crudo)
+    if not heard:
+        return VoiceOut(transcript=transcript, refusal="unreadable")
+
+    foods = await candidate_foods(session, user_id, [h.name for h in heard])
+    habits = await _habits(session, user_id, [f.id for f in foods])
+    return VoiceOut(
+        transcript=transcript,
+        lines=[
+            VoiceLineOut(
+                text=line.text,
+                status=line.status,
+                food=DraftFoodOut(id=line.food.id, name=line.food.name) if line.food else None,
+                candidates=[DraftFoodOut(id=f.id, name=f.name) for f in line.candidates],
+                grams=line.grams,
+                measure=line.measure,
+                measure_count=line.measure_count,
+                estimated=line.estimated,
+                unit_question=line.unit_question,
+            )
+            for line in voice_lines(heard, foods, user_id, habits)
+        ],
+    )
+
+
+async def _habits(session: AsyncSession, user_id: int, food_ids: list[int]) -> dict[int, Habit]:
+    """Lo que repites de estos alimentos, con la ventana y la moda de `/frequent`:
+    lo que la voz elige sola tiene que ser lo mismo que los frecuentes ofrecen."""
+    if not food_ids:
+        return {}
+    since = date.today() - timedelta(days=FREQUENT_WINDOW_DAYS)
+    rows = (
+        await session.execute(
+            select(LogEntry)
+            .where(
+                LogEntry.user_id == user_id,
+                LogEntry.food_id.in_(food_ids),
+                LogEntry.log_date >= since,
+            )
+            .order_by(LogEntry.logged_at.desc(), LogEntry.id.desc())
+        )
+    ).scalars()
+    by_food: dict[int, list[LogEntry]] = {}
+    for row in rows:
+        by_food.setdefault(row.food_id, []).append(row)
+    habits = {}
+    for food_id, entries in by_food.items():
+        measure, count, grams = _most_repeated((e.measure, e.measure_count, e.grams) for e in entries)
+        habits[food_id] = Habit(times=len(entries), grams=grams, measure=measure, measure_count=count)
+    return habits
+
+
+@router.post("/batch", response_model=list[LogEntryOut], status_code=status.HTTP_201_CREATED)
+async def log_batch(
+    payload: VoiceBatchIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[LogEntryOut]:
+    """Lo confirmado en el modal de la voz, **todo o nada**: si una línea apunta a
+    un alimento que no existe para ti, no se escribe ninguna. Van como `voice`,
+    salvo las de gramos del modelo, que van como `estimated` para que el diario
+    las diga igual que lo de «Comer fuera»."""
+    ids = {e.food_id for e in payload.entries}
+    foods = {
+        f.id: f
+        for f in (
+            await session.execute(select(Food).where(Food.id.in_(ids), visible_foods(user_id)))
+        ).scalars()
+    }
+    if ids - foods.keys():
+        raise HTTPException(status_code=404, detail="food not found")
+
+    moment = payload.logged_at or datetime.now(UTC)
+    stamp = moment.astimezone(UTC) if moment.tzinfo else moment.replace(tzinfo=UTC)
+    entries = []
+    for item in payload.entries:
+        food = foods[item.food_id]
+        grams = gramos_de_medida(item.measure, item.quantity) if item.measure else item.grams
+        computed, edible = _pesar(food, grams, False)
+        entries.append(
+            LogEntry(
+                user_id=user_id,
+                logged_at=stamp,
+                log_date=food_log_date(moment),
+                meal_slot=payload.meal_slot,
+                food_id=food.id,
+                food_name_snapshot=food.name,
+                grams=grams,
+                edible_grams=edible,
+                nutrients_json=dump_nutrients(computed.pop("nutrients")),
+                entry_source="estimated" if item.estimated else "voice",
+                measure=item.measure,
+                measure_count=item.quantity if item.measure else None,
+                **computed,
+            )
+        )
+    session.add_all(entries)
+    await session.commit()
+    for entry in entries:
+        await session.refresh(entry)
+    return [to_entry_out(e) for e in entries]
 
 
 # Lo que se contesta cuando se pesa con hueso un alimento del que no se sabe si

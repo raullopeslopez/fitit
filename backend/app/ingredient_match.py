@@ -274,6 +274,11 @@ def prefilter_words(names: Iterable[str]) -> set[str]:
     }
 
 
+def food_words(text: str) -> tuple[str, ...]:
+    """Las palabras con las que se compara: plegadas, sin vacías, en singular."""
+    return _tokens(text)
+
+
 def _alias_text(alias) -> str:
     return alias if isinstance(alias, str) else getattr(alias, "alias", "")
 

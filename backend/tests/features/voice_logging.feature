@@ -35,12 +35,15 @@ Feature: Logging food by voice
 
   # --- Which food ---------------------------------------------------------------
 
+  # Por nombre: lo dicho tiene que estar en el nombre o en un alias. «pasta» no
+  # encuentra «Macarrón», y eso es un alias que falta, no algo que adivinar.
   Scenario: What I usually eat is chosen for me
-    Given a food "Macarrón Hacendado" I have logged at 90 g twice
+    Given a food "Pasta espagueti Hacendado" I have logged at 90 g twice
     And a shared food "Pasta, cocida"
     And the model hears "pasta" as "pasta" with no amount
     When I send a voice note
-    Then the line "pasta" is chosen as "Macarrón Hacendado"
+    Then the line "pasta" is chosen as "Pasta espagueti Hacendado"
+    And the line "pasta" weighs 90 g, not estimated
 
   Scenario: Without a habit, it asks which, mine first, then the supermarket, then CIQUAL
     Given a food "Pasta fresca" of mine I never logged
