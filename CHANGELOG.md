@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **APK 0.38.1: voz: Gemini saturado.**
+  Con Gemini saturado, la voz dice `Gemini está saturado. Prueba en un minuto.` en vez de
+  `No he entendido nada`; el servidor reintenta con `gemini-3.5-flash` (#306).
 - **APK 0.38.0: registro por voz.** En `Comida`, un micro encima de `Añadir comida` (y
   junto a la búsqueda de `Añadir a …`): hablas, para solo a los 2 s de silencio, y el
   modal `Revisa lo que has dicho` enseña lo que oyó Gemini con tus alimentos de siempre
