@@ -147,7 +147,9 @@ Un emparejador **sólo para la voz**; el de recetas, tickets y planes no cambia.
    sustituible en tests (como `get_meal_estimator`), el emparejador y `POST
    /food-log/batch`. Escenarios en `backend/tests/features/voice_logging.feature`.
 3. **La pantalla.** Grabar con silencio, los dos micros, el modal y sus errores.
-4. **APK.** Permiso `RECORD_AUDIO` y `just release minor "registro por voz"`.
+4. **APK.** `RECORD_AUDIO` y `MODIFY_AUDIO_SETTINGS` en el manifest (las dos que pide
+   `BridgeWebChromeClient` de Capacitor al conceder el micro). La versión se saca **después
+   de fusionar**, con `just release minor "registro por voz"`: el script parte de `main`.
 
 ## 7. Lo que no está verificado
 
