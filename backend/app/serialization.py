@@ -7,7 +7,7 @@ needs to know about the diary).
 
 from datetime import UTC
 
-from .models import Food, LogEntry
+from .models import Food, LogEntry, visible_portions
 from .food_groups import familia
 from .refuse import hueso_de
 from .schemas import FoodOut, LogEntryOut, PortionOut
@@ -29,7 +29,7 @@ def to_food_out(food: Food, user_id: int) -> FoodOut:
         fiber_100g=food.fiber_100g,
         familia=familia(food.subgroup_code),
         barcode=food.barcode,
-        portions=[PortionOut.model_validate(p) for p in food.portions],
+        portions=[PortionOut.model_validate(p) for p in visible_portions(food, user_id)],
         is_mine=food.user_id == user_id,
         refuse_pct=hueso.refuse_pct if hueso else None,
         refuse_source=hueso.origen if hueso else None,

@@ -30,7 +30,7 @@ from ..openfoodfacts import (
     looks_like_a_barcode,
     read_product,
 )
-from ..models import Food, FoodAlias, LogEntry, Portion, visible_foods
+from ..models import Food, FoodAlias, LogEntry, Portion, visible_foods, visible_portions
 from ..naming import fold_exercise_name as fold
 from ..nutrition import NUTRIENTS, kcal_disagreement
 from ..refuse import nutrientes_de_lo_pesado, referencia
@@ -47,6 +47,8 @@ from ..schemas import (
     FrequentFoodOut,
     UsualAmountOut,
     LabelReadOut,
+    MyPortionIn,
+    PortionOut,
 )
 from ..serialization import to_food_out
 
@@ -794,6 +796,35 @@ async def usual_amounts(
         )
         for key in ranked
     ]
+
+
+@router.post("/{food_id}/portions", response_model=PortionOut, status_code=status.HTTP_201_CREATED)
+async def add_my_portion(
+    food_id: int,
+    payload: MyPortionIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PortionOut:
+    """Una ración tuya sobre cualquier alimento que veas, también del catálogo.
+
+    No es editar el alimento —el catálogo compartido no se toca—: es tu dato sobre
+    él, que sólo ves tú. Lo escribe el modal de la voz cuando confirmas cuánto
+    pesa «un huevo» (docs/registro-por-voz.md). Si ya tenías una con esa
+    etiqueta, se corrige en vez de duplicarse.
+    """
+    food = await _load(session, food_id, user_id)
+    label = payload.label
+    mine = next(
+        (p for p in visible_portions(food, user_id) if p.user_id == user_id and p.label == label),
+        None,
+    )
+    if mine is None:
+        mine = Portion(food_id=food.id, label=label, grams=payload.grams, user_id=user_id)
+        session.add(mine)
+    else:
+        mine.grams = payload.grams
+    await session.commit()
+    return PortionOut.model_validate(mine)
 
 
 @router.get("/{food_id}", response_model=FoodOut)

@@ -456,6 +456,29 @@ describe('Comida', () => {
     expect(row).toHaveTextContent('— P')
   })
 
+  describe('dictar', () => {
+    it('el micro está junto a «Añadir comida» y dentro de «Añadir a»', async () => {
+      render(<Comida />)
+      expect(await screen.findByRole('button', { name: 'Dictar comida' })).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+      expect(screen.getByRole('button', { name: 'Dictar' })).toBeInTheDocument()
+    })
+
+    it('sin modelo en el servidor no hay micro', async () => {
+      api.getFoodDay.mockResolvedValue(day({ label_reading: false }))
+      render(<Comida />)
+      await screen.findByRole('button', { name: 'Añadir a desayuno' })
+      expect(screen.queryByRole('button', { name: 'Dictar comida' })).not.toBeInTheDocument()
+    })
+
+    it('tocar el micro empieza a escuchar', async () => {
+      render(<Comida />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Dictar comida' }))
+      // jsdom no tiene micrófono: la grabación falla al instante y lo dice.
+      expect(await screen.findByText('No se ha podido escuchar. Prueba otra vez.')).toBeInTheDocument()
+    })
+  })
+
   describe('añadir', () => {
     it('busca y registra en gramos', async () => {
       api.searchFoods.mockResolvedValue([PAN])

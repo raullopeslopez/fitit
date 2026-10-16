@@ -543,6 +543,69 @@ async def estimate_meal(
         raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
 
 
+# Lo que se le pide a una nota de voz (docs/registro-por-voz.md).
+#
+# Oye y parte; no elige alimento ni calcula nada. `name` es lo dicho, sin
+# cambiarlo por un sinónimo, porque es contra tus alimentos con lo que se casa:
+# «lomo embuchado» no es «embutido». Los dos pesos son lo único que se le pide
+# estimar, y la pantalla dice de dónde salen: `unit_grams` se te pregunta antes
+# de guardarlo y `portion_grams` se apunta como estimado.
+VOICE_PROMPT = """Escuchas una nota de voz en español de alguien que dice lo que ha comido.
+
+Devuelve SOLO un objeto JSON. Sin markdown, sin explicación:
+
+{"transcript": "<lo que has oído, tal cual>",
+ "lines": [{"text": "<el trozo que habla de este alimento>",
+            "name": "<el alimento, como lo dijo>",
+            "quantity": <número o null>,
+            "unit": "g" | "ml" | "cdta" | "cda" | "taza" | "vaso" | "unidad" | null,
+            "unit_grams": <número o null>,
+            "portion_grams": <número o null>}]}
+
+REGLAS:
+- Una línea por alimento. «Café con leche» es uno; «huevos y pan» son dos.
+- `name`: el alimento como lo dijo, en singular y sin cantidad. No lo cambies por
+  un sinónimo ni por algo más genérico: «lomo embuchado», no «embutido».
+- `quantity` y `unit`: lo que dijo. «Cien gramos» es 100 y "g"; «dos cucharadas» es
+  2 y "cda"; «una cucharadita» es 1 y "cdta"; «dos huevos» es 2 y "unidad".
+  Si no dijo cantidad, los dos a null.
+- `unit_grams`: sólo con "unidad", lo que pesa UNA pieza normal en España.
+- `portion_grams`: sólo si no dijo cantidad, una ración normal en España en gramos.
+- Ni calorías ni macros. Si no se oye ningún alimento, "lines" vacío.
+"""
+
+VOICE_TIMEOUT = 45.0
+
+
+async def read_voice(
+    audio: bytes,
+    *,
+    api_key: str,
+    model: str,
+    mime_type: str = "audio/webm",
+    timeout: float = VOICE_TIMEOUT,
+    backoff: float = BACKOFF,
+    fallback: str | None = None,
+) -> dict:
+    """Manda el audio y devuelve el JSON del modelo, sin juzgarlo."""
+    parts = [
+        {"inline_data": {"mime_type": mime_type, "data": base64.b64encode(audio).decode()}},
+        {"text": VOICE_PROMPT},
+    ]
+    try:
+        return await _ask(
+            parts,
+            api_key=api_key,
+            model=model,
+            temperature=0,
+            timeout=timeout,
+            backoff=backoff,
+            fallback=fallback,
+        )
+    except ModelUnavailable as exc:
+        raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
+
+
 # Lo que se le pide a un ticket de la compra (registro sin huecos, fase 6.1).
 #
 # El de Mercadona trae unidades, una descripción en mayúsculas cortada a 20

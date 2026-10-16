@@ -373,6 +373,15 @@ class PortionOut(BaseModel):
     is_default: bool = False
 
 
+class MyPortionIn(BaseModel):
+    """Una ración tuya sobre un alimento: «unidad, 60 g» en el huevo de CIQUAL."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    label: str = Field(min_length=1, max_length=60)
+    grams: float = Field(gt=0, le=5000)
+
+
 class FoodIn(BaseModel):
     """Creating a food by hand — the bakery's bread, your mother's piquillos.
 
@@ -1374,6 +1383,57 @@ class OutEstimateIn(BaseModel):
 
     description: str = Field(min_length=1, max_length=500)
     hidden_fat: bool
+
+
+class VoiceLineOut(BaseModel):
+    """Una línea dictada, con qué casa y cuánto. **No escribe nada**."""
+
+    text: str
+    status: Literal["chosen", "ambiguous", "missing"]
+    food: "DraftFoodOut | None" = None
+    candidates: list["DraftFoodOut"] = Field(default_factory=list)
+    # `None`: no se sabe todavía (falta elegir, o falta el peso de una unidad).
+    grams: float | None = None
+    measure: str | None = None
+    measure_count: float | None = None
+    # Los gramos son una ración que propuso el modelo: se apuntan como estimado.
+    estimated: bool = False
+    # «¿Cuánto pesa un huevo?»: label, count y suggested_grams (del modelo).
+    unit_question: dict | None = None
+
+
+class VoiceOut(BaseModel):
+    """Lo que oyó el modelo y las líneas casadas. 'unreadable' | 'quota'."""
+
+    transcript: str = ""
+    lines: list[VoiceLineOut] = Field(default_factory=list)
+    refusal: str | None = None
+    quota_scope: str | None = None
+
+
+class VoiceEntryIn(BaseModel):
+    """Una línea confirmada en el modal: gramos o una medida casera."""
+
+    food_id: int
+    grams: float | None = Field(default=None, gt=0, le=5000)
+    measure: Measure | None = None
+    quantity: float = Field(default=1, gt=0, le=100)
+    # Gramos que propuso el modelo y nadie pesó: se guardan como «estimated».
+    estimated: bool = False
+
+    @model_validator(mode="after")
+    def _one_amount(self) -> "VoiceEntryIn":
+        if (self.grams is None) == (self.measure is None):
+            raise ValueError("send grams or measure, exactly one")
+        return self
+
+
+class VoiceBatchIn(BaseModel):
+    """Todo lo del modal, de una vez: o entra todo o no entra nada."""
+
+    entries: list[VoiceEntryIn] = Field(min_length=1, max_length=20)
+    meal_slot: MealSlot | None = None
+    logged_at: datetime | None = None
 
 
 class OutEstimateOut(BaseModel):
