@@ -673,7 +673,11 @@ async def frequent_foods(
         food = foods.get(food_id)
         if food is None:
             continue
-        grams = _most_repeated(row.grams for row in rows)
+        # La cantidad que más repites, con su medida si fue una: «2 cdas» se
+        # repite como «2 cdas», no como los 30 g que pesan.
+        measure, measure_count, grams = _most_repeated(
+            (row.measure, row.measure_count, row.grams) for row in rows
+        )
         # Como se pesó la última vez: con hueso o sin él.
         with_bone = rows[0].edible_grams is not None
         try:
@@ -691,6 +695,8 @@ async def frequent_foods(
                 meal_slot=_most_repeated(row.meal_slot for row in rows),
                 times=len(rows),
                 with_bone=with_bone,
+                measure=measure,
+                measure_count=measure_count,
             )
         )
     return out
@@ -746,9 +752,9 @@ async def usual_amounts(
     """
     await _load(session, food_id, user_id)
     since = date.today() - timedelta(days=FREQUENT_WINDOW_DAYS)
-    grams = (
+    rows = (
         await session.execute(
-            select(LogEntry.grams)
+            select(LogEntry.grams, LogEntry.measure, LogEntry.measure_count)
             .where(
                 LogEntry.user_id == user_id,
                 LogEntry.food_id == food_id,
@@ -756,18 +762,38 @@ async def usual_amounts(
             )
             .order_by(LogEntry.logged_at.desc(), LogEntry.id.desc())
         )
-    ).scalars()
+    ).all()
 
     # Redondeado a la décima: 125 y 125,00001 son la misma cantidad, y la
-    # aritmética de una ración por cuántas deja colas así.
-    counts: dict[float, int] = {}
-    for value in grams:
-        key = round(value, 1)
+    # aritmética de una ración por cuántas deja colas así. Una medida casera
+    # cuenta por sí misma: «2 cdas» y «30 g» son dos cantidades distintas.
+    counts: dict[tuple, int] = {}
+    grams_of: dict[tuple, float] = {}
+    for grams, measure, measure_count in rows:
+        key = (measure, measure_count) if measure else (None, round(grams, 1))
         counts[key] = counts.get(key, 0) + 1
+        grams_of.setdefault(key, round(grams, 1))
+    if not counts:
+        return []
     # `sorted` es estable y `counts` guarda el orden de la primera aparición,
     # que es la más reciente: a igualdad, gana lo último que hiciste.
-    ranked = sorted(counts.items(), key=lambda kv: -kv[1])[:USUAL_AMOUNTS]
-    return [UsualAmountOut(grams=g, times=n) for g, n in ranked]
+    ranked = [key for key, _ in sorted(counts.items(), key=lambda kv: -kv[1])[:USUAL_AMOUNTS]]
+    # La última siempre entra, porque con su unidad se abre la hoja. Si no
+    # llegó a las tres primeras, ocupa el sitio de la tercera: tiene como
+    # mucho sus mismas veces, así que el orden no cambia.
+    latest = next(iter(counts))
+    if latest not in ranked:
+        ranked[-1] = latest
+    return [
+        UsualAmountOut(
+            grams=grams_of[key],
+            times=counts[key],
+            measure=key[0],
+            measure_count=key[1] if key[0] else None,
+            latest=key == latest,
+        )
+        for key in ranked
+    ]
 
 
 @router.get("/{food_id}", response_model=FoodOut)

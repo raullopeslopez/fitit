@@ -148,6 +148,19 @@ describe('lo planificado, dentro de su comida', () => {
     expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Pollo 150 g · Arroz blanco 80,5 g')
   })
 
+  it('el aceite se dice también en cucharadas', () => {
+    pintar({
+      entrada: entrada({
+        id: 2,
+        items: [
+          { food_name: 'Pollo, pechuga, sin piel, cruda', grams: 150 },
+          { food_name: 'Aceite de oliva', grams: 13.5 },
+        ],
+      }),
+    })
+    expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Pollo 150 g · Aceite de oliva 13,5 g ≈ 1 cda')
+  })
+
   it('sin ingredientes que decir no pinta la línea', () => {
     pintar()
     expect(screen.queryByLabelText('Ingredientes')).not.toBeInTheDocument()
@@ -530,7 +543,8 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     const lineas = within(hoja).getAllByLabelText('Ingredientes')
     expect(lineas[0]).toHaveTextContent('Lentejas 70 g')
     // Lo que el plan pondría si lo eliges: una ración de la receta.
-    expect(lineas[1]).toHaveTextContent('Avena 60 g · Yogur natural 125 g')
+    // 60 g es justo el tope de las cucharadas (docs/medidas-caseras.md).
+    expect(lineas[1]).toHaveTextContent('Avena 60 g ≈ 4 cdas · Yogur natural 125 g')
   })
 
   it('elegir otro plato lo pone en el plan de ese día', async () => {

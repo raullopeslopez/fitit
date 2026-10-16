@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { createDish, ideaDraft, previewDish } from './api.js'
 import { NewDish } from './Dish.jsx'
-import { formatMacro } from './food.js'
+import { formatMacro, recipeMeasure } from './food.js'
 import PonerEnPlan, { frasePuesto } from './PonerEnPlan.jsx'
 
 // Lo que le dice la pantalla a quien está delante cuando la página no sirve.
@@ -102,6 +102,10 @@ function Linea({ line, onPick, onGrams, onDrop }) {
             onChange={(e) => onGrams(e.target.value)}
           />
           <span aria-hidden="true">g</span>
+          {/* Lo que son esos gramos con cuchara, mientras los escribes. */}
+          {recipeMeasure(Number(String(line.grams).replace(',', '.'))) && (
+            <span className="draft-line-measure">≈ {recipeMeasure(Number(String(line.grams).replace(',', '.')))}</span>
+          )}
         </label>
       )}
       <button

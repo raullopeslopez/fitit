@@ -10,7 +10,7 @@ import {
   setPlanEntry,
 } from './api.js'
 import { ListRow, Sheet } from './ui'
-import { foodDayIso, formatAmount, formatMacro, momentForDay } from './food.js'
+import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
 
 const leerTusSitios = () => listDishes('', 'fuera')
@@ -225,6 +225,9 @@ function Ingredientes({ items }) {
         <span key={i} className="plan-item">
           {i > 0 && ' · '}
           {nombreCorto(item.food_name)} <span className="plan-item-g">{formatAmount(item.grams)}</span>
+          {/* Sin « · » delante: es el separador entre ingredientes, y «13,5 g ·
+              ≈ 1 cda» se leería como dos ingredientes. */}
+          {recipeMeasure(item.grams) && <span className="plan-item-measure"> ≈ {recipeMeasure(item.grams)}</span>}
         </span>
       ))}
     </span>

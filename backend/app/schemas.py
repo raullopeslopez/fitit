@@ -3,7 +3,7 @@ from datetime import date as Date
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .auth import BCRYPT_MAX_BYTES
 
@@ -349,6 +349,9 @@ MealSlot = Literal["desayuno", "comida", "cena", "snack"]
 # reserved for the barcode scanner, templates and the voice parser, and exist
 # from the start so their adoption is measurable rather than remembered.
 EntrySource = Literal["manual", "barcode", "template", "repeat", "voice"]
+# Las medidas caseras, con sus gramos en `nutrition.MEDIDAS`. Una que no esté
+# aquí («diente») es un 422, no una medida de peso inventado.
+Measure = Literal["cdta", "cda", "taza", "vaso"]
 # A qué se refieren las kcal de un alimento con hueso (ver `app/nutrition.py`).
 KcalBasis = Literal["as_sold", "edible", "unknown"]
 
@@ -534,6 +537,10 @@ class FrequentFoodOut(BaseModel):
     # Si la última vez se pesó con hueso. Volver a registrarlo de un toque
     # tiene que pesarlo igual, o la misma bandeja contaría el hueso como carne.
     with_bone: bool = False
+    # Si lo que más repites es una medida casera, vuelve con ella: «2 cdas», y
+    # `grams` lo que pesan.
+    measure: str | None = None
+    measure_count: float | None = None
 
 
 class UsualAmountOut(BaseModel):
@@ -546,6 +553,13 @@ class UsualAmountOut(BaseModel):
 
     grams: float
     times: int
+    # «2 cdas» es otra cantidad que «30 g» aunque pesen lo mismo: lo que
+    # repites es la cuchara, no la báscula.
+    measure: str | None = None
+    measure_count: float | None = None
+    # La de tu última entrada de este alimento: con su unidad se abre la hoja.
+    # Siempre hay una, y siempre está en la lista, si hay alguna cantidad.
+    latest: bool = False
 
 
 class LogEntryIn(BaseModel):
@@ -557,6 +571,8 @@ class LogEntryIn(BaseModel):
     # diary gets quietly wrong.
     grams: float | None = Field(default=None, gt=0, le=5000)
     portion_id: int | None = None
+    # La tercera forma: una medida casera («2 cdas»), con `quantity` de cuántas.
+    measure: Measure | None = None
     quantity: float = Field(default=1, gt=0, le=100)  # "dos rebanadas"
     meal_slot: MealSlot | None = None
     # The instant, with the offset the phone is on. Absent means now.
@@ -572,6 +588,12 @@ class LogEntryIn(BaseModel):
         if value is not None and info.data.get("grams") is not None:
             raise ValueError("send grams or portion_id, not both")
         return value
+
+    @model_validator(mode="after")
+    def _measure_alone(self) -> "LogEntryIn":
+        if self.measure is not None and (self.grams is not None or self.portion_id is not None):
+            raise ValueError("send grams, portion_id or measure — only one")
+        return self
 
 
 class LogEntryPatch(BaseModel):
@@ -621,6 +643,9 @@ class LogEntryOut(BaseModel):
     # nutrientes salen de ahí. `null` es que `grams` ya es lo que se come.
     edible_grams: float | None = None
     entry_source: str = "manual"
+    # «2 cdas»: la medida casera con la que se apuntó. `null` si se pesó.
+    measure: str | None = None
+    measure_count: float | None = None
     # De qué plato salió, cuando salió de uno. La fila se lee igual sin él; esto
     # es lo que deja a la pantalla agrupar.
     dish_id: int | None = None

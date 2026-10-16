@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { Chip } from './ui'
-import { formatAmount } from './food.js'
+import { amountWithMeasure } from './food.js'
 
 const NOMBRE = { desayuno: 'Desayuno', comida: 'Comida', cena: 'Cena', snack: 'Snack' }
 const ORDEN = ['desayuno', 'comida', 'cena', 'snack']
@@ -97,7 +97,7 @@ export function Linea({ linea, estado, onCambio }) {
       {linea.status === 'chosen' && elegido && (
         <span className="importar-alimento">
           {elegido.name}
-          {linea.grams != null && <span className="importar-g">{formatAmount(linea.grams)}</span>}
+          {linea.grams != null && <span className="importar-g">{amountWithMeasure(linea.grams)}</span>}
         </span>
       )}
       {linea.grams == null && estado.alimento != null && (

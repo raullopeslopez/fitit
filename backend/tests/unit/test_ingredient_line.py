@@ -18,7 +18,7 @@ from app.ingredient_line import ParsedLine, parse_line
         ("2 huevos", 2, None, None, "huevos"),
         ("½ cebolla", 0.5, None, None, "cebolla"),
         ("70 gr de piñones tostados", 70, "g", 70, "piñones tostados"),
-        ("2 cucharadas de harina", 2, "cucharada", None, "harina"),
+        ("2 cucharadas de harina", 2, "cucharada", 30, "harina"),
         ("80 gr de atún al natural (opcional)", 80, "g", 80, "atún al natural"),
         ("Queso parmesano", None, None, None, "Queso parmesano"),
         ("Sal y pimienta", None, None, None, "Sal y pimienta"),
@@ -40,9 +40,11 @@ from app.ingredient_line import ParsedLine, parse_line
         # Sin un peso fiable: cantidad sí, gramos no.
         ("2 dientes de ajo", 2, "diente", None, "ajo"),
         ("1 diente de ajo", 1, "diente", None, "ajo"),
-        ("1 cucharadita de comino", 1, "cucharadita", None, "comino"),
-        ("1 taza de arroz", 1, "taza", None, "arroz"),
-        ("1 vaso de leche", 1, "vaso", None, "leche"),
+        # Medidas caseras: la tabla fija de nutrition.MEDIDAS.
+        ("1 cucharadita de comino", 1, "cucharadita", 5, "comino"),
+        ("1 taza de arroz", 1, "taza", 240, "arroz"),
+        ("1 vaso de leche", 1, "vaso", 200, "leche"),
+        # Otra vez sin peso fiable.
         ("Una pizca de sal", 1, "pizca", None, "sal"),
         ("un chorrito de aceite de oliva", 1, "chorrito", None, "aceite de oliva"),
         ("1 lata de atún", 1, "lata", None, "atún"),

@@ -9,8 +9,11 @@ Sólo las unidades de masa y de volumen llevan a gramos. El volumen se toma como
 si fuese agua (1 ml ≈ 1 g): para caldo, leche, vino o nata el error es de unos
 pocos por ciento; para aceite (~0,92 g/ml) o miel (~1,4 g/ml) es mayor, y aun
 así la cifra está a la vista y se corrige a mano en el borrador del plato.
-Cucharadas, tazas, dientes o pizcas no tienen un peso fiable (depende de qué
-se mida con ellas) y se quedan sin gramos.
+
+Cucharadita, cucharada, taza y vaso pesan lo que dice la tabla de medidas
+caseras (`nutrition.MEDIDAS`), igual para todo alimento: es aproximado a
+sabiendas (docs/medidas-caseras.md). Dientes, pizcas o puñados no tienen un
+peso que no dependa de qué se mida con ellos, y se quedan sin gramos.
 
 Función pura: sin base de datos y sin red.
 """
@@ -21,13 +24,14 @@ import re
 from dataclasses import dataclass
 
 from app.naming import fold_exercise_name
+from app.nutrition import MEDIDAS
 
 
 @dataclass(frozen=True)
 class ParsedLine:
     quantity: float | None
     unit: str | None
-    # Sólo con una unidad de masa o volumen. `None` = desconocido, no cero.
+    # Sólo con masa, volumen o una medida casera. `None` = desconocido, no cero.
     grams: float | None
     name: str
 
@@ -41,6 +45,10 @@ GRAMS_PER_UNIT = {
     "cl": 10.0,
     "dl": 100.0,
     "l": 1000.0,
+    "cucharadita": MEDIDAS["cdta"],
+    "cucharada": MEDIDAS["cda"],
+    "taza": MEDIDAS["taza"],
+    "vaso": MEDIDAS["vaso"],
 }
 
 # Cómo se escribe cada unidad → su forma canónica. Las claves van plegadas
@@ -53,11 +61,12 @@ _UNIT_WORDS = {
     **dict.fromkeys(["cl", "centilitro", "centilitros"], "cl"),
     **dict.fromkeys(["dl", "decilitro", "decilitros"], "dl"),
     **dict.fromkeys(["l", "lt", "lts", "litro", "litros"], "l"),
-    # Sin peso fiable.
+    # Medidas caseras: pesan lo de `nutrition.MEDIDAS`.
     **dict.fromkeys(["cucharada", "cucharadas", "cda", "cdas"], "cucharada"),
     **dict.fromkeys(["cucharadita", "cucharaditas", "cdta", "cdtas", "cdita"], "cucharadita"),
     **dict.fromkeys(["taza", "tazas"], "taza"),
     **dict.fromkeys(["vaso", "vasos"], "vaso"),
+    # Sin peso fiable: depende de qué se mida con ellas.
     **dict.fromkeys(["diente", "dientes"], "diente"),
     **dict.fromkeys(["pizca", "pizcas", "pellizco"], "pizca"),
     **dict.fromkeys(["punado", "punados"], "puñado"),

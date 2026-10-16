@@ -8,7 +8,10 @@ import {
   foodMomentIso,
   formatAmount,
   formatMacro,
+  gramsOfMeasure,
   inferMealSlot,
+  measureLabel,
+  recipeMeasure,
   momentForDay,
   kcalFromMacros,
   previewNutrients,
@@ -134,6 +137,40 @@ describe('imprimir una cantidad', () => {
   it('quita los decimales que no dicen nada', () => {
     expect(formatAmount(100)).toBe('100 g')
     expect(formatAmount(62.5)).toBe('62,5 g')
+  })
+})
+
+describe('medidas caseras', () => {
+  it('pesan lo mismo para todo alimento', () => {
+    expect(gramsOfMeasure('cdta', 1)).toBe(5)
+    expect(gramsOfMeasure('cda', 2)).toBe(30)
+    expect(gramsOfMeasure('taza', 0.5)).toBe(120)
+    expect(gramsOfMeasure('vaso', 1)).toBe(200)
+  })
+
+  it('se dicen abreviadas, en plural desde más de una y con medias', () => {
+    expect(measureLabel('cda', 1)).toBe('1 cda')
+    expect(measureLabel('cda', 2)).toBe('2 cdas')
+    expect(measureLabel('cdta', 0.5)).toBe('½ cdta')
+    expect(measureLabel('taza', 1.5)).toBe('1½ tazas')
+    expect(measureLabel('vaso', 3)).toBe('3 vasos')
+  })
+
+  // Los mismos ejemplos que household_measures.feature: el backend tiene la
+  // misma regla en `medida_casera`, y si una cambia, uno de los dos falla.
+  it.each([
+    [3, '½ cdta'],
+    [5, '1 cdta'],
+    [9, '2 cdtas'],
+    [10, '½ cda'],
+    [27, '2 cdas'],
+    [60, '4 cdas'],
+  ])('en una receta, %s g se leen como «%s»', (grams, shown) => {
+    expect(recipeMeasure(grams)).toBe(shown)
+  })
+
+  it.each([[1], [61], [200], [null]])('sin medida donde una cuchara no ayuda: %s g', (grams) => {
+    expect(recipeMeasure(grams)).toBeNull()
   })
 })
 

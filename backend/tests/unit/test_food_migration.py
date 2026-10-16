@@ -57,6 +57,8 @@ COLUMN_MIGRATIONS = (
     # Añade `foods.package_grams`: el envase con el que se vende, para que la
     # lista de la compra hable en envases.
     "d3f7a1c9e254_add_food_package_grams.py",
+    # Añade `log_entries.measure` y `measure_count`: lo apuntado con cucharadas.
+    "e4b8c1f37a20_log_entry_measure.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

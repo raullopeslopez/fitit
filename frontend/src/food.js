@@ -96,6 +96,44 @@ export function formatAmount(grams) {
   return `${rounded.toLocaleString('es-ES', { maximumFractionDigits: 1 })} g`
 }
 
+// Medidas caseras (docs/medidas-caseras.md): gramos de cada una, **iguales
+// para todo alimento**. Es copia de `MEDIDAS` en backend/app/nutrition.py, que
+// manda; un test del backend lee este fichero y falla si se separan.
+export const MEASURES = { cdta: 5, cda: 15, taza: 240, vaso: 200 }
+
+// En el orden del selector, de la más pequeña a la más grande.
+export const MEASURE_KEYS = ['cdta', 'cda', 'taza', 'vaso']
+
+export function gramsOfMeasure(measure, count) {
+  return Math.round(MEASURES[measure] * count * 100) / 100
+}
+
+// «2 cdas», «1 cda», «½ cdta», «1½ tazas». Plural desde más de una.
+export function measureLabel(measure, count) {
+  const whole = Math.floor(count)
+  const half = count - whole >= 0.5 ? '½' : ''
+  const number = whole === 0 ? half || '0' : `${whole}${half}`
+  return `${number} ${measure}${count > 1 ? 's' : ''}`
+}
+
+// Cómo leer los gramos de un ingrediente con cuchara: «2 cdas», o `null` si una
+// cuchara no ayuda. Cucharaditas por debajo de 10 g, cucharadas hasta 60 g, a
+// la media más cercana; nada por encima de 60 g (nadie echa trece cucharadas
+// de pechuga), sin gramos conocidos, o si redondeando sale cero. Es la regla
+// de `medida_casera` en nutrition.py, con los mismos ejemplos en los tests.
+export function recipeMeasure(grams) {
+  if (grams == null || !(grams > 0) || grams > 60) return null
+  const measure = grams < 10 ? 'cdta' : 'cda'
+  const count = Math.floor((grams / MEASURES[measure]) * 2 + 0.5) / 2
+  return count === 0 ? null : measureLabel(measure, count)
+}
+
+// «27 g · ≈ 2 cdas», o sólo los gramos cuando no hay medida que ayude.
+export function amountWithMeasure(grams, text = formatAmount(grams)) {
+  const measure = recipeMeasure(grams)
+  return measure ? `${text} · ≈ ${measure}` : text
+}
+
 // En el orden en que se comen, no alfabético. La lista del día se agrupa por
 // esto, y una cena antes que una comida se lee como un error de la app.
 export const MEAL_SLOTS = [

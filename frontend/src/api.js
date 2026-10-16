@@ -331,6 +331,8 @@ export function logFood({
   foodId,
   grams = null,
   portionId = null,
+  // Una medida casera («cda»), con `quantity` de cuántas.
+  measure = null,
   quantity = 1,
   mealSlot = null,
   loggedAt = null,
@@ -344,6 +346,7 @@ export function logFood({
       food_id: foodId,
       grams,
       portion_id: portionId,
+      measure,
       quantity,
       meal_slot: mealSlot,
       logged_at: loggedAt ?? foodMomentIso(),
