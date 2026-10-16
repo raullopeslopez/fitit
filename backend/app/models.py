@@ -337,8 +337,23 @@ class Portion(Base):
     label: Mapped[str] = mapped_column(String(60))
     grams: Mapped[float] = mapped_column(Float)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # De quién es la ración. `NULL`: del alimento, la ve quien ve el alimento (las
+    # de siempre). Con valor: tuya sobre un alimento cualquiera, también del
+    # catálogo, que no se puede editar — «un huevo pesa 60 g» es tu dato, no el
+    # de CIQUAL (docs/registro-por-voz.md). Nadie más la ve.
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True
+    )
 
     food: Mapped["Food"] = relationship(back_populates="portions")
+
+
+def visible_portions(food: "Food", user_id: int) -> list[Portion]:
+    """Las raciones de `food` que existen para ti: las del alimento y las tuyas.
+
+    `Food.portions` las trae todas, las de cualquiera; nada fuera de aquí debería
+    leerla sin pasar por esto."""
+    return [p for p in food.portions if p.user_id is None or p.user_id == user_id]
 
 
 class LogEntry(Base):

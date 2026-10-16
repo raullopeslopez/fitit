@@ -125,21 +125,22 @@ Un emparejador **sólo para la voz**; el de recetas, tickets y planes no cambia.
 - `POST /food-log/batch` apunta las líneas confirmadas de una vez, **todas o ninguna**.
   `entry_source = "voice"`, salvo las de gramos de Gemini, que van como `"estimated"`
   para que el diario las diga igual que las de «Comer fuera».
-- Una ración confirmada en el modal se guarda con `POST /portions`: **ración tuya** sobre
+- Una ración confirmada en el modal se guarda con `POST /foods/{id}/portions`: **ración tuya** sobre
   cualquier alimento visible, también del catálogo. Nadie más la ve. No toca el alimento.
 
 ## 5. Datos
 
 - `portions.user_id`, **anulable**. `NULL` es una ración del alimento (las de siempre);
   con valor, sólo de esa persona. `Food.portions` deja de servirse entero: se filtra a
-  las del alimento más las tuyas. Migración encadenada al head y
-  `test_food_migration.py`.
+  las del alimento más las tuyas (`visible_portions`). Migración encadenada al head y
+  `test_food_migration.py`; la clave ajena sólo en Postgres, que SQLite no la añade a una
+  tabla hecha.
 - Nada más cambia de forma: `entry_source` ya admite `voice`, y `measure` /
   `measure_count` son de las medidas caseras.
 
 ## 6. Fases
 
-1. **Raciones tuyas.** `portions.user_id`, `POST /portions`, el filtro. Se ven ya como
+1. **Raciones tuyas.** `portions.user_id`, `POST /foods/{id}/portions`, el filtro. Se ven ya como
    chips en la hoja del alimento.
 2. **El servidor de la voz.** La instrucción, `POST /food-log/voice` con el lector
    sustituible en tests (como `get_meal_estimator`), el emparejador y `POST

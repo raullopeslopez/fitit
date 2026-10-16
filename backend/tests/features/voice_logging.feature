@@ -109,6 +109,12 @@ Feature: Logging food by voice
     Then "Huevo, crudo" shows my portion "unidad" of 60 g
     And someone else sees no portions on "Huevo, crudo"
 
+  Scenario: Someone else cannot log with my portion
+    Given a shared food "Huevo, crudo"
+    And I saved a portion "unidad" of 60 g on "Huevo, crudo"
+    When someone else logs 2 of my portion on "Huevo, crudo"
+    Then the answer is 404
+
   # --- Saving -----------------------------------------------------------------
 
   Scenario: Confirmed lines are logged together, as voice

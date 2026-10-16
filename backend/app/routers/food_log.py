@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
-from ..models import Food, LogEntry, PlanEntry, User, visible_foods
+from ..models import Food, LogEntry, PlanEntry, User, visible_foods, visible_portions
 from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
@@ -69,7 +69,7 @@ async def log_food(
     if food is None:
         raise HTTPException(status_code=404, detail="food not found")
 
-    grams = _resolve_grams(payload, food)
+    grams = _resolve_grams(payload, food, user_id)
     # The moment carries the phone's offset, and the offset is what decides
     # which food day a supper lands on. Absent means now.
     moment = payload.logged_at or datetime.now(UTC)
@@ -114,7 +114,7 @@ def _pesar(food: Food, grams: float, with_bone: bool) -> tuple[dict, float | Non
         raise HTTPException(status_code=422, detail=NO_SE_SABE_EL_HUESO) from None
 
 
-def _resolve_grams(payload: LogEntryIn, food: Food) -> float:
+def _resolve_grams(payload: LogEntryIn, food: Food, user_id: int) -> float:
     """Grams, from whichever of the two ways the client asked.
 
     "Dos rebanadas" is the point of the portions table: it is the amount you
@@ -122,7 +122,7 @@ def _resolve_grams(payload: LogEntryIn, food: Food) -> float:
     weigh bread.
     """
     if payload.portion_id is not None:
-        portion = next((p for p in food.portions if p.id == payload.portion_id), None)
+        portion = next((p for p in visible_portions(food, user_id) if p.id == payload.portion_id), None)
         if portion is None:
             raise HTTPException(status_code=404, detail="portion not found for this food")
         return round(portion.grams * payload.quantity, 2)

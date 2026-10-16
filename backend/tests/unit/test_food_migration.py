@@ -59,6 +59,8 @@ COLUMN_MIGRATIONS = (
     "d3f7a1c9e254_add_food_package_grams.py",
     # Añade `log_entries.measure` y `measure_count`: lo apuntado con cucharadas.
     "e4b8c1f37a20_log_entry_measure.py",
+    # Añade `portions.user_id`: raciones tuyas sobre el catálogo.
+    "f8a2d4c61e93_portions_user_id.py",
 )
 
 FOOD_TABLES = ("foods", "food_aliases", "portions", "log_entries")

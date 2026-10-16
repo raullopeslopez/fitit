@@ -373,6 +373,15 @@ class PortionOut(BaseModel):
     is_default: bool = False
 
 
+class MyPortionIn(BaseModel):
+    """Una ración tuya sobre un alimento: «unidad, 60 g» en el huevo de CIQUAL."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    label: str = Field(min_length=1, max_length=60)
+    grams: float = Field(gt=0, le=5000)
+
+
 class FoodIn(BaseModel):
     """Creating a food by hand — the bakery's bread, your mother's piquillos.
 
