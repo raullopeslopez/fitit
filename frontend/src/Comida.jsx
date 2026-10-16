@@ -1099,7 +1099,18 @@ function EntryRow({ entry, onEdit, onDelete }) {
             compara una con otra. */}
         <span className="food-entry-main">
           <span className="food-entry-name">{entry.food_name}</span>
-          <span className="food-entry-amount">{entryAmount(entry)}</span>
+          <span className="food-entry-amount">
+            {/* «2 cdas» en tinta, porque es lo que hiciste; «· ~30 g» apagado
+                como el resto de cantidades. Mismo texto que `entryAmount`. */}
+            {entry.measure ? (
+              <>
+                <span className="food-entry-measure">{measureLabel(entry.measure, entry.measure_count)}</span>
+                {` · ~${formatAmount(entry.grams)}`}
+              </>
+            ) : (
+              entryAmount(entry)
+            )}
+          </span>
         </span>
         <span className="food-entry-protein">{formatMacro(entry.protein)} P</span>
       </button>
