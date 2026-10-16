@@ -2472,9 +2472,14 @@ button.set-action {
 .stepper .food-unit:focus {
   box-shadow: none;
 }
-.food-unit-grams {
+/* «≈ 30 g»: una cifra, así que Geist Mono y en tinta (DESIGN.md), no el gris
+   de una pista. Con `.hint` delante: esa regla va después en el fichero y
+   ganaría a igual especificidad. */
+.hint.food-unit-grams {
   margin: 0.35rem 0 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 
 /* ── Entreno: la serie que toca ───────────────────────────────────────────────
@@ -4744,6 +4749,9 @@ button.set-chip:active:not(:disabled) {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   white-space: nowrap;
+}
+.food-entry-measure {
+  color: var(--text);
 }
 .food-entry-protein {
   font-family: var(--font-mono);

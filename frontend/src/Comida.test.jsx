@@ -440,6 +440,8 @@ describe('Comida', () => {
     render(<Comida />)
     const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
     expect(row).toHaveTextContent('2 cdas · ~30 g')
+    // La medida, en tinta: es lo que hiciste. Los gramos aproximados, apagados.
+    expect(row.querySelector('.food-entry-measure')).toHaveTextContent(/^2 cdas$/)
   })
 
   it('una entrada sin proteína enseña una raya, no un cero', async () => {
