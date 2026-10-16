@@ -51,25 +51,26 @@ const cardToggles = (name) =>
       (b) =>
         b.getAttribute('aria-haspopup') !== 'dialog' &&
         !b.classList.contains('editor-more') &&
-        // El pie también nombra ejercicios (volver, siguiente, los de hoy):
-        // hablan de ellos, no son su tarjeta.
-        !b.closest('.workout-dock'),
+        // El pie y la tira de arriba también nombran ejercicios (siguiente, los
+        // de hoy): hablan de ellos, no son su tarjeta.
+        !b.closest('.workout-dock') &&
+        !b.closest('.workout-strip'),
     )
 
-// Los atajos del pie: volver al anterior, el siguiente de «Repetir» y la lista
-// de lo de hoy que sale al enfocar el buscador.
+// Los atajos del pie: el siguiente de «Repetir», lo que sueles hacer, terminar.
 const dock = () => within(document.querySelector('.workout-dock'))
 
-// El orden de la sesión tal como se ve ahora: el ejercicio en pantalla y, debajo,
-// los demás de hoy en la lista que abre el buscador del pie.
+// La tira de arriba: todos los de hoy, cada uno a un toque.
+const strip = () => within(screen.getByRole('navigation', { name: 'Ejercicios de hoy' }))
+
+// El orden de la sesión tal como se ve ahora: el ejercicio en pantalla y, en la
+// tira de arriba, los demás de hoy en su orden.
 async function sessionOrder() {
-  await userEvent.click(screen.getByLabelText('Ejercicio'))
   const onScreen = [...document.querySelectorAll('.card-toggle .card-name')].map((el) =>
     el.textContent.trim(),
   )
-  const today = [...document.querySelectorAll('.dock-today .dock-name')].map((el) =>
-    el.textContent.trim(),
-  )
+  const today = [...document.querySelectorAll('.workout-strip .strip-chip:not([aria-current])')]
+    .map((el) => el.querySelector('.strip-name').textContent.trim())
   return [...onScreen, ...today]
 }
 
@@ -191,8 +192,7 @@ describe('Workout', () => {
 
       // Bench is second; go to it from the dock and log to it.
       await screen.findByRole('heading', { level: 2, name: /Dominadas/i })
-      await userEvent.click(screen.getByLabelText('Ejercicio'))
-      await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
+      await userEvent.click(strip().getByRole('button', { name: /Bench Press/ }))
       const bench = within(cardToggle('Bench Press').closest('.card'))
       await userEvent.type(bench.getByLabelText(/reps/i), '8')
       await userEvent.type(bench.getByLabelText(/peso/i), '60')
@@ -936,8 +936,7 @@ describe('Workout', () => {
       // Dominadas es la más reciente: se abre en ella. Volver a Bench Press.
       await screen.findAllByRole('button', { name: /editar ejercicio/i })
       if (!screen.queryByRole('button', { name: /editar ejercicio Bench Press/i })) {
-        await userEvent.click(screen.getByLabelText('Ejercicio'))
-        await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
+        await userEvent.click(strip().getByRole('button', { name: /Bench Press/ }))
       }
       await screen.findByText('2 series, como la última vez')
 
@@ -982,13 +981,11 @@ describe('Workout', () => {
       await screen.findByText('1 serie, como la última vez')
       await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-      const back = await dock().findByRole('button', { name: 'Volver a Bench Press' })
-      // En Sentadilla, sin series: el atajo sigue en gris.
-      expect(back).not.toHaveClass('primary')
-      await userEvent.click(back)
+      await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(1))
+      await userEvent.click(strip().getByRole('button', { name: /Bench Press/ }))
 
       await screen.findByText('1 serie, como la última vez')
-      expect(dock().getByRole('button', { name: 'Volver a Sentadilla' })).toHaveClass('primary')
+      expect(dock().getByRole('button', { name: 'Siguiente: Sentadilla' })).toHaveClass('primary')
     })
   })
 
@@ -1737,7 +1734,7 @@ describe('Workout', () => {
 
     // Squat is on screen and Bench Press is a tap away, not gone.
     expect(screen.queryByRole('heading', { name: /Bench Press/i })).not.toBeInTheDocument()
-    expect(dock().getByRole('button', { name: 'Volver a Bench Press' })).toBeInTheDocument()
+    expect(strip().getByRole('button', { name: /Bench Press/ })).toBeInTheDocument()
   })
 
   it('shows the muscle group tag on an exercise', async () => {
@@ -2150,10 +2147,11 @@ describe('Workout', () => {
       await screen.findByText('1 serie, como la última vez')
       await userEvent.type(screen.getByLabelText('Ejercicio'), 'Sentadilla')
       await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
-      await userEvent.click(await dock().findByRole('button', { name: 'Volver a Bench Press' }))
+      await waitFor(() => expect(cardToggles('Sentadilla')).toHaveLength(1))
+      await userEvent.click(strip().getByRole('button', { name: /Bench Press/ }))
       await screen.findByText('1 serie, como la última vez')
 
-      expect(dock().getByRole('button', { name: 'Volver a Sentadilla' })).toHaveClass('primary')
+      expect(dock().getByRole('button', { name: 'Siguiente: Sentadilla' })).toHaveClass('primary')
       expect(dock().queryByRole('button', { name: /terminar entreno/i })).not.toBeInTheDocument()
     })
   })
@@ -2481,8 +2479,7 @@ describe('Workout', () => {
       await screen.findAllByRole('button', { name: /editar ejercicio/i })
       // Con dos ejercicios, Bench Press puede no ser el que está en pantalla.
       if (!screen.queryByRole('button', { name: /editar ejercicio Bench Press/i })) {
-        await userEvent.click(screen.getByLabelText('Ejercicio'))
-        await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
+        await userEvent.click(strip().getByRole('button', { name: /Bench Press/ }))
       }
       await userEvent.click(screen.getByRole('button', { name: /editar ejercicio Bench Press/i }))
       // Sin tocar el campo: la hoja se abre escribiendo.
@@ -2620,9 +2617,8 @@ describe('Workout', () => {
   // are already standing when you arrive, each with its previous marks loaded,
   // so a repeat session is taps on steppers rather than five lookups.
   // ── Un ejercicio a la vez ────────────────────────────────────────────────
-  // Lo que estás haciendo ocupa la pantalla; lo demás se alcanza desde el pie.
-  // Volver al anterior (supersets) y pasar al siguiente de «Repetir» cuestan un
-  // toque; ir a cualquier otro de hoy, dos (enfocar el buscador y elegirlo).
+  // Lo que estás haciendo ocupa la pantalla; lo demás de hoy está en la tira de
+  // arriba, cada uno a un toque. El pie guarda el siguiente de «Repetir».
   describe('un ejercicio a la vez', () => {
     const twoLogged = () => {
       api.getWorkout.mockResolvedValue(
@@ -2652,26 +2648,94 @@ describe('Workout', () => {
       await waitFor(() => expect(cardToggles('Press militar')).toHaveLength(1))
       expect(cardToggles('Dominadas')).toHaveLength(0)
 
-      await userEvent.click(dock().getByRole('button', { name: 'Volver a Dominadas' }))
+      await userEvent.click(strip().getByRole('button', { name: /Dominadas/ }))
       expect(cardToggles('Dominadas')).toHaveLength(1)
       expect(cardToggles('Press militar')).toHaveLength(0)
       // Y de vuelta, igual de corto: un superset es ir y volver.
-      expect(dock().getByRole('button', { name: 'Volver a Press militar' })).toBeInTheDocument()
+      expect(strip().getByRole('button', { name: /Press militar/ })).toBeInTheDocument()
     })
 
-    it('al enfocar el buscador ofrece los demás de hoy, y elegir uno lleva a él', async () => {
+    it('la tira lleva a cualquiera de hoy en un toque', async () => {
       twoLogged()
       renderWorkout()
       await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
 
-      await userEvent.click(screen.getByLabelText('Ejercicio'))
-      await userEvent.click(dock().getByRole('button', { name: /Bench Press/ }))
+      await userEvent.click(strip().getByRole('button', { name: /Bench Press/ }))
 
       expect(cardToggles('Bench Press')).toHaveLength(1)
       expect(cardToggles('Dominadas')).toHaveLength(0)
     })
 
-    it('al llegar a un ejercicio suelta el buscador, y volver a tocarlo enseña los de hoy', async () => {
+    // Todos los de hoy, en el orden de la sesión, con sus series. El de
+    // pantalla se marca y no se esconde: la tira no baila al cambiar.
+    it('la tira enseña los de hoy con sus series y marca el de pantalla', async () => {
+      twoLogged()
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
+
+      const chips = strip().getAllByRole('button')
+      expect(chips.map((c) => c.querySelector('.strip-name').textContent)).toEqual([
+        'Dominadas',
+        'Bench Press',
+      ])
+      expect(strip().getByRole('button', { name: /Dominadas/ })).toHaveAttribute(
+        'aria-current',
+        'true',
+      )
+      expect(strip().getByRole('button', { name: /Bench Press/ })).not.toHaveAttribute(
+        'aria-current',
+      )
+      expect(strip().getByRole('button', { name: /Bench Press/ })).toHaveTextContent(
+        /Bench Press\s*1$/,
+      )
+    })
+
+    // Con última vez, la cifra dice cuánto queda: «1/2».
+    it('con última vez, cada uno dice sus series de las que tocan', async () => {
+      twoLogged()
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve(
+          name === 'Bench Press'
+            ? {
+                exercise_name: name,
+                found: true,
+                sets: [benchSet({ id: 90 }), benchSet({ id: 91, set_index: 1 })],
+              }
+            : { exercise_name: name, found: false, sets: [] },
+        ),
+      )
+      renderWorkout()
+
+      await waitFor(() =>
+        expect(strip().getByRole('button', { name: /Bench Press/ })).toHaveTextContent(/1\/2$/),
+      )
+    })
+
+    it('llegado a las series de la última vez, la cifra lleva ✓ en vez de pasarse', async () => {
+      twoLogged()
+      api.getPreviousMarks.mockImplementation((name) =>
+        Promise.resolve(
+          name === 'Bench Press'
+            ? { exercise_name: name, found: true, sets: [benchSet({ id: 90 })] }
+            : { exercise_name: name, found: false, sets: [] },
+        ),
+      )
+      renderWorkout()
+
+      await waitFor(() =>
+        expect(strip().getByRole('button', { name: /Bench Press/ })).toHaveTextContent(/1 ✓$/),
+      )
+    })
+
+    it('con un solo ejercicio no hay tira', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1 })))
+      renderWorkout()
+      await waitFor(() => expect(cardToggles('Bench Press')).toHaveLength(1))
+
+      expect(screen.queryByRole('navigation', { name: 'Ejercicios de hoy' })).not.toBeInTheDocument()
+    })
+
+    it('al llegar a un ejercicio suelta el buscador, y el buscador ya no repite los de hoy', async () => {
       twoLogged()
       renderWorkout()
       await waitFor(() => expect(cardToggles('Dominadas')).toHaveLength(1))
@@ -2681,9 +2745,10 @@ describe('Workout', () => {
       // El teclado se va: lo que toca ahora es el ejercicio, no el buscador.
       expect(screen.getByLabelText('Ejercicio')).not.toHaveFocus()
 
+      // Los de hoy viven arriba; el buscador es para añadir.
       await userEvent.click(screen.getByLabelText('Ejercicio'))
-      const today = within(document.querySelector('.dock-today'))
-      expect(today.getByRole('button', { name: /Dominadas/ })).toBeInTheDocument()
+      expect(document.querySelector('.dock-today')).toBeNull()
+      expect(strip().getByRole('button', { name: /Dominadas/ })).toBeInTheDocument()
     })
 
     it('escribir el nombre de uno de hoy lleva a él en vez de añadirlo otra vez', async () => {
@@ -2712,9 +2777,10 @@ describe('Workout', () => {
 
       await userEvent.click(dock().getByRole('button', { name: 'Siguiente: Remo' }))
       expect(cardToggles('Remo')).toHaveLength(1)
-      // El de antes queda para volver; el siguiente es el que viene después.
-      expect(dock().getByRole('button', { name: 'Volver a Dominadas' })).toBeInTheDocument()
+      // El siguiente es el que viene después, no el que dejaste atrás; ése
+      // sigue en la tira.
       expect(dock().getByRole('button', { name: 'Siguiente: Curl' })).toBeInTheDocument()
+      expect(strip().getByRole('button', { name: /Dominadas/ })).toBeInTheDocument()
     })
   })
 

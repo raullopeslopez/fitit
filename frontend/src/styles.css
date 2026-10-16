@@ -2045,7 +2045,58 @@ button.editor-row-danger {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Rótulo de sello: «Hoy» anota la lista, no se lee como frase. */
+
+/* ── Entreno: la tira de los de hoy ──────────────────────────────────────────
+   Una fila de chips bajo la cabecera, que se desliza de lado cuando no caben.
+   Sangra hasta el borde de la pantalla para que un chip cortado diga «hay
+   más». El de pantalla lleva el velo ámbar y el borde: está aquí, no es un
+   récord. La cifra, en mono como toda cifra. */
+.workout-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Sube a comerse parte del aire de la cabecera y no lleva regla debajo:
+     cada píxel que roba lo paga «Registrar», que descansando tiene que
+     seguir entero por encima del pie (browser-test de Entreno). */
+  margin: -0.75rem -1rem 0.75rem;
+  padding: 0 1rem;
+}
+.workout-strip::-webkit-scrollbar {
+  display: none;
+}
+.strip-chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.strip-chip[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--surface-tonal);
+}
+.strip-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--muted);
+}
+.strip-chip[aria-current='true'] .strip-count {
+  color: var(--text);
+}
+/* Rótulo de sello: anota la lista de «sueles hacer», no se lee como frase. */
 .dock-heading {
   margin: 0 0 0.25rem;
   font-family: var(--font-mono);
@@ -2053,13 +2104,6 @@ button.editor-row-danger {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
-}
-.dock-count {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
   color: var(--muted);
 }
 /* El rótulo «Ejercicio» se queda para el lector de pantalla; a la vista, el
@@ -2786,7 +2830,10 @@ button.set-action {
 /* Corregir una serie: la fila se abre en su sitio, sobre una superficie
    elevada, con dos steppers en el orden de las fichas (kg | reps). */
 .set-edit {
-  width: 100%;
+  /* Los márgenes negativos anulan el relleno de la fila por los dos lados;
+     el ancho tiene que sumarlos, o la caja se queda corta por la derecha. */
+  box-sizing: border-box;
+  width: calc(100% + 1rem);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -2799,7 +2846,7 @@ button.set-action {
   box-shadow: inset 0 0 0 1px var(--border);
 }
 .set-edit > .set-row {
-  width: 100%;
+  width: calc(100% + 0.35rem);
 }
 .set-edit-chev {
   margin-left: auto;
@@ -2832,7 +2879,9 @@ button.set-action {
   padding: 0 0.35rem;
   border: 0;
   background: none;
-  color: var(--text);
+  /* «+ Nota» es una acción, en tinta ámbar como «← Días». «Borrar serie»
+     la pisa con el rojo de lo destructivo (.set-delete). */
+  color: var(--accent-ink);
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;

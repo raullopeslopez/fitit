@@ -1543,7 +1543,6 @@ export default function Workout({
   // «Repetir» recién abierta, el primero de la plantilla. `previous` es aquel
   // del que vienes, para que volver (un superset) cueste un toque.
   const [activeName, setActiveName] = useState(null)
-  const [cameFrom, setCameFrom] = useState(null)
   // El buscador del pie, enfocado: es cuando enseña lo demás de hoy.
   const [searching, setSearching] = useState(false)
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
@@ -1910,18 +1909,14 @@ export default function Workout({
     // than a second exercise called `gemelo`.
     // Uno de hoy que encaja gana a uno del catálogo: a mitad de sesión, lo que
     // buscas casi siempre es volver.
-    await addExercise(knownExact ?? todayOthers[0]?.name ?? matches[0] ?? exerciseInput)
+    await addExercise(knownExact ?? todayMatch?.name ?? matches[0] ?? exerciseInput)
   }
 
-  // Poner un ejercicio en pantalla, recordando de cuál vienes.
+  // Poner un ejercicio en pantalla.
   function goTo(name) {
-    const current = activeExercise?.name ?? null
     // Ir al que ya está en pantalla no cambia de ejercicio, pero sí cierra la
     // búsqueda igual que cualquier otra llegada.
-    if (name !== current) {
-      setCameFrom(current)
-      setActiveName(name)
-    }
+    if (name !== activeExercise?.name) setActiveName(name)
     setSearching(false)
     setExerciseInput('')
     // Fuera el teclado: lo que toca ahora es el ejercicio. Y así volver a tocar
@@ -2220,7 +2215,6 @@ export default function Workout({
     // Si era el de la pantalla, la pantalla se va con él: sin esto volvería al
     // primero de la lista, que puede ser otro.
     if (activeExercise?.name === from) setActiveName(to)
-    if (cameFrom === from) setCameFrom(to)
     focusEditorTrigger(to)
   }
 
@@ -2348,17 +2342,16 @@ export default function Workout({
   // El ejercicio en pantalla: el elegido si sigue en la sesión, y si no (aún no
   // elegiste, o lo quitaste) el primero de la lista.
   const activeExercise = exercises.find((e) => e.name === activeName) ?? exercises[0] ?? null
-  // Los atajos del pie. Volver: aquel del que vienes, si sigue aquí. Siguiente:
-  // el primero sin series de hoy que no es éste — lo que queda de «Repetir» o
-  // lo que añadiste y aún no empezaste.
-  const backTo =
-    cameFrom && cameFrom !== activeExercise?.name && exercises.some((e) => e.name === cameFrom)
-      ? cameFrom
-      : null
+  // El atajo del pie. Siguiente: el primero sin series de hoy que viene
+  // *después* de éste en la sesión, dando la vuelta — lo que queda de
+  // «Repetir» o lo que añadiste y aún no empezaste. Después, y no el primero de
+  // la lista: el que te saltaste no vuelve a ofrecerse como lo que toca; para
+  // volver a él está la tira de arriba.
+  const activeIndex = exercises.findIndex((e) => e.name === activeExercise?.name)
   const nextUp =
-    exercises.find(
-      (e) => e.name !== activeExercise?.name && e.name !== backTo && setsFor(e.name).length === 0,
-    )?.name ?? null
+    exercises
+      .map((_, i) => exercises[(activeIndex + 1 + i) % exercises.length])
+      .find((e) => e.name !== activeExercise?.name && setsFor(e.name).length === 0)?.name ?? null
   // Terminado el de pantalla (tantas series como la última vez), el atajo del
   // pie pasa a ser lo principal: el siguiente si lo hay, y si no aquel del que
   // vienes. Ir a por él es el paso que toca, y cuesta un toque.
@@ -2376,7 +2369,7 @@ export default function Workout({
     return doneSummary(ex.previous, sets) != null
   }
   const canFinish = exercises.length > 0 && exercises.every(exDone)
-  const leadShortcut = activeDone && !canFinish ? (nextUp ?? backTo) : null
+  const leadShortcut = activeDone && !canFinish ? nextUp : null
   // Fase 3: terminado, lo que sueles hacer después, a un toque desde el pie.
   // Se pide al terminar y no antes: mientras queda serie, lo que toca es ella.
   // Lo que ya tiene series hoy no se ofrece otra vez, ni lo que ya ofrece el
@@ -2441,12 +2434,12 @@ export default function Workout({
   const matches = typedName
     ? known.filter((n) => fold(n).includes(fold(typedName)) && !standing.has(fold(n))).slice(0, 8)
     : []
-  // Los demás de hoy, arriba de lo que encuentra el buscador: volver a uno es
-  // la búsqueda más común a mitad de sesión. Filtrados por lo que escribas.
-  const todayOthers = exercises.filter(
-    (e) =>
-      e.name !== activeExercise?.name && (!typedName || fold(e.name).includes(fold(typedName))),
-  )
+  // Escribir parte del nombre de uno de hoy y dar a Intro lleva a él: la tira
+  // de arriba es el camino corto, pero quien teclea no tiene que añadirlo dos
+  // veces.
+  const todayMatch = typedName
+    ? exercises.find((e) => e.name !== activeExercise?.name && fold(e.name).includes(fold(typedName)))
+    : null
   // The way out of the substring trap: `Peso Muerto` is contained in `Peso
   // Muerto Rumano`, so the go key below would forever stand up the Rumano and
   // the lift you meant could never be created. Only offered when something did
@@ -2603,6 +2596,44 @@ export default function Workout({
         )}
       </Sheet>
 
+      {/* ── La tira ─────────────────────────────────────────────────────────
+          Todos los de hoy, en el orden de la sesión, cada uno a un toque: volver
+          a uno para corregirlo, un superset, saltar al que toca. El de pantalla
+          se marca en su sitio en vez de esconderse, para que la tira no baile.
+          La cifra son sus series de hoy y, con última vez, de cuántas. Con un
+          solo ejercicio no hay a dónde ir, y no se pinta. */}
+      {exercises.length > 1 && (
+        <nav className="workout-strip" aria-label="Ejercicios de hoy">
+          {exercises.map((e) => {
+            const done = setsFor(e.name).length
+            const target =
+              e.kind !== 'cardio' && e.previous?.found ? e.previous.sets.length : null
+            const here = e.name === activeExercise?.name
+            return (
+              <button
+                key={e.name}
+                type="button"
+                className="strip-chip"
+                aria-current={here ? 'true' : undefined}
+                onClick={() => goTo(e.name)}
+              >
+                <span
+                  className="dot"
+                  aria-hidden="true"
+                  style={{ '--chip': muscleColor(muscleByName[e.name]) }}
+                />
+                <span className="strip-name">{e.name}</span>
+                {/* «1/2» mientras falta; llegado a las de la última vez, «2 ✓»:
+                    «3/2» se leía como un error y no lo es. */}
+                <span className="strip-count">
+                  {target && done < target ? `${done}/${target}` : target ? `${done} ✓` : done}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+      )}
+
       {resting && !ringShown && (
         <RestBar
           endsAt={restEndsAt}
@@ -2701,19 +2732,8 @@ export default function Workout({
             </div>
           </div>
         )}
-        {(backTo || nextUp || canFinish) && (
+        {(nextUp || canFinish) && (
           <div className="dock-shortcuts">
-            {backTo && (
-              <button
-                type="button"
-                className={`${leadShortcut === backTo ? 'primary' : 'secondary'} dock-shortcut`}
-                aria-label={`Volver a ${backTo}`}
-                onClick={() => goTo(backTo)}
-              >
-                <span aria-hidden="true">↩ </span>
-                {backTo}
-              </button>
-            )}
             {nextUp && (
               <button
                 type="button"
@@ -2733,29 +2753,6 @@ export default function Workout({
           </div>
         )}
       <form className="card card-compose" onSubmit={handleAddExercise}>
-        {/* Lo demás de hoy, al enfocar el buscador: volver a uno es la búsqueda
-            más común a mitad de sesión. Encima de lo que encuentra en tu
-            catálogo, y filtrado por lo que escribas. */}
-        {(searching || typedName) && todayOthers.length > 0 && (
-          <div className="dock-today">
-            <p className="dock-heading">Hoy</p>
-            <ul className="search-results">
-              {todayOthers.map((e) => (
-                <li key={e.name}>
-                  <button type="button" className="set-row" onClick={() => goTo(e.name)}>
-                    <span
-                      className="dot"
-                      aria-hidden="true"
-                      style={{ '--chip': muscleColor(muscleByName[e.name]) }}
-                    />
-                    <span className="dock-name">{e.name}</span>
-                    <span className="dock-count">{setsFor(e.name).length}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
         {matches.length > 0 && (
           <ul className="search-results">
             {matches.map((name) => (
