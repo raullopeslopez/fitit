@@ -389,6 +389,12 @@ class LogEntry(Base):
     dish_id: Mapped[int | None] = mapped_column(
         ForeignKey("dishes.id", ondelete="SET NULL"), index=True, nullable=True
     )
+    # Apuntada con una medida casera: «2 cdas». `grams` ya lleva lo que pesan
+    # según `nutrition.MEDIDAS`, y las macros salen de ahí como siempre; esto
+    # sólo recuerda lo que hiciste, para enseñarlo y repetirlo. `NULL` en las
+    # dos es que se pesó en gramos (docs/medidas-caseras.md).
+    measure: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    measure_count: Mapped[float | None] = mapped_column(Float, nullable=True)
     # 'manual' | 'barcode' | 'template' | 'repeat' | 'voice' | 'dish' — kept from day one
     # so that, a month in, "how much do I actually use the voice parser?" is a
     # query rather than a guess.

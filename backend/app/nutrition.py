@@ -15,6 +15,7 @@ Two rules govern everything here, and they are the same rule read twice:
 """
 
 import json
+import math
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
@@ -558,3 +559,48 @@ def reparto_macros(*, kcal: float | None, kg: float | None) -> dict[str, int] | 
     fat = round(kcal * GRASA_PARTE_KCAL / 9)
     carbs = max(0, round((kcal - 4 * protein - 9 * fat) / 4))
     return {"protein": protein, "fat": fat, "carbs": carbs}
+
+
+# --- Medidas caseras (docs/medidas-caseras.md) ---------------------------------
+#
+# Gramos de cada medida, **iguales para todo alimento**. Una cucharada es
+# volumen y lo que pesa depende de la densidad (aceite 13,5 g, harina 8 g), así
+# que esto es aproximado a sabiendas: se eligió sencillo, y el diario guarda la
+# medida junto a los gramos para que se vea que no salió de una báscula.
+# Ésta es la única copia: el parser de recetas y la API leen de aquí.
+MEDIDAS = {"cdta": 5.0, "cda": 15.0, "taza": 240.0, "vaso": 200.0}
+
+# En una receta, por encima de esto la cuchara deja de ayudar: nadie echa
+# trece cucharadas de pechuga.
+MEDIDA_RECETA_MAX_G = 60.0
+# Por debajo, cucharaditas; desde aquí, cucharadas.
+MEDIDA_CDTA_HASTA_G = 10.0
+
+
+def gramos_de_medida(measure: str, count: float) -> float:
+    return round(MEDIDAS[measure] * count, 2)
+
+
+@dataclass(frozen=True)
+class MedidaCasera:
+    measure: str
+    count: float
+
+
+def medida_casera(grams: float | None) -> MedidaCasera | None:
+    """La medida con la que leer `grams` en una receta, o `None` si no ayuda.
+
+    Cucharaditas por debajo de 10 g, cucharadas hasta 60 g, redondeado a la
+    media más cercana. Sin medida si son más de 60 g, si no se sabe cuántos
+    gramos son (`None` no es 0) o si redondeando sale cero: «0 cdtas de sal»
+    diría que no lleva.
+    """
+    if grams is None or grams <= 0 or grams > MEDIDA_RECETA_MAX_G:
+        return None
+    measure = "cdta" if grams < MEDIDA_CDTA_HASTA_G else "cda"
+    # Media arriba a la par, no el redondeo del banquero de `round`: 7,5 g son
+    # 1,5 cdtas, y 1,25 g no deben ser 0 en un caso y ½ en otro.
+    count = math.floor(grams / MEDIDAS[measure] * 2 + 0.5) / 2
+    if count == 0:
+        return None
+    return MedidaCasera(measure, int(count) if count.is_integer() else count)

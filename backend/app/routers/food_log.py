@@ -25,6 +25,7 @@ from ..nutrition import (
     escalar_gramos,
     escalar_nutrientes,
     food_log_date,
+    gramos_de_medida,
     gramos_comestibles,
     restante,
     sumar_nutrientes,
@@ -87,6 +88,8 @@ async def log_food(
         edible_grams=edible,
         nutrients_json=dump_nutrients(computed.pop("nutrients")),
         entry_source=payload.entry_source,
+        measure=payload.measure,
+        measure_count=payload.quantity if payload.measure else None,
         **computed,
     )
     session.add(entry)
@@ -123,8 +126,11 @@ def _resolve_grams(payload: LogEntryIn, food: Food) -> float:
         if portion is None:
             raise HTTPException(status_code=404, detail="portion not found for this food")
         return round(portion.grams * payload.quantity, 2)
+    if payload.measure is not None:
+        # «2 cdas»: lo que pesan según la tabla, igual para todo alimento.
+        return gramos_de_medida(payload.measure, payload.quantity)
     if payload.grams is None:
-        raise HTTPException(status_code=422, detail="grams or portion_id is required")
+        raise HTTPException(status_code=422, detail="grams, portion_id or measure is required")
     return payload.grams
 
 
@@ -364,6 +370,9 @@ async def correct_entry(
             entry.edible_grams, old_grams=entry.grams, new_grams=new_grams
         )
         entry.grams = new_grams
+        # Repesada en gramos, ya no es «2 cdas»: lo que hiciste ahora es pesar.
+        entry.measure = None
+        entry.measure_count = None
     await session.commit()
     await session.refresh(entry)
     return to_entry_out(entry)

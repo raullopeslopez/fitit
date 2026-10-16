@@ -58,5 +58,7 @@ def to_entry_out(entry: LogEntry) -> LogEntryOut:
         fiber=entry.fiber,
         edible_grams=entry.edible_grams,
         entry_source=entry.entry_source,
+        measure=entry.measure,
+        measure_count=entry.measure_count,
         dish_id=entry.dish_id,
     )

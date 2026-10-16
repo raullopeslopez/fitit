@@ -105,7 +105,7 @@ def then_amounts(amounts, expected):
     for part in expected.split(", "):
         grams, times = part.split(" g ×")
         wanted.append({"grams": float(grams), "times": int(times)})
-    assert amounts == wanted
+    assert [{"grams": a["grams"], "times": a["times"]} for a in amounts] == wanted
 
 
 @then(parsers.parse("there are {n:d} amounts"))
