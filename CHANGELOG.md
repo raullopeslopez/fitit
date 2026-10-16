@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.38.0: registro por voz.**
 - **APK 0.37.0: medidas caseras.** En la hoja de un alimento, un selector `g ▾` junto a
   la cantidad apunta en `cdta`, `cda`, `taza` o `vaso` (5, 15, 240 y 200 g, iguales para
   todo alimento), de media en media y con `≈ 30 g` debajo; se abre en la unidad de la
