@@ -94,6 +94,16 @@ class LabelUnreadable(ModelUnavailable):
 
 
 
+
+class VoiceUnavailable(LabelUnreadable):
+    """La voz se oyó (`transcript`) pero el modelo no pudo leerla. Lleva lo oído
+    para que la pantalla lo enseñe: quien habló sabe así que se le entendió y
+    que lo que falla es lo de después."""
+
+    def __init__(self, message: str, *, transcript: str = "", quota: str | None = None, detail: str | None = None):
+        self.transcript = transcript
+        super().__init__(message, quota=quota, detail=detail)
+
 # Cuántas veces se pregunta cuando el que falla es el servidor, y cuánto se
 # espera entre una y otra.
 #
@@ -186,8 +196,9 @@ async def _ask(
     if tools:
         body["tools"] = tools
     last: Exception | None = None
-    for attempt in range(ATTEMPTS):
-        asked = _model_for(attempt, model, fallback, last)
+    chain = _chain(fallback)
+    for attempt in range(max(ATTEMPTS, 1 + len(chain))):
+        asked = _model_for(attempt, model, chain, last)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
@@ -229,13 +240,25 @@ async def _ask(
     raise ModelUnavailable(str(last), detail=_detail(last)) from last
 
 
-def _model_for(attempt: int, model: str, fallback: str | None, last: Exception | None) -> str:
-    """El principal en el primer intento; el respaldo, si lo hay, en el resto."""
-    if not attempt or not fallback:
+def _chain(fallback: str | None) -> list[str]:
+    """Los respaldos, en orden: `GEMINI_FALLBACK_MODEL` admite varios separados
+    por comas («gemini-3.6-flash,gemini-flash-latest»)."""
+    return [name.strip() for name in (fallback or "").split(",") if name.strip()]
+
+
+def _model_for(attempt: int, model: str, chain: list[str], last: Exception | None) -> str:
+    """El principal en el primer intento; luego cada respaldo, uno por intento.
+
+    Con varios, son tantos intentos como modelos: cada uno tiene su carga y su
+    cuota, así que no se martillea ninguno (el tope de dos de `ATTEMPTS` era
+    contra un mismo modelo). El 2026-10-16 la 3.8 y la 3.5 dieron 503 a la vez.
+    """
+    if not attempt or not chain:
         return model
+    asked = chain[min(attempt - 1, len(chain) - 1)]
     # Una línea y sin la causa entera: basta con saber que pasó, y a qué.
-    log.info("gemini fallback: from=%s to=%s after=%s", model, fallback, _detail(last))
-    return fallback
+    log.info("gemini fallback: from=%s to=%s after=%s", model, asked, _detail(last))
+    return asked
 
 
 def _detail(exc: Exception | None) -> str | None:
@@ -575,6 +598,38 @@ REGLAS:
 """
 
 VOICE_TIMEOUT = 45.0
+
+# Lo mismo, cuando ya lo ha transcrito Whisper (app/groq.py): el modelo sólo lee.
+VOICE_TEXT_PROMPT = VOICE_PROMPT.replace(
+    "Escuchas una nota de voz en español de alguien que dice lo que ha comido.",
+    "Lees la transcripción de una nota de voz en español de alguien que dice lo que "
+    "ha comido. Puede traer errores de transcripción: corrígelos si es obvio.",
+)
+
+
+async def read_voice_text(
+    transcript: str,
+    *,
+    api_key: str,
+    model: str,
+    timeout: float = OUT_TIMEOUT,
+    backoff: float = BACKOFF,
+    fallback: str | None = None,
+) -> dict:
+    """Manda lo transcrito y devuelve el JSON del modelo, sin juzgarlo."""
+    parts = [{"text": VOICE_TEXT_PROMPT}, {"text": f"Lo que dijo: {transcript}"}]
+    try:
+        return await _ask(
+            parts,
+            api_key=api_key,
+            model=model,
+            temperature=0,
+            timeout=timeout,
+            backoff=backoff,
+            fallback=fallback,
+        )
+    except ModelUnavailable as exc:
+        raise LabelUnreadable(str(exc), quota=exc.quota, detail=exc.detail) from exc
 
 
 async def read_voice(

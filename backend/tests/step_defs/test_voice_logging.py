@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 
 from app.auth import get_current_user, hash_password
 from app.db import get_session
-from app.gemini import LabelUnreadable
+from app.gemini import LabelUnreadable, VoiceUnavailable
 from app.main import app
 from app.models import Food, LogEntry, User
 from app.naming import fold_exercise_name
@@ -171,6 +171,11 @@ def given_no_key(ctx):
     ctx["reader"] = None
 
 
+@given(parsers.parse('the transcriber heard "{text}" but the model is saturated'))
+def given_heard_busy(ctx, text):
+    ctx["reader"] = ("heard_busy", text)
+
+
 @given("the model is saturated")
 def given_busy(ctx):
     ctx["reader"] = "busy"
@@ -190,6 +195,8 @@ def _reader(ctx):
         assert audio, "el audio llega al modelo"
         if kind == "quota":
             raise LabelUnreadable("429", quota="day")
+        if isinstance(kind, tuple):
+            raise VoiceUnavailable("503", transcript=kind[1], detail="503")
         if kind == "busy":
             raise LabelUnreadable("503", detail="503")
         if kind == "nothing":

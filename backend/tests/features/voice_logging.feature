@@ -29,6 +29,12 @@ Feature: Logging food by voice
     When I send a voice note
     Then the refusal is "busy"
 
+  Scenario: Heard, but the model is saturated: what was heard still comes back
+    Given the transcriber heard "dos huevos" but the model is saturated
+    When I send a voice note
+    Then the refusal is "busy"
+    And the transcript is "dos huevos"
+
   Scenario: Heard nothing usable
     Given the model hears nothing
     When I send a voice note

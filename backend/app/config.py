@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # seguidas sin respaldo. Cuando la apaguen contestará 404: no rompe nada,
     # sólo se pierde el segundo intento, y hay que cambiarla.
     gemini_fallback_model: str = ""
+    # Whisper en Groq (app/groq.py): oye la voz y Gemini sólo lee el texto.
+    # Vacía, el audio va entero a Gemini, como antes del 2026-10-16.
+    groq_api_key: SecretStr = SecretStr("")
+    groq_stt_model: str = "whisper-large-v3"
     # Envía la lista de la compra a Taski (`app/taski.py`). El identificador es
     # el de un miembro del hogar —Taski no tiene otra autenticación—, así que es
     # un secreto. Vacío, la función está apagada y el botón contesta 503.
