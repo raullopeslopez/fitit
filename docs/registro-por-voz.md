@@ -59,8 +59,9 @@ los 2 s de silencio o a los 30 s. Luego **«Entendiendo…»** mientras contesta
   - **«¿Cuál?»**: el texto dicho y tres chips; tocar uno la deja elegida.
   - **«¿Cuánto pesa un huevo?»**: la casilla con la cifra de Gemini puesta y «g». Al
     apuntar, se guarda como ración tuya.
-  - **«Falta: lomo embuchado · Buscar»**: abre la búsqueda con el texto escrito; lo
-    elegido allí vuelve a esta fila.
+  - **«Falta: lomo embuchado · Buscar»**: abre, dentro de la propia fila, una búsqueda
+    con el texto escrito; lo elegido allí la resuelve. Sin escáner desde aquí (fase 3):
+    para escanear, se quita la línea y se escanea desde «Añadir».
 - Abajo: **«Seguir hablando»** (añade líneas) y el botón **«Apuntar 3»**; con algo
   pendiente, desactivado y diciendo **«Falta elegir 2»**.
 

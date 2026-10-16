@@ -292,6 +292,30 @@ export function readLabel(file) {
   return apiFetch('/foods/label', { method: 'POST', body: form })
 }
 
+// Una nota de voz → lo que oyó el modelo y las líneas casadas con tus alimentos.
+// No guarda nada (docs/registro-por-voz.md): lo oído pasa por el modal.
+export function hearVoice(audio) {
+  const form = new FormData()
+  form.append('audio', audio, 'nota.webm')
+  return apiFetch('/food-log/voice', { method: 'POST', body: form })
+}
+
+// Lo confirmado en el modal de la voz, todo de una vez: o entra todo o nada.
+export function logVoice({ entries, mealSlot = null, loggedAt = null }) {
+  return apiFetch('/food-log/batch', {
+    method: 'POST',
+    body: JSON.stringify({ entries, meal_slot: mealSlot, logged_at: loggedAt ?? foodMomentIso() }),
+  })
+}
+
+// Una ración tuya sobre un alimento, también del catálogo: «unidad, 60 g».
+export function addMyPortion(foodId, label, grams) {
+  return apiFetch(`/foods/${foodId}/portions`, {
+    method: 'POST',
+    body: JSON.stringify({ label, grams }),
+  })
+}
+
 // Resuelve un código de barras. La puerta barata: no gasta clave ni cuota, y
 // cuando el producto ya es tuyo ni siquiera sale de la base de datos.
 //

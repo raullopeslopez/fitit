@@ -71,7 +71,7 @@ class VoiceLine:
     measure: str | None = None
     measure_count: float | None = None
     estimated: bool = False
-    # «¿Cuánto pesa un huevo?»: {"label", "count", "suggested_grams"}.
+    # «¿Cuánto pesa 1 huevo?»: {"name", "label", "count", "suggested_grams"}.
     unit_question: dict | None = None
 
 
@@ -166,6 +166,8 @@ def _amount(heard: Heard, food: Food | None, user_id: int, habit: Habit | None) 
             return {"grams": round(portion.grams * quantity, 2)}
         return {
             "unit_question": {
+                # Lo dicho, para preguntar «¿Cuánto pesa 1 huevo?».
+                "name": heard.name,
                 "label": UNIDAD,
                 "count": quantity,
                 "suggested_grams": heard.unit_grams,

@@ -308,6 +308,7 @@ def then_unit_question(ctx, text, grams):
     line = _line(ctx, text)
     assert line["grams"] is None
     assert line["unit_question"]["suggested_grams"] == grams
+    assert line["unit_question"]["name"] == "huevo"
 
 
 # --- Mis raciones ---------------------------------------------------------------

@@ -53,6 +53,8 @@ import { formatDayShort } from './format.js'
 import { takePhoto, usesNativeCamera } from './platform/camera.js'
 import { canScan, detectBarcodes } from './platform/scanner.js'
 import { publishFood } from './widgetSummary.js'
+import Voz from './Voz.jsx'
+import { isKnownOffline } from './platform/network.js'
 
 // Los raíles del día: las cuatro comidas, siempre, con su subtotal y lo que
 // lleven dentro. Una comida vacía **sí** se dibuja — es por donde se entra a
@@ -96,6 +98,8 @@ export default function Comida() {
   const [day, setDay] = useState(null)
   // `null` = cerrado. Si no, `{ slot }`: la comida por cuyo `+` has entrado.
   const [adding, setAdding] = useState(null)
+  // Dictando: `{ slot }`, la comida desde la que se abrió (o `null`: por la hora).
+  const [voz, setVoz] = useState(null)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
   // Lo de siempre: lo que más repites, a un toque. No depende del día que se
@@ -203,6 +207,8 @@ export default function Comida() {
 
   // Hoy es el último día al que se puede llegar: no se registra por adelantado.
   const isToday = dayIso === foodDayIso()
+  // La voz usa la misma clave del modelo que la lectura de etiquetas.
+  const voiceOn = Boolean(day?.label_reading)
   const totals = day?.totals ?? {}
   const note = unknownNote(day?.unknown)
   const editingEntry = editing != null ? (day?.entries.find((e) => e.id === editing) ?? null) : null
@@ -370,8 +376,37 @@ export default function Comida() {
           v2). Sin comida elegida: la pantalla de añadir la deduce de la hora,
           igual que cuando se entra por el diario sin tocar una tarjeta. Se
           esconde con cualquier hoja abierta, que ya es lo que estás haciendo. */}
-      {!adding && !editingEntry && !confirming && !summaryOpen && (
-        <Fab icon="+" label="Añadir comida" onClick={() => setAdding({ slot: null })} />
+      {!adding && !editingEntry && !confirming && !summaryOpen && !voz && (
+        <>
+          {/* Dictar, al lado de añadir: el camino corto de la voz. La comida la
+              deduce la hora y se cambia en el modal (docs/registro-por-voz.md).
+              Sin modelo en el servidor no se dibuja: un micro que no puede
+              funcionar es peor que uno que no está. */}
+          {voiceOn && (
+            <button
+              type="button"
+              className="voz-fab"
+              aria-label="Dictar comida"
+              disabled={isKnownOffline()}
+              onClick={() => setVoz({ slot: null })}
+            >
+              <MicIcon />
+            </button>
+          )}
+          <Fab icon="+" label="Añadir comida" onClick={() => setAdding({ slot: null })} />
+        </>
+      )}
+
+      {voz && (
+        <Voz
+          slot={voz.slot}
+          dayIso={dayIso}
+          onDone={async () => {
+            setVoz(null)
+            await afterWrite()
+          }}
+          onClose={() => setVoz(null)}
+        />
       )}
 
       {adding && (
@@ -384,6 +419,14 @@ export default function Comida() {
           platos={platos}
           onDishesChanged={loadSiempre}
           labelReading={day?.label_reading ?? false}
+          onVoice={
+            voiceOn
+              ? () => {
+                  setVoz({ slot: adding.slot })
+                  setAdding(null)
+                }
+              : null
+          }
           dishIdeas={day?.dish_ideas ?? false}
           block={labelBlock}
           onBlocked={setLabelBlock}
@@ -1118,6 +1161,16 @@ function EntryRow({ entry, onEdit, onDelete }) {
   )
 }
 
+// El micrófono de dictar: trazo, sin relleno, en la tinta del botón.
+function MicIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />
+    </svg>
+  )
+}
+
 // La cantidad de una entrada. Pesada con hueso, las dos cifras: lo que pesaste
 // y lo que se come, que es de donde salen sus números.
 export function entryAmount(entry) {
@@ -1211,6 +1264,7 @@ function AddFood({
   platos = [],
   onDishesChanged = () => {},
   labelReading = false,
+  onVoice = null,
   dishIdeas = false,
   block = null,
   onBlocked = () => {},
@@ -1595,6 +1649,18 @@ function AddFood({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          {/* Dictar en vez de teclear, ya con esta comida elegida. */}
+          {onVoice && (
+            <button
+              type="button"
+              className="voz-boton"
+              aria-label="Dictar"
+              disabled={isKnownOffline()}
+              onClick={onVoice}
+            >
+              <MicIcon />
+            </button>
+          )}
         </div>
 
         {(results.length > 0 || term) && (
