@@ -10,6 +10,15 @@ caseras (`docs/medidas-caseras.md`): «dos cucharadas de aceite» ya sabe pesars
 > **Tocas el micro, dices lo que has comido, confirmas: queda apuntado con tus alimentos
 > de siempre.**
 
+> **Cambio del 2026-10-16 (pregunta 1).** El audio ya no va a Gemini: lo transcribe
+> **Whisper en Groq** (`app/groq.py`, gratis, unas 2.000 peticiones al día) y Gemini sólo
+> lee el texto, con una cadena de respaldos (`GEMINI_FALLBACK_MODEL=a,b`, un intento por
+> modelo). Motivo: en el primer día de uso la voz falló tres veces seguidas porque
+> `gemini-3.8-flash` y su respaldo daban 503 «high demand» a la vez; en una prueba de cuatro
+> peticiones por modelo, todos los Flash fallaban una o dos. Si Gemini falla después de
+> oír, la pantalla enseña «Has oído: …» junto al aviso. Sin `GROQ_API_KEY`, el audio
+> vuelve a ir entero a Gemini.
+
 ## 1. Las decisiones
 
 | # | Pregunta | Decidido | Por qué |

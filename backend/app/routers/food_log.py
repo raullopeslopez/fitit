@@ -47,7 +47,8 @@ from ..schemas import (
 from ..routers.targets import frozen_target
 from ..serialization import to_entry_out
 from ..dish_draft import candidate_foods
-from ..gemini import LabelUnreadable, read_voice
+from ..gemini import LabelUnreadable, VoiceUnavailable, read_voice, read_voice_text
+from ..groq import transcribe
 from ..schemas import DraftFoodOut, VoiceBatchIn, VoiceLineOut, VoiceOut
 from ..voice import Habit, parse_heard, voice_lines
 from .foods import FREQUENT_WINDOW_DAYS, _most_repeated
@@ -119,15 +120,26 @@ async def get_voice_reader():
     key = settings.gemini_api_key.get_secret_value()
     if not key:
         return None
+    groq_key = settings.groq_api_key.get_secret_value()
+    fallback = settings.gemini_fallback_model or None
 
     async def reader(audio: bytes, mime_type: str) -> dict:
-        return await read_voice(
-            audio,
-            mime_type=mime_type,
-            api_key=key,
-            model=settings.gemini_model,
-            fallback=settings.gemini_fallback_model or None,
+        if not groq_key:
+            return await read_voice(
+                audio, mime_type=mime_type, api_key=key, model=settings.gemini_model, fallback=fallback
+            )
+        # Oye Whisper; si falla, lo cuenta él (cuota, saturado) y Gemini ni se toca.
+        text = await transcribe(
+            audio, mime_type=mime_type, api_key=groq_key, model=settings.groq_stt_model
         )
+        if not text:
+            return {"transcript": "", "lines": []}
+        try:
+            crudo = await read_voice_text(text, api_key=key, model=settings.gemini_model, fallback=fallback)
+        except LabelUnreadable as exc:
+            raise VoiceUnavailable(str(exc), transcript=text, quota=exc.quota, detail=exc.detail) from exc
+        # Lo oído es lo de Whisper: que el modelo no lo reescriba.
+        return {**(crudo if isinstance(crudo, dict) else {}), "transcript": text}
 
     return reader
 
@@ -162,18 +174,20 @@ async def hear(
     try:
         crudo = await reader(data, mime)
     except LabelUnreadable as exc:
+        # Si se llegó a oír (Whisper), lo oído viaja con el aviso.
+        heard_text = getattr(exc, "transcript", "")
         if exc.quota:
             note("quota", kb=kb, scope=exc.quota, detail=exc.detail)
-            return VoiceOut(refusal="quota", quota_scope=exc.quota)
+            return VoiceOut(transcript=heard_text, refusal="quota", quota_scope=exc.quota)
         # Un 5xx es el modelo saturado o caído, no un audio que no se entiende:
         # decir «no he entendido nada» a quien habló claro le hace repetir lo
         # mismo contra un modelo que sigue sin poder (2026-10-16, 503 «high
         # demand» en gemini-3.8-flash).
         if (exc.detail or "").startswith("5"):
-            note("busy", kb=kb, mime=mime, detail=exc.detail)
-            return VoiceOut(refusal="busy")
-        note("unreadable", kb=kb, mime=mime, detail=exc.detail)
-        return VoiceOut(refusal="unreadable")
+            note("busy", kb=kb, mime=mime, heard=bool(heard_text), detail=exc.detail)
+            return VoiceOut(transcript=heard_text, refusal="busy")
+        note("unreadable", kb=kb, mime=mime, heard=bool(heard_text), detail=exc.detail)
+        return VoiceOut(transcript=heard_text, refusal="unreadable")
     transcript, heard = parse_heard(crudo)
     if not heard:
         note("nothing_heard", kb=kb, mime=mime)

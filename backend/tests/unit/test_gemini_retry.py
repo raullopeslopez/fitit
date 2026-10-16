@@ -198,3 +198,21 @@ async def test_the_switch_leaves_a_line_in_the_log(monkeypatch, caplog):
         await _read(monkeypatch, handler, backoff=0, fallback="f")
     lines = [r.message for r in caplog.records if r.message.startswith("gemini fallback")]
     assert lines == ["gemini fallback: from=m to=f after=503"]
+
+
+async def test_a_chain_of_fallbacks_tries_each_model_once(monkeypatch):
+    """Con varios respaldos (`a,b`), un intento por modelo: cada uno tiene su
+    carga y su cuota, así que tres intentos no martillean ninguno. El
+    2026-10-16 la 3.8 y la 3.5 dieron 503 a la vez; con un solo respaldo, la
+    voz se rendía."""
+    asked = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        asked.append(request.url.path.split("/")[-1].split(":")[0])
+        if len(asked) < 3:
+            return httpx.Response(503, json={"error": {"message": "..."}})
+        return httpx.Response(200, json=ANSWER)
+
+    read = await _read(monkeypatch, handler, backoff=0, fallback="b, c")
+    assert read["name"] == "Yogur"
+    assert asked == ["m", "b", "c"]

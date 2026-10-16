@@ -85,10 +85,12 @@ export default function Voz({
       const audio = await grabacion.done
       setFase('entendiendo')
       const respuesta = await oir(audio)
+      // Lo oído se enseña también cuando falla lo de después: dice que se te
+      // entendió y que el problema es otro (Whisper oye; Gemini lee).
+      if (respuesta?.transcript) setOido((o) => [...o, respuesta.transcript])
       if (respuesta?.refusal || !(respuesta?.lines ?? []).length) {
         setError(porQueNo(respuesta))
       } else {
-        if (respuesta.transcript) setOido((o) => [...o, respuesta.transcript])
         setLineas((ls) => [...ls, ...respuesta.lines.map(nueva)])
       }
     } catch (err) {
