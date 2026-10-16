@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.38.0: registro por voz.** En `Comida`, un micro encima de `Añadir comida` (y
+  junto a la búsqueda de `Añadir a …`): hablas, para solo a los 2 s de silencio, y el
+  modal `Revisa lo que has dicho` enseña lo que oyó Gemini con tus alimentos de siempre
+  ya elegidos. Lo nuevo pregunta `¿Cuál?`, una pieza nueva `¿Cuánto pesa 1 huevo?` (se
+  guarda como ración tuya) y lo que no existe dice `Falta: … · Buscar`; sin cantidad y
+  nuevo va como estimado. `Apuntar N` lo escribe todo de una vez. Pide permiso de
+  micrófono la primera vez (#304).
 - **APK 0.37.0: medidas caseras.** En la hoja de un alimento, un selector `g ▾` junto a
   la cantidad apunta en `cdta`, `cda`, `taza` o `vaso` (5, 15, 240 y 200 g, iguales para
   todo alimento), de media en media y con `≈ 30 g` debajo; se abre en la unidad de la
