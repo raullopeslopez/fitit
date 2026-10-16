@@ -44,6 +44,9 @@ import {
   withoutEntry,
   droppedNote,
   edibleGrams,
+  gramsOfMeasure,
+  measureLabel,
+  MEASURE_KEYS,
   unknownNote,
 } from './food.js'
 import { formatDayShort } from './format.js'
@@ -1109,6 +1112,9 @@ function EntryRow({ entry, onEdit, onDelete }) {
 export function entryAmount(entry) {
   // Lo comido fuera lleva gramos que puso un modelo y revisaste tú: se dice.
   if (entry.entry_source === 'estimated') return `~${formatAmount(entry.grams)} · estimado`
+  // Apuntado en cucharadas: lo que hiciste, y los gramos que la tabla le da,
+  // con `~` porque no salieron de una báscula (docs/medidas-caseras.md).
+  if (entry.measure) return `${measureLabel(entry.measure, entry.measure_count)} · ~${formatAmount(entry.grams)}`
   if (entry.edible_grams == null) return formatAmount(entry.grams)
   return `${formatAmount(entry.grams)} con hueso · ${formatAmount(entry.edible_grams)} comestibles`
 }
@@ -1278,7 +1284,11 @@ function AddFood({
     try {
       await logFood({
         foodId: item.food_id,
-        grams: item.grams,
+        // Lo que repites en cucharadas vuelve en cucharadas: la entrada nueva
+        // dice «2 cdas», igual que las que la hicieron frecuente.
+        ...(item.measure
+          ? { grams: null, measure: item.measure, quantity: item.measure_count }
+          : { grams: item.grams }),
         mealSlot: slot,
         // Como la última vez: con hueso o sin él.
         withBone: Boolean(item.with_bone),
@@ -1651,7 +1661,9 @@ function AddFood({
                   onClick={() => quickAdd(item)}
                 >
                   <span className="food-frequent-name">{item.name}</span>
-                  <span className="food-frequent-grams">{formatAmount(item.grams)}</span>
+                  <span className="food-frequent-grams">
+                    {item.measure ? measureLabel(item.measure, item.measure_count) : formatAmount(item.grams)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1993,15 +2005,27 @@ function byOrigin(foods) {
 // Una cantidad tuya, dicha como la dirías: «2 × rebanada» si son raciones
 // exactas del alimento, sus gramos si no. El diario sólo guarda gramos, así que
 // la ración se deduce dividiendo; con decimales sueltos no lo es.
-function usualChoice({ grams, times }, portions = []) {
+function usualChoice({ grams, times, measure = null, measure_count: count = null }, portions = []) {
+  // Una medida casera se dice como se apuntó, aunque pese lo que una ración.
+  if (measure) return { grams, times, portion: null, measure, count, label: measureLabel(measure, count) }
   for (const portion of portions ?? []) {
     const count = grams / portion.grams
     const whole = Math.round(count)
     if (whole >= 1 && Math.abs(count - whole) < 0.01) {
-      return { grams, times, portion, count: whole, label: `${whole} × ${portion.label}` }
+      return { grams, times, portion, measure: null, count: whole, label: `${whole} × ${portion.label}` }
     }
   }
-  return { grams, times, portion: null, count: null, label: formatAmount(grams) }
+  return { grams, times, portion: null, measure: null, count: null, label: formatAmount(grams) }
+}
+
+// Con qué cantidad se abre la hoja: la que más repites **en la unidad de tu
+// última entrada**. Si la última fue en cucharadas, se abre en cucharadas
+// aunque en gramos lo hayas apuntado más veces: volver a hacer lo de la última
+// vez es lo probable (docs/medidas-caseras.md, pregunta 8).
+function openingChoice(found) {
+  const latest = found.find((u) => u.latest)
+  if (!latest) return found[0]
+  return found.find((u) => (u.measure ?? null) === (latest.measure ?? null)) ?? latest
 }
 
 function Amount({
@@ -2023,6 +2047,9 @@ function Amount({
   const [ideas, setIdeas] = useState(false)
   const preset = food.portions?.find((p) => p.is_default) ?? null
   const [portionId, setPortionId] = useState(preset?.id ?? null)
+  // Una medida casera («cda»), o `null` para gramos. Con ella, `quantity` es
+  // cuántas, como con una ración.
+  const [measure, setMeasure] = useState(null)
   const [quantity, setQuantity] = useState('1')
   const [grams, setGrams] = useState(preset ? '' : '100')
   // Ya contestado por el raíl del que vienes. Sigue siendo cambiable: la
@@ -2048,7 +2075,7 @@ function Amount({
         const found = (await usualAmounts(food.id)) ?? []
         if (!alive) return
         setUsual(found)
-        if (found.length > 0 && !touched.current) apply(usualChoice(found[0], food.portions))
+        if (found.length > 0 && !touched.current) apply(usualChoice(openingChoice(found), food.portions))
       } catch {
         // Sin red no hay memoria, y la hoja sigue como siempre.
       }
@@ -2061,18 +2088,38 @@ function Amount({
   }, [food.id])
 
   function apply(choice) {
-    if (choice.portion) {
+    if (choice.measure) {
+      setPortionId(null)
+      setMeasure(choice.measure)
+      setQuantity(String(choice.count))
+    } else if (choice.portion) {
+      setMeasure(null)
       setPortionId(choice.portion.id)
       setQuantity(String(choice.count))
     } else {
+      setMeasure(null)
       setPortionId(null)
       setGrams(String(choice.grams))
     }
   }
 
   function isCurrent(choice) {
+    if (choice.measure) return measure === choice.measure && number(quantity) === choice.count
     if (choice.portion) return portionId === choice.portion.id && number(quantity) === choice.count
-    return !portionId && number(grams) === choice.grams
+    return !portionId && !measure && number(grams) === choice.grams
+  }
+
+  // Cambiar a una medida empieza en una: «1 cda». Volver a gramos deja los que
+  // hubiera escritos.
+  function chooseUnit(value) {
+    touched.current = true
+    if (value === 'g') {
+      setMeasure(null)
+      return
+    }
+    setPortionId(null)
+    setMeasure(value)
+    setQuantity('1')
   }
 
   const number = (raw) => {
@@ -2088,6 +2135,12 @@ function Amount({
   // una cantidad más pequeña, es otra cosa.
   function step(delta) {
     touched.current = true
+    // Las cucharadas, de media en media, y nunca por debajo de media.
+    if (measure) {
+      const next = Math.max(0.5, (number(quantity) ?? 1) + delta * 0.5)
+      setQuantity(String(next))
+      return
+    }
     if (portionId) {
       const next = Math.max(1, (number(quantity) ?? 1) + delta)
       setQuantity(String(next))
@@ -2102,15 +2155,17 @@ function Amount({
   async function submit(event) {
     event.preventDefault()
     const written = number(grams)
-    if (!portionId && !(written > 0)) return
+    const counted = portionId || measure
+    if (!counted && !(written > 0)) return
     setBusy(true)
     await logFood({
       foodId: food.id,
-      // Gramos o porción, nunca las dos: son dos cantidades distintas y
+      // Gramos, porción o medida, nunca dos: son cantidades distintas y
       // adivinar cuál se quiso decir es como un diario se estropea en silencio.
-      grams: portionId ? null : written,
+      grams: counted ? null : written,
       portionId,
-      quantity: portionId ? number(quantity) || 1 : 1,
+      measure,
+      quantity: counted ? number(quantity) || 1 : 1,
       mealSlot: slot || null,
       // El día que estás mirando, no el que marca el móvil. Sin esto, lo que
       // apuntabas en un día pasado se guardaba en hoy: las kcal faltaban en la
@@ -2163,7 +2218,9 @@ function Amount({
 
   // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
   // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.
-  const amount = number(portionId ? (portion?.grams ?? 0) * (number(quantity) ?? 0) : grams)
+  const amount = measure
+    ? gramsOfMeasure(measure, number(quantity) ?? 0)
+    : number(portionId ? (portion?.grams ?? 0) * (number(quantity) ?? 0) : grams)
   const bone = {
     on: hasBone && withBone,
     edible: hasBone && withBone && food.kcal_basis === 'edible' ? edibleGrams(amount, food.refuse_pct) : null,
@@ -2201,6 +2258,7 @@ function Amount({
               aria-pressed={portionId === p.id}
               onClick={() => {
                 touched.current = true
+                setMeasure(null)
                 setPortionId(portionId === p.id ? null : p.id)
               }}
             >
@@ -2219,7 +2277,7 @@ function Amount({
             {choices.map((choice) => (
               <button
                 type="button"
-                key={choice.grams}
+                key={choice.label}
                 className={`chip${isCurrent(choice) ? ' is-active' : ''}`}
                 aria-pressed={isCurrent(choice)}
                 onClick={() => {
@@ -2235,7 +2293,7 @@ function Amount({
       )}
 
       <div className="field">
-        <label htmlFor="food-qty">{portionId ? 'Cuántas' : 'Cantidad'}</label>
+        <label htmlFor="food-qty">{portionId || measure ? 'Cuántas' : 'Cantidad'}</label>
         <div className="stepper">
           <button
             type="button"
@@ -2249,10 +2307,10 @@ function Amount({
             id="food-qty"
             className="stepper-input"
             inputMode="decimal"
-            value={portionId ? quantity : grams}
+            value={portionId || measure ? quantity : grams}
             onChange={(e) => {
               touched.current = true
-              if (portionId) setQuantity(e.target.value)
+              if (portionId || measure) setQuantity(e.target.value)
               else setGrams(e.target.value)
             }}
           />
@@ -2264,7 +2322,26 @@ function Amount({
           >
             +
           </button>
+          {/* La unidad, junto a la cifra a la que da sentido. Con una ración
+              del alimento elegida no hay unidad que escoger: ya son raciones. */}
+          {!portionId && (
+            <select
+              className="food-unit"
+              aria-label="Unidad"
+              value={measure ?? 'g'}
+              onChange={(e) => chooseUnit(e.target.value)}
+            >
+              <option value="g">g</option>
+              {MEASURE_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
+        {/* Lo que pesa la medida según la tabla: aproximado, y se dice. */}
+        {measure && <p className="hint food-unit-grams">≈ {formatAmount(amount)}</p>}
       </div>
 
       {/* Debajo de la cantidad, porque habla de ella: cuánto de lo que pesas se
@@ -2326,7 +2403,8 @@ function Amount({
       {/* La cantidad dentro del botón: sin ella hay que mirar arriba para saber
           qué se está a punto de hacer, y el pulgar ya está abajo. */}
       <button type="submit" className="primary btn-full" disabled={busy || !preview}>
-        Añadir {formatAmount(amount)} · {formatMacro(preview?.protein)} P
+        Añadir {measure ? measureLabel(measure, number(quantity) ?? 0) : formatAmount(amount)} ·{' '}
+        {formatMacro(preview?.protein)} P
       </button>
 
       {/* Corregir es un acto raro y registrar es el de cada comida, así que no

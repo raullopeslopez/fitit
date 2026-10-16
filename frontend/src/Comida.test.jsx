@@ -433,6 +433,15 @@ describe('Comida', () => {
     expect(row).toHaveTextContent('6 P')
   })
 
+  it('lo apuntado en cucharadas dice la medida, y sus gramos como aproximados', async () => {
+    api.getFoodDay.mockResolvedValue(
+      day({ entries: [entry({ grams: 30, measure: 'cda', measure_count: 2 })] }),
+    )
+    render(<Comida />)
+    const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
+    expect(row).toHaveTextContent('2 cdas · ~30 g')
+  })
+
   it('una entrada sin proteína enseña una raya, no un cero', async () => {
     api.getFoodDay.mockResolvedValue(
       day({
@@ -570,6 +579,42 @@ describe('Comida', () => {
           expect.objectContaining({ portionId: 7, quantity: 2, grams: null }),
         ),
       )
+    })
+
+    it('con el selector se apunta en cucharadas, de media en media', async () => {
+      api.usualAmounts.mockResolvedValue([])
+      api.logFood.mockResolvedValue(entry())
+      await abrirPan()
+      await waitFor(() => expect(api.usualAmounts).toHaveBeenCalled())
+      expect(screen.getByLabelText('Unidad')).toHaveValue('g')
+      await userEvent.selectOptions(screen.getByLabelText('Unidad'), 'cda')
+      expect(screen.getByLabelText('Cuántas')).toHaveValue('1')
+      expect(screen.getByText('≈ 15 g')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Más cantidad' }))
+      expect(screen.getByLabelText('Cuántas')).toHaveValue('1.5')
+      await userEvent.click(screen.getByRole('button', { name: 'Más cantidad' }))
+      expect(screen.getByText('≈ 30 g')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: /^Añadir 2 cdas/ }))
+      await waitFor(() =>
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ foodId: 1, grams: null, portionId: null, measure: 'cda', quantity: 2 }),
+        ),
+      )
+    })
+
+    it('se abre en la unidad de la última vez, con lo que más repites en ella', async () => {
+      api.usualAmounts.mockResolvedValue([
+        { grams: 80, times: 3, measure: null, measure_count: null, latest: false },
+        { grams: 30, times: 2, measure: 'cda', measure_count: 2, latest: false },
+        { grams: 15, times: 1, measure: 'cda', measure_count: 1, latest: true },
+      ])
+      await abrirPan()
+      await waitFor(() => expect(screen.getByLabelText('Unidad')).toHaveValue('cda'))
+      expect(screen.getByLabelText('Cuántas')).toHaveValue('2')
+      expect(screen.getByRole('button', { name: '2 cdas · 2 veces' })).toHaveAttribute('aria-pressed', 'true')
+      await userEvent.click(screen.getByRole('button', { name: '80 g · 3 veces' }))
+      expect(screen.getByLabelText('Unidad')).toHaveValue('g')
+      expect(screen.getByLabelText('Cantidad')).toHaveValue('80')
     })
 
     it('si ya has escrito, lo que llega tarde no te pisa', async () => {
@@ -1887,6 +1932,22 @@ describe('Comida', () => {
       const chip = await screen.findByRole('button', { name: /Pan de la panadería/ })
       expect(within(chip).getByText('80 g')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Huevo cocido/ })).toBeInTheDocument()
+    })
+
+    it('lo que repites en cucharadas vuelve en cucharadas', async () => {
+      api.frequentFoods.mockResolvedValue([
+        { food_id: 3, name: 'Aceite de oliva', brand: null, grams: 30, kcal: 270, meal_slot: null, times: 5, measure: 'cda', measure_count: 2 },
+      ])
+      api.logFood.mockResolvedValue({})
+      await abrirAnadir()
+      const chip = await screen.findByRole('button', { name: /Aceite de oliva/ })
+      expect(within(chip).getByText('2 cdas')).toBeInTheDocument()
+      await userEvent.click(chip)
+      await waitFor(() =>
+        expect(api.logFood).toHaveBeenCalledWith(
+          expect.objectContaining({ foodId: 3, grams: null, measure: 'cda', quantity: 2 }),
+        ),
+      )
     })
 
     it('un toque lo registra con la cantidad de siempre, en la comida por la que entraste', async () => {

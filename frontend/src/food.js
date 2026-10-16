@@ -96,6 +96,26 @@ export function formatAmount(grams) {
   return `${rounded.toLocaleString('es-ES', { maximumFractionDigits: 1 })} g`
 }
 
+// Medidas caseras (docs/medidas-caseras.md): gramos de cada una, **iguales
+// para todo alimento**. Es copia de `MEDIDAS` en backend/app/nutrition.py, que
+// manda; un test del backend lee este fichero y falla si se separan.
+export const MEASURES = { cdta: 5, cda: 15, taza: 240, vaso: 200 }
+
+// En el orden del selector, de la más pequeña a la más grande.
+export const MEASURE_KEYS = ['cdta', 'cda', 'taza', 'vaso']
+
+export function gramsOfMeasure(measure, count) {
+  return Math.round(MEASURES[measure] * count * 100) / 100
+}
+
+// «2 cdas», «1 cda», «½ cdta», «1½ tazas». Plural desde más de una.
+export function measureLabel(measure, count) {
+  const whole = Math.floor(count)
+  const half = count - whole >= 0.5 ? '½' : ''
+  const number = whole === 0 ? half || '0' : `${whole}${half}`
+  return `${number} ${measure}${count > 1 ? 's' : ''}`
+}
+
 // En el orden en que se comen, no alfabético. La lista del día se agrupa por
 // esto, y una cena antes que una comida se lee como un error de la app.
 export const MEAL_SLOTS = [

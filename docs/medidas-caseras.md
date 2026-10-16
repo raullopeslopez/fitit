@@ -43,9 +43,11 @@ puñado. Sólo existen con un alimento concreto, y una tabla fija no puede darle
 peso. Si alguna hace falta, su sitio es la tabla `portions` que ya existe (medidas
 de un producto: «1 yogur = 125 g»), que convive con esto sin tocarlo.
 
-**Vive en un solo sitio:** `backend/app/nutrition.py`, con el resto de la
-aritmética. El frontend no lleva copia: la API entrega la medida ya calculada. Dos
-tablas que se separan no dan error en ninguna parte (es lo que pasaría con
+**Manda `backend/app/nutrition.py`** (`MEDIDAS`), con el resto de la aritmética:
+con ella se guardan los gramos. El frontend lleva una copia en `food.js`
+(`MEASURES`) para enseñar «≈ 30 g» mientras eliges sin ir al servidor, y
+`tests/unit/test_measures_mirror.py` lee ese fichero y falla si se separan. Dos
+tablas distintas no darían error en ninguna parte (el mismo riesgo que
 `food_log_date()` y `foodDayIso()`).
 
 ## 3. Al apuntar

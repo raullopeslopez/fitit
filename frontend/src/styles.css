@@ -2454,6 +2454,29 @@ button.set-action {
   background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
+/* La unidad de la cantidad (g, cdta, cda…), dentro del stepper y a su
+   derecha: la cifra y lo que mide se leen juntas. Sin borde propio: el `+`
+   ya traza la línea que la separa. Medidas caseras, docs/medidas-caseras.md. */
+.stepper .food-unit {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 52px;
+  padding: 0 0.8rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+.stepper .food-unit:focus {
+  box-shadow: none;
+}
+.food-unit-grams {
+  margin: 0.35rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Entreno: la serie que toca ───────────────────────────────────────────────
    «3.ª serie» a la izquierda y, en la misma línea, la marca de la última vez;
    debajo, lo que hay que batir y cómo se llega desde ahí. Sin cifra Display:

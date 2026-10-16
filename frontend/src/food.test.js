@@ -8,7 +8,9 @@ import {
   foodMomentIso,
   formatAmount,
   formatMacro,
+  gramsOfMeasure,
   inferMealSlot,
+  measureLabel,
   momentForDay,
   kcalFromMacros,
   previewNutrients,
@@ -134,6 +136,23 @@ describe('imprimir una cantidad', () => {
   it('quita los decimales que no dicen nada', () => {
     expect(formatAmount(100)).toBe('100 g')
     expect(formatAmount(62.5)).toBe('62,5 g')
+  })
+})
+
+describe('medidas caseras', () => {
+  it('pesan lo mismo para todo alimento', () => {
+    expect(gramsOfMeasure('cdta', 1)).toBe(5)
+    expect(gramsOfMeasure('cda', 2)).toBe(30)
+    expect(gramsOfMeasure('taza', 0.5)).toBe(120)
+    expect(gramsOfMeasure('vaso', 1)).toBe(200)
+  })
+
+  it('se dicen abreviadas, en plural desde más de una y con medias', () => {
+    expect(measureLabel('cda', 1)).toBe('1 cda')
+    expect(measureLabel('cda', 2)).toBe('2 cdas')
+    expect(measureLabel('cdta', 0.5)).toBe('½ cdta')
+    expect(measureLabel('taza', 1.5)).toBe('1½ tazas')
+    expect(measureLabel('vaso', 3)).toBe('3 vasos')
   })
 })
 
