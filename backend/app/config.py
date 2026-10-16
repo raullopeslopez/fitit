@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     # Vacío desde el 2026-10-11: Google deprecó la 3.5 y la 3.7, y un reintento
     # a un modelo retirado falla seguro. Cuando haya otro Flash vivo que no sea
     # el principal, va aquí (o en GEMINI_FALLBACK_MODEL, sin tocar código).
+    # 2026-10-16: en Render, GEMINI_FALLBACK_MODEL=gemini-3.5-flash. Deprecada
+    # pero viva (200 con audio, con la 3.8 en 503), y la voz falló dos veces
+    # seguidas sin respaldo. Cuando la apaguen contestará 404: no rompe nada,
+    # sólo se pierde el segundo intento, y hay que cambiarla.
     gemini_fallback_model: str = ""
     # Envía la lista de la compra a Taski (`app/taski.py`). El identificador es
     # el de un miembro del hogar —Taski no tiene otra autenticación—, así que es

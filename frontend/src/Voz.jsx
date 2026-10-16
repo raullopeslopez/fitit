@@ -16,6 +16,8 @@ function porQueNo(respuesta) {
       ? 'Sin cuota de voz hasta mañana. Busca o escanea.'
       : 'Sin cuota de voz hasta dentro de un minuto.'
   }
+  // El modelo saturado o caído: te ha oído, sólo que ahora no puede contestar.
+  if (respuesta?.refusal === 'busy') return 'Gemini está saturado. Prueba en un minuto.'
   return 'No he entendido nada. Prueba otra vez.'
 }
 

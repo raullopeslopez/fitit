@@ -156,6 +156,11 @@ describe('Voz', () => {
     expect(await screen.findByText('Sin cuota de voz hasta mañana. Busca o escanea.')).toBeInTheDocument()
   })
 
+  it('con el modelo saturado no dice que no ha entendido', async () => {
+    await montar({ transcript: '', lines: [], refusal: 'busy' })
+    expect(await screen.findByText('Gemini está saturado. Prueba en un minuto.')).toBeInTheDocument()
+  })
+
   it('«Seguir hablando» añade líneas sin perder las que había', async () => {
     const ctx = await montar({ transcript: 'dos huevos', lines: [linea()] })
     ctx.oir.mockResolvedValueOnce({ transcript: 'y pan', lines: [linea({ text: 'pan', food: { id: 7, name: 'Pan' }, grams: 80 })] })
