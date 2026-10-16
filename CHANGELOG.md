@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.38.2: voz con Whisper.**
 - **APK 0.38.1: voz: Gemini saturado.**
   Con Gemini saturado, la voz dice `Gemini está saturado. Prueba en un minuto.` en vez de
   `No he entendido nada`; el servidor reintenta con `gemini-3.5-flash` (#306).
