@@ -2045,7 +2045,58 @@ button.editor-row-danger {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Rótulo de sello: «Hoy» anota la lista, no se lee como frase. */
+
+/* ── Entreno: la tira de los de hoy ──────────────────────────────────────────
+   Una fila de chips bajo la cabecera, que se desliza de lado cuando no caben.
+   Sangra hasta el borde de la pantalla para que un chip cortado diga «hay
+   más». El de pantalla lleva el velo ámbar y el borde: está aquí, no es un
+   récord. La cifra, en mono como toda cifra. */
+.workout-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Sube a comerse parte del aire de la cabecera y no lleva regla debajo:
+     cada píxel que roba lo paga «Registrar», que descansando tiene que
+     seguir entero por encima del pie (browser-test de Entreno). */
+  margin: -0.75rem -1rem 0.75rem;
+  padding: 0 1rem;
+}
+.workout-strip::-webkit-scrollbar {
+  display: none;
+}
+.strip-chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.strip-chip[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--surface-tonal);
+}
+.strip-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--muted);
+}
+.strip-chip[aria-current='true'] .strip-count {
+  color: var(--text);
+}
+/* Rótulo de sello: anota la lista de «sueles hacer», no se lee como frase. */
 .dock-heading {
   margin: 0 0 0.25rem;
   font-family: var(--font-mono);
@@ -2053,13 +2104,6 @@ button.editor-row-danger {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
-}
-.dock-count {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
   color: var(--muted);
 }
 /* El rótulo «Ejercicio» se queda para el lector de pantalla; a la vista, el

@@ -61,21 +61,36 @@ test('la serie abierta llega a los dos bordes de la lista, y «+ Nota» va en á
   }
 })
 
+// La tira: chips de 44 px, en una sola fila que se desliza de lado, sin sacar la
+// página de su ancho. Tocar uno lleva a él.
+test('la tira de los de hoy es una fila tocable que no ensancha la página', async () => {
+  const { container, restore } = await mountEntreno()
+  try {
+    const chips = [...container.querySelectorAll('.workout-strip .strip-chip')]
+    expect(chips.length).toBeGreaterThan(1)
+    const tops = new Set(chips.map((c) => Math.round(c.getBoundingClientRect().top)))
+    expect(tops.size).toBe(1)
+    for (const c of chips) expect(c.getBoundingClientRect().height).toBeGreaterThanOrEqual(44)
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+    const other = chips.find((c) => !c.hasAttribute('aria-current'))
+    const name = other.querySelector('.strip-name').textContent
+    other.click()
+    await settle()
+    expect(container.querySelector('.card-toggle .card-name').textContent.trim()).toBe(name)
+  } finally {
+    restore()
+  }
+})
+
 // Descansando, el anillo ocupa el centro y las fichas se compactan. Lo que no
 // puede pasar es que eso empuje «Registrar» debajo del pie: la serie siguiente
 // pediría desplazar antes de poder tocarla, que es un toque de más por serie.
 test('descansando, «Registrar» se ve entero por encima del pie, sin desplazar', async () => {
   const { container, restore } = await mountEntreno({ restSeconds: 80 })
   try {
-    // El caso peor del pie: con la fila «↩ anterior», que aparece en cuanto has
-    // ido a otro ejercicio y vuelto (un superset).
-    container.querySelector('#exercise').focus()
-    await settle()
-    container.querySelector('.dock-today .set-row').click()
-    await settle()
-    container.querySelector('.dock-shortcut').click()
-    await settle()
-    expect(container.querySelector('.dock-shortcut')).toBeTruthy()
+    // El caso peor: la tira de los de hoy arriba, que roba alto a todo lo
+    // demás, y el pie con su atajo.
+    expect(container.querySelectorAll('.workout-strip .strip-chip').length).toBeGreaterThan(1)
     window.scrollTo(0, 0)
     await settle()
     expect(container.querySelector('.rest-ring')).toBeTruthy()

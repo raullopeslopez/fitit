@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.36.0: la tira de los de hoy.** En `Entreno`, bajo la cabecera, una fila de
+  chips con todos los ejercicios de hoy (punto del músculo, nombre y `1/3`, o `3 ✓` al
+  llegar a las de la última vez); el de pantalla con borde ámbar, y tocar otro lleva a
+  él. Sustituye a `↩ anterior` del pie y a la lista `Hoy` del buscador; `Siguiente ›`
+  apunta al siguiente sin empezar *después* del de pantalla. La serie abierta para
+  corregir llega al borde derecho y `+ Nota` va en ámbar.
 - **APK 0.35.0: entreno y plan.** En `Entreno`, un entreno sin nombre se llama por sus
   músculos (`Pecho · Tríceps` con sello `AUTO`, también en `Días`); tocar el título abre
   `Nombre del entreno` con tus nombres de otros días, y cerrarla guarda. Con todo lo de
