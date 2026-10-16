@@ -37,6 +37,30 @@ test('«← Días» va en tinta ámbar, sin relleno, y sigue siendo tocable', as
   }
 })
 
+// La serie abierta para corregir ocupa el ancho de la lista, igual que las filas
+// cerradas: con `width: 100%` y márgenes negativos se quedaba corta por la
+// derecha y dejaba un hueco que se leía como un error. Y «+ Nota» es una acción
+// en tinta ámbar, como «← Días», no una etiqueta en gris.
+test('la serie abierta llega a los dos bordes de la lista, y «+ Nota» va en ámbar', async () => {
+  const { container, restore } = await mountEntreno()
+  try {
+    container.querySelector('.set-log button.set-row').click()
+    await settle()
+    const edit = container.querySelector('.set-edit')
+    expect(edit).toBeTruthy()
+    const list = container.querySelector('.set-log').getBoundingClientRect()
+    const box = edit.getBoundingClientRect()
+    expect(Math.abs(box.left - list.left)).toBeLessThanOrEqual(1)
+    expect(Math.abs(box.right - list.right)).toBeLessThanOrEqual(1)
+    const head = edit.querySelector('.set-row').getBoundingClientRect()
+    expect(Math.abs(head.right - (box.right - 8))).toBeLessThanOrEqual(1)
+    const note = [...edit.querySelectorAll('button')].find((b) => b.textContent === '+ Nota')
+    expect(getComputedStyle(note).color).toBe(token('--accent-ink'))
+  } finally {
+    restore()
+  }
+})
+
 // Descansando, el anillo ocupa el centro y las fichas se compactan. Lo que no
 // puede pasar es que eso empuje «Registrar» debajo del pie: la serie siguiente
 // pediría desplazar antes de poder tocarla, que es un toque de más por serie.

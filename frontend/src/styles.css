@@ -2786,7 +2786,10 @@ button.set-action {
 /* Corregir una serie: la fila se abre en su sitio, sobre una superficie
    elevada, con dos steppers en el orden de las fichas (kg | reps). */
 .set-edit {
-  width: 100%;
+  /* Los márgenes negativos anulan el relleno de la fila por los dos lados;
+     el ancho tiene que sumarlos, o la caja se queda corta por la derecha. */
+  box-sizing: border-box;
+  width: calc(100% + 1rem);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -2799,7 +2802,7 @@ button.set-action {
   box-shadow: inset 0 0 0 1px var(--border);
 }
 .set-edit > .set-row {
-  width: 100%;
+  width: calc(100% + 0.35rem);
 }
 .set-edit-chev {
   margin-left: auto;
@@ -2832,7 +2835,9 @@ button.set-action {
   padding: 0 0.35rem;
   border: 0;
   background: none;
-  color: var(--text);
+  /* «+ Nota» es una acción, en tinta ámbar como «← Días». «Borrar serie»
+     la pisa con el rojo de lo destructivo (.set-delete). */
+  color: var(--accent-ink);
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;
