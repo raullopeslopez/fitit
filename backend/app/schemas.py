@@ -1403,7 +1403,8 @@ class VoiceLineOut(BaseModel):
 
 
 class VoiceOut(BaseModel):
-    """Lo que oyó el modelo y las líneas casadas. 'unreadable' | 'quota'."""
+    """Lo que oyó el modelo y las líneas casadas. 'unreadable' | 'quota' | 'busy'
+    (el modelo saturado o caído: no es que no se te entienda)."""
 
     transcript: str = ""
     lines: list[VoiceLineOut] = Field(default_factory=list)

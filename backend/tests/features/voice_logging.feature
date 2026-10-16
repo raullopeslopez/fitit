@@ -24,6 +24,11 @@ Feature: Logging food by voice
     When I send a voice note
     Then the refusal is "quota" for the day
 
+  Scenario: A saturated model is not "I did not understand"
+    Given the model is saturated
+    When I send a voice note
+    Then the refusal is "busy"
+
   Scenario: Heard nothing usable
     Given the model hears nothing
     When I send a voice note

@@ -5,7 +5,9 @@ afterwards changes the catalogue, never the history — which is the whole reaso
 the macro columns are copies rather than a join.
 """
 
+import logging
 from datetime import UTC, date, datetime, timedelta
+from time import perf_counter
 from typing import get_args
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -52,6 +54,7 @@ from .foods import FREQUENT_WINDOW_DAYS, _most_repeated
 from .ideas import ideas_available
 
 router = APIRouter(prefix="/food-log", tags=["food-log"])
+log = logging.getLogger("app.voice")
 
 
 @router.post("", response_model=LogEntryOut, status_code=status.HTTP_201_CREATED)
@@ -138,23 +141,55 @@ async def hear(
 ) -> VoiceOut:
     """Una nota de voz, en líneas casadas con tus alimentos. **No guarda nada**,
     ni el audio: lo oído pasa por «Revisa lo que has dicho» (CLAUDE.md)."""
+    started = perf_counter()
+
+    def note(outcome: str, **fields) -> None:
+        # Una línea por dictado, como `label read`: sin lo transcrito, que es lo
+        # que dijiste y no hace falta para saber qué falló.
+        parts = " ".join(f"{k}={v}" for k, v in fields.items() if v not in (None, ""))
+        elapsed = round((perf_counter() - started) * 1000)
+        log.info("voice heard: outcome=%s ms=%d %s", outcome, elapsed, parts)
+
     if reader is None:
+        note("not_configured")
         raise HTTPException(status_code=503, detail="la voz no está configurada")
     data = await audio.read(VOICE_MAX_BYTES + 1)
+    kb = len(data) // 1024
     if len(data) > VOICE_MAX_BYTES:
+        note("too_big", kb=kb)
         raise HTTPException(status_code=413, detail="la nota de voz es demasiado larga")
+    mime = audio.content_type or "audio/webm"
     try:
-        crudo = await reader(data, audio.content_type or "audio/webm")
+        crudo = await reader(data, mime)
     except LabelUnreadable as exc:
         if exc.quota:
+            note("quota", kb=kb, scope=exc.quota, detail=exc.detail)
             return VoiceOut(refusal="quota", quota_scope=exc.quota)
+        # Un 5xx es el modelo saturado o caído, no un audio que no se entiende:
+        # decir «no he entendido nada» a quien habló claro le hace repetir lo
+        # mismo contra un modelo que sigue sin poder (2026-10-16, 503 «high
+        # demand» en gemini-3.8-flash).
+        if (exc.detail or "").startswith("5"):
+            note("busy", kb=kb, mime=mime, detail=exc.detail)
+            return VoiceOut(refusal="busy")
+        note("unreadable", kb=kb, mime=mime, detail=exc.detail)
         return VoiceOut(refusal="unreadable")
     transcript, heard = parse_heard(crudo)
     if not heard:
+        note("nothing_heard", kb=kb, mime=mime)
         return VoiceOut(transcript=transcript, refusal="unreadable")
 
     foods = await candidate_foods(session, user_id, [h.name for h in heard])
     habits = await _habits(session, user_id, [f.id for f in foods])
+    lines = voice_lines(heard, foods, user_id, habits)
+    note(
+        "ok",
+        kb=kb,
+        lines=len(lines),
+        chosen=sum(1 for line in lines if line.status == "chosen"),
+        ambiguous=sum(1 for line in lines if line.status == "ambiguous"),
+        missing=sum(1 for line in lines if line.status == "missing"),
+    )
     return VoiceOut(
         transcript=transcript,
         lines=[
@@ -169,7 +204,7 @@ async def hear(
                 estimated=line.estimated,
                 unit_question=line.unit_question,
             )
-            for line in voice_lines(heard, foods, user_id, habits)
+            for line in lines
         ],
     )
 

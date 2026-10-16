@@ -171,6 +171,11 @@ def given_no_key(ctx):
     ctx["reader"] = None
 
 
+@given("the model is saturated")
+def given_busy(ctx):
+    ctx["reader"] = "busy"
+
+
 @given("the model is out of its daily quota")
 def given_quota(ctx):
     ctx["reader"] = "quota"
@@ -185,6 +190,8 @@ def _reader(ctx):
         assert audio, "el audio llega al modelo"
         if kind == "quota":
             raise LabelUnreadable("429", quota="day")
+        if kind == "busy":
+            raise LabelUnreadable("503", detail="503")
         if kind == "nothing":
             return {"transcript": "", "lines": []}
         return {"transcript": ", ".join(ctx["transcript"]), "lines": ctx["heard"]}
