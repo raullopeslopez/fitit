@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { correctDish, listDishes, weighBatch } from './api.js'
-import { foodDayIso, formatMacro } from './food.js'
+import { amountWithMeasure, foodDayIso, formatMacro } from './food.js'
 import { NewDish, ProposeDishes } from './Dish.jsx'
 import { Chip, Sheet } from './ui'
 
@@ -171,7 +171,7 @@ function HojaPlato({ plato, corregir, pesar, onClose, onSaved }) {
         {plato.ingredients.map((i) => (
           <li key={i.id}>
             <span>{i.food_name}</span>
-            <span className="platos-gramos">{`${cifra(i.grams)} g`}</span>
+            <span className="platos-gramos">{amountWithMeasure(i.grams, `${cifra(i.grams)} g`)}</span>
           </li>
         ))}
       </ul>

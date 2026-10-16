@@ -137,6 +137,18 @@ describe('Un plato, abierto', () => {
     expect(within(hoja).getByText('220 g')).toBeInTheDocument()
   })
 
+  it('lo poco se lee también en cucharadas', async () => {
+    const conAceite = plato({
+      ingredients: [
+        { id: 1, food_id: 10, food_name: 'Pollo, pechuga, sin piel, cruda', grams: 220 },
+        { id: 3, food_id: 12, food_name: 'Aceite de oliva', grams: 27 },
+      ],
+    })
+    const { hoja } = await abrir('Pollo con arroz y brócoli', [conAceite, PIZZA])
+    expect(within(hoja).getByText('27 g · ≈ 2 cdas')).toBeInTheDocument()
+    expect(within(hoja).getByText('220 g')).toBeInTheDocument()
+  })
+
   it('las cuatro comidas son chips, con las suyas elegidas', async () => {
     const { hoja } = await abrir('Pollo con arroz y brócoli')
     const grupo = within(hoja).getByRole('group', { name: 'Sirve para' })

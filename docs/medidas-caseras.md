@@ -88,7 +88,11 @@ medida cuando la cantidad es pequeña:
   **Más de 60 g** → sólo gramos.
 - El número se redondea a la **media** más cercana. Si sale 0 (1 g de sal), no se
   enseña medida.
-- Copy: **«27 g · ≈ 2 cdas»**, **«3 g · ≈ ½ cdta»**.
+- Copy: **«27 g · ≈ 2 cdas»**, **«3 g · ≈ ½ cdta»**. En la línea de ingredientes
+  del plan, donde « · » ya separa un ingrediente de otro, va sin punto:
+  **«Aceite 13,5 g ≈ 1 cda · Pollo 150 g»**.
+- En el borrador de una idea, «≈ 2 cdas» aparece junto a la casilla de gramos y
+  cambia mientras escribes.
 - Taza y vaso no aparecen nunca solos en una receta.
 - **La lista de la compra sigue en gramos.** Una botella de aceite no se compra en
   cucharadas.

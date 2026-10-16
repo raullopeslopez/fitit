@@ -5628,6 +5628,11 @@ button.ideas-more {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
+/* «≈ 2 cdas» junto a los gramos del borrador: una cifra, en tinta de cifra. */
+.draft-line-measure {
+  color: var(--text);
+  white-space: nowrap;
+}
 .draft-line-grams {
   display: flex;
   align-items: center;
@@ -6933,7 +6938,8 @@ button.draft-save {
   line-height: 1.4;
   color: var(--muted);
 }
-.plan-item-g {
+.plan-item-g,
+.plan-item-measure {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--text);

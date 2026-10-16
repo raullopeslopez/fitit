@@ -11,6 +11,7 @@ import {
   gramsOfMeasure,
   inferMealSlot,
   measureLabel,
+  recipeMeasure,
   momentForDay,
   kcalFromMacros,
   previewNutrients,
@@ -153,6 +154,23 @@ describe('medidas caseras', () => {
     expect(measureLabel('cdta', 0.5)).toBe('½ cdta')
     expect(measureLabel('taza', 1.5)).toBe('1½ tazas')
     expect(measureLabel('vaso', 3)).toBe('3 vasos')
+  })
+
+  // Los mismos ejemplos que household_measures.feature: el backend tiene la
+  // misma regla en `medida_casera`, y si una cambia, uno de los dos falla.
+  it.each([
+    [3, '½ cdta'],
+    [5, '1 cdta'],
+    [9, '2 cdtas'],
+    [10, '½ cda'],
+    [27, '2 cdas'],
+    [60, '4 cdas'],
+  ])('en una receta, %s g se leen como «%s»', (grams, shown) => {
+    expect(recipeMeasure(grams)).toBe(shown)
+  })
+
+  it.each([[1], [61], [200], [null]])('sin medida donde una cuchara no ayuda: %s g', (grams) => {
+    expect(recipeMeasure(grams)).toBeNull()
   })
 })
 
