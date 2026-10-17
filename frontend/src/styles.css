@@ -6210,6 +6210,9 @@ button.draft-save {
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+.sin-decir-titulo {
+  margin: 1.5rem 0 0;
+}
 .sin-decir .plan-en-comida {
   margin: 0;
 }
