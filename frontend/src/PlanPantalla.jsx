@@ -13,6 +13,8 @@ import { foodDayIso } from './food.js'
 import ImportarPlan from './ImportarPlan.jsx'
 import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import PlanificarSemana from './PlanificarSemana.jsx'
+import ListaCompra from './ListaCompra.jsx'
+import RevisionSemanal from './RevisionSemanal.jsx'
 import Ticket from './Ticket.jsx'
 import TusPlatos from './TusPlatos.jsx'
 import { ListRow } from './ui'
@@ -105,6 +107,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   const [platos, setPlatos] = useState([])
   const [error, setError] = useState(null)
   const [platosOpen, setPlatosOpen] = useState(false)
+  const [listaOpen, setListaOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   // Subir plan: `leyendo` mientras el PDF va y vuelve; `lectura` es lo leído,
   // y mientras la hay la pantalla es la de revisarlo.
@@ -288,6 +291,20 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     )
   }
 
+  // La lista de la compra de la que viene, a pantalla completa. Al volver se
+  // recarga: mandarla a Taski abre la compra, y «Compra» pregunta por el ticket.
+  if (listaOpen) {
+    return (
+      <ListaCompra
+        weekStart={viene}
+        onClose={() => {
+          setListaOpen(false)
+          cargar()
+        }}
+      />
+    )
+  }
+
   if (platosOpen) {
     return (
       <TusPlatos
@@ -344,34 +361,24 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
           </section>
         ))}
 
-      {/* Plan v2: «La que viene» es el domingo entero, en el orden en que se
-          hace. Arriba, si una compra espera su ticket; después revisar y
-          generar (PlanificarSemana, con su lista de la compra y tus platos), y
-          al pie traer una pauta nueva. `key` por semana: si el día cambia con la
-          pantalla abierta, la revisión vuelve a empezar para la semana nueva. */}
+      {/* La revisión mira atrás: es el cierre de esta semana, no la puerta de
+          la que viene (reorganización del 17 oct). Cuándo toca lo dice el
+          servidor; sin tocar no se pinta. `key` por semana, como antes. */}
+      {segmento === 'esta' && <RevisionSemanal key={esta} onAccepted={cargar} />}
+
+      {/* «La que viene», en el orden en que se hace (reorganización del 17 oct):
+          el plan —generarlo, o la semana ya hecha—, la compra y, en pequeño,
+          las otras formas de traer un plan. `key` por semana: si el día cambia
+          con la pantalla abierta, la semana nueva empieza de cero. */}
       {segmento === 'viene' && (
         <>
-          {pendiente && (
-            <button
-              type="button"
-              className="plan-compra-pendiente"
-              onClick={() => !leyendoTicket && archivoTicket.current?.click()}
-            >
-              <span className="plan-compra-pendiente-titulo">
-                {leyendoTicket ? 'Leyendo el ticket…' : '¿Ya compraste? · Subir ticket'}
-              </span>
-              <span className="plan-compra-pendiente-pista">
-                {leyendoTicket
-                  ? 'Puede tardar hasta un minuto.'
-                  : `Se compara con la lista del ${rangoSemana(pendiente)}`}
-              </span>
-            </button>
-          )}
-
           {plan !== undefined && (
             <PlanificarSemana
               key={viene}
               embebida
+              revisar={false}
+              comprar={false}
+              conPlatos={false}
               weekStart={viene}
               plan={plan}
               onChanged={cargar}
@@ -380,74 +387,99 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
             />
           )}
 
-          {/* Sin compra pendiente el ticket se sube igual que siempre, contra
-              la lista de la que viene. */}
-          {!pendiente && (
-            <ListRow
-              label={leyendoTicket ? 'Leyendo el ticket…' : 'Subir ticket'}
-              hint={leyendoTicket ? 'Puede tardar hasta un minuto.' : 'El PDF de la compra'}
-              value=""
-              onClick={() => !leyendoTicket && archivoTicket.current?.click()}
-            />
-          )}
-          {/* El input no se ve: la fila es lo que se toca, y abre el selector
-              del móvil. `value = ''` después, para que subir el mismo PDF dos
-              veces vuelva a disparar el cambio. */}
-          <input
-            ref={archivoTicket}
-            type="file"
-            accept="application/pdf"
-            aria-label="PDF del ticket"
-            hidden
-            onChange={(e) => {
-              subirTicket(e.target.files?.[0])
-              e.target.value = ''
-            }}
-          />
-
-          <ListRow
-            label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
-            hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
-            value=""
-            onClick={() => !leyendo && archivo.current?.click()}
-          />
-          <input
-            ref={archivo}
-            type="file"
-            accept="application/pdf"
-            aria-label="PDF del plan"
-            hidden
-            onChange={(e) => {
-              subir(e.target.files?.[0])
-              e.target.value = ''
-            }}
-          />
-          <ListRow label="Pegar plan" hint="El que te escribe Claude" value="" onClick={pegar} />
-          {pegado !== null && (
-            <div className="card plan-pegar">
-              <textarea
-                aria-label="Plan en texto"
-                placeholder="Pega aquí la respuesta de Claude"
-                rows={6}
-                autoFocus
-                value={pegado}
-                onChange={(e) => setPegado(e.target.value)}
+          {/* Lo que el plan pide comprar y lo que compraste, juntos. La lista
+              sólo existe con la semana generada. Con una compra mandada a Taski
+              y sin ticket, la fila del ticket pregunta; si no, se sube igual
+              que siempre, contra la lista de la que viene. */}
+          <section className="plan-bloque" aria-label="Compra">
+            <p className="card-eyebrow">Compra</p>
+            {plan && <ListRow label="Lista de la compra" value="" onClick={() => setListaOpen(true)} />}
+            {pendiente ? (
+              <button
+                type="button"
+                className="plan-compra-pendiente"
+                onClick={() => !leyendoTicket && archivoTicket.current?.click()}
+              >
+                <span className="plan-compra-pendiente-titulo">
+                  {leyendoTicket ? 'Leyendo el ticket…' : '¿Ya compraste? · Subir ticket'}
+                </span>
+                <span className="plan-compra-pendiente-pista">
+                  {leyendoTicket
+                    ? 'Puede tardar hasta un minuto.'
+                    : `Se compara con la lista del ${rangoSemana(pendiente)}`}
+                </span>
+              </button>
+            ) : (
+              <ListRow
+                label={leyendoTicket ? 'Leyendo el ticket…' : 'Subir ticket'}
+                hint={leyendoTicket ? 'Puede tardar hasta un minuto.' : 'El PDF de la compra'}
+                value=""
+                onClick={() => !leyendoTicket && archivoTicket.current?.click()}
               />
-              <div className="plan-pegar-acciones">
-                <button type="button" className="link-btn" onClick={() => setPegado(null)}>
-                  Cerrar
-                </button>
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={leyendo || !pegado.trim()}
-                  onClick={() => leerTexto(pegado)}
-                >
-                  Leer
-                </button>
+            )}
+            {/* El input no se ve: la fila es lo que se toca, y abre el selector
+                del móvil. `value = ''` después, para que subir el mismo PDF dos
+                veces vuelva a disparar el cambio. */}
+            <input
+              ref={archivoTicket}
+              type="file"
+              accept="application/pdf"
+              aria-label="PDF del ticket"
+              hidden
+              onChange={(e) => {
+                subirTicket(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+          </section>
+
+          {/* Generar es lo normal; traer un plan hecho, la excepción. */}
+          <section className="plan-bloque" aria-label="Otras formas de hacer el plan">
+            <p className="card-eyebrow">Otras formas de hacer el plan</p>
+            <ListRow
+              label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
+              hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
+              value=""
+              onClick={() => !leyendo && archivo.current?.click()}
+            />
+            <input
+              ref={archivo}
+              type="file"
+              accept="application/pdf"
+              aria-label="PDF del plan"
+              hidden
+              onChange={(e) => {
+                subir(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+            <ListRow label="Pegar plan" hint="El que te escribe Claude" value="" onClick={pegar} />
+            {pegado !== null && (
+              <div className="card plan-pegar">
+                <textarea
+                  aria-label="Plan en texto"
+                  placeholder="Pega aquí la respuesta de Claude"
+                  rows={6}
+                  autoFocus
+                  value={pegado}
+                  onChange={(e) => setPegado(e.target.value)}
+                />
+                <div className="plan-pegar-acciones">
+                  <button type="button" className="link-btn" onClick={() => setPegado(null)}>
+                    Cerrar
+                  </button>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={leyendo || !pegado.trim()}
+                    onClick={() => leerTexto(pegado)}
+                  >
+                    Leer
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </section>
         </>
       )}
 

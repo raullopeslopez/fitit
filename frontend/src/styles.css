@@ -8151,6 +8151,17 @@ button.draft-save {
 /* «¿Ya compraste? · Subir ticket»: la tarjeta que pide una respuesta, con el
    velo tonal (DESIGN.md, Sistema v2). Sale arriba de «La que viene» mientras la
    compra mandada a Taski espera su ticket. */
+/* «Compra» y «Otras formas de hacer el plan» en La que viene: cada bloque con
+   su sello encima, separado del anterior como las secciones de Perfil. */
+.plan-bloque {
+  margin-top: 1.5rem;
+}
+.plan-bloque > .card-eyebrow {
+  margin: 0 0 0.5rem;
+}
+.plan-bloque .plan-compra-pendiente {
+  margin-top: 0.5rem;
+}
 .plan-compra-pendiente {
   width: 100%;
   min-height: 72px;
