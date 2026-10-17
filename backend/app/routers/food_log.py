@@ -18,7 +18,7 @@ from sqlalchemy.orm import selectinload
 from ..auth import get_current_user
 from ..config import settings
 from ..db import get_session
-from ..models import Food, LogEntry, PlanEntry, User, visible_foods, visible_portions
+from ..models import Food, LogEntry, Plan, PlanEntry, User, visible_foods, visible_portions
 from ..schemas import MealSlot
 from ..nutrition import (
     calcular_nutrientes,
@@ -102,9 +102,39 @@ async def log_food(
         **computed,
     )
     session.add(entry)
+    await session.flush()
+    await _responder_al_plan(session, user_id, entry)
     await session.commit()
     await session.refresh(entry)
     return to_entry_out(entry)
+
+
+async def _responder_al_plan(session: AsyncSession, user_id: int, entry: LogEntry) -> None:
+    """Apuntar algo en una comida del plan que no tenía respuesta la responde.
+
+    Una sola fuente (reorganización Comida/Plan, 17 oct): en prod el diario se
+    llenaba con «Añadir» y el plan seguía sin decir nada, así que la tira de la
+    semana salía «0/4» con el día lleno. No fue el plato del plan —eso es
+    «Lo comí», que escribe con `done`—, así que es `swapped`. Lo que ya tenía
+    respuesta la conserva, y sin comida no hay fila a la que responder.
+    """
+    if entry.meal_slot is None:
+        return
+    fila = (
+        await session.execute(
+            select(PlanEntry)
+            .join(Plan, Plan.id == PlanEntry.plan_id)
+            .where(
+                Plan.user_id == user_id,
+                PlanEntry.log_date == entry.log_date,
+                PlanEntry.slot == entry.meal_slot,
+                PlanEntry.status.is_(None),
+            )
+        )
+    ).scalars().first()
+    if fila is not None:
+        fila.status = "swapped"
+        fila.log_entry_id = entry.id
 
 
 # --- La voz (docs/registro-por-voz.md) ------------------------------------------
@@ -295,6 +325,9 @@ async def log_batch(
             )
         )
     session.add_all(entries)
+    await session.flush()
+    if entries:
+        await _responder_al_plan(session, user_id, entries[0])
     await session.commit()
     for entry in entries:
         await session.refresh(entry)
@@ -602,7 +635,10 @@ async def delete_entry(
         await session.execute(select(PlanEntry).where(PlanEntry.log_entry_id == entry.id))
     ).scalars().all()
     hermana = None
-    if enlazadas and entry.dish_id is not None:
+    # La hermana es lo que queda de esa comida con el mismo origen: otro
+    # ingrediente del plato, o —si lo enlazado se apuntó a mano (`dish_id`
+    # nulo)— otra cosa apuntada a mano en esa comida.
+    if enlazadas:
         hermana = (
             await session.execute(
                 select(LogEntry.id).where(

@@ -896,3 +896,63 @@ def then_refused_invalid(negativa_olla):
 def then_diary_grams(client, gramos, food):
     entradas = [e for e in _diario(client)["entries"] if e["food_name"] == food]
     assert [e["grams"] for e in entradas] == [gramos]
+
+
+# --- una sola fuente: el diario responde al plan ----------------------------
+@when(
+    parsers.parse("I log a food by hand in the {slot:w} of today"),
+    target_fixture="a_mano",
+)
+def when_log_by_hand(client, slot):
+    food = _food(client, "Bocadillo de calamares", kcal_100g=250)
+    resp = client.post("/food-log", json={"food_id": food, "grams": 200, "meal_slot": slot})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+@when(
+    parsers.parse("I log another food by hand in the {slot:w} of today"),
+    target_fixture="otro_a_mano",
+)
+def when_log_another_by_hand(client, slot):
+    food = _food(client, "Cerveza sin alcohol", kcal_100g=20)
+    resp = client.post("/food-log", json={"food_id": food, "grams": 330, "meal_slot": slot})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+@when("I log a food by hand without a meal")
+def when_log_without_meal(client):
+    food = _food(client, "Pipas", kcal_100g=580)
+    resp = client.post("/food-log", json={"food_id": food, "grams": 30})
+    assert resp.status_code == 201, resp.text
+
+
+@when(parsers.parse("I log by voice in the {slot:w} of today"))
+def when_log_by_voice(client, slot):
+    food = _food(client, "Tortilla de patata", kcal_100g=200)
+    resp = client.post(
+        "/food-log/batch",
+        json={"meal_slot": slot, "entries": [{"food_id": food, "grams": 150}]},
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@when("I delete from the diary what I logged by hand")
+def when_delete_by_hand(client, a_mano):
+    assert client.delete(f"/food-log/{a_mano['id']}").status_code == 204
+
+
+@then(parsers.parse("the plan now says the {slot:w} of today is {estado:w}"))
+def then_now_status(client, slot, estado):
+    assert _ahora(client, slot)["status"] == estado
+
+
+@then("the plan points to what I logged by hand")
+def then_points_by_hand(client, a_mano):
+    assert _ahora(client, "comida")["log_entry_id"] == a_mano["id"]
+
+
+@then("the plan points to the other food I logged")
+def then_points_other(client, otro_a_mano):
+    assert _ahora(client, "comida")["log_entry_id"] == otro_a_mano["id"]
