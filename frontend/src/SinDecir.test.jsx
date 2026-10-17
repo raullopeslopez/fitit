@@ -83,3 +83,9 @@ describe('la franja de lo que quedó sin decir', () => {
     expect(container).toBeEmptyDOMElement()
   })
 })
+
+// Debajo de las comidas de hoy, el bloque dice que empieza otra cosa.
+it('el bloque lleva su sello', async () => {
+  render(<SinDecir hoy={HOY} leerPlan={async () => PLAN} />)
+  expect(await screen.findByRole('heading', { name: 'Sin decir' })).toBeInTheDocument()
+})

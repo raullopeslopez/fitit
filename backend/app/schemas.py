@@ -1328,6 +1328,9 @@ class PlanOut(BaseModel):
     # Hay una pauta vigente para esta semana: los platos que fija no los eligió
     # el generador, y «generar otra» no tiene sentido sobre ellos.
     has_pauta: bool = False
+    # Si este servidor sabe buscar ideas: «Cambiar este plato» las ofrece desde
+    # el 17 oct, y un enlace que sólo lleva a «no disponible» no se dibuja.
+    dish_ideas: bool = False
     # Los días que no llegan a su objetivo, o se pasan, más allá de la
     # tolerancia: lo que las cantidades no han podido arreglar.
     desvios: list["PlanDesvioOut"] = Field(default_factory=list)

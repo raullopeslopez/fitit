@@ -223,6 +223,38 @@ describe('Comida', () => {
       expect(await screen.findByText('¿Te has pesado hoy?')).toBeInTheDocument()
     })
 
+    // Reorganización Comida/Plan (17 oct): Comida es hoy. Lo que quedó sin
+    // decir ayer se cierra igual, pero debajo: arriba obligaba a bajar ocho
+    // tarjetas de otros días para llegar al desayuno de hoy.
+    it('lo sin decir de ayer va debajo de las comidas de hoy', async () => {
+      api.getPlan.mockImplementation(async (lunes) =>
+        lunes === '2026-08-24'
+          ? {
+              id: 2,
+              week_start: '2026-08-24',
+              entries: [
+                {
+                  id: 9,
+                  log_date: '2026-08-30',
+                  slot: 'cena',
+                  dish_id: 7,
+                  dish_name: 'Merluza al horno',
+                  grams: [150],
+                  kcal: 480,
+                  status: null,
+                  log_entry_id: null,
+                },
+              ],
+            }
+          : null,
+      )
+      render(<Comida />)
+      const sinDecir = await screen.findByRole('region', { name: 'Sin decir' })
+      const diario = document.querySelector('.food-diario')
+      expect(diario).not.toBeNull()
+      expect(diario.compareDocumentPosition(sinDecir) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     it('el botón flotante abre la pantalla de añadir', async () => {
       render(<Comida />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir comida' }))
@@ -2441,84 +2473,24 @@ describe('corregir un alimento y el registro de ese día', () => {
 
 })
 
-// «Ideas con …»: la puerta a las recetas de la web, al pie de la hoja del
-// alimento. Gris y pequeña, como «Corregir»: es un desvío, no lo que se viene a
-// hacer aquí.
+// Reorganización del 17 oct: las ideas de recetas eran una puerta a planificar
+// desde el detalle de un alimento. Planificar es de Plan, y salen allí, en
+// «Cambiar este plato» (Plan.test.jsx). Aquí no queda nada que las abra.
 describe('ideas con un alimento', () => {
-  const ACELGA = { ...PAN, id: 7, name: 'Acelga, cruda', is_mine: false }
-  const abrir = async (food = ACELGA, dia = {}) => {
-    api.getFoodDay.mockResolvedValue(day({ dish_ideas: true, ...dia }))
-    api.searchFoods.mockResolvedValue([food])
-    render(<Comida />)
-    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'acel')
-    await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
-  }
-
   beforeEach(() => {
     vi.resetAllMocks()
     api.frequentFoods.mockResolvedValue([])
   })
 
-  it('se ofrece con el nombre corto, también para el catálogo compartido', async () => {
-    await abrir()
-    expect(screen.getByRole('button', { name: 'Ideas con acelga' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Corregir este alimento' })).not.toBeInTheDocument()
-  })
-
-  it('convive con «Corregir» en un alimento tuyo', async () => {
-    await abrir({ ...PAN, name: 'Pan de la panadería' })
-    expect(screen.getByRole('button', { name: 'Ideas con pan de la panadería' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Corregir este alimento' })).toBeInTheDocument()
-  })
-
-  it('no está si el servidor no puede buscar', async () => {
-    await abrir(ACELGA, { dish_ideas: false })
+  it('el detalle del alimento ya no ofrece ideas, aunque el servidor pueda buscarlas', async () => {
+    api.getFoodDay.mockResolvedValue(day({ dish_ideas: true }))
+    api.searchFoods.mockResolvedValue([{ ...PAN, name: 'Pan de la panadería' }])
+    render(<Comida />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
+    await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
+    await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+    expect(await screen.findByRole('button', { name: 'Corregir este alimento' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Ideas con/ })).not.toBeInTheDocument()
-  })
-
-  it('abre la pantalla de ideas y vuelve a la hoja al cerrarla', async () => {
-    api.dishIdeas.mockResolvedValue({
-      ideas: [
-        { id: 1, name: 'Acelgas esparragadas', url: 'https://www.directoalpaladar.com/x', method: 'sartén', minutes: 30, new: false },
-      ],
-      new_count: 0,
-      refusal: null,
-      quota_scope: null,
-      stored_at: '2026-09-12T10:00:00Z',
-    })
-    await abrir()
-    await userEvent.click(screen.getByRole('button', { name: 'Ideas con acelga' }))
-    expect(await screen.findByRole('link', { name: /Acelgas esparragadas/ })).toBeInTheDocument()
-    expect(api.dishIdeas).toHaveBeenCalledWith(7, { more: false })
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(screen.getByRole('button', { name: 'Ideas con acelga' })).toBeInTheDocument()
-  })
-  it('poner en el plan una idea guardada vuelve a pedir el plan de la semana', async () => {
-    api.dishIdeas.mockResolvedValue({
-      ideas: [
-        { id: 1, name: 'Acelgas esparragadas', url: 'https://www.directoalpaladar.com/x', method: 'sartén', minutes: 30, new: false, dish_id: 42, dish_name: 'Acelgas esparragadas' },
-      ],
-      new_count: 0,
-      refusal: null,
-      quota_scope: null,
-      stored_at: '2026-09-12T10:00:00Z',
-    })
-    api.getPlanAhead.mockResolvedValue({
-      week_start: '2098-12-29',
-      has_plan: true,
-      entries: [{ id: 7, log_date: '2099-01-01', slot: 'comida', dish_id: 3, dish_name: 'Lentejas' }],
-    })
-    api.replanEntry.mockResolvedValue({ id: 7 })
-    await abrir()
-    const antes = api.getPlan.mock.calls.length
-    await userEvent.click(screen.getByRole('button', { name: 'Ideas con acelga' }))
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Ponerlo en el plan: Acelgas esparragadas' }),
-    )
-    await userEvent.click(await screen.findByRole('button', { name: /JUE · Comida/ }))
-    expect(await screen.findByText('Puesto el jueves, en la comida.')).toBeInTheDocument()
-    await waitFor(() => expect(api.getPlan.mock.calls.length).toBeGreaterThan(antes))
   })
 })
 

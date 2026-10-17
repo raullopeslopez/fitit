@@ -6210,6 +6210,9 @@ button.draft-save {
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+.sin-decir-titulo {
+  margin: 1.5rem 0 0;
+}
 .sin-decir .plan-en-comida {
   margin: 0;
 }
@@ -6966,6 +6969,14 @@ button.draft-save {
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
+}
+/* «Ideas con» en Cambiar este plato: un chip por ingrediente, como los
+   nombres de ejercicio. */
+.plan-ideas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
 }
 .plan-otros li + li {
   border-top: 1px solid var(--border);
@@ -8143,6 +8154,17 @@ button.draft-save {
 /* «¿Ya compraste? · Subir ticket»: la tarjeta que pide una respuesta, con el
    velo tonal (DESIGN.md, Sistema v2). Sale arriba de «La que viene» mientras la
    compra mandada a Taski espera su ticket. */
+/* «Compra» y «Otras formas de hacer el plan» en La que viene: cada bloque con
+   su sello encima, separado del anterior como las secciones de Perfil. */
+.plan-bloque {
+  margin-top: 1.5rem;
+}
+.plan-bloque > .card-eyebrow {
+  margin: 0 0 0.5rem;
+}
+.plan-bloque .plan-compra-pendiente {
+  margin-top: 0.5rem;
+}
 .plan-compra-pendiente {
   width: 100%;
   min-height: 72px;

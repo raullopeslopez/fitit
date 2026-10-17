@@ -12,6 +12,7 @@ import {
 import { ListRow, Sheet } from './ui'
 import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
+import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 
 const leerTusSitios = () => listDishes('', 'fuera')
 
@@ -772,6 +773,7 @@ export function Semana({
           replanear={replanear}
           corregirPlato={corregirPlato}
           leerSitios={leerSitios}
+          ideas={Boolean(plan?.dish_ideas)}
           onPlatosChanged={onPlatosChanged}
           onClose={() => setCambiando(null)}
           onCambiado={async () => {
@@ -842,11 +844,15 @@ function CambiarPlato({
   replanear,
   corregirPlato,
   leerSitios = leerTusSitios,
+  // Si el servidor sabe buscar ideas (`plan.dish_ideas`).
+  ideas = false,
   onPlatosChanged,
   onClose,
   onCambiado,
 }) {
   const [sitios, setSitios] = useState([])
+  // El ingrediente cuyas ideas se están mirando, o `null`.
+  const [ideasDe, setIdeasDe] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [quitado, setQuitado] = useState(false)
@@ -901,6 +907,21 @@ function CambiarPlato({
     }
   }
 
+  // Reorganización del 17 oct: las ideas vivían en el detalle de un alimento,
+  // en Comida, y desde allí se planificaba. Planificar es de Plan, así que salen
+  // aquí, de cada ingrediente del plato que estás cambiando — una vez cada uno.
+  const ingredientes = ideas
+    ? (plato?.ingredients ?? []).filter(
+        (ing, i, todos) => todos.findIndex((otro) => otro.food_id === ing.food_id) === i,
+      )
+    : []
+
+  // Las ideas tapan la hoja; al cerrarlas, la hoja sigue como estaba. Poner
+  // una en el plan cambia la semana que hay debajo.
+  if (ideasDe) {
+    return <IdeasScreen food={ideasDe} onClose={() => setIdeasDe(null)} onPlanChanged={onCambiado} />
+  }
+
   return (
     <Sheet open title="Cambiar este plato" onClose={onClose}>
       <p className="card-eyebrow">{`${dia} · ${NOMBRE[slot] ?? slot}`}</p>
@@ -936,6 +957,25 @@ function CambiarPlato({
           pista va con lo suyo. */}
       {otros.length > 0 && (
         <p className="hint">{`Sólo cambia el ${dia.toLowerCase()}. El resto del día no se reajusta.`}</p>
+      )}
+
+      {ingredientes.length > 0 && (
+        <>
+          <p className="card-eyebrow">Ideas con</p>
+          <div className="plan-ideas">
+            {ingredientes.map((ing) => (
+              <button
+                key={ing.food_id}
+                type="button"
+                className="chip"
+                disabled={busy}
+                onClick={() => setIdeasDe({ id: ing.food_id, name: ing.food_name })}
+              >
+                {shortFoodName(ing.food_name)}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {sitios.length > 0 && (

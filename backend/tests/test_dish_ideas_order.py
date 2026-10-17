@@ -53,3 +53,23 @@ def test_the_day_says_whether_ideas_can_be_searched(client, monkeypatch):
     assert client.get("/food-log").json()["dish_ideas"] is True
     monkeypatch.setattr(settings, "gemini_api_key", type(settings.gemini_api_key)(""))
     assert client.get("/food-log").json()["dish_ideas"] is False
+
+
+# Las ideas viven en Plan → «Cambiar» desde la reorganización del 17 oct: el
+# plan dice si se pueden buscar, igual que lo decía el día.
+def test_the_plan_says_whether_ideas_can_be_searched(client, monkeypatch):
+    from datetime import date, timedelta
+
+    food = client.post("/foods", json={"name": "Lentejas", "kcal_100g": 330}).json()["id"]
+    for i in range(6):
+        resp = client.post(
+            "/dishes",
+            json={"name": f"Plato {i}", "servings": 1, "ingredients": [{"food_id": food, "grams": 200}]},
+        )
+        assert resp.status_code == 201, resp.text
+    hoy = date.today()
+    lunes = (hoy - timedelta(days=hoy.weekday())).isoformat()
+    monkeypatch.setattr(settings, "gemini_api_key", type(settings.gemini_api_key)("k"))
+    assert client.post("/plans", json={"week_start": lunes}).json()["dish_ideas"] is True
+    monkeypatch.setattr(settings, "gemini_api_key", type(settings.gemini_api_key)(""))
+    assert client.get(f"/plans/{lunes}").json()["dish_ideas"] is False

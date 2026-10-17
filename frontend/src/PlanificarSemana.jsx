@@ -31,6 +31,12 @@ export default function PlanificarSemana({
   // Dentro de la pestaña Plan: sin cabecera ni «Cerrar», porque no es una
   // pantalla encima de otra sino el contenido de la pestaña.
   embebida = false,
+  // Dentro de la pestaña Plan (reorganización del 17 oct) la revisión va al pie
+  // de «Esta semana», la lista de la compra en el bloque «Compra» y Tus platos
+  // en Perfil: la pestaña las pinta donde tocan, y aquí no se repiten.
+  revisar = true,
+  comprar = true,
+  conPlatos = true,
 }) {
   // Sube cada vez que la revisión termina: el objetivo se vuelve a leer, por si
   // en ella aceptaste otro.
@@ -72,7 +78,9 @@ export default function PlanificarSemana({
     )
   }
 
-  const revision = <RevisionSemanal onAccepted={onChanged} onDone={() => setRevisada((n) => n + 1)} />
+  const revision = revisar ? (
+    <RevisionSemanal onAccepted={onChanged} onDone={() => setRevisada((n) => n + 1)} />
+  ) : null
 
   if (plan) {
     const semana = (
@@ -83,7 +91,7 @@ export default function PlanificarSemana({
         onClose={onClose}
         onChanged={onChanged}
         antetitulo="La semana que viene"
-        onLista={() => setListaOpen(true)}
+        onLista={comprar ? () => setListaOpen(true) : null}
         titulo={`Semana del ${semanaDel(weekStart)}`}
         platos={platos}
         onPlatos={() => setPlatosOpen(true)}
@@ -127,7 +135,9 @@ export default function PlanificarSemana({
               : 'Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.'}
           </p>
         )}
-        <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
+        {conPlatos && (
+          <ListRow label="Tus platos" value={String(platos.length)} onClick={() => setPlatosOpen(true)} />
+        )}
         {error && <p className="alert">{error}</p>}
         <button type="button" className="primary" disabled={busy} onClick={generarSemana}>
           Generar la semana

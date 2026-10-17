@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import PlanPantalla, { rangoSemana } from './PlanPantalla.jsx'
@@ -104,12 +104,50 @@ describe('la pantalla Plan', () => {
     expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
   })
 
-  it('«Tus platos» se abre desde la que viene', async () => {
-    listDishes.mockResolvedValue([{ id: 7, name: 'Pollo con arroz', slots: ['comida'], ingredients: [] }])
+  // Reorganización del 17 oct: Tus platos es de «Mis cosas», en Perfil. La que
+  // viene planifica con ellos, pero no es donde se gestionan.
+  it('«Tus platos» ya no está en la que viene', async () => {
+    getPlan.mockResolvedValue(null)
+    render(<PlanPantalla hoy={HOY} inicial="viene" />)
+    await screen.findByRole('button', { name: 'Generar la semana' })
+    expect(screen.queryByRole('button', { name: /Tus platos/ })).not.toBeInTheDocument()
+  })
+
+  // La que viene, en el orden en que se hace: el plan, la compra y, en pequeño,
+  // las otras formas de traer un plan.
+  it('la que viene va: generar, compra, otras formas', async () => {
+    getPlan.mockResolvedValue(null)
+    render(<PlanPantalla hoy={HOY} inicial="viene" />)
+    const generar = await screen.findByRole('button', { name: 'Generar la semana' })
+    const compra = screen.getByRole('region', { name: 'Compra' })
+    const otras = screen.getByRole('region', { name: 'Otras formas de hacer el plan' })
+    expect(generar.compareDocumentPosition(compra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(compra.compareDocumentPosition(otras) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(compra).getByRole('button', { name: /Subir ticket/ })).toBeInTheDocument()
+    expect(within(otras).getByRole('button', { name: /Subir plan/ })).toBeInTheDocument()
+    expect(within(otras).getByRole('button', { name: /Pegar plan/ })).toBeInTheDocument()
+  })
+
+  it('con la que viene generada, la lista de la compra va en «Compra»', async () => {
     getPlan.mockImplementation(async (week) => plan(week, week === VIENE ? 'Merluza' : 'Pollo con arroz'))
     render(<PlanPantalla hoy={HOY} inicial="viene" />)
-    await userEvent.click(await screen.findByRole('button', { name: /Tus platos/ }))
-    expect(screen.getByRole('dialog', { name: 'Tus platos' })).toBeInTheDocument()
+    await screen.findByText('Merluza')
+    const compra = screen.getByRole('region', { name: 'Compra' })
+    expect(within(compra).getByRole('button', { name: /Lista de la compra/ })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Lista de la compra/ })).toHaveLength(1)
+  })
+
+  // La revisión mira atrás: es el cierre de esta semana, no la puerta de la
+  // siguiente. El servidor decide cuándo toca (`due`).
+  it('la revisión semanal va al pie de esta semana, no en la que viene', async () => {
+    getReview.mockResolvedValue({ due: true, plan_meals: 28, plan_meals_said: 3 })
+    render(<PlanPantalla hoy={HOY} />)
+    const pollo = await screen.findByText('Pollo con arroz')
+    const pregunta = await screen.findByText('¿Apuntaste todo lo que comiste?')
+    expect(pollo.compareDocumentPosition(pregunta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'La que viene' }))
+    await screen.findByRole('button', { name: 'Generar la semana' })
+    expect(screen.queryByText('¿Apuntaste todo lo que comiste?')).not.toBeInTheDocument()
   })
 
   // Plan v2: «Esta semana» es para seguir el plan. Planificar y comprar —la

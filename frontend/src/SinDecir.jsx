@@ -104,6 +104,9 @@ export default function SinDecir({
 
   return (
     <section className="sin-decir" aria-label="Sin decir">
+      {/* Debajo de hoy (17 oct) hace falta decir dónde acaba hoy: sin el sello,
+          «Ayer · Desayuno» se leía como otra tarjeta del snack. */}
+      <h2 className="card-eyebrow sin-decir-titulo">Sin decir</h2>
       {lista.map((entrada) => (
         <PlanEnComida
           key={entrada.id}

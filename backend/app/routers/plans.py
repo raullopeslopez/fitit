@@ -48,6 +48,7 @@ from ..shopping import lista
 from ..taski import Taski, get_taski, pendientes
 from ..taski import Unreachable as TaskiUnreachable
 from .dishes import registrar_plato
+from .ideas import ideas_available
 from ..config import settings
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, estimate_meal
@@ -452,6 +453,7 @@ def _to_out(
         week_start=plan.week_start,
         seed=plan.seed,
         has_pauta=has_pauta,
+        dish_ideas=ideas_available(),
         desvios=desvios or [],
         entries=[
             PlanEntryOut(

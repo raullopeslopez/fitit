@@ -301,3 +301,54 @@ Feature: The week, generated
     And I weigh the pot of the comida of today at 600 g
     And I try to confirm the comida of today as 1.5 of the pot
     Then it is refused as invalid
+
+  # Una sola fuente (reorganización Comida/Plan, 17 oct). En prod el diario se
+  # llenaba con «Añadir» y el plan seguía sin decir nada: la tira de la semana
+  # salía «0/4» todos los días aunque el 14 oct hubiera doce entradas. Apuntar
+  # algo en una comida del plan que no tenía respuesta **es** responderla: no
+  # fue el plato del plan —para eso está «Lo comí», un toque—, así que es
+  # «Lo cambié».
+  Scenario: Logging by hand in a planned meal says it was swapped
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I log a food by hand in the comida of today
+    Then the plan now says the comida of today is swapped
+    And the plan points to what I logged by hand
+
+  Scenario: Logging by voice in a planned meal says it was swapped
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I log by voice in the cena of today
+    Then the plan now says the cena of today is swapped
+
+  # Lo que ya tenía respuesta la conserva: añadir el postre a una comida
+  # confirmada no la convierte en cambiada.
+  Scenario: Logging more in a meal already said does not change the answer
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I confirm the comida of today
+    And I log a food by hand in the comida of today
+    Then the plan still says the comida of today is done
+
+  # Sin comida («Sin asignar») no hay a qué fila del plan responder.
+  Scenario: Logging without a meal says nothing to the plan
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I log a food by hand without a meal
+    Then the comida of today says nothing yet
+
+  Scenario: Deleting what I logged by hand gives the meal back its silence
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I log a food by hand in the comida of today
+    And I delete from the diary what I logged by hand
+    Then the plan now says nothing for the comida of today
+
+  Scenario: Deleting one of two foods logged by hand keeps the meal said
+    Given a repertoire of 12 dishes
+    When I generate this week
+    And I log a food by hand in the comida of today
+    And I log another food by hand in the comida of today
+    And I delete from the diary what I logged by hand
+    Then the plan now says the comida of today is swapped
+    And the plan points to the other food I logged
