@@ -21,7 +21,6 @@ import {
   weighLeftoverBone,
 } from './api.js'
 import { DishChips, NewDish } from './Dish.jsx'
-import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
@@ -287,10 +286,6 @@ export default function Comida() {
 
       {error && <p className="alert">{error}</p>}
 
-      {/* Lo que quedó sin decir ayer y anteayer, para cerrarlo sin tener que ir
-          a aquel día. Sólo en hoy: es donde se abre la app. */}
-      {isToday && <SinDecir hoy={dayIso} platos={platos} />}
-
       {/* Qué plan llevas y cuánto toca hoy, o que todavía no hay objetivo. Sólo
           hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
           lado haría creer que aquel día se comía a este ritmo. */}
@@ -363,6 +358,12 @@ export default function Comida() {
         </>
       )}
 
+      {/* Lo que quedó sin decir ayer y anteayer, para cerrarlo sin tener que ir
+          a aquel día. Sólo en hoy, y debajo de hoy (reorganización del 17 oct):
+          arriba obligaba a bajar las tarjetas de otros días para llegar al
+          desayuno de hoy. Bajar no es un toque más; plegarlo lo habría sido. */}
+      {isToday && <SinDecir hoy={dayIso} platos={platos} />}
+
       {/* Añadir ocupa la pantalla entera, no una hoja.
           Es una tarea con lista larga —el catálogo devuelve hasta treinta
           filas— y con cámara, y las dos cosas piden alto: una hoja anclada al
@@ -427,7 +428,6 @@ export default function Comida() {
                 }
               : null
           }
-          dishIdeas={day?.dish_ideas ?? false}
           block={labelBlock}
           onBlocked={setLabelBlock}
           onDone={afterWrite}
@@ -1265,7 +1265,6 @@ function AddFood({
   onDishesChanged = () => {},
   labelReading = false,
   onVoice = null,
-  dishIdeas = false,
   block = null,
   onBlocked = () => {},
   onDone,
@@ -1821,7 +1820,6 @@ function AddFood({
               dayIso={dayIso}
               entries={entries}
               source={chosen ? null : scan?.food ? 'catalogo' : 'codigo'}
-              ideasAvailable={dishIdeas}
               onDone={onDone}
               onDayChanged={onDayChanged}
               onCancel={cerrarDetalle}
@@ -2111,7 +2109,6 @@ function Amount({
   dayIso,
   entries = [],
   source = null,
-  ideasAvailable = false,
   onDone,
   onDayChanged,
   onCancel,
@@ -2121,7 +2118,6 @@ function Amount({
   // estabas haciendo cuando te diste cuenta de que estaban mal.
   const [food, setFood] = useState(initialFood)
   const [correcting, setCorrecting] = useState(false)
-  const [ideas, setIdeas] = useState(false)
   const preset = food.portions?.find((p) => p.is_default) ?? null
   const [portionId, setPortionId] = useState(preset?.id ?? null)
   // Una medida casera («cda»), o `null` para gramos. Con ella, `quantity` es
@@ -2286,12 +2282,6 @@ function Amount({
     )
   }
 
-  // Las ideas tapan la hoja entera y, al cerrarlas, la hoja sigue como estaba:
-  // la cantidad y la comida que habías elegido no se pierden por mirar recetas.
-  // Poner un plato en el plan desde aquí cambia el plan que la pantalla enseña.
-  if (ideas) {
-    return <IdeasScreen food={food} onClose={() => setIdeas(false)} onPlanChanged={onDayChanged} />
-  }
 
   // Lo que se va a registrar, calculado a cada tecla. Con una ración elegida, la
   // cantidad son sus gramos por cuántas; sin ella, los gramos que escribes.
@@ -2498,21 +2488,8 @@ function Amount({
         </button>
       )}
 
-      {/* Mismo peso que «Corregir»: es un desvío, no lo que se viene a hacer
-          aquí. Vale para cualquier alimento —una receta de acelgas no depende
-          de quién dio de alta la acelga— y no está si el servidor no puede
-          buscar, que un enlace que sólo lleva a «no disponible» es peor que
-          ninguno. */}
-      {ideasAvailable && (
-        <button
-          type="button"
-          className="link-btn food-detail-correct"
-          onClick={() => setIdeas(true)}
-          disabled={busy}
-        >
-          Ideas con {shortFoodName(food.name)}
-        </button>
-      )}
+      {/* Las ideas de recetas vivían aquí, y desde aquí se planificaba. Desde
+          el 17 oct salen en Plan → «Cambiar este plato»: planificar es de Plan. */}
     </form>
   )
 }

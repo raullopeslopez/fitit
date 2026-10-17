@@ -547,6 +547,40 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     expect(lineas[1]).toHaveTextContent('Avena 60 g ≈ 4 cdas · Yogur natural 125 g')
   })
 
+  // Reorganización del 17 oct: planificar vive en Plan. Las ideas que antes
+  // salían del detalle de un alimento en Comida salen aquí, de cada ingrediente
+  // del plato que se está cambiando.
+  describe('ideas, desde el plato que cambias', () => {
+    const CON_INGREDIENTES = [
+      {
+        ...PLATOS[0],
+        ingredients: [
+          { food_id: 31, food_name: 'Lentejas, crudas', grams: 70 },
+          { food_id: 32, food_name: 'Chorizo', grams: 30 },
+          { food_id: 31, food_name: 'Lentejas, crudas', grams: 10 },
+        ],
+      },
+      ...PLATOS.slice(1),
+    ]
+
+    it('ofrece ideas con cada ingrediente, una vez cada uno', async () => {
+      pintar({ plan: { ...SEMANA, dish_ideas: true }, platos: CON_INGREDIENTES })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+      expect(hoja).toHaveTextContent('Ideas con')
+      expect(within(hoja).getAllByRole('button', { name: 'lentejas' })).toHaveLength(1)
+      await userEvent.click(within(hoja).getByRole('button', { name: 'chorizo' }))
+      expect(await screen.findByRole('dialog', { name: 'Ideas con chorizo' })).toBeInTheDocument()
+    })
+
+    it('sin ideas en el servidor no las ofrece', async () => {
+      pintar({ plan: { ...SEMANA, dish_ideas: false }, platos: CON_INGREDIENTES })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+      expect(hoja).not.toHaveTextContent('Ideas con')
+    })
+  })
+
   it('elegir otro plato lo pone en el plan de ese día', async () => {
     const props = pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
