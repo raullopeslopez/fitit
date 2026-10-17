@@ -40,10 +40,10 @@ describe('Perfil', () => {
     api.listRules.mockResolvedValue([])
   })
 
-  it('reúne el peso, tu objetivo, tus datos, las reglas y Entreno', async () => {
+  it('reúne el peso, tu objetivo, tus datos, tu comida y Entreno', async () => {
     renderPerfil()
 
-    for (const name of ['Tu objetivo', 'Tus datos', 'Reglas', 'Entreno']) {
+    for (const name of ['Tu objetivo', 'Tus datos', 'Tu comida', 'Entreno']) {
       expect(await screen.findByRole('heading', { name })).toBeInTheDocument()
     }
     expect(screen.getByText('Peso')).toBeInTheDocument()
@@ -356,11 +356,30 @@ describe('Perfil', () => {
     expect(await screen.findByRole('dialog', { name: 'Tus reglas' })).toBeInTheDocument()
   })
 
-  it('«Tus sitios», en Comer fuera, abre la lista de sitios', async () => {
+  // Reorganización del 17 oct: lo tuyo de comer —platos, sitios y reglas— vive
+  // junto, en Perfil, en vez de repartido entre Plan, Perfil y Comida.
+  it('«Tu comida» junta tus platos, tus sitios y tus reglas', async () => {
+    renderPerfil()
+
+    const seccion = (await screen.findByRole('heading', { name: 'Tu comida' })).closest('section')
+    for (const nombre of ['Tus platos', 'Tus sitios', 'Tus reglas']) {
+      expect(within(seccion).getByRole('button', { name: new RegExp(nombre) })).toBeInTheDocument()
+    }
+  })
+
+  it('«Tus platos» abre tus platos', async () => {
     api.listDishes.mockResolvedValue([])
     renderPerfil()
 
-    expect(await screen.findByRole('heading', { name: 'Comer fuera' })).toBeInTheDocument()
+    await userEvent.click(await fila('Tus platos'))
+
+    expect(await screen.findByRole('dialog', { name: 'Tus platos' })).toBeInTheDocument()
+  })
+
+  it('«Tus sitios» abre la lista de sitios', async () => {
+    api.listDishes.mockResolvedValue([])
+    renderPerfil()
+
     await userEvent.click(await fila('Tus sitios'))
 
     expect(await screen.findByRole('dialog', { name: 'Tus sitios' })).toBeInTheDocument()
