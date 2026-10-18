@@ -792,9 +792,13 @@ public class SessionWidget4x2Test {
         View small4x1 = widgets.getViewFor(small);
         assertEquals(View.VISIBLE, small4x1.findViewById(R.id.widget_paused).getVisibility());
         assertEquals(View.GONE, small4x1.findViewById(R.id.widget_clock).getVisibility());
-        // En pausa no hay fin del descanso que esperar.
+        // En pausa no hay fin del descanso que esperar. La del cambio de día no
+        // cuenta: de 22:00 a 00:00 (y de 02:00 a 04:00) cae dentro de las dos
+        // horas, y el test fallaba según la hora a la que corría.
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        long dayEdge = SessionAlarms.nextDayEdge(now(), java.time.ZoneId.systemDefault());
         assertTrue(shadowOf(alarms).getScheduledAlarms().stream()
+                .filter(a -> a.getTriggerAtMs() != dayEdge)
                 .noneMatch(a -> a.getTriggerAtMs() < now() + SessionControl.IDLE_MS - 60_000));
 
         tap(R.id.widget_rest_toggle, now());
