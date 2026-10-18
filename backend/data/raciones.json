@@ -1,0 +1,19 @@
+[
+  {"food": "Huevo, crudo", "label": "huevo", "grams": 55},
+  {"food": "Huevo, clara, cruda", "label": "clara", "grams": 33},
+  {"food": "Pan integral (harina T150)", "label": "rebanada", "grams": 30},
+  {"food": "Patata, sin piel, cruda", "label": "patata", "grams": 170},
+  {"food": "Tomate, crudo", "label": "tomate", "grams": 120},
+  {"food": "Cebolla, cruda", "label": "cebolla", "grams": 110},
+  {"food": "Plátano, pulpa, crudo", "label": "plátano", "grams": 120},
+  {"food": "Plátano macho, crudo", "label": "plátano", "grams": 250},
+  {"food": "Pavo, filete, crudo", "label": "filete", "grams": 100},
+  {"food": "Jamón serrano", "label": "loncha", "grams": 15},
+  {"food": "Atún, al natural, en conserva, escurrido", "label": "lata", "grams": 56},
+  {"food": "Pimiento verde, amarillo o rojo, crudo", "label": "pimiento", "grams": 150},
+  {"food": "Zanahoria, cruda", "label": "zanahoria", "grams": 80},
+  {"food": "Calabacín, pulpa y piel, crudo", "label": "calabacín", "grams": 250},
+  {"food": "Skyr", "label": "tarrina", "grams": 150},
+  {"food": "Leche desnatada, UHT", "label": "vaso", "grams": 200},
+  {"food": "Fresa, cruda", "label": "fresa", "grams": 12}
+]
