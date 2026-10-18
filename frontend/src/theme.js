@@ -14,7 +14,7 @@ const THEME_KEY = 'fitit_theme'
 export const THEME_OPTIONS = ['system', 'light', 'dark']
 
 // El color de la barra del navegador / del sistema, uno por tema: `--bg`.
-const BAR_COLOR = { light: '#f4f2ee', dark: '#0b0c0e' }
+const BAR_COLOR = { light: '#f5f3ee', dark: '#101113' }
 
 const DARK_QUERY = '(prefers-color-scheme: dark)'
 

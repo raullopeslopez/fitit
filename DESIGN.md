@@ -52,6 +52,9 @@ los tamaños mínimos). Es la fuente; lo que se sirve se genera desde ahí.
   cambia la marca, se vuelve a correr.
 
 ## Typography
+> **Desde 2026-10-18 los titulares son Bricolage Grotesque** (ver **Marcador**). Lo que
+> sigue sobre Space Grotesk queda como historia; Geist y Geist Mono no cambian.
+
 All three faces are free (Google Fonts) and share an engineered/technical feel.
 - **Display/Hero:** Space Grotesk — headings, workout names. Weights 600/700, tracking -0.01 to -0.03em.
 - **Body/UI:** Geist — labels, buttons, running text. Weight 400/600.
@@ -102,6 +105,10 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
   (`.chart-point-label`, `.chart-tick`), where the test can see it.
 
 ## Color
+> **Desde 2026-10-18 los valores son los de Marcador** (más abajo): neutros Carbón/Hueso
+> y Tiza/Carbón, récord en oro, rojo nuevo. El razonamiento de este apartado (una sola
+> acción en ámbar, tinta sobre el ámbar, ámbar-como-texto más hondo en claro) sigue.
+
 - **Approach:** restrained — monochrome instrument palette + a single "effort" accent.
   Color is rare and meaningful. Dark-first (gyms, night, OLED); full light mode too.
 - **Accent (amber "effort"):** brand, CTAs, active/focus, links. Replaces the old
@@ -224,6 +231,10 @@ categorical palette so Progreso can be organized and read by muscle. Scope rules
   vocabulary and colour is the muscle's, and neither may borrow from the other.
 
 ### Color por comida (categorical — segunda excepción deliberada)
+> **RETIRADO el 2026-10-18 (Marcador).** Las comidas van sin color: el nombre y el orden
+> del día ya las distinguen, y con color Desayuno se confundía con Hombro. El color es de
+> los músculos. `data-slot` se queda en el marcado para decir qué comida es, sin estilo.
+
 Segunda excepción aprobada a «one accent only», y a la regla propia de Comida de
 que **el color codifica progreso, no categoría**: las cuatro comidas del día
 llevan tono propio para poder barrer el scroll sin leer. Igual que la paleta de
@@ -706,6 +717,65 @@ tiempo sigue la misma regla del ámbar.
   disparo el mismo día ni un reintento repiten el aviso. Si no la abres, la tarjeta
   espera en Comida; insistir sería regañar.
 
+## Marcador (desde 2026-10-18)
+Sistema del lienzo «Fitit sin tarjetas» (página *Sistema de diseño*), aprobado por el
+usuario el 2026-10-18 con cuatro decisiones: **piel primero, navegación después**,
+**Bricolage** para titulares, **comidas sin color**, **récord en oro**. Manda sobre lo
+anterior donde choca; lo que no dice, sigue.
+
+### Paleta
+| Token | Oscuro (por defecto) | Claro | Uso |
+|---|---|---|---|
+| `--bg` | Carbón `#101113` | Tiza `#F5F3EE` | fondo |
+| `--surface` | Grafito `#1C1D20` | Papel `#FFFFFF` | hojas, barra |
+| `--surface-raised` | `#26272B` | `#FFFFFF` | botón secundario, relieve |
+| `--text` | Hueso `#F3F0E8` | Carbón `#101113` | tinta y cifras |
+| `--muted` | Ceniza `#9A9890` | Ceniza honda `#66645D` | sellos y etiquetas, **nunca cifras** |
+| `--accent` | Mandarina `#FF6A2C` | `#E4571B` | la acción: un sitio por pantalla |
+| `--accent-ink` | `#FF6A2C` | `#B83F0C` | mandarina como texto |
+| `--pr` | Oro `#FFC53D` | Oro hondo `#8A5A00` | sólo récords y avisos |
+| `--danger` | `#FF5A5F` | `#C62828` | borrar de verdad; texto rojo, nunca relleno |
+| `--border` | `#2A2B2F` | `#E2DFD8` | la línea entre filas |
+
+Todo texto pasa AA sobre las superficies donde cae (peor caso: `--danger` oscuro sobre
+`--surface-raised`, 4,89). El coral del hidrato (`--carbs`) se queda.
+
+### Tipografía
+Tres caras, cada una un trabajo: **Bricolage Grotesque 800** para titulares (pantalla 54,
+sección 28, fila 19, tracking negativo), **Geist** para el cuerpo y las etiquetas,
+**Geist Mono** para toda cifra (Display 72, una por pantalla). Etiqueta mínima 12,8; el
+sello en Mono 11,2 mayúsculas sigue siendo la única talla por debajo.
+
+### Reglas
+1. **Sin tarjetas.** Se separa por tamaño (un titular abre bloque), por una línea de 1 px
+   entre filas, por aire (24–28 px entre bloques) y, como mucho una vez por pantalla, por
+   una **banda a sangre** del color de lo que trata.
+2. **Cada dato tiene su casa:** entero donde se cambia, resumido en el resto.
+3. **Un concepto, un dibujo** en toda la app.
+4. **Se cuenta lo que falta**, siempre igual (`−12`, «faltan 62 g de proteína»).
+5. **El estado se dice una vez:** forma o color, no además una palabra. Discontinuo =
+   previsto; oro = récord.
+6. **La unidad, en la cabecera**, una vez por columna.
+7. **Dos sellos por pantalla** como mucho.
+8. **Total o partes, no los dos:** el total a la vista, el desglose al tocar.
+
+### Formas
+Píldora para todo lo que se toca (botón principal 60 px de alto, secundario 48, mínimo
+44); 12 px para muestras de categoría; discontinuo para lo previsto; banda a sangre para
+lo importante. El stepper es la cifra sin caja, `−` en contorno y `+` relleno.
+
+### Migración
+**Piel primero, navegación después.** Los tokens y la tipografía cambiaron de golpe en toda
+la app (2026-10-18). Lo demás —quitar tarjetas, bandas, tallas nuevas— va pantalla a
+pantalla con las cinco pestañas de hoy. La barra flotante Hoy / Semana / Historial /
+Progreso / Tú se decide al final, con las pantallas ya hechas. Pendiente también: la paleta
+de músculos pastel con su versión honda (llega con Días y Progreso), el kit de marca
+(`brand/`, aún en Space Grotesk) y los colores del widget nativo (APK).
+
+| Pantalla | Marcador |
+|---|---|
+| Toda la app | tokens, Bricolage, récord en oro, comidas sin color (2026-10-18) |
+
 ## Sistema v2 — Material tonal (desde 2026-10-02)
 La app se usa como APK, y la piel heredada de la PWA no lo parecía: formularios con un
 «Guardar» al pie, datos del servidor escritos en frases pequeñas en `--muted`, y ninguna
@@ -796,6 +866,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-18 | Marcador: paleta, Bricolage, récord en oro y comidas sin color en toda la app | Usuario, «Ponte con la UI», y en cuatro preguntas: piel primero y navegación después, Bricolage Grotesque en vez de Space Grotesk, comidas sin color (el color es de los músculos) y récord en oro (`#FFC53D` / `#8A5A00`) para que el mandarina sea sólo la acción. Los tokens cambian en un PR; la quita de tarjetas, pantalla a pantalla. |
 | 2026-10-18 | Días cuidados: un punto en la franja de Comida y una tarjeta en Progreso → Ritmo | Épica de cuatro comidas, fase 7: la cifra norte. Un día cuenta si dijiste lo que comiste (diario o comida del plan contestada) o entrenaste (al menos una serie). En la franja de la semana de Comida, un punto de 6 px bajo el número del día cuidado, en `currentColor` (sigue la tinta del día, también el elegido); no una segunda fila de cuadros: un concepto, un dibujo. Accesible como descripción («Día cuidado»), no en el nombre del botón. En Progreso → Ritmo, arriba, la tarjeta `Días cuidados` con `47 de 56` en Mono 1,6rem y `días cuidados en 8 semanas`, y cinco barras por mes (la del mes en curso en `--text`, las demás al 25 %) con su cifra encima. Nunca racha: ni «seguidos» ni nada que se rompa. |
 | 2026-10-18 | Plan → Cambiar este plato: barra de tres tramos, ideas para esa comida y «Aquí no» | Épica de cuatro comidas, fase 6. Bajo lo propuesto, una barra de 12 px en tres tramos (proteína `--text`, hidrato `--carbs`, grasa `--text` al 35 %) por kcal, con sus gramos debajo en Mono (el del hidrato en `--carbs-ink`); sin una de las tres cifras no se dibuja. Botón secundario `Ideas para el desayuno` (artículo por comida): pide tres a la IA con la comida como dato; vuelven bajo el sello `Propuesta`, cada una con sus ingredientes, una barra fina de 6 px y `Elegir` (primario, 1 toque: cambia el plato del día) y `Aquí no` (enlace). `Aquí no` se sustituye en su sitio por `No volverá en desayunos.` con `Deshacer`. «No en desayunos» pasa a usar el mismo «Aquí no», que se recuerda para el modelo. Sin nada que proponer, la frase de siempre de las propuestas (cuota, sin despensa…). No hay etiqueta «IA»: la idea se juzga por si encaja, no por quién la hizo. |
 | 2026-10-18 | Comida v4: sin cifras mientras cumples, tira del día y coral para el hidrato | Épica de cuatro comidas, fase 3; el usuario eligió las dos cosas («Ocultar si cumples», «Coral nuevo para hidrato»). Con plan, mientras lo apuntado es lo del plan (comida dicha `done` con su plato, o fuera confirmada), Comida no pinta los dos anillos ni la línea de cierre ni el subtotal de cada comida: arriba va la **tira del día**, cuatro columnas cuyo ancho son las kcal de cada comida del plan y, dentro, proteína (`--text`), hidrato (`--carbs`) y grasa (`--text` al 35 %) apilados por kcal, con lo comido al 40 % de opacidad. La única cifra de la tira es el hidrato que movió el entreno (`+40 g` en `--carbs-ink`, `−40 g` en `--muted`). Lo apuntado fuera del plan devuelve los anillos y dice en su comida `Fuera del plan · +150 kcal` (raya si no hay kcal medidas). Dentro de la comida planificada, `+40 g de hidrato · por el entreno`. Sin plan, nada cambia. **Token nuevo**, única desviación: `--carbs` (#f08a68 claro / #ff9b7a oscuro) y `--carbs-ink` (#b04a25 claro, 4,88 sobre papel / #ff9b7a oscuro). Contradice a propósito la decisión del 2026-10-02 de anillos siempre visibles: el usuario aprobó en la exploración «Fitit sin tarjetas» quitar las cifras siempre visibles. |

@@ -3,7 +3,7 @@
   "appName": "Fitit",
   "webDir": "dist",
   "android": {
-    "backgroundColor": "#f4f2ee"
+    "backgroundColor": "#f5f3ee"
   },
   "plugins": {
     "SocialLogin": {

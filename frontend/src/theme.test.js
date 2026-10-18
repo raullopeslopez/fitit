@@ -29,8 +29,8 @@ describe('tema', () => {
     localStorage.clear()
     delete document.documentElement.dataset.theme
     document.head.innerHTML = `
-      <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)" />
-      <meta name="theme-color" content="#0b0c0e" media="(prefers-color-scheme: dark)" />`
+      <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)" />
+      <meta name="theme-color" content="#101113" media="(prefers-color-scheme: dark)" />`
   })
 
   it('sin elegir nada, sigue al sistema', () => {
@@ -55,7 +55,7 @@ describe('tema', () => {
     applyTheme('light')
     expect(document.documentElement.dataset.theme).toBe('light')
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-      expect(meta.getAttribute('content')).toBe('#f4f2ee')
+      expect(meta.getAttribute('content')).toBe('#f5f3ee')
     }
   })
 

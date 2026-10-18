@@ -377,7 +377,7 @@ describe('Comida', () => {
   // marca. Que el color resultante se distinga del papel, y que no le quite el
   // sitio al ámbar, lo mide `comida.browser-test.jsx` sobre el color pintado —
   // aquí no hay pintado que medir.
-  it('cada comida se marca con su tono, y el montón sin asignar no', async () => {
+  it('cada comida dice cuál es, y el montón sin asignar no', async () => {
     api.getFoodDay.mockResolvedValue(
       day({
         entries: [
@@ -400,16 +400,12 @@ describe('Comida', () => {
     // Las que tienen algo dentro.
     expect(tarjeta('Desayuno').dataset.slot).toBe('desayuno')
     expect(tarjeta('Cena').dataset.slot).toBe('cena')
-    // Y los huecos: el tono llega antes que el contenido, así que Comida y
-    // Snack ya se reconocen cuando todavía no tienen nada.
+    // Y los huecos, que también son esa comida aunque no tengan nada.
     expect(tarjeta('Comida').dataset.slot).toBe('comida')
     expect(tarjeta('Snack').dataset.slot).toBe('snack')
 
     // El montón sin asignar no es una comida que elegiste — es lo que se quedó
-    // sin elegir. Darle un tono propio lo pondría a competir con las cuatro que
-    // sí decidiste, y encima con un color que no significa nada. Sin atributo,
-    // no sólo con otro valor: así `[data-slot]` en la hoja de estilos significa
-    // «esta tarjeta tiene tono» y no hay que listar las cuatro en cada regla.
+    // sin elegir — y no lleva atributo.
     expect(tarjeta('Sin asignar').hasAttribute('data-slot')).toBe(false)
   })
 

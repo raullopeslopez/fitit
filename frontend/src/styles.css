@@ -1,13 +1,14 @@
 :root {
-  /* Light: warm "paper" instrument, amber "effort" accent. See DESIGN.md. */
-  --bg: #f4f2ee;
+  /* Claro de Marcador (2026-10-18): Tiza, Papel, Carbón. Ver DESIGN.md →
+     Marcador. Contrastes medidos contra Tiza y contra Papel, los dos fondos
+     sobre los que cae el texto. */
+  --bg: #f5f3ee;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --text: #16181b;
-  /* #6b7280 was 4.32 on the paper bg (passes on white cards at 4.83, fails on
-     the page background: tab labels, streak line, hints). #616875 is 5.01 on
-     paper / 5.61 on white and still reads clearly muted. */
-  --muted: #616875;
+  --text: #101113;
+  /* Ceniza honda: 5,34 sobre Tiza, 5,92 sobre Papel. Sellos y etiquetas,
+     nunca cifras. */
+  --muted: #66645d;
   --accent: #e4571b;
   /* En claro el hover aclara, no oscurece. Este token valía `#c2440f` — byte a
      byte el mismo valor que `--accent-ink`, o sea un color diseñado para ser
@@ -26,26 +27,29 @@
   /* Amber used AS text (not a fill) has to go deeper than the accent to clear
      AA on paper: #e4571b is only 3.2–3.7 on the light background, #c2440f is
      4.5+. On dark, amber text already passes (6.3+), so dark keeps the accent. */
-  --accent-ink: #c2440f;
+  --accent-ink: #b83f0c;
   /* The record colour can't be the dark glow (#FFA733 scores 1.94 on white,
      under the 3.0 floor). On paper you can't get louder than the accent by
      going brighter, so the record goes deeper: hotter iron, not brighter
      flame. Worst case across every --pr use is 5.35. See DESIGN.md. */
-  --pr: #a83208;
+  /* Marcador: el récord es oro, no ámbar más fuerte. El mandarina queda sólo
+     para la acción. El oro hondo da 5,34 sobre Tiza y 5,93 sobre Papel. */
+  --pr: #8a5a00;
   /* Rojo destructivo. Se comprobó siempre contra blanco puro (4,829) y el
      fondo de tema claro de DESIGN.md es papel cálido `#F4F2EE`: sobre papel
      `#DC2626` daba **4,319**, y con el velo de `:hover` (6 % de `--text`)
      **4,276** — suspendiendo por debajo del suelo de 4,5, y peor al pasar el
      dedo que en reposo. `#CE1F1F` pasa en los tres sitios: 5,469 sobre
      blanco, 4,891 sobre papel, 4,842 en hover. */
-  --danger: #ce1f1f;
+  /* Marcador: `#C62828`, 5,07 sobre Tiza y 5,62 sobre Papel. */
+  --danger: #c62828;
   /* La tinta que va *encima* del rojo, como `--on-accent` va encima del
      ámbar. Los dos temas no pueden compartirla: sobre `#CE1F1F` el blanco da
      5,469 y la tinta oscura 3,25; sobre el `#F87171` de oscuro es al revés,
      2,77 el blanco y 7,08 la tinta. Un rojo claro pide tinta oscura, igual
      que el ámbar. */
   --on-danger: #ffffff;
-  --border: #e6e2da;
+  --border: #e2dfd8;
   --ring: rgba(228, 87, 27, 0.25);
   --radius: 8px;
   --radius-control: 6px;
@@ -69,7 +73,8 @@
      papel, y `#b04a25` da 4,88 sobre papel y 5,45 sobre blanco. */
   --carbs: #f08a68;
   --carbs-ink: #b04a25;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  /* Marcador: Bricolage Grotesque 800 para titulares. */
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
   --font-body: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
   /* Let native controls (date picker, scrollbars) follow the theme. */
@@ -85,24 +90,27 @@
    dark `.card` the way it did there. */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  /* Dark-first instrument surface — the design's primary target. */
-  --bg: #0b0c0e;
-  --surface: #15171a;
-  --surface-raised: #1d2024;
-  --text: #f2f3f5;
-  --muted: #9ba1a9;
+  /* Oscuro de Marcador, el de por defecto: Carbón, Grafito, Hueso. */
+  --bg: #101113;
+  --surface: #1c1d20;
+  --surface-raised: #26272b;
+  --text: #f3f0e8;
+  /* Ceniza: 5,16 aun sobre el relieve más claro. */
+  --muted: #9a9890;
   --accent: #ff6a2c;
   --accent-hover: #e4571b;
   /* Amber text passes AA on the dark surface as-is, so ink == accent here. */
   --accent-ink: #ff6a2c;
-  --pr: #ffa733;
+  /* Oro: 9,45 o más sobre las tres superficies. */
+  --pr: #ffc53d;
   /* `#EF4444` daba 4,345 sobre `--surface-raised` y 3,676 con el velo de
      `:hover`: suspendía en reposo y suspendía más al tocarlo. 16 px a 600
      no es «texto grande» para WCAG, así que el suelo es 4,5 y no 3.
      `#F87171`: 5,911 en reposo, 5,001 en hover. */
-  --danger: #f87171;
-  --on-danger: #0b0c0e;
-  --border: #24272c;
+  /* Marcador: `#FF5A5F`, 4,89 sobre el relieve más claro. */
+  --danger: #ff5a5f;
+  --on-danger: #101113;
+  --border: #2a2b2f;
   --ring: rgba(255, 106, 44, 0.3);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
@@ -146,7 +154,7 @@ button {
 h1 {
   font-family: var(--font-display);
   font-size: 1.6rem;
-  font-weight: 700;
+  font-weight: 800;
   margin: 0;
   letter-spacing: -0.03em;
   text-wrap: balance;
@@ -6345,71 +6353,6 @@ button.draft-save {
 }
 .plan-en-comida .hint {
   margin: 0;
-}
-
-/* ── El tono de cada comida ────────────────────────────────────────────────
- *
- * Cuatro tonos en oklch con la misma luminosidad (0,60) y la misma croma
- * (0,105): lo único que cambia es el matiz, 150/240/295/340. Un solo juego
- * para los dos temas, que en esta hoja no lo tiene nadie más — sale porque la
- * banda entera cabe por debajo del ámbar en oscuro (los tonos van de 4,31 a
- * 5,22 contra la tarjeta, el acento está en 6,29) y por debajo de
- * `--accent-ink` en claro (3,36–4,17 contra 5,09).
- *
- * **Es la excepción a «el color codifica progreso, no categoría»**, y vive
- * dentro de una frontera: el tono es MARCA, nunca DATO. Tiñe la banda del
- * nombre, pinta el punto y el filete que la cierra, y nada más. No toca una
- * cifra, no toca una barra, no toca el héroe. Por eso su suelo de contraste es
- * 3:1 —el de un elemento no textual— y no 4,5: si tiñera el subtotal habría
- * que subirlo hasta pasar por encima del acento, y entonces habría dos colores
- * peleándose por decir qué importa. Razonado en DESIGN.md.
- *
- * Y no identifica: con deuteranopia, Comida y Cena son el mismo color. Es el
- * precio de la misma luminosidad y es el correcto, porque el nombre está
- * escrito en la tarjeta. El tono sirve para barrer el scroll, no para saber
- * qué comida es. Los chips de músculo de Progreso son el caso contrario —van
- * solos, sin palabra al lado— y por eso su paleta sí va escalonada. */
-:root {
-  --slot-desayuno: #4e925e;
-  --slot-comida: #3c88b8;
-  --slot-cena: #8573b8;
-  --slot-snack: #aa6694;
-}
-[data-slot='desayuno'] {
-  --slot: var(--slot-desayuno);
-}
-[data-slot='comida'] {
-  --slot: var(--slot-comida);
-}
-[data-slot='cena'] {
-  --slot: var(--slot-cena);
-}
-[data-slot='snack'] {
-  --slot: var(--slot-snack);
-}
-
-/* El velo, al 20 %. A 12 % la banda medía 1,14 de contraste contra el cuerpo de
-   la tarjeta y sencillamente no se veía; a 20 % mide 1,25–1,30 y el rótulo de
-   encima sigue a 12,5. Lo mide `comida.browser-test.jsx` por los dos lados. */
-.food-slot[data-slot] .food-slot-head {
-  background: color-mix(in srgb, var(--slot) 24%, var(--bg));
-  border-bottom-color: color-mix(in srgb, var(--slot) 45%, var(--border));
-}
-/* La vacía se tiñe a la mitad: un hueco no compite con lo registrado. */
-.food-slot.is-empty[data-slot] .food-slot-head {
-  background: color-mix(in srgb, var(--slot) 12%, var(--bg));
-}
-/* El punto. Es lo que hace que el tono se lea como una marca deliberada y no
-   como una tarjeta que se ha manchado. */
-[data-slot] .food-slot-name::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--slot);
-  margin-right: 0.5rem;
-  vertical-align: 0.08em;
 }
 
 /* La línea de cierre: el número del héroe dicho en una frase. */

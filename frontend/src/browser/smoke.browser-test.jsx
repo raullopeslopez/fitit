@@ -38,9 +38,9 @@ describe('el banco de navegador', () => {
     await mountEntreno()
     const bg = () => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
     forceTheme('dark')
-    expect(bg()).toBe('#0b0c0e')
+    expect(bg()).toBe('#101113')
     forceTheme('light')
-    expect(bg()).toBe('#f4f2ee')
+    expect(bg()).toBe('#f5f3ee')
   })
 
   it('Progreso llega con la gráfica dibujada y su puerta al editor', async () => {

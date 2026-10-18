@@ -978,11 +978,9 @@ function SlotCard({
   const label = slotLabel(rail.key)
   const vacia = entries.length === 0
   return (
-    // `data-slot` y no una clase: la hoja de estilos escribe `[data-slot]` para
-    // «esta comida tiene tono» y `[data-slot='cena']` para cuál, en vez de
-    // repetir las cuatro clases en cada regla. El montón sin asignar se queda
-    // sin atributo —no es una comida que elegiste— y por eso `?? undefined`:
-    // React omite el atributo entero, que es lo que `[data-slot]` comprueba.
+    // `data-slot` dice qué comida es; ya no pinta nada (Marcador: las comidas
+    // van sin color). El montón sin asignar no lleva atributo: no es una
+    // comida que elegiste.
     <section
       className={`food-slot${vacia ? ' is-empty' : ''}`}
       data-slot={rail.key ?? undefined}
