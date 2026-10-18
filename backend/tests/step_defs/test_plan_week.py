@@ -805,6 +805,16 @@ def then_planned_place(client, slot, sitio, kcal):
     assert round(fila["kcal"]) == kcal
 
 
+@then(parsers.parse("the {slot:w} of today is {pct:d}% of the day, give or take {margen:d} points"))
+def then_slot_share(client, slot, pct, margen):
+    # La proporción y no las kcal: un repertorio sólo de pollo no puede dar a la
+    # vez la proteína y las kcal de cada parte, pero sí repartirse como toca.
+    hoy = _plan_de_hoy(client)
+    fila = next(e for e in hoy if e["slot"] == slot)
+    parte = 100 * fila["kcal"] / sum(e["kcal"] for e in hoy)
+    assert abs(parte - pct) <= margen, parte
+
+
 @then(parsers.parse("the plan of today adds up to {kcal:d} kcal, give or take {pct:d}%"))
 def then_day_total(client, kcal, pct):
     total = sum(e["kcal"] for e in _plan_de_hoy(client))

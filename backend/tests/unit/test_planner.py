@@ -259,3 +259,48 @@ def test_a_dish_weighs_more_the_more_of_it_is_at_home():
     assert peso_en_casa([1, 2], {1}) == 2.0
     assert peso_en_casa([1, 2], {1, 2}) == 3.0
     assert peso_en_casa([], {1}) == 1.0
+
+
+# --- reparto por toma ---------------------------------------------------------
+POLLO = {"kcal": 165.0, "protein": 31.0, "fat": 3.6, "carbs": 0.0, "fiber": 0.0}
+
+
+def _escalable(id, slot):
+    pieza = Ajustable(por_100g=POLLO, gramos=150.0, minimo=30.0, maximo=600.0)
+    return (slot, PlatoCandidato(id=id, nombre=f"pollo {slot}", fijo={}, ajustables=(pieza,)))
+
+
+def _kcal(resueltos):
+    from app.planner import _macros_de
+
+    return {slot: _macros_de(plato, gramos)["kcal"] for slot, plato, gramos in resueltos}
+
+
+def test_cada_comida_cuadra_su_parte_y_no_la_del_dia():
+    """Sin reparto, el ajuste del día no distingue un desayuno de una cena."""
+    from app.planner import reajustar_dia
+
+    elegidos = [_escalable(i, s) for i, s in enumerate(("desayuno", "comida", "snack", "cena"), 1)]
+    kcal = _kcal(reajustar_dia(elegidos, {"kcal": 2000.0}))
+    assert kcal["desayuno"] == pytest.approx(480, rel=0.03)
+    assert kcal["comida"] == pytest.approx(620, rel=0.03)
+    assert kcal["snack"] == pytest.approx(320, rel=0.03)
+    assert kcal["cena"] == pytest.approx(580, rel=0.03)
+
+
+def test_lo_que_no_se_mueve_se_descuenta_y_el_resto_se_reparte():
+    """Una cena fuera de 795 kcal: las otras tres se quedan con lo que queda,
+    cada una en su proporción (24/31/16 sobre 71)."""
+    from app.planner import reajustar_dia
+
+    fuera = PlatoCandidato(
+        id=9, nombre="Bar Paco", bloque=True,
+        fijo={"kcal": 795.0, "protein": 30.0, "fat": 40.0, "carbs": 70.0, "fiber": 5.0},
+    )
+    elegidos = [_escalable(i, s) for i, s in enumerate(("desayuno", "comida", "snack"), 1)]
+    elegidos.append(("cena", fuera))
+    kcal = _kcal(reajustar_dia(elegidos, {"kcal": 2000.0}))
+    assert kcal["cena"] == pytest.approx(795)
+    assert kcal["desayuno"] == pytest.approx(1205 * 24 / 71, rel=0.03)
+    assert kcal["snack"] == pytest.approx(1205 * 16 / 71, rel=0.03)
+    assert sum(kcal.values()) == pytest.approx(2000, rel=0.02)
