@@ -273,6 +273,7 @@ Feature: The week, generated
     And the comida of today is 31% of the day, give or take 2 points
     And the snack of today is 16% of the day, give or take 2 points
     And the cena of today is 29% of the day, give or take 2 points
+    And every meal of today says its protein, carbs and fat
 
   # El hidrato sigue al entreno: mismas kcal cada día, la comida de después
   # gana hasta 50 g y los ceden la merienda y la cena que aún no han pasado.

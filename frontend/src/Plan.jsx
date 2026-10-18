@@ -401,6 +401,14 @@ export function PlanEnComida({
         )}
       </p>
       {!saltado && <Ingredientes items={entrada.items} />}
+      {/* El hidrato que el entreno de hoy movió aquí, o que esta comida cedió
+          (épica de cuatro comidas, fase 2). Los gramos de arriba ya lo llevan. */}
+      {!saltado && entrada.carbs_shift ? (
+        <p className={`plan-hidrato${entrada.carbs_shift > 0 ? ' is-gana' : ''}`}>
+          {entrada.carbs_shift > 0 ? '+' : '−'}
+          {Math.round(Math.abs(entrada.carbs_shift))} g de hidrato · por el entreno
+        </p>
+      ) : null}
 
       {/* Ni comido ni saltado es **no dicho**, no incumplido: sigue ofreciendo
           las tres cosas hasta que alguien diga una. También en un día pasado:

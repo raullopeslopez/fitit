@@ -26,6 +26,7 @@ import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
 import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
 import SinDecir, { notaSinDecir } from './SinDecir.jsx'
+import { TiraDia, fueraDelPlan } from './TiraDia.jsx'
 import { Fab } from './ui'
 import {
   MACROS,
@@ -270,6 +271,13 @@ export default function Comida() {
   }
 
   const planHoy = planDelDia(plan, dayIso)
+  // Mientras comes lo previsto, Hoy no enseña cifras (épica de cuatro comidas,
+  // fase 3): la tira del día dice cómo va, y los anillos vuelven en cuanto algo
+  // se sale del plan, con lo que descuadra dentro de su comida. Sin plan no hay
+  // nada que cumplir y todo sigue como estaba.
+  const hayPlan = Object.keys(planHoy).length > 0
+  const fuera = hayPlan && day ? fueraDelPlan(day.entries, planHoy) : []
+  const cumples = hayPlan && fuera.length === 0
   const notaPasado = notaSinDecir(Object.values(planHoy), dayIso, foodDayIso())
 
   return (
@@ -293,7 +301,9 @@ export default function Comida() {
         <ObjetivoLinea targetKcal={day.target_kcal ?? null} onAccepted={() => load(dayIso)} />
       )}
 
-      {day && <MacroCard day={day} />}
+      {day && hayPlan && <TiraDia entradas={planHoy} />}
+
+      {day && !cumples && <MacroCard day={day} />}
 
       {/* Un día pasado con comidas del plan sin decir: lo apuntado es un dato,
           pero no es el día entero, y el total no puede pasar por serlo. */}
@@ -337,6 +347,8 @@ export default function Comida() {
                 onAdd={() => setAdding({ slot: rail.key })}
                 onEdit={setEditing}
                 onDelete={setConfirming}
+                cifras={!hayPlan || fuera.some((e) => (e.meal_slot ?? null) === rail.key)}
+                fueraKcal={hayPlan ? kcalFuera(fuera, rail.key) : undefined}
                 planificado={
                   rail.key && planHoy[rail.key] ? (
                     <PlanEnComida
@@ -354,7 +366,7 @@ export default function Comida() {
           {/* El día que tienes delante no es el que estás viviendo: una entrada
               del diario se fecha por el instante en que la escribes. */}
           {pedirPeso && isToday && <PesoDeHoy />}
-          <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />
+          {!cumples && <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />}
         </>
       )}
 
@@ -477,6 +489,15 @@ export default function Comida() {
       )}
     </div>
   )
+}
+
+// Las kcal de lo que se sale del plan en una comida: `undefined` si nada se
+// sale, `null` si algo no tiene kcal medidas (NULL no es 0), y si no la suma.
+function kcalFuera(fuera, slot) {
+  const suyas = fuera.filter((e) => (e.meal_slot ?? null) === slot)
+  if (!suyas.length) return undefined
+  if (suyas.some((e) => e.kcal == null)) return null
+  return suyas.reduce((total, e) => total + e.kcal, 0)
 }
 
 const DIAS_LARGOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -939,6 +960,8 @@ function SlotCard({
   onEdit,
   onDelete,
   planificado = null,
+  cifras = true,
+  fueraKcal = undefined,
 }) {
   const label = slotLabel(rail.key)
   const vacia = entries.length === 0
@@ -954,8 +977,9 @@ function SlotCard({
     >
       <h3 className="food-slot-head">
         <span className="food-slot-name">{label}</span>
-        {/* Un hueco no suma: el subtotal sólo lo lleva lo que tiene algo. */}
-        {!vacia && (
+        {/* Un hueco no suma: el subtotal sólo lo lleva lo que tiene algo. Y lo
+            comido del plan tampoco: «Comido» ya lo dice (fase 3). */}
+        {!vacia && cifras && (
           <span className="food-slot-meta">
             {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
           </span>
@@ -975,6 +999,13 @@ function SlotCard({
           </button>
         )}
       </h3>
+      {/* Lo que se sale del plan dice cuánto descuadra, y sólo eso. Una kcal
+          sin medir no suma cero: la raya, con la tinta de una cifra. */}
+      {fueraKcal !== undefined && (
+        <p className="food-fuera">
+          Fuera del plan · {fueraKcal == null ? '—' : `+${formatMacro(fueraKcal)}`} kcal
+        </p>
+      )}
       {planificado}
       {/* Un plato registrado son varias filas de alimento —es lo que mantiene
           vivos repesar y corregir un ingrediente—, así que se agrupan bajo su

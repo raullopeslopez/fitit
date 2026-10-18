@@ -866,6 +866,12 @@ def when_log_set_at(client, monkeypatch, kcal_antes, hora, minuto):
     assert resp.status_code == 201, resp.text
 
 
+@then("every meal of today says its protein, carbs and fat")
+def then_macros_per_meal(client):
+    for e in _plan_de_hoy(client):
+        assert all(e[campo] is not None for campo in ("protein", "carbs", "fat")), e
+
+
 def _cambio(client, slot):
     return next(e for e in _plan_de_hoy(client) if e["slot"] == slot)["carbs_shift"]
 

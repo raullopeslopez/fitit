@@ -2818,3 +2818,97 @@ describe('el hueso al corregir un alimento', () => {
     )
   })
 })
+
+// Fase 3 de la épica de cuatro comidas: mientras comes lo previsto, Hoy no
+// enseña cifras; sólo lo que se sale del plan dice cuánto descuadra.
+describe('Comida: sin cifras mientras cumples', () => {
+  function planDeHoy(entradas) {
+    return {
+      id: 1,
+      week_start: '2026-08-31',
+      entries: entradas.map((e, i) => ({
+        id: 50 + i,
+        log_date: '2026-08-31',
+        dish_id: 70,
+        dish_name: 'Pollo con arroz',
+        grams: [150],
+        kcal: 600,
+        protein: 45,
+        carbs: 75,
+        fat: 15,
+        carbs_shift: null,
+        status: null,
+        log_entry_id: null,
+        ...e,
+      })),
+    }
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.setSystemTime(new Date(2026, 7, 31, 12, 0))
+    api.searchFoods.mockResolvedValue([])
+    api.frequentFoods.mockResolvedValue([])
+    api.usualAmounts.mockResolvedValue([])
+    api.listDishes.mockResolvedValue([])
+    api.listRules.mockResolvedValue([])
+    api.dayVerdicts.mockResolvedValue({ date: '2026-08-31', verdicts: [], acceptable: true })
+    api.getTargetProfile.mockResolvedValue({})
+    api.getAdherence.mockResolvedValue(null)
+    api.getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: [] })
+    api.getReview.mockResolvedValue({ due: false })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('con el plan cumplido no hay anillos: hay la tira del día', async () => {
+    api.getFoodDay.mockResolvedValue(
+      objetivo({ entries: [entry({ dish_id: 70 })], by_slot: slots({ desayuno: 600 }) }),
+    )
+    api.getPlan.mockResolvedValue(
+      planDeHoy([{ slot: 'desayuno', status: 'done' }, { slot: 'comida' }, { slot: 'snack' }, { slot: 'cena' }]),
+    )
+    render(<Comida />)
+    expect(await screen.findByRole('img', { name: /Hidrato del día/ })).toBeInTheDocument()
+    expect(screen.queryByTestId('food-macros')).not.toBeInTheDocument()
+    // Ni el subtotal de la comida: «Comido» ya lo dice.
+    expect(slotMetas()).toEqual([])
+  })
+
+  it('lo que se sale del plan trae de vuelta los anillos y dice cuánto descuadra', async () => {
+    api.getFoodDay.mockResolvedValue(
+      objetivo({
+        entries: [entry({ dish_id: 70 }), entry({ id: 11, meal_slot: 'snack', kcal: 150, food_name: 'Almendras' })],
+        by_slot: slots({ desayuno: 600, snack: 150 }),
+      }),
+    )
+    api.getPlan.mockResolvedValue(
+      planDeHoy([{ slot: 'desayuno', status: 'done' }, { slot: 'comida' }, { slot: 'snack' }, { slot: 'cena' }]),
+    )
+    render(<Comida />)
+    expect(await screen.findByTestId('food-macros')).toBeInTheDocument()
+    const merienda = screen.getByText('Fuera del plan · +150 kcal').closest('.food-slot')
+    expect(merienda.dataset.slot).toBe('snack')
+  })
+
+  it('sin plan, todo sigue como estaba', async () => {
+    api.getFoodDay.mockResolvedValue(objetivo())
+    api.getPlan.mockResolvedValue(null)
+    render(<Comida />)
+    expect(await screen.findByTestId('food-macros')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /Hidrato del día/ })).not.toBeInTheDocument()
+  })
+
+  it('el hidrato que movió el entreno se dice dentro de su comida', async () => {
+    api.getFoodDay.mockResolvedValue(day())
+    api.getPlan.mockResolvedValue(
+      planDeHoy([{ slot: 'snack', carbs: 0, carbs_shift: -40 }, { slot: 'cena', carbs: 115, carbs_shift: 40 }]),
+    )
+    render(<Comida />)
+    const cena = (await screen.findByText('+40 g de hidrato · por el entreno')).closest('.food-slot')
+    expect(cena.dataset.slot).toBe('cena')
+    expect(screen.getByText('−40 g de hidrato · por el entreno')).toBeInTheDocument()
+  })
+})

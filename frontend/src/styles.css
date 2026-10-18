@@ -63,6 +63,12 @@
   --m-biceps: #1baf7a;
   --m-triceps: #4a3aa7;
   --m-core: #e34948;
+  /* El hidrato, en coral: lo único que se mueve en el día (épica de cuatro
+     comidas, 2026-10-18; aprobado como desviación de DESIGN.md). Relleno para
+     la tira; `--carbs-ink` para cuando es texto: el coral claro da 1,8 sobre
+     papel, y `#b04a25` da 4,88 sobre papel y 5,45 sobre blanco. */
+  --carbs: #f08a68;
+  --carbs-ink: #b04a25;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
@@ -110,6 +116,9 @@
   --m-biceps: #199e70;
   --m-triceps: #9085e9;
   --m-core: #e66767;
+  /* Sobre el fondo oscuro el coral pasa de sobra como texto (9,5 / 8,7). */
+  --carbs: #ff9b7a;
+  --carbs-ink: #ff9b7a;
 }
 
 * {
@@ -8447,4 +8456,95 @@ button.draft-save {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* --- La tira del día (épica de cuatro comidas, fase 3) ----------------------
+   Las cuatro comidas del plan: ancho por kcal, dentro proteína, hidrato y
+   grasa apilados por lo que aportan. Lo comido se apaga; la única cifra es el
+   hidrato que movió el entreno. Sin caja: va a todo el ancho, como el diario. */
+.tira-dia {
+  display: flex;
+  gap: 4px;
+  margin: 0.75rem 0 0.25rem;
+}
+.tira-col {
+  flex-basis: 0;
+  min-width: 0;
+  transition: opacity 200ms;
+}
+.tira-col.is-hecha {
+  opacity: 0.4;
+}
+.tira-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  height: 18px;
+  white-space: nowrap;
+}
+.tira-nombre {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tira-delta {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.tira-delta.is-gana {
+  color: var(--carbs-ink);
+}
+.tira-bandas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 64px;
+  margin-top: 4px;
+}
+.tira-banda {
+  display: block;
+  flex-basis: 0;
+  min-height: 0;
+  border-radius: 4px;
+}
+.tira-banda.is-p {
+  background: var(--text);
+}
+.tira-banda.is-h {
+  background: var(--carbs);
+}
+.tira-banda.is-g {
+  background: color-mix(in srgb, var(--text) 35%, var(--surface));
+}
+/* Lo que se sale del plan en una comida: cuánto descuadra, en la tinta de una
+   cifra y no en `--muted` — es lo único con número mientras cumples. */
+.food-fuera {
+  margin: 0.25rem 0 0.5rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.plan-hidrato {
+  margin: 0.25rem 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.plan-hidrato.is-gana {
+  color: var(--carbs-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tira-col {
+    transition: none;
+  }
 }

@@ -452,6 +452,7 @@ def _to_out(
     items: dict[int, list[PlanItemOut]] | None = None,
     *,
     has_pauta: bool = False,
+    macros: dict[int, dict | None] | None = None,
     desvios: list[PlanDesvioOut] | None = None,
     sitios: frozenset[int] = frozenset(),
     shopping: ShoppingOut | None = None,
@@ -477,6 +478,9 @@ def _to_out(
                 log_entry_id=fila.log_entry_id,
                 place=fila.dish_id in sitios,
                 carbs_shift=fila.carbs_shift,
+                protein=((macros or {}).get(fila.id) or {}).get("protein"),
+                carbs=((macros or {}).get(fila.id) or {}).get("carbs"),
+                fat=((macros or {}).get(fila.id) or {}).get("fat"),
             )
             for fila in plan.entries
         ],
@@ -574,6 +578,7 @@ async def generate_plan(
         kcal,
         items,
         has_pauta=pauta is not None,
+        macros=macros,
         desvios=_desvios(plan, macros, await _objetivos(session, user_id, dias)),
         shopping=await compra.de_la_semana(session, user_id, payload.week_start),
     )
@@ -621,6 +626,7 @@ async def read_plan(
         kcal,
         items,
         has_pauta=await _pauta_vigente(session, user_id, week_start) is not None,
+        macros=macros,
         desvios=_desvios(plan, macros, await _objetivos(session, user_id, _semana(week_start))),
         sitios=frozenset(sitios),
         shopping=await compra.de_la_semana(session, user_id, week_start),

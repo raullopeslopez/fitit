@@ -1303,6 +1303,11 @@ class PlanEntryOut(BaseModel):
     # Gramos de hidrato ganados (+) o cedidos (−) por el entreno de ese día.
     # `None` es que no se movió: no hay nada que enseñar.
     carbs_shift: float | None = None
+    # Lo que suma la comida en cada macro, con los gramos congelados. `None` es
+    # «no se sabe» (algún ingrediente sin medir), no cero.
+    protein: float | None = None
+    carbs: float | None = None
+    fat: float | None = None
 
 
 class PlanDesvioOut(BaseModel):
