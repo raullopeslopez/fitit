@@ -8548,3 +8548,70 @@ button.draft-save {
     transition: none;
   }
 }
+
+/* --- La barra de tres tramos (épica de cuatro comidas, fase 6) --------------
+   De qué está hecho un plato: proteína, hidrato y grasa por las kcal que
+   aportan, con los mismos colores que la tira del día. */
+.barra-macros {
+  display: block;
+  margin-top: 0.5rem;
+}
+.barra-macros-tramos {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+}
+.barra-macros.is-fina .barra-macros-tramos {
+  height: 6px;
+}
+.barra-macros-tramo {
+  display: block;
+  flex-basis: 0;
+  min-width: 0;
+  border-radius: 3px;
+}
+.barra-macros-tramo.is-p {
+  background: var(--text);
+}
+.barra-macros-tramo.is-h {
+  background: var(--carbs);
+}
+.barra-macros-tramo.is-g {
+  background: color-mix(in srgb, var(--text) 35%, var(--surface));
+}
+.barra-macros-cifras {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+.barra-macros-cifra {
+  flex-basis: 0;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.barra-macros-cifra.is-h {
+  color: var(--carbs-ink);
+}
+.plan-pedir-ideas {
+  margin: 0.75rem 0;
+}
+.plan-propuesta {
+  padding: 0.5rem 0;
+}
+.plan-propuesta-acciones {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.plan-vetada {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  color: var(--muted);
+}

@@ -478,11 +478,18 @@ export function logDish(dishId, { servings = 1, meal_slot = null } = {}) {
 //
 // Nunca falla por una cuota agotada: las cuatro formas de no haber podido
 // vienen en `refusal`, porque «vuelve mañana» no es «algo se ha roto».
-export function generateDishes({ methods = [], minutes = null, n = 6 } = {}) {
+export function generateDishes({ methods = [], minutes = null, n = 6, slot = null } = {}) {
   return apiFetch('/dishes/generate', {
     method: 'POST',
-    body: JSON.stringify({ methods, minutes, n }),
+    // `slot`: ideas para esa comida (épica de cuatro comidas, fase 5).
+    body: JSON.stringify({ methods, minutes, n, slot }),
   })
+}
+
+// «Aquí no»: este plato no va en esa comida, y se recuerda (fase 5). Con
+// `here`, se deshace.
+export function notHere(dishId, slot, here = false) {
+  return apiFetch(`/dishes/${dishId}/not-here`, { method: 'PUT', body: JSON.stringify({ slot, here }) })
 }
 
 // Ideas con un alimento: recetas de la web, guardadas por alimento. Sin `more`

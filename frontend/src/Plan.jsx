@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react'
 import {
   correctDish,
   eatFromBatch,
+  generateDishes,
   generatePlan,
   getAdherence,
   listDishes,
+  notHere,
   replanEntry,
   setPlanEntry,
 } from './api.js'
@@ -13,6 +15,7 @@ import { ListRow, Sheet } from './ui'
 import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
+import { motivo as motivoIdeas } from './Dish.jsx'
 
 const leerTusSitios = () => listDishes('', 'fuera')
 
@@ -540,6 +543,43 @@ export function PlanEnComida({
   )
 }
 
+// Proteína, hidrato y grasa de un plato en una barra de tres tramos, cada uno
+// por las kcal que aporta (4, 4 y 9 por gramo): de qué está hecho, sin tabla.
+// Sin una de las tres cifras no se dibuja — `null` no es cero (fase 6).
+function BarraMacros({ macros, fina = false }) {
+  const p = macros?.protein
+  const h = macros?.carbs
+  const g = macros?.fat
+  if (p == null || h == null || g == null) return null
+  const tramos = [
+    { clase: 'is-p', kcal: p * 4, gramos: p },
+    { clase: 'is-h', kcal: h * 4, gramos: h },
+    { clase: 'is-g', kcal: g * 9, gramos: g },
+  ]
+  return (
+    <span
+      className={`barra-macros${fina ? ' is-fina' : ''}`}
+      role="img"
+      aria-label={`Proteína ${Math.round(p)} g, hidrato ${Math.round(h)} g, grasa ${Math.round(g)} g`}
+    >
+      <span className="barra-macros-tramos">
+        {tramos.map((t) =>
+          t.kcal > 0 ? <span key={t.clase} className={`barra-macros-tramo ${t.clase}`} style={{ flexGrow: t.kcal }} /> : null,
+        )}
+      </span>
+      {!fina && (
+        <span className="barra-macros-cifras" aria-hidden="true">
+          {tramos.map((t) => (
+            <span key={t.clase} className={`barra-macros-cifra ${t.clase}`} style={{ flexGrow: t.kcal || 1 }}>
+              {`${Math.round(t.gramos)} g`}
+            </span>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function Sustituto({ plato, busy, onElegir }) {
   return (
     <button type="button" className="chip plan-sustituto" disabled={busy} onClick={onElegir}>
@@ -679,6 +719,8 @@ export function Semana({
   replanear = replanEntry,
   corregirPlato = correctDish,
   leerSitios = leerTusSitios,
+  proponer = generateDishes,
+  noAqui = notHere,
   embebida = false,
   // «Esta semana» (plan v2): la tira de días, la próxima comida de hoy marcada
   // y, de cómo va, sólo dónde se cae.
@@ -785,6 +827,8 @@ export function Semana({
           replanear={replanear}
           corregirPlato={corregirPlato}
           leerSitios={leerSitios}
+          proponer={proponer}
+          noAqui={noAqui}
           ideas={Boolean(plan?.dish_ideas)}
           onPlatosChanged={onPlatosChanged}
           onClose={() => setCambiando(null)}
@@ -856,6 +900,8 @@ function CambiarPlato({
   replanear,
   corregirPlato,
   leerSitios = leerTusSitios,
+  proponer = generateDishes,
+  noAqui = notHere,
   // Si el servidor sabe buscar ideas (`plan.dish_ideas`).
   ideas = false,
   onPlatosChanged,
@@ -868,6 +914,11 @@ function CambiarPlato({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [quitado, setQuitado] = useState(false)
+  // Fase 6: lo que la IA propone para esta comida, y las que dijiste «Aquí no».
+  const [propuestas, setPropuestas] = useState(null)
+  const [pensando, setPensando] = useState(false)
+  const [sinIdeas, setSinIdeas] = useState(null)
+  const [vetadas, setVetadas] = useState([])
   const slot = entrada.slot
   const otros = candidatos(platos, slot, entrada.dish_id)
 
@@ -908,14 +959,45 @@ function CambiarPlato({
     setBusy(true)
     setError(null)
     try {
-      // En el orden del día, como lo guarda Tus platos.
-      await corregirPlato(plato.id, { slots: HUECOS.filter((s) => suyas.includes(s) && s !== slot) })
+      // «Aquí no» y no un PATCH de comidas: así se recuerda, y el modelo no
+      // vuelve con él (fase 5).
+      await noAqui(plato.id, slot)
       setQuitado(true)
       await onPlatosChanged()
     } catch {
       setError('No se ha podido guardar.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Ideas para esta comida (fase 6): la comida es un dato que se le da al
+  // modelo, y lo que vuelve ya está guardado como plato tuyo de esa comida.
+  async function pedirIdeas() {
+    setPensando(true)
+    setSinIdeas(null)
+    try {
+      const out = await proponer({ slot, n: 3 })
+      const creados = out?.created ?? []
+      setPropuestas(creados)
+      if (creados.length === 0) setSinIdeas(motivoIdeas(out?.refusal, out?.quota_scope))
+      else await onPlatosChanged()
+    } catch {
+      setSinIdeas(motivoIdeas('unavailable'))
+    } finally {
+      setPensando(false)
+    }
+  }
+
+  async function vetar(id, deshacer = false) {
+    setError(null)
+    try {
+      if (deshacer) await noAqui(id, slot, true)
+      else await noAqui(id, slot)
+      setVetadas((v) => (deshacer ? v.filter((x) => x !== id) : [...v, id]))
+      await onPlatosChanged()
+    } catch {
+      setError('No se ha podido guardar.')
     }
   }
 
@@ -943,7 +1025,64 @@ function CambiarPlato({
         <span className="plan-propuesto-nombre">{entrada.dish_name}</span>
         {entrada.kcal != null && <span className="plan-kcal">{`${formatMacro(entrada.kcal)} kcal`}</span>}
         <Ingredientes items={entrada.items} />
+        <BarraMacros macros={entrada} />
       </div>
+
+      {/* Fase 6: ideas para esta comida, variando lo que ya comes en ella. */}
+      {propuestas === null ? (
+        <button type="button" className="secondary plan-pedir-ideas" disabled={pensando || busy} onClick={pedirIdeas}>
+          {pensando ? 'Pensando…' : `Ideas para ${CON_ARTICULO[slot] ?? slot}`}
+        </button>
+      ) : (
+        propuestas.length > 0 && (
+          <>
+            <p className="card-eyebrow">Propuesta</p>
+            <ul className="plan-otros plan-propuestas">
+              {propuestas.map((p) => (
+                <li key={p.id}>
+                  {vetadas.includes(p.id) ? (
+                    <p className="plan-vetada">
+                      <span>{`No volverá en ${EN_PLURAL[slot]}.`}</span>
+                      <button type="button" className="link-btn" onClick={() => vetar(p.id, true)}>
+                        Deshacer
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="plan-propuesta">
+                      <span className="plan-otro-nombre">
+                        {p.name}
+                        <Ingredientes items={racion(p)} />
+                      </span>
+                      <BarraMacros macros={p.per_serving} fina />
+                      <span className="plan-propuesta-acciones">
+                        <button
+                          type="button"
+                          className="primary"
+                          aria-label={`Elegir ${p.name}`}
+                          disabled={busy}
+                          onClick={() => elegir(p)}
+                        >
+                          Elegir
+                        </button>
+                        <button
+                          type="button"
+                          className="link-btn"
+                          aria-label={`Aquí no: ${p.name}`}
+                          disabled={busy}
+                          onClick={() => vetar(p.id)}
+                        >
+                          Aquí no
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      )}
+      {sinIdeas && <p className="hint">{sinIdeas}</p>}
 
       <p className="card-eyebrow">{`Otros platos de ${(NOMBRE[slot] ?? slot).toLowerCase()}`}</p>
       {otros.length === 0 ? (

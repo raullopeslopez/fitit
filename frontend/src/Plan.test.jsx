@@ -486,6 +486,8 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
       leerAdherencia: vi.fn().mockResolvedValue(null),
       replanear: vi.fn().mockResolvedValue({}),
       corregirPlato: vi.fn().mockResolvedValue({}),
+      noAqui: vi.fn().mockResolvedValue({}),
+      proponer: vi.fn().mockResolvedValue({ created: [], suggestions: [], discarded: [] }),
       onPlatos: vi.fn(),
       onPlatosChanged: vi.fn(),
       ...over,
@@ -595,6 +597,69 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     })
   })
 
+  // Fase 6: la hoja dice de qué está hecho lo propuesto, sin tabla.
+  it('lo propuesto lleva su barra de proteína, hidrato y grasa', async () => {
+    pintar({
+      plan: {
+        ...SEMANA,
+        entries: [{ ...SEMANA.entries[0], protein: 45, carbs: 75, fat: 15 }, SEMANA.entries[1]],
+      },
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+    expect(within(hoja).getByRole('img', { name: 'Proteína 45 g, hidrato 75 g, grasa 15 g' })).toBeInTheDocument()
+  })
+
+  describe('ideas para esa comida (fase 6)', () => {
+    const NUEVO = {
+      id: 40,
+      name: 'Tortitas de avena y claras',
+      slots: ['desayuno'],
+      per_serving: { kcal: 450, protein: 46, carbs: 78, fat: 13 },
+      ingredients: [{ food_name: 'Huevo, clara, cruda', grams: 132 }],
+    }
+
+    it('pide ideas para esa comida y las ofrece para elegir', async () => {
+      const props = pintar({
+        proponer: vi.fn().mockResolvedValue({ created: [NUEVO], suggestions: [], discarded: [] }),
+      })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Ideas para el desayuno' }))
+      expect(props.proponer).toHaveBeenCalledWith({ slot: 'desayuno', n: 3 })
+      expect(await within(hoja).findByText('Tortitas de avena y claras')).toBeInTheDocument()
+      expect(within(hoja).getByText('Propuesta')).toBeInTheDocument()
+      expect(within(hoja).getByRole('img', { name: 'Proteína 46 g, hidrato 78 g, grasa 13 g' })).toBeInTheDocument()
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Elegir Tortitas de avena y claras' }))
+      await waitFor(() => expect(props.replanear).toHaveBeenCalledWith(11, 40, LUNES))
+    })
+
+    it('«Aquí no» en una idea la quita de esa comida, y se puede deshacer', async () => {
+      const props = pintar({
+        proponer: vi.fn().mockResolvedValue({ created: [NUEVO], suggestions: [], discarded: [] }),
+      })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Ideas para el desayuno' }))
+      await userEvent.click(await within(hoja).findByRole('button', { name: 'Aquí no: Tortitas de avena y claras' }))
+      await waitFor(() => expect(props.noAqui).toHaveBeenCalledWith(40, 'desayuno'))
+      expect(await within(hoja).findByText('No volverá en desayunos.')).toBeInTheDocument()
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Deshacer' }))
+      await waitFor(() => expect(props.noAqui).toHaveBeenCalledWith(40, 'desayuno', true))
+      expect(await within(hoja).findByText('Tortitas de avena y claras')).toBeInTheDocument()
+    })
+
+    it('si no sale nada, dice por qué', async () => {
+      pintar({
+        proponer: vi.fn().mockResolvedValue({ created: [], suggestions: [], discarded: [], refusal: 'quota', quota_scope: 'day' }),
+      })
+      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
+      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Ideas para el desayuno' }))
+      expect(await within(hoja).findByText('Se ha agotado la cuota de hoy. Vuelve mañana.')).toBeInTheDocument()
+    })
+  })
+
   it('elegir otro plato lo pone en el plan de ese día', async () => {
     const props = pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
@@ -644,13 +709,13 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     expect(screen.getByRole('dialog', { name: 'Cambiar este plato' })).toBeInTheDocument()
   })
 
-  it('«No en desayunos» quita el desayuno de un plato que valía para cualquiera', async () => {
+  // Fase 5/6: «Aquí no» se recuerda — el servidor saca la comida del plato y se
+  // lo dice al modelo para que no vuelva con él.
+  it('«No en desayunos» dice «aquí no» al plato, y se recuerda', async () => {
     const props = pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
     await userEvent.click(screen.getByRole('button', { name: 'No en desayunos' }))
-    await waitFor(() =>
-      expect(props.corregirPlato).toHaveBeenCalledWith(1, { slots: ['comida', 'cena', 'snack'] }),
-    )
+    await waitFor(() => expect(props.noAqui).toHaveBeenCalledWith(1, 'desayuno'))
     expect(props.onPlatosChanged).toHaveBeenCalled()
     expect(
       await screen.findByText('Ya no saldrá en desayunos. Elige por cuál cambiarlo.'),
@@ -665,7 +730,7 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     const props = pintar({ plan: semana })
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Pollo al curry' }))
     await userEvent.click(screen.getByRole('button', { name: 'No en comidas' }))
-    await waitFor(() => expect(props.corregirPlato).toHaveBeenCalledWith(2, { slots: ['cena'] }))
+    await waitFor(() => expect(props.noAqui).toHaveBeenCalledWith(2, 'comida'))
   })
 
   it('no ofrece quitar la única comida de un plato: lo dejaría para cualquiera', async () => {
