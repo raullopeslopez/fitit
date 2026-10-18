@@ -11,6 +11,7 @@ Dos reglas de la casa gobiernan este fichero:
   El diario sigue siendo filas de alimento; el plato es de dónde salieron.
 """
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
@@ -34,6 +35,7 @@ from ..schemas import (
     BatchOut,
     DishDiscardedOut,
     DishGenerateIn,
+    DishNotHereIn,
     DishGenerateOut,
     DishIn,
     DishLogIn,
@@ -119,6 +121,7 @@ def _to_out(
         basis=dish.basis,
         method=dish.method,
         slots=dish.slots.split(",") if dish.slots else None,
+        not_slots=dish.not_slots.split(",") if dish.not_slots else [],
         is_block=dish.is_block,
         kind=dish.kind,
         estimated=dish.estimated,
@@ -451,6 +454,81 @@ async def _ejemplos(session: AsyncSession, user_id: int) -> dict[str, list[str]]
     return ejemplos
 
 
+# El orden del día, para escribir `slots` como se comen.
+ORDEN_DEL_DIA = ("desayuno", "comida", "snack", "cena")
+
+
+async def _ejemplos_de_hueco(session: AsyncSession, user_id: int, slot: str) -> dict[str, list[str]]:
+    """Lo que comes en esa comida, para que el modelo varíe sobre ello.
+
+    Primero lo que de verdad has apuntado en ella —el diario sabe la comida de
+    cada entrada—, luego tus platos que dicen servirla. Ni los platos sin
+    comida declarada, que pueden ser cualquier cosa, ni los que dijiste que ahí
+    no: un ejemplo es lo que el modelo copia de cerca.
+    """
+    apuntados = (
+        await session.execute(
+            select(Dish.name, Dish.not_slots)
+            .join(LogEntry, LogEntry.dish_id == Dish.id)
+            .where(LogEntry.user_id == user_id, LogEntry.meal_slot == slot, Dish.user_id == user_id)
+            .order_by(LogEntry.logged_at.desc())
+        )
+    ).all()
+    declarados = (
+        await session.execute(
+            select(Dish.name, Dish.not_slots, Dish.slots).where(Dish.user_id == user_id).order_by(Dish.id.desc())
+        )
+    ).all()
+    nombres: list[str] = []
+    for name, no in [*apuntados, *[(n, no) for n, no, s in declarados if s and slot in s.split(",")]]:
+        if no and slot in no.split(","):
+            continue
+        if name not in nombres:
+            nombres.append(name)
+    return {slot: nombres[:MAX_EJEMPLOS]}
+
+
+async def _vetados(session: AsyncSession, user_id: int, slot: str) -> dict[str, str]:
+    """Los platos que dijiste que no van en esta comida: nombre plegado → nombre."""
+    filas = (
+        await session.execute(
+            select(Dish.name, Dish.not_slots).where(Dish.user_id == user_id, Dish.not_slots.is_not(None))
+        )
+    ).all()
+    return {fold(name): name for name, no in filas if slot in no.split(",")}
+
+
+@router.put("/{dish_id}/not-here", response_model=DishOut)
+async def not_here(
+    dish_id: int,
+    payload: DishNotHereIn,
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> DishOut:
+    """«Aquí no»: el plato deja de servir esa comida, y se recuerda que lo dijiste.
+
+    Un toque, y se deshace con otro (`here`). Sale de `slots` —el plan deja de
+    ponerlo ahí, porque el generador ya respeta las comidas de cada plato— y
+    entra en `not_slots`, que es lo que se le dice al modelo para que no vuelva.
+    Un plato sin comidas declaradas vale para todas: decir que en una no lo deja
+    en las otras tres, no en ninguna. Y deshacerlo hasta tenerlas todas lo
+    devuelve a «no lo has dicho».
+    """
+    dish = await _load(session, dish_id, user_id)
+    sirve = dish.slots.split(",") if dish.slots else list(ORDEN_DEL_DIA)
+    no = dish.not_slots.split(",") if dish.not_slots else []
+    if payload.here:
+        sirve = [s for s in ORDEN_DEL_DIA if s in sirve or s == payload.slot]
+        no = [s for s in no if s != payload.slot]
+    else:
+        sirve = [s for s in ORDEN_DEL_DIA if s in sirve and s != payload.slot]
+        no = [s for s in ORDEN_DEL_DIA if s in no or s == payload.slot]
+    dish.slots = None if set(sirve) == set(ORDEN_DEL_DIA) else ",".join(sirve)
+    dish.not_slots = ",".join(no) or None
+    await session.commit()
+    return await _out(session, dish, user_id)
+
+
 # Cuántos nombres se le mandan como despensa. Más que esto no afina la
 # propuesta: alarga el prompt y le da sitio para irse por las ramas.
 PANTRY_LIMIT = 60
@@ -616,6 +694,9 @@ async def generate_dishes(
     if proposer is None:
         return DishGenerateOut(refusal="off")
 
+    # «Aquí no»: lo que dijiste que no va en esta comida, por nombre plegado.
+    evitar = await _vetados(session, user_id, payload.slot) if payload.slot else {}
+
     objetivo = (await session.get(User, user_id)).objetivo_proteina
     # Tu despensa primero; los básicos detrás, sin repetir lo que ya tienes.
     ya = {food.id for food in despensa}
@@ -627,10 +708,16 @@ async def generate_dishes(
             methods=list(payload.methods),
             minutes=payload.minutes,
             n=payload.n,
-            examples=await _ejemplos(session, user_id),
+            examples=(
+                await _ejemplos_de_hueco(session, user_id, payload.slot)
+                if payload.slot
+                else await _ejemplos(session, user_id)
+            ),
             # Se le dice para que proponga mejor, no para que lo cumpla: quien
             # decide es `proteina_minima` sobre las cifras del catálogo.
-            protein_floor=proteina_minima(objetivo, ("comida",)),
+            protein_floor=proteina_minima(objetivo, (payload.slot or "comida",)),
+            slot=payload.slot,
+            avoid=sorted(evitar.values()),
         )
     except ModelUnavailable as exc:
         # Nunca un 500: las cuatro formas de no haber podido acaban en la misma
@@ -644,6 +731,13 @@ async def generate_dishes(
         propuestas = read_proposals(raw, resolve=lambda n: getattr(por_nombre.get(n.strip().lower()), "id", None))
     except ProposalRefused:
         return DishGenerateOut(refusal="unusable")
+    if payload.slot:
+        # La comida la decidiste tú al pedir, no el modelo: lo que diga de sus
+        # comidas se ignora. Y lo que ya dijiste que ahí no va no vuelve, diga el
+        # prompt lo que diga — el filtro es el código, no la obediencia.
+        propuestas = [
+            replace(p, slots=(payload.slot,)) for p in propuestas if fold(p.name) not in evitar
+        ]
 
     tomados = {
         row[0]

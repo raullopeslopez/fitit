@@ -994,6 +994,8 @@ class DishOut(BaseModel):
     basis: DishBasis
     method: DishMethod | None = None
     slots: list[MealSlot] | None = None
+    # Las comidas en las que dijiste «Aquí no».
+    not_slots: list[MealSlot] = Field(default_factory=list)
     is_block: bool = False
     # 'fuera' es uno de tus sitios (registro sin huecos, fase 3); `estimated`,
     # que sus gramos son de un modelo y nadie los ha corregido.
@@ -1025,6 +1027,16 @@ class DishGenerateIn(BaseModel):
     methods: list[DishMethod] = Field(default_factory=list)
     minutes: int | None = Field(default=None, gt=0, le=240)
     n: int = Field(default=6, ge=1, le=12)
+    # Para qué comida son las ideas (épica de cuatro comidas, fase 5). Con ella,
+    # la comida es un dato que se le da al modelo, no algo que adivine.
+    slot: MealSlot | None = None
+
+
+class DishNotHereIn(BaseModel):
+    """«Aquí no» —o, con `here`, deshacerlo— para una comida."""
+
+    slot: MealSlot
+    here: bool = False
 
 
 class DishSuggestionOut(BaseModel):

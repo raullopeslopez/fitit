@@ -376,6 +376,15 @@ def _texto_ejemplos(examples: dict[str, list[str]] | None) -> str:
     return "\n\nPLATOS QUE YA COCINO:\n" + "\n".join(lineas) if lineas else ""
 
 
+# Cómo se nombra cada comida en el prompt: «snack» es la clave, no la palabra.
+COMIDA_EN_PROSA = {
+    "desayuno": "el desayuno",
+    "comida": "la comida del mediodía",
+    "snack": "la merienda",
+    "cena": "la cena",
+}
+
+
 async def suggest_dishes(
     *,
     foods: list[str],
@@ -384,6 +393,8 @@ async def suggest_dishes(
     n: int = 6,
     protein_floor: float | None = None,
     examples: dict[str, list[str]] | None = None,
+    slot: str | None = None,
+    avoid: list[str] | None = None,
     api_key: str,
     model: str,
     timeout: float = DISHES_TIMEOUT,
@@ -415,6 +426,19 @@ async def suggest_dishes(
             "Propón platos en la línea de los que ya cocino (abajo, por comida): "
             "mismo estilo y combinaciones parecidas, con variaciones. No repitas "
             "ninguno de ellos."
+        )
+    if slot:
+        # Épica de cuatro comidas, fase 5: la comida la decide quien pide. Un
+        # modelo que la adivina pone un taco de pollo en el desayuno.
+        condiciones.append(
+            f"Todos los platos son para {COMIDA_EN_PROSA.get(slot, slot)}: lo que una persona "
+            "en España comería de verdad a esa hora. Cambia una o dos cosas de lo que ya "
+            'como en esa comida; no inventes otra. En "slots" pon sólo esa comida.'
+        )
+    if avoid:
+        condiciones.append(
+            "Nunca propongas estos platos ni nada parecido a ellos, porque he dicho que "
+            "no van en esa comida: " + ", ".join(avoid) + "."
         )
 
     texto = (

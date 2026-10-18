@@ -141,3 +141,45 @@ Feature: Filling the repertoire without typing it
     When I ask for dishes and the model sees the list
     Then the model was shown "Pollo con arroz" as an example of comida
     And the model was shown "Arroz con leche" as an example of any meal
+
+  # Épica de cuatro comidas, fase 5: las ideas se piden para una comida. La
+  # comida es un dato que se le da al modelo, no algo que adivina — por eso no
+  # aparece un taco de pollo en el desayuno.
+  Scenario: Ideas asked for a meal are for that meal
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And the model proposes "Pechuga a la air fryer" with 200 g of "Pollo, pechuga, cruda" for "comida,cena"
+    When I ask for dishes for the desayuno
+    Then "Pechuga a la air fryer" serves "desayuno"
+
+  Scenario: Ideas for a meal are shown only what I eat at that meal
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And a dish "Arroz con leche" for the desayuno with 100 g of "Arroz blanco cocido"
+    And a dish "Pollo con arroz" for the cena with 150 g of "Pollo, pechuga, cruda"
+    When I ask for dishes for the desayuno and the model sees the list
+    Then the model was asked for the desayuno
+    And the model was shown "Arroz con leche" as an example of desayuno
+    And the model was not shown "Pollo con arroz"
+
+  # «Aquí no»: un toque, y se recuerda. El plato sale de esa comida —el plan
+  # deja de ponerlo ahí— y el modelo sabe que no tiene que volver con él.
+  Scenario: Saying a dish is not for a meal takes it out of that meal
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And a dish "Taco de pollo" for no meal in particular with 150 g of "Pollo, pechuga, cruda"
+    When I say "Taco de pollo" is not for the desayuno
+    Then "Taco de pollo" serves "comida,snack,cena"
+    And "Taco de pollo" is not for "desayuno"
+
+  Scenario: The model is told what I said no to
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And a dish "Taco de pollo" for no meal in particular with 150 g of "Pollo, pechuga, cruda"
+    And I said "Taco de pollo" is not for the desayuno
+    When I ask for dishes for the desayuno and the model sees the list
+    Then the model was told to avoid "Taco de pollo"
+
+  Scenario: Taking the no back puts the dish where it was
+    Given I have logged "Pollo, pechuga, cruda" and "Arroz blanco cocido"
+    And a dish "Taco de pollo" for no meal in particular with 150 g of "Pollo, pechuga, cruda"
+    And I said "Taco de pollo" is not for the desayuno
+    When I say "Taco de pollo" is for the desayuno again
+    Then "Taco de pollo" serves any meal
+    And "Taco de pollo" is not kept out of any meal

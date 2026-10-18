@@ -36,3 +36,22 @@ def test_without_dishes_the_prompt_says_nothing_about_them(monkeypatch):
     texto = _prompt(monkeypatch, examples={})
     assert "PLATOS QUE YA COCINO" not in texto
     assert "en la línea de los que ya cocino" not in texto
+
+
+# Épica de cuatro comidas, fase 5.
+def test_ideas_for_a_meal_say_which_meal(monkeypatch):
+    texto = _prompt(monkeypatch, examples={"snack": ["Tostada con jamón"]}, slot="snack")
+    assert "Todos los platos son para la merienda" in texto
+    assert 'En "slots" pon sólo esa comida.' in texto
+
+
+def test_what_i_said_no_to_is_named(monkeypatch):
+    texto = _prompt(monkeypatch, slot="desayuno", avoid=["Taco de pollo"])
+    assert "Nunca propongas estos platos ni nada parecido a ellos" in texto
+    assert "Taco de pollo." in texto
+
+
+def test_without_a_meal_nothing_changes(monkeypatch):
+    texto = _prompt(monkeypatch, examples={})
+    assert "Todos los platos son para" not in texto
+    assert "Nunca propongas" not in texto

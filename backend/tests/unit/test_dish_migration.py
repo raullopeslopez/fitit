@@ -41,6 +41,8 @@ POSTERIORES = (
     "e7b3c94a2f18_dish_kind_fuera.py",
     # `batches`: la olla pesada al cocinar (fase 5).
     "a3f8d51c7e20_add_batches.py",
+    # `dishes.not_slots`: «Aquí no» (épica de cuatro comidas, fase 5).
+    "c5d9a27e81f4_dish_not_slots.py",
 )
 TABLES = ("dishes", "dish_ingredients", "batches")
 

@@ -527,6 +527,10 @@ class Dish(Base):
     # y se lee como «vale para cualquiera»: el repertorio que ya existe no lo
     # declaró, y negárselo lo dejaría fuera del plan entero.
     slots: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # «Aquí no»: las comidas en las que dijiste que no va, separadas por comas.
+    # Aparte de `slots` porque no es lo mismo no haberlo dicho que haber dicho
+    # que no: esto es lo que se le recuerda al modelo para que no vuelva.
+    not_slots: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Un guiso es lo que es —450 kcal y punto— y no aporta ajuste (§39). El
     # resto del día compensa. Sin esto, exigir que todo plato sea ajustable
     # manda al generador hacia platos de báscula.

@@ -287,3 +287,78 @@ def then_example(pedido, name, slot):
 @then(parsers.parse('the model was shown "{name}" as an example of any meal'))
 def then_example_any(pedido, name):
     assert name in pedido["examples"].get("cualquiera", []), pedido["examples"]
+
+
+# --- fase 5: ideas por comida y «Aquí no» -------------------------------------
+@when(parsers.parse("I ask for dishes for the {slot:w}"), target_fixture="generated")
+def when_generate_for(client, slot):
+    resp = client.post("/dishes/generate", json={"n": 3, "slot": slot})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@when(
+    parsers.parse("I ask for dishes for the {slot:w} and the model sees the list"),
+    target_fixture="generated",
+)
+def when_generate_for_watching(client, ofrecidos, pedido, slot):
+    async def proposer(**kwargs):
+        ofrecidos.extend(kwargs["foods"])
+        pedido.update(kwargs)
+        return {"dishes": []}
+
+    app.dependency_overrides[get_dish_proposer] = lambda: proposer
+    resp = client.post("/dishes/generate", json={"n": 3, "slot": slot})
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+@then(parsers.parse("the model was asked for the {slot:w}"))
+def then_asked_for(pedido, slot):
+    assert pedido["slot"] == slot
+
+
+@then(parsers.parse('the model was not shown "{name}"'))
+def then_not_shown(pedido, name):
+    vistos = [n for nombres in pedido["examples"].values() for n in nombres]
+    assert name not in vistos, pedido["examples"]
+
+
+@then(parsers.parse('the model was told to avoid "{name}"'))
+def then_avoid(pedido, name):
+    assert name in pedido["avoid"], pedido["avoid"]
+
+
+def _no_aqui(client, name, slot, aqui):
+    dish = next(d for d in _mine(client) if d["name"] == name)
+    resp = client.put(f"/dishes/{dish['id']}/not-here", json={"slot": slot, "here": aqui})
+    assert resp.status_code == 200, resp.text
+
+
+@when(parsers.parse('I say "{name}" is not for the {slot:w}'))
+@given(parsers.parse('I said "{name}" is not for the {slot:w}'))
+def when_not_here(client, name, slot):
+    _no_aqui(client, name, slot, False)
+
+
+@when(parsers.parse('I say "{name}" is for the {slot:w} again'))
+def when_here_again(client, name, slot):
+    _no_aqui(client, name, slot, True)
+
+
+@then(parsers.parse('"{name}" is not for "{slots}"'))
+def then_not_for(client, name, slots):
+    dish = next(d for d in _mine(client) if d["name"] == name)
+    assert dish["not_slots"] == slots.split(",")
+
+
+@then(parsers.parse('"{name}" serves any meal'))
+def then_serves_any(client, name):
+    dish = next(d for d in _mine(client) if d["name"] == name)
+    assert dish["slots"] in (None, [])
+
+
+@then(parsers.parse('"{name}" is not kept out of any meal'))
+def then_not_kept_out(client, name):
+    dish = next(d for d in _mine(client) if d["name"] == name)
+    assert dish["not_slots"] == []
