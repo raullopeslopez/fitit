@@ -1278,6 +1278,9 @@ class PlanIn(BaseModel):
 class PlanItemOut(BaseModel):
     food_name: str
     grams: float
+    # Lo mismo en piezas, si el alimento tiene una ración: «2½ rebanadas».
+    # `None` es que no tiene, o que en piezas no ayuda (`medida_de_pieza`).
+    measure: str | None = None
 
 
 class PlanEntryOut(BaseModel):

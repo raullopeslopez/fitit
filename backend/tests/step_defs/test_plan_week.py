@@ -866,6 +866,31 @@ def when_log_set_at(client, monkeypatch, kcal_antes, hora, minuto):
     assert resp.status_code == 201, resp.text
 
 
+@given(parsers.parse('one "{etiqueta}" of "{alimento}" weighs {gramos:d} g'))
+def given_portion(client, etiqueta, alimento, gramos):
+    import asyncio
+
+    from sqlalchemy import select
+
+    from app.db import get_session
+    from app.models import Food, Portion
+
+    async def guardar():
+        async for session in app.dependency_overrides[get_session]():
+            food = (await session.execute(select(Food).where(Food.name == alimento))).scalar_one()
+            session.add(Portion(food_id=food.id, label=etiqueta, grams=gramos, is_default=True))
+            await session.commit()
+
+    asyncio.run(guardar())
+
+
+@then(parsers.parse('every "{alimento}" of today is also measured in {piezas}'))
+def then_measured_in_pieces(client, alimento, piezas):
+    items = [i for e in _plan_de_hoy(client) for i in e["items"] if i["food_name"] == alimento]
+    assert items
+    assert all(i["measure"] and i["measure"].endswith(piezas) for i in items), items
+
+
 @then("every meal of today says its protein, carbs and fat")
 def then_macros_per_meal(client):
     for e in _plan_de_hoy(client):

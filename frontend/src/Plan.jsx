@@ -228,7 +228,11 @@ function Ingredientes({ items }) {
           {nombreCorto(item.food_name)} <span className="plan-item-g">{formatAmount(item.grams)}</span>
           {/* Sin « · » delante: es el separador entre ingredientes, y «13,5 g ·
               ≈ 1 cda» se leería como dos ingredientes. */}
-          {recipeMeasure(item.grams) && <span className="plan-item-measure"> ≈ {recipeMeasure(item.grams)}</span>}
+          {/* La pieza manda sobre la cucharada (fase 4): «2 huevos» y no
+              «110 g», y para lo que no va por piezas, la cucharada de siempre. */}
+          {(item.measure ?? recipeMeasure(item.grams)) && (
+            <span className="plan-item-measure"> ≈ {item.measure ?? recipeMeasure(item.grams)}</span>
+          )}
         </span>
       ))}
     </span>

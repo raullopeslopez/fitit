@@ -141,3 +141,23 @@ paga una vez por alimento.
 3. **Recetas.** «27 g · ≈ 2 cdas» en receta, borradores y plan.
 
 No toca nada nativo: la APK lo recoge en su siguiente versión sin cambios de Android.
+
+## Piezas (épica de cuatro comidas, fase 4 — 2026-10-18)
+
+Lo que va por piezas —un huevo, una rebanada, una loncha— sí depende del alimento, y
+vive en `portions` como raciones del catálogo (`user_id IS NULL`). La lista está en
+`backend/data/raciones.json`, escrita a mano: una palabra por etiqueta (el plural se
+forma sobre ella) y los gramos de la parte comestible.
+
+```bash
+cd backend
+uv run python -m scripts.seed_portions --dry-run   # dice qué haría
+uv run python -m scripts.seed_portions             # o --database-url postgresql://...
+```
+
+Idempotente y sin tocar nada tuyo, como los imports del catálogo. Un nombre que no
+está en el catálogo se dice y se salta; uno repetido lleva la ración en todas sus filas.
+
+En el plan, cada ingrediente con ración se dice también en piezas («Huevo 110 g ≈ 2
+huevos»), redondeado a media pieza, y sólo entre media y ocho (`medida_de_pieza`). Tu
+ración manda sobre la del catálogo. La pieza manda sobre la cucharada.

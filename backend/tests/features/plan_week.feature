@@ -311,6 +311,14 @@ Feature: The week, generated
     Then the cena of today does not move its carbs
     And the comida of today gains what the snack of today gives
 
+  # Medidas de pieza (fase 4): lo que va por piezas se dice en piezas.
+  Scenario: A planned ingredient that comes in pieces says how many
+    Given my targets add up to 2000 kcal a day
+    And a repertoire of 12 dishes I can scale
+    And one "filete" of "Pollo" weighs 100 g
+    When I generate this week
+    Then every "Pollo" of today is also measured in filetes
+
   Scenario: A meal out planned ahead is reserved and the rest of the day makes room
     Given my targets add up to 2000 kcal a day
     And a repertoire of 12 dishes I can scale

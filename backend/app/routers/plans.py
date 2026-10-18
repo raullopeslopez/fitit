@@ -40,9 +40,10 @@ from ..models import (
     PlanEntry,
     Rule,
     User,
+    visible_portions,
 )
 from ..nutrition import NUTRIENTS, Ajustable, calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
-from ..nutrition import gramos_de_fraccion, hidrato_del_entreno
+from ..nutrition import gramos_de_fraccion, hidrato_del_entreno, medida_de_pieza
 from ..planner import (
     HUECOS,
     PlanImposible,
@@ -378,7 +379,9 @@ async def _congelado(
     foods = {
         food.id: food
         for food in (
-            await session.execute(select(Food).where(Food.id.in_(food_ids)))
+            await session.execute(
+                select(Food).options(selectinload(Food.portions)).where(Food.id.in_(food_ids))
+            )
         ).scalars().all()
     }
     kcal: dict[int, float | None] = {}
@@ -399,8 +402,22 @@ async def _congelado(
         ]
         macros[fila.id] = macros_de_plato(pares)[0] if pares else None
         kcal[fila.id] = macros[fila.id].get("kcal") if macros[fila.id] else None
-        items[fila.id] = [PlanItemOut(food_name=food.name, grams=g) for food, g in pares]
+        items[fila.id] = [
+            PlanItemOut(food_name=food.name, grams=g, measure=_en_piezas(food, g, plan.user_id))
+            for food, g in pares
+        ]
     return kcal, items, macros
+
+
+def _en_piezas(food: Food, gramos: float, user_id: int) -> str | None:
+    """«2 huevos»: la ración de pieza del alimento —la tuya antes que la del
+    catálogo, y la marcada por defecto antes que otra—, o `None`."""
+    raciones = sorted(
+        visible_portions(food, user_id), key=lambda p: (p.user_id is None, not p.is_default)
+    )
+    if not raciones:
+        return None
+    return medida_de_pieza(gramos, raciones[0].grams, raciones[0].label)
 
 
 def _desvios(plan: Plan, macros: dict[int, dict | None], objetivos: dict) -> list[PlanDesvioOut]:

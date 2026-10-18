@@ -161,6 +161,20 @@ describe('lo planificado, dentro de su comida', () => {
     expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Pollo 150 g · Aceite de oliva 13,5 g ≈ 1 cda')
   })
 
+  // Fase 4: lo que va por piezas se dice en piezas, y manda sobre la cucharada.
+  it('lo que va por piezas se dice en piezas', () => {
+    pintar({
+      entrada: entrada({
+        id: 2,
+        items: [
+          { food_name: 'Huevo, crudo', grams: 110, measure: '2 huevos' },
+          { food_name: 'Pan integral (harina T150)', grams: 70, measure: '2½ rebanadas' },
+        ],
+      }),
+    })
+    expect(screen.getByLabelText('Ingredientes')).toHaveTextContent('Huevo 110 g ≈ 2 huevos · Pan integral (harina T150) 70 g ≈ 2½ rebanadas')
+  })
+
   it('sin ingredientes que decir no pinta la línea', () => {
     pintar()
     expect(screen.queryByLabelText('Ingredientes')).not.toBeInTheDocument()

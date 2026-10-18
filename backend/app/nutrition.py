@@ -507,6 +507,39 @@ def repartir_por_hueco(objetivo: dict, huecos) -> dict[str, dict]:
     return partes
 
 
+# --- Medidas de pieza --------------------------------------------------------------
+#
+# «2 huevos» en vez de «110 g»: lo que va por piezas sólo existe con un alimento
+# concreto, y su peso vive en `portions` (docs/medidas-caseras.md §2). Se redondea
+# a medias piezas, y fuera de media a ocho no ayuda: media fresa no se coge, y
+# «23 fresas» se pesa.
+_PIEZAS_MIN = 0.5
+_PIEZAS_MAX = 8.0
+_SIN_TILDE = str.maketrans("áéíóú", "aeiou")
+
+
+def _plural(palabra: str) -> str:
+    """El plural de una etiqueta de una palabra: «loncha» → «lonchas»,
+    «calabacín» → «calabacines» (la aguda en -n pierde la tilde)."""
+    if palabra[-1] in "aeiouáéíóú":
+        return palabra + "s"
+    if palabra.endswith("z"):
+        return palabra[:-1] + "ces"
+    return palabra.translate(_SIN_TILDE) + "es"
+
+
+def medida_de_pieza(gramos: float | None, pieza: float | None, etiqueta: str) -> str | None:
+    """«2½ rebanadas»: cuántas piezas son `gramos`, o `None` si no ayuda."""
+    if not gramos or not pieza or gramos <= 0 or pieza <= 0:
+        return None
+    n = round(gramos / pieza * 2) / 2
+    if n < _PIEZAS_MIN or n > _PIEZAS_MAX:
+        return None
+    enteras = int(n)
+    cifra = f"{enteras if enteras else ''}{'½' if n - enteras else ''}"
+    return f"{cifra} {etiqueta if n <= 1 else _plural(etiqueta)}"
+
+
 # --- El hidrato sigue al entreno ---------------------------------------------------
 #
 # Las mismas kcal cada día; la comida de después del entreno gana hidrato y lo
