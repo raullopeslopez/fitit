@@ -263,6 +263,17 @@ Feature: The week, generated
   # Registro sin huecos, fase 4: comer fuera dentro del plan. Poner uno de tus
   # sitios en una comida que no ha pasado reserva su cifra, y lo que queda del
   # día sin decir se reajusta para que el día siga dando su objetivo.
+  # Reparto por toma: cuadrar sólo el día dejaba que el desayuno se llevara lo
+  # que hiciera falta. Cada comida tiene su parte (24/31/16/29 % de las kcal).
+  Scenario: Each meal lands on its own part of the day
+    Given my targets add up to 2000 kcal a day
+    And a repertoire of 12 dishes I can scale
+    When I generate this week
+    Then the desayuno of today is 24% of the day, give or take 2 points
+    And the comida of today is 31% of the day, give or take 2 points
+    And the snack of today is 16% of the day, give or take 2 points
+    And the cena of today is 29% of the day, give or take 2 points
+
   Scenario: A meal out planned ahead is reserved and the rest of the day makes room
     Given my targets add up to 2000 kcal a day
     And a repertoire of 12 dishes I can scale

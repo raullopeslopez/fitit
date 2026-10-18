@@ -24,7 +24,14 @@ from datetime import date, timedelta
 from typing import get_args
 
 from . import rules
-from .nutrition import NUTRIENTS, Ajustable, ajustar_gramos, calcular_nutrientes, sumar_nutrientes
+from .nutrition import (
+    NUTRIENTS,
+    Ajustable,
+    ajustar_gramos,
+    calcular_nutrientes,
+    repartir_por_hueco,
+    sumar_nutrientes,
+)
 from .schemas import MealSlot
 
 # Los cuatro huecos, de donde ya estaban: la app define exactamente cuatro y las
@@ -56,6 +63,15 @@ REINICIOS = 8
 # generador cuadraría los números rompiendo reglas.
 _PESO_DURA = 1000.0
 _PESO_BLANDA = 50.0
+
+# El orden en que se comen, que no es el de `HUECOS`: lo que una comida no
+# alcanza lo recoge la siguiente, y la merienda va antes que la cena.
+_ORDEN_DEL_DIA = {"desayuno": 0, "comida": 1, "snack": 2, "cena": 3}
+
+# Pasadas de cierre al repartir un día, y desde cuánto se da por cuadrado: un
+# 1 % de las kcal es menos que lo que mueve redondear los gramos a enteros.
+_CIERRES = 2
+_TOLERANCIA_KCAL = 0.01
 
 # Una fila de ceros, para lo que de verdad aporta cero.
 _CERO = {campo: 0.0 for campo in NUTRIENTS}
@@ -230,41 +246,121 @@ def _se_deja_ajustar(pieza: Ajustable, objetivo: dict) -> bool:
     )
 
 
+def _partes_del_plato(plato: PlatoCandidato, objetivo: dict) -> tuple[list[dict], list[int]]:
+    """Lo fijo de un plato, como filas, y qué ingredientes suyos se dejan mover."""
+    # `{}` es un plato sin nada fijo, y eso aporta **cero** (`_candidatos`).
+    # Pasado como fila serían cinco `None`, y un desconocido en lo fijo deja al
+    # hueco sin nada que perseguir: un plato con todo ajustable —los de la
+    # pauta— se quedaba en los gramos de la receta.
+    filas = [{campo: plato.fijo.get(campo) for campo in NUTRIENTS}] if plato.fijo else []
+    movibles = []
+    for j, pieza in enumerate(plato.ajustables):
+        if plato.bloque or not _se_deja_ajustar(pieza, objetivo):
+            filas.append(calcular_nutrientes(_Porcion(pieza.por_100g), pieza.gramos))
+        else:
+            movibles.append(j)
+    return filas, movibles
+
+
 def _resolver_dia(elegidos, objetivo: dict) -> list[tuple[str, PlatoCandidato, tuple[float, ...]]]:
-    """Los gramos de cada plato del día, ajustados contra el objetivo.
+    """Los gramos de cada plato del día, cada comida contra **su parte**.
 
-    Un plato bloque no aporta ajuste: sus ingredientes se suman a lo fijo con
-    los gramos de la receta. Basta con que haya un ingrediente de ajuste **en
-    algún sitio del día**.
+    Cuadrar sólo el día dejaba que el desayuno se llevara lo que hiciera falta
+    (990 kcal de un día de 2.000). Ahora cada comida persigue la suya
+    (`repartir_por_hueco`), en dos pasos:
+
+    1. Lo que no se mueve —un plato bloque, una comida fuera, lo que no tiene
+       ningún ingrediente ajustable— se descuenta del día tal y como es.
+    2. Lo que queda se reparte entre las comidas que sí se mueven, en el orden
+       del día: cada una persigue su proporción de **lo que aún falta**, así que
+       lo que una no alcanza —sus ingredientes topan con su banda— lo recogen
+       las siguientes, y el día sigue cuadrando como cuadraba.
+
+    Así una cena fuera de 800 kcal no la paga sólo el desayuno: la pagan las
+    tres que quedan, en la medida de lo que les toca. Un nutriente que lo fijo
+    no midió no se persigue en ningún hueco: perseguirlo contando como cero lo
+    desconocido pondría de más justo lo que falta saber (`_dirigen`).
     """
-    filas_fijas = []
-    ajustables: list[Ajustable] = []
-    # (índice del plato, índice de su ingrediente) en el orden en que se apilan.
-    mapa: list[tuple[int, int]] = []
-    for i, (_slot, plato) in enumerate(elegidos):
-        # `{}` es un plato sin nada fijo, y eso aporta **cero** (`_candidatos`).
-        # Pasado como fila serían cinco `None`, y un desconocido en lo fijo
-        # deja al día sin nada que perseguir: un plato con todo ajustable —los
-        # de la pauta— se quedaba en los gramos de la receta.
-        if plato.fijo:
-            filas_fijas.append({campo: plato.fijo.get(campo) for campo in NUTRIENTS})
-        for j, pieza in enumerate(plato.ajustables):
-            if plato.bloque or not _se_deja_ajustar(pieza, objetivo):
-                filas_fijas.append(calcular_nutrientes(_Porcion(pieza.por_100g), pieza.gramos))
-            else:
-                ajustables.append(pieza)
-                mapa.append((i, j))
-    fijo, _ = sumar_nutrientes(filas_fijas) if filas_fijas else ({}, {})
-    gramos, _totales = ajustar_gramos(fijo, ajustables, objetivo)
+    dia = _DiaRepartido(elegidos, objetivo)
+    dia.pasada(dia.resto, sobre_lo_hecho=False)
+    # Cierre: lo que el día aún no alcanza —una comida topó con su banda y las
+    # anteriores ya estaban hechas— lo recogen las que tienen margen, cada una
+    # en su proporción de lo que falta. Antes de esto el día cuadraba entero, y
+    # repartirlo no puede costar que deje de cuadrar.
+    for _ in range(_CIERRES):
+        if dia.cuadrado():
+            break
+        dia.pasada(dict(dia.resto), sobre_lo_hecho=True)
+    return dia.resueltos()
 
-    resueltos = []
-    for i, (slot, plato) in enumerate(elegidos):
-        suyos = [
-            gramos[mapa.index((i, j))] if (i, j) in mapa else pieza.gramos
-            for j, pieza in enumerate(plato.ajustables)
-        ]
-        resueltos.append((slot, plato, tuple(suyos)))
-    return resueltos
+
+def _descontar(falta: dict, antes: dict, despues: dict) -> None:
+    """Quita de `falta` lo que una comida ha cambiado. Lo que deja de saberse
+    —un nutriente que la comida no midió— deja también de perseguirse."""
+    for campo in list(falta):
+        if despues.get(campo) is None or antes.get(campo) is None:
+            del falta[campo]
+        else:
+            falta[campo] -= despues[campo] - antes[campo]
+
+
+class _DiaRepartido:
+    """El estado de `_resolver_dia`: los gramos de cada comida y lo que falta."""
+
+    def __init__(self, elegidos, objetivo: dict):
+        self.elegidos = elegidos
+        self.objetivo = objetivo
+        self.piezas = [_partes_del_plato(plato, objetivo) for _slot, plato in elegidos]
+        self.gramos = [[pieza.gramos for pieza in plato.ajustables] for _slot, plato in elegidos]
+        quietos = [i for i, (_filas, movibles) in enumerate(self.piezas) if not movibles]
+        self.moviles = sorted(
+            (i for i in range(len(elegidos)) if i not in quietos),
+            key=lambda i: _ORDEN_DEL_DIA.get(elegidos[i][0], len(_ORDEN_DEL_DIA)),
+        )
+        # Lo que queda del día tras lo que no se mueve.
+        self.resto = {campo: meta for campo, meta in objetivo.items() if meta is not None}
+        for i in quietos:
+            _descontar(self.resto, _CERO, self.hecho(i))
+
+    def hecho(self, i: int) -> dict:
+        plato = self.elegidos[i][1]
+        # Un plato sin nada aporta cero, y es un número: sumar cero filas da
+        # `None`, que aquí dejaría al día entero sin nada que perseguir.
+        if not plato.fijo and not plato.ajustables:
+            return dict(_CERO)
+        return _macros_de(plato, self.gramos[i])
+
+    def cuadrado(self) -> bool:
+        meta = abs(self.objetivo.get("kcal") or 1)
+        return not self.resto or abs(self.resto.get("kcal", 0.0)) <= _TOLERANCIA_KCAL * meta
+
+    def pasada(self, falta: dict, *, sobre_lo_hecho: bool) -> None:
+        """Una vuelta por las comidas que se mueven, en el orden del día.
+
+        Cada una persigue su proporción de lo que falta repartido entre ella y
+        las que vienen detrás; en el cierre, sumada a lo que ya tenía.
+        """
+        for n, i in enumerate(self.moviles):
+            slot, plato = self.elegidos[i]
+            antes = self.hecho(i)
+            pendientes = [self.elegidos[k][0] for k in self.moviles[n:]]
+            parte = repartir_por_hueco(falta, pendientes).get(slot, {})
+            if sobre_lo_hecho:
+                parte = {c: antes[c] + v for c, v in parte.items() if antes.get(c) is not None}
+            filas, movibles = self.piezas[i]
+            fijo, _ = sumar_nutrientes(filas) if filas else ({}, {})
+            nuevos, _totales = ajustar_gramos(
+                fijo, [plato.ajustables[j] for j in movibles], parte, escala=self.objetivo
+            )
+            for j, g in zip(movibles, nuevos):
+                self.gramos[i][j] = g
+            despues = self.hecho(i)
+            _descontar(falta, antes if sobre_lo_hecho else _CERO, despues)
+            if falta is not self.resto:
+                _descontar(self.resto, antes, despues)
+
+    def resueltos(self):
+        return [(slot, plato, tuple(self.gramos[i])) for i, (slot, plato) in enumerate(self.elegidos)]
 
 
 def reajustar_dia(elegidos, objetivo: dict) -> list[tuple[str, PlatoCandidato, tuple[float, ...]]]:

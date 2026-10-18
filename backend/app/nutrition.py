@@ -400,12 +400,18 @@ def ajustar_gramos(
     objetivo: dict,
     *,
     pasos: int = _AJUSTE_PASOS,
+    escala: dict | None = None,
 ) -> tuple[tuple[float, ...], dict]:
     """Los gramos que dejan el día lo más cerca posible de su objetivo.
 
     `fijo` son los macros que el día ya trae puestos (platos bloque, y todo
     ingrediente sin banda). `ajustables` son los que se dejan mover, cada uno
     con la suya. Devuelve `(gramos, totales)`.
+
+    `escala` es contra qué se mide un error, si no es el propio objetivo. Al
+    ajustar una comida se le pasa **el día**: lo que le queda por perseguir a la
+    cena puede ser 3 g de proteína, y medido contra 3 g cualquier gramo de más
+    pesaría como un desastre y tumbaría las kcal para evitarlo.
 
     Determinista: los mismos argumentos dan los mismos gramos, que es lo que
     hace que el plan sea el mismo el martes que el jueves (§22).
@@ -438,7 +444,8 @@ def ajustar_gramos(
                 # Normalizado por el propio objetivo, o 2.400 kcal pesarían
                 # doscientas veces más que 165 g de proteína sin que nadie lo
                 # haya decidido.
-                peso = 1.0 / (abs(meta) or 1.0) ** 2
+                medida = (escala or {}).get(field, meta)
+                peso = 1.0 / (abs(medida) or 1.0) ** 2
                 if field == "kcal":
                     peso *= _PESO_KCAL
                 por_gramo = (pieza.por_100g.get(field) or 0.0) / 100.0
@@ -460,6 +467,44 @@ def ajustar_gramos(
     ]
     totales, _ = sumar_nutrientes(filas)
     return tuple(gramos), totales
+
+
+# --- El reparto por toma ---------------------------------------------------------
+#
+# La parte del día que le toca a cada comida, por nutriente (2026-10-18). Sale de
+# la estructura acordada: la proteína en las cuatro, el hidrato más en las
+# principales y poco en la merienda, el AOVE medido en comida y cena. Sobre un
+# día de 2.569 kcal / 202 P / 280 H / 71 G da 615 / 800 / 415 / 740 kcal.
+#
+# Proporciones y no gramos: si el objetivo cambia, el reparto le sigue.
+REPARTO_POR_HUECO = {
+    "desayuno": {"kcal": 0.24, "protein": 0.22, "carbs": 0.27, "fat": 0.21},
+    "comida": {"kcal": 0.31, "protein": 0.30, "carbs": 0.32, "fat": 0.31},
+    "snack": {"kcal": 0.16, "protein": 0.18, "carbs": 0.14, "fat": 0.17},
+    "cena": {"kcal": 0.29, "protein": 0.30, "carbs": 0.27, "fat": 0.31},
+}
+
+
+def repartir_por_hueco(objetivo: dict, huecos) -> dict[str, dict]:
+    """El objetivo del día, partido entre `huecos` según `REPARTO_POR_HUECO`.
+
+    Las partes se renormalizan sobre los huecos que hay: un día de tres comidas
+    se queda con el día entero, no con el 84 %. Un nutriente que el objetivo no
+    trae no aparece en ninguna parte — `None` es «no lo he dicho», y repartirlo
+    como cero recortaría a todas las comidas algo que nadie pidió.
+    """
+    huecos = [h for h in huecos if h in REPARTO_POR_HUECO]
+    partes: dict[str, dict] = {h: {} for h in huecos}
+    for campo, total in objetivo.items():
+        if total is None:
+            continue
+        pesos = {h: REPARTO_POR_HUECO[h].get(campo) for h in huecos}
+        if any(p is None for p in pesos.values()):
+            continue
+        suma = sum(pesos.values())
+        for h in huecos:
+            partes[h][campo] = total * pesos[h] / suma
+    return partes
 
 
 # --- El hueso -------------------------------------------------------------------
