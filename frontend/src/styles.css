@@ -8615,3 +8615,64 @@ button.draft-save {
   margin: 0;
   color: var(--muted);
 }
+
+/* --- Días cuidados (épica de cuatro comidas, fase 7) -------------------------
+   En la franja de Comida, un punto bajo el número del día cuidado; en Progreso
+   → Ritmo, la cuenta de 8 semanas y una barra por mes. Nunca una racha. */
+.food-week-cuidado {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 3px auto 0;
+  border-radius: 3px;
+}
+.food-week-day.is-cuidado .food-week-cuidado {
+  background: currentColor;
+}
+.cuidados-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+}
+.cuidados-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+.cuidados-pie {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.cuidados-meses {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.cuidados-mes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.cuidados-mes-n {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+.cuidados-barra {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 25%, var(--surface));
+}
+.cuidados-mes.is-este .cuidados-barra {
+  background: var(--text);
+}
+.cuidados-mes-l {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}

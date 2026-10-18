@@ -7,6 +7,7 @@ import {
   createFood,
   deleteFoodEntry,
   dayVerdicts,
+  getCaredDays,
   getPlan,
   frequentFoods,
   listDishes,
@@ -116,6 +117,8 @@ export default function Comida() {
   // poner cada plato planificado dentro de su comida. `null` es «esa semana no
   // se ha generado»: planificarla es de la pestaña Plan, no de aquí.
   const [plan, setPlan] = useState(null)
+  // Los días cuidados de la semana que se mira (fase 7): un punto en la franja.
+  const [cuidados, setCuidados] = useState([])
   // Tras confirmar una comida del plan, la pregunta del peso de hoy (si falta).
   const [pedirPeso, setPedirPeso] = useState(false)
   // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
@@ -165,6 +168,11 @@ export default function Comida() {
       setPlan(await getPlan(lunesDe(iso)))
     } catch {
       setPlan(null)
+    }
+    try {
+      setCuidados((await getCaredDays(lunesDe(iso), shiftDay(lunesDe(iso), 6)))?.days ?? [])
+    } catch {
+      setCuidados([])
     }
   }, [])
 
@@ -290,7 +298,7 @@ export default function Comida() {
         <h1 className="food-title">{tituloDia(dayIso)}</h1>
       </header>
 
-      <FranjaSemana dayIso={dayIso} hoy={foodDayIso()} onPick={setDayIso} />
+      <FranjaSemana dayIso={dayIso} hoy={foodDayIso()} cuidados={cuidados} onPick={setDayIso} />
 
       {error && <p className="alert">{error}</p>}
 
@@ -526,7 +534,7 @@ function tituloDia(iso, hoy = foodDayIso()) {
  * tres toques y tres cargas por días que no querías ver; aquí es uno. Lo que no
  * ha llegado se ve pero no se toca: no se registra por adelantado.
  */
-function FranjaSemana({ dayIso, hoy, onPick }) {
+function FranjaSemana({ dayIso, hoy, cuidados = [], onPick }) {
   const lunes = lunesDe(dayIso)
   const dias = Array.from({ length: 7 }, (_, i) => shiftDay(lunes, i))
   const esLaDeHoy = lunes === lunesDe(hoy)
@@ -545,14 +553,18 @@ function FranjaSemana({ dayIso, hoy, onPick }) {
         <button
           key={iso}
           type="button"
-          className={`food-week-day${iso === dayIso ? ' is-on' : ''}`}
+          className={`food-week-day${iso === dayIso ? ' is-on' : ''}${cuidados.includes(iso) ? ' is-cuidado' : ''}`}
           aria-label={`${DIAS_LARGOS[i]} ${Number(iso.slice(8))}`}
+          // Un día cuidado (fase 7): dijiste lo que comiste o entrenaste. Se
+          // dice aparte del nombre, que es lo que el botón hace.
+          aria-description={cuidados.includes(iso) ? 'Día cuidado' : undefined}
           aria-pressed={iso === dayIso}
           disabled={iso > hoy}
           onClick={() => onPick(iso)}
         >
           <span className="food-week-letter">{DIAS_CORTOS[i]}</span>
           <span className="food-week-num">{Number(iso.slice(8))}</span>
+          <span className="food-week-cuidado" aria-hidden="true" />
         </button>
       ))}
       {/* Hacia delante, el mismo día una semana después — o hoy, si esa semana

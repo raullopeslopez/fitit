@@ -2912,3 +2912,34 @@ describe('Comida: sin cifras mientras cumples', () => {
     expect(screen.getByText('−40 g de hidrato · por el entreno')).toBeInTheDocument()
   })
 })
+
+// Fase 7: los días cuidados, en la franja de la semana — un punto, no otra fila.
+describe('Comida: días cuidados en la semana', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.setSystemTime(new Date(2026, 7, 31, 12, 0))
+    api.getFoodDay.mockResolvedValue(day())
+    api.searchFoods.mockResolvedValue([])
+    api.frequentFoods.mockResolvedValue([])
+    api.listDishes.mockResolvedValue([])
+    api.listRules.mockResolvedValue([])
+    api.dayVerdicts.mockResolvedValue({ date: '2026-08-31', verdicts: [], acceptable: true })
+    api.getTargetProfile.mockResolvedValue({})
+    api.getPlan.mockResolvedValue(null)
+    api.getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: [] })
+    api.getReview.mockResolvedValue({ due: false })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('los días cuidados de la semana llevan su punto', async () => {
+    api.getCaredDays.mockResolvedValue({ days: ['2026-08-31'] })
+    render(<Comida />)
+    await waitFor(() => expect(api.getCaredDays).toHaveBeenCalledWith('2026-08-31', '2026-09-06'))
+    const lunes = screen.getByRole('button', { name: 'Lunes 31' })
+    await waitFor(() => expect(lunes).toHaveClass('is-cuidado'))
+    expect(lunes).toHaveAccessibleDescription('Día cuidado')
+  })
+})

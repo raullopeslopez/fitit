@@ -10,6 +10,7 @@ from .config import settings
 from .routers import (
     auth,
     body_weight,
+    cuidados,
     days,
     dishes,
     exercises,
@@ -133,3 +134,4 @@ app.include_router(plans.router, dependencies=[Depends(get_current_user)])
 app.include_router(plan_import.router, dependencies=[Depends(get_current_user)])
 app.include_router(pantry.router, dependencies=[Depends(get_current_user)])
 app.include_router(ideas.router, dependencies=[Depends(get_current_user)])
+app.include_router(cuidados.router, dependencies=[Depends(get_current_user)])

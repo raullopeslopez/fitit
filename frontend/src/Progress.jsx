@@ -16,6 +16,7 @@ import { ExerciseEditor, MusclePicker } from './ExerciseEditor.jsx'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatIsoDayMonth, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
+import DiasCuidadosCard from './DiasCuidados.jsx'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
@@ -1367,6 +1368,9 @@ export default function Progress({ initialTab = 'series' }) {
 
       {tab === 'ritmo' && (
         <div role="tabpanel" aria-labelledby="prog-tab-ritmo">
+          {/* La constancia de todo, no sólo del entreno: días en los que te
+              cuidaste (fase 7). Arriba, porque es la pregunta de esta pestaña. */}
+          <DiasCuidadosCard />
           {days.length > 0 ? (
             <Rhythm days={days} />
           ) : !daysLoaded && waiting ? (

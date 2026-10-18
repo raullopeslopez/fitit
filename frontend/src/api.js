@@ -486,6 +486,12 @@ export function generateDishes({ methods = [], minutes = null, n = 6, slot = nul
   })
 }
 
+// Los días cuidados entre dos fechas (épica de cuatro comidas, fase 7): los que
+// cuentan, y nada más. Contarlos sobre una ventana es de la pantalla.
+export function getCaredDays(from, to) {
+  return apiFetch(`/cared-days?from=${from}&to=${to}`)
+}
+
 // «Aquí no»: este plato no va en esa comida, y se recuerda (fase 5). Con
 // `here`, se deshace.
 export function notHere(dishId, slot, here = false) {
