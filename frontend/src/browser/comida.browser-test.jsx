@@ -18,6 +18,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { mountComida } from './screen.jsx'
+import { foodDayIso } from '../food.js'
 import {
   backdropOf,
   clearForcedTheme,
@@ -677,6 +678,100 @@ describe('Comida', () => {
           expect(['none', 'normal', ''], `${nombre} · ${theme}`).toContain(punto.content)
         }
       }
+    })
+
+    // ── Marcador en Comida (2026-10-19) ───────────────────────────────────
+    //
+    // El titular de pantalla en Bricolage 800 a 54 px, las comidas como
+    // titulares de fila, y un solo sitio en mandarina: «Añadir comida». «Lo
+    // comí» es el caso normal, pero no la acción de la pantalla: va en Hueso.
+    // El día de comida, no el de calendario: de 00:00 a 04:00 aún es ayer.
+    const hoyIso = () => foodDayIso()
+    const conPlan = () => [
+      [
+        /\/plans\/\d{4}-\d{2}-\d{2}$/,
+        {
+          id: 1,
+          week_start: hoyIso(),
+          entries: [
+            {
+              id: 50,
+              log_date: hoyIso(),
+              slot: 'snack',
+              dish_id: 70,
+              dish_name: 'Skyr con fresas',
+              items: [],
+              kcal: 250,
+              protein: 25,
+              carbs: 30,
+              fat: 3,
+              carbs_shift: null,
+              status: null,
+              log_entry_id: null,
+            },
+          ],
+        },
+      ],
+    ]
+
+    it('el día se titula en Bricolage 800 a 54 px, con la fecha al lado', async () => {
+      await mountComida()
+      const titulo = document.querySelector('.food-title')
+      const estilo = getComputedStyle(titulo)
+      expect(estilo.fontSize).toBe('54px')
+      expect(estilo.fontWeight).toBe('800')
+      expect(estilo.fontFamily).toContain('Bricolage Grotesque')
+      // La fecha, en la misma línea que el titular y a su derecha.
+      const fecha = document.querySelector('.food-daystamp-date').getBoundingClientRect()
+      const t = titulo.getBoundingClientRect()
+      expect(fecha.left).toBeGreaterThan(t.right)
+      expect(fecha.bottom).toBeGreaterThan(t.top)
+    })
+
+    it('cada comida es un titular de fila en Bricolage 800', async () => {
+      await mountComida()
+      for (const nombre of document.querySelectorAll('.food-slot-name')) {
+        const estilo = getComputedStyle(nombre)
+        expect(estilo.fontWeight, nombre.textContent).toBe('800')
+        expect(parseFloat(estilo.fontSize), nombre.textContent).toBeCloseTo(22.4, 1)
+      }
+    })
+
+    it('«Lo comí» va en Hueso y el mandarina queda sólo para «Añadir comida»', async () => {
+      await mountComida({ routes: conPlan() })
+      await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Lo comí' })).toBeTruthy(), {
+        timeout: 5000,
+      })
+      for (const theme of ['light', 'dark']) {
+        forceTheme(theme)
+        await settle()
+        // El fondo de un botón tarda 150 ms en cambiar de tema.
+        await new Promise((r) => setTimeout(r, 250))
+        const comi = screen.getByRole('button', { name: 'Lo comí' })
+        expect(rgb(bg(comi)), theme).toEqual(rgb(token('--text')))
+        expect(rgb(parseColor(getComputedStyle(comi).color)), theme).toEqual(rgb(token('--bg')))
+        // Ningún otro relleno mandarina en la pantalla de Comida, salvo el
+        // botón flotante. La barra de pestañas no cuenta: es de la app.
+        const ambar = rgb(token('--accent'))
+        const rellenos = [...document.querySelectorAll('.comida button')].filter(
+          (b) => b.getClientRects().length > 0 && String(rgb(bg(b))) === String(ambar),
+        )
+        expect(rellenos.map((b) => b.textContent.replace('+', '').trim()), theme).toEqual(['Añadir comida'])
+      }
+    })
+
+    it('lo previsto se dice con el discontinuo, sin fondo', async () => {
+      await mountComida({ routes: conPlan() })
+      const caja = await vi.waitFor(() => {
+        const el = document.querySelector('.plan-en-comida')
+        expect(el).not.toBeNull()
+        return el
+      })
+      const estilo = getComputedStyle(caja)
+      expect(estilo.borderTopStyle).toBe('dashed')
+      // 1,5 px en la hoja; a 1× Chromium lo ajusta al píxel y pinta 1.
+      expect(parseFloat(estilo.borderTopWidth)).toBeGreaterThanOrEqual(1)
+      expect(estilo.backgroundColor).toBe('rgba(0, 0, 0, 0)')
     })
 
     it('la jerarquía se dice con grosor, no con un tono nuevo', async () => {

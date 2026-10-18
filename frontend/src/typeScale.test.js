@@ -14,7 +14,8 @@ const css = readFileSync(resolve(SRC, 'styles.css'), 'utf8')
 
 // DESIGN.md → Typography → Scale. `2.6rem` es la cifra del día: una por
 // pantalla, la que se lee de lejos (objetivo de hoy, kcal, la del arranque en frío).
-const SCALE = new Set(['2.6rem', '1.6rem', '1.4rem', '1.15rem', '1rem', '0.85rem', '0.8rem', '0.7rem'])
+// `3.375rem` (54 px) es el titular de pantalla de Marcador (2026-10-19).
+const SCALE = new Set(['3.375rem', '2.6rem', '1.6rem', '1.4rem', '1.15rem', '1rem', '0.85rem', '0.8rem', '0.7rem'])
 
 // Glifos: se dimensionan como iconos, no como texto. Un chevron, una × o un
 // ✓ no tienen «tamaño de lectura», tienen el del hueco que ocupan.

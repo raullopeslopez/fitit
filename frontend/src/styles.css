@@ -4611,19 +4611,31 @@ button.set-chip:active:not(:disabled) {
   padding-bottom: 9rem;
 }
 
-/* El día como título: la fecha en sello encima y, debajo, «Hoy», «Ayer» o el
-   nombre del día en Hero. Contesta la pregunta más simple de la pantalla con
-   una palabra, en vez de dejarla deducir de una flecha apagada. */
+/* El día como título: «Hoy», «Ayer» o el nombre del día como titular de
+   pantalla de Marcador (Bricolage 800 a 54 px) y la fecha en sello a su
+   derecha, sobre la misma línea de pie. Contesta la pregunta más simple de la
+   pantalla con una palabra, en vez de dejarla deducir de una flecha apagada.
+   El sello va antes en el marcado (se lee primero) y después en pantalla. */
 .food-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin: 0.2rem 0 0.25rem;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 0.2rem 0 0.5rem;
 }
 .food-head .card-eyebrow {
   margin: 0;
+  padding-bottom: 6px;
 }
-.food-title,
+.food-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 3.375rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
 .plan-title {
   margin: 0;
   font-family: var(--font-display);
@@ -6086,12 +6098,13 @@ button.draft-save {
   padding: 0 0.5rem 0 1rem;
   border-bottom: 1px solid var(--border);
 }
+/* Marcador: cada comida es un titular de fila. */
 .food-slot-name {
   flex: 1;
   font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 .food-slot-meta {
   font-family: var(--font-mono);
@@ -6247,9 +6260,11 @@ button.draft-save {
   gap: 0.5rem;
   margin: 0.75rem 1rem;
   padding: 0.85rem 1rem;
-  border: 1px dashed color-mix(in srgb, var(--text) 28%, var(--border));
+  /* Marcador: el discontinuo de 1,5 px es «previsto, aún no hecho», y no
+     lleva fondo — el estado se dice una vez. */
+  border: 1.5px dashed color-mix(in srgb, var(--text) 28%, var(--border));
   border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  background: transparent;
 }
 .plan-en-comida .card-eyebrow {
   margin: 0;
@@ -6285,6 +6300,19 @@ button.draft-save {
 }
 .plan-en-comida-acciones .plan-comer {
   grid-column: 1 / -1;
+  border-radius: 22px;
+}
+/* Marcador: un sitio mandarina por pantalla, y en Comida es «Añadir comida».
+   «Lo comí» es el caso normal de su comida, no la acción de la pantalla: va
+   en Hueso (la tinta como relleno y el fondo como letra). */
+.plan-en-comida-acciones button.primary.plan-comer {
+  background: var(--text);
+  color: var(--bg);
+}
+@media (hover: hover) {
+  .plan-en-comida-acciones button.primary.plan-comer:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 88%, var(--bg));
+  }
 }
 /* «Lo cambié» con lo de casa arriba: cada grupo envuelve sus chips como la
    lista de siempre. */

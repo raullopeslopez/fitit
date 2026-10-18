@@ -247,8 +247,10 @@ export const FREQUENT = [
 // respuesta *es* lo que se mide en la prueba de la hoja: un alimento cabe en
 // cualquier pantalla, y con los treinta que devuelve una búsqueda de verdad la
 // hoja pasa a medir más que el teléfono.
-function stubNetwork(catalogue = FOODS) {
+function stubNetwork(catalogue = FOODS, extra = []) {
   const routes = [
+    // Las de la prueba, primero: pisan a las de siempre.
+    ...extra,
     [/\/health$/, { ok: true }],
     // La tarjeta de peso de Perfil. Sin esta ruta el stub devuelve `[]` y la
     // tarjeta cae —correctamente— en «todavía no te has pesado», que es un
@@ -390,7 +392,7 @@ function stubNetwork(catalogue = FOODS) {
 // entradas del historial (el editor marca «abierto» para que el gesto de atrás
 // lo cierre). Sin devolver el scroll a cero cada prueba empieza donde acabó la
 // anterior, que es la peor forma de que un barrido salga verde.
-export async function mountApp({ openWorkout = null, catalogue = FOODS, restSeconds = 0 } = {}) {
+export async function mountApp({ openWorkout = null, catalogue = FOODS, restSeconds = 0, routes = [] } = {}) {
   localStorage.clear()
   localStorage.setItem('fitit_token', 'browser-geometry')
   // Un descanso en marcha al abrir: Entreno lo recoge de aquí al montar.
@@ -398,7 +400,7 @@ export async function mountApp({ openWorkout = null, catalogue = FOODS, restSeco
   // Por la misma puerta que la app: la marca lleva un sello de tiempo y sólo
   // vale cuatro horas, así que escribir el id a pelo deja a `App` en Días.
   if (openWorkout != null) setOpenWorkout(openWorkout)
-  const restore = stubNetwork(catalogue)
+  const restore = stubNetwork(catalogue, routes)
   window.scrollTo(0, 0)
   const view = render(<App />)
   return { ...view, restore }
@@ -441,8 +443,8 @@ export async function mountPerfil() {
 }
 
 /** Comida, con el día de arriba ya cargado. */
-export async function mountComida({ catalogue = FOODS } = {}) {
-  const view = await mountApp({ catalogue })
+export async function mountComida({ catalogue = FOODS, routes = [] } = {}) {
+  const view = await mountApp({ catalogue, routes })
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
   // Por la primera tarjeta de comida: es lo primero que se dibuja con el día ya
