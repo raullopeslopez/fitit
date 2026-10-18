@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.39.0: cuatro comidas, el hidrato sigue al entreno.**
+  Trae al móvil todo lo de la épica (#311–#318): Comida sin anillos mientras cumples el plan,
+  con la tira del día y el coral para el hidrato; los ingredientes en piezas («2 huevos»);
+  la hoja `Cambiar este plato` con `Ideas para el desayuno` y `Aquí no`; y el punto de los
+  días cuidados en la semana y `Días cuidados` en Progreso → Ritmo. Las series viajan con la
+  hora local (`foodMomentIso`), así que el hidrato ya va a la comida de después del entreno.
 - **APK 0.38.2: voz con Whisper.**
   La voz la oye Whisper (Groq) y Gemini sólo lee el texto, con tres modelos de respaldo.
   Si Gemini falla después de oírte, el modal enseña `Has oído: …` junto al aviso (#308).
