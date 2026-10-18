@@ -315,7 +315,10 @@ describe('Workout', () => {
       await waitFor(() => expect(api.logSet).toHaveBeenCalled())
 
       const sent = api.logSet.mock.calls[0][1]
-      expect(Date.parse(sent.performed_at)).toBeGreaterThanOrEqual(tappedAt)
+      // To the second, with the phone's offset (`foodMomentIso`): the server
+      // reads the wall clock off it, and a set is not timed to the millisecond.
+      expect(sent.performed_at).toMatch(/[+-]\d\d:\d\d$/)
+      expect(Date.parse(sent.performed_at)).toBeGreaterThanOrEqual(Math.floor(tappedAt / 1000) * 1000)
       expect(Date.parse(sent.performed_at)).toBeLessThanOrEqual(Date.now())
       // And on disk with it: the request failed, so this copy is the one that
       // will reach the server, whenever that is.

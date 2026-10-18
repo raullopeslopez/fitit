@@ -1,7 +1,8 @@
 """La semana generada, de punta a punta."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta, timezone
 
+import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from app.main import app
@@ -563,7 +564,6 @@ def then_not_yet(negativa):
 
 
 # --- registro sin huecos, fase 2 ---------------------------------------------
-import pytest  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -803,6 +803,103 @@ def then_planned_place(client, slot, sitio, kcal):
     fila = next(e for e in _plan_de_hoy(client) if e["slot"] == slot)
     assert fila["dish_name"] == sitio
     assert round(fila["kcal"]) == kcal
+
+
+# --- el hidrato sigue al entreno ------------------------------------------------
+@given(
+    parsers.parse(
+        "my macro targets are {proteina:d} g of protein, {grasa:d} g of fat and {hidratos:d} g of carbs"
+    )
+)
+def given_macro_targets(client, proteina, grasa, hidratos):
+    resp = client.patch(
+        "/auth/me",
+        json={"objetivo_proteina": proteina, "objetivo_grasa": grasa, "objetivo_hidratos": hidratos},
+    )
+    assert resp.status_code == 200, resp.text
+
+
+@given(
+    parsers.parse("a repertoire of {cuantos:d} dishes of chicken and rice I can scale"),
+    target_fixture="repertorio",
+)
+def given_chicken_and_rice(client, cuantos):
+    pollo = _food(client, "Pollo", kcal_100g=165, protein_100g=31, fat_100g=3.6, carbs_100g=0)
+    arroz = _food(client, "Arroz", kcal_100g=350, protein_100g=7, fat_100g=1, carbs_100g=78)
+    return [
+        _dish(
+            client,
+            f"Pollo con arroz {i}",
+            pollo,
+            ingredients=[
+                {"food_id": pollo, "grams": 150, "min_grams": 30, "max_grams": 400},
+                {"food_id": arroz, "grams": 80, "min_grams": 0, "max_grams": 250},
+            ],
+        )
+        for i in range(1, cuantos + 1)
+    ]
+
+
+@pytest.fixture()
+def kcal_antes():
+    return {}
+
+
+@when(parsers.parse("I log a set today at {hora:d}:{minuto:d}"))
+def when_log_set_at(client, monkeypatch, kcal_antes, hora, minuto):
+    # La hora de la pared, con su zona: es la que decide qué comida va después.
+    momento = datetime.combine(date.today(), time(hora, minuto), tzinfo=timezone(timedelta(hours=2)))
+
+    class _Reloj(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return momento.astimezone(tz) if tz else momento
+
+    monkeypatch.setattr("app.routers.workouts.datetime", _Reloj)
+    kcal_antes.setdefault("total", sum(e["kcal"] for e in _plan_de_hoy(client)))
+    workout = client.post("/workouts", json={})
+    assert workout.status_code == 201, workout.text
+    resp = client.post(
+        f"/workouts/{workout.json()['id']}/sets",
+        json={"exercise_name": "Remo", "reps": 8, "weight": 60, "performed_at": momento.isoformat()},
+    )
+    assert resp.status_code == 201, resp.text
+
+
+def _cambio(client, slot):
+    return next(e for e in _plan_de_hoy(client) if e["slot"] == slot)["carbs_shift"]
+
+
+@then(parsers.parse("the {slot:w} of today gains {gramos:d} g of carbs"))
+def then_gains(client, slot, gramos):
+    assert abs((_cambio(client, slot) or 0) - gramos) <= 2, _cambio(client, slot)
+
+
+@then(parsers.parse("the {slot:w} of today gives {gramos:d} g of carbs"))
+def then_gives(client, slot, gramos):
+    assert abs((_cambio(client, slot) or 0) + gramos) <= 2, _cambio(client, slot)
+
+
+@then(parsers.parse("the {slot:w} of today does not move its carbs"))
+def then_does_not_move(client, slot):
+    assert not _cambio(client, slot)
+
+
+@then("no meal of today moves its carbs")
+def then_nothing_moves(client):
+    assert all(not e["carbs_shift"] for e in _plan_de_hoy(client))
+
+
+@then(parsers.parse("the {gana:w} of today gains what the {cede:w} of today gives"))
+def then_gains_what_gives(client, gana, cede):
+    assert _cambio(client, gana) > 0
+    assert abs(_cambio(client, gana) + _cambio(client, cede)) <= 2
+
+
+@then(parsers.parse("the plan of today adds up to the same kcal as before, give or take {pct:d}%"))
+def then_same_kcal(client, kcal_antes, pct):
+    total = sum(e["kcal"] for e in _plan_de_hoy(client))
+    assert abs(total - kcal_antes["total"]) <= kcal_antes["total"] * pct / 100, total
 
 
 @then(parsers.parse("the {slot:w} of today is {pct:d}% of the day, give or take {margen:d} points"))

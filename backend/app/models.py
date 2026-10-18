@@ -755,6 +755,10 @@ class PlanEntry(Base):
     log_entry_id: Mapped[int | None] = mapped_column(
         ForeignKey("log_entries.id", ondelete="SET NULL"), nullable=True
     )
+    # Gramos de hidrato que esta comida ganó (+) o cedió (−) porque ese día se
+    # entrenó (`hidrato_del_entreno`). NULL es «no se movió». En cuanto una fila
+    # del día lo tiene, el día ya se ajustó y no se vuelve a ajustar.
+    carbs_shift: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     plan: Mapped["Plan"] = relationship(back_populates="entries")
 

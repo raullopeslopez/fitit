@@ -17,6 +17,9 @@ from app.models import Base
 
 VERSIONS = Path(__file__).resolve().parents[2] / "alembic" / "versions"
 MIGRATION = "a9e4f27b0c15_add_plans.py"
+# Las que vinieron después a tocar estas tablas, en orden. Sin ellas el modelo
+# lleva columnas que la migración de origen no conoce.
+POSTERIORES = ("b3c7e19d4a62_plan_entry_carbs_shift.py",)
 
 # Lo justo para que las columnas y las claves ajenas tengan dónde agarrarse.
 PREVIAS = (
@@ -27,10 +30,15 @@ PREVIAS = (
 )
 
 
-def _migrated():
-    spec = importlib.util.spec_from_file_location("migration_plans", VERSIONS / MIGRATION)
+def _load(nombre):
+    spec = importlib.util.spec_from_file_location(nombre.removesuffix(".py"), VERSIONS / nombre)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    return module
+
+
+def _migrated():
+    module = _load(MIGRATION)
 
     engine = create_engine("sqlite://")
     with engine.begin() as conn:
@@ -39,6 +47,8 @@ def _migrated():
         context = MigrationContext.configure(conn)
         with Operations.context(context):
             module.upgrade()
+            for posterior in POSTERIORES:
+                _load(posterior).upgrade()
         inspector = inspect(conn)
         schema = {
             tabla: {c["name"]: c["nullable"] for c in inspector.get_columns(tabla)}
@@ -95,3 +105,9 @@ def test_the_band_is_optional_because_no_band_means_fixed():
 def test_the_chain_reaches_this_migration():
     _, module = _migrated()
     assert module.down_revision == "f2c9d81e405b"
+
+
+def test_a_day_that_moved_nothing_has_no_carbs_shift():
+    """`NULL` es «ese día no se movió nada», no un cambio de cero gramos."""
+    schema, _ = _migrated()
+    assert schema["plan_entries"]["carbs_shift"] is True

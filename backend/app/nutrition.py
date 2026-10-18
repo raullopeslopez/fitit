@@ -507,6 +507,65 @@ def repartir_por_hueco(objetivo: dict, huecos) -> dict[str, dict]:
     return partes
 
 
+# --- El hidrato sigue al entreno ---------------------------------------------------
+#
+# Las mismas kcal cada día; la comida de después del entreno gana hidrato y lo
+# ceden las que quedan al final del día (2026-10-18, opción C). Cincuenta gramos:
+# lo bastante para notarse en el plato (unos 200 g de patata) y poco para
+# desequilibrar las comidas que ceden.
+HIDRATO_ENTRENO = 50.0
+
+# Hasta qué hora del día alimentario sigue «por delante» cada comida. No sale de
+# cuándo apuntas —en tus datos el desayuno se apunta a las 15:16 de mediana—
+# sino de cuándo se come. La cena llega hasta las 04:00, donde empieza el día
+# siguiente (`DAY_STARTS_AT`): la 01:00 es 25.
+FIN_DE_COMIDA = {"desayuno": 12.0, "comida": 17.0, "snack": 20.0, "cena": 28.0}
+
+# Quién cede: las del final del día. La comida principal no, aunque vaya
+# después de un entreno de madrugada: es el plato que sostiene el día.
+CEDEN = ("snack", "cena")
+
+
+def hidrato_del_entreno(pendientes, hora: float) -> dict[str, float]:
+    """Cuánto hidrato gana o cede cada comida al entrenar a `hora`.
+
+    `pendientes` son las comidas sin decir del día, como `(hueco, hidrato)`, en
+    cualquier orden. Gana la primera que aún no ha pasado; ceden las de `CEDEN`
+    que tampoco han pasado, a partes iguales y cada una hasta lo que tiene. Lo
+    que una no puede poner lo pone la otra, y si entre todas no llegan a
+    `HIDRATO_ENTRENO`, se mueve lo que hay: el total del día no cambia nunca.
+
+    Un hidrato sin medir no cede: quitarle algo a lo que no se sabe cuánto tiene
+    sería inventar la cifra. Devuelve `{}` cuando no hay nada que mover.
+    """
+    if hora < DAY_STARTS_AT.total_seconds() / 3600:
+        hora += 24
+    vivas = sorted(
+        (p for p in pendientes if FIN_DE_COMIDA.get(p[0], 0) > hora),
+        key=lambda p: FIN_DE_COMIDA[p[0]],
+    )
+    if not vivas:
+        return {}
+    gana = vivas[0][0]
+    tienen = {slot: hidrato for slot, hidrato in vivas[1:] if slot in CEDEN and hidrato}
+
+    cede = {slot: 0.0 for slot in tienen}
+    falta = HIDRATO_ENTRENO
+    while falta > 1e-9 and tienen:
+        cuota = falta / len(tienen)
+        for slot in list(tienen):
+            pone = min(cuota, tienen[slot])
+            cede[slot] += pone
+            tienen[slot] -= pone
+            falta -= pone
+            if tienen[slot] <= 1e-9:
+                del tienen[slot]
+    movido = HIDRATO_ENTRENO - falta
+    if movido <= 0:
+        return {}
+    return {gana: round(movido, 1), **{slot: -round(g, 1) for slot, g in cede.items() if g > 0}}
+
+
 # --- El hueso -------------------------------------------------------------------
 #
 # Una bandeja de muslos pesa un kilo y un tercio es hueso. Las tablas —CIQUAL,

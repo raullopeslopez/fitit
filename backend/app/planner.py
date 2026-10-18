@@ -19,7 +19,7 @@ propuesta; guardarla es del router.
 
 import random
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from typing import get_args
 
@@ -372,6 +372,43 @@ def reajustar_dia(elegidos, objetivo: dict) -> list[tuple[str, PlatoCandidato, t
     mismo ajuste que al generar, no otro.
     """
     return _resolver_dia(elegidos, objetivo)
+
+
+# Pasadas al reajustar una sola comida. Arranca de lo que ya tenía y no de la
+# receta, pero dos ingredientes que se pisan —el arroz también trae proteína—
+# tardan más en asentarse que los seis del día entero, y una comida es barata.
+_PASOS_DE_UNA_COMIDA = 30
+
+
+def ajustar_comida(
+    plato: PlatoCandidato, parte: dict, escala: dict, desde=None
+) -> tuple[tuple[float, ...], dict]:
+    """Los gramos de un solo plato contra su parte, y lo que suma con ellos.
+
+    Para cuando una comida cambia de objetivo sin que cambie el resto del día
+    —el hidrato que gana o cede al entrenar—. `escala` es el día, por lo mismo
+    que en `_resolver_dia`: medido contra la parte, un gramo de más pesaría como
+    un desastre. `desde` son los gramos con los que ya estaba, en el orden de
+    `plato.ajustables`: se parte de ahí y no de la receta.
+    """
+    if desde is not None:
+        plato = replace(
+            plato,
+            ajustables=tuple(replace(p, gramos=g) for p, g in zip(plato.ajustables, desde)),
+        )
+    filas, movibles = _partes_del_plato(plato, escala)
+    fijo, _ = sumar_nutrientes(filas) if filas else ({}, {})
+    nuevos, _totales = ajustar_gramos(
+        fijo,
+        [plato.ajustables[j] for j in movibles],
+        parte,
+        escala=escala,
+        pasos=_PASOS_DE_UNA_COMIDA,
+    )
+    gramos = [pieza.gramos for pieza in plato.ajustables]
+    for j, g in zip(movibles, nuevos):
+        gramos[j] = g
+    return tuple(gramos), _macros_de(plato, gramos)
 
 
 def _dia_para_reglas(fecha: date, resueltos, entrenado: bool) -> rules.Dia:

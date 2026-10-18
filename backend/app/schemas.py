@@ -1300,6 +1300,9 @@ class PlanEntryOut(BaseModel):
     # Es uno de tus sitios, reservado en el plan (registro sin huecos, fase 4):
     # sus kcal están apartadas, y se confirma como comida fuera.
     place: bool = False
+    # Gramos de hidrato ganados (+) o cedidos (−) por el entreno de ese día.
+    # `None` es que no se movió: no hay nada que enseñar.
+    carbs_shift: float | None = None
 
 
 class PlanDesvioOut(BaseModel):

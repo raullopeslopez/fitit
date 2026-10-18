@@ -274,6 +274,42 @@ Feature: The week, generated
     And the snack of today is 16% of the day, give or take 2 points
     And the cena of today is 29% of the day, give or take 2 points
 
+  # El hidrato sigue al entreno: mismas kcal cada día, la comida de después
+  # gana hasta 50 g y los ceden la merienda y la cena que aún no han pasado.
+  Scenario: Training in the afternoon moves carbs to the snack
+    Given my macro targets are 202 g of protein, 71 g of fat and 280 g of carbs
+    And a repertoire of 12 dishes of chicken and rice I can scale
+    When I generate this week
+    And I log a set today at 17:30
+    Then the snack of today gains 50 g of carbs
+    And the cena of today gives 50 g of carbs
+    And the plan of today adds up to the same kcal as before, give or take 1%
+
+  Scenario: Training late at night moves nothing
+    Given my macro targets are 202 g of protein, 71 g of fat and 280 g of carbs
+    And a repertoire of 12 dishes of chicken and rice I can scale
+    When I generate this week
+    And I log a set today at 21:30
+    Then no meal of today moves its carbs
+
+  Scenario: The carbs move once a day, at the first set
+    Given my macro targets are 202 g of protein, 71 g of fat and 280 g of carbs
+    And a repertoire of 12 dishes of chicken and rice I can scale
+    When I generate this week
+    And I log a set today at 07:00
+    And I log a set today at 13:00
+    Then the desayuno of today gains 50 g of carbs
+    And the comida of today does not move its carbs
+
+  Scenario: A meal already said does not give its carbs
+    Given my macro targets are 202 g of protein, 71 g of fat and 280 g of carbs
+    And a repertoire of 12 dishes of chicken and rice I can scale
+    When I generate this week
+    And I confirm the cena of today
+    And I log a set today at 13:00
+    Then the cena of today does not move its carbs
+    And the comida of today gains what the snack of today gives
+
   Scenario: A meal out planned ahead is reserved and the rest of the day makes room
     Given my targets add up to 2000 kcal a day
     And a repertoire of 12 dishes I can scale

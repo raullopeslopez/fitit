@@ -42,8 +42,16 @@ from ..models import (
     User,
 )
 from ..nutrition import NUTRIENTS, Ajustable, calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
-from ..nutrition import gramos_de_fraccion
-from ..planner import HUECOS, PlanImposible, PlatoCandidato, generar, peso_en_casa, reajustar_dia
+from ..nutrition import gramos_de_fraccion, hidrato_del_entreno
+from ..planner import (
+    HUECOS,
+    PlanImposible,
+    PlatoCandidato,
+    ajustar_comida,
+    generar,
+    peso_en_casa,
+    reajustar_dia,
+)
 from ..shopping import lista
 from ..taski import Taski, get_taski, pendientes
 from ..taski import Unreachable as TaskiUnreachable
@@ -468,6 +476,7 @@ def _to_out(
                 status=fila.status,
                 log_entry_id=fila.log_entry_id,
                 place=fila.dish_id in sitios,
+                carbs_shift=fila.carbs_shift,
             )
             for fila in plan.entries
         ],
@@ -1099,6 +1108,76 @@ async def _reservar_fuera(session: AsyncSession, user_id: int, fila: PlanEntry) 
     for f, (_slot, plato, gramos) in zip(dia, reajustar_dia(elegidos, objetivo)):
         if f.id in movidas:
             f.grams_json = json.dumps(repertorio.completos(plato.id, gramos))
+
+
+async def hidrato_al_entreno(session: AsyncSession, user_id: int, momento: datetime) -> None:
+    """El hidrato sigue al entreno: la comida de después gana, la merienda y la
+    cena ceden, y el día suma lo mismo (opción C, 2026-10-18).
+
+    Lo llama la primera serie del día. **Una vez por día**: en cuanto una fila
+    lleva `carbs_shift`, el día ya se ajustó, y las series siguientes no lo
+    rehacen. Sólo se mueve lo que no tiene respuesta y es tuyo de casa —lo dicho
+    ya se comió, y un sitio o un bloque es lo que es—; quién gana y cuánto lo
+    decide `hidrato_del_entreno` con la hora de la pared de la serie.
+
+    Cada comida que se mueve conserva lo que tenía y cambia sólo su hidrato, y
+    sus kcal con él: el objetivo nuevo es su cifra congelada más o menos esos
+    gramos. Lo que de verdad se movió —las bandas mandan— es lo que se guarda.
+    """
+    fecha = food_log_date(momento)
+    plan = (
+        await session.execute(
+            select(Plan)
+            .options(selectinload(Plan.entries))
+            .where(Plan.user_id == user_id, Plan.week_start == fecha - timedelta(days=fecha.weekday()))
+        )
+    ).scalar_one_or_none()
+    if plan is None:
+        return
+    dia = [f for f in plan.entries if f.log_date == fecha]
+    if any(f.carbs_shift is not None for f in dia):
+        return
+
+    pauta = await _pauta_vigente(session, user_id, plan.week_start)
+    holgura = frozenset(e.dish_id for e in pauta.entries) if pauta else frozenset()
+    repertorio = await _candidatos(session, user_id, holgura)
+    por_id = {p.id: p for p in repertorio.candidatos}
+    _, _, macros = await _congelado(session, plan)
+    movibles = {
+        f.slot: f
+        for f in dia
+        if f.status is None and f.dish_id in por_id and (macros.get(f.id) or {}).get("carbs") is not None
+    }
+    cambios = hidrato_del_entreno(
+        [(slot, macros[f.id]["carbs"]) for slot, f in movibles.items()],
+        hora=momento.hour + momento.minute / 60,
+    )
+    if not cambios:
+        return
+
+    objetivo = (await _objetivos(session, user_id, (fecha,))).get(fecha, {})
+    for slot, gramos_h in cambios.items():
+        fila = movibles[slot]
+        antes = macros[fila.id]
+        # Sólo el hidrato y la proteína: las kcal le siguen solas (4 por gramo),
+        # y perseguirlas con su peso de siempre se comía un tercio del cambio
+        # (43,7 g de 50 con pollo y arroz) por clavar unas kcal que ya iban a
+        # cuadrar. La grasa tampoco: el arroz trae la suya y no hay forma de
+        # moverlo sin tocarla.
+        parte = {"carbs": antes["carbs"] + gramos_h}
+        if antes.get("protein") is not None:
+            parte["protein"] = antes["protein"]
+        congelados = json.loads(fila.grams_json) if fila.grams_json else []
+        desde = [
+            congelados[pos] for pos in repertorio.movibles.get(fila.dish_id, []) if pos < len(congelados)
+        ]
+        plato = por_id[fila.dish_id]
+        gramos, despues = ajustar_comida(
+            plato, parte, objetivo or parte, desde if len(desde) == len(plato.ajustables) else None
+        )
+        fila.grams_json = json.dumps(repertorio.completos(fila.dish_id, gramos))
+        fila.carbs_shift = round((despues.get("carbs") or 0.0) - antes["carbs"], 1)
+    await session.commit()
 
 
 @router.put("/entries/{entry_id}/dish", response_model=PlanEntryOut)

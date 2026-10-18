@@ -15,6 +15,7 @@ import {
   renameWorkout,
 } from './api.js'
 import { autoWorkoutName } from './daysHistory.js'
+import { foodMomentIso } from './food.js'
 import { focusEditorTrigger } from './EditTrouble.jsx'
 import { DeleteConfirm } from './DeleteExercise.jsx'
 import { ExerciseEditor } from './ExerciseEditor.jsx'
@@ -1966,7 +1967,9 @@ export default function Workout({
     // is when the phone next finds a network — which in a basement is an hour
     // after the lift, and is the number a session's length is measured from.
     const template = { exercise_name: name, ...fields }
-    const payload = { ...template, performed_at: new Date().toISOString() }
+    // With its offset, like the food log: the server reads the wall clock off
+    // it to tell which meal comes after training (carbs follow training).
+    const payload = { ...template, performed_at: foodMomentIso() }
     const tmpId = `${tmpPrefix.current}-${(nextTmpId.current += 1)}`
     enqueueSet({ tmpId, workoutId: workout.id, payload })
     setWorkout(withQueued)

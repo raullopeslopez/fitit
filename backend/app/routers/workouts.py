@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -15,6 +16,9 @@ from ..muscles import group_for, secondaries_for
 from ..schemas import SetIn, SetOut, WorkoutIn, WorkoutOut, WorkoutPatch
 from ..session_length import session_length
 from .exercises import _get_owned_exercise, _reindex
+from .plans import hidrato_al_entreno
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -278,6 +282,7 @@ async def log_set(
     next_index = await session.scalar(
         select(func.count()).select_from(SetEntry).where(SetEntry.workout_id == workout_id)
     )
+    moment = _moment_of(payload.performed_at)
     session.add(
         SetEntry(
             workout_id=workout_id,
@@ -289,7 +294,7 @@ async def log_set(
             note=payload.note or None,
             duration_seconds=payload.duration_seconds,
             distance=payload.distance,
-            created_at=_moment_of(payload.performed_at),
+            created_at=moment,
             client_id=payload.client_id,
         )
     )
@@ -303,9 +308,24 @@ async def log_set(
             raise
         return await _already_logged(session, workout_id, response)
 
+    await _carbs_follow_training(session, user_id, moment)
+
     loaded = await load_workout(session, workout_id)
     assert loaded is not None
     return loaded
+
+
+async def _carbs_follow_training(session: AsyncSession, user_id: int, moment: datetime) -> None:
+    """Move the day's carbs towards the meal after training (plans, phase 2).
+
+    The set is already committed: nothing that goes wrong with the plan may cost
+    the set, so a failure here is logged and swallowed.
+    """
+    try:
+        await hidrato_al_entreno(session, user_id, moment)
+    except Exception:
+        await session.rollback()
+        logger.exception("carbs did not follow training for user %s", user_id)
 
 
 async def _holds_client_id(session: AsyncSession, workout_id: int, client_id: str) -> bool:
