@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { listDays } from './api.js'
-import { muscleFill } from './muscles.js'
+import { MUSCLE_GROUPS, muscleFill } from './muscles.js'
 import { setsPerMuscle } from './stats.js'
 import { bandState } from './volume.js'
 
@@ -27,7 +27,10 @@ export default function HoyEntreno({ onTrain }) {
 
   useEffect(() => {
     let vivo = true
-    listDays()
+    // Sin backend que conteste (o sin `listDays` en un doble de prueba), la
+    // banda se queda sin músculos, no tumba la pantalla.
+    Promise.resolve()
+      .then(() => listDays())
       .then((days) => vivo && setOwed(owedThisWeek(days ?? [])))
       .catch(() => vivo && setOwed([]))
     return () => {
@@ -62,6 +65,63 @@ export default function HoyEntreno({ onTrain }) {
           </svg>
         </span>
       </button>
+    </section>
+  )
+}
+
+// Semana → «Entreno · series que faltan»: los diez músculos, cada uno con lo
+// que le falta a su mínimo semanal (o ✓), y la celda más llena cuanto más
+// cerca. El mismo dibujo que Historial y Progreso.
+export function weekCells(days) {
+  const summary = setsPerMuscle(days, { period: 'week', index: 0 })
+  const byGroup = Object.fromEntries(summary.rows.map((r) => [r.group, r]))
+  return MUSCLE_GROUPS.map((group) => {
+    const row = byGroup[group]
+    const { direct, band } = bandState(group, row?.sets ?? 0, row?.indirect ?? 0)
+    const goal = band?.mev ?? 0
+    const left = Math.max(0, Math.ceil(goal - direct))
+    const pct = goal > 0 ? Math.max(12, Math.round(Math.min(1, direct / goal) * 100)) : 100
+    return { group, left, pct }
+  })
+}
+
+export function SemanaEntreno() {
+  const [cells, setCells] = useState(null)
+
+  useEffect(() => {
+    let vivo = true
+    // Sin backend que conteste (o sin `listDays` en un doble de prueba), la
+    // banda se queda sin músculos, no tumba la pantalla.
+    Promise.resolve()
+      .then(() => listDays())
+      .then((days) => vivo && setCells(weekCells(days ?? [])))
+      .catch(() => vivo && setCells(null))
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  if (!cells) return null
+  return (
+    <section className="semana-bloque" aria-label="Entreno">
+      <div className="semana-bloque-head">
+        <h2>Entreno</h2>
+        <span>series que faltan</span>
+      </div>
+      <ul className="semana-musculos">
+        {cells.map((c) => (
+          <li key={c.group}>
+            <span
+              className={`semana-celda${c.pct >= 55 ? ' is-llena' : ''}`}
+              style={{ '--chip-fill': muscleFill(c.group), '--pct': `${c.pct}%` }}
+              aria-label={c.left > 0 ? `${c.group}: faltan ${c.left}` : `${c.group}: hecho`}
+            >
+              {c.left > 0 ? `−${c.left}` : '✓'}
+            </span>
+            <span className="semana-musculo">{c.group}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

@@ -377,9 +377,9 @@ describe('la semana', () => {
   })
 })
 
-// Plan v2: «Esta semana» es para seguir el plan. Una tira de siete días arriba
-// dice cuánto llevas de cada uno y salta a él; la próxima comida de hoy se
-// marca; de cómo va la semana queda sólo dónde se cae.
+// Plan v2 + Marcador: «Esta semana» es para seguir el plan. Cada día es una fila
+// con su menú y cuánto llevas, que se despliega; hoy viene desplegado. La
+// próxima comida de hoy se marca; de cómo va la semana queda dónde se cae.
 describe('esta semana, para seguir el plan', () => {
   const SEGUIR = {
     ...PLAN,
@@ -407,29 +407,30 @@ describe('esta semana, para seguir el plan', () => {
     )
   }
 
-  it('la tira dice de cada día cuántas comidas llevas de las planificadas', () => {
+  it('cada día es una fila con su menú y cuántas comidas llevas', () => {
     pintar()
-    const tira = screen.getByRole('navigation', { name: 'Ir a un día' })
-    expect(within(tira).getAllByRole('button')).toHaveLength(7)
-    expect(within(tira).getByRole('button', { name: 'Lunes 21, 1 de 3 comidas' })).toHaveTextContent('1/3')
-    expect(within(tira).getByRole('button', { name: 'Martes 22, 0 de 1 comidas' })).toHaveTextContent('0/1')
+    const lunes = screen.getByRole('button', { name: 'Lunes 21, 1 de 3 comidas' })
+    expect(lunes).toHaveTextContent('1/3')
+    expect(lunes).toHaveTextContent('Tostada · Pollo con arroz · Merluza')
+    expect(screen.getByRole('button', { name: 'Martes 22, 0 de 1 comidas' })).toHaveTextContent('0/1')
   })
 
   it('un día sin plan es «—», no un cero', () => {
     pintar()
-    const tira = screen.getByRole('navigation', { name: 'Ir a un día' })
-    const miercoles = within(tira).getByRole('button', { name: 'Miércoles 23, sin comidas planificadas' })
+    const miercoles = screen.getByRole('button', { name: 'Miércoles 23, sin comidas planificadas' })
     expect(miercoles).toHaveTextContent('—')
     expect(miercoles).not.toHaveTextContent('0/0')
   })
 
-  it('tocar un día de la tira lleva a ese día', async () => {
-    const scroll = vi.fn()
-    Element.prototype.scrollIntoView = scroll
+  it('hoy viene desplegado; tocar otro día despliega sus comidas', async () => {
     pintar()
-    await userEvent.click(screen.getByRole('button', { name: /^Martes 22/ }))
-    expect(scroll).toHaveBeenCalledTimes(1)
-    expect(scroll.mock.contexts[0]).toHaveAttribute('id', `plan-dia-${MARTES}`)
+    expect(screen.getByRole('button', { name: /^Lunes 21/ })).toHaveAttribute('aria-expanded', 'true')
+    const martes = screen.getByRole('button', { name: /^Martes 22/ })
+    expect(martes).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: 'Cambiar Lentejas' })).not.toBeInTheDocument()
+    await userEvent.click(martes)
+    expect(martes).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Lentejas', { selector: '.plan-lista *' })).toBeInTheDocument()
   })
 
   it('marca la primera comida de hoy que aún no tiene estado', () => {

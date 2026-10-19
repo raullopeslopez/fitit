@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { SemanaEntreno } from './HoyEntreno.jsx'
 import {
   correctDish,
   eatFromBatch,
@@ -732,6 +733,14 @@ export function Semana({
   // La fila del plan que se está cambiando, o `null`.
   const [cambiando, setCambiando] = useState(null)
   const dias = diasDe(weekStart)
+  const [abiertos, setAbiertos] = useState(() => new Set([hoy]))
+  const alternar = (iso) =>
+    setAbiertos((antes) => {
+      const despues = new Set(antes)
+      if (despues.has(iso)) despues.delete(iso)
+      else despues.add(iso)
+      return despues
+    })
   // Un hueco que ya pasó o del que ya dijiste algo no se replanifica: el
   // servidor lo rechazaría, y ofrecerlo sería prometer lo que no se puede.
   const cambiable = (entrada) => Array.isArray(platos) && !entrada.status && entrada.log_date >= hoy
@@ -768,17 +777,50 @@ export function Semana({
     <>
         {onPlatos && <SinComida platos={platos} onPlatos={onPlatos} />}
         {onLista && <ListRow label="Lista de la compra" value="" onClick={onLista} />}
-        {seguir ? <TiraSemana plan={plan} dias={dias} hoy={hoy} /> : <Adherencia informe={informe} />}
+        {seguir ? <SemanaEntreno /> : <Adherencia informe={informe} />}
+        {seguir && (
+          <div className="semana-bloque-head semana-comida-head">
+            <h2>Comida</h2>
+            <span>dichas / del plan</span>
+          </div>
+        )}
 
         {dias.map((iso, i) => {
           const filas = delDia(plan, iso)
           const siguiente = seguir && iso === hoy ? filas.find((f) => !f.status)?.id : undefined
+          // En «Esta semana» cada día es una fila: su menú y cuántas llevas.
+          // Tocarla despliega sus comidas; hoy viene desplegado.
+          const plegado = seguir && !abiertos.has(iso)
+          const llevas = filas.filter((f) => f.status).length
           return (
-            <section key={iso} id={`plan-dia-${iso}`} className={`plan-dia${iso === hoy ? ' is-today' : ''}`}>
-              <h3 className="plan-dia-nombre">
-                {DIAS[i]}
-                {iso === hoy && <span className="plan-dia-hoy">Hoy</span>}
-              </h3>
+            <section key={iso} id={`plan-dia-${iso}`} className={`plan-dia${iso === hoy ? ' is-today' : ''}${seguir ? ' is-fila' : ''}`}>
+              {seguir ? (
+                <button
+                  type="button"
+                  className={`semana-dia${iso < hoy ? ' is-pasado' : ''}`}
+                  aria-expanded={!plegado}
+                  aria-label={`${DIAS[i]} ${Number(iso.slice(8, 10))}, ${
+                    filas.length ? `${llevas} de ${filas.length} comidas` : 'sin comidas planificadas'
+                  }`}
+                  onClick={() => alternar(iso)}
+                >
+                  <span className="semana-dia-fecha">
+                    <span className="semana-dia-dow">{iso === hoy ? 'HOY' : DIAS[i].slice(0, 3).toUpperCase()}</span>
+                    <span className="semana-dia-num">{Number(iso.slice(8, 10))}</span>
+                  </span>
+                  <span className="semana-dia-menu">
+                    {filas.length ? filas.map((f) => (f.dish_name ? nombreCorto(f.dish_name) : '—')).join(' · ') : 'Sin comidas planificadas'}
+                  </span>
+                  <span className="semana-dia-cuenta">{filas.length ? `${llevas}/${filas.length}` : '—'}</span>
+                </button>
+              ) : (
+                <h3 className="plan-dia-nombre">
+                  {DIAS[i]}
+                  {iso === hoy && <span className="plan-dia-hoy">Hoy</span>}
+                </h3>
+              )}
+              {!plegado && (
+              <>
               <Desvios desvios={(plan.desvios ?? []).filter((d) => d.log_date === iso)} dia={DIAS[i]} />
               {filas.length === 0 ? (
                 <p className="hint">Sin comidas planificadas.</p>
@@ -793,6 +835,8 @@ export function Semana({
                     />
                   ))}
                 </ul>
+              )}
+              </>
               )}
             </section>
           )
