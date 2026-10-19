@@ -857,8 +857,22 @@ const TABS = [
   ['ritmo', 'Cuerpo'],
 ]
 
+// Los periodos de la gráfica de Ejercicio y cuántos días atrás llega cada uno.
+const PERIODOS = [
+  ['4S', 28],
+  ['3M', 91],
+  ['1A', 365],
+  ['Todo', null],
+]
+
+function isoDaysAgo(n, now = new Date()) {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function Progress({ initialTab = 'series' }) {
   const [tab, setTab] = useState(initialTab)
+  const [periodo, setPeriodo] = useState('Todo')
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
   const [days, setDays] = useState([]) // the whole log; everything here is derived from it
   // An empty log and a log that hasn't arrived are the same `[]`, and the
@@ -1319,7 +1333,11 @@ export default function Progress({ initialTab = 'series' }) {
   const current = exercises.find((e) => e.name === name)
   const rungs = name ? recordLadder(days, name) : []
   const gain = rungs.length > 1 ? rungs.at(-1).weight - rungs[0].weight : 0
-  const sessions = rungs.length ? sessionTops(days, name) : []
+  const allSessions = rungs.length ? sessionTops(days, name) : []
+  // El periodo de la gráfica (Marcador): 4 semanas, 3 meses, un año o todo.
+  // Sólo recorta la línea; la cifra grande y las marcas son de siempre.
+  const desde = PERIODOS.find(([id]) => id === periodo)?.[1]
+  const sessions = desde ? allSessions.filter((s) => s.date >= isoDaysAgo(desde)) : allSessions
   // Never carried weight: its climb is reps, and 0 kg said nothing.
   const byReps = rungs.length > 0 && rungs.every((r) => r.weight === 0)
   const repGain = byReps ? rungs.at(-1).reps - rungs[0].reps : 0
@@ -1515,16 +1533,36 @@ export default function Progress({ initialTab = 'series' }) {
               <span className="evo-big-n">
                 {byReps ? rungs.at(-1).reps : showKg(rungs.at(-1).weight)}
               </span>
-              <span className="evo-big-unit">{byReps ? 'reps' : `kg × ${rungs.at(-1).reps}`}</span>
-              {(byReps ? repGain : gain) > 0 && (
-                <span className="evo-gain">
-                  <span>{byReps ? `+${repGain} reps` : `+${showKg(gain)} kg`}</span> desde{' '}
-                  {formatMonth(rungs[0].date)}
-                </span>
-              )}
+              {/* Marcador: al lado de la cifra, su sello y lo que ha subido. */}
+              <span className="evo-big-side">
+                <span className="evo-big-unit">{byReps ? 'reps' : `kg × ${rungs.at(-1).reps}`}</span>
+                {(byReps ? repGain : gain) > 0 && (
+                  <span className="evo-gain">
+                    <span>{byReps ? `+${repGain} reps` : `+${showKg(gain)} kg`}</span> desde{' '}
+                    {formatMonth(rungs[0].date)}
+                  </span>
+                )}
+              </span>
             </p>
             <p className="evo-note">Récord del {formatIsoDayMonth(rungs.at(-1).date)}</p>
-            <SessionChart key={name} sessions={sessions} byReps={byReps} />
+            <div className="evo-periodos" role="group" aria-label="Periodo">
+              {PERIODOS.map(([id]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="evo-periodo"
+                  aria-pressed={periodo === id}
+                  onClick={() => setPeriodo(id)}
+                >
+                  {id}
+                </button>
+              ))}
+            </div>
+            {sessions.length > 0 ? (
+              <SessionChart key={`${name}-${periodo}`} sessions={sessions} byReps={byReps} />
+            ) : (
+              <p className="hint">Sin sesiones en este periodo.</p>
+            )}
             <div className="evo-stats">
               <div className="evo-stat">
                 <span className="evo-stat-n">{rungs.length}</span>

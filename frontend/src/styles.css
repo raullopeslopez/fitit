@@ -9453,3 +9453,53 @@ button.draft-save {
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Progreso → Ejercicio (Marcador): la cifra a 54 y, a su lado en columna, el
+   sello y lo que ha subido en oro; debajo, el periodo en píldoras. */
+.evo-big {
+  align-items: center;
+  gap: 10px;
+}
+.evo-big-n {
+  font-size: 3.375rem;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+.evo-big-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evo-big-side .evo-big-unit {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.evo-big-side .evo-gain {
+  margin-left: 0;
+}
+.evo-periodos {
+  display: flex;
+  gap: 4px;
+  margin: 0.9rem 0 0.25rem;
+}
+.evo-periodo,
+.evo-periodo:hover:not(:disabled) {
+  min-width: 56px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.evo-periodo[aria-pressed='true'],
+.evo-periodo[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--text);
+  color: var(--bg);
+}

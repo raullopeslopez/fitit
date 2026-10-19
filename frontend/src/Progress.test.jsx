@@ -491,6 +491,28 @@ describe('Progress', () => {
     await charted('Press banca')
   })
 
+  // Marcador: el periodo de la gráfica en píldoras. Todo por defecto; uno
+  // corto sin sesiones lo dice en vez de dibujar una línea vacía.
+  it('el periodo recorta la gráfica, y sin sesiones en él lo dice', async () => {
+    api.listExercises.mockResolvedValue([{ id: 7, name: 'Press banca', muscle_group: 'Pecho' }])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    render(<Progress initialTab="evolucion" />)
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
+    await charted('Press banca')
+
+    const grupo = screen.getByRole('group', { name: 'Periodo' })
+    expect(within(grupo).getAllByRole('button').map((b) => b.textContent)).toEqual(['4S', '3M', '1A', 'Todo'])
+    expect(within(grupo).getByRole('button', { name: 'Todo' })).toHaveAttribute('aria-pressed', 'true')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2027-07-01T12:00:00'))
+    try {
+      await userEvent.click(within(grupo).getByRole('button', { name: '4S' }))
+      expect(screen.getByText('Sin sesiones en este periodo.')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   // Renaming a lift and re-tagging its group are corrections, the same shape as
   // the ones on the exercise card: rare, and they were sitting in the content.
   it('folds the corrections away until you reach for them', async () => {
