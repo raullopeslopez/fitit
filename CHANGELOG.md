@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.40.0: Marcador, la piel nueva sin tarjetas.**
+  Trae al móvil el rediseño de las seis pantallas (#320–#326): Carbón/Tiza con Bricolage en los
+  titulares (`Hoy`, `Plan`, `Días`, `Progreso`, `Perfil` a 54 px), récords en oro, comidas sin
+  color, los músculos en pastel (oscuro) u hondo (claro), y fuera las tarjetas: la opción elegida
+  de cada selector va en tinta, `Lo comí` en tinta, el peso como banda, y en Entreno las pestañas
+  subrayadas y las fichas sin caja. Toques: los mismos.
 - **APK 0.39.0: cuatro comidas, el hidrato sigue al entreno.**
   Trae al móvil todo lo de la épica (#311–#318): Comida sin anillos mientras cumples el plan,
   con la tira del día y el coral para el hidrato; los ingredientes en piezas («2 huevos»);
