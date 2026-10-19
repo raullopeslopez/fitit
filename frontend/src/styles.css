@@ -8896,3 +8896,108 @@ button.draft-save {
   background: var(--accent);
   color: #16181b;
 }
+
+/* ── Entreno a pantalla completa (Marcador) ────────────────────────────────
+   Con un entreno abierto no hay marca ni barra de pestañas: «‹» vuelve. Todo lo
+   que se apoyaba encima de la barra baja al borde. */
+.container.is-workout {
+  --nav-top: env(safe-area-inset-bottom);
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+}
+.container.is-workout .app-header,
+.container.is-workout .bottom-nav {
+  display: none;
+}
+.workout-screen .workout-head {
+  min-height: 64px;
+}
+.workout-screen .secondary.head-back,
+.workout-screen .secondary.head-back:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--text);
+}
+.workout-screen .workout-name strong {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.workout-clock {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.card.card-hero .card-name {
+  font-size: 2.6rem;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+/* «Una rep más»: la serie que toca es una banda a sangre en el pastel de su
+   músculo, con tinta negra en los dos temas (como los chips de Progreso). */
+.card-hero .serie-block {
+  margin: 1.1rem -1rem 1.25rem;
+  padding: 14px 1rem;
+  background: var(--chip-fill, var(--mf-core));
+  color: #101113;
+}
+.card-hero .serie-block * {
+  color: #101113;
+}
+.card-hero .serie-goal .target-next {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+/* Las fichas: la cifra grande sin caja y debajo − en contorno y + relleno,
+   redondos de 56. La segunda, separada por una raya vertical. */
+.log-form-tiles:not(.is-resting) .stepper.stepper {
+  grid-template-columns: 56px 56px;
+  grid-template-areas:
+    'value value'
+    'minus plus';
+  justify-content: start;
+  gap: 14px 10px;
+}
+.log-form-tiles:not(.is-resting) .stepper input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 3.375rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.log-form-tiles:not(.is-resting) .stepper .stepper-btn {
+  width: 56px;
+  height: 56px;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 28px;
+  font-size: 1.6rem;
+}
+.log-form-tiles:not(.is-resting) .row > .field + .field {
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+}
+.log-actions > .btn-log {
+  min-height: 64px;
+  border-radius: 32px;
+  font-size: 1rem;
+}

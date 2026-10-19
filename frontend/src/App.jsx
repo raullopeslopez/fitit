@@ -181,7 +181,8 @@ export default function App() {
   ]
 
   return (
-    <div className="container">
+    // Con un entreno abierto, Entreno ocupa la pantalla: sin marca ni barra.
+    <div className={`container${openWorkoutId ? ' is-workout' : ''}`}>
       <header className="app-header">
         <Wordmark />
       </header>

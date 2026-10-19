@@ -143,8 +143,10 @@ export function WorkoutSkeleton({ onExit }) {
     <section>
       <div className="workout-head">
         {/* Lo único que sigue funcionando mientras se espera, así que es real. */}
-        <button type="button" className="secondary head-back" onClick={onExit}>
-          ← Días
+        <button type="button" className="secondary head-back" aria-label="Volver" onClick={onExit}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
         {/* El nombre sobre la fecha, centrados entre los dos botones: la misma
             caja que va a ocupar el título, para que al llegar no se mueva. */}

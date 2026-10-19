@@ -28,10 +28,11 @@ import {
   formatDate,
   formatDuration,
   formatSet,
+  liveElapsed,
   parseDuration,
   sessionLength,
 } from './format.js'
-import { muscleColor } from './muscles.js'
+import { muscleColor, muscleFill } from './muscles.js'
 import {
   beatenAt,
   doneSummary,
@@ -768,7 +769,7 @@ function ExerciseCard({
           // se refiere. «Objetivo» a secas, solo en una esquina, no decía de
           // qué; aquí lo dice la serie que lo lleva y la marca de la que sale.
           // Sin cifra de tamaño Display: en esta pantalla la tiene el descanso.
-          <div className="target serie-block">
+          <div className="target serie-block" style={{ '--chip-fill': muscleFill(muscle) }}>
             <div className="serie-head">
               <span className="serie-n">{`${sets.length + 1}.ª serie`}</span>
               <span className="target-label">
@@ -1387,6 +1388,24 @@ function CardioCard({
 // `pausedMs`: the rest was paused from the widget (APK only) with that much
 // left. The clock stands still in --muted until `Reanudar`; the widget is the
 // only place that pauses, so here it can only be resumed or skipped.
+// El reloj de la cabecera: cada segundo mientras la sesión sigue abierta.
+function Cronometro({ workout, fallback }) {
+  const [now, setNow] = useState(() => Date.now())
+  const live = liveElapsed(workout, now)
+  useEffect(() => {
+    if (!live) return undefined
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [live === ''])
+  return live ? (
+    <span className="workout-date workout-clock" aria-label={`En curso, ${live}`}>
+      {live}
+    </span>
+  ) : (
+    <span className="workout-date">{fallback}</span>
+  )
+}
+
 function RestBar({ endsAt, total, pausedMs = null, onSkip, onResume }) {
   const [now, setNow] = useState(() => Date.now())
   const paused = pausedMs != null
@@ -2461,8 +2480,8 @@ export default function Workout({
         <p role="alert" className="alert">
           {error}
         </p>
-        <button type="button" className="secondary head-back" onClick={onExit}>
-          ← Días
+        <button type="button" className="secondary head-back" aria-label="Volver" onClick={onExit}>
+          ‹ Volver
         </button>
       </>
     ) : waiting ? (
@@ -2481,8 +2500,10 @@ export default function Workout({
           anchor, and the rare/destructive actions folded into an overflow on the
           right — instead of four buttons and a title staggered across the top. */}
       <div className="workout-head">
-        <button type="button" className="secondary head-back" onClick={onExit}>
-          ← Días
+        <button type="button" className="secondary head-back" aria-label="Volver" onClick={onExit}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
         {/* El título es la puerta del nombre: tocarlo abre la hoja. Sin
             nombre puesto, el entreno se llama por sus músculos y lo dice. */}
@@ -2500,10 +2521,8 @@ export default function Workout({
               answer "which session is this", and the header is already two
               rows tall. Empty string while the session is still running —
               see sessionLength. */}
-          <span className="workout-date">
-            {formatDate(workout.date)}
-            {took && ` · ${took}`}
-          </span>
+          {/* En curso, el reloj de la sesión; cerrada, su fecha y lo que duró. */}
+          <Cronometro workout={workout} fallback={`${formatDate(workout.date)}${took ? ` · ${took}` : ''}`} />
         </button>
             <div className="head-menu">
               <button

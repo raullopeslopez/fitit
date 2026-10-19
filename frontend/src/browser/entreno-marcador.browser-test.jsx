@@ -35,7 +35,7 @@ describe('Entreno en Marcador', () => {
     expect(estilo.borderLeftWidth).toBe('0px')
     expect(estilo.boxShadow).toBe('none')
     const nombre = getComputedStyle(hero.querySelector('.card-name'))
-    expect(nombre.fontSize).toBe('25.6px')
+    expect(nombre.fontSize).toBe('41.6px')
     expect(nombre.fontWeight).toBe('800')
     expect(nombre.fontFamily).toContain('Bricolage Grotesque')
   })

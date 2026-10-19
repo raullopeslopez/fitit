@@ -59,6 +59,19 @@ def dias_entreno():
     return out
 
 
+def entreno_en_curso(wid):
+    # Un entreno de hoy a medias: dos series del primero, la primera hace 32 min.
+    from datetime import datetime, timezone
+    ahora = datetime.now(timezone.utc)
+    base = next(d for d in dias_entreno() if d["id"] == wid) if wid % 2 else dias_entreno()[0]
+    w = dict(base["workouts"][0], id=wid, date=HOY.isoformat())
+    primero = w["sets"][0]["exercise_name"]
+    sets = [s for s in w["sets"] if s["exercise_name"] == primero][:2]
+    for k, s in enumerate(sets):
+        s["created_at"] = (ahora - timedelta(minutes=32 - 3 * k)).isoformat().replace("+00:00", "Z")
+    return dict(w, sets=sets)
+
+
 def lunes(d):
     return d - timedelta(days=d.weekday())
 
@@ -138,6 +151,17 @@ class H(BaseHTTPRequestHandler):
         ruta, _, query = self.path.partition("?")
         if ruta == "/days":
             return self._send(200, dias_entreno())
+        if m := re.fullmatch(r"/workouts/(\d+)", ruta):
+            return self._send(200, entreno_en_curso(int(m[1])))
+        if ruta == "/exercises/previous":
+            from urllib.parse import parse_qs
+            nombre = parse_qs(query).get("name", [""])[0]
+            d = (HOY - timedelta(days=6)).isoformat()
+            serie = lambda i, kg, reps: {"id": 900 + i, "exercise_name": nombre, "kind": "strength", "reps": reps,
+                                         "weight": kg, "set_index": i, "created_at": f"{d}T18:0{i}:00Z"}
+            return self._send(200, {"exercise_name": nombre, "found": True,
+                                    "sets": [serie(0, 80, 10), serie(1, 82.5, 8), serie(2, 82.5, 8)],
+                                    "best_by_reps": [{"reps": 8, "weight": 82.5}], "best_one_rm": 104})
         if ruta == "/food-log":
             return self._send(200, dia_comida(query.removeprefix("date=")))
         if m := re.fullmatch(r"/plans/(\d{4}-\d\d-\d\d)/shopping", ruta):

@@ -257,6 +257,23 @@ function closedSessionMinutes(workout, now) {
   return Math.round(seconds / 60)
 }
 
+// Lo que lleva la sesión en curso, en reloj: `32:10`, y `1:05:20` pasada la
+// hora. Cuenta desde la primera serie; vacío sin series o con la sesión ya
+// cerrada (más de SESSION_GAP_MS desde la última), que es cuando lo dice
+// `sessionLength`.
+export function liveElapsed(workout, now = Date.now()) {
+  const times = (workout?.sets ?? []).map((s) => Date.parse(s.created_at)).filter((t) => Number.isFinite(t))
+  if (times.length === 0) return ''
+  const first = Math.min(...times)
+  const last = Math.max(...times)
+  if (now - last >= SESSION_GAP_MS || now < first) return ''
+  const total = Math.floor((now - first) / 1000)
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const sec = total % 60
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
+}
+
 export function sessionLength(workout, now = Date.now()) {
   const minutes = closedSessionMinutes(workout, now)
   if (minutes == null) return ''

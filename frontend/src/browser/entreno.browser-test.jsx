@@ -22,7 +22,9 @@ const token = (name) => {
   return value
 }
 
-test('«← Días» va en tinta ámbar, sin relleno, y sigue siendo tocable', async () => {
+// Marcador (lienzo «Entreno · serie en curso»): volver es un «‹» en tinta, sin
+// relleno ni marco, con su blanco de 44 px.
+test('«Volver» es un ‹ en tinta, sin relleno, y sigue siendo tocable', async () => {
   const { container, restore } = await mountEntreno()
   try {
     await settle()
@@ -30,8 +32,8 @@ test('«← Días» va en tinta ámbar, sin relleno, y sigue siendo tocable', as
     expect(back).toBeTruthy()
     const style = getComputedStyle(back)
     expect(style.backgroundColor).toBe(TRANSPARENT)
-    expect(style.color).toBe(token('--accent-ink'))
-    expect(back.getBoundingClientRect().height).toBeGreaterThanOrEqual(36)
+    expect(style.color).toBe(token('--text'))
+    expect(back.getBoundingClientRect().height).toBeGreaterThanOrEqual(44)
   } finally {
     restore()
   }

@@ -1913,7 +1913,7 @@ describe('Workout', () => {
     const onExit = vi.fn()
     renderWorkout({ onExit })
 
-    await userEvent.click(await screen.findByRole('button', { name: /días/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /^volver$/i }))
     expect(onExit).toHaveBeenCalled()
   })
 
@@ -1947,9 +1947,9 @@ describe('Workout', () => {
     expect(await screen.findByText(/jue, 16 jul 2026 · 1h 05/i)).toBeInTheDocument()
   })
 
-  // Mid-session there is no total to give: it would grow every time you looked
-  // at it, which is a clock, and this screen deliberately hasn't got one.
-  it('holds the length back while the session is still running', async () => {
+  // Mid-session there is no total to give: what there is, since Marcador, is the
+  // clock (lienzo «Entreno · serie en curso»), counted from the first set.
+  it('shows the running clock, not the length, while the session is running', async () => {
     api.getWorkout.mockResolvedValue({
       ...workoutWith(
         benchSet({ id: 1, created_at: new Date(Date.now() - 3900_000).toISOString() }),
@@ -1959,7 +1959,7 @@ describe('Workout', () => {
     })
     renderWorkout()
 
-    expect(await screen.findByText(/jue, 16 jul 2026/i)).toBeInTheDocument()
+    expect(await screen.findByText(/^1:05:0\d$/)).toBeInTheDocument()
     expect(screen.queryByText(/1h 05/)).not.toBeInTheDocument()
   })
 
@@ -3192,7 +3192,7 @@ describe('Workout', () => {
       renderWorkout()
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo cargar el entreno/i)
-      expect(screen.getByRole('button', { name: /días/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^volver$/i })).toBeInTheDocument()
     })
 
     // Visto en prod el 2026-09-28: sin cobertura, la respuesta fallaba al

@@ -95,8 +95,8 @@ describe('placeholders de carga', () => {
       expect(screen.queryByText('Cargando…')).not.toBeInTheDocument()
       expect(container.querySelectorAll('.sk').length).toBeGreaterThan(0)
       expect(container.querySelectorAll('.card-quiet')).toHaveLength(2)
-      // La vuelta a Días es lo único que sigue funcionando aquí, así que es real.
-      expect(screen.getByRole('button', { name: /Días/ })).toBeInTheDocument()
+      // La vuelta (‹) es lo único que sigue funcionando aquí, así que es real.
+      expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument()
     })
   })
 
