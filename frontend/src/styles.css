@@ -9564,3 +9564,94 @@ button.draft-save {
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* Progreso → Músculos: ocho semanas por músculo (Marcador). */
+.ocho {
+  margin: 1rem 0 1.5rem;
+}
+.ocho-head,
+.ocho-fila {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 60px;
+  gap: 10px;
+  align-items: center;
+}
+.ocho-head {
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.ocho-head span:last-child,
+.ocho-media {
+  text-align: right;
+}
+.ocho-fila {
+  height: 50px;
+  border-top: 1px solid var(--border);
+}
+.ocho-nombre {
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ocho-celdas {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+}
+.ocho-celda {
+  display: block;
+  height: 24px;
+  border-radius: 5px;
+  background: var(--border);
+}
+.ocho-media {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.ocho-baja {
+  font-weight: 600;
+  color: var(--pr);
+}
+
+/* Progreso → Cuerpo: pasos de siete días. */
+.pasos7 {
+  margin: 1.25rem 0;
+}
+.pasos7-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.pasos7-sello {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pasos7-media {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.pasos7-barras {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+  height: 48px;
+  margin-top: 8px;
+}
+.pasos7-barra {
+  display: block;
+  border-radius: 4px;
+  background: var(--border);
+}
+.pasos7-barra.is-meta {
+  background: var(--m-cuadriceps);
+}

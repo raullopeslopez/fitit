@@ -21,6 +21,7 @@ import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, muscleFill, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import Weight from './Weight.jsx'
+import { MusculosOchoSemanas, PasosSieteDias } from './OchoSemanas.jsx'
 import {
   deloadTargets,
   lastTime,
@@ -1384,6 +1385,7 @@ export default function Progress({ initialTab = 'series' }) {
 
       {tab === 'series' && (
         <div role="tabpanel" aria-labelledby="prog-tab-series">
+          {days.length > 0 && <MusculosOchoSemanas days={days} />}
           {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
           {days.length > 0 ? (
             <Rhythm days={days} />
@@ -1397,6 +1399,7 @@ export default function Progress({ initialTab = 'series' }) {
         <div role="tabpanel" aria-labelledby="prog-tab-ritmo">
           {/* El peso, y la constancia de todo: días en los que te cuidaste. */}
           <Weight />
+          <PasosSieteDias />
           <DiasCuidadosCard />
         </div>
       )}
