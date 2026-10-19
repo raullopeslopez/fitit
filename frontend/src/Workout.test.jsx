@@ -277,6 +277,22 @@ describe('Workout', () => {
       expect(bench.getByRole('button', { name: 'Cerrar serie 2' })).toBeInTheDocument()
     })
 
+    // Estados (Marcador): sin red, una línea arriba dice cuántas faltan por
+    // subir y que se envían solas.
+    it('dice arriba cuántas series quedan sin guardar', async () => {
+      api.getWorkout.mockResolvedValue(workoutWith(benchSet({ id: 1, set_index: 0 })))
+      api.logSet.mockRejectedValue(new Error('offline'))
+      renderWorkout()
+
+      await screen.findByRole('heading', { level: 2, name: /Bench Press/i })
+      await userEvent.type(screen.getByLabelText(/reps/i), '8')
+      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'Sin conexión · 1 serie sin guardar. Se envían solas.',
+      )
+    })
+
     it('leaves a chip for an unsaved set untappable', async () => {
       // Editing routes through the set's server id and a pending set hasn't got
       // one — same rule the open card's rows already follow.

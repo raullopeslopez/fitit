@@ -1,5 +1,5 @@
 import { foodDayIso, foodMomentIso } from './food.js'
-import { clearToken, getToken, notifyUnauthorized } from './auth.js'
+import { clearToken, getToken, notifyUnauthorized, notifyUpdateRequired } from './auth.js'
 import { apiUrl, clientHeaders } from './platform/http.js'
 
 export async function login(username, password) {
@@ -89,6 +89,9 @@ export async function apiFetch(path, options = {}) {
     } catch {
       // Cuerpo vacío, no-JSON, o una respuesta que ni siquiera tiene `json`.
     }
+    // 426: el servidor dice que esta versión ya no le entiende. La app entera
+    // cambia a «hay que actualizar» (App escucha el aviso), no cada pantalla.
+    if (res.status === 426) notifyUpdateRequired()
     throw Object.assign(new Error(`request failed: ${res.status}`), {
       status: res.status,
       detail,

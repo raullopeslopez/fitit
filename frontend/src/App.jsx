@@ -10,7 +10,8 @@ import Progress from './Progress.jsx'
 import Register from './Register.jsx'
 import Workout from './Workout.jsx'
 import Wordmark from './Wordmark.jsx'
-import { clearToken, getToken, setToken, setUnauthorizedHandler } from './auth.js'
+import { clearToken, getToken, setToken, setUnauthorizedHandler, setUpdateRequiredHandler } from './auth.js'
+import { CLIENT_VERSION } from './platform/http.js'
 import { useColdStart } from './coldstart.js'
 import { startNativeQueue, stopNativeQueue } from './offline.js'
 import { session } from './platform/session.js'
@@ -19,7 +20,11 @@ import { onResume } from './platform/lifecycle.js'
 import { syncSteps } from './steps.js'
 import { syncFood } from './widgetSummary.js'
 
+// Donde vive la versión nueva del APK.
+const UPDATE_URL = 'https://github.com/raullopeslopez/fitit/releases/latest'
+
 export default function App() {
+  const [updateRequired, setUpdateRequired] = useState(false)
   const [token, setTokenState] = useState(getToken())
   // Resume where you were: mid-workout, the app reopens inside the workout.
   const [openWorkoutId, setOpenWorkoutId] = useState(getOpenWorkout)
@@ -48,7 +53,11 @@ export default function App() {
   useEffect(() => {
     // A 401 from any API call drops us back to the login screen.
     setUnauthorizedHandler(() => setTokenState(null))
-    return () => setUnauthorizedHandler(null)
+    setUpdateRequiredHandler(() => setUpdateRequired(true))
+    return () => {
+      setUnauthorizedHandler(null)
+      setUpdateRequiredHandler(null)
+    }
   }, [])
 
   // Los pasos del teléfono y la comida de hoy para el widget, al entrar y cada
@@ -129,6 +138,21 @@ export default function App() {
     openWorkout(null)
     if (target === 'plan') setPlanInicial('esta')
     setView(target)
+  }
+
+  // Estados (Marcador): la única pantalla entera en mandarina. Una versión que
+  // el servidor ya no acepta no puede hacer nada útil, así que no se finge.
+  if (updateRequired) {
+    return (
+      <div className="container update-required" role="alert">
+        <p className="update-required-sello">Versión {CLIENT_VERSION}</p>
+        <h1 className="update-required-titulo">Esta versión ya no habla con el servidor</h1>
+        <p className="update-required-texto">Tus datos están a salvo. Instala la nueva y sigue donde lo dejaste.</p>
+        <a className="update-required-boton" href={UPDATE_URL} target="_blank" rel="noreferrer">
+          Actualizar
+        </a>
+      </div>
+    )
   }
 
   if (!token) {

@@ -27,3 +27,15 @@ export function notifyUnauthorized() {
     unauthorizedHandler()
   }
 }
+
+// Una versión que el servidor ya no acepta (426). La app pasa a la pantalla
+// de actualizar en cuanto lo sabe.
+let updateHandler = null
+
+export function setUpdateRequiredHandler(handler) {
+  updateHandler = handler
+}
+
+export function notifyUpdateRequired() {
+  if (updateHandler) updateHandler()
+}

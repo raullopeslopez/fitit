@@ -2373,6 +2373,7 @@ export default function Workout({
 
   const setsFor = (name) =>
     workout ? workout.sets.filter((s) => s.exercise_name === name) : []
+  const pendientes = workout ? workout.sets.filter((s) => s.pending).length : 0
 
   // El ejercicio en pantalla: el elegido si sigue en la sesión, y si no (aún no
   // elegiste, o lo quitaste) el primero de la lista.
@@ -2630,6 +2631,16 @@ export default function Workout({
           </div>
         )}
       </Sheet>
+
+      {/* Estados (Marcador): sin red se sigue registrando igual, y lo que aún
+          no ha llegado al servidor se dice una vez, arriba, en vez de con un
+          punto por fila que hay que interpretar. */}
+      {pendientes > 0 && (
+        <p className="workout-offline" role="status">
+          <strong>Sin conexión</strong>
+          {` · ${pendientes} ${pendientes === 1 ? 'serie sin guardar' : 'series sin guardar'}. Se envían solas.`}
+        </p>
+      )}
 
       {/* ── La tira ─────────────────────────────────────────────────────────
           Todos los de hoy, en el orden de la sesión, cada uno a un toque: volver

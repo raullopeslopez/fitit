@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 
 import App from './App.jsx'
 import * as api from './api.js'
-import { setToken } from './auth.js'
+import { notifyUpdateRequired, setToken } from './auth.js'
 import * as offline from './offline.js'
 import { foodDayIso } from './food.js'
 
@@ -179,6 +179,20 @@ describe('App', () => {
       render(<App />)
       expect(launch.listener).toBeNull()
     })
+  })
+
+  // Estados (Marcador): un 426 en cualquier petición lleva a la pantalla de
+  // actualizar, la única entera en mandarina.
+  it('una versión que el servidor ya no acepta pasa a «Actualizar»', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    render(<App />)
+    act(() => notifyUpdateRequired())
+    expect(await screen.findByRole('heading', { name: 'Esta versión ya no habla con el servidor' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Actualizar' })).toHaveAttribute(
+      'href',
+      'https://github.com/raullopeslopez/fitit/releases/latest',
+    )
   })
 
   it('shows the login screen when there is no token', () => {
