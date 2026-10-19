@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.41.0: Marcador, la estructura del lienzo.**
+  Trae al móvil todo lo de #328–#346. Barra flotante Hoy · Semana · Historial · Progreso · Tú, y
+  la app abre en Hoy. Hoy: banda «Esta semana te falta» con «Entrenar» (un toque), cada comida
+  en una fila con «Comido», «Cena de ayer» igual, y la fila «Peso». Entreno a pantalla completa
+  con reloj, banda «Una rep más», cifras grandes, series 01… con «ahora / —», «Siguiente · X»,
+  opciones en hoja y aviso de series sin guardar. Semana: «Entreno · series que faltan» y un día
+  por fila. Historial: «+», kcal por día y la ficha de un día. Progreso: Ejercicio · Músculos
+  (ocho semanas) · Cuerpo (peso y pasos). Tú: iniciales y objetivo en banda amarilla. Añadir:
+  «A qué comida» arriba y lo de siempre en filas. Y la pantalla de «Actualizar» ante un 426.
 - **APK 0.40.0: Marcador, la piel nueva sin tarjetas.**
   Trae al móvil el rediseño de las seis pantallas (#320–#326): Carbón/Tiza con Bricolage en los
   titulares (`Hoy`, `Plan`, `Días`, `Progreso`, `Perfil` a 54 px), récords en oro, comidas sin
