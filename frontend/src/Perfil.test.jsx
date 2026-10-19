@@ -315,6 +315,14 @@ describe('Perfil', () => {
     })
   })
 
+  it('las iniciales salen del usuario, y «Ver la cuenta» abre tu objetivo', async () => {
+    api.getMe.mockResolvedValue({ id: 1, username: 'raul.lopez' })
+    const { container } = renderPerfil()
+    await waitFor(() => expect(container.querySelector('.tu-avatar')).toHaveTextContent('RL'))
+    await userEvent.click(screen.getByRole('button', { name: 'Ver la cuenta' }))
+    expect(await screen.findByRole('dialog', { name: 'Tu objetivo' })).toBeInTheDocument()
+  })
+
   it('«Tus reglas» abre las reglas, y se cierran', async () => {
     renderPerfil()
 

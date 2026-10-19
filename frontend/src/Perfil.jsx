@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
+import { getMe, getTargetProfile, getTargetProposal, saveTargetProfile } from './api.js'
 import { currentWeek, isDeload, toggleDeload } from './deload.js'
 import { formatRange } from './format.js'
 import ObjetivoSheet, { conMiles, procedencia, ritmo } from './Objetivo.jsx'
@@ -99,8 +99,31 @@ const DATOS = {
 //
 // Cada ajuste es una fila y se edita en su hoja (DESIGN.md → Sistema v2): nada
 // de un «Guardar» al pie de un formulario de seis campos.
+// Dos letras: la inicial de cada palabra (raul.lopez → RL), o las dos primeras
+// si es una sola.
+export function iniciales(nombre) {
+  const partes = String(nombre ?? '')
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+  if (partes.length === 0) return ''
+  const dos = partes.length > 1 ? partes[0][0] + partes[1][0] : partes[0].slice(0, 2)
+  return dos.toUpperCase()
+}
+
 export default function Perfil({ onLogout }) {
   const [reglasOpen, setReglasOpen] = useState(false)
+  // Tu nombre de usuario, sólo para las iniciales junto al titular.
+  const [usuario, setUsuario] = useState(null)
+  useEffect(() => {
+    let vivo = true
+    Promise.resolve()
+      .then(() => getMe())
+      .then((me) => vivo && setUsuario(me?.username ?? null))
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [])
   const [perfil, setPerfil] = useState(null)
   const [propuesta, setPropuesta] = useState(null)
   // Qué hoja está abierta: 'objetivo', una clave de `DATOS`, 'sexo', 'platos' o 'sitios'.
@@ -145,7 +168,14 @@ export default function Perfil({ onLogout }) {
     <div className="perfil">
       {/* El peso vive en Progreso → Cuerpo (Marcador). Volver aquí vuelve a
           pedir la propuesta, así que una pesada nueva ya sale en ella. */}
-      <h1 className="perfil-title">Tú</h1>
+      <header className="tu-head">
+        <h1 className="perfil-title">Tú</h1>
+        {iniciales(usuario) && (
+          <span className="tu-avatar" aria-hidden="true">
+            {iniciales(usuario)}
+          </span>
+        )}
+      </header>
 
       {/* Marcador: el objetivo es la banda de la pantalla, a sangre y en
           amarillo, con la cifra en grande; sus filas, dentro y en tinta negra. */}
@@ -162,6 +192,10 @@ export default function Perfil({ onLogout }) {
             {[ritmo(p), DATOS.pesoMeta.valor(p) && `meta ${DATOS.pesoMeta.valor(p)}`].filter(Boolean).join(' · ')}
           </p>
         )}
+        {/* La cuenta de la que sale la cifra: la hoja de «Tu objetivo». */}
+        <button type="button" className="tu-cuenta" onClick={() => setHoja('objetivo')}>
+          Ver la cuenta
+        </button>
         <div className="perfil-card">
           <ListRow
             label="Objetivo diario"

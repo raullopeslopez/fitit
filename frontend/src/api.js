@@ -725,3 +725,8 @@ export async function getAdherence(weekStart) {
     throw err
   }
 }
+
+// Quién eres: el nombre de usuario, para las iniciales de Tú.
+export function getMe() {
+  return apiFetch('/auth/me')
+}

@@ -9531,3 +9531,36 @@ button.draft-save {
   background: transparent;
   color: var(--text);
 }
+
+/* Tú → el titular con tus iniciales al lado, y «Ver la cuenta» en la banda. */
+.tu-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.tu-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 6px;
+  border-radius: 22px;
+  background: #ffd45c;
+  color: #101113;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.tu-cuenta,
+.tu-cuenta:hover:not(:disabled) {
+  height: 44px;
+  min-height: 44px;
+  margin: 0 0 0.75rem;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: #101113;
+  color: #ffd45c;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
