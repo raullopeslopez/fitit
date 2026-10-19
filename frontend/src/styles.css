@@ -2113,11 +2113,14 @@ button.editor-row-danger {
   align-items: center;
   gap: 0.5rem;
   min-height: 44px;
-  padding: 0 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--text);
+  padding: 0 0.25rem;
+  /* Marcador: pestañas, no chips. La de pantalla la subraya el mandarina; las
+     demás van en Ceniza. El borde inferior transparente reserva su alto. */
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;
@@ -2125,8 +2128,8 @@ button.editor-row-danger {
   cursor: pointer;
 }
 .strip-chip[aria-current='true'] {
-  border-color: var(--accent);
-  background: var(--surface-tonal);
+  border-bottom-color: var(--accent);
+  color: var(--text);
 }
 .strip-count {
   font-family: var(--font-mono);
@@ -3050,6 +3053,42 @@ button.set-action {
   font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+/* Marcador: el ejercicio de pantalla no es tarjeta — va sobre el fondo y su
+   nombre es el titular (sección, 1.6rem: el lienzo pide 52 px, pero «Fondos
+   en paralelas» no cabe a esa talla junto al músculo y el pliegue). */
+.card.card-hero {
+  --card-pad-x: 0px;
+  padding-inline: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.card-hero .card-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+/* Las fichas: la cifra sin caja, `−` en contorno y `+` relleno con la tinta
+   de acción (DESIGN.md, Marcador · Formas). */
+.log-form-tiles .stepper.stepper {
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+.log-form-tiles .stepper .stepper-btn {
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--text);
+}
+.log-form-tiles .stepper .stepper-btn.stepper-plus {
+  border-color: transparent;
+  background: var(--surface-raised);
+  color: var(--accent-ink);
 }
 /* Folded, the row still has to answer "did I do this, and what did I hit" —
    so it reads as a spec-sheet line: label left, numbers right, tabular. */
@@ -4277,8 +4316,12 @@ button.set-action {
   border-bottom: none;
   border-radius: var(--radius-control);
 }
-.set-log li:nth-child(odd) {
-  background: color-mix(in srgb, var(--text) 4.5%, transparent);
+/* Marcador: las series son filas con una raya entre ellas, no bandas alternas. */
+.set-log li {
+  border-radius: 0;
+}
+.set-log li + li {
+  border-top: 1px solid var(--border);
 }
 /* A fixed-width index column, so every value starts on the same vertical. */
 .set-ix {
