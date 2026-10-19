@@ -432,7 +432,7 @@ export async function mountProgreso() {
 export async function mountPerfil() {
   const view = await mountApp()
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: /^Perfil$/ }, { timeout: 5000 }))
+  await user.click(await screen.findByRole('button', { name: /^Tú$/ }, { timeout: 5000 }))
   // «Propuesta» con su cifra: la última fila que se rellena al abrir.
   await screen.findByRole('button', { name: /^Propuesta.*2\.450 kcal/ }, { timeout: 5000 })
   await vi.waitFor(() => expect(document.querySelector('.weight-kg')?.textContent).toBe('78,9'), {
@@ -446,7 +446,7 @@ export async function mountPerfil() {
 export async function mountComida({ catalogue = FOODS, routes = [] } = {}) {
   const view = await mountApp({ catalogue, routes })
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: /^Comida$/ }, { timeout: 5000 }))
+  await user.click(await screen.findByRole('button', { name: /^Hoy$/ }, { timeout: 5000 }))
   // Por la primera tarjeta de comida: es lo primero que se dibuja con el día ya
   // cargado, así que esperar a una de ellas basta.
   await vi.waitFor(() => expect(document.querySelector('.food-slot')).not.toBeNull(), {
@@ -460,7 +460,7 @@ export async function mountComida({ catalogue = FOODS, routes = [] } = {}) {
 export async function mountPlan({ routes = [] } = {}) {
   const view = await mountApp({ routes })
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: /^Plan$/ }, { timeout: 5000 }))
+  await user.click(await screen.findByRole('button', { name: /^Semana$/ }, { timeout: 5000 }))
   await vi.waitFor(() => expect(document.querySelector('.plan-tira')).not.toBeNull(), {
     timeout: 5000,
   })

@@ -74,7 +74,7 @@ describe('App', () => {
       render(<App />)
 
       // «Salir» vive en Perfil, al final: es lo más raro que se hace.
-      await userEvent.click(await screen.findByRole('button', { name: 'Perfil' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Tú' }))
       await userEvent.click(await screen.findByRole('button', { name: /^salir$/i }))
 
       expect(offline.stopNativeQueue).toHaveBeenCalled()
@@ -154,7 +154,7 @@ describe('App', () => {
       act(() => launch.listener({ action }))
 
       expect(await screen.findByRole('button', { name: 'Añadir a desayuno' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page')
     })
 
     // «review», el aviso de la revisión semanal: la revisión vive al planificar
@@ -172,7 +172,7 @@ describe('App', () => {
       act(() => launch.listener({ action: 'review' }))
 
       expect(await screen.findByRole('button', { name: 'La que viene' })).toHaveAttribute('aria-pressed', 'true')
-      expect(screen.getByRole('button', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('button', { name: 'Semana' })).toHaveAttribute('aria-current', 'page')
     })
 
     it('sin sesión no escucha: la orden espera a que entres', () => {
@@ -218,7 +218,7 @@ describe('App', () => {
     expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
 
     // back to the days view via the bottom nav
-    await userEvent.click(screen.getByRole('button', { name: 'Días' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
     expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
   })
 
@@ -235,32 +235,32 @@ describe('App', () => {
     api.frequentFoods.mockResolvedValue([])
     render(<App />)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Comida' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Hoy' }))
     // Los raíles de comida: la pantalla ya no tiene un botón de añadir al pie.
     expect(await screen.findByRole('button', { name: 'Añadir a desayuno' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Comida' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Días' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
     expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
   })
 
   // Plan sale de Comida: registrar y planificar son dos trabajos, y la lista de
   // la compra se abre en el súper, no tres toques dentro de una tarjeta.
-  it('Plan es su propia pestaña, entre Comida y Perfil', async () => {
+  it('Semana es su propia pestaña, entre Hoy e Historial', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([])
     api.getPlan.mockResolvedValue(null)
     api.listDishes.mockResolvedValue([])
     render(<App />)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Plan' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Plan' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
+    await userEvent.click(await screen.findByRole('button', { name: 'Semana' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Semana' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Semana' })).toHaveAttribute('aria-current', 'page')
   })
 
   // Lo que se fija una vez (objetivo, reparto, reglas, peso, preferencias de
   // Entreno) sale de Comida y de Entreno y vive aquí.
-  it('Perfil es la última pestaña, y la cabecera ya no lleva «Salir»', async () => {
+  it('Tú es la última pestaña, y la cabecera ya no lleva «Salir»', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([])
     stubPerfil()
@@ -269,12 +269,12 @@ describe('App', () => {
     const nav = await screen.findByRole('navigation', { name: 'Navegación principal' })
     expect(
       [...nav.querySelectorAll('button')].map((b) => b.lastChild.textContent.trim()),
-    ).toEqual(['Días', 'Progreso', 'Comida', 'Plan', 'Perfil'])
+    ).toEqual(['Hoy', 'Semana', 'Historial', 'Progreso', 'Tú'])
     expect(screen.queryByRole('button', { name: /^salir$/i })).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Perfil' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tú' }))
     expect(await screen.findByRole('heading', { name: 'Tu objetivo' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Perfil' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Tú' })).toHaveAttribute('aria-current', 'page')
   })
 
   // Reopening the app between sets used to land on Días — a tap and a fetch
@@ -389,7 +389,7 @@ describe('App', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     await screen.findByLabelText('Ejercicio')
-    await userEvent.click(screen.getByRole('button', { name: 'Días' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
     await screen.findByRole('button', { name: /empezar entreno/i })
     unmount()
 

@@ -33,7 +33,7 @@ const tema = async (theme) => {
 async function mountPerfil() {
   await mountApp()
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: /^Perfil$/ }, { timeout: 5000 }))
+  await user.click(await screen.findByRole('button', { name: /^Tú$/ }, { timeout: 5000 }))
   await vi.waitFor(() => expect(document.querySelector('.perfil .weight-card')).not.toBeNull(), {
     timeout: 5000,
   })
@@ -41,10 +41,10 @@ async function mountPerfil() {
 }
 
 describe('Perfil en Marcador', () => {
-  it('«Perfil» es titular de pantalla en Bricolage 800 a 54 px', async () => {
+  it('«Tú» es titular de pantalla en Bricolage 800 a 54 px', async () => {
     await mountPerfil()
     const titulo = document.querySelector('.perfil-title')
-    expect(titulo.textContent).toBe('Perfil')
+    expect(titulo.textContent).toBe('Tú')
     const estilo = getComputedStyle(titulo)
     expect(estilo.fontSize).toBe('54px')
     expect(estilo.fontWeight).toBe('800')

@@ -163,12 +163,13 @@ export default function App() {
   const planActive = view === 'plan' && !openWorkoutId
   const profileActive = view === 'profile' && !openWorkoutId
 
+  // El orden del lienzo Marcador: lo de hoy, la semana, lo hecho, cómo vas y tú.
   const tabs = [
-    { key: 'days', label: 'Días', active: daysActive, icon: <IconoDias /> },
+    { key: 'food', label: 'Hoy', active: foodActive, icon: <IconoHoy /> },
+    { key: 'plan', label: 'Semana', active: planActive, icon: <IconoSemana /> },
+    { key: 'days', label: 'Historial', active: daysActive, icon: <IconoHistorial /> },
     { key: 'progress', label: 'Progreso', active: progressActive, icon: <IconoProgreso /> },
-    { key: 'food', label: 'Comida', active: foodActive, icon: <IconoComida /> },
-    { key: 'plan', label: 'Plan', active: planActive, icon: <IconoPlan /> },
-    { key: 'profile', label: 'Perfil', active: profileActive, icon: <IconoPerfil /> },
+    { key: 'profile', label: 'Tú', active: profileActive, icon: <IconoTu /> },
   ]
 
   return (
@@ -201,7 +202,8 @@ export default function App() {
           />
         )}
       </main>
-      {/* Bottom bar puts navigation in thumb reach for one-handed gym use. */}
+      {/* Barra flotante, al alcance del pulgar: la pestaña activa es una píldora
+          mandarina con su nombre; las demás, sólo el icono. */}
       <nav className="bottom-nav" aria-label="Navegación principal">
         {tabs.map((tab) => (
           <button
@@ -211,12 +213,10 @@ export default function App() {
             aria-current={tab.active ? 'page' : undefined}
             onClick={() => go(tab.key)}
           >
-            {/* El icono va dentro de su píldora: la pestaña activa se marca con
-                el fondo de la píldora, no sólo con el color del texto. */}
             <span className="tab-ind" aria-hidden="true">
               {tab.icon}
             </span>
-            {tab.label}
+            <span className="tab-label">{tab.label}</span>
           </button>
         ))}
       </nav>
@@ -234,7 +234,7 @@ function Trazo({ children }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -243,11 +243,28 @@ function Trazo({ children }) {
   )
 }
 
-function IconoDias() {
+function IconoHoy() {
   return (
     <Trazo>
-      <rect x="4" y="5" width="16" height="15" rx="2" />
-      <path d="M4 10h16M9 3v4M15 3v4" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+    </Trazo>
+  )
+}
+
+function IconoSemana() {
+  return (
+    <Trazo>
+      <rect x="3.5" y="5" width="17" height="15" rx="3" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </Trazo>
+  )
+}
+
+function IconoHistorial() {
+  return (
+    <Trazo>
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6M3.5 4v4h4M12 8v4.5l3 2" />
     </Trazo>
   )
 }
@@ -255,38 +272,16 @@ function IconoDias() {
 function IconoProgreso() {
   return (
     <Trazo>
-      <path d="M4 17l5-5 4 4 7-8" />
-      <path d="M15 8h5v5" />
+      <path d="M3.5 17 9 11.5l4 4L20.5 8M15 8h5.5v5.5" />
     </Trazo>
   )
 }
 
-function IconoComida() {
+function IconoTu() {
   return (
     <Trazo>
-      <circle cx="12" cy="13" r="7" />
-      <path d="M5 13h14" />
-    </Trazo>
-  )
-}
-
-// La celda de la marca, en cuatro: la semana como rejilla.
-function IconoPlan() {
-  return (
-    <Trazo>
-      <rect x="4" y="4" width="6" height="6" rx="1" />
-      <rect x="14" y="4" width="6" height="6" rx="1" />
-      <rect x="4" y="14" width="6" height="6" rx="1" />
-      <rect x="14" y="14" width="6" height="6" rx="1" />
-    </Trazo>
-  )
-}
-
-function IconoPerfil() {
-  return (
-    <Trazo>
-      <circle cx="12" cy="9" r="4" />
-      <path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5" />
+      <circle cx="12" cy="8.5" r="3.8" />
+      <path d="M4.5 20c1.2-3.6 4-5.2 7.5-5.2s6.3 1.6 7.5 5.2" />
     </Trazo>
   )
 }

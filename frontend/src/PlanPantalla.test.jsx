@@ -72,7 +72,7 @@ describe('rangoSemana', () => {
 describe('la pantalla Plan', () => {
   it('abre en esta semana, con su rango y sus días', async () => {
     render(<PlanPantalla hoy={HOY} />)
-    expect(screen.getByRole('heading', { level: 1, name: 'Plan' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Semana' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Esta semana' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText('5 – 11 oct')).toBeInTheDocument()
     expect(await screen.findByText('Pollo con arroz')).toBeInTheDocument()

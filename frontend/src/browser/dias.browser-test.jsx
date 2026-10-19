@@ -43,10 +43,10 @@ const MUSCULOS = [
 ]
 
 describe('Días en Marcador', () => {
-  it('«Días» es titular de pantalla en Bricolage 800 a 54 px', async () => {
+  it('«Historial» es titular de pantalla en Bricolage 800 a 54 px', async () => {
     await mountDias()
     const titulo = document.querySelector('.days-title')
-    expect(titulo.textContent).toBe('Días')
+    expect(titulo.textContent).toBe('Historial')
     const estilo = getComputedStyle(titulo)
     expect(estilo.fontSize).toBe('54px')
     expect(estilo.fontWeight).toBe('800')

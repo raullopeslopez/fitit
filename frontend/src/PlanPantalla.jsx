@@ -323,7 +323,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     <div className="plan-pantalla">
       <header className="plan-head">
         <span className="card-eyebrow">{rangoSemana(week)}</span>
-        <h1 className="plan-title">Plan</h1>
+        <h1 className="plan-title">Semana</h1>
       </header>
 
       <div className="seg" role="group" aria-label="Semana">

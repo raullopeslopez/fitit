@@ -186,7 +186,7 @@ h2 {
   margin: 0 auto;
   /* Leave room for the fixed bottom nav so content never hides behind it.
      Arriba, la barra de estado: en el APK la app se pinta debajo de ella. */
-  padding: calc(1.25rem + env(safe-area-inset-top)) 1rem calc(4.5rem + env(safe-area-inset-bottom));
+  padding: calc(1.25rem + env(safe-area-inset-top)) 1rem calc(var(--nav-top) + 1rem);
 }
 
 .app-header {
@@ -253,66 +253,84 @@ h2 {
   cursor: default;
 }
 
-/* Bottom navigation — primary nav in thumb reach for one-handed gym use. */
+/* Barra flotante (Marcador): una píldora despegada del borde, al alcance del
+   pulgar. La pestaña activa crece y lleva su nombre sobre mandarina; las demás
+   son sólo icono, con el nombre para el lector de pantalla. Ocupa 82px desde
+   el borde (18 de aire + 64 de barra): lo que se fija encima usa --nav-top. */
+:root {
+  --nav-top: calc(82px + env(safe-area-inset-bottom));
+}
 .bottom-nav {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 16px;
+  right: 16px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
   z-index: 10;
   display: flex;
-  max-width: 480px;
+  align-items: center;
+  gap: 2px;
+  height: 64px;
+  max-width: 448px;
   margin: 0 auto;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 6px;
+  box-sizing: border-box;
+  border-radius: 32px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent);
 }
 .tab {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  justify-content: center;
+  gap: 6px;
+  height: 52px;
+  min-width: 0;
+  padding: 0;
   background: transparent;
   border: none;
-  border-radius: 0;
+  border-radius: 26px;
   color: var(--muted);
-  /* Label, not Micro. `Días` and `Progreso` are words you read, not stamps that
-     annotate a figure, and DESIGN.md puts the sub-Label step out of bounds for
-     anything with a lowercase letter in it. The bar does not grow: `min-height`
-     is 56px and the stack (8 + 16 icon + 1.6 gap + 15.4 caption + 8) comes to
-     49px, so the extra 1.28px is spent inside slack the box already had. */
   font-size: 0.8rem;
   font-weight: 600;
-  min-height: 56px;
-  padding: 0.5rem 0;
+  transition:
+    flex-grow 150ms ease-out,
+    background-color 150ms ease-out;
 }
 .tab:hover:not(:disabled) {
   background: transparent;
   color: var(--text);
 }
-.tab.is-active {
-  color: var(--text);
+.tab.is-active,
+.tab.is-active:hover:not(:disabled) {
+  flex-grow: 1.3;
+  background: var(--accent);
+  color: #16181b;
 }
-/* El icono va en una píldora, y la pestaña activa se marca llenándola: el
-   indicador de Material que Android ya enseña a leer (DESIGN.md → Sistema v2).
-   El ámbar es un velo, no un color nuevo, y la etiqueta pasa a tinta. */
 .tab-ind {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 30px;
-  border-radius: 15px;
-  transition: background-color 150ms ease-out;
 }
-.tab.is-active .tab-ind {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent-ink);
+.tab-ind svg {
+  width: 22px;
+  height: 22px;
+}
+.tab.is-active .tab-ind svg {
+  width: 20px;
+  height: 20px;
+}
+/* Sin activar, el nombre queda sólo para el lector de pantalla. */
+.tab:not(.is-active) .tab-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tab-ind {
+  .tab {
     transition: none;
   }
 }
@@ -324,14 +342,13 @@ h2 {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(3.5rem + env(safe-area-inset-bottom));
-  z-index: 11;
+  /* Llega hasta el borde y la barra flota encima: entre los dos no asoma la
+     lista. */
+  bottom: 0;
+  z-index: 9;
   max-width: 480px;
   margin: 0 auto;
-  /* No bottom padding: it went to `.days-backfill`, which needed 44px and
-     could not have them by growing the bar. The link is centred in its own
-     target, so the space is still there — it is just tappable now. */
-  padding: 10px 16px 0;
+  padding: 10px 16px var(--nav-top);
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
@@ -2048,10 +2065,11 @@ button.editor-row-danger {
 }
 .workout-dock {
   position: sticky;
-  bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  /* Pegado al borde, con la barra flotando encima de su relleno. */
+  bottom: 0;
   z-index: 5;
-  margin: auto -1rem 0;
-  padding: 0.75rem 1rem;
+  margin: auto -1rem calc(-1 * (var(--nav-top) + 1rem));
+  padding: 0.75rem 1rem calc(var(--nav-top) + 0.75rem);
   background: var(--bg);
   border-top: 1px solid var(--border);
   display: flex;
@@ -7219,7 +7237,7 @@ button.draft-save {
 .ui-fab {
   position: fixed;
   right: max(1rem, calc((100vw - 480px) / 2 + 1rem));
-  bottom: calc(56px + 1rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-top) + 1rem);
   z-index: 20;
   display: inline-flex;
   align-items: center;
@@ -7247,7 +7265,7 @@ button.draft-save {
 .voz-fab {
   position: fixed;
   right: max(1rem, calc((100vw - 480px) / 2 + 1rem));
-  bottom: calc(56px + 1rem + 56px + 0.75rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-top) + 1rem + 56px + 0.75rem);
   z-index: 20;
   display: inline-flex;
   align-items: center;
@@ -7293,7 +7311,7 @@ button.draft-save {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(56px + 1rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-top) + 1rem);
   z-index: 30;
   width: min(480px, calc(100vw - 2rem));
   box-sizing: border-box;
