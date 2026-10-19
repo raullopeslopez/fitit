@@ -125,6 +125,8 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, SITIOS)
         if ruta == "/dishes":
             return self._send(200, CASA)
+        if ruta.endswith("/adherence"):
+            return self._send(200, {"weakest_slot": "cena", "days": 0, "decided": 0, "pending": 0})
         if ruta.startswith("/plans") or "adherence" in ruta:
             return self._send(404, {"detail": "no"})
         return self._send(200, [])

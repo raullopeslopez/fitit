@@ -4639,10 +4639,10 @@ button.set-chip:active:not(:disabled) {
 .plan-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  font-size: 3.375rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
 }
 
 /* La semana del día que miras, en una tira: siete días a un toque y las
@@ -6779,8 +6779,9 @@ button.draft-save {
    del hueco. En mono y mayúsculas los dos, el ojo no distinguía cuál mandaba. */
 .plan-dia-nombre {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text);
   margin: 0 0 0.6rem;
   display: flex;
@@ -8006,39 +8007,42 @@ button.draft-save {
 }
 .plan-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
   margin: 0.2rem 0 1rem;
 }
+/* Marcador: la semana en sello a la derecha del titular, a ras de su base. */
 .plan-head .card-eyebrow {
   margin: 0;
+  padding-bottom: 6px;
 }
 /* Dos semanas, un control segmentado: es una elección entre dos vistas de lo
-   mismo, no dos filtros sueltos. */
+   mismo, no dos filtros sueltos. Marcador: una píldora sobre `--surface`, y la
+   elegida en tinta — el mandarina es para la acción, y esto es un sitio. */
 .seg {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
   margin-bottom: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
+  border-radius: 26px;
+  background: var(--surface);
 }
 .seg-btn {
   min-height: 44px;
   border: 0;
-  border-radius: 0;
+  border-radius: 22px;
   background: transparent;
   color: var(--muted);
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
 }
-.seg-btn + .seg-btn {
-  border-left: 1px solid var(--border);
-}
 .seg-btn.is-on {
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-  color: var(--text);
+  background: var(--text);
+  color: var(--bg);
 }
 .plan-semana .plan-otra {
   width: 100%;
@@ -8051,16 +8055,10 @@ button.draft-save {
 .platos-aviso.plan-sin-comida {
   margin: 0 0 1rem;
 }
-/* En la pestaña, cada día es una tarjeta: la semana se barre por días, y el
-   día es la unidad que se compara con el de al lado. Hoy, con el velo ámbar. */
+/* Marcador: el día ya no es tarjeta. Lo separa su titular y el aire de
+   debajo; hoy lo dice el sello «HOY», no un velo. */
 .plan-semana .plan-dia {
-  margin-bottom: 0.75rem;
-  padding: 0.9rem 1rem;
-  background: var(--surface);
-  border-radius: var(--radius-card, 20px);
-}
-.plan-semana .plan-dia.is-today {
-  background: var(--surface-tonal);
+  margin-bottom: 1.75rem;
 }
 .plan-semana .plan-dia .hint {
   margin: 0;
@@ -8089,9 +8087,9 @@ button.draft-save {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 14px;
-  background: var(--surface);
+  background: transparent;
   color: var(--text);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -8127,8 +8125,25 @@ button.draft-save {
 .plan-siguiente {
   color: var(--text);
 }
+/* «Cómo va la semana» en Esta semana: un aviso, así que en oro (Marcador:
+   `--pr` es récords y avisos), bajo una raya y sin caja. */
 .plan-adherencia.is-tonal {
-  background: var(--surface-tonal);
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.plan-adherencia.is-tonal .card-eyebrow {
+  color: var(--pr);
+}
+/* Sin plan esta semana: la frase y el botón, sin tarjeta alrededor. */
+.plan-pantalla > .plan-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 /* «¿Ya compraste? · Subir ticket»: la tarjeta que pide una respuesta, con el

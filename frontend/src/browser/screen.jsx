@@ -456,6 +456,18 @@ export async function mountComida({ catalogue = FOODS, routes = [] } = {}) {
   return view
 }
 
+/** Plan, en «Esta semana», con la tira de días ya dibujada. */
+export async function mountPlan({ routes = [] } = {}) {
+  const view = await mountApp({ routes })
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: /^Plan$/ }, { timeout: 5000 }))
+  await vi.waitFor(() => expect(document.querySelector('.plan-tira')).not.toBeNull(), {
+    timeout: 5000,
+  })
+  await settle()
+  return view
+}
+
 /**
  * Abre el editor por su puerta de verdad —el botón de la tarjeta— y devuelve el
  * panel. Nunca se monta `ExerciseEditor` a mano: la posición del disparador es

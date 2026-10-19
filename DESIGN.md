@@ -776,6 +776,7 @@ de músculos pastel con su versión honda (llega con Días y Progreso), el kit d
 |---|---|
 | Toda la app | tokens, Bricolage, récord en oro, comidas sin color (2026-10-18) |
 | Comida | «Hoy» como titular de pantalla (Bricolage 800, 54 px = `3.375rem`, nuevo paso de la escala) con la fecha en sello a su derecha; cada comida, titular de fila (Bricolage 800, 1,4rem); lo previsto, discontinuo de 1,5 px sin fondo; «Lo comí» en Hueso (`--text` de relleno, `--bg` de letra), porque el único mandarina de la pantalla es «Añadir comida». También en «Sin decir». Toques: los mismos (2026-10-19) |
+| Plan | «Plan» como titular de pantalla (54 px) con la semana en sello a su derecha; «Esta semana / La que viene» en píldora sobre `--surface` con la elegida en tinta (`--text` de relleno), sin mandarina; la tira de días y cada día sin caja ni velo (hoy lo dice el sello «HOY»), el día como titular de sección (Bricolage 800, 1,6rem) con 28 px de aire debajo; «Cómo va la semana» bajo una raya con el sello en oro (`--pr`, aviso). Pendientes: la revisión semanal (tarjeta tonal) y «¿Ya compraste?». Toques: los mismos (2026-10-19) |
 
 ## Sistema v2 — Material tonal (desde 2026-10-02)
 La app se usa como APK, y la piel heredada de la PWA no lo parecía: formularios con un
