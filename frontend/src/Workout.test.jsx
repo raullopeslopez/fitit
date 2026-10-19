@@ -1380,7 +1380,7 @@ describe('Workout', () => {
 
     const row = (await screen.findByText(/60 kg x 8/)).closest('li')
     expect(row).not.toHaveTextContent(/18:04/)
-    expect(row).toHaveTextContent(/S1/)
+    expect(row).toHaveTextContent(/01/)
   })
 
   // The count lives on the folded header and nowhere else: open, the numbered
@@ -1452,7 +1452,7 @@ describe('Workout', () => {
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     // volume would have been 60*8 + 70*5 = 830; best 1RM = max(76.0, 81.7).
-    expect(await screen.findByText('S2')).toBeInTheDocument()
+    expect(await screen.findByText('02')).toBeInTheDocument()
     expect(screen.queryByText(/volumen/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/830/)).not.toBeInTheDocument()
     // Nor any estimate standing in for what you lifted.
@@ -3009,7 +3009,7 @@ describe('Workout', () => {
       // No waitFor: the row is expected to be there already, with the request
       // still open. This is the whole point of the change.
       expect(screen.getByText(/60 kg x 8/)).toBeInTheDocument()
-      expect(screen.getByText('S1')).toBeInTheDocument()
+      expect(screen.getByText('01')).toBeInTheDocument()
     })
 
     it('marks the set as not yet saved, and clears the mark when it lands', async () => {
@@ -3037,12 +3037,12 @@ describe('Workout', () => {
 
       // Second set, logged before the first has come back.
       await userEvent.click(screen.getByRole('button', { name: /repetir serie/i }))
-      expect(screen.getByText('S2')).toBeInTheDocument()
+      expect(screen.getByText('02')).toBeInTheDocument()
 
       // The first response knows about one set only.
       pending[0](workoutWith(benchSet({ id: 77, reps: 8, weight: 60 })))
 
-      await waitFor(() => expect(screen.getByText('S2')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('02')).toBeInTheDocument())
     })
 
     it('starts the rest clock on the tap, not on the round trip', async () => {

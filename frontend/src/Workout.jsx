@@ -938,6 +938,7 @@ function ExerciseCard({
             are the rows under the button you just pressed. What separates them
             from the "Última vez" marks is that those sit above the form and
             these below it — position already did the job the label claimed. */}
+        <p className="set-log-hint">Toca una serie para corregirla ›</p>
         <ol className="sets set-log" data-editor-protect>
           {sets.map((set, index) => (
             <li key={set.id}>
@@ -956,7 +957,7 @@ function ExerciseCard({
                     onClick={() => closeEdit(set)}
                   >
                     <span className="set-ix" aria-hidden="true">
-                      S{index + 1}
+                      {String(index + 1).padStart(2, '0')}
                     </span>
                     <span className="set-val">
                       {formatSet({
@@ -1062,7 +1063,7 @@ function ExerciseCard({
                    an error state, so it doesn't get amber or a banner. */
                 <span className="set-row set-pending">
                   <span className="set-ix" aria-hidden="true">
-                    S{index + 1}
+                    {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="set-val">
                     {formatSet(set)}
@@ -1086,7 +1087,7 @@ function ExerciseCard({
                     onClick={() => startEdit(set)}
                   >
                     <span className="set-ix" aria-hidden="true">
-                      S{index + 1}
+                      {String(index + 1).padStart(2, '0')}
                     </span>
                     <span className="set-val">
                       {formatSet(set)}
@@ -1102,6 +1103,18 @@ function ExerciseCard({
               )}
             </li>
           ))}
+          {/* Marcador: las que faltan para igualar la última vez, en su sitio —
+              la siguiente, «ahora»; las demás, «—». Sin marca anterior no hay
+              cuántas faltan, y no se inventa. */}
+          {!done &&
+            Array.from({ length: Math.max(0, (previous?.found ? previous.sets.length : 0) - sets.length) }, (_, i) => (
+              <li key={`falta-${i}`} className="set-falta" aria-hidden="true">
+                <span className="set-row">
+                  <span className="set-ix">{String(sets.length + i + 1).padStart(2, '0')}</span>
+                  <span className={`set-val${i === 0 ? ' is-ahora' : ''}`}>{i === 0 ? 'ahora' : '—'}</span>
+                </span>
+              </li>
+            ))}
         </ol>
         </>
       ) : (
@@ -2763,7 +2776,7 @@ export default function Workout({
                 aria-label={`Siguiente: ${nextUp}`}
                 onClick={() => goTo(nextUp)}
               >
-                {nextUp}
+                {`Siguiente · ${nextUp}`}
                 <span aria-hidden="true"> ›</span>
               </button>
             )}
