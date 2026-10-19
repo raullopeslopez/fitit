@@ -37,7 +37,7 @@ afterEach(() => clearForcedTheme())
 // meta no mide nada.
 const macroRows = () => [...document.querySelectorAll('.food-macro')]
 // Las cabeceras de comida con su subtotal. Un hueco no lleva ninguna.
-const slotMetas = () => [...document.querySelectorAll('.food-slot-meta')]
+const slotMetas = () => [...document.querySelectorAll('.hoy-fila-cifras')]
 
 // Lo que devuelve de verdad una búsqueda de «huevo» contra el catálogo CIQUAL:
 // treinta filas, que es el tope del servidor (`SEARCH_LIMIT`). El tamaño es el
@@ -223,7 +223,7 @@ describe('Comida', () => {
     expect(vacias).toHaveLength(1)
     expect(vacias[0]).toHaveTextContent('Snack')
     expect(vacias[0]).toHaveTextContent('Nada todavía')
-    expect(vacias[0].querySelector('.food-slot-meta')).toBeNull()
+    expect(vacias[0].querySelector('.hoy-fila-cifras')).toBeNull()
   })
 
   it('dentro de una tarjeta de comida hay un solo borde izquierdo', async () => {
@@ -239,7 +239,7 @@ describe('Comida', () => {
     card.scrollIntoView({ block: 'center' })
     await settle()
 
-    const izquierda = paintedRect(card.querySelector('.food-slot-name')).left
+    const izquierda = paintedRect(card.querySelector('.hoy-fila-nombre')).left
     for (const name of card.querySelectorAll('.food-entry-name')) {
       expect(paintedRect(name).left, name.textContent).toBeCloseTo(izquierda, 0)
     }
@@ -661,7 +661,7 @@ describe('Comida', () => {
     // confundía con Hombro. El color es de los músculos, y así significa algo.
     const tarjeta = (nombre) =>
       [...document.querySelectorAll('.food-slot, .food-blank')].find(
-        (el) => el.querySelector('.food-slot-name').textContent === nombre,
+        (el) => el.querySelector('.hoy-fila-nombre').textContent === nombre,
       )
 
     it('ninguna comida tiñe su cabecera ni lleva punto de color', async () => {
@@ -671,10 +671,10 @@ describe('Comida', () => {
         await settle()
         for (const nombre of ['Desayuno', 'Comida', 'Cena', 'Sin asignar']) {
           const t = tarjeta(nombre)
-          const banda = backdropOf(t.querySelector('.food-slot-head'))
+          const banda = backdropOf(t.querySelector('.hoy-fila-head'))
           const superficie = backdropOf(t.querySelector('.food-entry'))
           expect(contrastRatio(banda, superficie), `${nombre} · ${theme}`).toBeLessThan(1.02)
-          const punto = getComputedStyle(t.querySelector('.food-slot-name'), '::before')
+          const punto = getComputedStyle(t.querySelector('.hoy-fila-nombre'), '::before')
           expect(['none', 'normal', ''], `${nombre} · ${theme}`).toContain(punto.content)
         }
       }
@@ -730,10 +730,10 @@ describe('Comida', () => {
 
     it('cada comida es un titular de fila en Bricolage 800', async () => {
       await mountComida()
-      for (const nombre of document.querySelectorAll('.food-slot-name')) {
+      for (const nombre of document.querySelectorAll('.hoy-fila-nombre')) {
         const estilo = getComputedStyle(nombre)
         expect(estilo.fontWeight, nombre.textContent).toBe('800')
-        expect(parseFloat(estilo.fontSize), nombre.textContent).toBeCloseTo(22.4, 1)
+        expect(parseFloat(estilo.fontSize), nombre.textContent).toBeCloseTo(18.4, 1)
       }
     })
 

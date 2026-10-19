@@ -87,17 +87,15 @@ describe('Plan en Marcador', () => {
     }
   })
 
-  it('ni la tira ni los días son cajas', async () => {
+  it('los días son filas, no cajas: separadas por una raya', async () => {
     await mountPlan({ routes: conPlan() })
-    for (const dia of document.querySelectorAll('.plan-tira-dia')) {
-      expect(sinFondo(dia)).toBe(true)
-      expect(getComputedStyle(dia).borderTopWidth).toBe('0px')
+    const filas = [...document.querySelectorAll('.semana-dia')]
+    expect(filas).toHaveLength(7)
+    for (const fila of filas) {
+      expect(sinFondo(fila)).toBe(true)
+      expect(parseFloat(getComputedStyle(fila.closest('.plan-dia')).borderTopWidth)).toBeGreaterThanOrEqual(1)
     }
-    const hoy = document.querySelector('.plan-dia.is-today')
-    expect(sinFondo(hoy)).toBe(true)
-    const nombre = getComputedStyle(hoy.querySelector('.plan-dia-nombre'))
-    expect(nombre.fontSize).toBe('25.6px')
-    expect(nombre.fontWeight).toBe('800')
+    expect(sinFondo(document.querySelector('.plan-dia.is-today'))).toBe(true)
   })
 
   it('«Cómo va la semana» es un aviso en oro bajo una raya, no una tarjeta', async () => {

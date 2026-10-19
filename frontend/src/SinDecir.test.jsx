@@ -65,12 +65,13 @@ describe('la franja de lo que quedó sin decir', () => {
     const setEntry = vi.fn().mockResolvedValue({})
     const leerPlan = vi.fn().mockResolvedValue(PLAN)
     render(<SinDecir hoy={HOY} leerPlan={leerPlan} setEntry={setEntry} />)
-    expect(await screen.findByText('Ayer · Cena')).toBeInTheDocument()
-    expect(screen.getByText('Anteayer · Desayuno')).toBeInTheDocument()
+    expect(await screen.findByText('Cena de ayer')).toBeInTheDocument()
+    expect(screen.getByText('Desayuno de anteayer')).toBeInTheDocument()
     expect(screen.queryByText('Pizza')).not.toBeInTheDocument()
     expect(leerPlan).toHaveBeenCalledWith('2026-09-21')
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'Lo comí' })[0])
+    // «Comido», en la fila: un toque, sin desplegarla.
+    await userEvent.click(screen.getAllByRole('button', { name: 'Comido' })[0])
     await waitFor(() =>
       expect(setEntry).toHaveBeenCalledWith(1, 'done', null, expect.stringMatching(/^2026-09-22T12:00:00/)),
     )

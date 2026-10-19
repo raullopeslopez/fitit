@@ -69,6 +69,52 @@ function rotulo(entrada, hoy) {
   return `${dia} · ${NOMBRE[entrada.slot] ?? entrada.slot}`
 }
 
+// El nombre de la fila (Marcador): «Cena de ayer», «Desayuno de anteayer».
+function titulo(entrada, hoy) {
+  const dia = entrada.log_date === diaAntes(hoy, 1) ? 'ayer' : 'anteayer'
+  return `${NOMBRE[entrada.slot] ?? entrada.slot} de ${dia}`
+}
+
+// Una fila como las de hoy: el nombre, lo previsto y «Comido» de un toque.
+// Tocarla despliega las demás respuestas (cambié, fuera, salté, no sé).
+function FilaSinDecir({ entrada, hoy, platos, setEntry, onChanged }) {
+  const [abierta, setAbierta] = useState(false)
+  return (
+    <div className={`food-slot hoy-fila${abierta ? ' is-open' : ''}`}>
+      <div className="hoy-fila-head">
+        <button
+          type="button"
+          className="hoy-fila-toggle"
+          aria-expanded={abierta}
+          onClick={() => setAbierta((v) => !v)}
+        >
+          <h3 className="hoy-fila-nombre">{titulo(entrada, hoy)}</h3>
+          {!abierta && <span className="hoy-fila-linea">{entrada.dish_name}</span>}
+        </button>
+        <PlanEnComida
+          compacto
+          entrada={entrada}
+          hoy={hoy}
+          platos={platos}
+          setEntry={setEntry}
+          onChanged={onChanged}
+          onAbrir={() => setAbierta(true)}
+        />
+      </div>
+      {abierta && (
+        <PlanEnComida
+          entrada={entrada}
+          hoy={hoy}
+          etiqueta={rotulo(entrada, hoy)}
+          platos={platos}
+          setEntry={setEntry}
+          onChanged={onChanged}
+        />
+      )}
+    </div>
+  )
+}
+
 /**
  * Registro sin huecos, fase 1: lo que quedó sin decir ayer y anteayer, arriba
  * de Comida y con las mismas tres salidas que dentro de su comida.
@@ -108,11 +154,10 @@ export default function SinDecir({
           «Ayer · Desayuno» se leía como otra tarjeta del snack. */}
       <h2 className="card-eyebrow sin-decir-titulo">Sin decir</h2>
       {lista.map((entrada) => (
-        <PlanEnComida
+        <FilaSinDecir
           key={entrada.id}
           entrada={entrada}
           hoy={hoy}
-          etiqueta={rotulo(entrada, hoy)}
           platos={platos}
           setEntry={setEntry}
           onChanged={async () => {

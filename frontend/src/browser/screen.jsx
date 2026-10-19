@@ -452,16 +452,21 @@ export async function mountComida({ catalogue = FOODS, routes = [] } = {}) {
   await vi.waitFor(() => expect(document.querySelector('.food-slot')).not.toBeNull(), {
     timeout: 5000,
   })
+  // Cada comida es una fila plegada (Marcador); lo que se mide aquí vive
+  // dentro, así que se despliegan todas.
+  for (const fila of document.querySelectorAll(".food-diario .hoy-fila-toggle[aria-expanded='false']")) {
+    await user.click(fila)
+  }
   await settle()
   return view
 }
 
-/** Plan, en «Esta semana», con la tira de días ya dibujada. */
+/** Semana, en «Esta semana», con los días ya dibujados. */
 export async function mountPlan({ routes = [] } = {}) {
   const view = await mountApp({ routes })
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Semana$/ }, { timeout: 5000 }))
-  await vi.waitFor(() => expect(document.querySelector('.plan-tira')).not.toBeNull(), {
+  await vi.waitFor(() => expect(document.querySelector('.semana-dia')).not.toBeNull(), {
     timeout: 5000,
   })
   await settle()

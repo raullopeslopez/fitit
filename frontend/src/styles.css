@@ -9191,3 +9191,156 @@ button.draft-save {
 .tu-objetivo .perfil-card .ui-row {
   border-color: rgba(16, 17, 19, 0.15);
 }
+
+/* ── Hoy: cada comida, una fila (Marcador) ──────────────────────────────────
+   Nombre en Bricolage, debajo lo comido (o lo previsto, apagado) y a la derecha
+   «✓» o «Comido» en discontinuo y el «+». Tocar la fila la despliega. */
+.food-slot.hoy-fila {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.hoy-fila-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+}
+.hoy-fila-toggle,
+.hoy-fila-toggle:hover:not(:disabled) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.hoy-fila-nombre {
+  margin: 0;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hoy-fila-linea {
+  max-width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hoy-fila-linea.is-muted {
+  color: var(--muted);
+}
+.hoy-fila-fuera {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.hoy-check {
+  font-size: 1rem;
+  color: var(--muted);
+}
+.hoy-estado {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.hoy-comido,
+.hoy-comido:hover:not(:disabled) {
+  flex: none;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1.5px dashed color-mix(in srgb, var(--text) 40%, transparent);
+  border-radius: 22px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.hoy-add,
+.hoy-add:hover:not(:disabled) {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: var(--surface-raised);
+  color: var(--accent-ink);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.hoy-fila-cuerpo {
+  padding-bottom: 0.75rem;
+}
+.hoy-fila-cifras {
+  margin: 0.4rem 0 0;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Las filas de Hoy van dentro de la columna, no a sangre como iban las
+   tarjetas de comida: la raya empieza donde empieza el texto. */
+.food-diario {
+  margin-inline: 0;
+}
+.food-slot.hoy-fila + .food-slot.hoy-fila {
+  margin-top: 0;
+}
+.sin-decir .food-slot.hoy-fila:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Hoy → la fila «Peso»: rótulo a la izquierda, la última pesada a la derecha. */
+.hoy-peso,
+.hoy-peso:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 64px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+}
+.hoy-peso-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.hoy-peso-cifra {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hoy-peso-unidad {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* Desplegada, lo de dentro arranca en la misma columna que el nombre. */
+.hoy-fila-cuerpo .plan-en-comida,
+.hoy-fila-cuerpo .food-dish-group,
+.hoy-fila-cuerpo .food-entry-swipe,
+.hoy-fila-cuerpo .retag-undo {
+  margin-inline: 0;
+}
+.hoy-fila-cuerpo .food-entry,
+.hoy-fila-cuerpo .food-dish-name {
+  padding-inline: 0;
+}

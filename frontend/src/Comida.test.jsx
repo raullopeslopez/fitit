@@ -40,9 +40,9 @@ function slots(kcal = {}) {
 
 // Los nombres de comida que hay en pantalla, en el orden en que se pintan:
 // primero las tarjetas con algo dentro, luego los huecos en `dashed`.
-const slotNames = () => [...document.querySelectorAll('.food-slot-name')].map((e) => e.textContent)
+const slotNames = () => [...document.querySelectorAll('.hoy-fila-nombre')].map((e) => e.textContent)
 // Los subtotales. Sólo los llevan las comidas con contenido: un hueco no suma.
-const slotMetas = () => [...document.querySelectorAll('.food-slot-meta')].map((e) => e.textContent)
+const slotMetas = () => [...document.querySelectorAll('.hoy-fila-cifras')].map((e) => e.textContent)
 
 // Del lunes 31 al domingo 30: la tira es la semana, así que el día de antes de
 // un lunes está en la semana anterior.
@@ -140,7 +140,7 @@ describe('Comida', () => {
   })
 
   it('abre en el día alimentario en curso', async () => {
-    render(<Comida />)
+    render(<Comida abiertas />)
     await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-31'))
     expect(screen.getByText('LUN 31 AGO')).toBeInTheDocument()
   })
@@ -148,7 +148,7 @@ describe('Comida', () => {
   describe('el objetivo, a la vista (sistema v2)', () => {
     // Una propuesta sin aceptar y Comida sin decir nada: así se pasaron semanas.
     it('hoy sin objetivo lo dice arriba y ofrece calcularlo', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       expect(
         await screen.findByRole('button', { name: 'Sin objetivo todavía · Calcularlo' }),
       ).toBeInTheDocument()
@@ -157,7 +157,7 @@ describe('Comida', () => {
     it('con objetivo, la línea dice el plan y la cifra del día', async () => {
       api.getFoodDay.mockResolvedValue(day({ target_kcal: 2230 }))
       api.getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5 })
-      render(<Comida />)
+      render(<Comida abiertas />)
       expect(
         await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2230 kcal' }),
       ).toBeInTheDocument()
@@ -166,7 +166,7 @@ describe('Comida', () => {
     // Un día pasado tiene el objetivo que tenía, congelado; el plan de hoy al
     // lado haría creer que aquel día se comía con este ritmo.
     it('un día pasado no enseña la línea del plan', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       await screen.findByRole('button', { name: 'Sin objetivo todavía · Calcularlo' })
       await userEvent.click(screen.getByRole('button', { name: 'Semana anterior' }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-24'))
@@ -177,7 +177,7 @@ describe('Comida', () => {
     it('si lo aceptado difiere del de hoy, la línea dice cuál rige mañana', async () => {
       api.getFoodDay.mockResolvedValue(day({ target_kcal: 2230 }))
       api.getTargetProfile.mockResolvedValue({ goal: 'cut', goal_rate: 0.5, objetivo_kcal: 2569 })
-      render(<Comida />)
+      render(<Comida abiertas />)
       expect(
         await screen.findByRole('button', { name: 'Bajando 0,5 kg/sem · 2230 kcal · mañana 2569' }),
       ).toBeInTheDocument()
@@ -186,7 +186,7 @@ describe('Comida', () => {
     // Planificar es de la pestaña Plan: Comida sólo mira el plan de la semana
     // del día, para poner cada plato dentro de su comida.
     it('Comida ya no planifica la semana que viene', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       await waitFor(() => expect(api.getPlan).toHaveBeenCalledWith('2026-08-31'))
       expect(api.getPlan).not.toHaveBeenCalledWith('2026-09-07')
       expect(screen.queryByRole('button', { name: /semana que viene/ })).not.toBeInTheDocument()
@@ -213,7 +213,7 @@ describe('Comida', () => {
       })
       api.setPlanEntry.mockResolvedValue({})
       api.listBodyWeights.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       const comida = (await screen.findByText('Lentejas con chorizo')).closest('.food-slot')
       expect(comida.dataset.slot).toBe('comida')
       // Con algo planificado, la comida ya no dice que está vacía: dice qué toca.
@@ -221,6 +221,55 @@ describe('Comida', () => {
       await userEvent.click(within(comida).getByRole('button', { name: 'Lo comí' }))
       await waitFor(() => expect(api.setPlanEntry).toHaveBeenCalledWith(5, 'done', null, expect.any(String)))
       expect(await screen.findByText('¿Te has pesado hoy?')).toBeInTheDocument()
+    })
+
+    // Marcador: cada comida es una fila plegada. Lo previsto va debajo del
+    // nombre, y «Comido» lo da por comido en un toque, sin desplegar nada.
+    it('plegada, la comida dice lo previsto y «Comido» lo confirma en un toque', async () => {
+      api.getPlan.mockResolvedValue({
+        id: 1,
+        week_start: '2026-08-31',
+        entries: [
+          { id: 5, log_date: '2026-08-31', slot: 'comida', dish_id: 7, dish_name: 'Lentejas con chorizo',
+            grams: [150], kcal: 640, status: null, log_entry_id: null },
+        ],
+      })
+      api.setPlanEntry.mockResolvedValue({})
+      api.listBodyWeights.mockResolvedValue([])
+      render(<Comida />)
+      const linea = await screen.findByText('Lentejas con chorizo', { selector: '.hoy-fila-linea' })
+      const comida = linea.closest('.food-slot')
+      expect(within(comida).queryByRole('button', { name: 'Lo comí' })).not.toBeInTheDocument()
+      await userEvent.click(within(comida).getByRole('button', { name: 'Comido' }))
+      await waitFor(() => expect(api.setPlanEntry).toHaveBeenCalledWith(5, 'done', null, expect.any(String)))
+    })
+
+    it('al final de Hoy, la fila «Peso» abre «Apuntar pesada»', async () => {
+      api.weightTrend.mockResolvedValue({ last_kg: 78.4, kg: 78.6, weigh_ins: 3, up_to: '2026-08-30' })
+      api.listBodyWeights.mockResolvedValue([])
+      render(<Comida onTrain={() => {}} />)
+      const fila = await screen.findByRole('button', { name: /^Peso 78,4 kg$/ })
+      await userEvent.click(fila)
+      expect(await screen.findByRole('dialog', { name: 'Apuntar pesada' })).toBeInTheDocument()
+    })
+
+    it('tocar la fila la despliega: las demás respuestas al plan', async () => {
+      api.getPlan.mockResolvedValue({
+        id: 1,
+        week_start: '2026-08-31',
+        entries: [
+          { id: 5, log_date: '2026-08-31', slot: 'comida', dish_id: 7, dish_name: 'Lentejas con chorizo',
+            grams: [150], kcal: 640, status: null, log_entry_id: null },
+        ],
+      })
+      render(<Comida />)
+      const linea = await screen.findByText('Lentejas con chorizo', { selector: '.hoy-fila-linea' })
+      const toggle = linea.closest('button')
+      expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      await userEvent.click(toggle)
+      expect(toggle).toHaveAttribute('aria-expanded', 'true')
+      const comida = toggle.closest('.food-slot')
+      expect(within(comida).getByRole('button', { name: 'Me lo salté' })).toBeInTheDocument()
     })
 
     // Reorganización Comida/Plan (17 oct): Comida es hoy. Lo que quedó sin
@@ -248,7 +297,7 @@ describe('Comida', () => {
             }
           : null,
       )
-      render(<Comida />)
+      render(<Comida abiertas />)
       const sinDecir = await screen.findByRole('region', { name: 'Sin decir' })
       const diario = document.querySelector('.food-diario')
       expect(diario).not.toBeNull()
@@ -256,7 +305,7 @@ describe('Comida', () => {
     })
 
     it('el botón flotante abre la pantalla de añadir', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir comida' }))
       expect(await screen.findByLabelText('Buscar alimento')).toBeInTheDocument()
       // Con la pantalla de añadir abierta no hay un segundo «añadir» flotando encima.
@@ -265,7 +314,7 @@ describe('Comida', () => {
   })
 
   it('un día vacío lo dice comida por comida, en vez de enseñar ceros', async () => {
-    render(<Comida />)
+    render(<Comida abiertas />)
     // Las cuatro comidas, cada una diciendo que está vacía con palabras y sin
     // subtotal en cero: un 0 afirmaría que se sabe que no comiste nada.
     await waitFor(() => expect(slotNames()).toEqual(['Desayuno', 'Comida', 'Cena', 'Snack']))
@@ -277,7 +326,7 @@ describe('Comida', () => {
   // La tira es la semana del día que miras: un toque por día, y las flechas
   // saltan de semana.
   it('se mueve por la semana y vuelve a hoy', async () => {
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('LUN 31 AGO')
     await alDomingo30()
     await waitFor(() => expect(api.getFoodDay).toHaveBeenLastCalledWith('2026-08-30'))
@@ -288,7 +337,7 @@ describe('Comida', () => {
   })
 
   it('dice qué día miras con una palabra: hoy, ayer o su nombre', async () => {
-    render(<Comida />)
+    render(<Comida abiertas />)
     expect(await screen.findByRole('heading', { level: 1, name: 'Hoy' })).toBeInTheDocument()
     await alDomingo30()
     expect(await screen.findByRole('heading', { level: 1, name: 'Ayer' })).toBeInTheDocument()
@@ -297,7 +346,7 @@ describe('Comida', () => {
   })
 
   it('no deja adelantarse a un día que todavía no ha pasado', async () => {
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('LUN 31 AGO')
     expect(screen.getByRole('button', { name: 'Martes 1' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Semana siguiente' })).toBeDisabled()
@@ -311,7 +360,7 @@ describe('Comida', () => {
         by_slot: slots({ desayuno: 200 }),
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     // Sin objetivo la cifra grande sigue siendo lo comido: no hay nada que
     // restar, y un «te falta» sin meta no significa nada.
     expect(await screen.findByText('200')).toBeInTheDocument()
@@ -329,7 +378,7 @@ describe('Comida', () => {
         by_slot: slots({ desayuno: 200 }),
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     const macros = await screen.findByTestId('food-macros')
     expect(within(macros).getByText('—')).toBeInTheDocument()
     expect(screen.getByText('— no es cero: 1 entrada sin fibra.')).toBeInTheDocument()
@@ -347,7 +396,7 @@ describe('Comida', () => {
         by_slot: slots({ desayuno: 200, cena: 340, sin: 60 }),
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('Tortilla')
     // Los cuatro raíles están siempre, hayas comido o no: son la puerta por la
     // que se registra en esa comida, y una puerta que aparece y desaparece
@@ -365,7 +414,7 @@ describe('Comida', () => {
         by_slot: slots({ desayuno: 200 }),
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('Pan de la panadería')
     // Nadie quiere *decidir* no decidir: el montón no lleva `+`, así que
     // enseñarlo vacío sería una cabecera sin nada que hacer debajo.
@@ -389,12 +438,12 @@ describe('Comida', () => {
         by_slot: slots({ desayuno: 200, cena: 340, sin: 60 }),
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('Tortilla')
 
     const tarjeta = (nombre) =>
       [...document.querySelectorAll('.food-slot')].find(
-        (el) => el.querySelector('.food-slot-name').textContent === nombre,
+        (el) => el.querySelector('.hoy-fila-nombre').textContent === nombre,
       )
 
     // Las que tienen algo dentro.
@@ -417,7 +466,7 @@ describe('Comida', () => {
         by_slot: slots({ desayuno: 200 }),
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('Pan de la panadería')
     // Sólo la comida que tiene algo dentro imprime un subtotal — los tres huecos
     // ya dicen que están vacíos, sin necesitar una cifra (ni una raya) al lado.
@@ -441,7 +490,7 @@ describe('Comida', () => {
         ],
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     await screen.findByText('Pan de la panadería')
     // Aquí sí hay algo —una entrada—, sólo que a su kcal le falta el dato: la
     // raya sigue siendo la respuesta correcta, distinta de un hueco vacío.
@@ -452,7 +501,7 @@ describe('Comida', () => {
     api.getFoodDay.mockResolvedValue(
       day({ entries: [entry()], totals: { kcal: 200, protein: 6, fat: 2, carbs: 38, fiber: 2 } }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
     expect(row).toHaveTextContent('80 g')
     // La proteína, no las kcal: es el macro que la cabecera persigue, así que es
@@ -465,7 +514,7 @@ describe('Comida', () => {
     api.getFoodDay.mockResolvedValue(
       day({ entries: [entry({ grams: 30, measure: 'cda', measure_count: 2 })] }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
     expect(row).toHaveTextContent('2 cdas · ~30 g')
     // La medida, en tinta: es lo que hiciste. Los gramos aproximados, apagados.
@@ -479,14 +528,14 @@ describe('Comida', () => {
         unknown: { kcal: 0, protein: 1, fat: 0, carbs: 0, fiber: 0 },
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
     expect(row).toHaveTextContent('— P')
   })
 
   describe('dictar', () => {
     it('el micro está junto a «Añadir comida» y dentro de «Añadir a»', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       expect(await screen.findByRole('button', { name: 'Dictar comida' })).toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
       expect(screen.getByRole('button', { name: 'Dictar' })).toBeInTheDocument()
@@ -494,13 +543,13 @@ describe('Comida', () => {
 
     it('sin modelo en el servidor no hay micro', async () => {
       api.getFoodDay.mockResolvedValue(day({ label_reading: false }))
-      render(<Comida />)
+      render(<Comida abiertas />)
       await screen.findByRole('button', { name: 'Añadir a desayuno' })
       expect(screen.queryByRole('button', { name: 'Dictar comida' })).not.toBeInTheDocument()
     })
 
     it('tocar el micro empieza a escuchar', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Dictar comida' }))
       // jsdom no tiene micrófono: la grabación falla al instante y lo dice.
       expect(await screen.findByText('No se ha podido escuchar. Prueba otra vez.')).toBeInTheDocument()
@@ -511,7 +560,7 @@ describe('Comida', () => {
     it('busca y registra en gramos', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -530,7 +579,7 @@ describe('Comida', () => {
         { ...PAN, portions: [{ id: 7, label: 'rebanada', grams: 30, is_default: true }] },
       ])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -552,7 +601,7 @@ describe('Comida', () => {
       api.searchFoods.mockResolvedValue([])
       api.createFood.mockResolvedValue({ ...PAN, id: 42, name: 'Piquillos de mi madre' })
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'piquillos')
       await userEvent.click(await screen.findByRole('button', { name: 'Crear «piquillos»' }))
@@ -572,7 +621,7 @@ describe('Comida', () => {
       api.searchFoods.mockResolvedValue([])
       api.createFood.mockResolvedValue({ ...PAN, id: 43, name: 'Yogur natural' })
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'yogur')
       await userEvent.click(await screen.findByRole('button', { name: 'Crear «yogur»' }))
@@ -591,7 +640,7 @@ describe('Comida', () => {
     describe('tus cantidades', () => {
     async function abrirPan(food = PAN) {
       api.searchFoods.mockResolvedValue([food])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -712,7 +761,7 @@ describe('Comida', () => {
         api.searchFoods.mockResolvedValue([])
         if (respuesta) api.scanBarcode.mockResolvedValue(respuesta)
         api.logFood.mockResolvedValue(entry())
-        render(<Comida />)
+        render(<Comida abiertas />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
         await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
       }
@@ -902,7 +951,7 @@ describe('Comida', () => {
       async function fotografiar(respuesta) {
         api.searchFoods.mockResolvedValue([])
         api.readLabel.mockResolvedValue(respuesta)
-        render(<Comida />)
+        render(<Comida abiertas />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
         await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
       }
@@ -972,7 +1021,7 @@ describe('Comida', () => {
         api.searchFoods.mockResolvedValue([])
         api.readLabel.mockRejectedValue(Object.assign(new Error('nope'), { status: 503 }))
         api.logFood.mockResolvedValue(entry())
-        render(<Comida />)
+        render(<Comida abiertas />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
         await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
         expect(
@@ -991,7 +1040,7 @@ describe('Comida', () => {
           nutrients: { kcal: null, protein: null, fat: null, carbs: null, fiber: null },
           refusal: 'unreadable',
         })
-        render(<Comida />)
+        render(<Comida abiertas />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
         await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
         // Un `unreadable` que llega en un 200 del servidor y uno que llega como
@@ -1065,7 +1114,7 @@ describe('Comida', () => {
           }
         }
         window.createImageBitmap = () => Promise.resolve({})
-        render(<Comida />)
+        render(<Comida abiertas />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
         await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
         await screen.findByText('Ese código no está en ninguna base.')
@@ -1095,7 +1144,7 @@ describe('Comida', () => {
         api.searchFoods.mockResolvedValue([])
         let resolve
         api.readLabel.mockImplementation(() => new Promise((r) => { resolve = r }))
-        render(<Comida />)
+        render(<Comida abiertas />)
         await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
         await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
 
@@ -1181,7 +1230,7 @@ describe('Comida', () => {
       api.searchFoods.mockResolvedValue([])
       api.createFood.mockResolvedValue({ ...PAN, id: 44, name: 'Yogur natural' })
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'yogur')
       await userEvent.click(await screen.findByRole('button', { name: 'Crear «yogur»' }))
@@ -1196,7 +1245,7 @@ describe('Comida', () => {
     it('mientras busca lo dice, y no ofrece crear lo que aún no ha buscado', async () => {
       let resolve
       api.searchFoods.mockImplementation(() => new Promise((r) => { resolve = r }))
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'huevo')
 
@@ -1218,7 +1267,7 @@ describe('Comida', () => {
     // respuesta (DESIGN.md: «An empty result must name the right failure»).
     it('cuando el catálogo no tiene nada lo dice con palabras', async () => {
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'huevo')
       expect(
@@ -1230,7 +1279,7 @@ describe('Comida', () => {
     it('vuelve a leer el día después de registrar', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -1248,7 +1297,7 @@ describe('Comida', () => {
 
     it('tocar la fila la abre para editarla', async () => {
       api.correctFoodEntry.mockResolvedValue(entry({ grams: 120 }))
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
       const field = screen.getByLabelText('Cantidad')
       await userEvent.clear(field)
@@ -1260,7 +1309,7 @@ describe('Comida', () => {
     })
 
     it('un toque sin arrastre abre la fila para editar', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       await userEvent.click(row)
       expect(screen.getByLabelText('Cantidad')).toBeInTheDocument()
@@ -1269,7 +1318,7 @@ describe('Comida', () => {
     })
 
     it('deslizar la fila revela «Borrar», fuera del formulario', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       // Cerrada, la acción no es alcanzable — ni por el ojo ni por un lector.
       expect(screen.queryByRole('button', { name: 'Borrar Pan de la panadería' })).not.toBeInTheDocument()
@@ -1279,7 +1328,7 @@ describe('Comida', () => {
 
     it('borra desde el «Borrar» revelado al deslizar, y dejar un Deshacer en su sitio', async () => {
       api.deleteFoodEntry.mockResolvedValue(null)
-      render(<Comida />)
+      render(<Comida abiertas />)
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       swipeOpen(row)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Pan de la panadería' }))
@@ -1295,7 +1344,7 @@ describe('Comida', () => {
     it('deshacer vuelve a registrar la entrada con su hora original', async () => {
       api.deleteFoodEntry.mockResolvedValue(null)
       api.logFood.mockResolvedValue({})
-      render(<Comida />)
+      render(<Comida abiertas />)
       const row = await screen.findByRole('button', { name: /Pan de la panadería/ })
       swipeOpen(row)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Pan de la panadería' }))
@@ -1324,7 +1373,7 @@ describe('Comida', () => {
     it('el + de un raíl abre el buscador con esa comida ya puesta', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -1347,7 +1396,7 @@ describe('Comida', () => {
       // es ese el que tiene que viajar con la entrada.
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await waitFor(() => expect(slotNames()).toHaveLength(4))
       await alDomingo30()
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
@@ -1366,7 +1415,7 @@ describe('Comida', () => {
     it('y se puede corregir a otra comida, o a ninguna', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -1379,7 +1428,7 @@ describe('Comida', () => {
 
     it('el buscador se abre a pantalla completa, con el destino ya resuelto', async () => {
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a snack' }))
       const panel = await screen.findByLabelText('Buscar alimento')
       // Ya no es un panel dentro de la tarjeta que lo abrió, ni una hoja anclada
@@ -1407,7 +1456,7 @@ describe('Comida', () => {
     const MIO = { ...PAN, id: 901, name: 'Pan de masa madre', brand: 'La Esquina', is_mine: true }
 
     async function buscar(termino = 'pan') {
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), termino)
       await screen.findByText(termino === 'pan' ? 'Pan de masa madre' : /./)
@@ -1442,7 +1491,7 @@ describe('Comida', () => {
 
     it('hay una sola cámara, y dice a qué le apuntas', async () => {
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await screen.findByLabelText('Buscar alimento')
       expect(screen.getByText('Foto del envase')).toBeInTheDocument()
@@ -1456,7 +1505,7 @@ describe('Comida', () => {
 
     it('la palabra «IA» no aparece por ninguna parte', async () => {
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await screen.findByLabelText('Buscar alimento')
       // La lectura de etiqueta es una capacidad, no una función con nombre
@@ -1467,7 +1516,7 @@ describe('Comida', () => {
     it('sin clave en el servidor la cámara no se dibuja', async () => {
       api.getFoodDay.mockResolvedValue(day({ label_reading: false }))
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await screen.findByLabelText('Buscar alimento')
       // Un botón que no puede funcionar es peor que uno que no está: al pulsarlo
@@ -1481,7 +1530,7 @@ describe('Comida', () => {
 
     it('el pie dice qué hacer con lo que no tiene envase', async () => {
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       expect(
         await screen.findByText(
@@ -1507,7 +1556,7 @@ describe('Comida', () => {
 
     async function pedirBorrado(day_ = CENA()) {
       api.getFoodDay.mockResolvedValue(day_)
-      render(<Comida />)
+      render(<Comida abiertas />)
       const fila = await screen.findByRole('button', { name: /Arroz con pollo/ })
       swipeOpen(fila)
       await userEvent.click(screen.getByRole('button', { name: 'Borrar Arroz con pollo' }))
@@ -1572,7 +1621,7 @@ describe('Comida', () => {
   describe('el resumen del día', () => {
     async function abrirResumen(day_ = objetivo()) {
       api.getFoodDay.mockResolvedValue(day_)
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Resumen' }))
       await screen.findByText('Resumen del día')
     }
@@ -1653,7 +1702,7 @@ describe('Comida', () => {
     async function abrir(food = POLLO) {
       api.searchFoods.mockResolvedValue([food])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pollo')
       await userEvent.click(await screen.findByRole('button', { name: /Pechuga de pollo/ }))
@@ -1750,7 +1799,7 @@ describe('Comida', () => {
       api.searchFoods.mockResolvedValue([])
       if (respuesta instanceof Error) api.readLabel.mockRejectedValue(respuesta)
       else api.readLabel.mockResolvedValue(respuesta)
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
     }
@@ -1847,7 +1896,7 @@ describe('Comida', () => {
     async function leer(respuesta) {
       api.searchFoods.mockResolvedValue([])
       api.readLabel.mockResolvedValue(respuesta)
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.upload(screen.getByLabelText('Abrir la cámara'), JPEG())
       await screen.findByLabelText('Nombre')
@@ -1948,7 +1997,7 @@ describe('Comida', () => {
 
     it('un alta a mano no finge que hay algo que revisar', async () => {
       api.searchFoods.mockResolvedValue([])
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'piquillos')
       await userEvent.click(await screen.findByRole('button', { name: 'Crear «piquillos»' }))
@@ -1970,7 +2019,7 @@ describe('Comida', () => {
     // registrar algo. Ahora viven donde se hace esa pregunta, y con el destino
     // ya resuelto: el chip se registra en la comida por la que has entrado.
     async function abrirAnadir(slot = 'desayuno') {
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: `Añadir a ${slot}` }))
     }
 
@@ -2038,7 +2087,7 @@ describe('Comida', () => {
 
     it('cada comida es su propia puerta, y no hay una CTA global', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
-      render(<Comida />)
+      render(<Comida abiertas />)
       await waitFor(() => expect(slotNames()).toHaveLength(4))
       // Una puerta por comida y ninguna más. La CTA fija preguntaba a dónde iba
       // lo que ibas a registrar, y entrando por la comida esa pregunta ya está
@@ -2051,7 +2100,7 @@ describe('Comida', () => {
     it('entrar por una comida deja ese destino ya puesto', async () => {
       api.searchFoods.mockResolvedValue([PAN])
       api.logFood.mockResolvedValue(entry())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
       await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
       await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -2060,7 +2109,7 @@ describe('Comida', () => {
 
     it('no se ofrece en un día pasado', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
-      render(<Comida />)
+      render(<Comida abiertas />)
       await waitFor(() => expect(slotNames()).toHaveLength(4))
       await alDomingo30()
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledWith('2026-08-30'))
@@ -2074,7 +2123,7 @@ describe('Comida', () => {
 
     it('si el repertorio no se puede leer, la pantalla sigue en pie', async () => {
       api.frequentFoods.mockRejectedValue(new Error('offline'))
-      render(<Comida />)
+      render(<Comida abiertas />)
       await waitFor(() => expect(slotNames()).toHaveLength(4))
       expect(screen.queryByText('Lo de siempre')).not.toBeInTheDocument()
     })
@@ -2082,7 +2131,7 @@ describe('Comida', () => {
 
   describe('el objetivo diario', () => {
     it('sin objetivo, la cifra grande sigue siendo lo comido', async () => {
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       expect(within(macros).getByText('Llevas')).toBeInTheDocument()
       expect(within(macros).queryByText('Te falta')).not.toBeInTheDocument()
@@ -2092,7 +2141,7 @@ describe('Comida', () => {
     // Perfil (Perfil.test.jsx). Aquí sólo se comparan con lo comido.
     it('no ofrece fijar el objetivo, el reparto ni las reglas', async () => {
       api.getFoodDay.mockResolvedValue(objetivo())
-      render(<Comida />)
+      render(<Comida abiertas />)
       await screen.findByTestId('food-macros')
 
       expect(screen.queryByRole('button', { name: /objetivo diario/i })).not.toBeInTheDocument()
@@ -2102,7 +2151,7 @@ describe('Comida', () => {
 
     it('con objetivo, la cifra grande pasa a ser lo que falta de proteína', async () => {
       api.getFoodDay.mockResolvedValue(objetivo())
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       // El héroe es lo que **falta**, y de proteína: es la pregunta que se hace
       // a las 20:00. Va en el centro de los anillos.
@@ -2125,7 +2174,7 @@ describe('Comida', () => {
           remaining_protein: 60,
         }),
       )
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       const kcal = within(macros).getByText('Kcal').closest('.food-ring-item')
       expect(kcal).toHaveTextContent('200 de más')
@@ -2143,7 +2192,7 @@ describe('Comida', () => {
     // ---------------------------------------------------------------------
     it('la proteína va en el anillo de fuera, y hidratos y grasa en barra', async () => {
       api.getFoodDay.mockResolvedValue(objetivo())
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       // Dos barras: hidratos y grasa. La fibra no tiene objetivo, así que no
       // tiene barra — una barra sin meta no mide nada.
@@ -2170,7 +2219,7 @@ describe('Comida', () => {
           remaining_kcal: 2800,
         }),
       )
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       // Con el extremo redondo, un arco de 0 deja un punto que se lee «algo
       // comido». Sólo quedan los carriles.
@@ -2185,7 +2234,7 @@ describe('Comida', () => {
           remaining_protein: 0,
         }),
       )
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       // El único momento en que el tono profundo ocupa el anillo entero.
       const arco = macros.querySelector('.food-ring-arc.is-protein')
@@ -2207,7 +2256,7 @@ describe('Comida', () => {
           remaining_protein: 160,
         }),
       )
-      render(<Comida />)
+      render(<Comida abiertas />)
       const macros = await screen.findByTestId('food-macros')
       expect(within(macros).getByText('160')).toBeInTheDocument()
       // Nada comido no es cero comido: la cifra de lo comido es una raya.
@@ -2217,7 +2266,7 @@ describe('Comida', () => {
 
     it('la línea de cierre dice lo que falta para cerrar el día', async () => {
       api.getFoodDay.mockResolvedValue(objetivo())
-      render(<Comida />)
+      render(<Comida abiertas />)
       const close = await waitFor(() => {
         const el = document.querySelector('.food-close')
         expect(el).not.toBeNull()
@@ -2240,7 +2289,7 @@ describe('Comida', () => {
           by_slot: slots({ desayuno: 200, comida: 200 }),
         }),
       )
-      render(<Comida />)
+      render(<Comida abiertas />)
       const chip = await screen.findByRole('button', {
         name: '— no es cero: 1 entrada sin fibra.',
       })
@@ -2264,7 +2313,7 @@ describe('Comida', () => {
 describe('corregir un alimento', () => {
   const abrir = async (food = PAN) => {
     api.searchFoods.mockResolvedValue([food])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
     await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
     await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
@@ -2384,7 +2433,7 @@ describe('corregir un alimento y el registro de ese día', () => {
 
   const abrirCorregir = async () => {
     api.searchFoods.mockResolvedValue([PAN])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
     await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
     // Dentro de la lista de resultados: el día de estos tests ya lleva una
@@ -2481,7 +2530,7 @@ describe('ideas con un alimento', () => {
   it('el detalle del alimento ya no ofrece ideas, aunque el servidor pueda buscarlas', async () => {
     api.getFoodDay.mockResolvedValue(day({ dish_ideas: true }))
     api.searchFoods.mockResolvedValue([{ ...PAN, name: 'Pan de la panadería' }])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
     await userEvent.type(screen.getByLabelText('Buscar alimento'), 'pan')
     await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
@@ -2511,7 +2560,7 @@ describe('alimentos con hueso', () => {
 
   const abrir = async (food = MUSLO) => {
     api.searchFoods.mockResolvedValue([food])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
     await userEvent.type(screen.getByLabelText('Buscar alimento'), 'muslo')
     await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
@@ -2597,7 +2646,7 @@ describe('alimentos con hueso', () => {
         entries: [entry({ food_id: 5, food_name: MUSLO.name, grams: 300, edible_grams: 210 })],
       }),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     const row = await screen.findByRole('button', { name: new RegExp(MUSLO.name) })
     expect(row).toHaveTextContent('300 g con hueso · 210 g comestibles')
   })
@@ -2609,7 +2658,7 @@ describe('alimentos con hueso', () => {
       }),
     )
     api.weighLeftoverBone.mockResolvedValue({ entry: entry(), refuse_pct: 20, food_updated: false })
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: new RegExp(MUSLO.name) }))
     await userEvent.type(screen.getByLabelText('Hueso que ha sobrado'), '60')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
@@ -2620,7 +2669,7 @@ describe('alimentos con hueso', () => {
 
   it('una entrada sin hueso no pregunta por el hueso', async () => {
     api.getFoodDay.mockResolvedValue(day({ entries: [entry()] }))
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
     expect(screen.queryByLabelText('Hueso que ha sobrado')).not.toBeInTheDocument()
   })
@@ -2638,7 +2687,7 @@ describe('alimentos con hueso', () => {
         with_bone: true,
       },
     ])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
     await userEvent.click(await screen.findByRole('button', { name: new RegExp(MUSLO.name) }))
     await waitFor(() =>
@@ -2652,7 +2701,7 @@ describe('alimentos con hueso', () => {
 describe('el hueso al dar de alta', () => {
   const crear = async (texto) => {
     api.searchFoods.mockResolvedValue([])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
     await userEvent.type(screen.getByLabelText('Buscar alimento'), texto)
     await userEvent.click(await screen.findByRole('button', { name: `Crear «${texto}»` }))
@@ -2763,7 +2812,7 @@ describe('el hueso al corregir un alimento', () => {
   }
   const abrir = async (food) => {
     api.searchFoods.mockResolvedValue([food])
-    render(<Comida />)
+    render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
     await userEvent.type(screen.getByLabelText('Buscar alimento'), 'muslos')
     await userEvent.click(await screen.findByRole('button', { name: new RegExp(food.name) }))
@@ -2866,7 +2915,7 @@ describe('Comida: sin cifras mientras cumples', () => {
     api.getPlan.mockResolvedValue(
       planDeHoy([{ slot: 'desayuno', status: 'done' }, { slot: 'comida' }, { slot: 'snack' }, { slot: 'cena' }]),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     expect(await screen.findByRole('img', { name: /Hidrato del día/ })).toBeInTheDocument()
     expect(screen.queryByTestId('food-macros')).not.toBeInTheDocument()
     // Ni el subtotal de la comida: «Comido» ya lo dice.
@@ -2883,7 +2932,7 @@ describe('Comida: sin cifras mientras cumples', () => {
     api.getPlan.mockResolvedValue(
       planDeHoy([{ slot: 'desayuno', status: 'done' }, { slot: 'comida' }, { slot: 'snack' }, { slot: 'cena' }]),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     expect(await screen.findByTestId('food-macros')).toBeInTheDocument()
     const merienda = screen.getByText('Fuera del plan · +150 kcal').closest('.food-slot')
     expect(merienda.dataset.slot).toBe('snack')
@@ -2892,7 +2941,7 @@ describe('Comida: sin cifras mientras cumples', () => {
   it('sin plan, todo sigue como estaba', async () => {
     api.getFoodDay.mockResolvedValue(objetivo())
     api.getPlan.mockResolvedValue(null)
-    render(<Comida />)
+    render(<Comida abiertas />)
     expect(await screen.findByTestId('food-macros')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /Hidrato del día/ })).not.toBeInTheDocument()
   })
@@ -2902,7 +2951,7 @@ describe('Comida: sin cifras mientras cumples', () => {
     api.getPlan.mockResolvedValue(
       planDeHoy([{ slot: 'snack', carbs: 0, carbs_shift: -40 }, { slot: 'cena', carbs: 115, carbs_shift: 40 }]),
     )
-    render(<Comida />)
+    render(<Comida abiertas />)
     const cena = (await screen.findByText('+40 g de hidrato · por el entreno')).closest('.food-slot')
     expect(cena.dataset.slot).toBe('cena')
     expect(screen.getByText('−40 g de hidrato · por el entreno')).toBeInTheDocument()
@@ -2932,7 +2981,7 @@ describe('Comida: días cuidados en la semana', () => {
 
   it('los días cuidados de la semana llevan su punto', async () => {
     api.getCaredDays.mockResolvedValue({ days: ['2026-08-31'] })
-    render(<Comida />)
+    render(<Comida abiertas />)
     await waitFor(() => expect(api.getCaredDays).toHaveBeenCalledWith('2026-08-31', '2026-09-06'))
     const lunes = screen.getByRole('button', { name: 'Lunes 31' })
     await waitFor(() => expect(lunes).toHaveClass('is-cuidado'))

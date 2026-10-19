@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { cloneElement, useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
 import HoyEntreno from './HoyEntreno.jsx'
+import Weight from './Weight.jsx'
 
 import {
   correctFood,
@@ -93,7 +94,9 @@ function rails(day) {
 const NUTRIENT_KEYS = ['kcal', ...MACROS.map((m) => m.key)]
 const isIncomplete = (entry) => NUTRIENT_KEYS.some((key) => entry[key] == null)
 
-export default function Comida({ onTrain }) {
+// `abiertas` arranca con todas las comidas desplegadas (sus entradas a la
+// vista); por defecto son filas plegadas.
+export default function Comida({ onTrain, abiertas = false }) {
   // El día que se está mirando. Arranca en el día alimentario en curso, que a
   // las 02:00 sigue siendo el de ayer — misma regla que el servidor usa para
   // fechar lo que escribes.
@@ -350,6 +353,7 @@ export default function Comida({ onTrain }) {
             {rails(day).map((rail) => (
               <SlotCard
                 key={rail.key ?? 'sin-asignar'}
+                abierta0={abiertas}
                 rail={rail}
                 entries={onlyIncomplete ? rail.entries.filter(isIncomplete) : rail.entries}
                 dishNames={dishNames}
@@ -364,6 +368,19 @@ export default function Comida({ onTrain }) {
                 planificado={
                   rail.key && planHoy[rail.key] ? (
                     <PlanEnComida
+                      entrada={planHoy[rail.key]}
+                      hoy={foodDayIso()}
+                      platos={platos}
+                      onChanged={() => load(dayIso)}
+                      onComido={() => setPedirPeso(true)}
+                    />
+                  ) : null
+                }
+                previsto={rail.key && planHoy[rail.key] ? planHoy[rail.key].dish_name : null}
+                planComido={
+                  rail.key && planHoy[rail.key] ? (
+                    <PlanEnComida
+                      compacto
                       entrada={planHoy[rail.key]}
                       hoy={foodDayIso()}
                       platos={platos}
@@ -387,6 +404,9 @@ export default function Comida({ onTrain }) {
           arriba obligaba a bajar las tarjetas de otros días para llegar al
           desayuno de hoy. Bajar no es un toque más; plegarlo lo habría sido. */}
       {isToday && <SinDecir hoy={dayIso} platos={platos} />}
+
+      {/* El peso, la última fila de Hoy: tocarla es pesarte. */}
+      {isToday && onTrain && <Weight fila />}
 
       {/* Añadir ocupa la pantalla entera, no una hoja.
           Es una tarea con lista larga —el catálogo devuelve hasta treinta
@@ -976,85 +996,100 @@ function SlotCard({
   onEdit,
   onDelete,
   planificado = null,
+  // Marcador: el estado de la comida en su fila —«Comido» si falta decir lo
+  // planificado— y el texto de lo previsto, para la línea de debajo del nombre.
+  planComido = null,
+  previsto = null,
+  abierta0 = false,
   cifras = true,
   fueraKcal = undefined,
 }) {
   const label = slotLabel(rail.key)
   const vacia = entries.length === 0
+  const [abierta, setAbierta] = useState(abierta0)
+  // Lo comido, por su nombre: un plato una vez, un alimento suelto por el suyo.
+  const comido = agruparPorPlato(entries, dishNames)
+    .map((g) => g.name ?? g.entries.map((e) => e.food_name).join(' · '))
+    .join(' · ')
+  const linea = comido || previsto || 'Nada todavía'
   return (
-    // `data-slot` dice qué comida es; ya no pinta nada (Marcador: las comidas
-    // van sin color). El montón sin asignar no lleva atributo: no es una
-    // comida que elegiste.
     <section
-      className={`food-slot${vacia ? ' is-empty' : ''}`}
+      className={`food-slot hoy-fila${vacia ? ' is-empty' : ''}${abierta ? ' is-open' : ''}`}
       data-slot={rail.key ?? undefined}
     >
-      <h3 className="food-slot-head">
-        <span className="food-slot-name">{label}</span>
-        {/* Un hueco no suma: el subtotal sólo lo lleva lo que tiene algo. Y lo
-            comido del plan tampoco: «Comido» ya lo dice (fase 3). */}
-        {!vacia && cifras && (
-          <span className="food-slot-meta">
-            {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
-          </span>
+      <div className="hoy-fila-head">
+        {/* Tocar la fila la abre: sus entradas, para corregir o borrar, y las
+            demás respuestas al plan (cambié, fuera, salté, no sé). */}
+        <button
+          type="button"
+          className="hoy-fila-toggle"
+          aria-expanded={abierta}
+          onClick={() => setAbierta((v) => !v)}
+        >
+          <h3 className="hoy-fila-nombre">{label}</h3>
+          {/* Abierta, lo comido y lo previsto ya están debajo: no se repiten. */}
+          {!(abierta && (comido || previsto)) && (
+            <span className={`hoy-fila-linea${comido ? '' : ' is-muted'}`}>{linea}</span>
+          )}
+          {fueraKcal !== undefined && (
+            <span className="hoy-fila-fuera">
+              Fuera del plan · {fueraKcal == null ? '—' : `+${formatMacro(fueraKcal)}`} kcal
+            </span>
+          )}
+        </button>
+        {planComido ? (
+          // Lo que pide elegir (ración de la olla, sitio) abre la fila.
+          cloneElement(planComido, { onAbrir: () => setAbierta(true) })
+        ) : (
+          !vacia && (
+            <span className="hoy-check" aria-label="Comido">
+              ✓
+            </span>
+          )
         )}
-        {/* El montón sin asignar no tiene puerta: no se registra «en sin
-            asignar», se acaba ahí por no haber dicho nada. */}
         {rail.key !== null && (
           <button
             type="button"
-            className="food-slot-add"
+            className="hoy-add"
             aria-label={`Añadir a ${label.toLowerCase()}`}
             onClick={onAdd}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            +
           </button>
         )}
-      </h3>
-      {/* Lo que se sale del plan dice cuánto descuadra, y sólo eso. Una kcal
-          sin medir no suma cero: la raya, con la tinta de una cifra. */}
-      {fueraKcal !== undefined && (
-        <p className="food-fuera">
-          Fuera del plan · {fueraKcal == null ? '—' : `+${formatMacro(fueraKcal)}`} kcal
-        </p>
-      )}
-      {planificado}
-      {/* Un plato registrado son varias filas de alimento —es lo que mantiene
-          vivos repesar y corregir un ingrediente—, así que se agrupan bajo su
-          nombre. Sin esto, unas lentejas se leen como cinco alimentos sueltos
-          que no recuerdas haber registrado. */}
-      {agruparPorPlato(entries, dishNames).map((grupo) => (
-        <div
-          key={grupo.entries[0].id}
-          className={grupo.name ? 'food-dish-group' : undefined}
-        >
-          {grupo.name && <p className="food-dish-name">{grupo.name}</p>}
-          {grupo.entries.map((entry) => (
-            <EntryRow
-              key={entry.id}
-              entry={entry}
-              onEdit={() => onEdit(entry.id)}
-              onDelete={onDelete}
-            />
-          ))}
+      </div>
+      {(abierta || deleted) && (
+        <div className="hoy-fila-cuerpo">
+          {abierta && planificado}
+          {abierta &&
+            agruparPorPlato(entries, dishNames).map((grupo) => (
+              <div key={grupo.entries[0].id} className={grupo.name ? 'food-dish-group' : undefined}>
+                {grupo.name && <p className="food-dish-name">{grupo.name}</p>}
+                {grupo.entries.map((entry) => (
+                  <EntryRow key={entry.id} entry={entry} onEdit={() => onEdit(entry.id)} onDelete={onDelete} />
+                ))}
+              </div>
+            ))}
+          {abierta && !vacia && cifras && (
+            <p className="hoy-fila-cifras">
+              {formatMacro(rail.totals.protein)} P · {formatMacro(rail.totals.kcal)} kcal
+            </p>
+          )}
+          {deleted && (
+            <p className="retag-undo">
+              <span>{deleted.food_name} borrada.</span>
+              <button
+                type="button"
+                className="retag-undo-action"
+                aria-label={`Deshacer el borrado de ${deleted.food_name}`}
+                onClick={onUndo}
+                disabled={undoing}
+              >
+                Deshacer
+              </button>
+            </p>
+          )}
         </div>
-      ))}
-      {vacia && !planificado && !deleted && <p className="food-slot-empty">Nada todavía</p>}
-      {deleted && (
-        <p className="retag-undo">
-          <span>{deleted.food_name} borrada.</span>
-          <button
-            type="button"
-            className="retag-undo-action"
-            aria-label={`Deshacer el borrado de ${deleted.food_name}`}
-            onClick={onUndo}
-            disabled={undoing}
-          >
-            Deshacer
-          </button>
-        </p>
       )}
     </section>
   )

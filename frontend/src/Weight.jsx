@@ -65,7 +65,9 @@ function Curva({ pesadas }) {
   )
 }
 
-export default function Weight({ today = new Date(), onSaved }) {
+// `fila`: la fila «Peso» del final de Hoy (Marcador). La cifra a la derecha, y
+// tocarla abre la misma hoja de apuntar pesada; sin curva ni botón flotante.
+export default function Weight({ today = new Date(), onSaved, fila = false }) {
   const [trend, setTrend] = useState(null)
   const [pesadas, setPesadas] = useState([])
   const [abierta, setAbierta] = useState(false)
@@ -127,6 +129,55 @@ export default function Weight({ today = new Date(), onSaved }) {
   const media = trend?.kg
   const cuantas = trend?.weigh_ins ?? 0
 
+  const hoja = (
+    <Sheet open={abierta} title="Apuntar pesada" onClose={cerrar}>
+      <form className="weight-form" onSubmit={guardar}>
+        <label className="weight-label" htmlFor="weight-kg">
+          Peso (kg)
+        </label>
+        <input
+          id="weight-kg"
+          className="weight-input"
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          autoFocus
+          placeholder="78,4"
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+        />
+        {error && (
+          <p role="status" className="weight-error">
+            {error}
+          </p>
+        )}
+        <div className="perfil-acciones">
+          <button type="button" className="secondary" onClick={cerrar}>
+            Cancelar
+          </button>
+          <button className="primary" type="submit" disabled={guardando}>
+            Guardar
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  )
+
+  if (fila) {
+    return (
+      <>
+        <button type="button" className="hoy-peso" onClick={() => setAbierta(true)}>
+          <span className="hoy-peso-label">Peso</span>
+          <span className="hoy-peso-cifra">
+            {ultima == null ? '—' : conComa(ultima)}
+            {ultima != null && <span className="hoy-peso-unidad"> kg</span>}
+          </span>
+        </button>
+        {hoja}
+      </>
+    )
+  }
+
   return (
     <>
       <div className="weight-card">
@@ -164,37 +215,7 @@ export default function Weight({ today = new Date(), onSaved }) {
 
       <Fab icon="+" label="Pesarme" onClick={() => setAbierta(true)} />
 
-      <Sheet open={abierta} title="Apuntar pesada" onClose={cerrar}>
-        <form className="weight-form" onSubmit={guardar}>
-          <label className="weight-label" htmlFor="weight-kg">
-            Peso (kg)
-          </label>
-          <input
-            id="weight-kg"
-            className="weight-input"
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            autoFocus
-            placeholder="78,4"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-          />
-          {error && (
-            <p role="status" className="weight-error">
-              {error}
-            </p>
-          )}
-          <div className="perfil-acciones">
-            <button type="button" className="secondary" onClick={cerrar}>
-              Cancelar
-            </button>
-            <button className="primary" type="submit" disabled={guardando}>
-              Guardar
-            </button>
-          </div>
-        </form>
-      </Sheet>
+      {hoja}
     </>
   )
 }

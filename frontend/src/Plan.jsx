@@ -348,6 +348,11 @@ export function PlanEnComida({
   platos = [],
   setEntry = setPlanEntry,
   comerOlla = eatFromBatch,
+  // Marcador: en la fila de la comida, sólo el botón «Comido» (lo previsto, un
+  // toque). Lo que pide elegir —ración de la olla, sitio reservado— abre la
+  // comida con `onAbrir`; el resto de opciones está desplegándola.
+  compacto = false,
+  onAbrir = () => {},
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -393,6 +398,28 @@ export function PlanEnComida({
     } finally {
       setBusy(false)
     }
+  }
+
+  if (compacto) {
+    if (futuro) return null
+    if (saltado) {
+      return (
+        <span className="hoy-estado">
+          {{ swapped: 'Cambiado', unknown: 'No sé' }[entrada.status] ?? 'Saltado'}
+        </span>
+      )
+    }
+    const directo = !olla && !entrada.place
+    return (
+      <button
+        type="button"
+        className="hoy-comido"
+        disabled={busy}
+        onClick={() => (directo ? marcar('done') : onAbrir())}
+      >
+        {entrada.place ? 'Confirmar' : 'Comido'}
+      </button>
+    )
   }
 
   return (
