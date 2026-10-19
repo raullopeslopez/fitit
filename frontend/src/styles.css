@@ -9119,3 +9119,25 @@ button.draft-save {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+/* Historial (Marcador): titular con «+» para anotar otra fecha; sin barra fija
+   de entrenar, que vive en Hoy. */
+.days-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.days-add,
+.days-add:hover:not(:disabled) {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: var(--surface-raised);
+  color: var(--accent-ink);
+  font-size: 1.4rem;
+  line-height: 1;
+}

@@ -7,7 +7,7 @@ import { formatDayStamp, isoWeekStart, sessionLength, sessionMinutes } from './f
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { cacheBootSummary, forgetWorkout } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
-import { CtaLabelSkeleton, DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
+import { DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
 import { STEPS_SYNCED, formatSteps, stepsByDate } from './steps.js'
 import { publishLastWorkout } from './widgetSummary.js'
 import { foodDayIso } from './food.js'
@@ -278,7 +278,6 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
   // un fallo de pintado y no como una espera.
   const waiting = useWaitFlag(days === null)
 
-  const ctaLabel = creating ? 'Empezando…' : todaySession ? 'Continuar entreno' : 'Empezar entreno'
 
   const currentWeek = isoWeekStart(todayISO())
   // The week you are in always has a rule, whether or not anything is written
@@ -539,7 +538,20 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
 
   return (
     <section className="days">
-      <h1 className="days-title">Historial</h1>
+      {/* Entrenar se empieza desde Hoy; aquí sólo queda anotar un día pasado,
+          con el «+» junto al titular. */}
+      <header className="days-head">
+        <h1 className="days-title">Historial</h1>
+        <button
+          type="button"
+          className="days-add"
+          aria-label="Anotar otra fecha"
+          aria-expanded={backfill}
+          onClick={() => setBackfill(true)}
+        >
+          +
+        </button>
+      </header>
       {error && (
         <p role="alert" className="alert">
           {error}
@@ -568,7 +580,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
           <div className="days-first">
             <p className="sum-empty">Aún no hay días registrados.</p>
             <p className="hint sum-handover">
-              El botón de abajo abre la primera sesión. Al cerrarla, aparece aquí con su fecha,
+              «Entrenar», en Hoy, abre la primera sesión. Al cerrarla, aparece aquí con su fecha,
               sus músculos y sus series.
             </p>
           </div>
@@ -612,35 +624,6 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
           )}
         </>
       )}
-
-      {/* The list scrolls; the way into a session doesn't. Pinned above the tab
-          bar because that's where a thumb already is, one-handed, mid-gym. */}
-      <div className="days-cta">
-        <button
-          type="button"
-          className="primary btn-full btn-log"
-          onClick={todaySession ? () => onOpenWorkout(todaySession.id, todaySession) : startToday}
-          disabled={creating || days === null}
-        >
-          {/* El texto depende del log: `Empezar` y `Continuar` no son la misma
-              frase, y adivinar mal abre una segunda sesión en un día que ya
-              tenía una — justo lo que este botón existe para evitar. Conserva
-              su ámbar, su altura y su sitio, y no contesta al dedo hasta que
-              sepa cuál de las dos cosas es. */}
-          {days === null ? waiting && <CtaLabelSkeleton /> : ctaLabel}
-        </button>
-        {/* A framed button beside the primary action read as half as important
-            as starting a session, for something done once a month. Quiet link,
-            same treatment Salir already earned. */}
-        <button
-          type="button"
-          className="days-backfill"
-          aria-expanded={backfill}
-          onClick={() => setBackfill(true)}
-        >
-          Anotar otra fecha
-        </button>
-      </div>
 
       {backfill && (
         <div className="sheet-scrim" onClick={closeSheets}>

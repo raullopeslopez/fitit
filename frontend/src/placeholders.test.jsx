@@ -53,19 +53,6 @@ describe('placeholders de carga', () => {
       expect(container.querySelector('.week-totals .sk')).toBeInTheDocument()
     })
 
-    // "Empezar" y "Continuar" no son la misma frase, y acertar cuatro de cada
-    // cinco veces es abrir una sesión partida la quinta.
-    it('no rellena el botón con una suposición mientras espera', async () => {
-      api.listDays.mockImplementation(never)
-      const { container } = render(<Days onOpenWorkout={() => {}} />)
-      await tick(SHOW_AFTER_MS + 20)
-
-      const cta = container.querySelector('.days-cta .btn-log')
-      expect(cta).toBeDisabled()
-      expect(cta.textContent).not.toMatch(/entreno/i)
-      expect(cta.querySelector('.sk')).toBeInTheDocument()
-    })
-
     it('una cuenta nueva dice qué es esta lista, no sólo que está vacía', async () => {
       api.listDays.mockResolvedValue([])
       render(<Days onOpenWorkout={() => {}} />)
@@ -76,7 +63,7 @@ describe('placeholders de carga', () => {
 
       expect(screen.getByText('Aún no hay días registrados.')).toBeInTheDocument()
       expect(
-        screen.getByText(/El botón de abajo abre la primera sesión/),
+        screen.getByText(/«Entrenar», en Hoy, abre la primera sesión/),
       ).toBeInTheDocument()
       // La semana en la que estás no se calla ni cuando no hay nada dentro.
       expect(screen.getByText('ESTA SEMANA')).toBeInTheDocument()

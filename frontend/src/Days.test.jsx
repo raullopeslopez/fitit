@@ -367,12 +367,10 @@ describe('Days', () => {
   it('starts today’s workout with one tap', async () => {
     const onOpen = vi.fn()
     api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-19', name: null, sets: [] })
-    render(<Days onOpenWorkout={onOpen} />)
+    // «Entrenar» en Hoy (o el widget) llega aquí con `startOnArrival`.
+    render(<Days onOpenWorkout={onOpen} startOnArrival />)
 
-    // El botón no dice cuál de las dos cosas es hasta que el log contesta:
-    // `Empezar` y `Continuar` dependen de si hoy ya tiene sesión.
-    await userEvent.click(await screen.findByRole('button', { name: /empezar entreno/i }))
-
+    await waitFor(() => expect(api.createWorkout).toHaveBeenCalled())
     expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
     // Ni antes ni al abrir: el nombre se pone solo con sus músculos.
     expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }))
@@ -404,13 +402,9 @@ describe('Days', () => {
       api.listDays.mockResolvedValue([
         { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
       ])
-      render(<Days onOpenWorkout={onOpen} />)
+      render(<Days onOpenWorkout={onOpen} startOnArrival />)
 
-      // No session name on the button: the row already says it, and with it the
-      // label had to ellipsise on a long one.
-      const cta = await screen.findByRole('button', { name: /^continuar entreno$/i })
-      await userEvent.click(cta)
-
+      await waitFor(() => expect(onOpen).toHaveBeenCalled())
       expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
       expect(api.createWorkout).not.toHaveBeenCalled()
     } finally {
@@ -431,10 +425,9 @@ describe('Days', () => {
       api.listDays.mockResolvedValue([
         { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
       ])
-      render(<Days onOpenWorkout={onOpen} />)
+      render(<Days onOpenWorkout={onOpen} startOnArrival />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /^continuar entreno$/i }))
-
+      await waitFor(() => expect(onOpen).toHaveBeenCalled())
       expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
       expect(api.createWorkout).not.toHaveBeenCalled()
     } finally {
@@ -448,11 +441,9 @@ describe('Days', () => {
     try {
       api.listDays.mockResolvedValue([])
       api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-17', name: null, sets: [] })
-      render(<Days onOpenWorkout={vi.fn()} />)
+      render(<Days onOpenWorkout={vi.fn()} startOnArrival />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /empezar entreno/i }))
-
-      expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-17', name: null })
+      await waitFor(() => expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-17', name: null }))
     } finally {
       vi.useRealTimers()
     }

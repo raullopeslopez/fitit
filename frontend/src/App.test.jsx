@@ -220,7 +220,7 @@ describe('App', () => {
 
     // back to the days view via the bottom nav
     await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
-    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Historial' })).toBeInTheDocument()
   })
 
   it('reaches Comida from the bottom nav and comes back', async () => {
@@ -242,7 +242,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page')
 
     await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
-    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Historial' })).toBeInTheDocument()
   })
 
   // Plan sale de Comida: registrar y planificar son dos trabajos, y la lista de
@@ -279,7 +279,7 @@ describe('App', () => {
   })
 
   // Hoy es la primera pestaña y la que abre la app; «Entrenar» te mete en el
-  // entreno de hoy en un toque, igual que «Empezar entreno» en Historial.
+  // entreno de hoy en un toque, igual que «Empezar entreno» del widget.
   it('abre en Hoy, y «Entrenar» empieza el entreno de hoy', async () => {
     setToken('tok')
     api.listDays.mockResolvedValue([])
@@ -409,7 +409,7 @@ describe('App', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     await screen.findByLabelText('Ejercicio')
     await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
-    await screen.findByRole('button', { name: /empezar entreno/i })
+    await screen.findByRole('heading', { level: 1, name: 'Historial' })
     unmount()
 
     render(<App />)
