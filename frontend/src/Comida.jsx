@@ -1336,7 +1336,8 @@ function EntryEditor({ entry, onDone, onCancel }) {
 // El alta manual es la ÚNICA puerta por la que se escribe en `foods`: nada en
 // este proyecto crea un alimento sin que alguien lo confirme en un formulario.
 function AddFood({
-  slot = null,
+  // La comida desde la que entraste; se cambia arriba, en «A qué comida».
+  slot: slotInicial = null,
   dayIso,
   isToday = true,
   entries = [],
@@ -1351,6 +1352,7 @@ function AddFood({
   onDayChanged,
   onCancel,
 }) {
+  const [slot, setSlot] = useState(slotInicial)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
@@ -1715,6 +1717,26 @@ function AddFood({
       </header>
 
       <div className="food-screen-body">
+        {/* A qué comida va, cambiable sin salir (Marcador): la elegida en tinta. */}
+        {/* Con la hoja de cantidad abierta se esconde: ella tiene su propio
+            selector, y dos a la vez se pisarían. */}
+        {!chosen && (
+        <div className="add-comidas" role="group" aria-label="A qué comida">
+          {MEAL_SLOTS.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              className="add-comida"
+              aria-pressed={slot === s.key}
+              aria-label={`Destino: ${s.label}`}
+              onClick={() => setSlot(s.key)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        )}
+
         {/* Sin rótulo a la vista: el cursor ya está dentro y lo que se espera de
             un campo vacío al abrir esta pantalla no admite duda. El nombre sigue
             estando para quien navega a ciegas. */}
@@ -1806,7 +1828,12 @@ function AddFood({
             toque registra eso, sin pasar por «cuánto». */}
         {frecuentes.length > 0 && (
           <section className="food-frequent">
-            <p className="card-eyebrow">Frecuentes</p>
+            <p className="add-siempre-head">
+              <span className="card-eyebrow">
+                {slot ? `Lo de siempre en ${destino.toLowerCase()}` : 'Lo de siempre'}
+              </span>
+              <span className="add-siempre-nota">un toque lo apunta</span>
+            </p>
             <div className="food-frequent-chips">
               {frecuentes.map((item) => (
                 <button
@@ -1842,11 +1869,15 @@ function AddFood({
             variantes de lo mismo — y son dos objetos distintos. El nombre
             coincide además con la cabecera de la pantalla que abre, así que el
             destino confirma lo que prometía el control. */}
-        <p className="dish-new-line">
+        <div className="add-altas">
           <button type="button" className="dish-new" onClick={() => setNewDish(true)}>
             Nuevo plato
           </button>
-        </p>
+          {/* Lo que no tiene envase ni está en el catálogo, tecleado. */}
+          <button type="button" className="add-alta" onClick={() => setCreating(true)}>
+            Alta a mano
+          </button>
+        </div>
 
         {/* «Proponme platos» ya no vive aquí: pedir una tanda de platos es
             planificar, no apuntar lo que comes, y su casa es «Tus platos»

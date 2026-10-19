@@ -1436,10 +1436,19 @@ describe('Comida', () => {
       expect(document.querySelector('.food-slot')?.contains(panel)).toBe(false)
       const pantalla = screen.getByRole('dialog', { name: 'Añadir a snack' })
       expect(pantalla.contains(panel)).toBe(true)
-      // Y la cabecera afirma el destino en vez de preguntarlo: has entrado por
-      // Snack, así que no queda nada que elegir.
+      // Y la cabecera afirma el destino: has entrado por Snack, y arriba, en
+      // «A qué comida», Snack ya va elegido (se cambia sin salir).
       expect(within(pantalla).getByText('Añadir a')).toBeInTheDocument()
-      expect(within(pantalla).getByText('Snack')).toBeInTheDocument()
+      expect(within(pantalla).getByText('Snack', { selector: '.food-screen-slot' })).toBeInTheDocument()
+      expect(within(pantalla).getByRole('button', { name: 'Destino: Snack' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('cambiar de comida arriba cambia el destino sin salir', async () => {
+      api.searchFoods.mockResolvedValue([])
+      render(<Comida abiertas />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a snack' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Destino: Cena' }))
+      expect(screen.getByRole('dialog', { name: 'Añadir a cena' })).toBeInTheDocument()
     })
   })
 
