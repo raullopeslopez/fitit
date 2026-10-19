@@ -161,6 +161,13 @@ All three faces are free (Google Fonts) and share an engineered/technical feel.
 - **Contrast:** text on bg and accent-on-surface must pass WCAG AA (4.5:1 body, 3:1 large).
 
 ### Color por músculo (categorical — deliberate exception)
+> **Marcador (2026-10-19):** los valores cambian a la paleta del lienzo: pastel en
+> oscuro (Pecho `#FF9B7A`, Espalda `#8FD3FF`, Hombro `#FFD45C`, Bíceps `#B9A7FF`,
+> Tríceps `#F7A8D8`, Cuádriceps `#C6F36B`, Isquios `#9BE7C4`, Glúteo `#FFB86B`,
+> Gemelo `#7FE0E8`, Core `#E8E2D0`) y su versión honda en claro (`#D9542B`,
+> `#1F7FC0`, `#B58700`, `#6B52D9`, `#C2438C`, `#4F8F12`, `#1E8F63`, `#C46A12`,
+> `#138E99`, `#7D776A`). Las reglas de abajo siguen: marca, nunca texto.
+
 Explicit, user-approved exception to "one accent only": muscle groups get a full
 categorical palette so Progreso can be organized and read by muscle. Scope rules:
 - **For data encoding only**, never for brand/CTA/state. Amber stays the sole
@@ -777,6 +784,7 @@ de músculos pastel con su versión honda (llega con Días y Progreso), el kit d
 | Toda la app | tokens, Bricolage, récord en oro, comidas sin color (2026-10-18) |
 | Comida | «Hoy» como titular de pantalla (Bricolage 800, 54 px = `3.375rem`, nuevo paso de la escala) con la fecha en sello a su derecha; cada comida, titular de fila (Bricolage 800, 1,4rem); lo previsto, discontinuo de 1,5 px sin fondo; «Lo comí» en Hueso (`--text` de relleno, `--bg` de letra), porque el único mandarina de la pantalla es «Añadir comida». También en «Sin decir». Toques: los mismos (2026-10-19) |
 | Plan | «Plan» como titular de pantalla (54 px) con la semana en sello a su derecha; «Esta semana / La que viene» en píldora sobre `--surface` con la elegida en tinta (`--text` de relleno), sin mandarina; la tira de días y cada día sin caja ni velo (hoy lo dice el sello «HOY»), el día como titular de sección (Bricolage 800, 1,6rem) con 28 px de aire debajo; «Cómo va la semana» bajo una raya con el sello en oro (`--pr`, aviso). Pendientes: la revisión semanal (tarjeta tonal) y «¿Ya compraste?». Toques: los mismos (2026-10-19) |
+| Días | «Días» como titular de pantalla (54 px); el nombre de cada entreno, titular de fila (Bricolage 800, 1.15rem); el mes plegado, titular de sección (1.6rem, 800); la casilla de un músculo sin series, rellena de `--border` en vez de un contorno (fila, semana y tira de semana). Con ella llega la paleta de músculos pastel/honda, que cambia también los puntos de Entreno y Progreso. Pendientes: el «+» de anotar otra fecha arriba y el kcal por día del lienzo (es estructura). Toques: los mismos (2026-10-19) |
 
 ## Sistema v2 — Material tonal (desde 2026-10-02)
 La app se usa como APK, y la piel heredada de la PWA no lo parecía: formularios con un

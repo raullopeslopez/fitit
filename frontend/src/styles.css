@@ -54,19 +54,19 @@
   --radius: 8px;
   --radius-control: 6px;
   --shadow: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
-  /* Muscle-group palette (categorical, per DESIGN.md "Color por músculo").
-     Validated colorblind-safe on the adjacent pairlist against the light chart
-     surface (#fff); amber stays reserved for effort/PR so it's not in this set. */
-  --m-pecho: #2a78d6;
-  --m-espalda: #008300;
-  --m-cuadriceps: #e87ba4;
-  --m-gluteo: #7d3f17;
-  --m-femoral: #8b4bc0;
-  --m-gemelo: #0089a0;
-  --m-hombro: #eda100;
-  --m-biceps: #1baf7a;
-  --m-triceps: #4a3aa7;
-  --m-core: #e34948;
+  /* Los músculos (Marcador, lienzo «Paleta»): sobre Tiza, la versión honda,
+     porque aquí pintan puntos, trazos y velos finos y el pastel se pierde en el
+     fondo claro. Nunca son texto. */
+  --m-pecho: #d9542b;
+  --m-espalda: #1f7fc0;
+  --m-hombro: #b58700;
+  --m-biceps: #6b52d9;
+  --m-triceps: #c2438c;
+  --m-cuadriceps: #4f8f12;
+  --m-femoral: #1e8f63;
+  --m-gluteo: #c46a12;
+  --m-gemelo: #138e99;
+  --m-core: #7d776a;
   /* El hidrato, en coral: lo único que se mueve en el día (épica de cuatro
      comidas, 2026-10-18; aprobado como desviación de DESIGN.md). Relleno para
      la tira; `--carbs-ink` para cuando es texto: el coral claro da 1,8 sobre
@@ -113,17 +113,18 @@
   --border: #2a2b2f;
   --ring: rgba(255, 106, 44, 0.3);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  /* Dark steps of the muscle palette, validated on the dark surface (#15171a). */
-  --m-pecho: #3987e5;
-  --m-espalda: #008300;
-  --m-cuadriceps: #d55181;
-  --m-gluteo: #a16336;
-  --m-femoral: #8046c8;
-  --m-gemelo: #0093a8;
-  --m-hombro: #c98500;
-  --m-biceps: #199e70;
-  --m-triceps: #9085e9;
-  --m-core: #e66767;
+  /* Los músculos sobre Carbón: el pastel del lienzo, que encima sólo lleva
+     tinta negra. */
+  --m-pecho: #ff9b7a;
+  --m-espalda: #8fd3ff;
+  --m-hombro: #ffd45c;
+  --m-biceps: #b9a7ff;
+  --m-triceps: #f7a8d8;
+  --m-cuadriceps: #c6f36b;
+  --m-femoral: #9be7c4;
+  --m-gluteo: #ffb86b;
+  --m-gemelo: #7fe0e8;
+  --m-core: #e8e2d0;
   /* Sobre el fondo oscuro el coral pasa de sobra como texto (9,5 / 8,7). */
   --carbs: #ff9b7a;
   --carbs-ink: #ff9b7a;
@@ -350,6 +351,15 @@ h2 {
    one-row bar it was written for — the last day was always half hidden. */
 .days {
   padding-bottom: 11rem;
+}
+/* Marcador: «Días» como titular de pantalla, igual que «Hoy» y «Plan». */
+.days-title {
+  margin: 0.2rem 0 1.25rem;
+  font-family: var(--font-display);
+  font-size: 3.375rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
 }
 /* The primary action fills the bar, at a height a thumb finds without aiming. */
 .days-cta > .btn-full {
@@ -1038,7 +1048,7 @@ button.editor-quit {
   border-radius: 5px;
 }
 .wm-cell.is-empty {
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--border);
 }
 .wm-count {
   min-height: 1.1em;
@@ -1070,8 +1080,8 @@ button.editor-quit {
 .hist-month-name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 800;
   letter-spacing: -0.01em;
 }
 .hist-before {
@@ -1122,7 +1132,7 @@ button.editor-quit {
   border-radius: 4px;
 }
 .hist-tick.is-off {
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--border);
 }
 .hist-tick.is-cardio {
   background: repeating-linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 4px);
@@ -1333,8 +1343,10 @@ button.editor-quit {
      lists' name tokens now weigh the same and are told apart by face — Space
      Grotesk here, Geist there — instead of by 1.1px. Snapping down also can
      only free space above the fold, never eat it, which matters on a screen
-     whose CTA is pinned. */
-  font-size: 0.85rem;
+     whose CTA is pinned.
+     Marcador (2026-10-19): titular de fila, Bricolage 800 a 1.15rem. */
+  font-size: 1.15rem;
+  font-weight: 800;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1429,7 +1441,7 @@ button.editor-quit {
   border-radius: 2px;
 }
 .day-cell.is-empty {
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--border);
 }
 
 /* `series` spelled out on every row was one word repeated down a column. The

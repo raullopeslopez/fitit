@@ -15,6 +15,8 @@ Datos, con «hoy» el día en que se arranca:
 - Una comida de fuera estimada en tres líneas, una por elegir.
 - Dos sitios («Bar Paco», «Táper de mamá»), y la cena de hoy reservada en
   «Bar Paco».
+- Seis semanas de entrenos para Días: empuje, tirón y pierna a días alternos,
+  que encienden los diez músculos.
 
 `ThreadingHTTPServer` a propósito: con el de un solo hilo la página se queda
 a medio cargar, porque el navegador pide varias cosas a la vez.
@@ -30,6 +32,31 @@ HUECOS = ("desayuno", "comida", "cena", "snack")
 PLATOS = {"desayuno": "Tostadas con tomate", "comida": "Pollo con arroz",
           "cena": "Merluza al horno", "snack": "Yogur con nueces"}
 SIN_DECIR = {(HOY - timedelta(days=1), "cena"), (HOY - timedelta(days=2), "desayuno")}
+
+
+ENTRENOS = {
+    "Empuje": [("Press banca", "Pecho"), ("Press militar", "Hombro"), ("Fondos", "Tríceps")],
+    "Tirón": [("Remo con barra", "Espalda"), ("Curl de bíceps", "Bíceps"), ("Plancha", "Core")],
+    "Pierna": [("Sentadilla", "Cuádriceps"), ("Peso muerto rumano", "Femoral"),
+               ("Hip thrust", "Glúteo"), ("Gemelo de pie", "Gemelo")],
+}
+
+
+def dias_entreno():
+    out, n = [], 0
+    for atras in range(1, 43, 2):
+        d = (HOY - timedelta(days=atras)).isoformat()
+        nombre = list(ENTRENOS)[atras // 2 % 3]
+        sets = []
+        for i, (ej, grupo) in enumerate(ENTRENOS[nombre]):
+            for k in range(3):
+                n += 1
+                sets.append({"id": n, "exercise_id": i + 1, "exercise_name": ej, "kind": "strength",
+                             "muscle_group": grupo, "secondary_groups": [], "set_index": k, "reps": 8,
+                             "weight": 50, "rpe": None, "note": None, "duration_seconds": None,
+                             "distance": None, "created_at": f"{d}T18:{i}{k}:00Z"})
+        out.append({"id": atras, "date": d, "workouts": [{"id": atras, "date": d, "name": nombre, "sets": sets}]})
+    return out
 
 
 def lunes(d):
@@ -109,6 +136,8 @@ class H(BaseHTTPRequestHandler):
 
     def do_GET(self):
         ruta, _, query = self.path.partition("?")
+        if ruta == "/days":
+            return self._send(200, dias_entreno())
         if ruta == "/food-log":
             return self._send(200, dia_comida(query.removeprefix("date=")))
         if m := re.fullmatch(r"/plans/(\d{4}-\d\d-\d\d)/shopping", ruta):

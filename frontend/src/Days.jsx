@@ -539,6 +539,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
 
   return (
     <section className="days">
+      <h1 className="days-title">Días</h1>
       {error && (
         <p role="alert" className="alert">
           {error}
