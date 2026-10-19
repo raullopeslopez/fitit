@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import Days from './Days.jsx'
@@ -392,6 +392,32 @@ describe('Days', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  // Marcador: la fecha abre la ficha del día — su entreno por ejercicios y su
+  // comida — y desde ahí se salta al día de al lado.
+  it('la fecha abre la ficha del día, con su entreno y su comida', async () => {
+    const press = { kind: 'strength', exercise_name: 'Press banca', muscle_group: 'Pecho' }
+    api.listDays.mockResolvedValue([
+      { id: 2, date: '2026-07-15', workouts: [{ id: 5, name: 'Push', sets: [{ id: 1, ...press, weight: 80, reps: 8 }, { id: 2, ...press, weight: 80, reps: 7 }] }] },
+      { id: 1, date: '2026-07-13', workouts: [{ id: 4, name: 'Pull', sets: [] }] },
+    ])
+    api.getFoodDay.mockResolvedValue({
+      totals: { kcal: 2410, protein: 152 },
+      entries: [{ id: 9, meal_slot: 'comida', food_name: 'Lentejas', kcal: 780 }],
+    })
+    const onOpen = vi.fn()
+    render(<Days onOpenWorkout={onOpen} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Ver el día .* 15 JUL/ }))
+    const ficha = await screen.findByRole('dialog', { name: 'Miércoles 15' })
+    expect(ficha).toHaveTextContent('Press banca')
+    expect(ficha).toHaveTextContent('80 × 8 · 80 × 7')
+    expect(await screen.findByText('Lentejas')).toBeInTheDocument()
+    expect(ficha).toHaveTextContent('2.410')
+
+    await userEvent.click(within(ficha).getByRole('button', { name: /LUN 13/ }))
+    expect(await screen.findByRole('dialog', { name: 'Lunes 13' })).toBeInTheDocument()
   })
 
   // Una sesión sin nombre se llama por sus músculos, como en su cabecera.

@@ -7,6 +7,7 @@ import { formatDayStamp, isoWeekStart, sessionLength, sessionMinutes } from './f
 import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
 import { cacheBootSummary, forgetWorkout } from './offline.js'
 import { setRepeatTemplate } from './prefs.js'
+import DiaDetalle from './DiaDetalle.jsx'
 import { DaysSkeleton, useWaitFlag } from './Skeleton.jsx'
 import { STEPS_SYNCED, formatSteps, stepsByDate } from './steps.js'
 import { publishLastWorkout } from './widgetSummary.js'
@@ -109,6 +110,8 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
   // Pasos por fecha, de Health Connect (steps.js). Un día que no está no tiene
   // dato y se dibuja sin cifra.
   const [steps, setSteps] = useState({})
+  // El día cuya ficha está abierta, por id; `null` si ninguno.
+  const [diaAbierto, setDiaAbierto] = useState(null)
   // The folded rows opened in place: `w:` weeks, `m:` months, `y:` years.
   const [expanded, setExpanded] = useState(() => new Set())
   const toggle = (key) =>
@@ -445,11 +448,21 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
                     onPointerCancel={endPress}
                   >
                     <h2 className="day-date">
-                      {formatDayStamp(day.date).map((line, n) => (
-                        <span className={n === 0 ? 'day-date-day' : 'day-date-rest'} key={line}>
-                          {line}
-                        </span>
-                      ))}
+                      {/* La fecha abre la ficha del día (Marcador): su entreno
+                          y su comida juntos. La sesión de al lado sigue
+                          abriendo el entreno en un toque. */}
+                      <button
+                        type="button"
+                        className="day-date-btn"
+                        aria-label={`Ver el día ${formatDayStamp(day.date).join(' ')}`}
+                        onClick={() => setDiaAbierto(day.id)}
+                      >
+                        {formatDayStamp(day.date).map((line, n) => (
+                          <span className={n === 0 ? 'day-date-day' : 'day-date-rest'} key={line}>
+                            {line}
+                          </span>
+                        ))}
+                      </button>
                     </h2>
                     <ul className="sets day-sessions">
                       {day.workouts.map((w) =>
@@ -656,6 +669,29 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
           )}
         </>
       )}
+
+      {diaAbierto != null && days && (() => {
+        const orden = [...days].sort((a, b) => (a.date < b.date ? 1 : -1))
+        const i = orden.findIndex((d) => d.id === diaAbierto)
+        if (i < 0) return null
+        return (
+          <DiaDetalle
+            day={orden[i]}
+            prev={orden[i + 1] ?? null}
+            next={orden[i - 1] ?? null}
+            onPick={(d) => setDiaAbierto(d.id)}
+            onClose={() => setDiaAbierto(null)}
+            onOpenWorkout={(id, seed) => {
+              setDiaAbierto(null)
+              onOpenWorkout(id, seed)
+            }}
+            onDelete={async (id) => {
+              setDiaAbierto(null)
+              await handleDeleteDay(id)
+            }}
+          />
+        )
+      })()}
 
       {backfill && (
         <div className="sheet-scrim" onClick={closeSheets}>

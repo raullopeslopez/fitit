@@ -9707,3 +9707,198 @@ button.draft-save {
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Historial → un día (Marcador). La fecha de la lista es ahora un botón. */
+.day-date-btn,
+.day-date-btn:hover:not(:disabled) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.dia-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+}
+.dia-volver,
+.dia-volver:hover:not(:disabled),
+.dia-hueco {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+.dia-nav {
+  text-transform: uppercase;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+.dia-salto,
+.dia-salto:hover:not(:disabled) {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: inherit;
+}
+.dia-titulo {
+  margin: 4px 0 0;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+.dia-entreno,
+.dia-entreno:hover:not(:disabled) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: calc(100% + 2rem);
+  margin: 18px -1rem 0;
+  padding: 16px 1rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--chip-fill);
+  color: #101113;
+  text-align: left;
+}
+.dia-entreno-nombre {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.dia-entreno-meta {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.dia-ejercicio,
+.dia-ejercicio:hover:not(:disabled) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.dia-ejercicio-nombre {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.dia-ejercicio-series {
+  max-width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dia-comida {
+  margin-top: 1.25rem;
+}
+.dia-comida-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 4px;
+}
+.dia-sello {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dia-comida-total,
+.dia-fila-kcal {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.dia-comida-unidad {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.dia-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  border-top: 1px solid var(--border);
+}
+.dia-fila-main {
+  flex: 1;
+  min-width: 0;
+}
+.dia-fila-nombre {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.dia-fila-items {
+  display: block;
+  overflow: hidden;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dia-vacio {
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.dia-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.dia-pista {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.dia-borrar,
+.dia-borrar:hover:not(:disabled) {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.food-screen.dia {
+  padding: env(safe-area-inset-top) 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+}
