@@ -194,7 +194,7 @@ export default function App() {
             onExit={() => openWorkout(null)}
           />
         ) : view === 'progress' ? (
-          <Progress />
+          <Progress initialTab="evolucion" />
         ) : view === 'food' ? (
           <Comida onTrain={train} />
         ) : view === 'plan' ? (

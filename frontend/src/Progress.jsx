@@ -20,6 +20,7 @@ import DiasCuidadosCard from './DiasCuidados.jsx'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, muscleFill, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
+import Weight from './Weight.jsx'
 import {
   deloadTargets,
   lastTime,
@@ -848,10 +849,12 @@ function frequencies(days) {
 // often (Ritmo), how a lift is going (Evolución) — and stacked in one scroll
 // the second and third were always below the fold. One per tab, so the one you
 // came for has the screen to itself. `initialTab` opens on another one.
+// Marcador: Ejercicio (cómo va un levantamiento), Músculos (series por músculo
+// y el ritmo) y Cuerpo (el peso y los días cuidados). Los ids son los de antes.
 const TABS = [
-  ['series', 'Series'],
-  ['ritmo', 'Ritmo'],
-  ['evolucion', 'Evolución'],
+  ['evolucion', 'Ejercicio'],
+  ['series', 'Músculos'],
+  ['ritmo', 'Cuerpo'],
 ]
 
 export default function Progress({ initialTab = 'series' }) {
@@ -1364,14 +1367,6 @@ export default function Progress({ initialTab = 'series' }) {
       {tab === 'series' && (
         <div role="tabpanel" aria-labelledby="prog-tab-series">
           {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
-        </div>
-      )}
-
-      {tab === 'ritmo' && (
-        <div role="tabpanel" aria-labelledby="prog-tab-ritmo">
-          {/* La constancia de todo, no sólo del entreno: días en los que te
-              cuidaste (fase 7). Arriba, porque es la pregunta de esta pestaña. */}
-          <DiasCuidadosCard />
           {days.length > 0 ? (
             <Rhythm days={days} />
           ) : !daysLoaded && waiting ? (
@@ -1380,8 +1375,16 @@ export default function Progress({ initialTab = 'series' }) {
         </div>
       )}
 
+      {tab === 'ritmo' && (
+        <div role="tabpanel" aria-labelledby="prog-tab-ritmo">
+          {/* El peso, y la constancia de todo: días en los que te cuidaste. */}
+          <Weight />
+          <DiasCuidadosCard />
+        </div>
+      )}
+
       {tab === 'evolucion' && (
-      <div role="tabpanel" aria-labelledby="prog-tab-evolucion">
+      <div role="tabpanel" aria-label="Evolución de un ejercicio">
 
       {/* Not gated on exercises having loaded: the search box below is typeable
           the instant the screen mounts, so it must be on screen the instant the

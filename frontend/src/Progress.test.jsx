@@ -56,25 +56,28 @@ describe('Progress', () => {
   // going — stacked in one scroll. Now one at a time, behind a tab each, so the
   // one you came for fills the screen instead of sharing it.
   describe('las pestañas', () => {
-    it('reparte Progreso en Series, Ritmo y Evolución, y abre en Series', async () => {
+    // Marcador: Ejercicio · Músculos · Cuerpo. La app abre en Ejercicio
+    // (`initialTab` desde App); sin él, en Músculos.
+    it('reparte Progreso en Ejercicio, Músculos y Cuerpo', async () => {
       render(<Progress />)
       const tabs = screen.getAllByRole('tab')
-      expect(tabs.map((t) => t.textContent)).toEqual(['Series', 'Ritmo', 'Evolución'])
-      expect(screen.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true')
+      expect(tabs.map((t) => t.textContent)).toEqual(['Ejercicio', 'Músculos', 'Cuerpo'])
+      expect(screen.getByRole('tab', { name: 'Músculos' })).toHaveAttribute('aria-selected', 'true')
     })
 
     it('enseña una tarjeta cada vez', async () => {
       api.listDays.mockResolvedValue(BENCH_DAYS)
       const { container } = render(<Progress />)
       await waitFor(() => expect(container.querySelector('.sum-card')).not.toBeNull())
-      expect(container.querySelector('.rhythm-card')).toBeNull()
+      // Músculos lleva las series y, debajo, el ritmo.
+      expect(container.querySelector('.rhythm-card')).not.toBeNull()
       expect(screen.queryByLabelText('Ejercicio')).toBeNull()
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Ritmo' }))
-      expect(container.querySelector('.rhythm-card')).not.toBeNull()
+      await userEvent.click(screen.getByRole('tab', { name: 'Cuerpo' }))
+      expect(container.querySelector('.weight-card')).not.toBeNull()
       expect(container.querySelector('.sum-card')).toBeNull()
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Evolución' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Ejercicio' }))
       expect(screen.getByLabelText('Ejercicio')).toBeInTheDocument()
       expect(container.querySelector('.rhythm-card')).toBeNull()
     })
@@ -791,7 +794,7 @@ describe('Progress', () => {
         ],
       },
     ])
-    render(<Progress initialTab="ritmo" />)
+    render(<Progress initialTab="series" />)
 
     expect(await screen.findByText(/ritmo por músculo/i)).toBeInTheDocument()
     // Consistency scoring is gone: it never said anything about training.
@@ -830,7 +833,7 @@ describe('Progress', () => {
       const { container } = render(<Progress />)
 
       await screen.findByText('Esta semana')
-      expect(screen.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('tab', { name: 'Músculos' })).toHaveAttribute('aria-selected', 'true')
       expect(container.querySelector('.sum-head')).not.toBeNull()
     })
 

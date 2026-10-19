@@ -97,7 +97,7 @@ describe('placeholders de carga', () => {
       await tick(SHOW_AFTER_MS + 20)
 
       // Una pestaña cada vez: abre en Series y reserva su tarjeta.
-      expect(screen.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('tab', { name: 'Músculos' })).toHaveAttribute('aria-selected', 'true')
       expect(screen.getByText('Series por músculo')).toBeInTheDocument()
       // La forma de la tarjeta de verdad: la cifra con su medidor y una lista
       // corta debajo. Ningún número inventado: sólo bloques.

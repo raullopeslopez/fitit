@@ -61,11 +61,12 @@ describe('Progreso en Marcador', () => {
   it('ninguna vista va en tarjeta, y nada se sale por el lado', async () => {
     const user = userEvent.setup()
     await mountProgreso(user)
-    for (const nombre of ['Series', 'Ritmo', 'Evolución']) {
+    for (const nombre of ['Ejercicio', 'Músculos', 'Cuerpo']) {
       await user.click(screen.getByRole('tab', { name: nombre }))
       await settle()
       const tarjetas = [...document.querySelectorAll("[role='tabpanel'] .card")]
-      expect(tarjetas.length, nombre).toBeGreaterThan(0)
+      // Cuerpo abre con el peso, que es banda y no tarjeta.
+      if (nombre !== 'Cuerpo') expect(tarjetas.length, nombre).toBeGreaterThan(0)
       for (const t of tarjetas) {
         expect(bg(t)[3], nombre).toBe(0)
         expect(getComputedStyle(t).borderLeftWidth, nombre).toBe('0px')
@@ -75,10 +76,23 @@ describe('Progreso en Marcador', () => {
     }
   })
 
+  it('en Cuerpo, el peso es una banda a sangre: de canto a canto y sin esquinas', async () => {
+    const user = userEvent.setup()
+    await mountProgreso(user)
+    await user.click(screen.getByRole('tab', { name: 'Cuerpo' }))
+    await vi.waitFor(() => expect(document.querySelector('.weight-card')).not.toBeNull())
+    await settle()
+    const banda = document.querySelector('.weight-card')
+    const r = banda.getBoundingClientRect()
+    expect(r.left).toBe(0)
+    expect(r.right).toBe(window.innerWidth)
+    expect(getComputedStyle(banda).borderTopLeftRadius).toBe('0px')
+  })
+
   it('un músculo es contorno de su color, y elegido, pastel con tinta negra', async () => {
     const user = userEvent.setup()
     await mountProgreso(user)
-    await user.click(screen.getByRole('tab', { name: 'Evolución' }))
+    await user.click(screen.getByRole('tab', { name: 'Ejercicio' }))
     const hombro = await screen.findByRole('button', { name: 'Hombro' }, { timeout: 5000 })
     for (const theme of ['light', 'dark']) {
       await tema(theme)

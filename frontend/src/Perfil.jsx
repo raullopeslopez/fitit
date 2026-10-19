@@ -16,7 +16,6 @@ import TusPlatos from './TusPlatos.jsx'
 import TusSitios from './TusSitios.jsx'
 import { applyTheme, getThemePref, setThemePref } from './theme.js'
 import { Chip, ListRow, Sheet } from './ui'
-import Weight from './Weight.jsx'
 import { publishStepsGoal } from './widgetSummary.js'
 
 const SEXOS = [
@@ -102,9 +101,6 @@ const DATOS = {
 // de un «Guardar» al pie de un formulario de seis campos.
 export default function Perfil({ onLogout }) {
   const [reglasOpen, setReglasOpen] = useState(false)
-  // Cada pesada guardada: la propuesta sale de tu peso, así que se vuelve a
-  // pedir en vez de quedarse con la del peso de antes.
-  const [pesadas, setPesadas] = useState(0)
   const [perfil, setPerfil] = useState(null)
   const [propuesta, setPropuesta] = useState(null)
   // Qué hoja está abierta: 'objetivo', una clave de `DATOS`, 'sexo', 'platos' o 'sitios'.
@@ -140,11 +136,6 @@ export default function Perfil({ onLogout }) {
     recargar()
   }, [recargar])
 
-  // Una pesada nueva cambia la propuesta; el perfil no, así que no se pide.
-  useEffect(() => {
-    if (pesadas > 0) pedirPropuesta()
-  }, [pesadas, pedirPropuesta])
-
   const p = perfil ?? {}
   const kcal = propuesta?.kcal ?? null
   const falta = kcal == null && propuesta?.missing?.length > 0
@@ -152,8 +143,9 @@ export default function Perfil({ onLogout }) {
 
   return (
     <div className="perfil">
+      {/* El peso vive en Progreso → Cuerpo (Marcador). Volver aquí vuelve a
+          pedir la propuesta, así que una pesada nueva ya sale en ella. */}
       <h1 className="perfil-title">Tú</h1>
-      <Weight onSaved={() => setPesadas((n) => n + 1)} />
 
       <section className="perfil-seccion" aria-labelledby="perfil-objetivo">
         <h2 id="perfil-objetivo">Tu objetivo</h2>

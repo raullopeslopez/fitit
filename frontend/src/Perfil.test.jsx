@@ -40,14 +40,13 @@ describe('Perfil', () => {
     api.listRules.mockResolvedValue([])
   })
 
-  it('reúne el peso, tu objetivo, tus datos, tu comida y Entreno', async () => {
+  it('reúne tu objetivo, tus datos, tu comida y Entreno; el peso está en Progreso', async () => {
     renderPerfil()
 
     for (const name of ['Tu objetivo', 'Tus datos', 'Tu comida', 'Entreno']) {
       expect(await screen.findByRole('heading', { name })).toBeInTheDocument()
     }
-    expect(screen.getByText('Peso')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Pesarme/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Pesarme/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^salir$/i })).toBeInTheDocument()
   })
 
@@ -313,36 +312,6 @@ describe('Perfil', () => {
         expect(api.saveTargetProfile).not.toHaveBeenCalled()
         expect(publishStepsGoal).not.toHaveBeenCalled()
       })
-    })
-  })
-
-  describe('Pesarme', () => {
-    it('abre «Apuntar pesada» y guardar llama a logBodyWeight', async () => {
-      api.logBodyWeight.mockResolvedValue({ id: 1, measured_on: '2026-10-02', kg: 80 })
-      renderPerfil()
-
-      await userEvent.click(await screen.findByRole('button', { name: /Pesarme/ }))
-      const hoja = await screen.findByRole('dialog', { name: 'Apuntar pesada' })
-      await userEvent.type(within(hoja).getByLabelText('Peso (kg)'), '80')
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Guardar' }))
-
-      await waitFor(() => expect(api.logBodyWeight).toHaveBeenCalled())
-      expect(api.logBodyWeight.mock.calls[0][0].kg).toBe(80)
-    })
-
-    // La propuesta sale de tu peso: una pesada nueva la cambia, y verla sin
-    // salir de Perfil es lo que dice si toca aceptar.
-    it('al guardar un peso, la propuesta se vuelve a pedir', async () => {
-      api.logBodyWeight.mockResolvedValue({ id: 1, measured_on: '2026-09-27', kg: 80 })
-      renderPerfil()
-      expect(await fila('Propuesta')).toHaveTextContent('2569 kcal')
-      api.getTargetProposal.mockResolvedValue({ kcal: 2599, source: 'formula', days: 0, missing: [] })
-
-      await userEvent.click(screen.getByRole('button', { name: /Pesarme/ }))
-      await userEvent.type(await screen.findByLabelText('Peso (kg)'), '80')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-
-      await waitFor(async () => expect(await fila('Propuesta')).toHaveTextContent('2599 kcal'))
     })
   })
 
