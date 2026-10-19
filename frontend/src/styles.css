@@ -9981,3 +9981,83 @@ button.draft-save {
   font-size: 1rem;
   text-align: left;
 }
+
+/* Tus platos (Marcador): «+» en la cabecera y filtro por comida en píldoras,
+   la elegida en tinta. */
+.platos-head-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.platos-nuevo,
+.platos-nuevo:hover:not(:disabled) {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: var(--surface-raised);
+  color: var(--accent-ink);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.platos-filtro {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+.platos-filtro-chip,
+.platos-filtro-chip:hover:not(:disabled) {
+  flex: none;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.platos-filtro-chip[aria-pressed='true'],
+.platos-filtro-chip[aria-pressed='true']:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Semana → la que viene (Marcador): sin tarjeta, un titular de lo que hace el
+   botón, el botón en píldora de 60 y una nota al pie. */
+.plan-planificar .plan-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.plan-titular {
+  margin: 10px 0 0.5rem;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+.plan-planificar .plan-card > .primary {
+  width: 100%;
+  min-height: 60px;
+  border-radius: 30px;
+  font-size: 1rem;
+}
+.plan-nota-entreno {
+  margin: 1.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Las filas de la semana que viene arrancan en la columna del titular. */
+.plan-bloque .ui-row {
+  padding-inline: 0;
+}

@@ -116,6 +116,17 @@ describe('Tus platos', () => {
     expect(within(fila).getByText('— P')).toBeInTheDocument()
   })
 
+  // Marcador: el filtro por comida. Un plato sin comidas va en cualquiera, así
+  // que sale en todas.
+  it('filtra por comida, y lo que vale para cualquiera sale siempre', async () => {
+    montar([plato(), plato({ id: 3, name: 'Avena con fruta', slots: ['desayuno'] }), PIZZA])
+    await screen.findByText('Avena con fruta')
+    await userEvent.click(screen.getByRole('button', { name: 'Desayuno' }))
+    expect(screen.getByText('Avena con fruta')).toBeInTheDocument()
+    expect(screen.getByText('Pizza casera')).toBeInTheDocument()
+    expect(screen.queryByText('Pollo con arroz y brócoli')).not.toBeInTheDocument()
+  })
+
   it('trae las formas de llenar la lista', async () => {
     montar()
     await screen.findByText('Pollo con arroz y brócoli')

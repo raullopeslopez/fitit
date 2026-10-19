@@ -126,6 +126,8 @@ export default function PlanificarSemana({
 
       <section className="card plan-card">
         <p className="card-eyebrow">Tu plan</p>
+        {/* Marcador: lo que hace el botón, dicho como titular. */}
+        <p className="plan-titular">Las comidas de la semana que viene, en un toque.</p>
         {/* Sin perfil que leer no se dice nada: una línea que no llega no
             es «no tienes objetivo». */}
         {objetivo !== undefined && (

@@ -37,6 +37,9 @@ export default function TusPlatos({
   const [platos, setPlatos] = useState(null)
   const [abierto, setAbierto] = useState(null)
   const [nuevo, setNuevo] = useState(false)
+  // Qué comida se mira (Marcador): `null` es todas. Un plato sin comidas va
+  // en cualquiera, así que sale en todas.
+  const [filtro, setFiltro] = useState(null)
 
   const cargar = useCallback(async () => {
     try {
@@ -67,8 +70,9 @@ export default function TusPlatos({
     )
   }
 
-  const lista = ordenados(platos ?? [])
-  const sinAsignar = lista.filter((p) => !p.slots?.length).length
+  const todos = ordenados(platos ?? [])
+  const lista = filtro ? todos.filter((p) => !p.slots?.length || p.slots.includes(filtro)) : todos
+  const sinAsignar = todos.filter((p) => !p.slots?.length).length
 
   return (
     <div className="food-screen" role="dialog" aria-modal="true" aria-label="Tus platos">
@@ -77,17 +81,31 @@ export default function TusPlatos({
           <span className="card-eyebrow">Planificar</span>
           <span className="food-screen-slot">Tus platos</span>
         </p>
-        <button type="button" className="link-btn" onClick={onClose}>
-          Cerrar
-        </button>
+        <span className="platos-head-acciones">
+          {/* Dar de alta, en la cabecera: el «+» de la pantalla. */}
+          <button type="button" className="platos-nuevo" aria-label="Nuevo plato" onClick={() => setNuevo(true)}>
+            +
+          </button>
+          <button type="button" className="link-btn" onClick={onClose}>
+            Cerrar
+          </button>
+        </span>
       </header>
 
       <div className="food-screen-body">
-        <p className="dish-new-line">
-          <button type="button" className="dish-new" onClick={() => setNuevo(true)}>
-            Nuevo plato
-          </button>
-        </p>
+        <div className="platos-filtro" role="group" aria-label="Qué comida">
+          {[[null, 'Todos'], ...COMIDAS].map(([key, label]) => (
+            <button
+              key={label}
+              type="button"
+              className="platos-filtro-chip"
+              aria-pressed={filtro === key}
+              onClick={() => setFiltro(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <ProposeDishes onCreated={cambiado} />
 
         {sinAsignar > 0 && (

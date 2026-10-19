@@ -480,6 +480,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
               </div>
             )}
           </section>
+          <p className="plan-nota-entreno">El entreno no se planifica: aquí sólo hay comida.</p>
         </>
       )}
 
