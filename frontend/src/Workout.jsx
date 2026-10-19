@@ -965,10 +965,12 @@ function ExerciseCard({
                         reps: editReps,
                       })}
                     </span>
+                    <span className="set-corrigiendo">Corrigiendo</span>
                     <span className="set-edit-chev" aria-hidden="true">
                       ˄
                     </span>
                   </button>
+                  <p className="set-edit-pista">Cerrar la fila guarda.</p>
                   <form
                     className="set-edit-steppers"
                     onSubmit={(e) => {
@@ -2549,8 +2551,10 @@ export default function Workout({
               >
                 ⋯
               </button>
-              {menuOpen && (
-                <div className="head-menu-pop">
+              {/* Marcador: las opciones del entreno en una hoja, no en un
+                  desplegable pegado al botón. */}
+              <Sheet open={menuOpen} title="Opciones del entreno" onClose={closeMenu}>
+                <div className="head-menu-hoja">
                   <button
                     type="button"
                     className="secondary set-action head-menu-item"
@@ -2596,7 +2600,7 @@ export default function Workout({
                     </button>
                   )}
                 </div>
-              )}
+              </Sheet>
             </div>
       </div>
 

@@ -158,6 +158,7 @@ export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onA
 
   return (
     <Sheet open title="Tu objetivo" onClose={onClose}>
+      <p className="objetivo-sello">Te propongo</p>
       <p className="perfil-figure">
         <span className="perfil-kcal">{conMiles(kcal)}</span>
         {kcal != null && <span className="perfil-unit">kcal</span>}
@@ -169,6 +170,7 @@ export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onA
       {plan?.reached && (
         <p className="perfil-aviso">Has llegado a tu peso meta: te propongo mantener.</p>
       )}
+      {filas && <p className="objetivo-sello">La cuenta</p>}
       {filas && (
         <ul className="objetivo-cuenta" aria-label="La cuenta">
           {filas.map(([label, cifra, fuerte]) => (
@@ -241,8 +243,9 @@ export default function ObjetivoSheet({ perfil, propuesta, onClose, onSaved, onA
         <button type="button" className="secondary" disabled={busy} onClick={guardar}>
           Guardar
         </button>
+        {/* Dice qué fija: la cifra, no un «Aceptar» a secas. */}
         <button type="button" className="primary" disabled={busy || kcal == null} onClick={aceptar}>
-          Aceptar
+          {kcal == null ? 'Aceptar' : `Aceptar ${conMiles(kcal)} kcal`}
         </button>
       </div>
     </Sheet>

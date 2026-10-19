@@ -340,7 +340,7 @@ describe('Entreno y la notificación en curso', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /acciones del entreno/i }))
     // El del menú: con el press hecho, el pie ofrece también el suyo.
-    const menu = document.querySelector('.head-menu-pop')
+    const menu = document.querySelector('.head-menu-hoja')
     await userEvent.click(within(menu).getByRole('button', { name: /^terminar entreno$/i }))
 
     await waitFor(() => expect(screen.queryByRole('timer')).not.toBeInTheDocument())

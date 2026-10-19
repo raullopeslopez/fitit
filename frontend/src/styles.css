@@ -9902,3 +9902,82 @@ button.draft-save {
   overflow-x: hidden;
   overflow-y: auto;
 }
+
+/* Tu objetivo (Marcador): «Te propongo» sobre la cifra y «La cuenta» sobre
+   de dónde sale, en sello. */
+.objetivo-sello {
+  margin: 0.75rem 0 0.25rem;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Entreno → corregir una serie (Marcador): la fila dice que se está
+   corrigiendo y que cerrarla guarda; las cifras sin caja, − y + redondos. */
+.set-corrigiendo {
+  margin-left: auto;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.set-edit-steppers .stepper.stepper {
+  gap: 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+.set-edit-steppers .stepper input {
+  border: 0;
+  background: transparent;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+.set-edit-steppers .stepper .stepper-btn {
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  color: var(--text);
+}
+.set-edit-steppers .stepper .stepper-btn.stepper-plus {
+  border-color: transparent;
+  background: var(--surface-raised);
+  color: var(--accent-ink);
+}
+
+.set-edit .set-val {
+  white-space: nowrap;
+}
+.set-edit-pista {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* Entreno → opciones, en hoja: una fila por opción, a todo el ancho. */
+.head-menu-hoja {
+  display: flex;
+  flex-direction: column;
+}
+.head-menu-hoja .head-menu-item,
+.head-menu-hoja .head-menu-item:hover:not(:disabled) {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  font-size: 1rem;
+  text-align: left;
+}

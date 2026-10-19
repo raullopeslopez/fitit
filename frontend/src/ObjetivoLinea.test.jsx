@@ -73,7 +73,7 @@ describe('La línea del objetivo en Comida', () => {
       await screen.findByRole('button', { name: 'Sin objetivo todavía · Calcularlo' }),
     )
     await screen.findByRole('dialog', { name: 'Tu objetivo' })
-    await user.click(screen.getByRole('button', { name: 'Aceptar' }))
+    await user.click(screen.getByRole('button', { name: /^Aceptar/ }))
 
     expect(acceptTarget).toHaveBeenCalledWith(2569)
     await waitFor(() => expect(onAccepted).toHaveBeenCalledOnce())

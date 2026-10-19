@@ -84,7 +84,7 @@ describe('Tu objetivo', () => {
     })
     expect(within(hoja).getByText('—')).toBeInTheDocument()
     expect(within(hoja).getByText('Para calcularlo me falta: altura, sexo.')).toBeInTheDocument()
-    expect(within(hoja).getByRole('button', { name: 'Aceptar' })).toBeDisabled()
+    expect(within(hoja).getByRole('button', { name: /^Aceptar/ })).toBeDisabled()
   })
 
   it('warns when the number hit the floor instead of pretending it did not', () => {
@@ -103,7 +103,7 @@ describe('Tu objetivo', () => {
     const { onAccepted } = abrir()
     expect(acceptTarget).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Aceptar/ }))
 
     await waitFor(() => expect(acceptTarget).toHaveBeenCalledWith(2600))
     await waitFor(() => expect(onAccepted).toHaveBeenCalled())

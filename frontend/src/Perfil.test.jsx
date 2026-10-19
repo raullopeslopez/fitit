@@ -132,7 +132,7 @@ describe('Perfil', () => {
       expect(api.acceptTarget).not.toHaveBeenCalled()
 
       api.getTargetProfile.mockResolvedValue({ ...PERFIL, objetivo_kcal: 2569 })
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Aceptar' }))
+      await userEvent.click(within(hoja).getByRole('button', { name: /^Aceptar/ }))
 
       await waitFor(() => expect(api.acceptTarget).toHaveBeenCalledWith(2569))
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
