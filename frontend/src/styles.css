@@ -9141,3 +9141,53 @@ button.draft-save {
   font-size: 1.4rem;
   line-height: 1;
 }
+
+/* Tú → el objetivo como banda (Marcador): a sangre, en el amarillo del lienzo
+   y con tinta negra en los dos temas. Sus filas van dentro, con raya oscura. */
+.tu-objetivo {
+  margin: 1.25rem -1rem 1.75rem;
+  padding: 18px 1rem 6px;
+  background: #ffd45c;
+  color: #101113;
+}
+.tu-objetivo-sello {
+  margin: 0;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.tu-objetivo-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+.tu-objetivo-kcal {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 2.6rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.tu-objetivo-unidad {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.tu-objetivo-linea {
+  margin: 4px 0 0.75rem;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.tu-objetivo .perfil-card .ui-row,
+.tu-objetivo .perfil-card .ui-row * {
+  color: #101113;
+}
+.tu-objetivo .perfil-card .ui-row {
+  border-color: rgba(16, 17, 19, 0.15);
+}

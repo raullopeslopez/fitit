@@ -147,8 +147,21 @@ export default function Perfil({ onLogout }) {
           pedir la propuesta, así que una pesada nueva ya sale en ella. */}
       <h1 className="perfil-title">Tú</h1>
 
-      <section className="perfil-seccion" aria-labelledby="perfil-objetivo">
-        <h2 id="perfil-objetivo">Tu objetivo</h2>
+      {/* Marcador: el objetivo es la banda de la pantalla, a sangre y en
+          amarillo, con la cifra en grande; sus filas, dentro y en tinta negra. */}
+      <section className="tu-objetivo" aria-labelledby="perfil-objetivo">
+        <h2 id="perfil-objetivo" className="tu-objetivo-sello">Tu objetivo</h2>
+        <p className="tu-objetivo-cifra">
+          <span className="tu-objetivo-kcal">
+            {p.objetivo_kcal == null ? '—' : conMiles(p.objetivo_kcal)}
+          </span>
+          <span className="tu-objetivo-unidad">kcal / día</span>
+        </p>
+        {(ritmo(p) || DATOS.pesoMeta.valor(p)) && (
+          <p className="tu-objetivo-linea">
+            {[ritmo(p), DATOS.pesoMeta.valor(p) && `meta ${DATOS.pesoMeta.valor(p)}`].filter(Boolean).join(' · ')}
+          </p>
+        )}
         <div className="perfil-card">
           <ListRow
             label="Objetivo diario"
