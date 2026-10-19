@@ -2650,11 +2650,14 @@ button.set-action {
   margin: 0;
   font-size: 0.8rem;
 }
+/* Marcador: una píldora sobre `--surface`, y la opción elegida en tinta, como
+   «Esta semana / La que viene» en Plan. El mandarina es para la acción. */
 .unit-toggle {
   display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  overflow: hidden;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 22px;
+  background: var(--surface);
 }
 .unit-option {
   min-height: 36px;
@@ -2662,15 +2665,15 @@ button.set-action {
   background: transparent;
   color: var(--muted);
   border: none;
-  border-radius: 0;
+  border-radius: 18px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
   font-weight: 600;
 }
 .unit-option[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--text);
+  color: var(--bg);
 }
 .unit-option:not([aria-pressed='true']):hover {
   background: color-mix(in srgb, var(--text) 5%, transparent);
@@ -7462,9 +7465,11 @@ button.draft-save {
    única Display de la pantalla. */
 .weight-card {
   background: var(--surface-tonal);
-  border-radius: var(--radius-card);
-  padding: 1.1rem 1.25rem 1.25rem;
-  margin-bottom: 1.25rem;
+  /* Marcador: la única banda a sangre de Perfil — de canto a canto de la
+     pantalla, comiéndose el relleno de 1rem de `.container`. */
+  margin: 0 -1rem 1.75rem;
+  border-radius: 0;
+  padding: 1.1rem 1rem 1.25rem;
 }
 /* Micro: un sello que rotula la cifra, no una frase. */
 .weight-stamp {
@@ -7576,20 +7581,38 @@ button.draft-save {
 /* Una sección: su título, y debajo la tarjeta de filas. La tarjeta no lleva
    relleno —cada `ListRow` trae el suyo y su raya—, y recorta los rincones del
    primer y el último para que el hover no se salga del radio. */
+.perfil-title {
+  margin: 0.2rem 0 1rem;
+  font-family: var(--font-display);
+  font-size: 3.375rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
+/* Marcador: sin tarjetas. Cada sección la abre un sello y la separa el aire;
+   las filas, su raya. */
 .perfil-seccion {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
 }
 .perfil-seccion > h2 {
-  margin: 0 0 0.5rem 0.25rem;
+  margin: 0 0 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .perfil-card {
-  background: var(--surface);
-  border-radius: var(--radius-card);
-  overflow: hidden;
+  background: transparent;
+  border-radius: 0;
+}
+.perfil-card .ui-row {
+  padding-inline: 0;
 }
 /* Las preferencias de Entreno no son filas sino controles, y llevan aire. */
 .perfil-card-pad {
-  padding: 0.5rem 1.1rem;
+  padding: 0.5rem 0;
 }
 .perfil-card .menu-pref {
   padding: 0.3rem 0 0.7rem;

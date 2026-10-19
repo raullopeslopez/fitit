@@ -152,6 +152,7 @@ export default function Perfil({ onLogout }) {
 
   return (
     <div className="perfil">
+      <h1 className="perfil-title">Perfil</h1>
       <Weight onSaved={() => setPesadas((n) => n + 1)} />
 
       <section className="perfil-seccion" aria-labelledby="perfil-objetivo">
