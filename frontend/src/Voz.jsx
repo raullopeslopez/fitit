@@ -228,7 +228,11 @@ export default function Voz({
               disabled={busy || pendientes > 0}
               onClick={onApuntar}
             >
-              {pendientes > 0 ? `Falta elegir ${pendientes}` : `Apuntar ${lineas.length}`}
+              {pendientes > 0
+                ? `Falta elegir ${pendientes}`
+                : lineas.length === 1
+                  ? 'Apuntar'
+                  : `Apuntar las ${lineas.length}`}
             </button>
           )}
         </div>

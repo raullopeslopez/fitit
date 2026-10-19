@@ -69,7 +69,7 @@ describe('Voz', () => {
     expect(await screen.findByText('Revisa lo que has dicho')).toBeInTheDocument()
     expect(screen.getByText('Has oído: dos huevos')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Desayuno' })).toHaveAttribute('aria-pressed', 'true')
-    await userEvent.click(screen.getByRole('button', { name: 'Apuntar 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apuntar' }))
     await waitFor(() =>
       expect(ctx.apuntar).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -97,7 +97,7 @@ describe('Voz', () => {
     expect(await screen.findByText('¿Cuál?')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Falta elegir 1' })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: 'Pasta Spaghetti' }))
-    expect(screen.getByRole('button', { name: 'Apuntar 1' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Apuntar' })).toBeEnabled()
     expect(screen.getByText(/estimado/)).toBeInTheDocument()
   })
 
@@ -108,7 +108,7 @@ describe('Voz', () => {
     })
     const peso = await screen.findByLabelText('¿Cuánto pesa 1 huevo?')
     expect(peso).toHaveValue('60')
-    await userEvent.click(screen.getByRole('button', { name: 'Apuntar 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apuntar' }))
     await waitFor(() => expect(ctx.racion).toHaveBeenCalledWith(1, 'unidad', 60))
     expect(ctx.apuntar).toHaveBeenCalledWith(
       expect.objectContaining({ entries: [{ food_id: 1, grams: 120, estimated: false }] }),
@@ -122,7 +122,7 @@ describe('Voz', () => {
     })
     // «2 cdas» va en tinta y el resto apagado, como en el diario: dos elementos.
     expect((await screen.findByText(/~30 g/)).closest('p')).toHaveTextContent('2 cdas · ~30 g')
-    await userEvent.click(screen.getByRole('button', { name: 'Apuntar 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apuntar' }))
     await waitFor(() =>
       expect(ctx.apuntar).toHaveBeenCalledWith(
         expect.objectContaining({ entries: [{ food_id: 5, measure: 'cda', quantity: 2, estimated: false }] }),
@@ -141,14 +141,14 @@ describe('Voz', () => {
     expect(screen.getByLabelText('Buscar lomo embuchado')).toHaveValue('lomo embuchado')
     await userEvent.click(await screen.findByRole('button', { name: 'Lomo embuchado Hacendado' }))
     expect(ctx.buscar).toHaveBeenCalledWith('lomo embuchado')
-    expect(screen.getByRole('button', { name: 'Apuntar 1' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Apuntar' })).toBeEnabled()
   })
 
   it('una línea se quita con ✕', async () => {
     await montar({ transcript: 'x', lines: [linea(), linea({ text: 'pan', status: 'missing', food: null, candidates: [] })] })
     expect(await screen.findByRole('button', { name: 'Falta elegir 1' })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: 'Quitar pan' }))
-    expect(screen.getByRole('button', { name: 'Apuntar 1' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Apuntar' })).toBeEnabled()
   })
 
   it('sin cuota del día lo dice', async () => {
@@ -173,6 +173,6 @@ describe('Voz', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Seguir hablando' }))
     expect(await screen.findByText(/Escuchando/)).toBeInTheDocument()
     await act(async () => ctx.callar())
-    expect(await screen.findByRole('button', { name: 'Apuntar 2' })).toBeEnabled()
+    expect(await screen.findByRole('button', { name: 'Apuntar las 2' })).toBeEnabled()
   })
 })
