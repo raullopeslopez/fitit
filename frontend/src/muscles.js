@@ -33,6 +33,14 @@ export function muscleColor(group) {
   return slug ? `var(--m-${slug})` : 'var(--muted)'
 }
 
+// The group's pastel, for when the colour is a fill with black ink on top
+// (Marcador: the same in both themes). Unknown/ungrouped has none: the caller
+// falls back to ink.
+export function muscleFill(group) {
+  const slug = SLUG[group]
+  return slug ? `var(--mf-${slug})` : undefined
+}
+
 // What an exercise with no group is called, everywhere it is named: the empty
 // option of the corrector, and the Progreso chip that makes those exercises
 // reachable at all. It doubles as the selected-filter value there — safe as a

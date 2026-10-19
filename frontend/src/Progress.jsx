@@ -18,7 +18,7 @@ import { fold, formatIsoDayMonth, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import DiasCuidadosCard from './DiasCuidados.jsx'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
-import { MUSCLE_GROUPS, muscleColor, UNGROUPED } from './muscles.js'
+import { MUSCLE_GROUPS, muscleColor, muscleFill, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
 import {
   deloadTargets,
@@ -1344,6 +1344,7 @@ export default function Progress({ initialTab = 'series' }) {
 
   return (
     <section>
+      <h1 className="prog-title">Progreso</h1>
       <div className="prog-tabs" role="tablist" aria-label="Progreso">
         {TABS.map(([id, label]) => (
           <button
@@ -1452,7 +1453,7 @@ export default function Progress({ initialTab = 'series' }) {
                 key={m}
                 type="button"
                 className={`chip muscle-chip${muscle === m ? ' is-active' : ''}`}
-                style={{ '--chip': muscleColor(m) }}
+                style={{ '--chip': muscleColor(m), '--chip-fill': muscleFill(m) }}
                 aria-pressed={muscle === m}
                 onClick={() => (muscle === m ? setMuscle(null) : selectMuscle(m))}
               >
@@ -1464,7 +1465,7 @@ export default function Progress({ initialTab = 'series' }) {
               <button
                 type="button"
                 className={`chip muscle-chip${muscle === UNGROUPED ? ' is-active' : ''}`}
-                style={{ '--chip': muscleColor(null) }}
+                style={{ '--chip': muscleColor(null), '--chip-ink': 'var(--bg)' }}
                 aria-pressed={muscle === UNGROUPED}
                 onClick={() =>
                   muscle === UNGROUPED ? setMuscle(null) : selectMuscle(UNGROUPED)
