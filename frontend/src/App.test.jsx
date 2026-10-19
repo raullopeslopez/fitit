@@ -213,7 +213,8 @@ describe('App', () => {
     api.listExercises.mockResolvedValue([])
     render(<App />)
 
-    // days view -> open a workout
+    // Historial -> open a workout
+    await userEvent.click(await screen.findByRole('button', { name: 'Historial' }))
     await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
 
@@ -277,6 +278,23 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Tú' })).toHaveAttribute('aria-current', 'page')
   })
 
+  // Hoy es la primera pestaña y la que abre la app; «Entrenar» te mete en el
+  // entreno de hoy en un toque, igual que «Empezar entreno» en Historial.
+  it('abre en Hoy, y «Entrenar» empieza el entreno de hoy', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
+    api.createWorkout.mockResolvedValue({ id: 12, date: foodDayIso(), name: null, sets: [] })
+    api.getWorkout.mockResolvedValue({ id: 12, date: foodDayIso(), name: null, sets: [] })
+    render(<App />)
+
+    expect(await screen.findByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page')
+    await userEvent.click(await screen.findByRole('button', { name: /^Entrenar$/ }))
+
+    expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
+    expect(api.createWorkout).toHaveBeenCalledTimes(1)
+  })
+
   // Reopening the app between sets used to land on Días — a tap and a fetch
   // away from the set you were about to log. The open workout is the state you
   // were in, so it survives the relaunch.
@@ -299,7 +317,7 @@ describe('App', () => {
     api.listExercises.mockResolvedValue([])
     render(<App />)
 
-    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Entrenar$/ })).toBeInTheDocument()
     expect(api.getWorkout).not.toHaveBeenCalled()
   })
 
@@ -312,7 +330,7 @@ describe('App', () => {
     api.listExercises.mockResolvedValue([])
     render(<App />)
 
-    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Entrenar$/ })).toBeInTheDocument()
     expect(screen.queryByText('Tu primera sesión')).not.toBeInTheDocument()
   })
 
@@ -345,7 +363,7 @@ describe('App', () => {
       await vi.advanceTimersByTimeAsync(10)
     })
     expect(screen.queryByText('Tu primera sesión')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Entrenar$/ })).toBeInTheDocument()
     vi.useRealTimers()
   })
 
@@ -368,7 +386,7 @@ describe('App', () => {
       screen.getByRole('button', { name: /empezar a registrar ya/i }).click()
       await vi.advanceTimersByTimeAsync(10)
     })
-    expect(screen.getByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Entrenar$/ })).toBeInTheDocument()
     vi.useRealTimers()
   })
 
@@ -387,6 +405,7 @@ describe('App', () => {
     api.listExercises.mockResolvedValue([])
     const { unmount } = render(<App />)
 
+    await userEvent.click(await screen.findByRole('button', { name: 'Historial' }))
     await userEvent.click(await screen.findByRole('button', { name: /^Legs/ }))
     await screen.findByLabelText('Ejercicio')
     await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
@@ -394,6 +413,6 @@ describe('App', () => {
     unmount()
 
     render(<App />)
-    expect(await screen.findByRole('button', { name: /empezar entreno/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Entrenar$/ })).toBeInTheDocument()
   })
 })

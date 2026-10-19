@@ -27,7 +27,8 @@ export default function App() {
   // Deliberately not persisted — a resume goes through the fetch, because a
   // seed from a previous launch would be an unknown number of sets out of date.
   const [openWorkoutSeed, setOpenWorkoutSeed] = useState(null)
-  const [view, setView] = useState('days')
+  // Se abre en Hoy, la primera pestaña: lo de hoy, comer y entrenar.
+  const [view, setView] = useState('food')
   // «Empezar entreno» pulsado en el widget: Días hace lo mismo que su botón en
   // cuanto sabe si hoy ya hay entreno.
   const [startOnArrival, setStartOnArrival] = useState(false)
@@ -114,7 +115,14 @@ export default function App() {
     stopNativeQueue()
     setTokenState(null)
     openWorkout(null)
+    setView('food')
+  }
+
+  // «Entrenar» desde Hoy: lo mismo que «Empezar entreno» del widget.
+  function train() {
+    openWorkout(null)
     setView('days')
+    setStartOnArrival(true)
   }
 
   function go(target) {
@@ -187,7 +195,7 @@ export default function App() {
         ) : view === 'progress' ? (
           <Progress />
         ) : view === 'food' ? (
-          <Comida />
+          <Comida onTrain={train} />
         ) : view === 'plan' ? (
           <PlanPantalla key={planInicial} inicial={planInicial} />
         ) : view === 'profile' ? (

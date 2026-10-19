@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
+import HoyEntreno from './HoyEntreno.jsx'
+
 import {
   correctFood,
   correctFoodEntry,
@@ -91,7 +93,7 @@ function rails(day) {
 const NUTRIENT_KEYS = ['kcal', ...MACROS.map((m) => m.key)]
 const isIncomplete = (entry) => NUTRIENT_KEYS.some((key) => entry[key] == null)
 
-export default function Comida() {
+export default function Comida({ onTrain }) {
   // El día que se está mirando. Arranca en el día alimentario en curso, que a
   // las 02:00 sigue siendo el de ayer — misma regla que el servidor usa para
   // fechar lo que escribes.
@@ -297,6 +299,8 @@ export default function Comida() {
         <span className="card-eyebrow food-daystamp-date">{formatDayShort(dayIso)}</span>
         <h1 className="food-title">{tituloDia(dayIso)}</h1>
       </header>
+
+      {isToday && onTrain && <HoyEntreno onTrain={onTrain} />}
 
       <FranjaSemana dayIso={dayIso} hoy={foodDayIso()} cuidados={cuidados} onPick={setDayIso} />
 
