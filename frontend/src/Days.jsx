@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { createWorkout, deleteDay, listDays } from './api.js'
+import { createWorkout, deleteDay, getFoodDay, listDays } from './api.js'
 import { buildBootSummary } from './coldstart.js'
 import { autoWorkoutName, buildHistory, CARDIO, muscleCounts } from './daysHistory.js'
 import { formatDayStamp, isoWeekStart, sessionLength, sessionMinutes } from './format.js'
@@ -16,6 +16,8 @@ import { foodDayIso } from './food.js'
 // sesión a la 01:30 es la del día que llevas despierto. Antes salía en UTC, y
 // entre las 00:00 y las 02:00 en Madrid «Empezar entreno» no encontraba la
 // sesión de hoy y fechaba la nueva en ayer.
+const conPunto = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+
 function todayISO() {
   return foodDayIso()
 }
@@ -159,6 +161,28 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     return () => {
       live = false
       window.removeEventListener(STEPS_SYNCED, load)
+    }
+  }, [days])
+
+  // Las kcal de cada día entrenado de esta semana (Marcador: «ESTA SEMANA ·
+  // kcal»). No hay petición por rango: como mucho siete días, en paralelo, y
+  // uno que no contesta se queda sin cifra en vez de tumbar la lista.
+  const [kcal, setKcal] = useState({})
+  useEffect(() => {
+    if (!days || days.length === 0) return undefined
+    const semana = isoWeekStart(todayISO())
+    const fechas = [...new Set(days.map((d) => d.date).filter((d) => d >= semana))]
+    let vivo = true
+    Promise.all(
+      fechas.map((f) =>
+        Promise.resolve()
+          .then(() => getFoodDay(f))
+          .then((dia) => [f, dia?.totals?.kcal ?? null])
+          .catch(() => [f, undefined]),
+      ),
+    ).then((pares) => vivo && setKcal(Object.fromEntries(pares.filter(([, k]) => k !== undefined))))
+    return () => {
+      vivo = false
     }
   }, [days])
 
@@ -432,8 +456,16 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
                         renderSession(day, w, day.date !== todayISO() || !!sessionLength(w)),
                       )}
                     </ul>
-                    {steps[day.date] != null && (
-                      <p className="day-steps">{formatSteps(steps[day.date])}</p>
+                    {(steps[day.date] != null || day.date in kcal) && (
+                      <p className="day-steps">
+                        {[
+                          steps[day.date] != null && formatSteps(steps[day.date]),
+                          // `null` no es 0: sin kcal medidas, la raya.
+                          day.date in kcal && `${kcal[day.date] == null ? '—' : conPunto(kcal[day.date])} kcal`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
                     )}
                   </div>
                 </div>

@@ -376,6 +376,24 @@ describe('Days', () => {
     expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }))
   })
 
+  // Marcador: cada día entrenado de esta semana dice también lo que comiste.
+  it('un día de esta semana dice sus kcal, y una sin medir es «—»', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-16T12:00:00'))
+    try {
+      api.listDays.mockResolvedValue([
+        { id: 2, date: '2026-07-15', workouts: [{ id: 5, name: 'Push', sets: [] }] },
+        { id: 3, date: '2026-07-16', workouts: [{ id: 6, name: 'Pull', sets: [] }] },
+      ])
+      api.getFoodDay.mockImplementation(async (d) => ({ totals: { kcal: d === '2026-07-15' ? 2140.4 : null } }))
+      render(<Days onOpenWorkout={() => {}} />)
+      expect(await screen.findByText('2.140 kcal')).toBeInTheDocument()
+      expect(screen.getByText('— kcal')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   // Una sesión sin nombre se llama por sus músculos, como en su cabecera.
   it('names an unnamed session after its muscles', async () => {
     const sq = { kind: 'strength', exercise_name: 'Sentadilla', muscle_group: 'Cuádriceps' }
