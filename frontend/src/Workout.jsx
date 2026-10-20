@@ -32,6 +32,7 @@ import {
   parseDuration,
   sessionLength,
 } from './format.js'
+import { doble, tap } from './platform/haptics.js'
 import { muscleColor, muscleFill } from './muscles.js'
 import {
   beatenAt,
@@ -270,6 +271,30 @@ function ExerciseCard({
   const [editNote, setEditNote] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
   const [error, setError] = useState('')
+
+  // Movimiento (lienzo «Movimiento»): la serie que acaba de aparecer entra
+  // desde arriba y su marca se dibuja; vibra corto, o doble si es récord. Sólo
+  // la que se acaba de registrar: abrir la pantalla no mueve nada.
+  const [recien, setRecien] = useState(null)
+  const cuantas = useRef(sets.length)
+  useEffect(() => {
+    if (sets.length > cuantas.current) {
+      const nueva = sets[sets.length - 1]
+      // Por posición y con hora: al llegar al servidor la serie cambia de id y
+      // su fila se vuelve a montar, y no tiene que entrar dos veces.
+      setRecien({ index: sets.length - 1, at: Date.now() })
+      if (nueva && prIds.has(nueva.id)) doble()
+      else tap()
+    }
+    cuantas.current = sets.length
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sets.length])
+  // La cifra que rueda: hacia arriba al sumar, hacia abajo al restar.
+  const [rueda, setRueda] = useState({ weight: null, reps: null })
+  const rodar = (campo, dir) =>
+    setRueda((r) => ({ ...r, [campo]: { dir, n: (r[campo]?.n ?? 0) + 1 } }))
+  const claseRueda = (campo) =>
+    rueda[campo] ? ` rueda-${rueda[campo].dir}-${rueda[campo].n % 2 ? 'a' : 'b'}` : ''
 
   async function handleLogSet(event) {
     event.preventDefault()
@@ -830,12 +855,16 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn"
                   aria-label={`Restar kg`}
-                  onClick={() => editWeight_(bump(weight, -WEIGHT_STEP, 0))}
+                  onClick={() => {
+                    rodar('weight', 'down')
+                    editWeight_(bump(weight, -WEIGHT_STEP, 0))
+                  }}
                 >
                   −
                 </button>
                 <input
                   id={`weight-${name}`}
+                  className={claseRueda('weight')}
                   inputMode="decimal"
                   value={weight}
                   onChange={(e) => editWeight_(e.target.value)}
@@ -844,7 +873,10 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn stepper-plus"
                   aria-label={`Sumar kg`}
-                  onClick={() => editWeight_(bump(weight, WEIGHT_STEP, 0))}
+                  onClick={() => {
+                    rodar('weight', 'up')
+                    editWeight_(bump(weight, WEIGHT_STEP, 0))
+                  }}
                 >
                   +
                 </button>
@@ -857,12 +889,16 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn"
                   aria-label="Restar rep"
-                  onClick={() => editReps_(bump(reps, -1, 1))}
+                  onClick={() => {
+                    rodar('reps', 'down')
+                    editReps_(bump(reps, -1, 1))
+                  }}
                 >
                   −
                 </button>
                 <input
                   id={`reps-${name}`}
+                  className={claseRueda('reps')}
                   inputMode="numeric"
                   value={reps}
                   onChange={(e) => editReps_(e.target.value)}
@@ -871,7 +907,10 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn stepper-plus"
                   aria-label="Sumar rep"
-                  onClick={() => editReps_(bump(reps, 1, 1))}
+                  onClick={() => {
+                    rodar('reps', 'up')
+                    editReps_(bump(reps, 1, 1))
+                  }}
                 >
                   +
                 </button>
@@ -941,7 +980,14 @@ function ExerciseCard({
         <p className="set-log-hint">Toca una serie para corregirla ›</p>
         <ol className="sets set-log" data-editor-protect>
           {sets.map((set, index) => (
-            <li key={set.id}>
+            <li
+              key={set.id}
+              className={
+                recien && index === recien.index && Date.now() - recien.at < 300
+                  ? `is-nuevo${prIds.has(set.id) ? ' is-record' : ''}`
+                  : undefined
+              }
+            >
               {editingId === set.id ? (
                 /* The row opens in place. kg before reps, like the tiles above
                    and the «60 kg x 8» it stands for; − and + because a

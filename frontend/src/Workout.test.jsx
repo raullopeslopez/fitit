@@ -3,10 +3,12 @@ import userEvent from '@testing-library/user-event'
 
 import Workout from './Workout.jsx'
 import * as api from './api.js'
+import * as haptics from './platform/haptics.js'
 import * as wakelock from './platform/wakelock.js'
 
 vi.mock('./api.js')
 vi.mock('./platform/wakelock.js')
+vi.mock('./platform/haptics.js', () => ({ tap: vi.fn(), doble: vi.fn() }))
 
 // Mirrors what the API returns. `weight` is kilos; there is no unit field.
 function benchSet(overrides = {}) {
@@ -1378,6 +1380,29 @@ describe('Workout', () => {
   // answered a question nothing asks — rest is what the countdown is for. The
   // index earns its place back now the rows are zebra-striped instead of ruled:
   // without a border to end each line, "S2" is what keeps your place at set six.
+  // Movimiento: registrar vibra corto y la fila nueva —sólo ella— entra
+  // animada; abrir la pantalla no mueve nada.
+  it('registrar vibra y marca sólo la serie nueva para entrar', async () => {
+    api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
+    api.logSet.mockResolvedValue({
+      id: 1,
+      date: '2026-07-16',
+      name: null,
+      sets: [benchSet({ id: 1, set_index: 0 })],
+    })
+    renderWorkout()
+
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Bench Press')
+    await userEvent.click(screen.getByRole('button', { name: /añadir ejercicio/i }))
+    expect(document.querySelector('.set-log > li.is-nuevo')).toBeNull()
+    await userEvent.type(screen.getByLabelText(/reps/i), '8')
+    await userEvent.type(screen.getByLabelText(/peso/i), '60')
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    await waitFor(() => expect(haptics.tap).toHaveBeenCalled())
+    expect(document.querySelectorAll('.set-log > li.is-nuevo')).toHaveLength(1)
+  })
+
   it('keeps a set row down to its index and its numbers', async () => {
     api.getPreviousMarks.mockResolvedValue({ exercise_name: 'Bench Press', found: false, sets: [] })
     api.logSet.mockResolvedValue({

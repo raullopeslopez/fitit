@@ -10178,3 +10178,252 @@ button.draft-save {
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* ══ Movimiento (lienzo «Movimiento») ═══════════════════════════════════════
+   El movimiento confirma lo que hiciste; nunca celebra ni te llama. Nada se
+   mueve sin que lo toques. Duraciones: 120 toque · 160 cifra · 200 salida ·
+   240 fila · 320 entrada de hoja/pantalla · 480 llenado. Con «reducir
+   movimiento», todo pasa a fundido (al final). */
+:root {
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0, 0, 0, 1);
+  --ease-in: cubic-bezier(0.3, 0, 1, 1);
+}
+
+/* Toque: el botón se hunde 120 ms. */
+button {
+  transition:
+    transform 120ms var(--ease),
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Registrar una serie: entra desde arriba 240 ms; un récord pasa a oro y
+   crece un 6 % una vez (600 ms), y su sello entra al lado. Se queda en oro. */
+@keyframes mov-fila-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mov-record {
+  0% {
+    color: var(--text);
+    transform: scale(1);
+  }
+  40% {
+    color: var(--pr);
+    transform: scale(1.06);
+  }
+  100% {
+    color: var(--pr);
+    transform: scale(1);
+  }
+}
+@keyframes mov-sello {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.set-log > li.is-nuevo {
+  animation: mov-fila-entra 240ms var(--ease) both;
+}
+.set-log > li.is-record .set-val {
+  display: inline-block;
+  transform-origin: left center;
+  animation: mov-record 600ms var(--ease) both;
+}
+.set-log > li.is-record .pr-flag {
+  animation: mov-sello 240ms var(--ease) 240ms both;
+}
+
+/* Cifra que rueda: 160 ms en la dirección del cambio. Dos nombres por
+   sentido para que la misma dirección dos veces vuelva a arrancar. */
+@keyframes rueda-up-a {
+  from {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rueda-up-b {
+  from {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rueda-down-a {
+  from {
+    opacity: 0;
+    transform: translateY(-40%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rueda-down-b {
+  from {
+    opacity: 0;
+    transform: translateY(-40%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rueda-up-a {
+  animation: rueda-up-a 160ms var(--ease);
+}
+.rueda-up-b {
+  animation: rueda-up-b 160ms var(--ease);
+}
+.rueda-down-a {
+  animation: rueda-down-a 160ms var(--ease);
+}
+.rueda-down-b {
+  animation: rueda-down-b 160ms var(--ease);
+}
+
+/* Hoja: entra en 320 ms y frena al llegar; el fondo se oscurece a la vez. */
+@keyframes mov-hoja {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes mov-velo {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sheet-scrim {
+  animation: mov-velo 320ms var(--ease-out) both;
+}
+.sheet-scrim > .sheet {
+  animation: mov-hoja 320ms var(--ease-out) both;
+}
+
+/* Cambiar de pestaña, abrir una pantalla: el contenido entra con un fundido
+   de 8 px. Las pestañas son hermanas: nada empuja de lado. */
+@keyframes mov-sube {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.app-main > * {
+  animation: mov-sube 200ms var(--ease) both;
+}
+.tab {
+  transition:
+    flex-grow 200ms var(--ease),
+    background-color 200ms var(--ease),
+    transform 120ms var(--ease);
+}
+/* Entrar en Entreno es un modo y se nota: la pantalla crece 320 ms. */
+@keyframes mov-modo {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.container.is-workout .app-main > * {
+  animation: mov-modo 320ms var(--ease-out) both;
+}
+.food-screen.dia {
+  animation: mov-sube 320ms var(--ease-out) both;
+}
+
+/* Barras que se llenan: 480 ms, 40 ms entre una y otra; sólo la primera vez
+   del día (`.is-llenando`, que pone Semana). */
+@keyframes mov-llena {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+.semana-musculos.is-llenando .semana-celda {
+  transform-origin: bottom;
+  animation: mov-llena 480ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+/* Avisos que aparecen por algo que hiciste: Deshacer sube, la franja de sin
+   conexión baja una vez. */
+@keyframes mov-aviso-sube {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mov-franja-baja {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.retag-undo {
+  animation: mov-aviso-sube 200ms var(--ease) both;
+}
+.workout-offline {
+  animation: mov-franja-baja 240ms var(--ease) both;
+}
+
+/* Reducir movimiento: nada se desplaza ni crece; lo que entra, entra en
+   fundido corto. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-name: mov-velo !important;
+    animation-duration: 120ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}

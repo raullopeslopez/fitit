@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { listDays } from './api.js'
 import { MUSCLE_GROUPS, muscleFill } from './muscles.js'
+import { storage } from './platform/storage.js'
 import { setsPerMuscle } from './stats.js'
 import { bandState } from './volume.js'
 
@@ -85,8 +86,23 @@ export function weekCells(days) {
   })
 }
 
+// Las celdas se llenan una vez al día, la primera vez que abres Semana; al
+// volver ya están llenas y no se mueven (lienzo «Movimiento»).
+const LLENADO = 'fitit_semana_llenada'
+function primeraVezHoy() {
+  const hoy = new Date().toDateString()
+  try {
+    if (storage.getItem(LLENADO) === hoy) return false
+    storage.setItem(LLENADO, hoy)
+  } catch {
+    return false
+  }
+  return true
+}
+
 export function SemanaEntreno() {
   const [cells, setCells] = useState(null)
+  const [llenando] = useState(primeraVezHoy)
 
   useEffect(() => {
     let vivo = true
@@ -108,12 +124,12 @@ export function SemanaEntreno() {
         <h2>Entreno</h2>
         <span>series que faltan</span>
       </div>
-      <ul className="semana-musculos">
-        {cells.map((c) => (
+      <ul className={`semana-musculos${llenando ? ' is-llenando' : ''}`}>
+        {cells.map((c, i) => (
           <li key={c.group}>
             <span
               className={`semana-celda${c.pct >= 55 ? ' is-llena' : ''}`}
-              style={{ '--chip-fill': muscleFill(c.group), '--pct': `${c.pct}%` }}
+              style={{ '--chip-fill': muscleFill(c.group), '--pct': `${c.pct}%`, '--i': i }}
               aria-label={c.left > 0 ? `${c.group}: faltan ${c.left}` : `${c.group}: hecho`}
             >
               {c.left > 0 ? `−${c.left}` : '✓'}
