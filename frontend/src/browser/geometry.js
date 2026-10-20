@@ -41,6 +41,18 @@ export const INTERACTIVE = 'a[href], button, input, select, textarea, [tabindex]
 export async function settle() {
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   await new Promise((resolve) => setTimeout(resolve, 24))
+  // El movimiento (lienzo «Movimiento») anima entradas de hasta 600 ms: se mide
+  // donde queda, no a mitad de camino. Las animaciones que no acaban solas
+  // (un pulso que se repite) no se esperan.
+  const enCurso = document
+    .getAnimations()
+    .filter((a) => a.playState === 'running' && a.effect?.getTiming?.().iterations !== Infinity)
+  if (enCurso.length > 0) {
+    await Promise.race([
+      Promise.all(enCurso.map((a) => a.finished.catch(() => {}))),
+      new Promise((resolve) => setTimeout(resolve, 1000)),
+    ])
+  }
   await new Promise((resolve) => requestAnimationFrame(resolve))
 }
 

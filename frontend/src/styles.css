@@ -10341,7 +10341,10 @@ button:active:not(:disabled) {
   }
 }
 .app-main > * {
-  animation: mov-sube 200ms var(--ease) both;
+  /* `backwards` y no `both`: acabada, no deja un `transform` puesto, que
+     haría de contexto de apilamiento y metería las pantallas fijas de dentro
+     (Añadir, las hojas) debajo de la barra. */
+  animation: mov-sube 200ms var(--ease) backwards;
 }
 .tab {
   transition:
@@ -10361,7 +10364,7 @@ button:active:not(:disabled) {
   }
 }
 .container.is-workout .app-main > * {
-  animation: mov-modo 320ms var(--ease-out) both;
+  animation: mov-modo 320ms var(--ease-out) backwards;
 }
 .food-screen.dia {
   animation: mov-sube 320ms var(--ease-out) both;
