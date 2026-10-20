@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.42.0: Marcador, el movimiento y lo que faltaba del lienzo.**
+  El lienzo «Movimiento» (#350): botones que se hunden, la serie nueva que entra y vibra, el récord
+  que pasa a oro una vez y vibra doble, peso y reps que ruedan, hojas que suben, pestañas con
+  fundido, Entreno que crece a pantalla y las celdas de Semana que se llenan la primera vez del
+  día; con «reducir movimiento», sólo fundido. Y las diferencias menores (#348–#349): revisión con
+  «Gastas / Te propongo» y «Seguir con», reglas sin cumplir en «Cómo va la semana», «N que
+  comprar» en la compra, «Comí fuera» desde Añadir y fusionar el ejercicio que parece el mismo.
 - **APK 0.41.0: Marcador, la estructura del lienzo.**
   Trae al móvil todo lo de #328–#346. Barra flotante Hoy · Semana · Historial · Progreso · Tú, y
   la app abre en Hoy. Hoy: banda «Esta semana te falta» con «Entrenar» (un toque), cada comida
