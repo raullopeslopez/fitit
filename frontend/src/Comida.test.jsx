@@ -1443,6 +1443,15 @@ describe('Comida', () => {
       expect(within(pantalla).getByRole('button', { name: 'Destino: Snack' })).toHaveAttribute('aria-pressed', 'true')
     })
 
+    it('«Comí fuera» abre el relato de lo que comiste, desde la propia pantalla', async () => {
+      api.searchFoods.mockResolvedValue([])
+      api.listDishes.mockResolvedValue([])
+      render(<Comida abiertas />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Comí fuera' }))
+      expect(await screen.findByText('¿Qué comiste?')).toBeInTheDocument()
+    })
+
     it('cambiar de comida arriba cambia el destino sin salir', async () => {
       api.searchFoods.mockResolvedValue([])
       render(<Comida abiertas />)

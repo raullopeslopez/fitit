@@ -513,6 +513,25 @@ describe('Progress', () => {
     }
   })
 
+  // Marcador: dos ejercicios que parecen el mismo se ofrecen para fusionar
+  // sin tener que provocar un choque al renombrar.
+  it('ofrece fusionar el que parece el mismo, y fusiona en él', async () => {
+    api.listExercises.mockResolvedValue([
+      { id: 7, name: 'Press banca', muscle_group: 'Pecho' },
+      { id: 8, name: 'Press de banca', muscle_group: 'Pecho' },
+    ])
+    api.listDays.mockResolvedValue(BENCH_DAYS)
+    api.mergeExercise.mockResolvedValue({ id: 8, name: 'Press de banca' })
+    render(<Progress initialTab="evolucion" />)
+    await userEvent.type(await screen.findByLabelText('Ejercicio'), 'Press banca')
+    await charted('Press banca')
+
+    const oferta = screen.getByRole('group', { name: 'Fusionar con otro' })
+    expect(oferta).toHaveTextContent('«Press de banca» · 0 series, parece el mismo')
+    await userEvent.click(within(oferta).getByRole('button', { name: 'Fusionar' }))
+    await waitFor(() => expect(api.mergeExercise).toHaveBeenCalledWith(7, 8))
+  })
+
   // Renaming a lift and re-tagging its group are corrections, the same shape as
   // the ones on the exercise card: rare, and they were sitting in the content.
   it('folds the corrections away until you reach for them', async () => {

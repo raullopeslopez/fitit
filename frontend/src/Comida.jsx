@@ -16,7 +16,9 @@ import {
   listDishes,
   listRules,
   getFoodDay,
+  logDish,
   logFood,
+  logVoice,
   readLabel,
   recomputeFoodDay,
   scanBarcode,
@@ -25,6 +27,7 @@ import {
   weighLeftoverBone,
 } from './api.js'
 import { DishChips, NewDish } from './Dish.jsx'
+import Fuera from './Fuera.jsx'
 import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
@@ -1362,6 +1365,9 @@ function AddFood({
   const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState(null)
   const [creating, setCreating] = useState(false)
+  // «Comí fuera» abierto desde aquí (Marcador): lo mismo que dentro del plan,
+  // pero sin entrada del plan que responder.
+  const [fuera, setFuera] = useState(false)
   // Lo que devolvió la foto. Es una **propuesta** para el formulario, no un
   // alimento: sigue haciendo falta que alguien mire lo que hay escrito y le dé
   // a guardar, igual que si lo hubiera tecleado entero.
@@ -1869,6 +1875,15 @@ function AddFood({
             variantes de lo mismo — y son dos objetos distintos. El nombre
             coincide además con la cabecera de la pantalla que abre, así que el
             destino confirma lo que prometía el control. */}
+        {/* Comí fuera, al lado de las altas: cuentas qué comiste y lo revisas
+            antes de que entre. Las cifras son estimadas y así se guardan. */}
+        {/* Sólo hoy, como los frecuentes: un sitio guardado se apunta ahora. */}
+        {isToday && (
+          <button type="button" className="add-fuera" onClick={() => setFuera(true)}>
+            Comí fuera
+          </button>
+        )}
+
         <div className="add-altas">
           <button type="button" className="dish-new" onClick={() => setNewDish(true)}>
             Nuevo plato
@@ -1905,6 +1920,24 @@ function AddFood({
           Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.
         </p>
       </div>
+
+      {fuera && (
+        <Fuera
+          guardar={(items) =>
+            logVoice({
+              entries: items.map((i) => ({ food_id: i.food_id, grams: i.grams, estimated: true })),
+              mealSlot: slot,
+              loggedAt: momentForDay(dayIso),
+            })
+          }
+          guardarSitio={(dishId) => logDish(dishId, { meal_slot: slot })}
+          onGuardado={async () => {
+            setFuera(false)
+            await onDone()
+          }}
+          onClose={() => setFuera(false)}
+        />
+      )}
 
       {/* El detalle es una **hoja** sobre esta pantalla, no otra pantalla.
           Es corto —una cantidad, un destino— y edita algo concreto, así que la

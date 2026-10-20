@@ -128,6 +128,14 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
           <p className="hint">Esta semana no tiene nada que comprar.</p>
         )}
 
+        {/* Marcador: cuánto queda por comprar, y que lo que ya tienes se aparta
+            con «Lo tengo». */}
+        {total > 0 && (
+          <p className="lista-resumen">
+            <span className="lista-resumen-n">{`${total - enCarro} que comprar`}</span>
+            <span className="lista-resumen-pista">toca lo que ya tienes</span>
+          </p>
+        )}
         {total > 0 && (
           <div className="lista-contador">
             <p className="lista-cifra">

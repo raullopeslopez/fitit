@@ -871,6 +871,27 @@ function isoDaysAgo(n, now = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// Dos ejercicios que parecen el mismo: las mismas palabras una vez quitadas
+// las de relleno («de», «con», «en»…), sin tildes ni mayúsculas, y sin el
+// nombre exacto (ese es el choque de renombrar, que ya tiene su aviso).
+const RELLENO = new Set(['de', 'del', 'la', 'el', 'las', 'los', 'con', 'en', 'a', 'al', 'y'])
+const huella = (name) =>
+  fold(name)
+    .split(/[^a-z0-9ñ]+/)
+    .filter((w) => w && !RELLENO.has(w))
+    .sort()
+    .join(' ')
+
+export function pareceElMismo(current, exercises) {
+  const suya = huella(current.name)
+  if (!suya) return null
+  return (
+    exercises.find(
+      (e) => e.id !== current.id && e.name !== current.name && (e.kind ?? 'strength') === (current.kind ?? 'strength') && huella(e.name) === suya,
+    ) ?? null
+  )
+}
+
 export default function Progress({ initialTab = 'series' }) {
   const [tab, setTab] = useState(initialTab)
   const [periodo, setPeriodo] = useState('Todo')
@@ -1048,6 +1069,21 @@ export default function Progress({ initialTab = 'series' }) {
   function applyRename(id, to) {
     setExercises((list) => list.map((e) => (e.id === id ? { ...e, name: to } : e)))
     setName(to)
+  }
+
+  // Marcador: el que parece el mismo con otro nombre («Press banca» y «Press
+  // de banca»), para fusionarlo sin tener que provocar un choque al renombrar.
+  // Aquí el superviviente es el otro, como en el choque.
+  async function fusionarConGemelo() {
+    if (!current || !gemelo) return
+    try {
+      const target = await mergeExercise(current.id, gemelo.id)
+      setExercises((list) => list.filter((e) => e.id !== current.id))
+      setName(target.name)
+      await reloadLog()
+    } catch {
+      setEditTrouble({ field: 'merge', kind: 'network', from: current.name, draft: gemelo.name, exercise: gemelo })
+    }
   }
 
   // Fold this exercise into the one whose name it collided with: its sets move
@@ -1332,6 +1368,8 @@ export default function Progress({ initialTab = 'series' }) {
   const ungroupedCount = exercises.filter((e) => !e.muscle_group).length
   const chartColor = muscleColor(muscleOf(name))
   const current = exercises.find((e) => e.name === name)
+  const gemelo = current ? pareceElMismo(current, exercises) : null
+  const seriesGemelo = gemelo ? damageFromDays(days, gemelo.name)?.sets ?? 0 : 0
   const rungs = name ? recordLadder(days, name) : []
   const gain = rungs.length > 1 ? rungs.at(-1).weight - rungs[0].weight : 0
   const allSessions = rungs.length ? sessionTops(days, name) : []
@@ -1619,6 +1657,17 @@ export default function Progress({ initialTab = 'series' }) {
                 panel ya no está. Aquí, justo encima de la puerta que lo abre,
                 sobrevive al cierre y sigue estando donde el pulgar acaba de
                 tocar. Ver `NameClash.jsx`. */}
+            {gemelo && !editTrouble && (
+              <div className="gemelo" role="group" aria-label="Fusionar con otro">
+                <p className="gemelo-texto">
+                  <span className="gemelo-sello">Fusionar con otro</span>
+                  {`«${gemelo.name}» · ${seriesGemelo} ${seriesGemelo === 1 ? 'serie' : 'series'}, parece el mismo`}
+                </p>
+                <button type="button" className="gemelo-boton" onClick={fusionarConGemelo}>
+                  Fusionar
+                </button>
+              </div>
+            )}
             <EditTrouble
               trouble={editTrouble}
               onMerge={mergeIntoClash}
