@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.43.1: volver de un día no espera a la animación.** (#354) La ficha del día y la hoja
+  que sale se cierran a tiempo aunque el navegador no pinte la animación.
 - **APK 0.43.0: lo que faltaba del movimiento.** (#352) Las hojas salen en 200 ms en vez de
   desaparecer y se cierran arrastrándolas hacia abajo; en Hoy, el músculo que deja de faltar pasa
   de «−N» a «✓» y se va solo; en Historial, la fecha tocada crece hasta ser el titular del día.
