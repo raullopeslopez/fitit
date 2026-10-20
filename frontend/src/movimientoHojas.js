@@ -37,6 +37,8 @@ function salir(velo) {
   if (suya && !quieto()) suya.animate([{ transform: desde }, { transform: 'translateY(100%)' }], opciones)
   const quitar = () => copia.remove()
   fin.finished.then(quitar, quitar)
+  // Por si no hay frames que la terminen: la copia no se queda encima.
+  setTimeout(quitar, opciones.duration + 60)
 }
 
 function vigilarSalidas() {

@@ -84,7 +84,16 @@ export default function DiaDetalle({ day, desde = null, prev, next, onPick, onCl
       easing: ACELERA,
       fill: 'forwards',
     })
-    ida.finished.then(onClose, onClose)
+    // Cierra al acabar, o a los 260 ms si la animación no avanza (una pestaña
+    // que no pinta no la termina nunca): volver no puede depender de ella.
+    let hecho = false
+    const cerrar = () => {
+      if (hecho) return
+      hecho = true
+      onClose()
+    }
+    ida.finished.then(cerrar, cerrar)
+    setTimeout(cerrar, 260)
   }
 
   useEffect(() => {
