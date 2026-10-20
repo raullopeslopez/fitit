@@ -10327,6 +10327,12 @@ button:active:not(:disabled) {
 .sheet-scrim > .sheet {
   animation: mov-hoja 320ms var(--ease-out) both;
 }
+/* La copia que sale (movimientoHojas.js) no repite la entrada: su salida la
+   lleva el script, desde donde estaba la hoja. */
+.sheet-scrim.is-saliendo,
+.sheet-scrim.is-saliendo > .sheet {
+  animation: none;
+}
 
 /* Cambiar de pestaña, abrir una pantalla: el contenido entra con un fundido
    de 8 px. Las pestañas son hermanas: nada empuja de lado. */
@@ -10368,6 +10374,29 @@ button:active:not(:disabled) {
 }
 .food-screen.dia {
   animation: mov-sube 320ms var(--ease-out) both;
+}
+/* Abierta desde su fila: el título vuela desde la fecha (DiaDetalle.jsx), el
+   fondo tapa las demás filas y lo demás entra debajo cuando el título ya casi
+   ha llegado. Al volver, al revés y deprisa. */
+@keyframes mov-fondo {
+  from {
+    background-color: transparent;
+  }
+}
+.food-screen.dia.is-crece {
+  animation: mov-fondo 200ms var(--ease) both;
+}
+.food-screen.dia.is-crece > :not(.dia-titulo) {
+  animation: mov-sube 200ms var(--ease) 180ms backwards;
+}
+.food-screen.dia.is-vuelve {
+  animation: mov-fondo 200ms var(--ease-in) reverse forwards;
+}
+.food-screen.dia.is-vuelve > :not(.dia-titulo) {
+  animation: mov-velo 120ms var(--ease-in) reverse forwards;
+}
+.dia-titulo {
+  transform-origin: 0 0;
 }
 
 /* Barras que se llenan: 480 ms, 40 ms entre una y otra; sólo la primera vez
@@ -10413,6 +10442,37 @@ button:active:not(:disabled) {
 }
 .workout-offline {
   animation: mov-franja-baja 240ms var(--ease) both;
+}
+
+/* Un músculo deja de faltar: «−2» pasa a «✓» con un empuje (240 ms) y,
+   medio segundo después, la píldora se encoge hasta nada —con su hueco: el
+   margen negativo se come el `gap`— para que las demás se recoloquen sin
+   saltar cuando desaparece del todo. */
+@keyframes mov-empuje {
+  50% {
+    transform: scale(1.3);
+  }
+}
+@keyframes mov-pildora-sale {
+  from {
+    max-width: 240px;
+  }
+  to {
+    max-width: 0;
+    margin-right: -8px;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
+  }
+}
+.hoy-entreno-musculos li.is-cumplido {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: mov-pildora-sale 200ms var(--ease-in) 740ms forwards;
+}
+.is-cumplido .hoy-entreno-falta {
+  display: inline-block;
+  animation: mov-empuje 240ms var(--ease);
 }
 
 /* Reducir movimiento: nada se desplaza ni crece; lo que entra, entra en

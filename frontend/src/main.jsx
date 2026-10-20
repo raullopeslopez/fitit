@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
+import { instalarMovimientoHojas } from './movimientoHojas.js'
 import './styles.css'
 import { handleBackButton } from './platform/backButton.js'
 import { registerServiceWorker } from './platform/serviceWorker.js'
@@ -64,5 +65,7 @@ mount().then((tree) =>
 
 // Register the service worker so the app is installable and loads its shell offline.
 registerServiceWorker()
+// Las hojas salen en 200 ms y se cierran arrastrándolas (lienzo «Movimiento»).
+instalarMovimientoHojas()
 // Dentro del APK, el botón atrás de Android (en la web no hace nada).
 handleBackButton()

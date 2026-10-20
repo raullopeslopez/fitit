@@ -112,6 +112,8 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
   const [steps, setSteps] = useState({})
   // El día cuya ficha está abierta, por id; `null` si ninguno.
   const [diaAbierto, setDiaAbierto] = useState(null)
+  // Dónde estaba la fecha tocada: la ficha del día hace crecer su título desde ahí.
+  const desdeDia = useRef(null)
   // The folded rows opened in place: `w:` weeks, `m:` months, `y:` years.
   const [expanded, setExpanded] = useState(() => new Set())
   const toggle = (key) =>
@@ -455,7 +457,10 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
                         type="button"
                         className="day-date-btn"
                         aria-label={`Ver el día ${formatDayStamp(day.date).join(' ')}`}
-                        onClick={() => setDiaAbierto(day.id)}
+                        onClick={(event) => {
+                          desdeDia.current = event.currentTarget.firstElementChild?.getBoundingClientRect() ?? null
+                          setDiaAbierto(day.id)
+                        }}
                       >
                         {formatDayStamp(day.date).map((line, n) => (
                           <span className={n === 0 ? 'day-date-day' : 'day-date-rest'} key={line}>
@@ -677,6 +682,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
         return (
           <DiaDetalle
             day={orden[i]}
+            desde={desdeDia.current}
             prev={orden[i + 1] ?? null}
             next={orden[i - 1] ?? null}
             onPick={(d) => setDiaAbierto(d.id)}

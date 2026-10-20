@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { getFoodDay } from './api.js'
 import { autoWorkoutName, muscleCounts } from './daysHistory.js'
@@ -16,6 +16,19 @@ function fecha(iso) {
 }
 const titulo = (iso) => `${DIAS[fecha(iso).getDay()]} ${fecha(iso).getDate()}`
 const corto = (iso) => `${CORTOS[fecha(iso).getDay()]} ${fecha(iso).getDate()}`
+
+// Lienzo «Movimiento → abrir un día»: el título de la fila sube y crece hasta
+// ser el titular (320 ms, frena), el fondo tapa las demás filas y el detalle
+// entra debajo. Volver lo devuelve a su fila (200 ms, acelera).
+const FRENA = 'cubic-bezier(0, 0, 0, 1)'
+const ACELERA = 'cubic-bezier(0.3, 0, 1, 1)'
+const quieto = () =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function desdeLaFila(titulo, desde) {
+  const a = titulo.getBoundingClientRect()
+  return `translate(${desde.left - a.left}px, ${desde.top - a.top}px) scale(${desde.height / a.height})`
+}
 
 const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
@@ -44,9 +57,35 @@ function ejercicios(w) {
  * una fila por comida. Se abre tocando la fecha de un día en Historial; tocar
  * la sesión sigue abriendo el entreno directamente.
  */
-export default function DiaDetalle({ day, prev, next, onPick, onClose, onOpenWorkout, onDelete }) {
+export default function DiaDetalle({ day, desde = null, prev, next, onPick, onClose, onOpenWorkout, onDelete }) {
   const [comida, setComida] = useState(undefined)
   const [borrando, setBorrando] = useState(false)
+  const tituloRef = useRef(null)
+  const inicial = useRef(day.date)
+  const [crece] = useState(() => !!desde && !quieto())
+  const [vuelve, setVuelve] = useState(false)
+
+  useLayoutEffect(() => {
+    const titulo = tituloRef.current
+    if (!crece || typeof titulo?.animate !== 'function') return
+    titulo.animate([{ transform: desdeLaFila(titulo, desde) }, { transform: 'none' }], { duration: 320, easing: FRENA })
+    // Sólo al abrir: saltar de día con ‹ › no vuelve a crecer nada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Volver: si sigue siendo el día que se abrió desde su fila, el título vuelve
+  // a ella antes de cerrar; si no (otro día, o sin animaciones), cierra ya.
+  function volver() {
+    const titulo = tituloRef.current
+    if (!crece || vuelve || day.date !== inicial.current || typeof titulo?.animate !== 'function') return onClose()
+    setVuelve(true)
+    const ida = titulo.animate([{ transform: 'none' }, { transform: desdeLaFila(titulo, desde) }], {
+      duration: 200,
+      easing: ACELERA,
+      fill: 'forwards',
+    })
+    ida.finished.then(onClose, onClose)
+  }
 
   useEffect(() => {
     let vivo = true
@@ -73,9 +112,14 @@ export default function DiaDetalle({ day, prev, next, onPick, onClose, onOpenWor
     : []
 
   return (
-    <div className="food-screen dia" role="dialog" aria-modal="true" aria-label={titulo(day.date)}>
+    <div
+      className={`food-screen dia${crece ? ' is-crece' : ''}${vuelve ? ' is-vuelve' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={titulo(day.date)}
+    >
       <header className="dia-head">
-        <button type="button" className="dia-volver" aria-label="Volver a Historial" onClick={onClose}>
+        <button type="button" className="dia-volver" aria-label="Volver a Historial" onClick={volver}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 5l-7 7 7 7" />
           </svg>
@@ -95,7 +139,7 @@ export default function DiaDetalle({ day, prev, next, onPick, onClose, onOpenWor
         </span>
         <span className="dia-hueco" />
       </header>
-      <h1 className="dia-titulo">{titulo(day.date)}</h1>
+      <h1 className="dia-titulo" ref={tituloRef}>{titulo(day.date)}</h1>
 
       {day.workouts.map((w) => {
         const counts = muscleCounts(w.sets ?? [])
