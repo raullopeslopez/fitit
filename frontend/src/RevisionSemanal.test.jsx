@@ -48,9 +48,10 @@ describe('La revisión semanal', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
 
     expect(answerReview).toHaveBeenCalledWith('all')
-    expect(await screen.findByText('Gastaste unas 2780 kcal al día')).toBeInTheDocument()
+    expect(await screen.findByText('Gastas')).toBeInTheDocument()
+    expect(screen.getByText('2780')).toBeInTheDocument()
     expect(screen.getByText('2150 → 2230 kcal')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Mantener 2150' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Seguir con 2150' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Aceptar 2230' })).toBeInTheDocument()
     // Contestar no fija nada.
     expect(acceptTarget).not.toHaveBeenCalled()
@@ -75,11 +76,11 @@ describe('La revisión semanal', () => {
   })
 
   // Mantener es no hacer nada: ni acepta, ni avisa a nadie.
-  it('«Mantener» cierra sin tocar el objetivo', async () => {
+  it('«Seguir con» cierra sin tocar el objetivo', async () => {
     const onAccepted = vi.fn()
     render(<RevisionSemanal onAccepted={onAccepted} />)
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Seguir con 2150' }))
 
     expect(acceptTarget).not.toHaveBeenCalled()
     expect(onAccepted).not.toHaveBeenCalled()
@@ -165,7 +166,7 @@ describe('La revisión semanal', () => {
       const onDone = vi.fn()
       render(<RevisionSemanal onAccepted={() => {}} onDone={onDone} />)
       await userEvent.click(await screen.findByRole('button', { name: 'Sí, todo' }))
-      await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Seguir con 2150' }))
       expect(onDone).toHaveBeenCalledOnce()
       expect(acceptTarget).not.toHaveBeenCalled()
     })

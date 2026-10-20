@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { Adherencia, PlanEnComida, Semana, lunesDe, lunesSiguiente, planDelDia } from './Plan.jsx'
+import { Adherencia, DondeSeCae, PlanEnComida, Semana, lunesDe, lunesSiguiente, planDelDia } from './Plan.jsx'
 
 const LUNES = '2026-09-21'
 const MARTES = '2026-09-22'
@@ -450,6 +450,27 @@ describe('esta semana, para seguir el plan', () => {
     expect(screen.getByText('Cómo va la semana')).toBeInTheDocument()
     expect(screen.queryByText(/Comiste/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Seguiste/)).not.toBeInTheDocument()
+  })
+
+  it('dice qué reglas van sin cumplir esta semana, y cuándo llega la revisión', async () => {
+    render(
+      <DondeSeCae
+        informe={{ weakest_slot: 'cena' }}
+        hoy={LUNES}
+        leerVeredictos={vi.fn().mockResolvedValue({
+          verdicts: [
+            { rule_id: 1, type: 'x', hardness: 'soft', state: 'broken' },
+            { rule_id: 2, type: 'y', hardness: 'soft', state: 'met' },
+          ],
+        })}
+        leerReglas={vi.fn().mockResolvedValue([
+          { id: 1, type: 'min_days_food_group', params: { group: 'pescado', days: 2 }, hardness: 'soft' },
+          { id: 2, type: 'min_days_food_group', params: { group: 'verdura', days: 7 }, hardness: 'soft' },
+        ])}
+      />,
+    )
+    expect(await screen.findByText(/^Reglas sin cumplir: /)).toBeInTheDocument()
+    expect(screen.getByText('La revisión de la semana sale aquí el domingo.')).toBeInTheDocument()
   })
 
   it('sin un sitio donde se caiga, no hay tarjeta', async () => {

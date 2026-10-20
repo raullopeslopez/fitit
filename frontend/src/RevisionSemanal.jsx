@@ -162,9 +162,28 @@ function Propuesta({ propuesta, actual, busy, onAceptar, onCerrar }) {
 
   return (
     <>
-      {/* Sin gasto no se inventa uno: la línea se omite. */}
-      {gasto != null && (
-        <p className="revision-texto">{`Gastaste unas ${conMiles(gasto)} kcal al día`}</p>
+      {/* Marcador: lo que gastas y lo que te propongo, lado a lado. Sin gasto
+          no se inventa uno: esa mitad se omite. */}
+      {(gasto != null || kcal != null) && (
+        <dl className="revision-cifras">
+          {gasto != null && (
+            <div>
+              <dt>Gastas</dt>
+              <dd>{conMiles(gasto)}</dd>
+            </div>
+          )}
+          {kcal != null && (
+            <div>
+              <dt>Te propongo</dt>
+              <dd>{conMiles(kcal)}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {kcal != null && propuesta?.protein != null && (
+        <p className="revision-macros">
+          {`prot. ${propuesta.protein} · hc ${propuesta.carbs} · grasa ${propuesta.fat} g`}
+        </p>
       )}
       {/* Los días con menos de tres comidas apuntadas no cuentan para el gasto
           (opción B): se dice cuántos, para que la cifra se entienda. */}
@@ -192,7 +211,7 @@ function Propuesta({ propuesta, actual, busy, onAceptar, onCerrar }) {
         ) : (
           <>
             <button type="button" className="secondary" disabled={busy} onClick={onCerrar}>
-              {actual == null ? 'Ahora no' : `Mantener ${conMiles(actual)}`}
+              {actual == null ? 'Ahora no' : `Seguir con ${conMiles(actual)}`}
             </button>
             <button
               type="button"

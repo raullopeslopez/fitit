@@ -7,12 +7,15 @@ import {
   generateDishes,
   generatePlan,
   getAdherence,
+  dayVerdicts,
   listDishes,
+  listRules,
   notHere,
   replanEntry,
   setPlanEntry,
 } from './api.js'
 import { ListRow, Sheet } from './ui'
+import { frase } from './Reglas.jsx'
 import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
@@ -714,14 +717,42 @@ function TiraSemana({ plan, dias, hoy }) {
 
 // De cómo va la semana, en «Esta semana» sólo queda lo que se puede hacer algo:
 // dónde se cae el plan. Lo comido contra lo planificado ya lo dice Comida.
-function DondeSeCae({ informe }) {
-  if (!informe?.weakest_slot) return null
+export function DondeSeCae({ informe, hoy, leerVeredictos = dayVerdicts, leerReglas = listRules }) {
+  // Marcador: debajo, las reglas que esta semana van sin cumplir, por su
+  // nombre. Las semanales se juzgan con la semana entera que contiene hoy.
+  const [rotas, setRotas] = useState([])
+  useEffect(() => {
+    let vivo = true
+    Promise.all([
+      Promise.resolve().then(() => leerVeredictos(hoy)),
+      Promise.resolve().then(() => leerReglas()),
+    ])
+      .then(([v, reglas]) => {
+        if (!vivo) return
+        const porId = Object.fromEntries((reglas ?? []).map((r) => [r.id, r]))
+        setRotas(
+          (v?.verdicts ?? [])
+            .filter((x) => x.state === 'broken' && porId[x.rule_id])
+            .map((x) => frase(porId[x.rule_id])),
+        )
+      })
+      .catch(() => vivo && setRotas([]))
+    return () => {
+      vivo = false
+    }
+  }, [hoy, leerVeredictos, leerReglas])
+
+  if (!informe?.weakest_slot && rotas.length === 0) return null
   return (
     <section className="card plan-adherencia is-tonal">
       <p className="card-eyebrow">Cómo va la semana</p>
-      <p className="plan-adh-linea">
-        Donde se cae es {CON_ARTICULO[informe.weakest_slot] ?? informe.weakest_slot}.
-      </p>
+      {informe?.weakest_slot && (
+        <p className="plan-adh-linea">
+          Donde se cae es {CON_ARTICULO[informe.weakest_slot] ?? informe.weakest_slot}.
+        </p>
+      )}
+      {rotas.length > 0 && <p className="plan-adh-reglas">{`Reglas sin cumplir: ${rotas.join(' · ')}`}</p>}
+      <p className="plan-adh-revision">La revisión de la semana sale aquí el domingo.</p>
     </section>
   )
 }
@@ -868,7 +899,7 @@ export function Semana({
             </section>
           )
         })}
-        {seguir && <DondeSeCae informe={informe} />}
+        {seguir && <DondeSeCae informe={informe} hoy={hoy} />}
 
         {onPlatos && (
           <ListRow

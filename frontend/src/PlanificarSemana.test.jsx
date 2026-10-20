@@ -49,7 +49,7 @@ describe('Planificar la semana que viene', () => {
     expect(screen.getByRole('button', { name: 'Generar la semana' })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Sí, todo' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Mantener 2150' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Seguir con 2150' }))
 
     expect(await screen.findByRole('button', { name: 'Generar la semana' })).toBeInTheDocument()
     expect(await screen.findByText('Se planifica con tu objetivo de 2150 kcal al día.')).toBeInTheDocument()

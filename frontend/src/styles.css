@@ -10061,3 +10061,47 @@ button.draft-save {
 .plan-bloque .ui-row {
   padding-inline: 0;
 }
+
+/* Revisión del domingo (Marcador): «Gastas» y «Te propongo» lado a lado, con
+   la cifra en grande y su sello encima. */
+.revision-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0.75rem 0 0;
+}
+.revision-cifras dt {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.revision-cifras dd {
+  margin: 4px 0 0;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1.6rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.revision-macros {
+  margin: 0.4rem 0 0;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Semana → cómo va (Marcador): dónde se cae, las reglas sin cumplir y cuándo
+   llega la revisión. */
+.plan-adh-reglas {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+.plan-adh-revision {
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
