@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.44.0: el movimiento del lienzo, completo.** (#356) Comido de previsto a hecho con las cifras
+  rodando, mantener pulsado ± repite, Entreno hunde la barra al entrar y se encoge al salir, la fila
+  borrada se va a la izquierda y Deshacer la devuelve, puntos oro de las series sin conexión y
+  Registrar que pasa a mandarina al acabar el descanso.
 - **APK 0.43.1: volver de un día no espera a la animación.** (#354) La ficha del día y la hoja
   que sale se cierran a tiempo aunque el navegador no pinte la animación.
 - **APK 0.43.0: lo que faltaba del movimiento.** (#352) Las hojas salen en 200 ms en vez de
