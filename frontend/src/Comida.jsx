@@ -2,6 +2,7 @@ import { cloneElement, useCallback, useEffect, useReducer, useRef, useState } fr
 
 import HoyEntreno from './HoyEntreno.jsx'
 import Weight from './Weight.jsx'
+import Rueda from './Rueda.jsx'
 
 import {
   correctFood,
@@ -152,6 +153,12 @@ export default function Comida({ onTrain, abiertas = false }) {
   // un aviso flotante que se va antes de que te des cuenta de lo que hiciste.
   const [deleted, setDeleted] = useState(null)
   const [undoing, setUndoing] = useState(false)
+  // Lienzo «Movimiento → borrar y deshacer»: la fila borrada se va a la
+  // izquierda y las de debajo suben a su hueco; la que vuelve con Deshacer
+  // entra en su sitio y aparta a las demás. `saliendo` y `vuelve` son ids.
+  const [saliendo, setSaliendo] = useState(null)
+  const [vuelve, setVuelve] = useState(null)
+  const antesDeDeshacer = useRef(null)
 
   const load = useCallback(async (iso) => {
     try {
@@ -253,9 +260,22 @@ export default function Comida({ onTrain, abiertas = false }) {
       setError('No se ha podido borrar la entrada.')
       return
     }
+    setSaliendo(entry.id)
     setDeleted(entry)
+    // 200 ms hacia la izquierda y 200 ms cerrando el hueco (styles.css,
+    // `mov-fila-sale`); después ya puede irse del día.
+    await new Promise((r) => setTimeout(r, 400))
     await Promise.all([load(dayIso), loadSiempre()])
+    setSaliendo(null)
   }
+
+  // La que acaba de volver es la única id que no estaba antes de deshacer.
+  useEffect(() => {
+    if (!antesDeDeshacer.current || !day) return
+    const nueva = day.entries.find((e) => !antesDeDeshacer.current.has(e.id))
+    antesDeDeshacer.current = null
+    if (nueva) setVuelve(nueva.id)
+  }, [day])
 
   // Deshacer es volver a registrar lo mismo, con la hora original — no una
   // papelera: `log_entries` congela, así que no hay nada que «recuperar», sólo
@@ -263,6 +283,7 @@ export default function Comida({ onTrain, abiertas = false }) {
   async function handleUndo() {
     if (!deleted) return
     setUndoing(true)
+    antesDeDeshacer.current = new Set((day?.entries ?? []).map((e) => e.id))
     try {
       await logFood({
         foodId: deleted.food_id,
@@ -362,6 +383,8 @@ export default function Comida({ onTrain, abiertas = false }) {
                 dishNames={dishNames}
                 deleted={deleted && (deleted.meal_slot ?? null) === rail.key ? deleted : null}
                 undoing={undoing}
+                saliendo={saliendo}
+                vuelve={vuelve}
                 onUndo={handleUndo}
                 onAdd={() => setAdding({ slot: rail.key })}
                 onEdit={setEditing}
@@ -835,7 +858,7 @@ function MacroCard({ day }) {
           <span className={`food-macros-number${closed ? ' is-closed' : ''}`}>
             {closed
               ? `${formatMacro(totals.protein)} / ${formatMacro(target)}`
-              : formatMacro(day.remaining_protein)}
+              : <Rueda valor={day.remaining_protein}>{formatMacro(day.remaining_protein)}</Rueda>}
           </span>
           <span className={`food-ring-caption${closed ? ' is-closed' : ''}`}>
             {closed ? 'Cerrado' : 'g faltan'}
@@ -862,7 +885,7 @@ function MacroCard({ day }) {
                 Kcal
               </span>
               <span className="food-ring-value">
-                {formatMacro(totals.kcal)}
+                <Rueda valor={totals.kcal}>{formatMacro(totals.kcal)}</Rueda>
                 <span className="food-ring-of"> / {formatMacro(day.target_kcal)}</span>
               </span>
               {/* La resta la hace el servidor (`restante`). Pasarse sale en
@@ -871,7 +894,7 @@ function MacroCard({ day }) {
                 <span className="food-ring-note">
                   {day.remaining_kcal < 0
                     ? `${formatMacro(-day.remaining_kcal)} de más`
-                    : `quedan ${formatMacro(day.remaining_kcal)}`}
+                    : <>quedan <Rueda valor={day.remaining_kcal}>{formatMacro(day.remaining_kcal)}</Rueda></>}
                 </span>
               )}
             </p>
@@ -994,6 +1017,8 @@ function SlotCard({
   dishNames = {},
   deleted,
   undoing,
+  saliendo = null,
+  vuelve = null,
   onUndo,
   onAdd,
   onEdit,
@@ -1010,6 +1035,21 @@ function SlotCard({
   const label = slotLabel(rail.key)
   const vacia = entries.length === 0
   const [abierta, setAbierta] = useState(abierta0)
+  // De previsto a hecho (lienzo «Movimiento → Comido»): cuando la fila deja de
+  // estar vacía delante de ti, el contorno discontinuo se va y entran el «✓» y
+  // lo comido en 200 ms. Al abrir la pantalla con la comida ya dicha, quieto.
+  const estabaVacia = useRef(vacia)
+  const [recien, setRecien] = useState(false)
+  useEffect(() => {
+    if (estabaVacia.current && !vacia) {
+      setRecien(true)
+      const t = setTimeout(() => setRecien(false), 300)
+      estabaVacia.current = vacia
+      return () => clearTimeout(t)
+    }
+    estabaVacia.current = vacia
+    return undefined
+  }, [vacia])
   // Lo comido, por su nombre: un plato una vez, un alimento suelto por el suyo.
   const comido = agruparPorPlato(entries, dishNames)
     .map((g) => g.name ?? g.entries.map((e) => e.food_name).join(' · '))
@@ -1017,7 +1057,7 @@ function SlotCard({
   const linea = comido || previsto || 'Nada todavía'
   return (
     <section
-      className={`food-slot hoy-fila${vacia ? ' is-empty' : ''}${abierta ? ' is-open' : ''}`}
+      className={`food-slot hoy-fila${vacia ? ' is-empty' : ''}${abierta ? ' is-open' : ''}${recien ? ' is-recien' : ''}`}
       data-slot={rail.key ?? undefined}
     >
       <div className="hoy-fila-head">
@@ -1069,7 +1109,13 @@ function SlotCard({
               <div key={grupo.entries[0].id} className={grupo.name ? 'food-dish-group' : undefined}>
                 {grupo.name && <p className="food-dish-name">{grupo.name}</p>}
                 {grupo.entries.map((entry) => (
-                  <EntryRow key={entry.id} entry={entry} onEdit={() => onEdit(entry.id)} onDelete={onDelete} />
+                  <EntryRow
+                    key={entry.id}
+                    entry={entry}
+                    movimiento={entry.id === saliendo ? 'is-sale' : entry.id === vuelve ? 'is-vuelve' : ''}
+                    onEdit={() => onEdit(entry.id)}
+                    onDelete={onDelete}
+                  />
                 ))}
               </div>
             ))}
@@ -1135,7 +1181,7 @@ const SWIPE_ARM = -34
 // La fila de una entrada. Deslizarla revela «Borrar» detrás; tocarla —sin
 // arrastre— la abre para editar. Un segundo toque con la fila abierta la
 // vuelve a cerrar, en vez de abrir el editor por sorpresa.
-function EntryRow({ entry, onEdit, onDelete }) {
+function EntryRow({ entry, movimiento = '', onEdit, onDelete }) {
   const dragXRef = useRef(0)
   const startX = useRef(0)
   const originX = useRef(0)
@@ -1181,7 +1227,7 @@ function EntryRow({ entry, onEdit, onDelete }) {
   const open = dragX !== 0
 
   return (
-    <div className="food-entry-swipe">
+    <div className={`food-entry-swipe${movimiento ? ` ${movimiento}` : ''}`}>
       {/* «Borrar» sólo existe mientras la fila está abierta o en movimiento.
           No es una decisión de accesibilidad —lo era: vivía siempre con
           `aria-hidden` y `tabIndex={-1}`— sino de pintado. La fila lleva un

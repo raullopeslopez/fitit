@@ -33,6 +33,7 @@ import {
   sessionLength,
 } from './format.js'
 import { doble, tap } from './platform/haptics.js'
+import { useRepetir } from './repetir.js'
 import { muscleColor, muscleFill } from './muscles.js'
 import {
   beatenAt,
@@ -220,6 +221,21 @@ function ExerciseCard({
   // ¿Has tocado peso o reps a mano? Mientras no, los campos los rellena la
   // pantalla (ver la siembra más abajo); en cuanto sí, son tuyos.
   const touched = useRef(false)
+  const repetir = useRepetir()
+  // Al acabar el descanso las fichas vuelven a su tamaño en 320 ms (lienzo
+  // «Movimiento → fin del descanso»), en vez de saltar de 22 a 54 px.
+  const descansaba = useRef(!!rest)
+  const [creciendo, setCreciendo] = useState(false)
+  useEffect(() => {
+    if (descansaba.current && !rest) {
+      setCreciendo(true)
+      const t = setTimeout(() => setCreciendo(false), 320)
+      descansaba.current = false
+      return () => clearTimeout(t)
+    }
+    descansaba.current = !!rest
+    return undefined
+  }, [rest])
   const editReps_ = (v) => {
     touched.current = true
     setReps(v)
@@ -843,7 +859,7 @@ function ExerciseCard({
         {/* Fichas grandes de peso y reps; mientras descansas, el anillo es lo
             grande y las fichas se compactan. */}
         <form
-          className={`log-form log-form-tiles${rest ? ' is-resting' : ''}`}
+          className={`log-form log-form-tiles${rest ? ' is-resting' : ''}${creciendo ? ' is-crece' : ''}`}
           data-editor-protect
           onSubmit={handleLogSet}
         >
@@ -855,10 +871,11 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn"
                   aria-label={`Restar kg`}
-                  onClick={() => {
+                  {...repetir(() => {
                     rodar('weight', 'down')
-                    editWeight_(bump(weight, -WEIGHT_STEP, 0))
-                  }}
+                    touched.current = true
+                    setWeight((v) => bump(v, -WEIGHT_STEP, 0))
+                  })}
                 >
                   −
                 </button>
@@ -873,10 +890,11 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn stepper-plus"
                   aria-label={`Sumar kg`}
-                  onClick={() => {
+                  {...repetir(() => {
                     rodar('weight', 'up')
-                    editWeight_(bump(weight, WEIGHT_STEP, 0))
-                  }}
+                    touched.current = true
+                    setWeight((v) => bump(v, WEIGHT_STEP, 0))
+                  })}
                 >
                   +
                 </button>
@@ -889,10 +907,11 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn"
                   aria-label="Restar rep"
-                  onClick={() => {
+                  {...repetir(() => {
                     rodar('reps', 'down')
-                    editReps_(bump(reps, -1, 1))
-                  }}
+                    touched.current = true
+                    setReps((v) => bump(v, -1, 1))
+                  })}
                 >
                   −
                 </button>
@@ -907,10 +926,11 @@ function ExerciseCard({
                   type="button"
                   className="stepper-btn stepper-plus"
                   aria-label="Sumar rep"
-                  onClick={() => {
+                  {...repetir(() => {
                     rodar('reps', 'up')
-                    editReps_(bump(reps, 1, 1))
-                  }}
+                    touched.current = true
+                    setReps((v) => bump(v, 1, 1))
+                  })}
                 >
                   +
                 </button>
@@ -1029,7 +1049,7 @@ function ExerciseCard({
                         type="button"
                         className="stepper-btn"
                         aria-label={`Restar kg a la serie ${index + 1}`}
-                        onClick={() => setEditWeight(bump(editWeight, -WEIGHT_STEP, 0))}
+                        {...repetir(() => setEditWeight((v) => bump(v, -WEIGHT_STEP, 0)))}
                       >
                         −
                       </button>
@@ -1043,7 +1063,7 @@ function ExerciseCard({
                         type="button"
                         className="stepper-btn stepper-plus"
                         aria-label={`Sumar kg a la serie ${index + 1}`}
-                        onClick={() => setEditWeight(bump(editWeight, WEIGHT_STEP, 0))}
+                        {...repetir(() => setEditWeight((v) => bump(v, WEIGHT_STEP, 0)))}
                       >
                         +
                       </button>
@@ -1053,7 +1073,7 @@ function ExerciseCard({
                         type="button"
                         className="stepper-btn"
                         aria-label={`Restar rep a la serie ${index + 1}`}
-                        onClick={() => setEditReps(bump(editReps, -1, 1))}
+                        {...repetir(() => setEditReps((v) => bump(v, -1, 1)))}
                       >
                         −
                       </button>
@@ -1067,7 +1087,7 @@ function ExerciseCard({
                         type="button"
                         className="stepper-btn stepper-plus"
                         aria-label={`Sumar rep a la serie ${index + 1}`}
-                        onClick={() => setEditReps(bump(editReps, 1, 1))}
+                        {...repetir(() => setEditReps((v) => bump(v, 1, 1)))}
                       >
                         +
                       </button>
@@ -1450,6 +1470,46 @@ function CardioCard({
 // left. The clock stands still in --muted until `Reanudar`; the widget is the
 // only place that pauses, so here it can only be resumed or skipped.
 // El reloj de la cabecera: cada segundo mientras la sesión sigue abierta.
+// La franja de sin conexión (lienzo «Movimiento → sin conexión»): baja una
+// vez; lleva un punto oro por serie pendiente, y al volver la red los puntos se
+// apagan uno a uno según suben las series. Cuando sube la última, se recoge.
+const PUNTOS_MAX = 12
+function FranjaSinConexion({ pendientes }) {
+  // `total`: cuántas llegó a haber en esta racha; `ultimo`: el texto que se
+  // queda puesto mientras la franja se recoge, en vez de un «0 series».
+  const [franja, setFranja] = useState({ total: 0, ultimo: 0, recogiendo: false })
+  useEffect(() => {
+    if (pendientes > 0) {
+      setFranja((f) => ({
+        total: Math.max(f.recogiendo ? 0 : f.total, pendientes),
+        ultimo: pendientes,
+        recogiendo: false,
+      }))
+      return undefined
+    }
+    setFranja((f) => (f.total > 0 ? { ...f, recogiendo: true } : f))
+    const t = setTimeout(() => setFranja({ total: 0, ultimo: 0, recogiendo: false }), 440)
+    return () => clearTimeout(t)
+  }, [pendientes])
+
+  if (pendientes === 0 && !franja.recogiendo) return null
+  const n = pendientes || franja.ultimo
+  const puntos = Math.min(franja.total, PUNTOS_MAX)
+  return (
+    <p className={`workout-offline${franja.recogiendo ? ' is-recoge' : ''}`} role="status">
+      <strong>Sin conexión</strong>
+      {` · ${n} ${n === 1 ? 'serie sin guardar' : 'series sin guardar'}. Se envían solas.`}
+      {puntos > 0 && (
+        <span className="workout-offline-puntos" aria-hidden="true">
+          {Array.from({ length: puntos }, (_, i) => (
+            <span key={i} className={`workout-offline-punto${i < pendientes ? ' is-on' : ''}`} />
+          ))}
+        </span>
+      )}
+    </p>
+  )
+}
+
 function Cronometro({ workout, fallback }) {
   const [now, setNow] = useState(() => Date.now())
   const live = liveElapsed(workout, now)
@@ -2685,12 +2745,7 @@ export default function Workout({
       {/* Estados (Marcador): sin red se sigue registrando igual, y lo que aún
           no ha llegado al servidor se dice una vez, arriba, en vez de con un
           punto por fila que hay que interpretar. */}
-      {pendientes > 0 && (
-        <p className="workout-offline" role="status">
-          <strong>Sin conexión</strong>
-          {` · ${pendientes} ${pendientes === 1 ? 'serie sin guardar' : 'series sin guardar'}. Se envían solas.`}
-        </p>
-      )}
+      <FranjaSinConexion pendientes={pendientes} />
 
       {/* ── La tira ─────────────────────────────────────────────────────────
           Todos los de hoy, en el orden de la sesión, cada uno a un toque: volver

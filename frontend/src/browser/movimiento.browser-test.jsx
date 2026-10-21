@@ -110,4 +110,28 @@ describe('Movimiento', () => {
     await espera(260)
     expect(document.querySelector('.food-screen.dia')).toBeNull()
   })
+
+  it('mantener pulsado + repite cada 120 ms, y el click de soltar no suma otro', async () => {
+    await mountEntreno()
+    const reps = document.querySelector('input[id^="reps-"]')
+    const antes = Number(reps.value)
+    const mas = screen.getByRole('button', { name: 'Sumar rep' })
+    mas.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+    await espera(400 + 120 * 2 + 60)
+    mas.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))
+    mas.click()
+    await espera(16)
+    expect(Number(reps.value)).toBe(antes + 3)
+  })
+
+  it('salir de Entreno: la pantalla se encoge y la barra vuelve a subir', async () => {
+    await mountEntreno()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Volver' }))
+    expect(document.querySelector('.container.is-saliendo-entreno')).not.toBeNull()
+    const pantalla = document.querySelector('.app-main > *')
+    expect(getComputedStyle(pantalla).animationName).toBe('mov-entreno-sale')
+    await espera(360)
+    expect(document.querySelector('.container.is-workout')).toBeNull()
+    expect(getComputedStyle(document.querySelector('.bottom-nav')).animationName).toBe('mov-nav-sube')
+  })
 })

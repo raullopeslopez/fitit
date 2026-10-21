@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import ColdStart from './ColdStart.jsx'
 import Comida from './Comida.jsx'
@@ -49,6 +49,52 @@ export default function App() {
     setOpenWorkoutId(id)
     setOpenWorkoutSeed(seed)
   }
+
+  // Entreno es un modo y se nota (lienzo «Movimiento → entrar en Entreno»): al
+  // entrar, la barra de abajo se hunde; al salir con «‹», la pantalla se encoge
+  // hacia su franja de Hoy (320 ms, acelera) y la barra vuelve a subir. Sin
+  // motor de animaciones (jsdom) o con «reducir movimiento», todo es inmediato.
+  const navRef = useRef(null)
+  const [saliendoEntreno, setSaliendoEntreno] = useState(false)
+  const [navSube, setNavSube] = useState(false)
+  const animable = () =>
+    typeof Element.prototype.animate === 'function' &&
+    !(typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+
+  function salirDelEntreno() {
+    if (!animable()) return openWorkout(null)
+    if (saliendoEntreno) return undefined
+    setSaliendoEntreno(true)
+    setTimeout(() => {
+      setSaliendoEntreno(false)
+      openWorkout(null)
+      setNavSube(true)
+      setTimeout(() => setNavSube(false), 320)
+    }, 320)
+  }
+
+  const habiaEntreno = useRef(openWorkoutId)
+  useLayoutEffect(() => {
+    const antes = habiaEntreno.current
+    habiaEntreno.current = openWorkoutId
+    const nav = navRef.current
+    if (antes || !openWorkoutId || !nav || !animable()) return
+    // La barra ya está oculta (`.is-workout`): se hunde una copia muda.
+    const copia = nav.cloneNode(true)
+    copia.setAttribute('aria-hidden', 'true')
+    copia.inert = true
+    copia.style.pointerEvents = 'none'
+    document.body.appendChild(copia)
+    const quitar = () => copia.remove()
+    copia
+      .animate([{ transform: 'none' }, { transform: 'translateY(calc(100% + 40px))' }], {
+        duration: 320,
+        easing: 'cubic-bezier(0.3, 0, 1, 1)',
+        fill: 'forwards',
+      })
+      .finished.then(quitar, quitar)
+    setTimeout(quitar, 380)
+  }, [openWorkoutId])
 
   useEffect(() => {
     // A 401 from any API call drops us back to the login screen.
@@ -206,7 +252,9 @@ export default function App() {
 
   return (
     // Con un entreno abierto, Entreno ocupa la pantalla: sin marca ni barra.
-    <div className={`container${openWorkoutId ? ' is-workout' : ''}`}>
+    <div
+      className={`container${openWorkoutId ? ' is-workout' : ''}${saliendoEntreno ? ' is-saliendo-entreno' : ''}`}
+    >
       <header className="app-header">
         <Wordmark />
       </header>
@@ -215,7 +263,7 @@ export default function App() {
           <Workout
             workoutId={openWorkoutId}
             initialWorkout={openWorkoutSeed}
-            onExit={() => openWorkout(null)}
+            onExit={salirDelEntreno}
           />
         ) : view === 'progress' ? (
           <Progress initialTab="evolucion" />
@@ -237,7 +285,7 @@ export default function App() {
       </main>
       {/* Barra flotante, al alcance del pulgar: la pestaña activa es una píldora
           mandarina con su nombre; las demás, sólo el icono. */}
-      <nav className="bottom-nav" aria-label="Navegación principal">
+      <nav ref={navRef} className={`bottom-nav${navSube ? ' is-sube' : ''}`} aria-label="Navegación principal">
         {tabs.map((tab) => (
           <button
             key={tab.key}

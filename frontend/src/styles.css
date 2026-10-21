@@ -10490,3 +10490,133 @@ button:active:not(:disabled) {
     transform: none;
   }
 }
+
+/* Mantener pulsado un − o un + repite (repetir.js): que el dedo quieto no
+   seleccione el signo ni abra el menú del sistema. */
+.stepper-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Borrar y deshacer (lienzo «Movimiento»): la fila se va a la izquierda en
+   200 ms y luego su hueco se cierra en otros 200, así las de debajo suben en
+   vez de saltar. La que vuelve con Deshacer hace lo mismo al revés. */
+@keyframes mov-fila-sale {
+  0% {
+    max-height: 80px;
+    transform: none;
+    opacity: 1;
+  }
+  50% {
+    max-height: 80px;
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    max-height: 0;
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+.food-entry-swipe.is-sale {
+  animation: mov-fila-sale 400ms var(--ease-in) forwards;
+  pointer-events: none;
+}
+.food-entry-swipe.is-vuelve {
+  animation: mov-fila-sale 400ms var(--ease-out) reverse backwards;
+}
+
+/* Fin del descanso (lienzo «Movimiento»): mientras corre el anillo, Registrar
+   espera en Carbón; al llegar a cero pasa a mandarina (200 ms) y las fichas
+   vuelven a su tamaño (320 ms, frena al final). */
+.log-form-tiles .btn-log {
+  transition:
+    background-color 200ms var(--ease),
+    color 200ms var(--ease),
+    transform 120ms var(--ease);
+}
+.log-form-tiles.is-resting .btn-log {
+  background: color-mix(in srgb, var(--text) 12%, var(--bg));
+  color: var(--text);
+}
+@keyframes mov-ficha-crece {
+  from {
+    font-size: 1.4rem;
+  }
+}
+.log-form-tiles.is-crece .stepper input {
+  animation: mov-ficha-crece 320ms var(--ease-out);
+}
+
+/* Comido (lienzo «Movimiento»): de previsto a hecho. La línea de debajo pasa
+   de lo previsto a lo comido y el «✓» entra donde estaba el contorno
+   discontinuo, 200 ms. Las cifras que cambian ruedan (Rueda.jsx). */
+@keyframes mov-hecho {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+.hoy-fila.is-recien .hoy-check,
+.hoy-fila.is-recien .hoy-fila-linea {
+  animation: mov-hecho 200ms var(--ease-out);
+}
+.hoy-fila.is-recien .hoy-fila-linea {
+  transform-origin: left center;
+}
+.rueda {
+  display: inline-block;
+}
+
+/* Salir de Entreno (App.jsx): la pantalla se encoge hacia su franja de Hoy
+   —arriba, y aplastada como la franja— acelerando, y se apaga al final; la
+   barra de abajo vuelve a subir. */
+@keyframes mov-entreno-sale {
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(80px) scaleY(0.27);
+  }
+}
+.container.is-saliendo-entreno .app-main > * {
+  transform-origin: top;
+  animation: mov-entreno-sale 320ms var(--ease-in) forwards;
+}
+@keyframes mov-nav-sube {
+  from {
+    transform: translateY(calc(100% + 40px));
+  }
+}
+.bottom-nav.is-sube {
+  animation: mov-nav-sube 320ms var(--ease-out) backwards;
+}
+
+/* Sin conexión: un punto oro por serie pendiente; se apagan uno a uno al
+   subir, y la franja se recoge (al revés de como bajó) cuando sube la última. */
+.workout-offline-puntos {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.workout-offline-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #ffc53d;
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 200ms var(--ease),
+    transform 200ms var(--ease);
+}
+.workout-offline-punto.is-on {
+  opacity: 1;
+  transform: none;
+}
+.workout-offline.is-recoge {
+  animation: mov-franja-baja 240ms var(--ease-in) 200ms reverse forwards;
+}
