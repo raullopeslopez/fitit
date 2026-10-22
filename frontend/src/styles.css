@@ -11080,3 +11080,298 @@ button:active:not(:disabled) {
 .food-frase-chev {
   font-size: 1.15rem;
 }
+
+/* ── Semana, comida simple (fase 4; lienzo fila Premium · Semana) ───────────
+   La semana de un vistazo: siete filas por cuatro comidas, una casilla cada
+   una. Lleno = comido, gris = previsto, contorno = sin apuntar, nada = sin
+   plan. El estado se dice una vez, con la forma; la leyenda va debajo. */
+.semana-rejilla {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 1.5rem 0 0.5rem;
+}
+.semana-rejilla-fila {
+  display: grid;
+  grid-template-columns: 64px repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+  margin: 0 -6px;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+.semana-rejilla-fila.is-cabecera {
+  padding-bottom: 0;
+}
+.semana-rejilla-col {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+}
+.semana-rejilla-fila.is-hoy {
+  background: var(--surface);
+}
+.semana-rejilla-fila.is-elegido {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.semana-rejilla-dia,
+.semana-rejilla-dia:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.semana-rejilla-dow {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+}
+.semana-rejilla-num {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.semana-casilla {
+  display: block;
+  height: 28px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.semana-casilla.is-comido {
+  background: var(--text);
+}
+.semana-casilla.is-previsto {
+  background: color-mix(in srgb, var(--text) 22%, var(--bg));
+}
+.semana-casilla.is-sin {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 30%, var(--bg));
+}
+.semana-casilla.is-pensando {
+  --hueco: color-mix(in srgb, var(--text) 8%, var(--bg));
+  background: linear-gradient(
+    90deg,
+    var(--hueco) 0%,
+    var(--hueco) 40%,
+    color-mix(in srgb, var(--text) 16%, var(--bg)) 50%,
+    var(--hueco) 60%,
+    var(--hueco) 100%
+  );
+  background-size: 200% 100%;
+  animation: espera-barrido 1.4s linear infinite;
+}
+@keyframes semana-casilla-llega {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+.semana-casilla.is-llega {
+  animation: semana-casilla-llega 260ms var(--ease) backwards;
+}
+.semana-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.semana-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.semana-leyenda .semana-casilla {
+  width: 14px;
+  height: 8px;
+  border-radius: 3px;
+}
+.semana-elegido {
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.semana-elegido-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.semana-elegido-nombre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.semana-elegido-pista {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* La compra: una banda a sangre, con la cifra y «Preparar». */
+.semana-compra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 1.5rem -1rem 0;
+  padding: 14px 1rem;
+  background: var(--surface);
+}
+.semana-compra-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.semana-compra-titulo {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.semana-compra-pista {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.semana-compra-cifra {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text);
+}
+.semana-compra-ir,
+.semana-compra-ir:hover:not(:disabled) {
+  flex: none;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--accent);
+  color: #101113;
+  font-size: 1rem;
+  font-weight: 600;
+}
+/* La que viene: sin plan, generar; con plan, «Tu semana, lista» y comprar. */
+.semana-viene {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 1.5rem 0 0;
+}
+.semana-viene-titulo {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.semana-viene-texto,
+.semana-viene-pista {
+  margin: 0;
+  font-size: 1rem;
+}
+.semana-viene-pista {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+.semana-viene-cifra,
+.semana-viene-cifras {
+  display: flex;
+  align-items: baseline;
+  gap: 8px 24px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.semana-viene-num {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.semana-viene-cifra {
+  gap: 8px;
+}
+.semana-viene-generar,
+.semana-viene-generar:hover:not(:disabled) {
+  width: 100%;
+  min-height: 60px;
+  border: 0;
+  border-radius: 30px;
+  background: var(--accent);
+  color: #101113;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.semana-pasos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+  font-size: 0.85rem;
+}
+.semana-pasos li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  counter-increment: paso;
+}
+.semana-pasos li::before {
+  content: counter(paso);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+.semana-pasos li.is-hecho {
+  color: var(--muted);
+}
+.semana-pasos li.is-hecho::before {
+  content: '✓';
+  background: var(--text);
+  box-shadow: none;
+  color: var(--bg);
+}
+.semana-pauta {
+  margin-top: 1.5rem;
+}
+.semana-pauta-abrir,
+.semana-pauta-abrir:hover:not(:disabled) {
+  width: 100%;
+  min-height: 52px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: left;
+}
+@media (prefers-reduced-motion: reduce) {
+  .semana-casilla.is-pensando {
+    animation: none !important;
+    background: var(--hueco);
+  }
+}

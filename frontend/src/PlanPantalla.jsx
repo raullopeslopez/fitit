@@ -1,21 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import {
-  generatePlan,
-  getPlan,
-  importPlan,
-  importPlanText,
-  readTicket,
-  listDishes,
-  saveImportedPlan,
-} from './api.js'
+import { generatePlan, getPlan, importPlan, importPlanText, listDishes, saveImportedPlan } from './api.js'
 import { foodDayIso } from './food.js'
+import { SemanaEntreno } from './HoyEntreno.jsx'
 import ImportarPlan from './ImportarPlan.jsx'
-import { Semana, lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
-import PlanificarSemana from './PlanificarSemana.jsx'
+import { lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import ListaCompra from './ListaCompra.jsx'
-import RevisionSemanal from './RevisionSemanal.jsx'
-import Ticket from './Ticket.jsx'
+import { BandaCompra, QueViene, SemanaComida } from './SemanaSimple.jsx'
 import TusPlatos from './TusPlatos.jsx'
 import { ListRow } from './ui'
 
@@ -65,18 +56,6 @@ function errorDeSubida(err) {
   return 'No se ha podido leer el plan. Prueba otra vez.'
 }
 
-// Lo mismo para el ticket de la compra, que no es un plan.
-function errorDeTicket(err) {
-  if (err?.status === 415) return 'Sólo se leen PDF.'
-  if (err?.status === 413) return 'El PDF es demasiado grande.'
-  if (err?.status === 503) return 'La lectura de tickets no está disponible.'
-  return 'No se ha podido leer el ticket.'
-}
-
-function porQueNoSeLeeElTicket(respuesta) {
-  return respuesta?.refusal === 'quota' ? porQueNoSeLee(respuesta) : 'No se ha podido leer el ticket.'
-}
-
 // La compra que espera su ticket (plan v2): la semana cuya lista se mandó a
 // Taski y cuyo ticket no se ha subido, mientras no haya pasado su domingo. Se
 // mira en las dos semanas que ya están cargadas: el domingo se manda la de la
@@ -107,7 +86,10 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   const [platos, setPlatos] = useState([])
   const [error, setError] = useState(null)
   const [platosOpen, setPlatosOpen] = useState(false)
-  const [listaOpen, setListaOpen] = useState(false)
+  // La semana cuya lista de la compra está abierta, o `null`.
+  const [listaDe, setListaDe] = useState(null)
+  // La pauta del nutricionista, plegada al pie de la que viene.
+  const [pautaOpen, setPautaOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   // Subir plan: `leyendo` mientras el PDF va y vuelve; `lectura` es lo leído,
   // y mientras la hay la pantalla es la de revisarlo.
@@ -116,10 +98,6 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   // { texto }: lo que ha pasado al guardar una pauta.
   const [aviso, setAviso] = useState(null)
   const archivo = useRef(null)
-  // El ticket de la compra (fase 6.1): las líneas leídas mientras se revisan.
-  const [ticket, setTicket] = useState(null)
-  const [leyendoTicket, setLeyendoTicket] = useState(false)
-  const archivoTicket = useRef(null)
   // El cuadro para pegar a mano: `null` cerrado; si no, lo escrito en él.
   const [pegado, setPegado] = useState(null)
 
@@ -161,22 +139,6 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       setError(motivo(err))
     } finally {
       setBusy(false)
-    }
-  }
-
-  async function subirTicket(file) {
-    if (!file) return
-    setLeyendoTicket(true)
-    setError(null)
-    setAviso(null)
-    try {
-      const respuesta = await readTicket(file)
-      if (respuesta?.refusal || !(respuesta?.lines ?? []).length) setError(porQueNoSeLeeElTicket(respuesta))
-      else setTicket(respuesta.lines)
-    } catch (err) {
-      setError(errorDeTicket(err))
-    } finally {
-      setLeyendoTicket(false)
     }
   }
 
@@ -273,32 +235,14 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     )
   }
 
-  // La semana cuya compra espera ticket, si la hay. El ticket se compara con
-  // ella, no con la semana que se esté mirando: compraste lo de su lista.
-  const pendiente = compraPendiente(planes, hoy)
-
-  if (ticket) {
-    return (
-      <Ticket
-        lineas={ticket}
-        weekStart={pendiente ?? viene}
-        onClose={() => {
-          setTicket(null)
-          // Guardar el ticket cierra la compra: sin recargar, la fila seguiría ahí.
-          cargar()
-        }}
-      />
-    )
-  }
-
-  // La lista de la compra de la que viene, a pantalla completa. Al volver se
-  // recarga: mandarla a Taski abre la compra, y «Compra» pregunta por el ticket.
-  if (listaOpen) {
+  // La lista de la compra de una semana, a pantalla completa. Al volver se
+  // recarga: mandarla a Taski cambia la banda («en Taski»).
+  if (listaDe) {
     return (
       <ListaCompra
-        weekStart={viene}
+        weekStart={listaDe}
         onClose={() => {
-          setListaOpen(false)
+          setListaDe(null)
           cargar()
         }}
       />
@@ -318,6 +262,67 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
 
   const week = segmento === 'esta' ? esta : viene
   const plan = planes[week]
+
+  // La pauta del nutricionista: la excepción, plegada al pie de la que viene.
+  const pauta = (
+    <section className="plan-bloque semana-pauta" aria-label="Otras formas de hacer el plan">
+      <button
+        type="button"
+        className="semana-pauta-abrir"
+        aria-expanded={pautaOpen}
+        onClick={() => setPautaOpen((v) => !v)}
+      >
+        ¿Tienes una pauta del nutricionista?
+      </button>
+      {pautaOpen && (
+        <>
+          <ListRow
+            label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
+            hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
+            value=""
+            onClick={() => !leyendo && archivo.current?.click()}
+          />
+          <input
+            ref={archivo}
+            type="file"
+            accept="application/pdf"
+            aria-label="PDF del plan"
+            hidden
+            onChange={(e) => {
+              subir(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+          <ListRow label="Pegar plan" hint="El que te escribe Claude" value="" onClick={pegar} />
+          {pegado !== null && (
+            <div className="card plan-pegar">
+              <textarea
+                aria-label="Plan en texto"
+                placeholder="Pega aquí la respuesta de Claude"
+                rows={6}
+                autoFocus
+                value={pegado}
+                onChange={(e) => setPegado(e.target.value)}
+              />
+              <div className="plan-pegar-acciones">
+                <button type="button" className="link-btn" onClick={() => setPegado(null)}>
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={leyendo || !pegado.trim()}
+                  onClick={() => leerTexto(pegado)}
+                >
+                  Leer
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  )
 
   return (
     <div className="plan-pantalla">
@@ -348,142 +353,41 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       {error && <p className="alert">{error}</p>}
       {aviso && <p className="plan-aviso">{aviso.texto}</p>}
 
-      {segmento === 'esta' &&
-        plan !== undefined &&
-        (plan ? (
-          <Semana embebida seguir plan={plan} weekStart={esta} hoy={hoy} onChanged={cargar} platos={platos} />
-        ) : (
-          <section className="card plan-card">
-            <p className="hint">Todavía no hay plan para esta semana.</p>
-            <button type="button" className="primary" disabled={busy} onClick={generarEsta}>
-              Generar la semana
-            </button>
-          </section>
-        ))}
-
-      {/* La revisión mira atrás: es el cierre de esta semana, no la puerta de
-          la que viene (reorganización del 17 oct). Cuándo toca lo dice el
-          servidor; sin tocar no se pinta. `key` por semana, como antes. */}
-      {segmento === 'esta' && <RevisionSemanal key={esta} onAccepted={cargar} />}
-
-      {/* «La que viene», en el orden en que se hace (reorganización del 17 oct):
-          el plan —generarlo, o la semana ya hecha—, la compra y, en pequeño,
-          las otras formas de traer un plan. `key` por semana: si el día cambia
-          con la pantalla abierta, la semana nueva empieza de cero. */}
-      {segmento === 'viene' && (
+      {/* Esta semana (comida simple): el entreno, la cuadrícula de la comida con
+          el día elegido, y la compra en una banda. Sin revisión del domingo,
+          sin «cómo va», sin ticket. */}
+      {segmento === 'esta' && (
         <>
-          {plan !== undefined && (
-            <PlanificarSemana
-              key={viene}
-              embebida
-              revisar={false}
-              comprar={false}
-              conPlatos={false}
-              weekStart={viene}
-              plan={plan}
-              onChanged={cargar}
-              platos={platos}
-              onPlatosChanged={cargarPlatos}
-            />
-          )}
-
-          {/* Lo que el plan pide comprar y lo que compraste, juntos. La lista
-              sólo existe con la semana generada. Con una compra mandada a Taski
-              y sin ticket, la fila del ticket pregunta; si no, se sube igual
-              que siempre, contra la lista de la que viene. */}
-          <section className="plan-bloque" aria-label="Compra">
-            <p className="card-eyebrow">Compra</p>
-            {plan && <ListRow label="Lista de la compra" value="" onClick={() => setListaOpen(true)} />}
-            {pendiente ? (
-              <button
-                type="button"
-                className="plan-compra-pendiente"
-                onClick={() => !leyendoTicket && archivoTicket.current?.click()}
-              >
-                <span className="plan-compra-pendiente-titulo">
-                  {leyendoTicket ? 'Leyendo el ticket…' : '¿Ya compraste? · Subir ticket'}
-                </span>
-                <span className="plan-compra-pendiente-pista">
-                  {leyendoTicket
-                    ? 'Puede tardar hasta un minuto.'
-                    : `Se compara con la lista del ${rangoSemana(pendiente)}`}
-                </span>
-              </button>
+          <SemanaEntreno />
+          {plan !== undefined &&
+            (plan ? (
+              <>
+                <SemanaComida key={esta} plan={plan} weekStart={esta} hoy={hoy} platos={platos} onChanged={cargar} />
+                <BandaCompra weekStart={esta} plan={plan} onPreparar={() => setListaDe(esta)} />
+              </>
             ) : (
-              <ListRow
-                label={leyendoTicket ? 'Leyendo el ticket…' : 'Subir ticket'}
-                hint={leyendoTicket ? 'Puede tardar hasta un minuto.' : 'El PDF de la compra'}
-                value=""
-                onClick={() => !leyendoTicket && archivoTicket.current?.click()}
-              />
-            )}
-            {/* El input no se ve: la fila es lo que se toca, y abre el selector
-                del móvil. `value = ''` después, para que subir el mismo PDF dos
-                veces vuelva a disparar el cambio. */}
-            <input
-              ref={archivoTicket}
-              type="file"
-              accept="application/pdf"
-              aria-label="PDF del ticket"
-              hidden
-              onChange={(e) => {
-                subirTicket(e.target.files?.[0])
-                e.target.value = ''
-              }}
-            />
-          </section>
-
-          {/* Generar es lo normal; traer un plan hecho, la excepción. */}
-          <section className="plan-bloque" aria-label="Otras formas de hacer el plan">
-            <p className="card-eyebrow">Otras formas de hacer el plan</p>
-            <ListRow
-              label={leyendo ? 'Leyendo el plan…' : 'Subir plan'}
-              hint={leyendo ? 'Puede tardar hasta un minuto.' : 'PDF del nutricionista'}
-              value=""
-              onClick={() => !leyendo && archivo.current?.click()}
-            />
-            <input
-              ref={archivo}
-              type="file"
-              accept="application/pdf"
-              aria-label="PDF del plan"
-              hidden
-              onChange={(e) => {
-                subir(e.target.files?.[0])
-                e.target.value = ''
-              }}
-            />
-            <ListRow label="Pegar plan" hint="El que te escribe Claude" value="" onClick={pegar} />
-            {pegado !== null && (
-              <div className="card plan-pegar">
-                <textarea
-                  aria-label="Plan en texto"
-                  placeholder="Pega aquí la respuesta de Claude"
-                  rows={6}
-                  autoFocus
-                  value={pegado}
-                  onChange={(e) => setPegado(e.target.value)}
-                />
-                <div className="plan-pegar-acciones">
-                  <button type="button" className="link-btn" onClick={() => setPegado(null)}>
-                    Cerrar
-                  </button>
-                  <button
-                    type="button"
-                    className="primary"
-                    disabled={leyendo || !pegado.trim()}
-                    onClick={() => leerTexto(pegado)}
-                  >
-                    Leer
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
-          <p className="plan-nota-entreno">El entreno no se planifica: aquí sólo hay comida.</p>
+              <section className="semana-viene">
+                <h2 className="semana-viene-titulo">Esta semana no hay plan</h2>
+                <button type="button" className="semana-viene-generar" disabled={busy} onClick={generarEsta}>
+                  Generar la semana
+                </button>
+              </section>
+            ))}
         </>
       )}
 
+      {segmento === 'viene' && plan !== undefined && (
+        <QueViene
+          key={viene}
+          weekStart={viene}
+          plan={plan}
+          hoy={hoy}
+          platos={platos}
+          onChanged={cargar}
+          onComprar={() => setListaDe(viene)}
+          pauta={pauta}
+        />
+      )}
     </div>
   )
 }

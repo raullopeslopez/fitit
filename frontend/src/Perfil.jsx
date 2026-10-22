@@ -11,7 +11,6 @@ import {
   setRestSeconds,
   setScreenAwake,
 } from './prefs.js'
-import Reglas from './Reglas.jsx'
 import TusPlatos from './TusPlatos.jsx'
 import TusSitios from './TusSitios.jsx'
 import { applyTheme, getThemePref, setThemePref } from './theme.js'
@@ -111,7 +110,6 @@ export function iniciales(nombre) {
 }
 
 export default function Perfil({ onLogout }) {
-  const [reglasOpen, setReglasOpen] = useState(false)
   // Tu nombre de usuario, sólo para las iniciales junto al titular.
   const [usuario, setUsuario] = useState(null)
   useEffect(() => {
@@ -243,14 +241,14 @@ export default function Perfil({ onLogout }) {
 
       {/* Lo tuyo de comer, junto (reorganización del 17 oct): Tus platos
           vivía en Plan, y Plan es para la semana. Tus sitios —donde comes
-          fuera, que se guardan solos al ponerles nombre en «Fuera»— y tus
-          reglas ya estaban aquí, cada uno en su sección. */}
+          fuera, que se guardan solos al ponerles nombre en «Fuera»— ya estaba
+          aquí. Las reglas salieron de la vista con comida simple (2026-10-22):
+          siguen en el planificador, sin pantalla. */}
       <section className="perfil-seccion" aria-labelledby="perfil-comida">
         <h2 id="perfil-comida">Tu comida</h2>
         <div className="perfil-card">
           <ListRow label="Tus platos" value="Ver" onClick={() => setHoja('platos')} />
           <ListRow label="Tus sitios" value="Ver" onClick={() => setHoja('sitios')} />
-          <ListRow label="Tus reglas" value="Ver" onClick={() => setReglasOpen(true)} />
         </div>
       </section>
 
@@ -294,7 +292,6 @@ export default function Perfil({ onLogout }) {
 
       {hoja === 'platos' && <TusPlatos onClose={cerrar} />}
       {hoja === 'sitios' && <TusSitios onClose={cerrar} />}
-      {reglasOpen && <Reglas onChanged={() => {}} onClose={() => setReglasOpen(false)} />}
     </div>
   )
 }

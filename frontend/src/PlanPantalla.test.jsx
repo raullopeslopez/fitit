@@ -6,13 +6,11 @@ import {
   generatePlan,
   getAdherence,
   getPlan,
-  getReview,
   getShoppingList,
   getTargetProfile,
   importPlan,
   importPlanText,
   listDishes,
-  readTicket,
   saveImportedPlan,
 } from './api.js'
 
@@ -54,7 +52,6 @@ beforeEach(() => {
   )
   getAdherence.mockResolvedValue(null)
   listDishes.mockResolvedValue([])
-  getReview.mockResolvedValue({ due: false })
   getTargetProfile.mockResolvedValue({ objetivo_kcal: 2150 })
   generatePlan.mockResolvedValue(plan(VIENE, 'Merluza'))
   getShoppingList.mockResolvedValue({ week_start: VIENE, aisles: [] })
@@ -69,12 +66,19 @@ describe('rangoSemana', () => {
   })
 })
 
+// La pauta del nutricionista va plegada al pie de la que viene (comida simple).
+async function abrirPauta() {
+  await userEvent.click(await screen.findByRole('button', { name: '¿Tienes una pauta del nutricionista?' }))
+}
+
 describe('la pantalla Plan', () => {
   it('abre en esta semana, con su rango y sus días', async () => {
     render(<PlanPantalla hoy={HOY} />)
     expect(screen.getByRole('heading', { level: 1, name: 'Semana' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Esta semana' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText('5 – 11 oct')).toBeInTheDocument()
+    // Comida simple: la semana es una cuadrícula; el lunes se elige y enseña lo suyo.
+    await userEvent.click(await screen.findByRole('button', { name: /^Lunes 5/ }))
     expect(await screen.findByText('Pollo con arroz')).toBeInTheDocument()
     expect(getPlan).toHaveBeenCalledWith(ESTA)
   })
@@ -82,7 +86,7 @@ describe('la pantalla Plan', () => {
   it('sin plan esta semana ofrece generarla', async () => {
     getPlan.mockResolvedValue(null)
     render(<PlanPantalla hoy={HOY} />)
-    expect(await screen.findByText('Todavía no hay plan para esta semana.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Esta semana no hay plan' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Generar la semana' }))
     await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(ESTA, null))
   })
@@ -100,7 +104,7 @@ describe('la pantalla Plan', () => {
     getPlan.mockImplementation(async (week) => plan(week, week === VIENE ? 'Merluza' : 'Pollo con arroz'))
     render(<PlanPantalla hoy={HOY} inicial="viene" />)
     expect(await screen.findByText('Merluza')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /Lista de la compra/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Preparar la compra/ }))
     expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
   })
 
@@ -113,48 +117,11 @@ describe('la pantalla Plan', () => {
     expect(screen.queryByRole('button', { name: /Tus platos/ })).not.toBeInTheDocument()
   })
 
-  // La que viene, en el orden en que se hace: el plan, la compra y, en pequeño,
-  // las otras formas de traer un plan.
-  it('la que viene va: generar, compra, otras formas', async () => {
-    getPlan.mockResolvedValue(null)
-    render(<PlanPantalla hoy={HOY} inicial="viene" />)
-    const generar = await screen.findByRole('button', { name: 'Generar la semana' })
-    const compra = screen.getByRole('region', { name: 'Compra' })
-    const otras = screen.getByRole('region', { name: 'Otras formas de hacer el plan' })
-    expect(generar.compareDocumentPosition(compra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(compra.compareDocumentPosition(otras) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(within(compra).getByRole('button', { name: /Subir ticket/ })).toBeInTheDocument()
-    expect(within(otras).getByRole('button', { name: /Subir plan/ })).toBeInTheDocument()
-    expect(within(otras).getByRole('button', { name: /Pegar plan/ })).toBeInTheDocument()
-  })
-
-  it('con la que viene generada, la lista de la compra va en «Compra»', async () => {
-    getPlan.mockImplementation(async (week) => plan(week, week === VIENE ? 'Merluza' : 'Pollo con arroz'))
-    render(<PlanPantalla hoy={HOY} inicial="viene" />)
-    await screen.findByText('Merluza')
-    const compra = screen.getByRole('region', { name: 'Compra' })
-    expect(within(compra).getByRole('button', { name: /Lista de la compra/ })).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Lista de la compra/ })).toHaveLength(1)
-  })
-
-  // La revisión mira atrás: es el cierre de esta semana, no la puerta de la
-  // siguiente. El servidor decide cuándo toca (`due`).
-  it('la revisión semanal va al pie de esta semana, no en la que viene', async () => {
-    getReview.mockResolvedValue({ due: true, plan_meals: 28, plan_meals_said: 3 })
-    render(<PlanPantalla hoy={HOY} />)
-    const pollo = await screen.findByText('Pollo con arroz')
-    const pregunta = await screen.findByText('¿Apuntaste todo lo que comiste?')
-    expect(pollo.compareDocumentPosition(pregunta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    await userEvent.click(screen.getByRole('button', { name: 'La que viene' }))
-    await screen.findByRole('button', { name: 'Generar la semana' })
-    expect(screen.queryByText('¿Apuntaste todo lo que comiste?')).not.toBeInTheDocument()
-  })
-
   // Plan v2: «Esta semana» es para seguir el plan. Planificar y comprar —la
   // pauta, la lista, el ticket, tus platos— es de «La que viene».
   it('esta semana no carga con planificar ni comprar', async () => {
     render(<PlanPantalla hoy={HOY} />)
-    await screen.findByText('Pollo con arroz')
+    await screen.findByRole('table', { name: 'Plan de la semana' })
     for (const nombre of [/Lista de la compra/, /Tus platos/, /Subir plan/, /Pegar plan/, /Subir ticket/]) {
       expect(screen.queryByRole('button', { name: nombre })).not.toBeInTheDocument()
     }
@@ -164,71 +131,15 @@ describe('la pantalla Plan', () => {
     getPlan.mockImplementation(async (week) => plan(week, week === VIENE ? 'Merluza' : 'Pollo con arroz'))
     render(<PlanPantalla hoy={HOY} inicial="viene" />)
     const merluza = await screen.findByText('Merluza')
+    await abrirPauta()
     const pegar = screen.getByRole('button', { name: /Pegar plan/ })
     expect(merluza.compareDocumentPosition(pegar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
-
-  describe('la compra que espera su ticket', () => {
-    const ENVIADA = { sent_at: '2026-10-11T10:00:00Z', ticket_at: null }
-
-    it('con la lista mandada a Taski y sin ticket, pregunta si ya compraste', async () => {
-      getPlan.mockImplementation(async (week) =>
-        week === VIENE ? { ...plan(VIENE, 'Merluza'), shopping: ENVIADA } : plan(ESTA, 'Pollo con arroz'),
-      )
-      render(<PlanPantalla hoy={HOY} inicial="viene" />)
-      const fila = await screen.findByRole('button', { name: /¿Ya compraste\? · Subir ticket/ })
-      expect(fila).toHaveTextContent('Se compara con la lista del 12 – 18 oct')
-    })
-
-    it('el lunes sigue comparando con la semana que se compró, aunque ya sea esta', async () => {
-      // Se mandó el domingo para la semana del 12; el lunes 12 esa semana ya es «esta».
-      getPlan.mockImplementation(async (week) =>
-        week === VIENE ? { ...plan(VIENE, 'Merluza'), shopping: ENVIADA } : null,
-      )
-      render(<PlanPantalla hoy={VIENE} inicial="viene" />)
-      const fila = await screen.findByRole('button', { name: /¿Ya compraste\? · Subir ticket/ })
-      expect(fila).toHaveTextContent('Se compara con la lista del 12 – 18 oct')
-    })
-
-    it('con el ticket ya subido no pregunta', async () => {
-      getPlan.mockImplementation(async (week) =>
-        week === VIENE
-          ? { ...plan(VIENE, 'Merluza'), shopping: { ...ENVIADA, ticket_at: '2026-10-11T18:00:00Z' } }
-          : plan(ESTA, 'Pollo con arroz'),
-      )
-      render(<PlanPantalla hoy={HOY} inicial="viene" />)
-      expect(await screen.findByRole('button', { name: /Subir ticket/ })).toHaveTextContent('El PDF de la compra')
-      expect(screen.queryByText(/¿Ya compraste\?/)).not.toBeInTheDocument()
-    })
   })
 
   it('un plan que no llega no deja la pantalla en blanco', async () => {
     getPlan.mockRejectedValue(new Error('red'))
     render(<PlanPantalla hoy={HOY} />)
     expect(await screen.findByText('No se ha podido cargar el plan.')).toBeInTheDocument()
-  })
-
-  describe('subir el ticket de la compra', () => {
-    const ticket = () => new File(['%PDF'], 'ticket.pdf', { type: 'application/pdf' })
-
-    it('subir el PDF lo lee y abre la revisión de la compra', async () => {
-      readTicket.mockResolvedValue({
-        lines: [{ text: '1000 g pollo', grams: 1000, status: 'chosen', food: { id: 1, name: 'Pollo' }, candidates: [] }],
-        refusal: null,
-      })
-      render(<PlanPantalla hoy={HOY} inicial="viene" />)
-      expect(await screen.findByRole('button', { name: /Subir ticket/ })).toHaveTextContent('El PDF de la compra')
-      await userEvent.upload(screen.getByLabelText('PDF del ticket'), ticket())
-      expect(await screen.findByRole('dialog', { name: 'Ticket de la compra' })).toBeInTheDocument()
-      expect(readTicket).toHaveBeenCalled()
-    })
-
-    it('un ticket que no se entiende lo dice y deja la pantalla', async () => {
-      readTicket.mockResolvedValue({ lines: [], refusal: 'unreadable' })
-      render(<PlanPantalla hoy={HOY} inicial="viene" />)
-      await userEvent.upload(await screen.findByLabelText('PDF del ticket'), ticket())
-      expect(await screen.findByText('No se ha podido leer el ticket.')).toBeInTheDocument()
-    })
   })
 
   describe('subir el plan del nutricionista', () => {
@@ -244,6 +155,7 @@ describe('la pantalla Plan', () => {
     it('subir un PDF lo lee y enseña los platos identificados', async () => {
       importPlan.mockResolvedValue(LECTURA)
       render(<PlanPantalla hoy={HOY} inicial="viene" />)
+      await abrirPauta()
       expect(await screen.findByRole('button', { name: /Subir plan/ })).toHaveTextContent('PDF del nutricionista')
       await userEvent.upload(screen.getByLabelText('PDF del plan'), pdf())
       expect(await screen.findByRole('dialog', { name: 'Platos identificados' })).toBeInTheDocument()
@@ -260,6 +172,7 @@ describe('la pantalla Plan', () => {
         portapapeles(vi.fn().mockResolvedValue(TEXTO))
         importPlanText.mockResolvedValue(LECTURA)
         render(<PlanPantalla hoy={HOY} inicial="viene" />)
+        await abrirPauta()
         await userEvent.click(await screen.findByRole('button', { name: /Pegar plan/ }))
         expect(await screen.findByRole('dialog', { name: 'Platos identificados' })).toBeInTheDocument()
         expect(importPlanText).toHaveBeenCalledWith(TEXTO)
@@ -269,6 +182,7 @@ describe('la pantalla Plan', () => {
         portapapeles(vi.fn().mockRejectedValue(new Error('NotAllowedError')))
         importPlanText.mockResolvedValue(LECTURA)
         render(<PlanPantalla hoy={HOY} inicial="viene" />)
+        await abrirPauta()
         await userEvent.click(await screen.findByRole('button', { name: /Pegar plan/ }))
         const cuadro = await screen.findByRole('textbox', { name: 'Plan en texto' })
         expect(screen.getByRole('button', { name: 'Leer' })).toBeDisabled()
@@ -283,6 +197,7 @@ describe('la pantalla Plan', () => {
         portapapeles(vi.fn().mockResolvedValue('hola'))
         importPlanText.mockResolvedValue({ dishes: [], week: [], refusal: 'unreadable' })
         render(<PlanPantalla hoy={HOY} inicial="viene" />)
+        await abrirPauta()
         await userEvent.click(await screen.findByRole('button', { name: /Pegar plan/ }))
         expect(
           await screen.findByText('Eso no parece un plan. Pega la respuesta entera de Claude.'),
@@ -294,6 +209,7 @@ describe('la pantalla Plan', () => {
     it('si no se puede leer lo dice, y no abre nada', async () => {
       importPlan.mockResolvedValue({ dishes: [], week: [], refusal: 'unreadable' })
       render(<PlanPantalla hoy={HOY} inicial="viene" />)
+      await abrirPauta()
       await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
       expect(await screen.findByText('No se ha podido leer el plan. Prueba otra vez.')).toBeInTheDocument()
       expect(screen.queryByRole('dialog', { name: 'Platos identificados' })).not.toBeInTheDocument()
@@ -302,6 +218,7 @@ describe('la pantalla Plan', () => {
     it('sin cuota en el día lo dice distinto', async () => {
       importPlan.mockResolvedValue({ dishes: [], week: [], refusal: 'quota', quota_scope: 'day' })
       render(<PlanPantalla hoy={HOY} inicial="viene" />)
+      await abrirPauta()
       await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
       expect(await screen.findByText('Se ha gastado la lectura de hoy. Prueba mañana.')).toBeInTheDocument()
     })
@@ -311,6 +228,7 @@ describe('la pantalla Plan', () => {
       saveImportedPlan.mockResolvedValue({ pauta_id: 1 })
       getPlan.mockImplementation(async (week) => plan(week, 'Pollo con arroz'))
       render(<PlanPantalla hoy={HOY} inicial="viene" />)
+      await abrirPauta()
       await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
       await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
       await waitFor(() => expect(saveImportedPlan).toHaveBeenCalled())
@@ -338,11 +256,12 @@ describe('la pantalla Plan', () => {
         return generada ? plan(VIENE, 'Merluza') : null
       })
       render(<PlanPantalla hoy={HOY} inicial="viene" />)
+      await abrirPauta()
       await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
       await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
       await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(VIENE, null))
       expect(generatePlan).not.toHaveBeenCalledWith(ESTA, null)
-      await userEvent.click(await screen.findByRole('button', { name: /Lista de la compra/ }))
+      await userEvent.click(await screen.findByRole('button', { name: /Preparar la compra/ }))
       expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
       expect(getShoppingList).toHaveBeenCalledWith(VIENE)
     })
@@ -354,6 +273,7 @@ describe('la pantalla Plan', () => {
         week === ESTA ? plan(ESTA, 'Pollo con arroz', { status: 'done' }) : null,
       )
       render(<PlanPantalla hoy={HOY} inicial="viene" />)
+      await abrirPauta()
       await userEvent.upload(await screen.findByLabelText('PDF del plan'), pdf())
       await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
       expect(

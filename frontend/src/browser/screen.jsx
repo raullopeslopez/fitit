@@ -466,7 +466,7 @@ export async function mountPlan({ routes = [] } = {}) {
   const view = await mountApp({ routes })
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: /^Semana$/ }, { timeout: 5000 }))
-  await vi.waitFor(() => expect(document.querySelector('.semana-dia')).not.toBeNull(), {
+  await vi.waitFor(() => expect(document.querySelector('.semana-rejilla-fila')).not.toBeNull(), {
     timeout: 5000,
   })
   await settle()

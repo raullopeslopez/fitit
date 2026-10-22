@@ -323,25 +323,17 @@ describe('Perfil', () => {
     expect(await screen.findByRole('dialog', { name: 'Tu objetivo' })).toBeInTheDocument()
   })
 
-  it('«Tus reglas» abre las reglas, y se cierran', async () => {
-    renderPerfil()
-
-    const fila_ = await fila('Tus reglas')
-    expect(fila_).toHaveTextContent('Ver')
-    await userEvent.click(fila_)
-
-    expect(await screen.findByRole('dialog', { name: 'Tus reglas' })).toBeInTheDocument()
-  })
-
   // Reorganización del 17 oct: lo tuyo de comer —platos, sitios y reglas— vive
   // junto, en Perfil, en vez de repartido entre Plan, Perfil y Comida.
-  it('«Tu comida» junta tus platos, tus sitios y tus reglas', async () => {
+  // Comida simple: las reglas salen de la vista (siguen en el planificador).
+  it('«Tu comida» junta tus platos y tus sitios, sin reglas', async () => {
     renderPerfil()
 
     const seccion = (await screen.findByRole('heading', { name: 'Tu comida' })).closest('section')
-    for (const nombre of ['Tus platos', 'Tus sitios', 'Tus reglas']) {
+    for (const nombre of ['Tus platos', 'Tus sitios']) {
       expect(within(seccion).getByRole('button', { name: new RegExp(nombre) })).toBeInTheDocument()
     }
+    expect(within(seccion).queryByRole('button', { name: /Tus reglas/ })).not.toBeInTheDocument()
   })
 
   it('«Tus platos» abre tus platos', async () => {

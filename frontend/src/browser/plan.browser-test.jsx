@@ -87,31 +87,38 @@ describe('Plan en Marcador', () => {
     }
   })
 
-  it('los días son filas, no cajas: separadas por una raya', async () => {
+  // Comida simple: la semana es una cuadrícula; cada día, un objetivo de dedo.
+  it('la cuadrícula cabe en el móvil, y cada día se toca', async () => {
     await mountPlan({ routes: conPlan() })
-    const filas = [...document.querySelectorAll('.semana-dia')]
-    expect(filas).toHaveLength(7)
-    for (const fila of filas) {
-      expect(sinFondo(fila)).toBe(true)
-      expect(parseFloat(getComputedStyle(fila.closest('.plan-dia')).borderTopWidth)).toBeGreaterThanOrEqual(1)
+    const dias = [...document.querySelectorAll('.semana-rejilla-dia')]
+    expect(dias).toHaveLength(7)
+    for (const dia of dias) {
+      const box = dia.getBoundingClientRect()
+      expect(box.height, dia.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
     }
-    expect(sinFondo(document.querySelector('.plan-dia.is-today'))).toBe(true)
+    for (const casilla of document.querySelectorAll('.semana-rejilla .semana-casilla')) {
+      expect(casilla.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth)
+    }
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   })
 
-  it('«Cómo va la semana» es un aviso en oro bajo una raya, no una tarjeta', async () => {
+  it('la compra es una banda a sangre, y «Preparar» es su acción', async () => {
     await mountPlan({ routes: conPlan() })
-    const aviso = await vi.waitFor(() => {
-      const el = document.querySelector('.plan-adherencia.is-tonal')
+    const banda = await vi.waitFor(() => {
+      const el = document.querySelector('.semana-compra')
       expect(el).not.toBeNull()
       return el
     })
     for (const theme of ['light', 'dark']) {
       forceTheme(theme)
       await settle()
-      expect(sinFondo(aviso), theme).toBe(true)
-      expect(parseFloat(getComputedStyle(aviso).borderTopWidth), theme).toBeGreaterThanOrEqual(1)
-      const sello = aviso.querySelector('.card-eyebrow')
-      expect(rgb(parseColor(getComputedStyle(sello).color)), theme).toEqual(rgb(token('--pr')))
+      await new Promise((r) => setTimeout(r, 250))
+      expect(rgb(bg(banda)), theme).toEqual(rgb(token('--surface')))
+      const caja = banda.getBoundingClientRect()
+      expect(Math.round(caja.width), theme).toBe(window.innerWidth)
+      const ir = banda.querySelector('.semana-compra-ir')
+      expect(rgb(bg(ir)), theme).toEqual(rgb(token('--accent')))
+      expect(ir.getBoundingClientRect().height).toBeGreaterThanOrEqual(44)
     }
   })
 })

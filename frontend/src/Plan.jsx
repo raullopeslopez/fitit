@@ -124,7 +124,7 @@ const EN_PLURAL = {
   snack: 'snacks',
 }
 
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+export const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const LETRAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
 // Con su artículo: la frase de lo que queda es prosa, no una lista de códigos.
@@ -171,7 +171,7 @@ export function lunesSiguiente(iso) {
   return new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10)
 }
 
-function diasDe(weekStart) {
+export function diasDe(weekStart) {
   const [y, m, d] = weekStart.split('-').map(Number)
   return Array.from({ length: 7 }, (_, i) => {
     const fecha = new Date(Date.UTC(y, m - 1, d + i))
@@ -179,7 +179,7 @@ function diasDe(weekStart) {
   })
 }
 
-function delDia(plan, iso) {
+export function delDia(plan, iso) {
   // `Array.isArray` y no `?? []`: si lo que llega es una lista, `plan.entries`
   // es el iterador de `Array.prototype` —una función— y el `??` lo da por
   // bueno. Un cuerpo con otra forma de la esperada tiene que leerse como «no
@@ -278,7 +278,7 @@ function Desvios({ desvios, dia }) {
 // Una fila de la semana: la comida, el plato y lo que suma, y cómo quedó. En la
 // semana no se confirma —eso se hace en el diario, con la comida delante—; un
 // plato que todavía no ha llegado se toca para cambiarlo.
-function Fila({ entrada, onAbrir = null, siguiente = false }) {
+export function Fila({ entrada, onAbrir = null, siguiente = false }) {
   const hecho = entrada.status === 'done'
   const saltado = entrada.status === 'skipped' || entrada.status === 'swapped'
   return (
@@ -1000,13 +1000,13 @@ function SinComida({ platos, onPlatos }) {
 // Cambiar un plato de un día que no ha llegado. **No es «Lo cambié»**: aquel es
 // «hoy comí otra cosa» y escribe el diario; esto cambia lo que el plan dice que
 // vas a comer, y la fila sigue por confirmar (`replanEntry`).
-function CambiarPlato({
+export function CambiarPlato({
   entrada,
   dia,
   platos,
   hoy,
-  replanear,
-  corregirPlato,
+  replanear = replanEntry,
+  corregirPlato = correctDish,
   leerSitios = leerTusSitios,
   proponer = generateDishes,
   noAqui = notHere,
