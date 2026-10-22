@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.45.0: Comida simple.** (#358–#364) Hoy dice lo que toca ahora y los siete días cuidados;
+  «Otra cosa» trae lo que sueles comer en esa comida y apunta una frase escrita; Semana es una
+  cuadrícula con la compra en banda; cambiar un plato es elegir de los tuyos o probar uno nuevo; la
+  compra sólo pregunta qué tienes ya y se manda a Taski. Fuera la Semana vieja de Plan.
 - **APK 0.44.0: el movimiento del lienzo, completo.** (#356) Comido de previsto a hecho con las cifras
   rodando, mantener pulsado ± repite, Entreno hunde la barra al entrar y se encoge al salir, la fila
   borrada se va a la izquierda y Deshacer la devuelve, puntos oro de las series sin conexión y
