@@ -257,8 +257,16 @@ export function searchFoods(q = '') {
 // cantidad y la comida a la que suele ir. Las kcal que trae son la previsión de
 // lo que se registraría al tocarlo, no una cifra congelada — quien congela es
 // `logFood`, al escribir.
-export function frequentFoods(limit = 6) {
-  return apiFetch(`/foods/frequent?limit=${limit}`)
+// Con `slot`, lo que sueles comer en esa comida, con la cantidad de esa
+// comida (comida simple, «Otra cosa»).
+export function frequentFoods(limit = 6, slot = null) {
+  return apiFetch(`/foods/frequent?limit=${limit}${slot ? `&slot=${slot}` : ''}`)
+}
+
+// Un alimento entero, con sus porciones: lo que la hoja de cantidad necesita
+// cuando se llega desde un frecuente y no desde la búsqueda.
+export function getFood(foodId) {
+  return apiFetch(`/foods/${foodId}`)
 }
 
 // Las cantidades que repites para un alimento, la más repetida primero: lo que

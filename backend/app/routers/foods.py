@@ -9,6 +9,7 @@ Search reads both; writes only ever touch yours.
 import logging
 from datetime import date, timedelta
 from time import perf_counter
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
@@ -608,6 +609,10 @@ FREQUENT_SCAN = 400
 @router.get("/frequent", response_model=list[FrequentFoodOut])
 async def frequent_foods(
     limit: int = Query(default=6, ge=1, le=12),
+    # Comida simple, «Otra cosa»: lo que sueles comer *en esa comida*. Con
+    # ella, el recuento y la cantidad salen sólo de lo apuntado ahí: la leche
+    # de la cena no es la del desayuno.
+    slot: Literal["desayuno", "comida", "cena", "snack"] | None = Query(default=None),
     user_id: int = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[FrequentFoodOut]:
@@ -626,7 +631,11 @@ async def frequent_foods(
         (
             await session.execute(
                 select(LogEntry)
-                .where(LogEntry.user_id == user_id, LogEntry.log_date >= since)
+                .where(
+                    LogEntry.user_id == user_id,
+                    LogEntry.log_date >= since,
+                    *([LogEntry.meal_slot == slot] if slot else []),
+                )
                 .order_by(LogEntry.logged_at.desc(), LogEntry.id.desc())
                 .limit(FREQUENT_SCAN)
             )

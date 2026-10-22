@@ -13,11 +13,11 @@ import {
   getCaredDays,
   getPlan,
   frequentFoods,
+  getFood,
   listDishes,
   getFoodDay,
   logDish,
   logFood,
-  logVoice,
   readLabel,
   recomputeFoodDay,
   scanBarcode,
@@ -25,8 +25,6 @@ import {
   usualAmounts,
   weighLeftoverBone,
 } from './api.js'
-import { DishChips, NewDish } from './Dish.jsx'
-import Fuera from './Fuera.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
 import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
@@ -497,6 +495,7 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           }
           block={labelBlock}
           onBlocked={setLabelBlock}
+          previsto={isToday && adding.slot ? (planHoy[adding.slot]?.dish_name ?? null) : null}
           onDone={afterWrite}
           // Rehacer el día desde la corrección reescribe entradas que ya están
           // pintadas, y no cierra la pantalla: estabas registrando algo cuando
@@ -1242,6 +1241,18 @@ function MicIcon() {
   )
 }
 
+function CameraIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+      <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z" />
+      <circle cx="12" cy="12.5" r="3.5" />
+    </svg>
+  )
+}
+
+// «Lo que sueles cenar»: el verbo de cada comida.
+const VERBO = { desayuno: 'desayunar', comida: 'comer', cena: 'cenar', snack: 'tomar de snack' }
+
 // La cantidad de una entrada. Pesada con hueso, las dos cifras: lo que pesaste
 // y lo que se come, que es de donde salen sus números.
 export function entryAmount(entry) {
@@ -1339,11 +1350,29 @@ function AddFood({
   onVoice = null,
   block = null,
   onBlocked = () => {},
+  // Comida simple: el plato del plan al que esto sustituye («en vez de …»).
+  previsto = null,
   onDone,
   onDayChanged,
   onCancel,
 }) {
   const [slot, setSlot] = useState(slotInicial)
+  // Lo que sueles comer en esta comida, con la cantidad de esta comida. Sin
+  // comida elegida, el repertorio de siempre.
+  const [deEsta, setDeEsta] = useState(null)
+  useEffect(() => {
+    if (!slot || !isToday) {
+      setDeEsta(null)
+      return undefined
+    }
+    let vivo = true
+    frequentFoods(6, slot)
+      .then((items) => vivo && setDeEsta(items ?? []))
+      .catch(() => vivo && setDeEsta(null))
+    return () => {
+      vivo = false
+    }
+  }, [slot, isToday])
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
@@ -1353,9 +1382,6 @@ function AddFood({
   const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState(null)
   const [creating, setCreating] = useState(false)
-  // «Comí fuera» abierto desde aquí (Marcador): lo mismo que dentro del plan,
-  // pero sin entrada del plan que responder.
-  const [fuera, setFuera] = useState(false)
   // Lo que devolvió la foto. Es una **propuesta** para el formulario, no un
   // alimento: sigue haciendo falta que alguien mire lo que hay escrito y le dé
   // a guardar, igual que si lo hubiera tecleado entero.
@@ -1369,10 +1395,6 @@ function AddFood({
   const [reading, setReading] = useState(null)
   // El frecuente que se está registrando, para apagar la fila mientras viaja.
   const [quick, setQuick] = useState(null)
-  // Si estás dando de alta un plato. Ocupa la pantalla entera: un plato tiene
-  // nombre, raciones, cómo se pesa y una lista de ingredientes, y eso no cabe
-  // en el hueco de un formulario de alimento.
-  const [newDish, setNewDish] = useState(false)
   // El peldaño de en medio: el código se leyó, no lo conoce nadie, y hace falta
   // una segunda foto — de la tabla, que suele estar en otra cara del envase.
   // Lleva el motivo dentro porque «no está en ninguna base» y «no he podido
@@ -1616,21 +1638,7 @@ function AddFood({
   // alimento: nombre, raciones, cómo se pesa y una lista de ingredientes no
   // caben en un hueco. Al guardar, el plato se registra en la comida por la
   // que entraste — que es a lo que habías venido.
-  if (newDish) {
-    return (
-      <NewDish
-        slot={slot}
-        onCreated={async () => {
-          setNewDish(false)
-          // Los dos: el día, porque puede haber cambiado, y la lista de platos,
-          // para que el recién creado esté ya entre los chips al volver.
-          await onDishesChanged()
-          await onDone()
-        }}
-        onCancel={() => setNewDish(false)}
-      />
-    )
-  }
+
 
   if (creating) {
     return (
@@ -1689,7 +1697,31 @@ function AddFood({
   // cualquier otra escritura. Lo que queda es una decisión de producto: si los
   // frecuentes deben aparecer también al rellenar un día pasado. Se mantiene
   // fuera hasta que se decida, no porque registraría mal.
-  const frecuentes = isToday ? siempre : []
+  const frecuentes = isToday ? (deEsta ?? siempre) : []
+  // Tus platos de esta comida: los que dicen que van en ella, o en cualquiera.
+  const platosDeEsta = isToday
+    ? platos.filter((d) => d.kind !== 'fuera' && (!slot || !d.slots?.length || d.slots.includes(slot)))
+    : []
+
+  // Un frecuente con otra cantidad: la hoja de cantidad necesita el alimento
+  // entero (porciones, nutrientes), que el frecuente no trae.
+  async function cambiarCantidad(item) {
+    try {
+      setChosen(await getFood(item.food_id))
+    } catch {
+      // Sin el alimento no hay hoja: el toque se queda en nada, sin romper.
+    }
+  }
+
+  async function apuntarPlato(dish) {
+    setQuick(`plato-${dish.id}`)
+    try {
+      await logDish(dish.id, { servings: 1, meal_slot: slot })
+      await onDone()
+    } finally {
+      setQuick(null)
+    }
+  }
 
   return (
     <div
@@ -1702,8 +1734,10 @@ function AddFood({
           así que la cabecera lo afirma en vez de preguntarlo. */}
       <header className="food-screen-head">
         <p className="food-screen-title">
-          <span className="card-eyebrow">Añadir a</span>
-          <span className="food-screen-slot">{destino}</span>
+          <span className="food-screen-slot">{slot ? `${destino} · otra cosa` : 'Algo más'}</span>
+          {previsto && slot === slotInicial && (
+            <span className="food-screen-envez">en vez de {previsto}</span>
+          )}
         </p>
         <button type="button" className="link-btn" onClick={onCancel}>
           Cancelar
@@ -1756,7 +1790,27 @@ function AddFood({
               <MicIcon />
             </button>
           )}
+          {/* La cámara, dentro del buscador (comida simple): un disparador que
+              escala solo del código a la etiqueta. Cuando no puede, el aviso va
+              debajo, con la salida que queda. */}
+          {labelReading && !block && (
+            <Obturador
+              id="food-photo"
+              className={`food-search-camara${reading ? ' is-busy' : ''}`}
+              name="Abrir la cámara"
+              busy={Boolean(reading)}
+              disabled={Boolean(reading)}
+              onShoot={openCamera}
+            >
+              <CameraIcon />
+            </Obturador>
+          )}
         </div>
+        {reading && (
+          <p className="hint food-search-note">
+            <Disparador leyendo>Leyendo…</Disparador>
+          </p>
+        )}
 
         {(results.length > 0 || term) && (
           <div className="card food-results-card">
@@ -1818,114 +1872,78 @@ function AddFood({
           </div>
         )}
 
-        {/* Los frecuentes, con la cantidad de siempre dentro del propio chip: un
-            toque registra eso, sin pasar por «cuánto». */}
+        {/* Lo que sueles comer en esta comida, una fila cada uno: el «+» lo
+            apunta con tu cantidad, y la cantidad se toca para cambiarla. */}
         {frecuentes.length > 0 && (
-          <section className="food-frequent">
-            <p className="add-siempre-head">
-              <span className="card-eyebrow">
-                {slot ? `Lo de siempre en ${destino.toLowerCase()}` : 'Lo de siempre'}
-              </span>
-              <span className="add-siempre-nota">un toque lo apunta</span>
-            </p>
-            <div className="food-frequent-chips">
+          <section className="add-lista">
+            <h3 className="add-lista-head" id="add-sueles">
+              {slot ? `Lo que sueles ${VERBO[slot] ?? 'comer'}` : 'Lo de siempre'}
+            </h3>
+            <ul className="add-filas" aria-labelledby="add-sueles">
               {frecuentes.map((item) => (
-                <button
-                  type="button"
-                  key={item.food_id}
-                  className="chip food-frequent-chip"
-                  disabled={quick !== null}
-                  onClick={() => quickAdd(item)}
-                >
-                  <span className="food-frequent-name">{item.name}</span>
-                  <span className="food-frequent-grams">
+                <li key={item.food_id} className="add-fila">
+                  <span className="add-fila-nombre">{item.name}</span>
+                  <button
+                    type="button"
+                    className="add-fila-cantidad"
+                    aria-label={`Cambiar cantidad de ${item.name}`}
+                    onClick={() => cambiarCantidad(item)}
+                  >
                     {item.measure ? measureLabel(item.measure, item.measure_count) : formatAmount(item.grams)}
-                  </span>
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    className="add-fila-mas"
+                    aria-label={`Apuntar ${item.name}`}
+                    disabled={quick !== null}
+                    onClick={() => quickAdd(item)}
+                  >
+                    +
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
         )}
 
-        {/* Tus platos, al lado de los frecuentes porque son el mismo gesto: un
-            chip que registra de un toque. Gateados en `isToday` por lo mismo
-            que los frecuentes — el registro va al reloj de ahora, y ofrecer en
-            un día pasado un atajo que escribe en hoy es ofrecer un error. */}
-        <DishChips dishes={isToday ? platos : []} slot={slot} onLogged={onDone} />
-
-        {/* Dar de alta un plato es raro —una vez por plato, no una vez por
-            comida— y DESIGN.md manda las acciones raras a un control sin peso
-            de contenido. Una línea, no un botón de relleno.
-
-            Y se llama «Nuevo plato», no «Crear un plato»: en esta misma
-            pantalla vive «Crear «piquillos»», que da de alta un **alimento**.
-            Dos controles adyacentes empezando por la misma palabra se leen como
-            variantes de lo mismo — y son dos objetos distintos. El nombre
-            coincide además con la cabecera de la pantalla que abre, así que el
-            destino confirma lo que prometía el control. */}
-        {/* Comí fuera, al lado de las altas: cuentas qué comiste y lo revisas
-            antes de que entre. Las cifras son estimadas y así se guardan. */}
-        {/* Sólo hoy, como los frecuentes: un sitio guardado se apunta ahora. */}
-        {isToday && (
-          <button type="button" className="add-fuera" onClick={() => setFuera(true)}>
-            Comí fuera
-          </button>
+        {platosDeEsta.length > 0 && (
+          <section className="add-lista">
+            <h3 className="add-lista-head" id="add-platos">
+              {slot ? `Tus platos de ${destino.toLowerCase()}` : 'Tus platos'}
+            </h3>
+            <ul className="add-filas" aria-labelledby="add-platos">
+              {platosDeEsta.map((dish) => (
+                <li key={dish.id} className="add-fila">
+                  <span className="add-fila-nombre">{dish.name}</span>
+                  <span className="add-fila-cantidad is-fija">1 ración</span>
+                  <button
+                    type="button"
+                    className="add-fila-mas"
+                    aria-label={`Apuntar ${dish.name}`}
+                    disabled={quick !== null}
+                    onClick={() => apuntarPlato(dish)}
+                  >
+                    +
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
-        <div className="add-altas">
-          <button type="button" className="dish-new" onClick={() => setNewDish(true)}>
-            Nuevo plato
-          </button>
-          {/* Lo que no tiene envase ni está en el catálogo, tecleado. */}
-          <button type="button" className="add-alta" onClick={() => setCreating(true)}>
-            Alta a mano
-          </button>
-        </div>
-
-        {/* «Proponme platos» ya no vive aquí: pedir una tanda de platos es
-            planificar, no apuntar lo que comes, y su casa es «Tus platos»
-            (Planificar la semana que viene). «Nuevo plato» sí se queda: desde
-            aquí crea el plato **y lo registra** en esta comida. */}
-
-        {/* Una cámara, no dos.
-            Antes había que elegir entre «Código de barras» y «Etiqueta»: dos
-            implementaciones de una sola intención, y la elección la tenías que
-            hacer tú sin saber cuál iba a funcionar. Ahora hay un disparador y el
-            sistema escala solo, del camino gratis al caro, y lo cuenta después.
-
-            Cambia de forma según lo que la impida: apagada con su cuenta cuando
-            sólo hay que esperar, retirada cuando esperar no arregla nada. */}
-        <Camara
-          available={labelReading}
-          block={block}
-          busy={Boolean(reading)}
-          onShoot={openCamera}
-          onType={() => setCreating(true)}
-          onExpired={() => onBlocked(null)}
-        />
-
-        <p className="hint food-screen-foot">
-          Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.
-        </p>
+        {/* La cámara cuando no puede: el aviso y la salida que queda. Lo
+            normal —poder— ya está dentro del buscador. */}
+        {block && (
+          <Camara
+            available={labelReading}
+            block={block}
+            busy={Boolean(reading)}
+            onShoot={openCamera}
+            onType={() => setCreating(true)}
+            onExpired={() => onBlocked(null)}
+          />
+        )}
       </div>
-
-      {fuera && (
-        <Fuera
-          guardar={(items) =>
-            logVoice({
-              entries: items.map((i) => ({ food_id: i.food_id, grams: i.grams, estimated: true })),
-              mealSlot: slot,
-              loggedAt: momentForDay(dayIso),
-            })
-          }
-          guardarSitio={(dishId) => logDish(dishId, { meal_slot: slot })}
-          onGuardado={async () => {
-            setFuera(false)
-            await onDone()
-          }}
-          onClose={() => setFuera(false)}
-        />
-      )}
 
       {/* El detalle es una **hoja** sobre esta pantalla, no otra pantalla.
           Es corto —una cantidad, un destino— y edita algo concreto, así que la

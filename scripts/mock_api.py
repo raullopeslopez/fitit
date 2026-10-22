@@ -108,7 +108,7 @@ AISLES = [{"name": f"Pasillo {p}", "items": [
 def dia_comida(iso):
     return {"date": iso, "entries": [], "totals": {"kcal": 1450, "protein": 98, "fat": 50,
             "carbs": 140, "fiber": 20}, "target_kcal": 2150, "target_protein": 160,
-            "remaining_protein": 62, "unknown": {}}
+            "remaining_protein": 62, "unknown": {}, "label_reading": True}
 
 
 SITIOS = [
@@ -170,6 +170,13 @@ class H(BaseHTTPRequestHandler):
             # Días cuidados (Hoy → los siete puntos): cuatro de los seis anteriores.
             dias = [(HOY - timedelta(days=k)).isoformat() for k in (1, 2, 4, 5)]
             return self._send(200, {"days": dias})
+        if ruta == "/foods/frequent":
+            # «Otra cosa»: lo que sueles comer, con tu cantidad.
+            filas = [("Mozzarella", 67), ("Leche sin lactosa semidesnatada", 400),
+                     ("Queso cottage", 90), ("Tortillas", 135), ("Aguacate", 75)]
+            return self._send(200, [{"food_id": 100 + i, "name": n, "brand": None, "grams": g,
+                                     "kcal": None, "meal_slot": "cena", "times": 3, "with_bone": False,
+                                     "measure": None, "measure_count": None} for i, (n, g) in enumerate(filas)])
         if ruta == "/food-log":
             return self._send(200, dia_comida(query.removeprefix("date=")))
         if m := re.fullmatch(r"/plans/(\d{4}-\d\d-\d\d)/shopping", ruta):

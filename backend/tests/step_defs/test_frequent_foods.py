@@ -45,6 +45,35 @@ def given_logged_slots(client, name):
     _log(client, food, 125, meal_slot="cena")
 
 
+@given(parsers.parse('I have logged "{name}" twice at dinner'))
+def given_twice_dinner(client, name):
+    food = _food(client, name)
+    for _ in range(2):
+        _log(client, food, 67, meal_slot="cena")
+
+
+@given(parsers.parse('I have logged "{name}" three times at breakfast'))
+def given_thrice_breakfast(client, name):
+    food = _food(client, name)
+    for _ in range(3):
+        _log(client, food, 50, meal_slot="desayuno")
+
+
+@given(parsers.parse('I have logged "{name}" at {a:g} g for breakfast twice and at {b:g} g for dinner once'))
+def given_amounts_by_meal(client, name, a, b):
+    food = _food(client, name)
+    _log(client, food, a, meal_slot="desayuno")
+    _log(client, food, a, meal_slot="desayuno")
+    _log(client, food, b, meal_slot="cena")
+
+
+@when("I ask for what I usually eat at dinner", target_fixture="frequent")
+def when_ask_dinner(client):
+    resp = client.get("/foods/frequent?slot=cena")
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
 @when("I ask for what I always eat", target_fixture="frequent")
 def when_ask(client):
     resp = client.get("/foods/frequent")
@@ -73,6 +102,16 @@ def then_offers(frequent, name, grams):
 def then_slot(frequent, name, slot):
     spanish = {"breakfast": "desayuno", "lunch": "comida", "dinner": "cena"}
     assert _find(frequent, name)["meal_slot"] == spanish[slot]
+
+
+@then(parsers.parse('"{name}" is in the list'))
+def then_in(frequent, name):
+    _find(frequent, name)
+
+
+@then(parsers.parse('"{name}" is not in the list'))
+def then_not_in(frequent, name):
+    assert name not in [row["name"] for row in frequent]
 
 
 @then("the list is empty")

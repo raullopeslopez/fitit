@@ -23,3 +23,15 @@ Feature: What I always eat
   Scenario: A fresh account has no repertoire, and says so with an empty list
     When I ask for what I always eat
     Then the list is empty
+
+  Scenario: Asked for one meal, only what I eat at that meal
+    Given I have logged "Mozzarella" twice at dinner
+    And I have logged "Avena" three times at breakfast
+    When I ask for what I usually eat at dinner
+    Then "Mozzarella" is in the list
+    And "Avena" is not in the list
+
+  Scenario: The amount offered for a meal is the one I use at that meal
+    Given I have logged "Leche" at 250 g for breakfast twice and at 400 g for dinner once
+    When I ask for what I usually eat at dinner
+    Then "Leche" offers 400 g

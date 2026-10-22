@@ -170,7 +170,8 @@ describe('Comida', () => {
     expect(document.activeElement).toBe(field)
   })
 
-  it('los frecuentes son chips que se tocan, y no desbordan la pantalla', async () => {
+  // Comida simple: los frecuentes son filas (nombre, cantidad, «+»).
+  it('los frecuentes son filas que se tocan, y no desbordan la pantalla', async () => {
     // Se mudaron de Comida a Añadir: la pregunta «¿qué registro?» sólo te la
     // haces cuando ya has decidido registrar algo. Y de tira horizontal pasaron
     // a chips que envuelven, porque aquí no compiten con el objetivo del día —
@@ -179,16 +180,19 @@ describe('Comida', () => {
     await mountComida()
     await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
     await settle()
-    const chips = [...document.querySelectorAll('.food-frequent-chip')]
-    expect(chips.length, 'los frecuentes no se están pintando').toBeGreaterThanOrEqual(4)
-    for (const chip of chips) {
-      chip.scrollIntoView({ block: 'center' })
+    const filas = [...document.querySelectorAll('.add-fila')]
+    expect(filas.length, 'los frecuentes no se están pintando').toBeGreaterThanOrEqual(4)
+    for (const fila of filas) {
+      fila.scrollIntoView({ block: 'center' })
       await settle()
-      const rect = paintedRect(chip)
       // Objetivo de dedo, como todo lo que se pulsa en esta app. Los nombres de
-      // CIQUAL son largos: el chip crece hacia abajo, no hacia fuera.
-      expect(rect.height, chip.textContent).toBeGreaterThanOrEqual(44)
-      expect(rect.right, chip.textContent).toBeLessThanOrEqual(window.innerWidth + 0.5)
+      // CIQUAL son largos: la fila crece hacia abajo, no hacia fuera.
+      for (const boton of fila.querySelectorAll('button')) {
+        const rect = paintedRect(boton)
+        expect(rect.height, boton.getAttribute('aria-label')).toBeGreaterThanOrEqual(36)
+        expect(rect.right, boton.getAttribute('aria-label')).toBeLessThanOrEqual(window.innerWidth + 0.5)
+      }
+      expect(paintedRect(fila.querySelector('.add-fila-mas')).height).toBeGreaterThanOrEqual(44)
     }
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   })
@@ -450,22 +454,25 @@ describe('Comida', () => {
       )
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
 
-      // Y al fondo del recorrido se llega a la cámara, que es lo último.
+      // La cámara va dentro del buscador (comida simple): con el teclado
+      // subido sigue a la vista, a su lado.
+      const shoot = paintedRect(document.querySelector('.food-search-camara'))
+      expect(shoot.top).toBeGreaterThanOrEqual(0)
+      expect(shoot.bottom).toBeLessThanOrEqual(window.innerHeight)
+      expect(shoot.height).toBeGreaterThanOrEqual(44)
+      // Y al fondo del recorrido se llega a lo último de la columna.
       body.scrollTop = body.scrollHeight
       await settle()
-      const shoot = paintedRect(document.querySelector('.food-camera-shoot'))
-      expect(shoot.bottom, 'la cámara no se alcanza con el teclado subido').toBeLessThanOrEqual(
-        window.innerHeight + 0.5,
-      )
-      expect(shoot.top).toBeGreaterThanOrEqual(0)
-      expect(shoot.height).toBeGreaterThanOrEqual(44)
+      const ultimo = paintedRect(body.lastElementChild)
+      expect(ultimo.top, 'lo último no se alcanza con el teclado subido').toBeLessThanOrEqual(window.innerHeight)
       await user.click(screen.getByRole('button', { name: 'Cancelar' }))
     })
 
-    it('la cámara es una, se toca y cabe', async () => {
+    it('la cámara es una, va en el buscador, se toca y cabe', async () => {
       await abrirBuscando()
-      const shoot = document.querySelector('.food-camera-shoot')
-      expect(document.querySelectorAll('.food-camera-shoot')).toHaveLength(1)
+      const shoot = document.querySelector('.food-search-camara')
+      expect(document.querySelectorAll('.food-search-camara, .food-camera-shoot')).toHaveLength(1)
+      expect(document.querySelector('.food-search-field').contains(shoot)).toBe(true)
       const box = paintedRect(shoot)
       // 44px es el suelo de DESIGN.md para todo lo que se toca.
       expect(box.height).toBeGreaterThanOrEqual(44)
@@ -481,8 +488,7 @@ describe('Comida', () => {
       // como «o haces una foto, o lo tecleas», que es justo la elección de
       // tecnología que este rediseño quita de en medio.
       expect(document.querySelector('.food-results-card').contains(crear)).toBe(true)
-      const camara = document.querySelector('.food-camera-card')
-      expect(paintedRect(crear).bottom).toBeLessThanOrEqual(paintedRect(camara).top)
+      expect(document.querySelector('.food-search-field').contains(crear)).toBe(false)
     })
 
     it('la pantalla tapa la barra de pestañas, y no al revés', async () => {
@@ -523,13 +529,14 @@ describe('Comida', () => {
           new File([new Uint8Array([255, 216, 255])], 'e.jpg', { type: 'image/jpeg' }),
         )
         await settle()
-        const shoot = document.querySelector('.food-camera-shoot')
+        const shoot = document.querySelector('.food-search-camara')
         // Apagado quiere decir apagado, no sólo `disabled` en un input que no
         // se ve: menos tinta, y el cursor deja de prometer que se puede pulsar.
         expect(Number(getComputedStyle(shoot).opacity)).toBeLessThan(1)
         expect(getComputedStyle(shoot).cursor).toBe('default')
-        // El punto que late es el mismo de una serie encolada, no uno nuevo.
-        expect(shoot.querySelector('.pending-dot')).not.toBeNull()
+        // El punto que late es el mismo de una serie encolada, no uno nuevo; va
+        // en la línea «Leyendo…» bajo el buscador.
+        expect(document.querySelector('.food-search-note .pending-dot')).not.toBeNull()
       } finally {
         window.fetch = real
       }

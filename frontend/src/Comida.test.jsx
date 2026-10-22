@@ -1434,18 +1434,8 @@ describe('Comida', () => {
       expect(pantalla.contains(panel)).toBe(true)
       // Y la cabecera afirma el destino: has entrado por Snack, y arriba, en
       // «A qué comida», Snack ya va elegido (se cambia sin salir).
-      expect(within(pantalla).getByText('Añadir a')).toBeInTheDocument()
-      expect(within(pantalla).getByText('Snack', { selector: '.food-screen-slot' })).toBeInTheDocument()
+      expect(within(pantalla).getByText('Snack · otra cosa', { selector: '.food-screen-slot' })).toBeInTheDocument()
       expect(within(pantalla).getByRole('button', { name: 'Destino: Snack' })).toHaveAttribute('aria-pressed', 'true')
-    })
-
-    it('«Comí fuera» abre el relato de lo que comiste, desde la propia pantalla', async () => {
-      api.searchFoods.mockResolvedValue([])
-      api.listDishes.mockResolvedValue([])
-      render(<Comida abiertas />)
-      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a cena' }))
-      await userEvent.click(await screen.findByRole('button', { name: 'Comí fuera' }))
-      expect(await screen.findByText('¿Qué comiste?')).toBeInTheDocument()
     })
 
     it('cambiar de comida arriba cambia el destino sin salir', async () => {
@@ -1508,9 +1498,10 @@ describe('Comida', () => {
       render(<Comida abiertas />)
       await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
       await screen.findByLabelText('Buscar alimento')
-      expect(screen.getByText('Foto del envase')).toBeInTheDocument()
-      expect(screen.getByText('Para productos envasados que no tengas todavía.')).toBeInTheDocument()
-      expect(screen.getByLabelText('Abrir la cámara')).toBeInTheDocument()
+      // Comida simple: la cámara es un icono dentro del buscador.
+      const campo = document.querySelector('.food-search-field')
+      expect(within(campo).getByLabelText('Abrir la cámara')).toBeInTheDocument()
+      expect(screen.queryByText('Foto del envase')).toBeNull()
       // Y ninguna de las dos que había antes: elegir entre «código de barras» y
       // «etiqueta» era elegir tecnología, que es lo que este rediseño quita.
       expect(screen.queryByLabelText('Código de barras')).toBeNull()
@@ -1540,17 +1531,6 @@ describe('Comida', () => {
       expect(screen.queryByText('Foto del envase')).toBeNull()
       // Y el buscador sigue en pie: es la vía normal, no el plan B.
       expect(screen.getByLabelText('Buscar alimento')).toBeInTheDocument()
-    })
-
-    it('el pie dice qué hacer con lo que no tiene envase', async () => {
-      api.searchFoods.mockResolvedValue([])
-      render(<Comida abiertas />)
-      await userEvent.click(await screen.findByRole('button', { name: 'Añadir a desayuno' }))
-      expect(
-        await screen.findByText(
-          'Sin envase —una manzana, un guiso de casa— se busca o se teclea arriba.',
-        ),
-      ).toBeInTheDocument()
     })
   })
 
@@ -2042,12 +2022,13 @@ describe('Comida', () => {
       { food_id: 2, name: 'Huevo cocido', brand: null, grams: 120, kcal: 166, meal_slot: null, times: 4 },
     ]
 
-    it('pone lo que repites a un toque, con su cantidad dentro del chip', async () => {
+    // Comida simple: una fila por frecuente, con su cantidad y su «+».
+    it('pone lo que repites a un toque, con su cantidad en la fila', async () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       await abrirAnadir()
-      const chip = await screen.findByRole('button', { name: /Pan de la panadería/ })
-      expect(within(chip).getByText('80 g')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /Huevo cocido/ })).toBeInTheDocument()
+      const fila = (await screen.findByText('Pan de la panadería')).closest('li')
+      expect(within(fila).getByRole('button', { name: 'Cambiar cantidad de Pan de la panadería' })).toHaveTextContent('80 g')
+      expect(screen.getByRole('button', { name: 'Apuntar Huevo cocido' })).toBeInTheDocument()
     })
 
     it('lo que repites en cucharadas vuelve en cucharadas', async () => {
@@ -2056,9 +2037,9 @@ describe('Comida', () => {
       ])
       api.logFood.mockResolvedValue({})
       await abrirAnadir()
-      const chip = await screen.findByRole('button', { name: /Aceite de oliva/ })
-      expect(within(chip).getByText('2 cdas')).toBeInTheDocument()
-      await userEvent.click(chip)
+      const fila = (await screen.findByText('Aceite de oliva')).closest('li')
+      expect(within(fila).getByText('2 cdas')).toBeInTheDocument()
+      await userEvent.click(within(fila).getByRole('button', { name: 'Apuntar Aceite de oliva' }))
       await waitFor(() =>
         expect(api.logFood).toHaveBeenCalledWith(
           expect.objectContaining({ foodId: 3, grams: null, measure: 'cda', quantity: 2 }),
@@ -2070,7 +2051,7 @@ describe('Comida', () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       api.logFood.mockResolvedValue({})
       await abrirAnadir('cena')
-      await userEvent.click(await screen.findByRole('button', { name: /Pan de la panadería/ }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Apuntar Pan de la panadería' }))
       // `meal_slot` del repertorio dice «desayuno», y aquí manda la cena: ya
       // has dicho a dónde va, y contradecirte sería raro.
       await waitFor(() =>
@@ -2088,9 +2069,11 @@ describe('Comida', () => {
       api.frequentFoods.mockResolvedValue(SIEMPRE)
       api.logFood.mockResolvedValue({})
       await abrirAnadir()
-      await userEvent.click(await screen.findByRole('button', { name: /Huevo cocido/ }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Apuntar Huevo cocido' }))
       await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledTimes(2))
-      expect(api.frequentFoods).toHaveBeenCalledTimes(2)
+      // El repertorio general, otra vez (el de esta comida es de la hoja, que
+      // ya se ha cerrado).
+      expect(api.frequentFoods.mock.calls.filter((c) => !c[1])).toHaveLength(2)
     })
 
     it('sin repertorio todavía, la sección no existe', async () => {
@@ -2703,7 +2686,7 @@ describe('alimentos con hueso', () => {
     ])
     render(<Comida abiertas />)
     await userEvent.click(await screen.findByRole('button', { name: 'Añadir a comida' }))
-    await userEvent.click(await screen.findByRole('button', { name: new RegExp(MUSLO.name) }))
+    await userEvent.click(await screen.findByRole('button', { name: `Apuntar ${MUSLO.name}` }))
     await waitFor(() =>
       expect(api.logFood).toHaveBeenCalledWith(
         expect.objectContaining({ foodId: 5, grams: 300, withBone: true }),
