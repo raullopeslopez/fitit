@@ -4,12 +4,9 @@ import { getShoppingList, sendShoppingToTaski } from './api.js'
 import { formatIsoDayMonth } from './format.js'
 import { storage } from './platform/storage.js'
 
-// Lo que se recuerda en este móvil. Comodidades, no datos: si se pierden, la
-// lista vuelve a salir entera, que es lo seguro.
-//  - Lo que ya va en el carro, por semana: es de esa compra y de ninguna otra.
-//  - Lo que siempre tienes en casa, por alimento y para todas las semanas: el
-//    aceite no se compra cada lunes.
-const claveCarro = (semana) => `fitit_compra_${semana}`
+// Lo que se recuerda en este móvil. Una comodidad, no un dato: si se pierde,
+// la lista vuelve a salir entera, que es lo seguro. Lo que tienes en casa va
+// por alimento y para todas las semanas: el aceite no se compra cada lunes.
 const CLAVE_LO_TENGO = 'fitit_ya_lo_tengo'
 
 function leerIds(clave) {
@@ -51,19 +48,22 @@ export function resumenEnvio({ added, already }) {
 }
 
 /**
- * La lista de la compra de una semana planificada (diseño A, design-shotgun 6
- * oct): contador de lo que va en el carro, pasillos con su cuenta, una casilla
- * por artículo, y «Lo tengo» para apartar lo que siempre hay en casa.
+ * La lista de la compra de una semana (comida simple, fase 6; lienzo fila
+ * Premium · Compra). Taski es donde se compra, así que aquí sólo se decide una
+ * cosa: qué tienes ya en casa. Lo demás se manda.
  *
- * Lo marcado baja al final de su pasillo: lo que queda por coger es lo que se
- * busca con la vista, y tiene que estar arriba.
+ * - La cifra grande es lo que queda por comprar.
+ * - Cada artículo lleva un círculo: tocarlo es «ya lo tengo»; se apaga en su
+ *   sitio (no se va a otra sección) y deja de contar. Se recuerda para las
+ *   semanas siguientes: el aceite no se compra cada lunes.
+ * - «Enviar a Taski» manda lo que queda; enviada, una banda lo dice.
+ *
+ * El «en el carro» de antes sale: tachar en el súper es de Taski.
  */
 export default function ListaCompra({ weekStart, onClose, leer = getShoppingList, enviar = sendShoppingToTaski }) {
   const [lista, setLista] = useState(null)
   const [error, setError] = useState(false)
-  const [carro, setCarro] = useState(() => leerIds(claveCarro(weekStart)))
   const [loTengo, setLoTengo] = useState(() => leerIds(CLAVE_LO_TENGO))
-  const [verTengo, setVerTengo] = useState(false)
   // null · 'enviando' · { ok: texto } · { error: texto }
   const [envio, setEnvio] = useState(null)
 
@@ -77,21 +77,21 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
     }
   }, [weekStart, leer])
 
-  function alternarCarro(id) {
-    const nuevo = new Set(carro)
-    if (nuevo.has(id)) nuevo.delete(id)
-    else nuevo.add(id)
-    setCarro(nuevo)
-    guardarIds(claveCarro(weekStart), nuevo)
+  // Desde el estado de antes y no desde el del último pintado: dos toques
+  // seguidos (un pasillo repasado deprisa) no pueden pisarse.
+  function alternarTengo(id) {
+    setLoTengo((antes) => {
+      const nuevo = new Set(antes)
+      if (nuevo.has(id)) nuevo.delete(id)
+      else nuevo.add(id)
+      guardarIds(CLAVE_LO_TENGO, nuevo)
+      return nuevo
+    })
   }
 
-  function alternarTengo(id) {
-    const nuevo = new Set(loTengo)
-    if (nuevo.has(id)) nuevo.delete(id)
-    else nuevo.add(id)
-    setLoTengo(nuevo)
-    guardarIds(CLAVE_LO_TENGO, nuevo)
-  }
+  const todos = (lista?.aisles ?? []).flatMap((a) => a.items)
+  const apartados = todos.filter((i) => loTengo.has(i.food_id))
+  const quedan = todos.length - apartados.length
 
   async function enviarATaski() {
     setEnvio('enviando')
@@ -102,19 +102,12 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
     }
   }
 
-  const pasillos = (lista?.aisles ?? [])
-    .map((a) => ({ ...a, items: a.items.filter((i) => !loTengo.has(i.food_id)) }))
-    .filter((a) => a.items.length > 0)
-  const apartados = (lista?.aisles ?? []).flatMap((a) => a.items.filter((i) => loTengo.has(i.food_id)))
-  const total = pasillos.reduce((n, a) => n + a.items.length, 0)
-  const enCarro = pasillos.reduce((n, a) => n + a.items.filter((i) => carro.has(i.food_id)).length, 0)
-
   return (
-    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Lista de la compra">
+    <div className="food-screen lista-compra" role="dialog" aria-modal="true" aria-label="Lista de la compra">
       <header className="food-screen-head">
         <p className="food-screen-title">
           <span className="card-eyebrow">{`Semana del ${formatIsoDayMonth(weekStart)}`}</span>
-          <span className="food-screen-slot">Lista de la compra</span>
+          <span className="food-screen-slot">Compra</span>
         </p>
         <button type="button" className="link-btn" onClick={onClose}>
           Cerrar
@@ -124,111 +117,74 @@ export default function ListaCompra({ weekStart, onClose, leer = getShoppingList
       <div className="food-screen-body">
         {error && <p className="alert">No se ha podido cargar la lista.</p>}
 
-        {lista && total + apartados.length === 0 && (
-          <p className="hint">Esta semana no tiene nada que comprar.</p>
-        )}
+        {lista && todos.length === 0 && <p className="hint">Esta semana no tiene nada que comprar.</p>}
 
-        {/* Marcador: cuánto queda por comprar, y que lo que ya tienes se aparta
-            con «Lo tengo». */}
-        {total > 0 && (
-          <p className="lista-resumen">
-            <span className="lista-resumen-n">{`${total - enCarro} que comprar`}</span>
-            <span className="lista-resumen-pista">toca lo que ya tienes</span>
-          </p>
-        )}
-        {total > 0 && (
-          <div className="lista-contador">
+        {todos.length > 0 && (
+          <div className="lista-cifra-bloque">
             <p className="lista-cifra">
-              <span className="lista-grande">{enCarro}</span>
-              <span className="lista-de">{`/ ${total} en el carro`}</span>
+              <span className="lista-cifra-n">{quedan}</span>
+              <span className="lista-cifra-de">cosas que comprar</span>
             </p>
-            <div className="lista-barra" aria-hidden="true">
-              <i style={{ width: `${(enCarro * 100) / total}%` }} />
-            </div>
+            <p className="lista-cifra-pista">
+              Marca lo que ya tienes en casa.
+              {apartados.length > 0 && (
+                <>
+                  {' '}
+                  <span className="lista-cifra-fuera">{apartados.length}</span> fuera.
+                </>
+              )}
+            </p>
           </div>
         )}
 
-        {pasillos.map((pasillo) => {
-          const hechos = pasillo.items.filter((i) => carro.has(i.food_id)).length
-          // Lo que queda por coger arriba; lo del carro, abajo y en su orden.
-          const orden = [
-            ...pasillo.items.filter((i) => !carro.has(i.food_id)),
-            ...pasillo.items.filter((i) => carro.has(i.food_id)),
-          ]
-          return (
+        {(lista?.aisles ?? [])
+          .filter((p) => p.items.length > 0)
+          .map((pasillo) => (
             <section key={pasillo.name} className="lista-pasillo">
-              <h3 className="lista-pasillo-nombre">
-                <span>{pasillo.name}</span>
-                <span className="lista-pasillo-cuenta">{`${hechos}/${pasillo.items.length}`}</span>
-              </h3>
+              <h3 className="lista-pasillo-nombre">{pasillo.name}</h3>
               <ul className="lista-items">
-                {orden.map((item) => {
-                  const hecho = carro.has(item.food_id)
+                {pasillo.items.map((item) => {
+                  const tengo = loTengo.has(item.food_id)
                   return (
-                    <li key={item.food_id} className={`lista-fila${hecho ? ' is-done' : ''}`}>
+                    <li key={item.food_id} className={`lista-fila${tengo ? ' is-tengo' : ''}`}>
                       <button
                         type="button"
-                        className="lista-casilla"
-                        aria-label="En el carro"
-                        aria-pressed={hecho}
-                        onClick={() => alternarCarro(item.food_id)}
+                        className="lista-circulo"
+                        aria-label={`Ya lo tengo: ${item.name}`}
+                        aria-pressed={tengo}
+                        onClick={() => alternarTengo(item.food_id)}
                       >
-                        <span aria-hidden="true">{hecho ? '✓' : ''}</span>
+                        <span aria-hidden="true">{tengo ? '✓' : ''}</span>
                       </button>
                       <span className="lista-nombre">{item.name}</span>
                       <span className="lista-cantidad">{cantidad(item)}</span>
-                      <button type="button" className="link-btn lista-tengo" onClick={() => alternarTengo(item.food_id)}>
-                        Lo tengo
-                      </button>
                     </li>
                   )
                 })}
               </ul>
             </section>
-          )
-        })}
+          ))}
 
-        {apartados.length > 0 && (
-          <section className="lista-apartados">
-            <button
-              type="button"
-              className="lista-apartados-cabecera"
-              aria-expanded={verTengo}
-              onClick={() => setVerTengo((v) => !v)}
-            >
-              {`Ya lo tengo · ${apartados.length}`}
-            </button>
-            {verTengo && (
-              <ul className="lista-items">
-                {apartados.map((item) => (
-                  <li key={item.food_id} className="lista-fila is-tengo">
-                    <span className="lista-nombre">{item.name}</span>
-                    <span className="lista-cantidad">{cantidad(item)}</span>
-                    <button type="button" className="link-btn lista-tengo" onClick={() => alternarTengo(item.food_id)}>
-                      Lo necesito
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
-
-        {total > 0 && (
+        {quedan > 0 && (
           <div className="lista-taski">
-            <button
-              type="button"
-              className="secondary btn-full"
-              disabled={envio === 'enviando'}
-              onClick={enviarATaski}
-            >
-              {envio === 'enviando' ? 'Enviando a Taski…' : 'Enviar a Taski'}
-            </button>
-            {/* Taski duerme en Render y el servidor lo espera hasta que arranca:
-                sin esto, un minuto con el botón gris parece colgado. */}
-            {envio === 'enviando' && <p className="hint">Si Taski estaba dormido, tarda hasta un minuto.</p>}
-            {envio?.ok && <p className="hint">{envio.ok}</p>}
-            {envio?.error && <p className="alert">{envio.error}</p>}
+            {envio?.ok ? (
+              <div className="lista-enviada" role="status" aria-label="En Taski">
+                <span className="lista-enviada-titulo">
+                  <span aria-hidden="true">✓</span> En Taski
+                </span>
+                <span className="lista-enviada-texto">{envio.ok}</span>
+              </div>
+            ) : (
+              <>
+                <button type="button" className="lista-enviar" disabled={envio === 'enviando'} onClick={enviarATaski}>
+                  {envio === 'enviando' ? 'Enviando a Taski…' : 'Enviar a Taski'}
+                </button>
+                {/* Taski duerme en Render y el servidor lo espera hasta que
+                    arranca: sin esto, un minuto con el botón gris parece colgado. */}
+                {envio === 'enviando' && <p className="hint">Si Taski estaba dormido, tarda hasta un minuto.</p>}
+                {envio?.error && <p className="alert">{envio.error}</p>}
+              </>
+            )}
           </div>
         )}
       </div>

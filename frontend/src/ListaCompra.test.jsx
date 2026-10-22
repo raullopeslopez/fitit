@@ -57,94 +57,68 @@ describe('cantidad', () => {
 
 // La semana planificada, sumada como se compra. Se marca lo que va al carro, y
 // lo que siempre tienes en casa se aparta para que no estorbe.
+// Comida simple, fase 6 (lienzo fila Premium · Compra): Taski es donde se
+// compra, así que la lista sólo pregunta una cosa —qué tienes ya en casa— y lo
+// demás se manda.
 describe('La lista de la compra', () => {
+  const fila = (nombre) => screen.getByText(nombre).closest('li')
+  const cifra = () => document.querySelector('.lista-cifra-n')
+
   it('es una pantalla con su semana', async () => {
     montar()
     expect(screen.getByRole('dialog', { name: 'Lista de la compra' })).toBeInTheDocument()
-    expect(screen.getByText('Semana del 12 oct')).toBeInTheDocument()
-    await screen.findByText('Filetes pechuga pollo')
+    expect(await screen.findByText('Semana del 12 oct')).toBeInTheDocument()
   })
 
-  it('agrupa por pasillo, con su cuenta', async () => {
+  it('la cifra grande es lo que queda por comprar', async () => {
     montar()
-    await screen.findByText('Filetes pechuga pollo')
-    expect(screen.getByRole('heading', { name: /Carne/ })).toHaveTextContent('0/2')
-    expect(screen.getByRole('heading', { name: /Lácteos y huevos/ })).toHaveTextContent('0/1')
+    await waitFor(() => expect(cifra()).toHaveTextContent('4'))
+    expect(screen.getByText('cosas que comprar')).toBeInTheDocument()
   })
 
-  it('cada artículo dice cuánto, en envases o al peso', async () => {
+  it('agrupa por pasillo, y cada artículo dice cuánto', async () => {
     montar()
-    await screen.findByText('Filetes pechuga pollo')
+    expect(await screen.findByRole('heading', { name: 'Carne' })).toBeInTheDocument()
     expect(within(fila('Queso fresco batido 0%')).getByText('3 × 500 g')).toBeInTheDocument()
     expect(within(fila('Filetes pechuga pollo')).getByText('~560 g')).toBeInTheDocument()
   })
 
-  it('el contador dice cuánto llevas en el carro', async () => {
+  it('marcar lo que tienes lo apaga en su sitio y deja de contar', async () => {
     montar()
-    await screen.findByText('Filetes pechuga pollo')
-    expect(screen.getByText('0')).toBeInTheDocument()
-    expect(screen.getByText('/ 4 en el carro')).toBeInTheDocument()
+    await screen.findByText('Solomillo de pavo')
+    const circulo = within(fila('Solomillo de pavo')).getByRole('button', { name: 'Ya lo tengo: Solomillo de pavo' })
+    await userEvent.click(circulo)
+    expect(circulo).toHaveAttribute('aria-pressed', 'true')
+    expect(fila('Solomillo de pavo')).toHaveClass('is-tengo')
+    expect(cifra()).toHaveTextContent('3')
+    expect(document.querySelector('.lista-cifra-pista')).toHaveTextContent('Marca lo que ya tienes en casa. 1 fuera.')
+    // Se queda en su pasillo: no se va a otra sección.
+    expect(within(screen.getByRole('heading', { name: 'Carne' }).closest('section')).getByText('Solomillo de pavo')).toBeInTheDocument()
   })
 
-  it('marcar lo mete en el carro, lo tacha y lo baja al final de su pasillo', async () => {
+  it('volver a tocarlo lo devuelve a la lista', async () => {
     montar()
-    await screen.findByText('Filetes pechuga pollo')
-    await userEvent.click(within(fila('Filetes pechuga pollo')).getByRole('button', { name: 'En el carro' }))
-
-    expect(within(fila('Filetes pechuga pollo')).getByRole('button', { name: 'En el carro' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    expect(fila('Filetes pechuga pollo')).toHaveClass('is-done')
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /Carne/ })).toHaveTextContent('1/2')
-    const carne = screen.getByRole('heading', { name: /Carne/ }).closest('section')
-    const nombres = within(carne).getAllByRole('listitem').map((li) => li.textContent)
-    expect(nombres[nombres.length - 1]).toMatch(/Filetes pechuga pollo/)
+    await screen.findByText('Solomillo de pavo')
+    const circulo = within(fila('Solomillo de pavo')).getByRole('button', { name: 'Ya lo tengo: Solomillo de pavo' })
+    await userEvent.click(circulo)
+    await userEvent.click(circulo)
+    expect(circulo).toHaveAttribute('aria-pressed', 'false')
+    expect(cifra()).toHaveTextContent('4')
   })
 
-  it('lo marcado se recuerda al volver a abrir la lista de esa semana', async () => {
-    montar()
-    await screen.findByText('Filetes pechuga pollo')
-    await userEvent.click(within(fila('Filetes pechuga pollo')).getByRole('button', { name: 'En el carro' }))
-    document.body.innerHTML = ''
-    montar()
-    await screen.findByText('Filetes pechuga pollo')
-    expect(fila('Filetes pechuga pollo')).toHaveClass('is-done')
-  })
-
-  // Lo de siempre —aceite, sal— no se compra cada semana. Apartarlo una vez
-  // vale para las siguientes: se recuerda por alimento, no por semana.
-  it('«Lo tengo» lo aparta a «Ya lo tengo» y deja de contar', async () => {
+  it('lo que tienes se recuerda para las semanas siguientes', async () => {
+    localStorage.setItem('fitit_ya_lo_tengo', JSON.stringify([4]))
     montar()
     await screen.findByText('Aceite de oliva virgen extra')
-    await userEvent.click(within(fila('Aceite de oliva virgen extra')).getByRole('button', { name: 'Lo tengo' }))
-
-    expect(screen.getByText('/ 3 en el carro')).toBeInTheDocument()
-    const tengo = screen.getByRole('button', { name: 'Ya lo tengo · 1' })
-    expect(tengo).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByText('Aceite de oliva virgen extra')).not.toBeInTheDocument()
-    await userEvent.click(tengo)
-    expect(screen.getByText('Aceite de oliva virgen extra')).toBeInTheDocument()
+    expect(fila('Aceite de oliva virgen extra')).toHaveClass('is-tengo')
+    expect(cifra()).toHaveTextContent('3')
   })
 
-  it('«Ya lo tengo» se recuerda para las semanas siguientes', async () => {
+  it('ya no hay carro ni «Lo tengo» suelto', async () => {
     montar()
-    await screen.findByText('Aceite de oliva virgen extra')
-    await userEvent.click(within(fila('Aceite de oliva virgen extra')).getByRole('button', { name: 'Lo tengo' }))
-    document.body.innerHTML = ''
-    render(<ListaCompra weekStart="2026-10-19" onClose={vi.fn()} leer={vi.fn().mockResolvedValue({ ...LISTA, week_start: '2026-10-19' })} />)
-    expect(await screen.findByRole('button', { name: 'Ya lo tengo · 1' })).toBeInTheDocument()
-  })
-
-  it('«Lo necesito» lo devuelve a la lista', async () => {
-    montar()
-    await screen.findByText('Aceite de oliva virgen extra')
-    await userEvent.click(within(fila('Aceite de oliva virgen extra')).getByRole('button', { name: 'Lo tengo' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Ya lo tengo · 1' }))
-    await userEvent.click(within(fila('Aceite de oliva virgen extra')).getByRole('button', { name: 'Lo necesito' }))
-    expect(screen.getByText('/ 4 en el carro')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Ya lo tengo/ })).not.toBeInTheDocument()
+    await screen.findByText('Solomillo de pavo')
+    expect(screen.queryByRole('button', { name: 'En el carro' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Lo tengo' })).not.toBeInTheDocument()
   })
 
   it('una semana sin nada que comprar lo dice', async () => {
@@ -153,7 +127,7 @@ describe('La lista de la compra', () => {
   })
 
   it('si no llega, lo dice', async () => {
-    render(<ListaCompra weekStart={SEMANA} onClose={vi.fn()} leer={vi.fn().mockRejectedValue(new Error('x'))} />)
+    render(<ListaCompra weekStart={SEMANA} onClose={vi.fn()} leer={vi.fn().mockRejectedValue(new Error('red'))} />)
     expect(await screen.findByText('No se ha podido cargar la lista.')).toBeInTheDocument()
   })
 
@@ -179,7 +153,10 @@ describe('Enviar a Taski', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Enviar a Taski' }))
 
     expect(enviar).toHaveBeenCalledWith(SEMANA, [4])
-    expect(await screen.findByText('2 añadidos a Taski · 1 ya estaba')).toBeInTheDocument()
+    // Enviada: una banda «En Taski» con lo que ha pasado, en vez del botón.
+    const banda = await screen.findByRole('status', { name: 'En Taski' })
+    expect(banda).toHaveTextContent('2 añadidos a Taski · 1 ya estaba')
+    expect(screen.queryByRole('button', { name: 'Enviar a Taski' })).not.toBeInTheDocument()
   })
 
   it('si Taski ya lo tenía todo, lo dice', async () => {
