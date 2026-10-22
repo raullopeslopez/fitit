@@ -1717,8 +1717,6 @@ button.editor-quit {
   box-shadow: none;
 }
 
-
-
 /* ── La rejilla: una propiedad es una fila, y la fila es el control ───────
    Cero cromo. Ni caja, ni borde, ni fondo de campo, ni un rótulo a la
    izquierda repitiendo cómo se llama lo que ya estás leyendo a la derecha. Lo
@@ -6848,34 +6846,6 @@ button.draft-save {
   color: var(--accent-ink);
   font-weight: 600;
 }
-.plan-dia {
-  margin-bottom: 1.4rem;
-}
-/* El día es el nivel de agrupación, y tiene que leerse por encima del sello
-   del hueco. En mono y mayúsculas los dos, el ojo no distinguía cuál mandaba. */
-.plan-dia-nombre {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  margin: 0 0 0.6rem;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.plan-dia-hoy {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-ink);
-}
-.plan-otra {
-  margin-top: 0.6rem;
-  min-height: 44px;
-}
 
 /* --- Lo que queda, el cambio y cómo fue la semana --------------------------- */
 /* La frase de lo que queda va con la tinta de una cifra, no en `--muted`: es lo
@@ -6907,16 +6877,6 @@ button.draft-save {
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
   color: var(--muted);
-}
-.plan-adherencia {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 1.4rem;
-}
-.plan-adh-linea {
-  margin: 0;
-  font-size: 1rem;
 }
 
 /* --- Iterar la semana: un plato se toca para cambiarlo ---------------------- */
@@ -6950,22 +6910,6 @@ button.draft-save {
 .plan-fila .plan-plato-btn {
   grid-column: 1 / -1;
 }
-.plan-sin-comida {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
-  padding: 1rem;
-}
-.plan-sin-comida .card-eyebrow {
-  margin: 0;
-  color: var(--accent-ink);
-}
-.plan-sin-comida-texto {
-  margin: 0;
-  font-size: 1rem;
-}
-.plan-sin-comida-btn,
 .plan-quitar {
   align-self: flex-start;
   min-height: 44px;
@@ -8249,99 +8193,13 @@ button.draft-save {
   background: var(--text);
   color: var(--bg);
 }
-.plan-semana .plan-otra {
-  width: 100%;
-}
 .plan-otro .plan-kcal {
   white-space: nowrap;
 }
-/* `.platos-aviso` va más abajo en la hoja y le pisaba el margen: con las dos
-   clases gana el de aquí, y el aviso no se pega al primer día. */
-.platos-aviso.plan-sin-comida {
-  margin: 0 0 1rem;
-}
-/* Marcador: el día ya no es tarjeta. Lo separa su titular y el aire de
-   debajo; hoy lo dice el sello «HOY», no un velo. */
-.plan-semana .plan-dia {
-  margin-bottom: 1.75rem;
-}
-.plan-semana .plan-dia .hint {
-  margin: 0;
-}
 
-/* --- Esta semana (plan v2): la tira de días -------------------------------- */
-/* Fija arriba al bajar: es el índice de la semana, y saltar del martes al
-   sábado no debería costar volver a subir. Cada casilla es un botón de 44 px
-   como mínimo; la cuenta va en mono, como toda cifra. */
-.plan-tira {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  padding: 4px 0 8px;
-  margin-bottom: 0.75rem;
-  background: var(--bg);
-}
-.plan-tira-dia {
-  min-height: 64px;
-  padding: 6px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.plan-tira-letra {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.plan-tira-dia.is-today .plan-tira-letra {
-  color: var(--accent-ink);
-}
-.plan-tira-num {
-  font-size: 1rem;
-  font-weight: 500;
-}
-.plan-tira-cuenta {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-/* El salto deja el día bajo la tira, no tapado por ella. */
-.plan-semana .plan-dia {
-  scroll-margin-top: 84px;
-}
 /* «Lo siguiente» es un sello en tinta: marca dónde estás, no un logro. */
 .plan-siguiente {
   color: var(--text);
-}
-/* «Cómo va la semana» en Esta semana: un aviso, así que en oro (Marcador:
-   `--pr` es récords y avisos), bajo una raya y sin caja. */
-.plan-adherencia.is-tonal {
-  padding: 14px 0 0;
-  border: 0;
-  border-top: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.plan-adherencia.is-tonal .card-eyebrow {
-  color: var(--pr);
 }
 /* Sin plan esta semana: la frase y el botón, sin tarjeta alrededor. */
 .plan-pantalla > .plan-card {
@@ -8572,20 +8430,6 @@ button.draft-save {
   min-height: 44px;
 }
 
-/* Lo que un día del plan se sale de su objetivo. El rótulo en `--muted` y la
-   cifra en Mono `--text`: es un dato, no una nota (DESIGN.md). */
-.plan-desvios {
-  margin: -0.3rem 0 0.6rem;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.plan-desvio-cifra {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-  white-space: nowrap;
-}
-
 /* ── Terminado ─────────────────────────────────────────────────────────────
    Hoy ya llevas tantas series como la última vez: la serie que toca y las
    fichas dejan sitio al resumen. Tu mejor serie de hoy es la cifra Display de
@@ -8740,52 +8584,6 @@ button.draft-save {
   }
 }
 
-/* --- La barra de tres tramos (épica de cuatro comidas, fase 6) --------------
-   De qué está hecho un plato: proteína, hidrato y grasa por las kcal que
-   aportan, con los mismos colores que la tira del día. */
-.barra-macros {
-  display: block;
-  margin-top: 0.5rem;
-}
-.barra-macros-tramos {
-  display: flex;
-  gap: 2px;
-  height: 12px;
-}
-.barra-macros.is-fina .barra-macros-tramos {
-  height: 6px;
-}
-.barra-macros-tramo {
-  display: block;
-  flex-basis: 0;
-  min-width: 0;
-  border-radius: 3px;
-}
-.barra-macros-tramo.is-p {
-  background: var(--text);
-}
-.barra-macros-tramo.is-h {
-  background: var(--carbs);
-}
-.barra-macros-tramo.is-g {
-  background: color-mix(in srgb, var(--text) 35%, var(--surface));
-}
-.barra-macros-cifras {
-  display: flex;
-  gap: 2px;
-  margin-top: 4px;
-}
-.barra-macros-cifra {
-  flex-basis: 0;
-  min-width: 0;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-.barra-macros-cifra.is-h {
-  color: var(--carbs-ink);
-}
 .plan-pedir-ideas {
   margin: 0.75rem 0;
 }
@@ -9061,10 +8859,6 @@ button.draft-save {
   font-size: 0.8rem;
   color: var(--muted);
 }
-.semana-comida-head {
-  margin-top: 1.6rem;
-  padding-bottom: 6px;
-}
 .semana-musculos {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -9100,61 +8894,6 @@ button.draft-save {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.plan-semana .plan-dia.is-fila {
-  margin-bottom: 0;
-  border-top: 1px solid var(--border);
-}
-.semana-dia,
-.semana-dia:hover:not(:disabled) {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 56px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-}
-.semana-dia-fecha {
-  display: flex;
-  flex-direction: column;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  line-height: 1.1;
-}
-.semana-dia-dow {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-.plan-dia.is-today .semana-dia-dow {
-  color: var(--accent-ink);
-}
-.semana-dia-num {
-  font-size: 1rem;
-  font-weight: 600;
-}
-.semana-dia-menu {
-  overflow: hidden;
-  font-weight: 400;
-  font-size: 0.85rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.semana-dia.is-pasado .semana-dia-menu {
-  color: var(--muted);
-}
-.semana-dia-cuenta {
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 1rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Historial (Marcador): titular con «+» para anotar otra fecha; sin barra fija
@@ -10417,21 +10156,6 @@ button.draft-save {
   font-size: 0.8rem;
   color: var(--muted);
 }
-
-/* Semana → cómo va (Marcador): dónde se cae, las reglas sin cumplir y cuándo
-   llega la revisión. */
-.plan-adh-reglas {
-  margin: 4px 0 0;
-  font-size: 0.85rem;
-}
-.plan-adh-revision {
-  margin: 0.75rem 0 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
 
 /* Añadir → «Comí fuera», una píldora a todo el ancho sobre las altas. */
 .add-fuera,
