@@ -65,18 +65,16 @@ describe('Comida', () => {
     expect(macroRows()).toHaveLength(2)
   })
 
-  it('la semana cabe en una fila, y cada día es un objetivo de dedo', async () => {
+  it('los siete puntos caben en una fila, y cada día es un objetivo de dedo', async () => {
     await mountComida()
-    const tira = document.querySelector('.food-week')
-    const hijos = [...tira.children].map(paintedRect)
-    // Nueve en un renglón —dos flechas y siete días—, no apilados: la fila mide
-    // lo que mide un día, y todos comparten la misma línea media.
-    expect(hijos).toHaveLength(9)
+    const fila = document.querySelector('.hoy-puntos-fila')
+    const dias = [...fila.children].map(paintedRect)
+    // Siete en un renglón, no apilados: todos comparten la misma línea media.
+    expect(dias).toHaveLength(7)
     const middle = (box) => box.top + box.height / 2
-    for (const box of hijos) expect(middle(box)).toBeCloseTo(middle(hijos[0]), 0)
-    expect(paintedRect(tira).height).toBeLessThanOrEqual(64)
-    // A 430 px los siete días caben sin bajar de 44: se pulsan con el pulgar.
-    for (const dia of tira.querySelectorAll('.food-week-day')) {
+    for (const box of dias) expect(middle(box)).toBeCloseTo(middle(dias[0]), 0)
+    // A 430 px los siete caben sin bajar de 44: se pulsan con el pulgar.
+    for (const dia of fila.children) {
       const box = paintedRect(dia)
       expect(box.width, dia.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
       expect(box.height, dia.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
@@ -683,8 +681,8 @@ describe('Comida', () => {
     // ── Marcador en Comida (2026-10-19) ───────────────────────────────────
     //
     // El titular de pantalla en Bricolage 800 a 54 px, las comidas como
-    // titulares de fila, y un solo sitio en mandarina: «Añadir comida». «Lo
-    // comí» es el caso normal, pero no la acción de la pantalla: va en Hueso.
+    // titulares de fila, y un solo sitio en mandarina: el «Comido» de lo que
+    // toca (comida simple).
     // El día de comida, no el de calendario: de 00:00 a 04:00 aún es ayer.
     const hoyIso = () => foodDayIso()
     const conPlan = () => [
@@ -737,41 +735,45 @@ describe('Comida', () => {
       }
     })
 
-    it('«Lo comí» va en Hueso y el mandarina queda sólo para «Añadir comida»', async () => {
+    // Comida simple: la comida que toca es el protagonista, y su «Comido» es
+    // el único relleno mandarina de la pantalla.
+    it('el único mandarina es el «Comido» de lo que toca', async () => {
       await mountComida({ routes: conPlan() })
-      await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Lo comí' })).toBeTruthy(), {
-        timeout: 5000,
-      })
+      const ahora = await vi.waitFor(
+        () => {
+          const el = document.querySelector('.hoy-ahora')
+          expect(el).not.toBeNull()
+          return el
+        },
+        { timeout: 5000 },
+      )
       for (const theme of ['light', 'dark']) {
         forceTheme(theme)
         await settle()
         // El fondo de un botón tarda 150 ms en cambiar de tema.
         await new Promise((r) => setTimeout(r, 250))
-        const comi = screen.getByRole('button', { name: 'Lo comí' })
-        expect(rgb(bg(comi)), theme).toEqual(rgb(token('--text')))
-        expect(rgb(parseColor(getComputedStyle(comi).color)), theme).toEqual(rgb(token('--bg')))
-        // Ningún otro relleno mandarina en la pantalla de Comida, salvo el
-        // botón flotante. La barra de pestañas no cuenta: es de la app.
         const ambar = rgb(token('--accent'))
         const rellenos = [...document.querySelectorAll('.comida button')].filter(
           (b) => b.getClientRects().length > 0 && String(rgb(bg(b))) === String(ambar),
         )
-        expect(rellenos.map((b) => b.textContent.replace('+', '').trim()), theme).toEqual(['Añadir comida'])
+        expect(rellenos.map((b) => b.textContent.trim()), theme).toEqual(['Comido'])
+        expect(ahora.contains(rellenos[0]), theme).toBe(true)
       }
     })
 
-    it('lo previsto se dice con el discontinuo, sin fondo', async () => {
+    it('lo que toca va sin caja: ni borde ni fondo', async () => {
       await mountComida({ routes: conPlan() })
-      const caja = await vi.waitFor(() => {
-        const el = document.querySelector('.plan-en-comida')
+      const ahora = await vi.waitFor(() => {
+        const el = document.querySelector('.hoy-ahora')
         expect(el).not.toBeNull()
         return el
       })
-      const estilo = getComputedStyle(caja)
-      expect(estilo.borderTopStyle).toBe('dashed')
-      // 1,5 px en la hoja; a 1× Chromium lo ajusta al píxel y pinta 1.
-      expect(parseFloat(estilo.borderTopWidth)).toBeGreaterThanOrEqual(1)
+      const estilo = getComputedStyle(ahora)
+      expect(estilo.borderTopStyle).toBe('none')
       expect(estilo.backgroundColor).toBe('rgba(0, 0, 0, 0)')
+      const plato = getComputedStyle(ahora.querySelector('.hoy-ahora-plato'))
+      expect(plato.fontFamily).toContain('Bricolage Grotesque')
+      expect(plato.fontWeight).toBe('800')
     })
 
     it('la jerarquía se dice con grosor, no con un tono nuevo', async () => {

@@ -180,6 +180,14 @@ export default function App() {
     setStartOnArrival(true)
   }
 
+  // «Hacer el plan» desde Hoy sin plan: Semana, en la que viene, que es donde
+  // se genera.
+  function planificar() {
+    openWorkout(null)
+    setPlanInicial('viene')
+    setView('plan')
+  }
+
   function go(target) {
     openWorkout(null)
     if (target === 'plan') setPlanInicial('esta')
@@ -268,7 +276,7 @@ export default function App() {
         ) : view === 'progress' ? (
           <Progress initialTab="evolucion" />
         ) : view === 'food' ? (
-          <Comida onTrain={train} />
+          <Comida onTrain={train} onPlan={planificar} />
         ) : view === 'plan' ? (
           <PlanPantalla key={planInicial} inicial={planInicial} />
         ) : view === 'profile' ? (

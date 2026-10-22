@@ -10,12 +10,10 @@ import {
   boneReference,
   createFood,
   deleteFoodEntry,
-  dayVerdicts,
   getCaredDays,
   getPlan,
   frequentFoods,
   listDishes,
-  listRules,
   getFoodDay,
   logDish,
   logFood,
@@ -29,13 +27,12 @@ import {
 } from './api.js'
 import { DishChips, NewDish } from './Dish.jsx'
 import Fuera from './Fuera.jsx'
-import { Veredictos } from './Reglas.jsx'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
 import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
 import SinDecir, { notaSinDecir } from './SinDecir.jsx'
-import { TiraDia, fueraDelPlan } from './TiraDia.jsx'
-import { Fab } from './ui'
+import { fueraDelPlan } from './TiraDia.jsx'
+import { Ahora, DiaCerrado, HUECOS_HOY, PuntosCuidados, SinPlan, dicha } from './HoyComida.jsx'
 import {
   MACROS,
   MEAL_SLOTS,
@@ -100,7 +97,7 @@ const isIncomplete = (entry) => NUTRIENT_KEYS.some((key) => entry[key] == null)
 
 // `abiertas` arranca con todas las comidas desplegadas (sus entradas a la
 // vista); por defecto son filas plegadas.
-export default function Comida({ onTrain, abiertas = false }) {
+export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
   // El día que se está mirando. Arranca en el día alimentario en curso, que a
   // las 02:00 sigue siendo el de ayer — misma regla que el servidor usa para
   // fechar lo que escribes.
@@ -118,15 +115,11 @@ export default function Comida({ onTrain, abiertas = false }) {
   // Tus platos. Se cargan con los frecuentes y por lo mismo: los dos son
   // atajos para no volver a teclear lo que ya has tecleado una vez.
   const [platos, setPlatos] = useState([])
-  // Lo que tus reglas dicen de hoy, y las reglas mismas para poder nombrarlas.
-  // Van juntas porque un veredicto sin su regla es un id y un estado.
-  const [reglas, setReglas] = useState([])
-  const [veredictos, setVeredictos] = useState([])
   // El plan de la semana a la que pertenece el día que se está mirando, para
   // poner cada plato planificado dentro de su comida. `null` es «esa semana no
   // se ha generado»: planificarla es de la pestaña Plan, no de aquí.
   const [plan, setPlan] = useState(null)
-  // Los días cuidados de la semana que se mira (fase 7): un punto en la franja.
+  // Los días cuidados de los últimos siete (comida simple): los siete puntos.
   const [cuidados, setCuidados] = useState([])
   // Tras confirmar una comida del plan, la pregunta del peso de hoy (si falta).
   const [pedirPeso, setPedirPeso] = useState(false)
@@ -170,13 +163,6 @@ export default function Comida({ onTrain, abiertas = false }) {
     } catch {
       setError('No se ha podido cargar el día.')
     }
-    // Aparte y sin tumbar el día: un veredicto que no llega deja la lista
-    // intacta. Lo que las reglas digan es información sobre el día, no el día.
-    try {
-      setVeredictos((await dayVerdicts(iso))?.verdicts ?? [])
-    } catch {
-      setVeredictos([])
-    }
     // Y el plan igual, por lo mismo: un plan que no llega no puede dejarte sin
     // diario. `getPlan` ya distingue «no hay plan» de «no se ha podido».
     try {
@@ -185,7 +171,10 @@ export default function Comida({ onTrain, abiertas = false }) {
       setPlan(null)
     }
     try {
-      setCuidados((await getCaredDays(lunesDe(iso), shiftDay(lunesDe(iso), 6)))?.days ?? [])
+      // La ventana es la de hoy, no la del día que se mira: los puntos son
+      // también el camino de vuelta a hoy.
+      const hoy = foodDayIso()
+      setCuidados((await getCaredDays(shiftDay(hoy, -6), hoy))?.days ?? [])
     } catch {
       setCuidados([])
     }
@@ -205,11 +194,6 @@ export default function Comida({ onTrain, abiertas = false }) {
       setPlatos((await listDishes()) ?? [])
     } catch {
       setPlatos([])
-    }
-    try {
-      setReglas((await listRules()) ?? [])
-    } catch {
-      setReglas([])
     }
   }, [])
 
@@ -314,8 +298,16 @@ export default function Comida({ onTrain, abiertas = false }) {
   // nada que cumplir y todo sigue como estaba.
   const hayPlan = Object.keys(planHoy).length > 0
   const fuera = hayPlan && day ? fueraDelPlan(day.entries, planHoy) : []
-  const cumples = hayPlan && fuera.length === 0
   const notaPasado = notaSinDecir(Object.values(planHoy), dayIso, foodDayIso())
+  // Comida simple, fase 1: la primera comida del plan sin decir es la que toca,
+  // y con las cuatro dichas el día se cierra. Sólo hoy: un día pasado se
+  // repasa, no se vive.
+  const railDe = (slot) => (day ? rails(day).find((r) => r.key === slot) : null)
+  const conPlan = HUECOS_HOY.filter((slot) => planHoy[slot])
+  const hechas = conPlan.filter((slot) => dicha(planHoy[slot], railDe(slot)))
+  const siguiente = isToday && day ? (conPlan.find((slot) => !hechas.includes(slot)) ?? null) : null
+  const cerrado = isToday && day && hayPlan && hechas.length === conPlan.length
+  const manana = planDelDia(plan, shiftDay(dayIso, 1))[HUECOS_HOY[0]]?.dish_name ?? null
 
   return (
     <div className="comida">
@@ -327,36 +319,51 @@ export default function Comida({ onTrain, abiertas = false }) {
         <h1 className="food-title">{tituloDia(dayIso)}</h1>
       </header>
 
-      {isToday && onTrain && <HoyEntreno onTrain={onTrain} />}
+      {/* Los siete puntos (comida simple): los días cuidados de la última
+          semana y, a la vez, el camino a cada uno de esos días. En su propia
+          fila: junto al título no caben siete objetivos de dedo. */}
+      <PuntosCuidados hoy={foodDayIso()} dayIso={dayIso} cuidados={cuidados} onPick={setDayIso} />
 
-      <FranjaSemana dayIso={dayIso} hoy={foodDayIso()} cuidados={cuidados} onPick={setDayIso} />
+      {isToday && onTrain && <HoyEntreno onTrain={onTrain} />}
 
       {error && <p className="alert">{error}</p>}
 
-      {/* Qué plan llevas y cuánto toca hoy, o que todavía no hay objetivo. Sólo
-          hoy: un día pasado tiene el objetivo que tenía, y el plan de ahora al
-          lado haría creer que aquel día se comía a este ritmo. */}
-      {day && isToday && (
+      {/* Sin objetivo todavía, o sin plan: la línea del objetivo. Con plan, el
+          objetivo ya está dentro de lo que el plan pone en cada comida. */}
+      {day && isToday && (!hayPlan || day.target_kcal == null) && (
         <ObjetivoLinea targetKcal={day.target_kcal ?? null} onAccepted={() => load(dayIso)} />
       )}
 
-      {day && hayPlan && <TiraDia entradas={planHoy} />}
+      {day && isToday && !hayPlan && <SinPlan onPlan={onPlan} />}
 
-      {day && !cumples && <MacroCard day={day} />}
+      {siguiente && (
+        <Ahora
+          entrada={planHoy[siguiente]}
+          hechas={hechas}
+          platos={platos}
+          onChanged={() => load(dayIso)}
+          onComido={() => setPedirPeso(true)}
+          onOtraCosa={() => setAdding({ slot: siguiente })}
+        />
+      )}
+
+      {cerrado && (
+        <DiaCerrado cuenta={cuidados.length} manana={manana} />
+      )}
+
+      {/* Sin plan, las cifras del día: no hay otra cosa con la que medirlo. Con
+          plan, lo que se sale lo dice su comida («Fuera del plan · +150 kcal»). */}
+      {day && !hayPlan && <MacroCard day={day} />}
 
       {/* Un día pasado con comidas del plan sin decir: lo apuntado es un dato,
           pero no es el día entero, y el total no puede pasar por serlo. */}
       {notaPasado && <p className="food-sin-decir">{notaPasado}</p>}
 
-      {/* Sólo se pinta lo que pide algo: una regla cumplida no necesita
-          decirse, y una que hoy no aplica menos todavía. */}
-      <Veredictos verdicts={veredictos} rules={reglas} />
-
       {/* Una raya en un total se lee como "no comí nada de eso", que es lo
           contrario de lo que dice. Así que se explica en voz alta — y ahora se
           toca: filtra el día a esas entradas, que es lo único que se puede
           corregir. */}
-      {note && (
+      {note && !hayPlan && (
         <button
           type="button"
           className={`chip food-unknown-chip${onlyIncomplete ? ' is-active' : ''}`}
@@ -373,8 +380,11 @@ export default function Comida({ onTrain, abiertas = false }) {
               siempre, en el orden en que se comen, cada una con su banda de
               color. Una comida vacía también se dibuja —es por donde se entra a
               registrar en ella— y lleva dentro lo que el plan ponía, si algo. */}
-          <div className="food-diario">
-            {rails(day).map((rail) => (
+          {hayPlan && isToday && <p className="hoy-tudia">Tu día</p>}
+          <div className={`food-diario${hayPlan && isToday ? ' con-plan' : ''}`}>
+            {rails(day)
+              .filter((rail) => siguiente == null || rail.key !== siguiente)
+              .map((rail) => (
               <SlotCard
                 key={rail.key ?? 'sin-asignar'}
                 abierta0={abiertas}
@@ -403,10 +413,12 @@ export default function Comida({ onTrain, abiertas = false }) {
                   ) : null
                 }
                 previsto={rail.key && planHoy[rail.key] ? planHoy[rail.key].dish_name : null}
+                hecha={Boolean(rail.key && ['done', 'out'].includes(planHoy[rail.key]?.status))}
                 planComido={
                   rail.key && planHoy[rail.key] ? (
                     <PlanEnComida
                       compacto
+                      circulo
                       entrada={planHoy[rail.key]}
                       hoy={foodDayIso()}
                       platos={platos}
@@ -418,10 +430,16 @@ export default function Comida({ onTrain, abiertas = false }) {
               />
             ))}
           </div>
+          {/* Lo que no es ninguna de las cuatro comidas: un picoteo, un café.
+              Era el botón flotante «Añadir comida»; ahora va al pie del día,
+              porque lo normal se apunta desde su comida. */}
+          <button type="button" className="hoy-algo-mas" onClick={() => setAdding({ slot: null })}>
+            <span aria-hidden="true">+</span> Algo más, fuera de las comidas
+          </button>
           {/* El día que tienes delante no es el que estás viviendo: una entrada
               del diario se fecha por el instante en que la escribes. */}
           {pedirPeso && isToday && <PesoDeHoy />}
-          {!cumples && <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />}
+          {!hayPlan && <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />}
         </>
       )}
 
@@ -443,30 +461,9 @@ export default function Comida({ onTrain, abiertas = false }) {
           muchos resultados o necesita cámara, hoja para lo corto.
 
           Editar una entrada sí se queda en hoja: es un campo y dos botones. */}
-      {/* La acción de la pantalla, donde está el pulgar (DESIGN.md → Sistema
-          v2). Sin comida elegida: la pantalla de añadir la deduce de la hora,
-          igual que cuando se entra por el diario sin tocar una tarjeta. Se
-          esconde con cualquier hoja abierta, que ya es lo que estás haciendo. */}
-      {!adding && !editingEntry && !confirming && !summaryOpen && !voz && (
-        <>
-          {/* Dictar, al lado de añadir: el camino corto de la voz. La comida la
-              deduce la hora y se cambia en el modal (docs/registro-por-voz.md).
-              Sin modelo en el servidor no se dibuja: un micro que no puede
-              funcionar es peor que uno que no está. */}
-          {voiceOn && (
-            <button
-              type="button"
-              className="voz-fab"
-              aria-label="Dictar comida"
-              disabled={isKnownOffline()}
-              onClick={() => setVoz({ slot: null })}
-            >
-              <MicIcon />
-            </button>
-          )}
-          <Fab icon="+" label="Añadir comida" onClick={() => setAdding({ slot: null })} />
-        </>
-      )}
+      {/* Comida simple: sin botones flotantes. Se apunta desde la comida que
+          toca («Comido» / «Otra cosa»), desde su fila, o al pie del día; el
+          micro vive dentro de añadir. */}
 
       {voz && (
         <Voz
@@ -559,7 +556,6 @@ function kcalFuera(fuera, slot) {
 }
 
 const DIAS_LARGOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-const DIAS_CORTOS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
 // El día de la semana de un ISO, con el lunes en 0. En UTC: un `Date` local de
 // un `YYYY-MM-DD` es medianoche UTC, y en Madrid eso cae el día anterior.
@@ -574,62 +570,6 @@ function tituloDia(iso, hoy = foodDayIso()) {
   if (iso === hoy) return 'Hoy'
   if (iso === shiftDay(hoy, -1)) return 'Ayer'
   return DIAS_LARGOS[diaSemana(iso)]
-}
-
-/**
- * La semana del día que miras, en una tira: siete días a un toque, y las
- * flechas de los lados saltan de semana.
- *
- * Sustituye a las flechas de día en día. Volver al martes desde el viernes eran
- * tres toques y tres cargas por días que no querías ver; aquí es uno. Lo que no
- * ha llegado se ve pero no se toca: no se registra por adelantado.
- */
-function FranjaSemana({ dayIso, hoy, cuidados = [], onPick }) {
-  const lunes = lunesDe(dayIso)
-  const dias = Array.from({ length: 7 }, (_, i) => shiftDay(lunes, i))
-  const esLaDeHoy = lunes === lunesDe(hoy)
-  const siguiente = shiftDay(dayIso, 7)
-  return (
-    <nav className="food-week" aria-label="Elegir día">
-      <button
-        type="button"
-        className="food-week-step"
-        aria-label="Semana anterior"
-        onClick={() => onPick(shiftDay(dayIso, -7))}
-      >
-        ‹
-      </button>
-      {dias.map((iso, i) => (
-        <button
-          key={iso}
-          type="button"
-          className={`food-week-day${iso === dayIso ? ' is-on' : ''}${cuidados.includes(iso) ? ' is-cuidado' : ''}`}
-          aria-label={`${DIAS_LARGOS[i]} ${Number(iso.slice(8))}`}
-          // Un día cuidado (fase 7): dijiste lo que comiste o entrenaste. Se
-          // dice aparte del nombre, que es lo que el botón hace.
-          aria-description={cuidados.includes(iso) ? 'Día cuidado' : undefined}
-          aria-pressed={iso === dayIso}
-          disabled={iso > hoy}
-          onClick={() => onPick(iso)}
-        >
-          <span className="food-week-letter">{DIAS_CORTOS[i]}</span>
-          <span className="food-week-num">{Number(iso.slice(8))}</span>
-          <span className="food-week-cuidado" aria-hidden="true" />
-        </button>
-      ))}
-      {/* Hacia delante, el mismo día una semana después — o hoy, si esa semana
-          todavía no ha terminado de llegar. */}
-      <button
-        type="button"
-        className="food-week-step"
-        aria-label="Semana siguiente"
-        disabled={esLaDeHoy}
-        onClick={() => onPick(siguiente > hoy ? hoy : siguiente)}
-      >
-        ›
-      </button>
-    </nav>
-  )
 }
 
 // El asa de una hoja: 38×4 px, centrada, y nada más.
@@ -1029,6 +969,8 @@ function SlotCard({
   planComido = null,
   previsto = null,
   abierta0 = false,
+  // Dicha en el plan (comida o fuera): lleva su «✓» aunque no haya entradas.
+  hecha = false,
   cifras = true,
   fueraKcal = undefined,
 }) {
@@ -1080,11 +1022,11 @@ function SlotCard({
             </span>
           )}
         </button>
-        {planComido ? (
+        {planComido && !hecha ? (
           // Lo que pide elegir (ración de la olla, sitio) abre la fila.
           cloneElement(planComido, { onAbrir: () => setAbierta(true) })
         ) : (
-          !vacia && (
+          (!vacia || hecha) && (
             <span className="hoy-check" aria-label="Comido">
               ✓
             </span>

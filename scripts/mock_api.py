@@ -9,7 +9,9 @@ escenarios del backend.
 
 Datos, con «hoy» el día en que se arranca:
 - Plan de esta semana y de la anterior, con la cena de ayer y el desayuno de
-  anteayer sin decir, y el resto de días pasados dichos.
+  anteayer sin decir, y el resto de días pasados dichos. Cada plato pesa
+  662 g, y la comida de hoy gana hidrato por el entreno.
+- Días cuidados: cuatro de los seis días anteriores.
 - Lista de la compra de 35 artículos en 7 pasillos.
 - Revisión semanal pendiente, con el recuento del plan.
 - Una comida de fuera estimada en tres líneas, una por elegir.
@@ -86,7 +88,9 @@ def plan(semana):
             entradas.append({
                 "id": int(semana.strftime("%m%d")) * 100 + n, "log_date": dia.isoformat(),
                 "slot": slot, "dish_id": HUECOS.index(slot) + 1, "dish_name": PLATOS[slot],
-                "grams": [150], "items": [], "kcal": 500,
+                "grams": [150], "kcal": 500,
+                "items": [{"food_name": "Base", "grams": 400}, {"food_name": "Guarnición", "grams": 262}],
+                "carbs_shift": 30 if (dia == HOY and slot == "comida") else None,
                 "status": "done" if dicho else None, "log_entry_id": None,
             })
             if dia == HOY and slot == "cena":
@@ -162,6 +166,10 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, {"exercise_name": nombre, "found": True,
                                     "sets": [serie(0, 80, 10), serie(1, 82.5, 8), serie(2, 82.5, 8)],
                                     "best_by_reps": [{"reps": 8, "weight": 82.5}], "best_one_rm": 104})
+        if ruta == "/cared-days":
+            # Días cuidados (Hoy → los siete puntos): cuatro de los seis anteriores.
+            dias = [(HOY - timedelta(days=k)).isoformat() for k in (1, 2, 4, 5)]
+            return self._send(200, {"days": dias})
         if ruta == "/food-log":
             return self._send(200, dia_comida(query.removeprefix("date=")))
         if m := re.fullmatch(r"/plans/(\d{4}-\d\d-\d\d)/shopping", ruta):

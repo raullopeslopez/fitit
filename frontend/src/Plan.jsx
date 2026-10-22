@@ -16,7 +16,7 @@ import {
 } from './api.js'
 import { ListRow, Sheet } from './ui'
 import { frase } from './Reglas.jsx'
-import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure } from './food.js'
+import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure, slotLabel } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
 import { IdeasScreen, shortFoodName } from './Ideas.jsx'
 import { motivo as motivoIdeas } from './Dish.jsx'
@@ -356,6 +356,10 @@ export function PlanEnComida({
   // comida con `onAbrir`; el resto de opciones está desplegándola.
   compacto = false,
   onAbrir = () => {},
+  // Comida simple: el botón compacto en grande («Comido» de «Ahora») o como
+  // círculo a la izquierda de su fila, que se nombra con la comida.
+  className = 'hoy-comido',
+  circulo = false,
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -413,14 +417,16 @@ export function PlanEnComida({
       )
     }
     const directo = !olla && !entrada.place
+    const texto = entrada.place ? 'Confirmar' : 'Comido'
     return (
       <button
         type="button"
-        className="hoy-comido"
+        className={circulo ? 'hoy-circulo' : className}
+        aria-label={circulo ? `${texto}: ${slotLabel(entrada.slot)}` : undefined}
         disabled={busy}
         onClick={() => (directo ? marcar('done') : onAbrir())}
       >
-        {entrada.place ? 'Confirmar' : 'Comido'}
+        {!circulo && texto}
       </button>
     )
   }

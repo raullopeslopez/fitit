@@ -143,6 +143,14 @@ export const MEAL_SLOTS = [
   { key: 'snack', label: 'Snack' },
 ]
 
+// Lo que pesa una comida del plan, sumando sus ingredientes: es lo que se
+// sirve, no un nutriente. `null` si el plan no trae cantidades.
+export function planEntryAmountGrams(entrada) {
+  const items = entrada?.items ?? []
+  if (!items.length || items.some((i) => i.grams == null)) return null
+  return items.reduce((total, i) => total + i.grams, 0)
+}
+
 // Una entrada puede no llevar comida asignada — registrar algo no puede
 // obligarte a decidir cuándo lo comiste. Tiene grupo propio, al final.
 export function slotLabel(key) {
