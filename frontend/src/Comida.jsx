@@ -467,11 +467,17 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
         <Voz
           slot={voz.slot}
           dayIso={dayIso}
+          texto={voz.texto ?? null}
           onDone={async () => {
             setVoz(null)
             await afterWrite()
           }}
-          onClose={() => setVoz(null)}
+          onClose={() => {
+            // De una frase escrita se vuelve a añadir con la frase puesta, para
+            // corregirla («Cambiar la frase») o buscarla a mano.
+            if (voz.texto) setAdding({ slot: voz.slot, q: voz.texto })
+            setVoz(null)
+          }}
         />
       )}
 
@@ -496,6 +502,15 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           block={labelBlock}
           onBlocked={setLabelBlock}
           previsto={isToday && adding.slot ? (planHoy[adding.slot]?.dish_name ?? null) : null}
+          queryInicial={adding.q ?? ''}
+          onFrase={
+            voiceOn
+              ? (texto) => {
+                  setVoz({ slot: adding.slot, texto })
+                  setAdding(null)
+                }
+              : null
+          }
           onDone={afterWrite}
           // Rehacer el día desde la corrección reescribe entradas que ya están
           // pintadas, y no cierra la pantalla: estabas registrando algo cuando
@@ -1352,6 +1367,11 @@ function AddFood({
   onBlocked = () => {},
   // Comida simple: el plato del plan al que esto sustituye («en vez de …»).
   previsto = null,
+  // Fase 3: una frase escrita se apunta entera, pasando por «Revisa lo que
+  // entendí». `null` sin modelo en el servidor. `queryInicial` es lo escrito,
+  // de vuelta de esa revisión con «Cambiar la frase».
+  onFrase = null,
+  queryInicial = '',
   onDone,
   onDayChanged,
   onCancel,
@@ -1373,7 +1393,7 @@ function AddFood({
       vivo = false
     }
   }, [slot, isToday])
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(queryInicial)
   const [results, setResults] = useState([])
   // Si la búsqueda que corresponde a lo que hay escrito ya ha contestado. Sin
   // esto, los ~180 ms de rebote más lo que tarde la red se pintan iguales que
@@ -1774,7 +1794,7 @@ function AddFood({
             ref={field}
             aria-label="Buscar alimento"
             autoComplete="off"
-            placeholder="Buscar alimento"
+            placeholder={onFrase ? 'Busca, o escribe qué comiste' : 'Buscar alimento'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -1815,6 +1835,22 @@ function AddFood({
         {(results.length > 0 || term) && (
           <div className="card food-results-card">
             <ul className="food-results">
+              {/* Una frase («lentejas y un filete») se apunta entera: la IA la
+                  parte en alimentos y tú lo revisas antes de que entre. Una
+                  palabra sola es una búsqueda, no una frase. */}
+              {onFrase && term.split(/\s+/).length >= 2 && (
+                <li>
+                  <button type="button" className="food-frase" onClick={() => onFrase(term)}>
+                    <span className="food-result-main">
+                      <span className="food-result-name">Apuntar lo que has escrito</span>
+                      <span className="food-result-meta">Lo separo en alimentos y calculo los gramos</span>
+                    </span>
+                    <span className="food-frase-chev" aria-hidden="true">
+                      ›
+                    </span>
+                  </button>
+                </li>
+              )}
               {results.map((food) => (
                 <li key={food.id}>
                   <button

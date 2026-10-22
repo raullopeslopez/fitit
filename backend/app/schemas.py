@@ -1455,6 +1455,12 @@ class VoiceEntryIn(BaseModel):
         return self
 
 
+class VoiceTextIn(BaseModel):
+    """Una frase escrita en vez de dicha («Apuntar lo que has escrito»)."""
+
+    text: str = Field(min_length=1, max_length=500)
+
+
 class VoiceBatchIn(BaseModel):
     """Todo lo del modal, de una vez: o entra todo o no entra nada."""
 

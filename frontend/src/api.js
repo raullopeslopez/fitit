@@ -311,6 +311,12 @@ export function hearVoice(audio) {
   return apiFetch('/food-log/voice', { method: 'POST', body: form })
 }
 
+// Una frase escrita → las mismas líneas que la voz, sin pasar por el oído
+// (comida simple, «Apuntar lo que has escrito»). Tampoco guarda nada.
+export function readText(text) {
+  return apiFetch('/food-log/text', { method: 'POST', body: JSON.stringify({ text }) })
+}
+
 // Lo confirmado en el modal de la voz, todo de una vez: o entra todo o nada.
 export function logVoice({ entries, mealSlot = null, loggedAt = null }) {
   return apiFetch('/food-log/batch', {

@@ -10,7 +10,7 @@ from app.gemini import LabelUnreadable, VoiceUnavailable
 from app.main import app
 from app.models import Food, LogEntry, User
 from app.naming import fold_exercise_name
-from app.routers.food_log import get_voice_reader
+from app.routers.food_log import get_text_reader, get_voice_reader
 
 scenarios("../features/voice_logging.feature")
 
@@ -221,6 +221,32 @@ def _send(client, ctx, audio):
     ctx["response"] = client.post(
         "/food-log/voice", files={"audio": ("nota.webm", audio, "audio/webm")}
     )
+    if ctx["response"].status_code == 200:
+        ctx["voice"] = ctx["response"].json()
+
+
+def _text_reader(ctx):
+    kind = ctx["reader"]
+    if kind is None:
+        return None
+
+    async def reader(text: str) -> dict:
+        assert text, "la frase llega al modelo"
+        if kind == "quota":
+            raise LabelUnreadable("429", quota="day")
+        if kind == "busy":
+            raise LabelUnreadable("503", detail="503")
+        if kind == "nothing":
+            return {"lines": []}
+        return {"lines": ctx["heard"]}
+
+    return reader
+
+
+@when(parsers.re(r'I write "(?P<text>[^"]*)"'))
+def when_write(client, ctx, text):
+    app.dependency_overrides[get_text_reader] = lambda: _text_reader(ctx)
+    ctx["response"] = client.post("/food-log/text", json={"text": text})
     if ctx["response"].status_code == 200:
         ctx["voice"] = ctx["response"].json()
 

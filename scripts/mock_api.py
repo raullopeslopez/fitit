@@ -231,6 +231,18 @@ class H(BaseHTTPRequestHandler):
         # Una subida (PDF) llega en multipart: no es JSON y no se lee.
         es_json = "json" in (self.headers.get("Content-Type") or "")
         body = json.loads(crudo or b"{}") if es_json else {}
+        if self.path == "/food-log/text":
+            # «Apuntar lo que has escrito»: tarda 2,5 s para poder ver la espera.
+            import time
+            time.sleep(2.5)
+            linea = lambda t, i, n, g: {"text": t, "status": "chosen", "food": {"id": i, "name": n},
+                                        "candidates": [], "grams": g, "measure": None,
+                                        "measure_count": None, "estimated": True, "unit_question": None}
+            return self._send(200, {"transcript": body.get("text"), "refusal": None, "lines": [
+                linea("lentejas", 1, "Lentejas estofadas", 350),
+                linea("un filete", 2, "Filete de ternera a la plancha", 150),
+                linea("patatas", 3, "Patatas fritas", 120),
+                linea("aceite", 4, "Aceite de oliva", 15)]})
         if self.path == "/plans/out/estimate":
             return self._send(200, {"refusal": None, "lines": [
                 {"text": "250 g lentejas estofadas", "quantity": 250, "unit": "g", "recipe_grams": 250,

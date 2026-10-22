@@ -148,3 +148,28 @@ Feature: Logging food by voice
     When I log by voice 80 g of "Pan" and 50 g of a food that does not exist
     Then the answer is 404
     And my diary has 2 entries
+
+  # --- Written instead of said (comida simple, «Apuntar lo que has escrito») ---
+
+  Scenario: A written sentence comes back as lines, and nothing is saved
+    Given a food "Huevo" I have logged at 60 g three times
+    And the model hears "un huevo" as 1 "unidad" of "huevo"
+    When I write "un huevo"
+    Then the transcript is "un huevo"
+    And there is 1 line
+    And my diary has 3 entries
+
+  Scenario: Without a model key, writing a sentence is not available either
+    Given there is no model key
+    When I write "un huevo"
+    Then the answer is 503
+
+  Scenario: Written, but the model is saturated
+    Given the model is saturated
+    When I write "dos huevos"
+    Then the refusal is "busy"
+    And the transcript is "dos huevos"
+
+  Scenario: An empty sentence is not sent to the model
+    When I write ""
+    Then the answer is 422

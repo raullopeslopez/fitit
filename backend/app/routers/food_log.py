@@ -49,7 +49,7 @@ from ..serialization import to_entry_out
 from ..dish_draft import candidate_foods
 from ..gemini import LabelUnreadable, VoiceUnavailable, read_voice, read_voice_text
 from ..groq import transcribe
-from ..schemas import DraftFoodOut, VoiceBatchIn, VoiceLineOut, VoiceOut
+from ..schemas import DraftFoodOut, VoiceBatchIn, VoiceLineOut, VoiceOut, VoiceTextIn
 from ..voice import Habit, parse_heard, voice_lines
 from .foods import FREQUENT_WINDOW_DAYS, _most_repeated
 from .ideas import ideas_available
@@ -174,6 +174,58 @@ async def get_voice_reader():
     return reader
 
 
+async def get_text_reader():
+    """Quien lee una frase escrita, o `None` si no hay clave (comida simple,
+    «Apuntar lo que has escrito»). Es la segunda mitad de la voz: lo escrito no
+    pasa por Whisper, va directo a quien parte la frase en líneas."""
+    key = settings.gemini_api_key.get_secret_value()
+    if not key:
+        return None
+    fallback = settings.gemini_fallback_model or None
+
+    async def reader(text: str) -> dict:
+        return await read_voice_text(text, api_key=key, model=settings.gemini_model, fallback=fallback)
+
+    return reader
+
+
+@router.post("/text", response_model=VoiceOut)
+async def read_text(
+    payload: VoiceTextIn,
+    reader=Depends(get_text_reader),
+    user_id: int = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> VoiceOut:
+    """Una frase escrita, en líneas casadas con tus alimentos. Igual que la voz,
+    **no guarda nada**: lo leído pasa por «Revisa lo que entendí» (CLAUDE.md:
+    las cifras de un dato interpretado se revisan antes de entrar)."""
+    started = perf_counter()
+    text = payload.text.strip()
+
+    def note(outcome: str, **fields) -> None:
+        parts = " ".join(f"{k}={v}" for k, v in fields.items() if v not in (None, ""))
+        elapsed = round((perf_counter() - started) * 1000)
+        log.info("text read: outcome=%s ms=%d %s", outcome, elapsed, parts)
+
+    if reader is None:
+        note("not_configured")
+        raise HTTPException(status_code=503, detail="la lectura de frases no está configurada")
+    try:
+        crudo = await reader(text)
+    except LabelUnreadable as exc:
+        if exc.quota:
+            note("quota", scope=exc.quota, detail=exc.detail)
+            return VoiceOut(transcript=text, refusal="quota", quota_scope=exc.quota)
+        if (exc.detail or "").startswith("5"):
+            note("busy", detail=exc.detail)
+            return VoiceOut(transcript=text, refusal="busy")
+        note("unreadable", detail=exc.detail)
+        return VoiceOut(transcript=text, refusal="unreadable")
+    # Lo escrito es lo tuyo: que el modelo no lo reescriba.
+    crudo = {**(crudo if isinstance(crudo, dict) else {}), "transcript": text}
+    return await _voice_out(session, user_id, crudo, note)
+
+
 @router.post("/voice", response_model=VoiceOut)
 async def hear(
     audio: UploadFile = File(...),
@@ -218,9 +270,15 @@ async def hear(
             return VoiceOut(transcript=heard_text, refusal="busy")
         note("unreadable", kb=kb, mime=mime, heard=bool(heard_text), detail=exc.detail)
         return VoiceOut(transcript=heard_text, refusal="unreadable")
+    return await _voice_out(session, user_id, crudo, note, kb=kb, mime=mime)
+
+
+async def _voice_out(session: AsyncSession, user_id: int, crudo, note, **campos) -> VoiceOut:
+    """Lo oído (o escrito), casado con tus alimentos: lo mismo para la voz y
+    para la frase, que sólo se distinguen en cómo llega el texto."""
     transcript, heard = parse_heard(crudo)
     if not heard:
-        note("nothing_heard", kb=kb, mime=mime)
+        note("nothing_heard", **campos)
         return VoiceOut(transcript=transcript, refusal="unreadable")
 
     foods = await candidate_foods(session, user_id, [h.name for h in heard])
@@ -228,7 +286,7 @@ async def hear(
     lines = voice_lines(heard, foods, user_id, habits)
     note(
         "ok",
-        kb=kb,
+        **campos,
         lines=len(lines),
         chosen=sum(1 for line in lines if line.status == "chosen"),
         ambiguous=sum(1 for line in lines if line.status == "ambiguous"),

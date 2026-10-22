@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { addMyPortion, hearVoice, logVoice, searchFoods } from './api.js'
+import { addMyPortion, hearVoice, logVoice, readText, searchFoods } from './api.js'
+import EsperaIA from './EsperaIA.jsx'
 import { MEAL_SLOTS, formatAmount, inferMealSlot, measureLabel, momentForDay } from './food.js'
 import { startRecording } from './platform/recorder.js'
 
@@ -54,9 +55,20 @@ function resuelta(l) {
  * que contesta lo que oyó y las líneas casadas con tus alimentos; nada se
  * guarda hasta «Apuntar», y «Apuntar» no se deja tocar con algo sin resolver.
  */
+// Lo que el servidor hace con una frase, en su orden: lo que dice la espera.
+const PASOS = ['Separando en alimentos…', 'Buscando en tus platos…', 'Calculando gramos…']
+
+// Lo mínimo que se ve la espera una vez aparece (400 ms de retraso + 600 ms):
+// menos que eso es un destello, y un destello se lee como un fallo.
+const ESPERA_MINIMA = 1000
+
 export default function Voz({
   slot = null,
   dayIso,
+  // Comida simple, «Apuntar lo que has escrito»: con `texto`, no se graba
+  // nada; la frase va directa a leerse y la revisión se llama «lo que entendí».
+  texto = null,
+  leer = readText,
   grabar = startRecording,
   oir = hearVoice,
   apuntar = logVoice,
@@ -65,7 +77,7 @@ export default function Voz({
   onDone,
   onClose,
 }) {
-  const [fase, setFase] = useState('escuchando')
+  const [fase, setFase] = useState(texto ? 'entendiendo' : 'escuchando')
   const [ms, setMs] = useState(0)
   const [oido, setOido] = useState([])
   const [lineas, setLineas] = useState([])
@@ -105,12 +117,37 @@ export default function Voz({
     setFase('revisar')
   }
 
+  async function entender() {
+    setError(null)
+    setFase('entendiendo')
+    const inicio = Date.now()
+    let respuesta = null
+    try {
+      respuesta = await leer(texto)
+    } catch (err) {
+      respuesta = { refusal: err?.status === 503 ? 'off' : 'unreadable' }
+    }
+    // Si la espera llegó a verse, que se vea entera (ver ESPERA_MINIMA).
+    const pasado = Date.now() - inicio
+    if (pasado > 400 && pasado < ESPERA_MINIMA) {
+      await new Promise((r) => setTimeout(r, ESPERA_MINIMA - pasado))
+    }
+    if (respuesta?.refusal || !(respuesta?.lines ?? []).length) {
+      setError(respuesta?.refusal === 'off' ? 'Leer frases no está disponible. Búscalo arriba.' : porQueNo(respuesta))
+    } else {
+      setLineas(respuesta.lines.map(nueva))
+    }
+    setFase('revisar')
+  }
+
   // Se abre grabando: es lo que pediste al tocar el micro. El ref evita la
-  // segunda grabación del doble montaje de StrictMode.
+  // segunda grabación del doble montaje de StrictMode. Con una frase escrita,
+  // se abre leyéndola.
   useEffect(() => {
     if (empezado.current) return
     empezado.current = true
-    escuchar()
+    if (texto) entender()
+    else escuchar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -157,7 +194,9 @@ export default function Voz({
 
   const pendientes = lineas.filter((l) => !resuelta(l)).length
 
-  if (fase !== 'revisar') {
+  const titulo = texto ? 'Revisa lo que entendí' : 'Revisa lo que has dicho'
+
+  if (fase !== 'revisar' && !texto) {
     return (
       <div className="voz-grabando" role="status" aria-live="polite">
         {fase === 'escuchando' ? (
@@ -176,15 +215,21 @@ export default function Voz({
   }
 
   return (
-    <div className="food-screen" role="dialog" aria-modal="true" aria-label="Revisa lo que has dicho">
+    <div className="food-screen" role="dialog" aria-modal="true" aria-label={titulo}>
       <header className="food-screen-head">
-        <h2 className="food-screen-title">Revisa lo que has dicho</h2>
+        <h2 className="food-screen-title">{titulo}</h2>
         <button type="button" className="link-btn" onClick={onClose} disabled={busy}>
           Cancelar
         </button>
       </header>
       <div className="food-screen-body voz-body">
-        {oido.length > 0 && <p className="voz-oido">Has oído: {oido.join(', ')}</p>}
+        {texto ? (
+          <p className="voz-oido">«{texto}»</p>
+        ) : (
+          oido.length > 0 && <p className="voz-oido">Has oído: {oido.join(', ')}</p>
+        )}
+
+        {fase === 'entendiendo' && <EsperaIA pasos={PASOS} onRendirse={onClose} />}
 
         {lineas.length > 0 && (
           <div className="food-slots" role="group" aria-label="Comida">
@@ -203,9 +248,10 @@ export default function Voz({
         )}
 
         <ul className="voz-lineas">
-          {lineas.map((l) => (
+          {lineas.map((l, i) => (
             <Linea
               key={l.key}
+              orden={i}
               linea={l}
               onCambio={(cambio) => cambiar(l.key, cambio)}
               onQuitar={() => setLineas((ls) => ls.filter((x) => x.key !== l.key))}
@@ -218,9 +264,15 @@ export default function Voz({
         {error && <p className="alert">{error}</p>}
 
         <div className="voz-acciones">
-          <button type="button" className="link-btn" onClick={escuchar} disabled={busy}>
-            {lineas.length ? 'Seguir hablando' : 'Probar otra vez'}
-          </button>
+          {texto ? (
+            <button type="button" className="link-btn" onClick={onClose} disabled={busy}>
+              Cambiar la frase
+            </button>
+          ) : (
+            <button type="button" className="link-btn" onClick={escuchar} disabled={busy}>
+              {lineas.length ? 'Seguir hablando' : 'Probar otra vez'}
+            </button>
+          )}
           {lineas.length > 0 && (
             <button
               type="button"
@@ -230,9 +282,11 @@ export default function Voz({
             >
               {pendientes > 0
                 ? `Falta elegir ${pendientes}`
-                : lineas.length === 1
-                  ? 'Apuntar'
-                  : `Apuntar las ${lineas.length}`}
+                : texto
+                  ? `Apuntar · ${lineas.length} ${lineas.length === 1 ? 'cosa' : 'cosas'}`
+                  : lineas.length === 1
+                    ? 'Apuntar'
+                    : `Apuntar las ${lineas.length}`}
             </button>
           )}
         </div>
@@ -241,10 +295,11 @@ export default function Voz({
   )
 }
 
-function Linea({ linea: l, onCambio, onQuitar, onBuscar, onTeclear }) {
+function Linea({ linea: l, orden = 0, onCambio, onQuitar, onBuscar, onTeclear }) {
   const elegir = (food) => onCambio({ food, status: 'chosen', buscando: null })
   return (
-    <li className="voz-linea">
+    // Llegan una tras otra, 90 ms entre ellas (lienzo «Mientras piensa»).
+    <li className="voz-linea is-llega" style={{ animationDelay: `${orden * 90}ms` }}>
       <div className="voz-linea-cabeza">
         {l.food ? (
           <span className="voz-linea-nombre">{l.food.name}</span>
