@@ -18,7 +18,7 @@ import { ListRow, Sheet } from './ui'
 import { frase } from './Reglas.jsx'
 import { foodDayIso, formatAmount, formatMacro, momentForDay, recipeMeasure, slotLabel } from './food.js'
 import Fuera, { rotuloSitio } from './Fuera.jsx'
-import { IdeasScreen, shortFoodName } from './Ideas.jsx'
+import EsperaIA from './EsperaIA.jsx'
 import { motivo as motivoIdeas } from './Dish.jsx'
 
 const leerTusSitios = () => listDishes('', 'fuera')
@@ -1000,6 +1000,9 @@ function SinComida({ platos, onPlatos }) {
 // Cambiar un plato de un día que no ha llegado. **No es «Lo cambié»**: aquel es
 // «hoy comí otra cosa» y escribe el diario; esto cambia lo que el plan dice que
 // vas a comer, y la fila sigue por confirmar (`replanEntry`).
+// «Lo que sueles cenar»: el verbo de cada comida, para la espera.
+const VERBO_COMIDA = { desayuno: 'desayunar', comida: 'comer', cena: 'cenar', snack: 'tomar de snack' }
+
 export function CambiarPlato({
   entrada,
   dia,
@@ -1017,8 +1020,6 @@ export function CambiarPlato({
   onCambiado,
 }) {
   const [sitios, setSitios] = useState([])
-  // El ingrediente cuyas ideas se están mirando, o `null`.
-  const [ideasDe, setIdeasDe] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [quitado, setQuitado] = useState(false)
@@ -1026,7 +1027,6 @@ export function CambiarPlato({
   const [propuestas, setPropuestas] = useState(null)
   const [pensando, setPensando] = useState(false)
   const [sinIdeas, setSinIdeas] = useState(null)
-  const [vetadas, setVetadas] = useState([])
   const slot = entrada.slot
   const otros = candidatos(platos, slot, entrada.dish_id)
 
@@ -1097,113 +1097,25 @@ export function CambiarPlato({
     }
   }
 
-  async function vetar(id, deshacer = false) {
-    setError(null)
-    try {
-      if (deshacer) await noAqui(id, slot, true)
-      else await noAqui(id, slot)
-      setVetadas((v) => (deshacer ? v.filter((x) => x !== id) : [...v, id]))
-      await onPlatosChanged()
-    } catch {
-      setError('No se ha podido guardar.')
-    }
-  }
-
-  // Reorganización del 17 oct: las ideas vivían en el detalle de un alimento,
-  // en Comida, y desde allí se planificaba. Planificar es de Plan, así que salen
-  // aquí, de cada ingrediente del plato que estás cambiando — una vez cada uno.
-  const ingredientes = ideas
-    ? (plato?.ingredients ?? []).filter(
-        (ing, i, todos) => todos.findIndex((otro) => otro.food_id === ing.food_id) === i,
-      )
-    : []
-
-  // Las ideas tapan la hoja; al cerrarlas, la hoja sigue como estaba. Poner
-  // una en el plan cambia la semana que hay debajo.
-  if (ideasDe) {
-    return <IdeasScreen food={ideasDe} onClose={() => setIdeasDe(null)} onPlanChanged={onCambiado} />
-  }
-
+  // Comida simple, fase 5 (lienzo fila 5): la hoja es elegir. Las tuyas, de
+  // un toque; tres nuevas si las pides, con su espera, y «Probar» pone una. Lo
+  // demás —un sitio fuera, «no en las cenas»— va al pie, en pequeño.
   return (
-    <Sheet open title="Cambiar este plato" onClose={onClose}>
+    <Sheet open title={`Cambiar ${CON_ARTICULO[slot] ?? slot}`} onClose={onClose}>
       <p className="card-eyebrow">{`${dia} · ${NOMBRE[slot] ?? slot}`}</p>
+      <p className="cambiar-ahora">{`Ahora: ${entrada.dish_name}`}</p>
 
-      <div className="plan-propuesto">
-        <span className="card-eyebrow">Propuesto</span>
-        <span className="plan-propuesto-nombre">{entrada.dish_name}</span>
-        {entrada.kcal != null && <span className="plan-kcal">{`${formatMacro(entrada.kcal)} kcal`}</span>}
-        <Ingredientes items={entrada.items} />
-        <BarraMacros macros={entrada} />
-      </div>
-
-      {/* Fase 6: ideas para esta comida, variando lo que ya comes en ella. */}
-      {propuestas === null ? (
-        <button type="button" className="secondary plan-pedir-ideas" disabled={pensando || busy} onClick={pedirIdeas}>
-          {pensando ? 'Pensando…' : `Ideas para ${CON_ARTICULO[slot] ?? slot}`}
-        </button>
-      ) : (
-        propuestas.length > 0 && (
-          <>
-            <p className="card-eyebrow">Propuesta</p>
-            <ul className="plan-otros plan-propuestas">
-              {propuestas.map((p) => (
-                <li key={p.id}>
-                  {vetadas.includes(p.id) ? (
-                    <p className="plan-vetada">
-                      <span>{`No volverá en ${EN_PLURAL[slot]}.`}</span>
-                      <button type="button" className="link-btn" onClick={() => vetar(p.id, true)}>
-                        Deshacer
-                      </button>
-                    </p>
-                  ) : (
-                    <div className="plan-propuesta">
-                      <span className="plan-otro-nombre">
-                        {p.name}
-                        <Ingredientes items={racion(p)} />
-                      </span>
-                      <BarraMacros macros={p.per_serving} fina />
-                      <span className="plan-propuesta-acciones">
-                        <button
-                          type="button"
-                          className="primary"
-                          aria-label={`Elegir ${p.name}`}
-                          disabled={busy}
-                          onClick={() => elegir(p)}
-                        >
-                          Elegir
-                        </button>
-                        <button
-                          type="button"
-                          className="link-btn"
-                          aria-label={`Aquí no: ${p.name}`}
-                          disabled={busy}
-                          onClick={() => vetar(p.id)}
-                        >
-                          Aquí no
-                        </button>
-                      </span>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
-        )
-      )}
-      {sinIdeas && <p className="hint">{sinIdeas}</p>}
-
-      <p className="card-eyebrow">{`Otros platos de ${(NOMBRE[slot] ?? slot).toLowerCase()}`}</p>
+      <h3 className="cambiar-seccion" id="cambiar-tuyas">
+        Tuyas
+      </h3>
       {otros.length === 0 ? (
         <p className="hint">No tienes otro plato para esta comida.</p>
       ) : (
-        <ul className="plan-otros">
+        <ul className="cambiar-lista" aria-labelledby="cambiar-tuyas">
           {otros.map((otro) => (
             <li key={otro.id}>
-              <button type="button" className="plan-otro" disabled={busy} onClick={() => elegir(otro)}>
-                <span className="plan-otro-nombre">
-                  {otro.name}
-                  <Ingredientes items={racion(otro)} />
-                </span>
+              <button type="button" className="cambiar-fila" disabled={busy} onClick={() => elegir(otro)}>
+                <span className="cambiar-fila-nombre">{otro.name}</span>
                 {otro.per_serving?.kcal != null && (
                   <span className="plan-kcal">{`${formatMacro(otro.per_serving.kcal)} kcal`}</span>
                 )}
@@ -1212,30 +1124,53 @@ export function CambiarPlato({
           ))}
         </ul>
       )}
-      {/* Lo de casa no reajusta el día; un sitio sí (abajo). Por eso cada
-          pista va con lo suyo. */}
-      {otros.length > 0 && (
-        <p className="hint">{`Sólo cambia el ${dia.toLowerCase()}. El resto del día no se reajusta.`}</p>
-      )}
 
-      {ingredientes.length > 0 && (
-        <>
-          <p className="card-eyebrow">Ideas con</p>
-          <div className="plan-ideas">
-            {ingredientes.map((ing) => (
+      <div className="cambiar-nuevas-head">
+        <h3 className="cambiar-seccion" id="cambiar-nuevas">
+          Nuevas para ti
+        </h3>
+        {propuestas?.length > 0 && !pensando && (
+          <button type="button" className="link-btn cambiar-otras" disabled={busy} onClick={pedirIdeas}>
+            Otras tres
+          </button>
+        )}
+      </div>
+      {pensando ? (
+        <EsperaIA
+          pasos={[`Mirando lo que sueles ${VERBO_COMIDA[slot] ?? 'comer'}…`, 'Pensando platos…', 'Calculando gramos…']}
+          filas={3}
+          retraso={0}
+        />
+      ) : propuestas?.length > 0 ? (
+        <ul className="cambiar-lista" aria-labelledby="cambiar-nuevas">
+          {propuestas.map((p, i) => (
+            <li key={p.id} className="cambiar-nueva is-llega" style={{ animationDelay: `${i * 90}ms` }}>
+              <span className="cambiar-fila-nombre is-titular">
+                {p.name}
+                <Ingredientes items={racion(p)} />
+              </span>
               <button
-                key={ing.food_id}
                 type="button"
-                className="chip"
+                className="cambiar-probar"
+                aria-label={`Probar ${p.name}`}
                 disabled={busy}
-                onClick={() => setIdeasDe({ id: ing.food_id, name: ing.food_name })}
+                onClick={() => elegir(p)}
               >
-                {shortFoodName(ing.food_name)}
+                Probar
               </button>
-            ))}
-          </div>
-        </>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <button type="button" className="secondary cambiar-pedir" disabled={busy} onClick={pedirIdeas}>
+          Proponme algo nuevo
+        </button>
       )}
+      {sinIdeas && <p className="hint">{sinIdeas}</p>}
+
+      <p className="hint cambiar-pie">
+        Toca uno y queda cambiado. Las cantidades se ajustan solas a tu objetivo.
+      </p>
 
       {sitios.length > 0 && (
         <>
@@ -1253,18 +1188,14 @@ export function CambiarPlato({
         </>
       )}
 
-      {(puedeQuitar || quitado) && (
-        <>
-          <p className="card-eyebrow">Para que no vuelva a pasar</p>
-          {quitado ? (
-            <p className="plan-quitado">{`Ya no saldrá en ${EN_PLURAL[slot]}. Elige por cuál cambiarlo.`}</p>
-          ) : (
-            <button type="button" className="secondary plan-quitar" disabled={busy} onClick={quitar}>
-              {`No en ${EN_PLURAL[slot]}`}
-            </button>
-          )}
-        </>
-      )}
+      {(puedeQuitar || quitado) &&
+        (quitado ? (
+          <p className="plan-quitado">{`Ya no saldrá en ${EN_PLURAL[slot]}. Elige por cuál cambiarlo.`}</p>
+        ) : (
+          <button type="button" className="link-btn plan-quitar" disabled={busy} onClick={quitar}>
+            {`No en ${EN_PLURAL[slot]}`}
+          </button>
+        ))}
 
       {error && <p className="alert">{error}</p>}
     </Sheet>

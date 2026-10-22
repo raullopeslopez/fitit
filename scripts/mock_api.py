@@ -243,6 +243,15 @@ class H(BaseHTTPRequestHandler):
                 linea("un filete", 2, "Filete de ternera a la plancha", 150),
                 linea("patatas", 3, "Patatas fritas", 120),
                 linea("aceite", 4, "Aceite de oliva", 15)]})
+        if self.path == "/dishes/generate":
+            # «Proponme algo nuevo»: tres platos, tardando 2,5 s para ver la espera.
+            import time
+            time.sleep(2.5)
+            nombres = ["Salmón al horno con boniato y brócoli", "Revuelto de claras con pavo y espinacas",
+                       "Pollo al curry suave con arroz"]
+            return self._send(200, {"created": [{"id": 300 + i, "name": n, "servings": 1, "slots": [body.get("slot")],
+                                                 "ingredients": [], "per_serving": {"kcal": 500}}
+                                                for i, n in enumerate(nombres)]})
         if self.path == "/plans/out/estimate":
             return self._send(200, {"refusal": None, "lines": [
                 {"text": "250 g lentejas estofadas", "quantity": 250, "unit": "g", "recipe_grams": 250,

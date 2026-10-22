@@ -544,151 +544,29 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
   it('tocar un plato abre la hoja con los otros platos que caben en ese hueco', async () => {
     pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+    const hoja = screen.getByRole('dialog', { name: /^Cambiar (el|la) / })
     expect(hoja).toHaveTextContent('Lunes · Desayuno')
-    expect(hoja).toHaveTextContent('Otros platos de desayuno')
+    // Comida simple: tus otros platos de esa comida van en «Tuyas».
+    expect(hoja).toHaveTextContent('Tuyas')
     // Avena (sólo desayuno) y Tostadas (cualquiera) caben; el pollo no, y las
     // lentejas son las que ya estaban.
     expect(within(hoja).getByRole('button', { name: /Avena con yogur/ })).toBeInTheDocument()
     expect(within(hoja).getByRole('button', { name: /Tostadas con huevo/ })).toBeInTheDocument()
     expect(within(hoja).queryByRole('button', { name: /Pollo al curry/ })).not.toBeInTheDocument()
-    expect(hoja).toHaveTextContent('Sólo cambia el lunes. El resto del día no se reajusta.')
-  })
-
-  it('la hoja dice los gramos de lo propuesto y de una ración de cada alternativa', async () => {
-    pintar({
-      plan: {
-        ...SEMANA,
-        entries: [
-          { ...SEMANA.entries[0], items: [{ food_name: 'Lentejas, crudas', grams: 70 }] },
-          SEMANA.entries[1],
-        ],
-      },
-      platos: [
-        PLATOS[0],
-        {
-          ...PLATOS[2],
-          servings: 2,
-          ingredients: [
-            { food_name: 'Avena, copos', grams: 120 },
-            { food_name: 'Yogur natural', grams: 250 },
-          ],
-        },
-      ],
-    })
-    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-    const lineas = within(hoja).getAllByLabelText('Ingredientes')
-    expect(lineas[0]).toHaveTextContent('Lentejas 70 g')
-    // Lo que el plan pondría si lo eliges: una ración de la receta.
-    // 60 g es justo el tope de las cucharadas (docs/medidas-caseras.md).
-    expect(lineas[1]).toHaveTextContent('Avena 60 g ≈ 4 cdas · Yogur natural 125 g')
+    expect(hoja).toHaveTextContent('Toca uno y queda cambiado.')
   })
 
   // Reorganización del 17 oct: planificar vive en Plan. Las ideas que antes
   // salían del detalle de un alimento en Comida salen aquí, de cada ingrediente
   // del plato que se está cambiando.
-  describe('ideas, desde el plato que cambias', () => {
-    const CON_INGREDIENTES = [
-      {
-        ...PLATOS[0],
-        ingredients: [
-          { food_id: 31, food_name: 'Lentejas, crudas', grams: 70 },
-          { food_id: 32, food_name: 'Chorizo', grams: 30 },
-          { food_id: 31, food_name: 'Lentejas, crudas', grams: 10 },
-        ],
-      },
-      ...PLATOS.slice(1),
-    ]
-
-    it('ofrece ideas con cada ingrediente, una vez cada uno', async () => {
-      pintar({ plan: { ...SEMANA, dish_ideas: true }, platos: CON_INGREDIENTES })
-      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-      expect(hoja).toHaveTextContent('Ideas con')
-      expect(within(hoja).getAllByRole('button', { name: 'lentejas' })).toHaveLength(1)
-      await userEvent.click(within(hoja).getByRole('button', { name: 'chorizo' }))
-      expect(await screen.findByRole('dialog', { name: 'Ideas con chorizo' })).toBeInTheDocument()
-    })
-
-    it('sin ideas en el servidor no las ofrece', async () => {
-      pintar({ plan: { ...SEMANA, dish_ideas: false }, platos: CON_INGREDIENTES })
-      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-      expect(hoja).not.toHaveTextContent('Ideas con')
-    })
-  })
-
   // Fase 6: la hoja dice de qué está hecho lo propuesto, sin tabla.
-  it('lo propuesto lleva su barra de proteína, hidrato y grasa', async () => {
-    pintar({
-      plan: {
-        ...SEMANA,
-        entries: [{ ...SEMANA.entries[0], protein: 45, carbs: 75, fat: 15 }, SEMANA.entries[1]],
-      },
-    })
-    await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-    expect(within(hoja).getByRole('img', { name: 'Proteína 45 g, hidrato 75 g, grasa 15 g' })).toBeInTheDocument()
-  })
-
-  describe('ideas para esa comida (fase 6)', () => {
-    const NUEVO = {
-      id: 40,
-      name: 'Tortitas de avena y claras',
-      slots: ['desayuno'],
-      per_serving: { kcal: 450, protein: 46, carbs: 78, fat: 13 },
-      ingredients: [{ food_name: 'Huevo, clara, cruda', grams: 132 }],
-    }
-
-    it('pide ideas para esa comida y las ofrece para elegir', async () => {
-      const props = pintar({
-        proponer: vi.fn().mockResolvedValue({ created: [NUEVO], suggestions: [], discarded: [] }),
-      })
-      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Ideas para el desayuno' }))
-      expect(props.proponer).toHaveBeenCalledWith({ slot: 'desayuno', n: 3 })
-      expect(await within(hoja).findByText('Tortitas de avena y claras')).toBeInTheDocument()
-      expect(within(hoja).getByText('Propuesta')).toBeInTheDocument()
-      expect(within(hoja).getByRole('img', { name: 'Proteína 46 g, hidrato 78 g, grasa 13 g' })).toBeInTheDocument()
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Elegir Tortitas de avena y claras' }))
-      await waitFor(() => expect(props.replanear).toHaveBeenCalledWith(11, 40, LUNES))
-    })
-
-    it('«Aquí no» en una idea la quita de esa comida, y se puede deshacer', async () => {
-      const props = pintar({
-        proponer: vi.fn().mockResolvedValue({ created: [NUEVO], suggestions: [], discarded: [] }),
-      })
-      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Ideas para el desayuno' }))
-      await userEvent.click(await within(hoja).findByRole('button', { name: 'Aquí no: Tortitas de avena y claras' }))
-      await waitFor(() => expect(props.noAqui).toHaveBeenCalledWith(40, 'desayuno'))
-      expect(await within(hoja).findByText('No volverá en desayunos.')).toBeInTheDocument()
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Deshacer' }))
-      await waitFor(() => expect(props.noAqui).toHaveBeenCalledWith(40, 'desayuno', true))
-      expect(await within(hoja).findByText('Tortitas de avena y claras')).toBeInTheDocument()
-    })
-
-    it('si no sale nada, dice por qué', async () => {
-      pintar({
-        proponer: vi.fn().mockResolvedValue({ created: [], suggestions: [], discarded: [], refusal: 'quota', quota_scope: 'day' }),
-      })
-      await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-      const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Ideas para el desayuno' }))
-      expect(await within(hoja).findByText('Se ha agotado la cuota de hoy. Vuelve mañana.')).toBeInTheDocument()
-    })
-  })
-
   it('elegir otro plato lo pone en el plan de ese día', async () => {
     const props = pintar()
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
     await userEvent.click(screen.getByRole('button', { name: /Avena con yogur/ }))
     await waitFor(() => expect(props.replanear).toHaveBeenCalledWith(11, 3, LUNES))
     await waitFor(() => expect(props.onChanged).toHaveBeenCalled())
-    expect(screen.queryByRole('dialog', { name: 'Cambiar este plato' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /^Cambiar (el|la) / })).not.toBeInTheDocument()
   })
 
   const BAR_PACO = { id: 70, name: 'Bar Paco', kind: 'fuera', per_serving: { kcal: 951.4 } }
@@ -696,7 +574,7 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
   it('en la hoja, «Comer fuera» con tus sitios: elegir uno lo reserva en el plan', async () => {
     const props = pintar({ leerSitios: vi.fn().mockResolvedValue([BAR_PACO]) })
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
-    const hoja = screen.getByRole('dialog', { name: 'Cambiar este plato' })
+    const hoja = screen.getByRole('dialog', { name: /^Cambiar (el|la) / })
     expect(await within(hoja).findByText('Comer fuera')).toBeInTheDocument()
     expect(hoja).toHaveTextContent('Reserva sus kcal y reajusta lo que queda del día.')
     await userEvent.click(within(hoja).getByRole('button', { name: 'Bar Paco · ~951 kcal' }))
@@ -728,7 +606,7 @@ describe('iterar la semana: platos sin comida y cambiar un plato', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar Lentejas con chorizo' }))
     await userEvent.click(screen.getByRole('button', { name: /Avena con yogur/ }))
     expect(await screen.findByText('No se ha podido cambiar: ese día ya pasó.')).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Cambiar este plato' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /^Cambiar (el|la) / })).toBeInTheDocument()
   })
 
   // Fase 5/6: «Aquí no» se recuerda — el servidor saca la comida del plato y se
