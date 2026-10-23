@@ -3537,20 +3537,28 @@ button.set-action {
   margin-bottom: 1rem;
 }
 
-/* --- Progreso: las pestañas ---------------------------------------------------
+/* --- Índice de secciones (ui/Indice.jsx) --------------------------------------
 
-   Series, Ritmo y Evolución, una cada vez. Un selector redondo bajo la barra de
-   la app, como el de Tema en Perfil: tres palabras que se leen, 44px de alto. */
-.prog-tabs {
+   Progreso y Semana son secciones seguidas; sus píldoras son el índice: pegadas
+   arriba al desplazarte, la sección por la que pasas en tinta. Mismo dibujo que
+   las pestañas que eran: píldora sobre `--surface`, 44px de alto. */
+.indice {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -1rem 0.75rem;
+  padding: calc(0.5rem + env(safe-area-inset-top)) 1rem 0.5rem;
+  background: var(--bg);
+}
+.indice-pildoras {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr));
   gap: 3px;
   padding: 3px;
-  margin: 0 0 0.75rem;
   border-radius: 9999px;
   background: var(--surface);
 }
-.prog-tab.prog-tab {
+.indice-btn.indice-btn {
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -3561,9 +3569,37 @@ button.set-action {
   color: var(--muted);
   cursor: pointer;
 }
-.prog-tab.is-active {
+.indice-btn.is-on {
   background: var(--text);
   color: var(--bg);
+}
+/* Cada sección se para bajo las píldoras al saltar a ella, no debajo. */
+.seccion-indice {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 4.5rem);
+}
+.seccion-indice + .seccion-indice {
+  margin-top: 2.5rem;
+}
+/* Titular de sección con su sello a la derecha (el rango de cada semana). */
+.seccion-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.seccion-head .seccion-titulo {
+  margin: 0;
+}
+/* El titular de cada sección (Bricolage 800, 1,6rem, como los de Plan y Días): dice dónde empieza
+   el bloque al desplazarte; la píldora dice dónde estás. */
+.seccion-titulo {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 /* Marcador: «Progreso» como titular de pantalla, igual que «Días» y «Plan». */
 .prog-title {
@@ -3581,7 +3617,7 @@ button.set-action {
    que se sangraba hasta el canto de la tarjeta (el carrusel de músculos) se
    queda en la columna, porque ya no hay canto y se saldría de la pantalla. Dos
    bloques seguidos (Ritmo y Días cuidados) los separa una raya y aire. */
-.prog-tabs ~ [role='tabpanel'] .card {
+.prog-seccion .card {
   --card-pad-x: 0px;
   padding-inline: 0;
   border: 0;
@@ -3589,12 +3625,12 @@ button.set-action {
   background: transparent;
   box-shadow: none;
 }
-.prog-tabs ~ [role='tabpanel'] .card + .card {
+.prog-seccion .card + .card {
   margin-top: 1.75rem;
   padding-top: 1.75rem;
   border-top: 1px solid var(--border);
 }
-.prog-tabs ~ [role='tabpanel'] .muscle-chips {
+.prog-seccion .muscle-chips {
   margin-inline: 0;
   padding-inline: 0;
 }
@@ -10366,8 +10402,7 @@ button:active:not(:disabled) {
   animation: none;
 }
 
-/* Cambiar de pestaña, abrir una pantalla: el contenido entra con un fundido
-   de 8 px. Las pestañas son hermanas: nada empuja de lado. */
+/* Abrir una pantalla: el contenido entra con un fundido de 8 px. */
 @keyframes mov-sube {
   from {
     opacity: 0;
@@ -10384,11 +10419,90 @@ button:active:not(:disabled) {
      (Añadir, las hojas) debajo de la barra. */
   animation: mov-sube 200ms var(--ease) backwards;
 }
+/* Cambiar de pestaña (2026-10-23): la barra es una fila y la pantalla se
+   mueve por ella. La nueva entra 32 px desde el lado de la pestaña tocada
+   (240 ms, frena); la vieja sale hacia el otro en 120 ms (App.jsx). Con
+   «reducir movimiento», fundido, como todo. */
+@keyframes mov-pestana-adelante {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+@keyframes mov-pestana-atras {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+.app-main[data-dir='adelante'] > * {
+  animation: mov-pestana-adelante 240ms var(--ease-out) 40ms backwards;
+}
+.app-main[data-dir='atras'] > * {
+  animation: mov-pestana-atras 240ms var(--ease-out) 40ms backwards;
+}
+/* Los 32 px de la que entra no abren scroll de lado. `clip` y no `hidden`:
+   no crea caja de scroll, así que lo `sticky` y lo fijo siguen igual. */
+.container {
+  overflow-x: clip;
+}
 .tab {
   transition:
     flex-grow 200ms var(--ease),
     background-color 200ms var(--ease),
     transform 120ms var(--ease);
+}
+/* Las secciones entran al asomar (movimientoSecciones.js): la que empieza
+   fuera de la pantalla espera escondida y, al asomar por abajo, sube 16 px y
+   se funde. `backwards` y no `both`, por lo mismo que la pantalla: acabada, no
+   deja un `transform` que meta lo fijo de dentro debajo de la barra. */
+@keyframes mov-seccion {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+[data-entrada='espera'] {
+  opacity: 0;
+}
+[data-entrada='entra'] {
+  animation: mov-seccion 320ms var(--ease-out) backwards;
+}
+/* Las pantallas que se abren encima (Otra cosa, Compra, Tus platos…) suben
+   24 px fundiéndose, 320 ms y frenan; al cerrar bajan en 200 ms (la copia de
+   movimientoHojas.js, que no repite la entrada). «Abrir un día» tiene la suya. */
+@keyframes mov-pantalla-sube {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+.food-screen:not(.dia):not(.is-saliendo) {
+  animation: mov-pantalla-sube 320ms var(--ease-out) backwards;
+}
+.food-screen.is-saliendo {
+  animation: none;
+}
+/* Cambiar de ejercicio desde la tira de Entreno: la tira es una fila y el
+   nuevo entra 16 px desde el lado del chip tocado (200 ms, frena); el de antes
+   sale hacia el otro en 100 ms (Workout.jsx). */
+@keyframes mov-ejercicio-adelante {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes mov-ejercicio-atras {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+.workout-ejercicio[data-dir='adelante'] > .card {
+  animation: mov-ejercicio-adelante 200ms var(--ease-out) 40ms backwards;
+}
+.workout-ejercicio[data-dir='atras'] > .card {
+  animation: mov-ejercicio-atras 200ms var(--ease-out) 40ms backwards;
 }
 /* Entrar en Entreno es un modo y se nota: la pantalla crece 320 ms. */
 @keyframes mov-modo {
@@ -11022,6 +11136,11 @@ button:active:not(:disabled) {
   color: #101113;
   font-size: 1rem;
   font-weight: 600;
+}
+.semana-viene-generar.is-relieve,
+.semana-viene-generar.is-relieve:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--text);
 }
 .semana-pasos {
   display: flex;

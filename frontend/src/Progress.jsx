@@ -17,6 +17,7 @@ import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditT
 import { fold, formatIsoDayMonth, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
 import DiasCuidadosCard from './DiasCuidados.jsx'
+import { Indice } from './ui'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, muscleFill, UNGROUPED } from './muscles.js'
 import { RetagUndo } from './MuscleRetag.jsx'
@@ -751,7 +752,7 @@ export function PeriodSummary({ days }) {
   )
 
   return (
-    <div className="card sum-card">
+    <div className="card sum-card" data-seccion>
       {/* The card says what it is, like every other card on the screen
           ("Evolución", "Ritmo por músculo"). It used to open on the period
           alone — "Esta semana" answers *when*, never *what*, so the one card
@@ -846,16 +847,16 @@ function frequencies(days) {
   return counts
 }
 
-// The three cards answer three different questions — how much (Series), how
-// often (Ritmo), how a lift is going (Evolución) — and stacked in one scroll
-// the second and third were always below the fold. One per tab, so the one you
-// came for has the screen to itself. `initialTab` opens on another one.
-// Marcador: Ejercicio (cómo va un levantamiento), Músculos (series por músculo
-// y el ritmo) y Cuerpo (el peso y los días cuidados). Los ids son los de antes.
-const TABS = [
-  ['evolucion', 'Ejercicio'],
-  ['series', 'Músculos'],
-  ['ritmo', 'Cuerpo'],
+// The three cards answer three different questions — how much (Músculos), how
+// often and how your body goes (Cuerpo), how a lift is going (Ejercicio).
+// Marcador: Ejercicio, Músculos y Cuerpo. Fueron pestañas, una cada vez; desde
+// 2026-10-23 van seguidas en un scroll, Ejercicio arriba (es donde se abría), y
+// las píldoras son el índice (ui/Indice.jsx). `initialTab` conserva los ids de
+// entonces y abre la pantalla ya bajada hasta otra.
+const SECCIONES = [
+  { id: 'prog-ejercicio', label: 'Ejercicio', tab: 'evolucion' },
+  { id: 'prog-musculos', label: 'Músculos', tab: 'series' },
+  { id: 'prog-cuerpo', label: 'Cuerpo', tab: 'ritmo' },
 ]
 
 // Los periodos de la gráfica de Ejercicio y cuántos días atrás llega cada uno.
@@ -892,8 +893,7 @@ export function pareceElMismo(current, exercises) {
   )
 }
 
-export default function Progress({ initialTab = 'series' }) {
-  const [tab, setTab] = useState(initialTab)
+export default function Progress({ initialTab = 'evolucion' }) {
   const [periodo, setPeriodo] = useState('Todo')
   const [exercises, setExercises] = useState([]) // [{ name, muscle_group }]
   const [days, setDays] = useState([]) // the whole log; everything here is derived from it
@@ -1405,45 +1405,14 @@ export default function Progress({ initialTab = 'series' }) {
   return (
     <section>
       <h1 className="prog-title">Progreso</h1>
-      <div className="prog-tabs" role="tablist" aria-label="Progreso">
-        {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            id={`prog-tab-${id}`}
-            aria-selected={tab === id}
-            className={`prog-tab${tab === id ? ' is-active' : ''}`}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Indice
+        label="Progreso"
+        secciones={SECCIONES}
+        inicial={SECCIONES.find((x) => x.tab === initialTab)?.id}
+      />
 
-      {tab === 'series' && (
-        <div role="tabpanel" aria-labelledby="prog-tab-series">
-          {days.length > 0 && <MusculosOchoSemanas days={days} />}
-          {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
-          {days.length > 0 ? (
-            <Rhythm days={days} />
-          ) : !daysLoaded && waiting ? (
-            <RhythmSkeleton />
-          ) : null}
-        </div>
-      )}
-
-      {tab === 'ritmo' && (
-        <div role="tabpanel" aria-labelledby="prog-tab-ritmo">
-          {/* El peso, y la constancia de todo: días en los que te cuidaste. */}
-          <Weight />
-          <PasosSieteDias />
-          <DiasCuidadosCard />
-        </div>
-      )}
-
-      {tab === 'evolucion' && (
-      <div role="tabpanel" aria-label="Evolución de un ejercicio">
+      <section id="prog-ejercicio" className="seccion-indice prog-seccion">
+      <h2 id="prog-ejercicio-titulo" className="seccion-titulo">Ejercicio</h2>
 
       {/* Not gated on exercises having loaded: the search box below is typeable
           the instant the screen mounts, so it must be on screen the instant the
@@ -1482,7 +1451,9 @@ export default function Progress({ initialTab = 'series' }) {
           }}
         >
           <div className="field">
-            <label htmlFor="progress-exercise">Ejercicio</label>
+            <label htmlFor="progress-exercise" className="visually-hidden">
+              Ejercicio
+            </label>
             <input
               id="progress-exercise"
               ref={searchRef}
@@ -1835,8 +1806,30 @@ export default function Progress({ initialTab = 'series' }) {
         />
       )}
 
-      </div>
-      )}
+      </section>
+
+      <section id="prog-musculos" className="seccion-indice prog-seccion">
+        <h2 id="prog-musculos-titulo" className="seccion-titulo" data-seccion>
+          Músculos
+        </h2>
+          {days.length > 0 && <MusculosOchoSemanas days={days} />}
+          {daysLoaded ? <PeriodSummary days={days} /> : waiting ? <SummarySkeleton /> : null}
+          {days.length > 0 ? (
+            <Rhythm days={days} />
+          ) : !daysLoaded && waiting ? (
+            <RhythmSkeleton />
+          ) : null}
+      </section>
+
+      <section id="prog-cuerpo" className="seccion-indice prog-seccion">
+        <h2 id="prog-cuerpo-titulo" className="seccion-titulo" data-seccion>
+          Cuerpo
+        </h2>
+          {/* El peso, y la constancia de todo: días en los que te cuidaste. */}
+          <Weight />
+          <PasosSieteDias />
+          <DiasCuidadosCard />
+      </section>
 
       {error && (
         <p role="alert" className="alert">

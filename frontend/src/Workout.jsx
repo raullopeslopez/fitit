@@ -84,6 +84,7 @@ import { showKg } from './units.js'
 import { nativeSession, session } from './platform/session.js'
 import { Chip, Sheet } from './ui'
 import { holdScreenAwake } from './platform/wakelock.js'
+import { salidaMuda } from './salidaMuda.js'
 
 // Mirror the backend's SetIn bounds so bad input fails fast with a clear message
 // instead of a generic request error. Returns { reps, weight } or { error }.
@@ -1684,6 +1685,13 @@ export default function Workout({
   // «Repetir» recién abierta, el primero de la plantilla. `previous` es aquel
   // del que vienes, para que volver (un superset) cueste un toque.
   const [activeName, setActiveName] = useState(null)
+  // Por qué lado entra el ejercicio al cambiarlo desde la tira (`adelante`:
+  // desde la derecha, el chip tocado está más allá). La tira es una fila: el
+  // nuevo entra 16 px desde su lado (200 ms, frena, en CSS) y el de antes sale
+  // hacia el otro en 100 ms, como copia muda. Sin motor de animaciones o con
+  // «reducir movimiento», sólo cambia.
+  const [dirEjercicio, setDirEjercicio] = useState(null)
+  const pantallaEjercicio = useRef(null)
   // El buscador del pie, enfocado: es cuando enseña lo demás de hoy.
   const [searching, setSearching] = useState(false)
   const [known, setKnown] = useState([]) // known exercise names for autocomplete
@@ -2057,7 +2065,20 @@ export default function Workout({
   function goTo(name) {
     // Ir al que ya está en pantalla no cambia de ejercicio, pero sí cierra la
     // búsqueda igual que cualquier otra llegada.
-    if (name !== activeExercise?.name) setActiveName(name)
+    if (name !== activeExercise?.name) {
+      const desde = exercises.findIndex((e) => e.name === activeExercise?.name)
+      const hacia = exercises.findIndex((e) => e.name === name)
+      if (desde >= 0 && hacia >= 0) {
+        const sentido = hacia > desde ? 'adelante' : 'atras'
+        const vieja = pantallaEjercicio.current?.firstElementChild
+        const animable =
+          typeof Element.prototype.animate === 'function' &&
+          !(typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+        if (vieja && animable) salidaMuda(vieja, `translateX(${sentido === 'adelante' ? -16 : 16}px)`, 100)
+        setDirEjercicio(sentido)
+      }
+      setActiveName(name)
+    }
     setSearching(false)
     setExerciseInput('')
     // Fuera el teclado: lo que toca ahora es el ejercicio. Y así volver a tocar
@@ -2811,6 +2832,7 @@ export default function Workout({
       {/* Sin nada todavía: el pie es el principio. */}
       {!activeExercise && <p className="hint workout-empty">Busca abajo tu primer ejercicio.</p>}
 
+      <div ref={pantallaEjercicio} className="workout-ejercicio" data-dir={dirEjercicio ?? undefined}>
       {[activeExercise].filter(Boolean).map((ex) =>
         ex.kind === 'cardio' ? (
           <CardioCard
@@ -2856,6 +2878,7 @@ export default function Workout({
           />
         ),
       )}
+      </div>
       {/* ── El pie ─────────────────────────────────────────────────────────
           Todo lo que no es el ejercicio en pantalla se alcanza desde aquí,
           pegado al pulgar: volver al anterior (un superset, un toque), el

@@ -55,7 +55,7 @@ export default function Rhythm({ days, weeks = 4, endDate }) {
   const today = dates.at(-1)
 
   return (
-    <div className="card card-raised rhythm-card">
+    <div className="card card-raised rhythm-card" data-seccion>
       <h2 className="visually-hidden">Ritmo por músculo</h2>
       <ul className="rhythm-list">
         {rows.map((row) => {

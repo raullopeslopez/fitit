@@ -41,13 +41,44 @@ function salir(velo) {
   setTimeout(quitar, opciones.duration + 60)
 }
 
+// Las pantallas que se abren encima (`.food-screen`: Otra cosa, Compra, Tus
+// platos…) salen igual que entran, al revés: bajan 24 px fundiéndose en 200 ms
+// y aceleran. Son fijas a pantalla completa, así que la copia ya cae en su
+// sitio. «Abrir un día» (`.dia`) vuelve a su fila a su manera (DiaDetalle.jsx).
+function salirPantalla(pantalla) {
+  const copia = pantalla.cloneNode(true)
+  copia.classList.add('is-saliendo')
+  copia.setAttribute('aria-hidden', 'true')
+  copia.inert = true
+  copia.style.pointerEvents = 'none'
+  document.body.appendChild(copia)
+  const opciones = { duration: quieto() ? 120 : SALIDA, easing: ACELERA, fill: 'forwards' }
+  const fin = copia.animate(
+    [
+      { opacity: 1, transform: 'none' },
+      { opacity: 0, transform: quieto() ? 'none' : 'translateY(24px)' },
+    ],
+    opciones,
+  )
+  const quitar = () => copia.remove()
+  fin.finished.then(quitar, quitar)
+  setTimeout(quitar, opciones.duration + 60)
+}
+
 function vigilarSalidas() {
   const observador = new MutationObserver((cambios) => {
     for (const cambio of cambios) {
       for (const nodo of cambio.removedNodes) {
         if (nodo.nodeType !== 1 || nodo.classList.contains('is-saliendo')) continue
+        const pantallas = nodo.matches('.food-screen') ? [nodo] : nodo.querySelectorAll('.food-screen')
+        for (const p of pantallas) if (!p.classList.contains('dia') && !p.classList.contains('is-saliendo')) salirPantalla(p)
+        // Una hoja dentro de una pantalla que sale ya va en su copia.
         const velos = nodo.matches('.sheet-scrim') ? [nodo] : nodo.querySelectorAll('.sheet-scrim')
-        for (const velo of velos) if (!velo.classList.contains('is-saliendo')) salir(velo)
+        for (const velo of velos) {
+          if (velo.classList.contains('is-saliendo')) continue
+          const enPantalla = velo.closest('.food-screen:not(.dia)')
+          if (!enPantalla || enPantalla.classList.contains('is-saliendo')) salir(velo)
+        }
       }
     }
   })

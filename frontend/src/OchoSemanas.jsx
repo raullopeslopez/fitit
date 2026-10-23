@@ -47,7 +47,7 @@ export function MusculosOchoSemanas({ days }) {
   const filas = ochoSemanas(days)
   const max = Math.max(1, ...filas.flatMap((f) => f.semanas))
   return (
-    <section className="ocho" aria-label="Series por semana, ocho semanas">
+    <section className="ocho" aria-label="Series por semana, ocho semanas" data-seccion>
       <div className="ocho-head">
         <span />
         <span>8 semanas, la última a la derecha</span>
@@ -110,7 +110,7 @@ export function PasosSieteDias({ hoy = iso(new Date()) }) {
   const media = Math.round(valores.reduce((a, b) => a + b, 0) / 7)
   const tope = Math.max(meta ?? 0, ...valores, 1)
   return (
-    <section className="pasos7" aria-label="Pasos de los últimos siete días">
+    <section className="pasos7" aria-label="Pasos de los últimos siete días" data-seccion>
       <div className="pasos7-head">
         <span className="pasos7-sello">Pasos · 7 días</span>
         <span className="pasos7-media">

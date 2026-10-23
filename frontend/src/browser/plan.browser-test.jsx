@@ -57,40 +57,42 @@ const conPlan = () => {
 }
 
 describe('Plan en Marcador', () => {
-  it('«Plan» es titular de pantalla, con la semana en sello a su derecha', async () => {
+  // Las dos semanas van seguidas: cada una abre con su titular de sección y su
+  // rango en sello a la derecha.
+  it('«Semana» es titular de pantalla, y cada semana lleva su rango a la derecha', async () => {
     await mountPlan({ routes: conPlan() })
     const titulo = document.querySelector('.plan-title')
     const estilo = getComputedStyle(titulo)
     expect(estilo.fontSize).toBe('54px')
     expect(estilo.fontWeight).toBe('800')
     expect(estilo.fontFamily).toContain('Bricolage Grotesque')
-    const sello = document.querySelector('.plan-head .card-eyebrow').getBoundingClientRect()
-    const t = titulo.getBoundingClientRect()
+    const sello = document.querySelector('#semana-esta .seccion-head .card-eyebrow').getBoundingClientRect()
+    const t = document.querySelector('#semana-esta .seccion-titulo').getBoundingClientRect()
     expect(sello.left).toBeGreaterThan(t.right)
     expect(sello.bottom).toBeGreaterThan(t.top)
   })
 
-  it('la semana se elige en una píldora, y la elegida va en tinta', async () => {
+  it('el índice es una píldora, y la semana en la que estás va en tinta', async () => {
     await mountPlan({ routes: conPlan() })
     for (const theme of ['light', 'dark']) {
       forceTheme(theme)
       await settle()
       await new Promise((r) => setTimeout(r, 250))
-      const seg = document.querySelector('.seg')
+      const seg = document.querySelector('.indice-pildoras')
       expect(getComputedStyle(seg).borderTopWidth, theme).toBe('0px')
       expect(rgb(bg(seg)), theme).toEqual(rgb(token('--surface')))
-      const on = document.querySelector('.seg-btn.is-on')
+      const on = document.querySelector('.indice-btn.is-on')
       expect(parseFloat(getComputedStyle(on).borderTopLeftRadius)).toBeGreaterThanOrEqual(22)
       expect(rgb(bg(on)), theme).toEqual(rgb(token('--text')))
       expect(rgb(parseColor(getComputedStyle(on).color)), theme).toEqual(rgb(token('--bg')))
-      expect(sinFondo(document.querySelector('.seg-btn:not(.is-on)')), theme).toBe(true)
+      expect(sinFondo(document.querySelector('.indice-btn:not(.is-on)')), theme).toBe(true)
     }
   })
 
   // Comida simple: la semana es una cuadrícula; cada día, un objetivo de dedo.
   it('la cuadrícula cabe en el móvil, y cada día se toca', async () => {
     await mountPlan({ routes: conPlan() })
-    const dias = [...document.querySelectorAll('.semana-rejilla-dia')]
+    const dias = [...document.querySelectorAll('#semana-esta .semana-rejilla-dia')]
     expect(dias).toHaveLength(7)
     for (const dia of dias) {
       const box = dia.getBoundingClientRect()

@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { instalarMovimientoHojas } from './movimientoHojas.js'
+import { instalarEntradaSecciones } from './movimientoSecciones.js'
 import './styles.css'
 import { handleBackButton } from './platform/backButton.js'
 import { registerServiceWorker } from './platform/serviceWorker.js'
@@ -67,5 +68,7 @@ mount().then((tree) =>
 registerServiceWorker()
 // Las hojas salen en 200 ms y se cierran arrastrándolas (lienzo «Movimiento»).
 instalarMovimientoHojas()
+// Las secciones que empiezan fuera de la pantalla entran al asomar.
+instalarEntradaSecciones()
 // Dentro del APK, el botón atrás de Android (en la web no hace nada).
 handleBackButton()

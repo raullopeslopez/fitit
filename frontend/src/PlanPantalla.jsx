@@ -8,7 +8,7 @@ import { lunesDe, lunesSiguiente, motivo } from './Plan.jsx'
 import ListaCompra from './ListaCompra.jsx'
 import { BandaCompra, QueViene, SemanaComida } from './SemanaSimple.jsx'
 import TusPlatos from './TusPlatos.jsx'
-import { ListRow } from './ui'
+import { Indice, ListRow } from './ui'
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
@@ -77,8 +77,14 @@ function rehacible(plan) {
   return !plan || plan.entries.every((e) => e.status == null)
 }
 
+// Las dos semanas van seguidas en un scroll (2026-10-23); sus píldoras son el
+// índice. `inicial` abre ya bajada hasta «La que viene» (el aviso de la revisión).
+const SECCIONES = [
+  { id: 'semana-esta', label: 'Esta semana' },
+  { id: 'semana-viene', label: 'La que viene' },
+]
+
 export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
-  const [segmento, setSegmento] = useState(inicial)
   const esta = lunesDe(hoy)
   const viene = lunesSiguiente(hoy)
   // `undefined` = cargando; `null` = esa semana no se ha generado.
@@ -260,12 +266,12 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
     )
   }
 
-  const week = segmento === 'esta' ? esta : viene
-  const plan = planes[week]
+  const planEsta = planes[esta]
+  const planViene = planes[viene]
 
   // La pauta del nutricionista: la excepción, plegada al pie de la que viene.
   const pauta = (
-    <section className="plan-bloque semana-pauta" aria-label="Otras formas de hacer el plan">
+    <section className="plan-bloque semana-pauta" aria-label="Otras formas de hacer el plan" data-seccion>
       <button
         type="button"
         className="semana-pauta-abrir"
@@ -327,28 +333,10 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
   return (
     <div className="plan-pantalla">
       <header className="plan-head">
-        <span className="card-eyebrow">{rangoSemana(week)}</span>
         <h1 className="plan-title">Semana</h1>
       </header>
 
-      <div className="seg" role="group" aria-label="Semana">
-        <button
-          type="button"
-          className={`seg-btn${segmento === 'esta' ? ' is-on' : ''}`}
-          aria-pressed={segmento === 'esta'}
-          onClick={() => setSegmento('esta')}
-        >
-          Esta semana
-        </button>
-        <button
-          type="button"
-          className={`seg-btn${segmento === 'viene' ? ' is-on' : ''}`}
-          aria-pressed={segmento === 'viene'}
-          onClick={() => setSegmento('viene')}
-        >
-          La que viene
-        </button>
-      </div>
+      <Indice label="Semana" secciones={SECCIONES} inicial={inicial === 'viene' ? 'semana-viene' : undefined} />
 
       {error && <p className="alert">{error}</p>}
       {aviso && <p className="plan-aviso">{aviso.texto}</p>}
@@ -356,38 +344,51 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
       {/* Esta semana (comida simple): el entreno, la cuadrícula de la comida con
           el día elegido, y la compra en una banda. Sin revisión del domingo,
           sin «cómo va», sin ticket. */}
-      {segmento === 'esta' && (
-        <>
-          <SemanaEntreno />
-          {plan !== undefined &&
-            (plan ? (
-              <>
-                <SemanaComida key={esta} plan={plan} weekStart={esta} hoy={hoy} platos={platos} onChanged={cargar} />
-                <BandaCompra weekStart={esta} plan={plan} onPreparar={() => setListaDe(esta)} />
-              </>
-            ) : (
-              <section className="semana-viene">
-                <h2 className="semana-viene-titulo">Esta semana no hay plan</h2>
-                <button type="button" className="semana-viene-generar" disabled={busy} onClick={generarEsta}>
-                  Generar la semana
-                </button>
-              </section>
-            ))}
-        </>
-      )}
+      <section id="semana-esta" className="seccion-indice" aria-labelledby="semana-esta-titulo">
+        <div className="seccion-head">
+          <h2 id="semana-esta-titulo" className="seccion-titulo">
+            Esta semana
+          </h2>
+          <span className="card-eyebrow">{rangoSemana(esta)}</span>
+        </div>
+        <SemanaEntreno />
+        {planEsta !== undefined &&
+          (planEsta ? (
+            <>
+              <SemanaComida key={esta} plan={planEsta} weekStart={esta} hoy={hoy} platos={platos} onChanged={cargar} />
+              <BandaCompra weekStart={esta} plan={planEsta} onPreparar={() => setListaDe(esta)} />
+            </>
+          ) : (
+            <section className="semana-viene" data-seccion>
+              <h3 className="semana-viene-titulo">Esta semana no hay plan</h3>
+              <button type="button" className="semana-viene-generar" disabled={busy} onClick={generarEsta}>
+                Generar la semana
+              </button>
+            </section>
+          ))}
+      </section>
 
-      {segmento === 'viene' && plan !== undefined && (
-        <QueViene
-          key={viene}
-          weekStart={viene}
-          plan={plan}
-          hoy={hoy}
-          platos={platos}
-          onChanged={cargar}
-          onComprar={() => setListaDe(viene)}
-          pauta={pauta}
-        />
-      )}
+      <section id="semana-viene" className="seccion-indice" aria-labelledby="semana-viene-titulo">
+        <div className="seccion-head" data-seccion>
+          <h2 id="semana-viene-titulo" className="seccion-titulo">
+            La que viene
+          </h2>
+          <span className="card-eyebrow">{rangoSemana(viene)}</span>
+        </div>
+        {planViene !== undefined && (
+          <QueViene
+            key={viene}
+            weekStart={viene}
+            plan={planViene}
+            hoy={hoy}
+            platos={platos}
+            onChanged={cargar}
+            onComprar={() => setListaDe(viene)}
+            pauta={pauta}
+            relieve={planEsta === null}
+          />
+        )}
+      </section>
     </div>
   )
 }

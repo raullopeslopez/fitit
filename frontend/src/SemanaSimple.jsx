@@ -27,7 +27,7 @@ const ESTADO = { comido: 'comido', previsto: 'previsto', sin: 'sin apuntar', vac
 export function Cuadricula({ plan, weekStart, hoy, elegido = null, onElegir = null, llegando = false, pensando = false }) {
   const dias = diasDe(weekStart)
   return (
-    <div className="semana-rejilla" role="table" aria-label="Plan de la semana">
+    <div className="semana-rejilla" role="table" aria-label="Plan de la semana" data-seccion>
       <div className="semana-rejilla-fila is-cabecera" role="row">
         <span role="columnheader" />
         {HUECOS_HOY.map((slot) => (
@@ -180,7 +180,7 @@ export function BandaCompra({ weekStart, plan, onPreparar }) {
   if (!plan) return null
   const mandada = Boolean(plan.shopping?.sent_at)
   return (
-    <section className="semana-compra" aria-label="La compra">
+    <section className="semana-compra" aria-label="La compra" data-seccion>
       <span className="semana-compra-texto">
         <span className="semana-compra-titulo">La compra</span>
         <span className="semana-compra-pista">
@@ -207,7 +207,19 @@ const PASOS_GENERAR = (kcal) => [
  * en cuenta y un botón; generando, la espera con la cuadrícula a punto de
  * llenarse; con plan, «Tu semana, lista» y el paso siguiente, la compra.
  */
-export function QueViene({ weekStart, plan, hoy, platos, onChanged, onComprar, generar = generatePlan, pauta = null }) {
+// `relieve`: «Generar la semana» baja a relieve porque la pantalla ya tiene su
+// mandarina (el de esta semana, cuando tampoco tiene plan).
+export function QueViene({
+  weekStart,
+  plan,
+  hoy,
+  platos,
+  onChanged,
+  onComprar,
+  generar = generatePlan,
+  pauta = null,
+  relieve = false,
+}) {
   const [objetivo, setObjetivo] = useState(undefined)
   const [generando, setGenerando] = useState(false)
   const [recien, setRecien] = useState(false)
@@ -249,7 +261,7 @@ export function QueViene({ weekStart, plan, hoy, platos, onChanged, onComprar, g
   if (!plan) {
     return (
       <div className="semana-viene">
-        <h2 className="semana-viene-titulo">Aún no hay plan</h2>
+        <h3 className="semana-viene-titulo">Aún no hay plan</h3>
         <p className="semana-viene-texto">Lo hago con tus platos, en cuatro comidas al día y con tu objetivo:</p>
         {objetivo != null && (
           <p className="semana-viene-cifra">
@@ -261,7 +273,11 @@ export function QueViene({ weekStart, plan, hoy, platos, onChanged, onComprar, g
           <p className="hint">Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.</p>
         )}
         {error && <p className="alert">{error}</p>}
-        <button type="button" className="semana-viene-generar" onClick={generarSemana}>
+        <button
+          type="button"
+          className={`semana-viene-generar${relieve ? ' is-relieve' : ''}`}
+          onClick={generarSemana}
+        >
           Generar la semana
         </button>
         <p className="semana-viene-pista">Luego cambias lo que no te apetezca, plato a plato.</p>
@@ -273,7 +289,7 @@ export function QueViene({ weekStart, plan, hoy, platos, onChanged, onComprar, g
   const platosDistintos = new Set(plan.entries.map((e) => e.dish_id).filter(Boolean)).size
   return (
     <div className="semana-viene">
-      <h2 className="semana-viene-titulo">Tu semana, lista</h2>
+      <h3 className="semana-viene-titulo">Tu semana, lista</h3>
       <p className="semana-viene-cifras">
         <span>
           <span className="semana-viene-num">{plan.entries.length}</span> comidas
