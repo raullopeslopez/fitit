@@ -17,6 +17,7 @@ import { startNativeQueue, stopNativeQueue } from './offline.js'
 import { session } from './platform/session.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
 import { onResume } from './platform/lifecycle.js'
+import { salidaMuda } from './salidaMuda.js'
 import { syncSteps } from './steps.js'
 import { syncFood } from './widgetSummary.js'
 
@@ -92,7 +93,7 @@ export default function App() {
   // ella. Ir a la derecha empuja la vieja 32 px a la izquierda mientras se
   // funde (120 ms, acelera) y la nueva entra desde 32 px a la derecha (240 ms,
   // frena, en CSS); a la izquierda, al revés. La vieja ya no está en el árbol
-  // cuando la nueva entra: sale una copia muda, como las hojas.
+  // cuando la nueva entra: sale una copia muda (salidaMuda.js).
   function cambiarDePestana(target) {
     const desde = ORDEN.indexOf(view)
     const hacia = ORDEN.indexOf(target)
@@ -100,33 +101,7 @@ export default function App() {
     if (openWorkoutId || desde < 0 || hacia < 0) return setView(target)
     const sentido = hacia > desde ? 'adelante' : 'atras'
     const vieja = mainRef.current?.firstElementChild
-    if (vieja && animable()) {
-      const caja = vieja.getBoundingClientRect()
-      const copia = vieja.cloneNode(true)
-      copia.setAttribute('aria-hidden', 'true')
-      copia.inert = true
-      Object.assign(copia.style, {
-        position: 'fixed',
-        top: `${caja.top}px`,
-        left: `${caja.left}px`,
-        width: `${caja.width}px`,
-        margin: '0',
-        pointerEvents: 'none',
-        animation: 'none',
-      })
-      document.body.appendChild(copia)
-      const quitar = () => copia.remove()
-      copia
-        .animate(
-          [
-            { opacity: 1, transform: 'none' },
-            { opacity: 0, transform: `translateX(${sentido === 'adelante' ? -32 : 32}px)` },
-          ],
-          { duration: 120, easing: 'cubic-bezier(0.3, 0, 1, 1)', fill: 'forwards' },
-        )
-        .finished.then(quitar, quitar)
-      setTimeout(quitar, 180)
-    }
+    if (vieja && animable()) salidaMuda(vieja, `translateX(${sentido === 'adelante' ? -32 : 32}px)`, 120)
     setDir(sentido)
     setViewState(target)
   }

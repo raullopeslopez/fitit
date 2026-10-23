@@ -886,6 +886,13 @@ lo usan **dos** pantallas; antes vive en la suya.
   pegadas arriba sobre `--bg`, en tinta la sección por la que pasas, y al tocarlas bajan
   hasta ella. Progreso abre en Ejercicio, arriba; el aviso de la revisión abre Semana ya
   bajada hasta «La que viene».
+- **Pantallas que se abren encima (2026-10-23):** las `.food-screen` (Otra cosa, Compra, Tus
+  platos, Tus sitios, Tus reglas, Comer fuera, Ideas, Nuevo plato, Nuevo alimento…) suben
+  24 px fundiéndose al abrir (320 ms, frena) y bajan al cerrar (200 ms, acelera), como copia
+  muda en `movimientoHojas.js`. «Abrir un día» conserva la suya.
+- **Cambiar de ejercicio en Entreno (2026-10-23):** la tira es una fila; el ejercicio nuevo
+  entra 16 px desde el lado del chip tocado (200 ms) y el de antes sale hacia el otro
+  (100 ms). La mitad que la barra principal, porque es un nivel por debajo.
 - **Second exception, Series por músculo (2026-10-11):** opening its ten rows grows each
   bar from zero (400 ms `ease-out`, 30 ms between rows). The growth is the reading — which
   bars stop short of their rule — not decoration. Off under `prefers-reduced-motion`.
@@ -902,6 +909,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-23 | Las pantallas que se abren encima suben, y el ejercicio de Entreno entra por su lado | Usuario: «mete también las pantallas que se abren encima y Entreno», sobre la propuesta del mismo día. Las pantallas encima se cierran con «Cancelar»/«Cerrar» y se portan como hojas a pantalla completa, así que entran como ellas (subiendo) y no empujando de lado, que se leería como avanzar un nivel. En Entreno la duda era moverse a mitad de serie; se queda en 16 px y 200 ms, sin rebote, y sólo al tocar la tira. La copia que sale es la misma pieza para la barra y para Entreno (`salidaMuda.js`). Toques: los mismos. |
 | 2026-10-23 | Dentro de cada pantalla se navega con scroll: secciones que entran al asomar, y Progreso y Semana sin pestañas | Petición del usuario: «hacer scroll hacia abajo y que se cambie de sección». Se definieron primero las secciones reales de cada pantalla; de cuatro formas (por páginas, cabecera fija, entrada al asomar, páginas con puntos) eligió scroll libre con entrada, y que las píldoras de Progreso y Semana pasaran a índice con Ejercicio arriba. La entrada es la de las pantallas (16 px, fundido, `backwards` para no dejar `transform`) y sólo para lo que asoma: lo que ya se ve al abrir no se repinta, y lo que la carga empuja abajo sin verlo espera como lo demás. Al montarse las dos semanas a la vez, «La que viene» pide tu objetivo al abrir Semana, no al tocar su píldora. Toques: Ejercicio, 0 (igual); Músculos, Cuerpo y La que viene, 1 o ninguno bajando. |
 | 2026-10-23 | Cambiar de pestaña desliza según el orden de la barra | Petición del usuario: una transición entre sección y sección. De tres opciones (deslizar según orden, fundido cruzado, carrusel entero) eligió la de eje compartido: 32 px y no la pantalla entera, para que diga hacia dónde vas sin convertir cada cambio en un viaje (el carrusel chocaba con *minimal-functional*). La vieja sale en 120 ms como copia muda —React ya la ha quitado—, igual que las hojas; la nueva entra con 40 ms de retraso para que se crucen sin pisarse. El contenedor recorta en horizontal (`overflow-x: clip`) para que los 32 px no abran scroll. Entrar y salir de Entreno, abrir un día y los saltos desde botones (Entrenar, Hacer el plan, el widget) siguen como estaban. Toques: los mismos, 1 por pestaña. |
 | 2026-10-18 | Marcador: paleta, Bricolage, récord en oro y comidas sin color en toda la app | Usuario, «Ponte con la UI», y en cuatro preguntas: piel primero y navegación después, Bricolage Grotesque en vez de Space Grotesk, comidas sin color (el color es de los músculos) y récord en oro (`#FFC53D` / `#8A5A00`) para que el mandarina sea sólo la acción. Los tokens cambian en un PR; la quita de tarjetas, pantalla a pantalla. |

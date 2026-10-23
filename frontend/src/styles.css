@@ -10468,6 +10468,42 @@ button:active:not(:disabled) {
 [data-entrada='entra'] {
   animation: mov-seccion 320ms var(--ease-out) backwards;
 }
+/* Las pantallas que se abren encima (Otra cosa, Compra, Tus platos…) suben
+   24 px fundiéndose, 320 ms y frenan; al cerrar bajan en 200 ms (la copia de
+   movimientoHojas.js, que no repite la entrada). «Abrir un día» tiene la suya. */
+@keyframes mov-pantalla-sube {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+.food-screen:not(.dia):not(.is-saliendo) {
+  animation: mov-pantalla-sube 320ms var(--ease-out) backwards;
+}
+.food-screen.is-saliendo {
+  animation: none;
+}
+/* Cambiar de ejercicio desde la tira de Entreno: la tira es una fila y el
+   nuevo entra 16 px desde el lado del chip tocado (200 ms, frena); el de antes
+   sale hacia el otro en 100 ms (Workout.jsx). */
+@keyframes mov-ejercicio-adelante {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes mov-ejercicio-atras {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+.workout-ejercicio[data-dir='adelante'] > .card {
+  animation: mov-ejercicio-adelante 200ms var(--ease-out) 40ms backwards;
+}
+.workout-ejercicio[data-dir='atras'] > .card {
+  animation: mov-ejercicio-atras 200ms var(--ease-out) 40ms backwards;
+}
 /* Entrar en Entreno es un modo y se nota: la pantalla crece 320 ms. */
 @keyframes mov-modo {
   from {

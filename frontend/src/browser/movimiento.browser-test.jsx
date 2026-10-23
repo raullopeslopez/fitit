@@ -4,7 +4,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { mountApp, mountEntreno } from './screen.jsx'
+import { mountApp, mountComida, mountEntreno } from './screen.jsx'
 import { instalarMovimientoHojas } from '../movimientoHojas.js'
 import { settle } from './geometry.js'
 
@@ -41,6 +41,55 @@ describe('Movimiento', () => {
     for (const fila of document.querySelectorAll('.set-log > li')) {
       expect(getComputedStyle(fila).animationName).toBe('none')
     }
+  })
+
+  // La tira es una fila: el ejercicio nuevo entra 16 px desde el lado del chip
+  // tocado y el de antes sale hacia el otro como copia muda, que se va.
+  it('cambiar de ejercicio desde la tira entra por su lado', async () => {
+    const { container } = await mountEntreno()
+    const chips = [...container.querySelectorAll('.workout-strip .strip-chip')]
+    const aqui = chips.findIndex((c) => c.getAttribute('aria-current') === 'true')
+    const otro = aqui === 0 ? 1 : aqui - 1
+    const sentido = otro > aqui ? 'adelante' : 'atras'
+    const copias = () => [...document.body.children].filter((n) => n.inert && n.classList.contains('card'))
+    chips[otro].click()
+    await vi.waitFor(() => expect(container.querySelector('.workout-ejercicio')?.dataset.dir).toBe(sentido))
+    expect(copias().length).toBe(1)
+    const tarjeta = container.querySelector('.workout-ejercicio > .card')
+    expect(getComputedStyle(tarjeta).animationName).toBe(`mov-ejercicio-${sentido}`)
+    expect(getComputedStyle(tarjeta).animationDuration).toBe('0.2s')
+    await new Promise((r) => setTimeout(r, 400))
+    expect(copias().length).toBe(0)
+    expect(getComputedStyle(tarjeta).transform).toBe('none')
+    expect(getComputedStyle(tarjeta).opacity).toBe('1')
+  })
+
+  describe('las pantallas que se abren encima', () => {
+    let quitar
+    beforeEach(() => {
+      quitar = instalarMovimientoHojas()
+    })
+    afterEach(() => quitar())
+
+    it('suben al abrir y bajan al cerrar', async () => {
+      await mountComida()
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: 'Añadir a desayuno' }))
+      const pantalla = document.querySelector('.food-screen')
+      expect(getComputedStyle(pantalla).animationName).toBe('mov-pantalla-sube')
+      expect(getComputedStyle(pantalla).animationDuration).toBe('0.32s')
+      await settle()
+      expect(getComputedStyle(pantalla).transform).toBe('none')
+
+      await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+      const copia = document.querySelector('.food-screen.is-saliendo')
+      expect(copia).not.toBeNull()
+      expect(getComputedStyle(copia).pointerEvents).toBe('none')
+      // La copia no repite la entrada, y se va al acabar.
+      expect(getComputedStyle(copia).animationName).toBe('none')
+      await new Promise((r) => setTimeout(r, 400))
+      expect(document.querySelector('.food-screen')).toBeNull()
+    })
   })
 
   describe('las hojas al salir y arrastradas', () => {

@@ -177,6 +177,26 @@ describe('Workout', () => {
       expect(await sessionOrder()).toEqual(['Sentadilla', 'Bench Press'])
     })
 
+    // Lienzo «Movimiento → pestañas dentro de una pantalla»: la tira es una
+    // fila, y el ejercicio nuevo entra por el lado del chip tocado.
+    it('el ejercicio entra por el lado del chip que tocas', async () => {
+      api.getWorkout.mockResolvedValue(
+        workoutWith(benchSet({ id: 1, set_index: 0 }), pullSet({ id: 2, set_index: 1 })),
+      )
+      const { container } = renderWorkout()
+      await screen.findByRole('heading', { level: 2, name: /Dominadas/i })
+      const chips = strip().getAllByRole('button')
+      const aqui = chips.findIndex((c) => c.getAttribute('aria-current') === 'true')
+      const otro = aqui === 0 ? 1 : 0
+      const pantalla = () => container.querySelector('.workout-ejercicio')
+      expect(pantalla()).not.toHaveAttribute('data-dir')
+
+      await userEvent.click(chips[otro])
+      expect(pantalla()).toHaveAttribute('data-dir', otro > aqui ? 'adelante' : 'atras')
+      await userEvent.click(strip().getAllByRole('button')[aqui])
+      expect(pantalla()).toHaveAttribute('data-dir', otro > aqui ? 'atras' : 'adelante')
+    })
+
     it('when I log a set, the cards do not reorder under my thumb', async () => {
       // The order is settled on load and frozen. A card that moves while your
       // hand is on the phone is how you tap the wrong thing mid-session.
