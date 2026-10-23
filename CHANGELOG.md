@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.46.0: Navegar por secciones.** (#365) Cambiar de pestaña desliza según el orden de la
+  barra; Progreso (Ejercicio · Músculos · Cuerpo) y Semana (Esta semana · La que viene) son
+  secciones seguidas con las píldoras como índice; lo que asoma al bajar entra subiendo; las
+  pantallas que se abren encima suben y bajan; en Entreno, el ejercicio entra por el lado del chip.
 - **APK 0.45.0: Comida simple.** (#358–#364) Hoy dice lo que toca ahora y los siete días cuidados;
   «Otra cosa» trae lo que sueles comer en esa comida y apunta una frase escrita; Semana es una
   cuadrícula con la compra en banda; cambiar un plato es elegir de los tuyos o probar uno nuevo; la
