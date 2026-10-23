@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { Chip, Fab, ListRow, Sheet } from './index.js'
+import { Chip, Fab, Indice, ListRow, Sheet } from './index.js'
 
 describe('Sheet', () => {
   // La hoja es modal: un lector de pantalla tiene que saber que lo de debajo ya
@@ -115,5 +115,65 @@ describe('ListRow', () => {
   it('prints a dash for a missing value', () => {
     render(<ListRow label="Altura" value={null} onClick={() => {}} />)
     expect(screen.getByRole('button', { name: /Altura/ }).querySelector('.ui-row-value')).toHaveTextContent('—')
+  })
+})
+
+// Las píldoras de Progreso y Semana ya no esconden lo demás: las secciones van
+// seguidas y el índice marca en cuál estás y salta a cualquiera.
+describe('Indice', () => {
+  const SECCIONES = [
+    { id: 'sec-a', label: 'Una' },
+    { id: 'sec-b', label: 'Otra' },
+  ]
+
+  function Pantalla({ inicial }) {
+    return (
+      <>
+        <Indice label="Ir a" secciones={SECCIONES} inicial={inicial} />
+        <section id="sec-a">A</section>
+        <section id="sec-b">B</section>
+      </>
+    )
+  }
+
+  it('marca la primera sección y no esconde ninguna', () => {
+    render(<Pantalla />)
+    const nav = screen.getByRole('navigation', { name: 'Ir a' })
+    expect(nav).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Una' })).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByRole('button', { name: 'Otra' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByText('A')).toBeInTheDocument()
+    expect(screen.getByText('B')).toBeInTheDocument()
+  })
+
+  it('tocar una píldora baja hasta su sección y la marca', async () => {
+    const vistas = []
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function () {
+      vistas.push(this.id)
+    }
+    try {
+      render(<Pantalla />)
+      await userEvent.click(screen.getByRole('button', { name: 'Otra' }))
+      expect(vistas).toEqual(['sec-b'])
+      expect(screen.getByRole('button', { name: 'Otra' })).toHaveAttribute('aria-current', 'true')
+    } finally {
+      Element.prototype.scrollIntoView = original
+    }
+  })
+
+  it('con otra sección de entrada, abre ya en ella', () => {
+    const vistas = []
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function () {
+      vistas.push(this.id)
+    }
+    try {
+      render(<Pantalla inicial="sec-b" />)
+      expect(vistas).toEqual(['sec-b'])
+      expect(screen.getByRole('button', { name: 'Otra' })).toHaveAttribute('aria-current', 'true')
+    } finally {
+      Element.prototype.scrollIntoView = original
+    }
   })
 })

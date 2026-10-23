@@ -83,7 +83,7 @@ export default function HoyEntreno({ onTrain }) {
   }, [])
 
   return (
-    <section className="hoy-entreno" aria-label="Entreno">
+    <section className="hoy-entreno" aria-label="Entreno" data-seccion>
       {owed !== null && (
         <>
           <p className="hoy-entreno-sello">
@@ -167,7 +167,7 @@ export function SemanaEntreno() {
 
   if (!cells) return null
   return (
-    <section className="semana-bloque" aria-label="Entreno">
+    <section className="semana-bloque" aria-label="Entreno" data-seccion>
       <div className="semana-bloque-head">
         <h2>Entreno</h2>
         <span>series que faltan</span>

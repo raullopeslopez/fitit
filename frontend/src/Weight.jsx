@@ -180,7 +180,7 @@ export default function Weight({ today = new Date(), onSaved, fila = false }) {
 
   return (
     <>
-      <div className="weight-card">
+      <div className="weight-card" data-seccion>
         {/* La cifra es lo que marcó la báscula: tras pesarte, un «—» se leía como
             que no se había guardado. La tendencia —de la que sale Objetivo— va
             debajo, porque el peso oscila más de un kilo por agua y la última

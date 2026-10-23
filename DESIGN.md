@@ -875,6 +875,17 @@ lo usan **dos** pantallas; antes vive en la suya.
   derecha (240 ms, frena); hacia la izquierda, al revés. Sustituye a «las pestañas son
   hermanas, nada empuja de lado». Tocar la pestaña en la que estás no mueve nada. Con
   «reducir movimiento», fundido.
+- **Secciones que entran al asomar (2026-10-23):** cada pantalla es un scroll de secciones,
+  y la que empieza fuera de la pantalla sube 16 px y se funde (320 ms, frena) la primera vez
+  que asoma por abajo; también la que la carga empuja abajo antes de verla. Lo que ya se ve
+  al abrir no se mueve. Va por `data-seccion` (`movimientoSecciones.js`). Con «reducir
+  movimiento», nada.
+- **Índice de secciones (2026-10-23):** Progreso (Ejercicio · Músculos · Cuerpo) y Semana
+  (Esta semana · La que viene) dejan de ser pestañas: sus secciones van seguidas, cada una
+  con su titular (Bricolage 800, 1,6rem), y las píldoras son el índice (`ui/Indice.jsx`):
+  pegadas arriba sobre `--bg`, en tinta la sección por la que pasas, y al tocarlas bajan
+  hasta ella. Progreso abre en Ejercicio, arriba; el aviso de la revisión abre Semana ya
+  bajada hasta «La que viene».
 - **Second exception, Series por músculo (2026-10-11):** opening its ten rows grows each
   bar from zero (400 ms `ease-out`, 30 ms between rows). The growth is the reading — which
   bars stop short of their rule — not decoration. Off under `prefers-reduced-motion`.
@@ -891,6 +902,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-23 | Dentro de cada pantalla se navega con scroll: secciones que entran al asomar, y Progreso y Semana sin pestañas | Petición del usuario: «hacer scroll hacia abajo y que se cambie de sección». Se definieron primero las secciones reales de cada pantalla; de cuatro formas (por páginas, cabecera fija, entrada al asomar, páginas con puntos) eligió scroll libre con entrada, y que las píldoras de Progreso y Semana pasaran a índice con Ejercicio arriba. La entrada es la de las pantallas (16 px, fundido, `backwards` para no dejar `transform`) y sólo para lo que asoma: lo que ya se ve al abrir no se repinta, y lo que la carga empuja abajo sin verlo espera como lo demás. Al montarse las dos semanas a la vez, «La que viene» pide tu objetivo al abrir Semana, no al tocar su píldora. Toques: Ejercicio, 0 (igual); Músculos, Cuerpo y La que viene, 1 o ninguno bajando. |
 | 2026-10-23 | Cambiar de pestaña desliza según el orden de la barra | Petición del usuario: una transición entre sección y sección. De tres opciones (deslizar según orden, fundido cruzado, carrusel entero) eligió la de eje compartido: 32 px y no la pantalla entera, para que diga hacia dónde vas sin convertir cada cambio en un viaje (el carrusel chocaba con *minimal-functional*). La vieja sale en 120 ms como copia muda —React ya la ha quitado—, igual que las hojas; la nueva entra con 40 ms de retraso para que se crucen sin pisarse. El contenedor recorta en horizontal (`overflow-x: clip`) para que los 32 px no abran scroll. Entrar y salir de Entreno, abrir un día y los saltos desde botones (Entrenar, Hacer el plan, el widget) siguen como estaban. Toques: los mismos, 1 por pestaña. |
 | 2026-10-18 | Marcador: paleta, Bricolage, récord en oro y comidas sin color en toda la app | Usuario, «Ponte con la UI», y en cuatro preguntas: piel primero y navegación después, Bricolage Grotesque en vez de Space Grotesk, comidas sin color (el color es de los músculos) y récord en oro (`#FFC53D` / `#8A5A00`) para que el mandarina sea sólo la acción. Los tokens cambian en un PR; la quita de tarjetas, pantalla a pantalla. |
 | 2026-10-18 | Días cuidados: un punto en la franja de Comida y una tarjeta en Progreso → Ritmo | Épica de cuatro comidas, fase 7: la cifra norte. Un día cuenta si dijiste lo que comiste (diario o comida del plan contestada) o entrenaste (al menos una serie). En la franja de la semana de Comida, un punto de 6 px bajo el número del día cuidado, en `currentColor` (sigue la tinta del día, también el elegido); no una segunda fila de cuadros: un concepto, un dibujo. Accesible como descripción («Día cuidado»), no en el nombre del botón. En Progreso → Ritmo, arriba, la tarjeta `Días cuidados` con `47 de 56` en Mono 1,6rem y `días cuidados en 8 semanas`, y cinco barras por mes (la del mes en curso en `--text`, las demás al 25 %) con su cifra encima. Nunca racha: ni «seguidos» ni nada que se rompa. |

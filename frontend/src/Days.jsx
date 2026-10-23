@@ -638,7 +638,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
       ) : (
         <>
           {history.detailed.map((week) => (
-            <div className="week" key={week.key}>
+            <div className="week" key={week.key} data-seccion>
               {/* One rule per week, the one you are in included, naming it and
                   totalling it. A finished week also gets its muscles once,
                   under the rule — the panel that teaches what each cell in the
@@ -653,7 +653,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
             </div>
           ))}
           {history.months.filter((m) => m.open).map((month) => (
-            <section className="hist-month" key={month.key}>
+            <section className="hist-month" key={month.key} data-seccion>
               {/* The month's name rides the top of the screen while its weeks
                   scroll under it: deep in the list, "where am I" is a month. */}
               <div className="hist-month-head">
@@ -664,7 +664,7 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
             </section>
           ))}
           {(history.months.some((m) => !m.open) || history.years.length > 0) && (
-            <section className="hist-month">
+            <section className="hist-month" data-seccion>
               <div className="hist-month-head">
                 <h2 className="week-label hist-before">ANTES</h2>
               </div>

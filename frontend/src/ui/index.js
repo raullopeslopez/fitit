@@ -2,5 +2,6 @@
 // lo usan dos pantallas; antes vive en la suya.
 export { default as Chip } from './Chip.jsx'
 export { default as Fab } from './Fab.jsx'
+export { default as Indice } from './Indice.jsx'
 export { default as ListRow } from './ListRow.jsx'
 export { default as Sheet } from './Sheet.jsx'

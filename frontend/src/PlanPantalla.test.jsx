@@ -67,6 +67,9 @@ describe('rangoSemana', () => {
 })
 
 // La pauta del nutricionista va plegada al pie de la que viene (comida simple).
+const esta = () => screen.getByRole('region', { name: 'Esta semana' })
+const viene = () => screen.getByRole('region', { name: 'La que viene' })
+
 async function abrirPauta() {
   await userEvent.click(await screen.findByRole('button', { name: '¿Tienes una pauta del nutricionista?' }))
 }
@@ -75,8 +78,8 @@ describe('la pantalla Plan', () => {
   it('abre en esta semana, con su rango y sus días', async () => {
     render(<PlanPantalla hoy={HOY} />)
     expect(screen.getByRole('heading', { level: 1, name: 'Semana' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Esta semana' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('5 – 11 oct')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Esta semana' })).toHaveAttribute('aria-current', 'true')
+    expect(within(esta()).getByText('5 – 11 oct')).toBeInTheDocument()
     // Comida simple: la semana es una cuadrícula; el lunes se elige y enseña lo suyo.
     await userEvent.click(await screen.findByRole('button', { name: /^Lunes 5/ }))
     expect(await screen.findByText('Pollo con arroz')).toBeInTheDocument()
@@ -87,16 +90,17 @@ describe('la pantalla Plan', () => {
     getPlan.mockResolvedValue(null)
     render(<PlanPantalla hoy={HOY} />)
     expect(await screen.findByRole('heading', { name: 'Esta semana no hay plan' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Generar la semana' }))
+    await userEvent.click(within(esta()).getByRole('button', { name: 'Generar la semana' }))
     await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(ESTA, null))
   })
 
+  // Las dos semanas van seguidas; la píldora salta a la que viene y la marca.
   it('«La que viene» planifica la semana del lunes siguiente', async () => {
     render(<PlanPantalla hoy={HOY} />)
     await userEvent.click(screen.getByRole('button', { name: 'La que viene' }))
-    expect(screen.getByRole('button', { name: 'La que viene' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('12 – 18 oct')).toBeInTheDocument()
-    await userEvent.click(await screen.findByRole('button', { name: 'Generar la semana' }))
+    expect(screen.getByRole('button', { name: 'La que viene' })).toHaveAttribute('aria-current', 'true')
+    expect(within(viene()).getByText('12 – 18 oct')).toBeInTheDocument()
+    await userEvent.click(await within(viene()).findByRole('button', { name: 'Generar la semana' }))
     await waitFor(() => expect(generatePlan).toHaveBeenCalledWith(VIENE, null))
   })
 
@@ -113,7 +117,7 @@ describe('la pantalla Plan', () => {
   it('«Tus platos» ya no está en la que viene', async () => {
     getPlan.mockResolvedValue(null)
     render(<PlanPantalla hoy={HOY} inicial="viene" />)
-    await screen.findByRole('button', { name: 'Generar la semana' })
+    await within(viene()).findByRole('button', { name: 'Generar la semana' })
     expect(screen.queryByRole('button', { name: /Tus platos/ })).not.toBeInTheDocument()
   })
 
@@ -123,7 +127,7 @@ describe('la pantalla Plan', () => {
     render(<PlanPantalla hoy={HOY} />)
     await screen.findByRole('table', { name: 'Plan de la semana' })
     for (const nombre of [/Lista de la compra/, /Tus platos/, /Subir plan/, /Pegar plan/, /Subir ticket/]) {
-      expect(screen.queryByRole('button', { name: nombre })).not.toBeInTheDocument()
+      expect(within(esta()).queryByRole('button', { name: nombre })).not.toBeInTheDocument()
     }
   })
 

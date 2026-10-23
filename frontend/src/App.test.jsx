@@ -171,7 +171,7 @@ describe('App', () => {
 
       act(() => launch.listener({ action: 'review' }))
 
-      expect(await screen.findByRole('button', { name: 'La que viene' })).toHaveAttribute('aria-pressed', 'true')
+      expect(await screen.findByRole('button', { name: 'La que viene' })).toHaveAttribute('aria-current', 'true')
       expect(screen.getByRole('button', { name: 'Semana' })).toHaveAttribute('aria-current', 'page')
     })
 
@@ -266,6 +266,7 @@ describe('App', () => {
     api.listDays.mockResolvedValue([])
     api.getPlan.mockResolvedValue(null)
     api.listDishes.mockResolvedValue([])
+    api.getTargetProfile.mockResolvedValue({})
     render(<App />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Semana' }))
@@ -280,6 +281,7 @@ describe('App', () => {
     api.listDays.mockResolvedValue([])
     api.getPlan.mockResolvedValue(null)
     api.listDishes.mockResolvedValue([])
+    api.getTargetProfile.mockResolvedValue({})
     const { container } = render(<App />)
     const main = () => container.querySelector('.app-main')
 

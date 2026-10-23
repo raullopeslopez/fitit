@@ -73,7 +73,7 @@ export function Ahora({ entrada, hechas, platos, onChanged, onComido, onOtraCosa
   const [abierta, setAbierta] = useState(false)
   const gramos = planEntryAmountGrams(entrada)
   return (
-    <section className="hoy-ahora" aria-label="Lo que toca ahora">
+    <section className="hoy-ahora" aria-label="Lo que toca ahora" data-seccion>
       <div className="hoy-ahora-top">
         <span className="hoy-ahora-sello">Ahora · {slotLabel(entrada.slot)}</span>
         <span className="hoy-ahora-barras" aria-hidden="true">
@@ -117,7 +117,7 @@ export function Ahora({ entrada, hechas, platos, onChanged, onComido, onOtraCosa
 // los últimos siete, no una racha.
 export function DiaCerrado({ cuenta, manana = null }) {
   return (
-    <section className="hoy-cerrado" aria-label="Día cerrado">
+    <section className="hoy-cerrado" aria-label="Día cerrado" data-seccion>
       <span className="hoy-cerrado-sello">4 de 4 · día cerrado</span>
       <h2 className="hoy-cerrado-titulo">Día cuidado</h2>
       <p className="hoy-cerrado-linea">

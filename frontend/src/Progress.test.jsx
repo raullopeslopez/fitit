@@ -55,31 +55,27 @@ describe('Progress', () => {
   // Three cards that answer three questions — how much, how often, how it is
   // going — stacked in one scroll. Now one at a time, behind a tab each, so the
   // one you came for fills the screen instead of sharing it.
-  describe('las pestañas', () => {
-    // Marcador: Ejercicio · Músculos · Cuerpo. La app abre en Ejercicio
-    // (`initialTab` desde App); sin él, en Músculos.
-    it('reparte Progreso en Ejercicio, Músculos y Cuerpo', async () => {
+  describe('las secciones', () => {
+    // Marcador: Ejercicio · Músculos · Cuerpo, ahora seguidas en un scroll. Las
+    // píldoras son el índice: marcan dónde estás y saltan a cada una.
+    it('reparte Progreso en Ejercicio, Músculos y Cuerpo, con Ejercicio arriba', async () => {
       render(<Progress />)
-      const tabs = screen.getAllByRole('tab')
-      expect(tabs.map((t) => t.textContent)).toEqual(['Ejercicio', 'Músculos', 'Cuerpo'])
-      expect(screen.getByRole('tab', { name: 'Músculos' })).toHaveAttribute('aria-selected', 'true')
+      const nav = screen.getByRole('navigation', { name: 'Progreso' })
+      const pildoras = within(nav).getAllByRole('button')
+      expect(pildoras.map((t) => t.textContent)).toEqual(['Ejercicio', 'Músculos', 'Cuerpo'])
+      expect(within(nav).getByRole('button', { name: 'Ejercicio' })).toHaveAttribute('aria-current', 'true')
     })
 
-    it('enseña una tarjeta cada vez', async () => {
+    it('enseña las tres a la vez, en ese orden', async () => {
       api.listDays.mockResolvedValue(BENCH_DAYS)
       const { container } = render(<Progress />)
       await waitFor(() => expect(container.querySelector('.sum-card')).not.toBeNull())
-      // Músculos lleva las series y, debajo, el ritmo.
+      const ejercicio = screen.getByLabelText('Ejercicio')
+      const series = container.querySelector('.sum-card')
+      const peso = container.querySelector('.weight-card')
       expect(container.querySelector('.rhythm-card')).not.toBeNull()
-      expect(screen.queryByLabelText('Ejercicio')).toBeNull()
-
-      await userEvent.click(screen.getByRole('tab', { name: 'Cuerpo' }))
-      expect(container.querySelector('.weight-card')).not.toBeNull()
-      expect(container.querySelector('.sum-card')).toBeNull()
-
-      await userEvent.click(screen.getByRole('tab', { name: 'Ejercicio' }))
-      expect(screen.getByLabelText('Ejercicio')).toBeInTheDocument()
-      expect(container.querySelector('.rhythm-card')).toBeNull()
+      expect(ejercicio.compareDocumentPosition(series) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(series.compareDocumentPosition(peso) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
   })
 
@@ -869,13 +865,12 @@ describe('Progress', () => {
 
     // Series por músculo is the KPI this screen exists for, and it was the last
     // thing on it — under the calendar, the chart and the picker.
-    it('is the tab the screen opens on', async () => {
+    it('vive en Músculos', async () => {
       api.listDays.mockResolvedValue(SUMMER)
       const { container } = render(<Progress />)
 
       await screen.findByText('Esta semana')
-      expect(screen.getByRole('tab', { name: 'Músculos' })).toHaveAttribute('aria-selected', 'true')
-      expect(container.querySelector('.sum-head')).not.toBeNull()
+      expect(container.querySelector('#prog-musculos .sum-head')).not.toBeNull()
     })
 
     // Sets in one week, spread so every band of the reference is represented.
@@ -1748,7 +1743,7 @@ describe('Progress', () => {
         const { container } = render(<Progress />)
 
         expect(container.querySelector('.sum-empty')).toBeNull()
-        expect(screen.getByRole('tablist')).toBeInTheDocument() // the screen still draws
+        expect(screen.getByRole('navigation', { name: 'Progreso' })).toBeInTheDocument() // the screen still draws
       })
 
       // A muscle at zero holds its row — but it only held it for one week, so

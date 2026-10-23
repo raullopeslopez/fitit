@@ -177,7 +177,7 @@ export default function Perfil({ onLogout }) {
 
       {/* Marcador: el objetivo es la banda de la pantalla, a sangre y en
           amarillo, con la cifra en grande; sus filas, dentro y en tinta negra. */}
-      <section className="tu-objetivo" aria-labelledby="perfil-objetivo">
+      <section className="tu-objetivo" aria-labelledby="perfil-objetivo" data-seccion>
         <h2 id="perfil-objetivo" className="tu-objetivo-sello">Tu objetivo</h2>
         <p className="tu-objetivo-cifra">
           <span className="tu-objetivo-kcal">
@@ -221,7 +221,7 @@ export default function Perfil({ onLogout }) {
         </div>
       </section>
 
-      <section className="perfil-seccion" aria-labelledby="perfil-datos">
+      <section className="perfil-seccion" data-seccion aria-labelledby="perfil-datos">
         <h2 id="perfil-datos">Tus datos</h2>
         <div className="perfil-card">
           <ListRow label="Altura" value={DATOS.altura.valor(p)} onClick={() => setHoja('altura')} />
@@ -244,7 +244,7 @@ export default function Perfil({ onLogout }) {
           fuera, que se guardan solos al ponerles nombre en «Fuera»— ya estaba
           aquí. Las reglas salieron de la vista con comida simple (2026-10-22):
           siguen en el planificador, sin pantalla. */}
-      <section className="perfil-seccion" aria-labelledby="perfil-comida">
+      <section className="perfil-seccion" data-seccion aria-labelledby="perfil-comida">
         <h2 id="perfil-comida">Tu comida</h2>
         <div className="perfil-card">
           <ListRow label="Tus platos" value="Ver" onClick={() => setHoja('platos')} />
@@ -252,14 +252,14 @@ export default function Perfil({ onLogout }) {
         </div>
       </section>
 
-      <section className="perfil-seccion" aria-labelledby="perfil-entreno">
+      <section className="perfil-seccion" data-seccion aria-labelledby="perfil-entreno">
         <h2 id="perfil-entreno">Entreno</h2>
         <div className="perfil-card perfil-card-pad">
           <PreferenciasEntreno />
         </div>
       </section>
 
-      <section className="perfil-seccion" aria-labelledby="perfil-apariencia">
+      <section className="perfil-seccion" data-seccion aria-labelledby="perfil-apariencia">
         <h2 id="perfil-apariencia">Apariencia</h2>
         <div className="perfil-card perfil-card-pad">
           <PreferenciaTema />

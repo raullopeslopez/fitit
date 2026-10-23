@@ -3537,20 +3537,28 @@ button.set-action {
   margin-bottom: 1rem;
 }
 
-/* --- Progreso: las pestañas ---------------------------------------------------
+/* --- Índice de secciones (ui/Indice.jsx) --------------------------------------
 
-   Series, Ritmo y Evolución, una cada vez. Un selector redondo bajo la barra de
-   la app, como el de Tema en Perfil: tres palabras que se leen, 44px de alto. */
-.prog-tabs {
+   Progreso y Semana son secciones seguidas; sus píldoras son el índice: pegadas
+   arriba al desplazarte, la sección por la que pasas en tinta. Mismo dibujo que
+   las pestañas que eran: píldora sobre `--surface`, 44px de alto. */
+.indice {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -1rem 0.75rem;
+  padding: calc(0.5rem + env(safe-area-inset-top)) 1rem 0.5rem;
+  background: var(--bg);
+}
+.indice-pildoras {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr));
   gap: 3px;
   padding: 3px;
-  margin: 0 0 0.75rem;
   border-radius: 9999px;
   background: var(--surface);
 }
-.prog-tab.prog-tab {
+.indice-btn.indice-btn {
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -3561,9 +3569,37 @@ button.set-action {
   color: var(--muted);
   cursor: pointer;
 }
-.prog-tab.is-active {
+.indice-btn.is-on {
   background: var(--text);
   color: var(--bg);
+}
+/* Cada sección se para bajo las píldoras al saltar a ella, no debajo. */
+.seccion-indice {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 4.5rem);
+}
+.seccion-indice + .seccion-indice {
+  margin-top: 2.5rem;
+}
+/* Titular de sección con su sello a la derecha (el rango de cada semana). */
+.seccion-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.seccion-head .seccion-titulo {
+  margin: 0;
+}
+/* El titular de cada sección (Bricolage 800, 1,6rem, como los de Plan y Días): dice dónde empieza
+   el bloque al desplazarte; la píldora dice dónde estás. */
+.seccion-titulo {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 /* Marcador: «Progreso» como titular de pantalla, igual que «Días» y «Plan». */
 .prog-title {
@@ -3581,7 +3617,7 @@ button.set-action {
    que se sangraba hasta el canto de la tarjeta (el carrusel de músculos) se
    queda en la columna, porque ya no hay canto y se saldría de la pantalla. Dos
    bloques seguidos (Ritmo y Días cuidados) los separa una raya y aire. */
-.prog-tabs ~ [role='tabpanel'] .card {
+.prog-seccion .card {
   --card-pad-x: 0px;
   padding-inline: 0;
   border: 0;
@@ -3589,12 +3625,12 @@ button.set-action {
   background: transparent;
   box-shadow: none;
 }
-.prog-tabs ~ [role='tabpanel'] .card + .card {
+.prog-seccion .card + .card {
   margin-top: 1.75rem;
   padding-top: 1.75rem;
   border-top: 1px solid var(--border);
 }
-.prog-tabs ~ [role='tabpanel'] .muscle-chips {
+.prog-seccion .muscle-chips {
   margin-inline: 0;
   padding-inline: 0;
 }
@@ -10415,6 +10451,22 @@ button:active:not(:disabled) {
     flex-grow 200ms var(--ease),
     background-color 200ms var(--ease),
     transform 120ms var(--ease);
+}
+/* Las secciones entran al asomar (movimientoSecciones.js): la que empieza
+   fuera de la pantalla espera escondida y, al asomar por abajo, sube 16 px y
+   se funde. `backwards` y no `both`, por lo mismo que la pantalla: acabada, no
+   deja un `transform` que meta lo fijo de dentro debajo de la barra. */
+@keyframes mov-seccion {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+[data-entrada='espera'] {
+  opacity: 0;
+}
+[data-entrada='entra'] {
+  animation: mov-seccion 320ms var(--ease-out) backwards;
 }
 /* Entrar en Entreno es un modo y se nota: la pantalla crece 320 ms. */
 @keyframes mov-modo {

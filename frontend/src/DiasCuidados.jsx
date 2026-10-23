@@ -37,7 +37,7 @@ export function DiasCuidados({ dias, hoy }) {
   const { ventana, meses } = contarCuidados(dias, hoy)
   const nombre = (mes) => MESES[Number(mes.slice(5)) - 1]
   return (
-    <section className="card cuidados">
+    <section className="card cuidados" data-seccion>
       <p className="card-eyebrow">Días cuidados</p>
       <p className="cuidados-cifra">
         <span className="cuidados-num">{`${ventana} de ${VENTANA}`}</span>

@@ -379,7 +379,7 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
               color. Una comida vacía también se dibuja —es por donde se entra a
               registrar en ella— y lleva dentro lo que el plan ponía, si algo. */}
           {hayPlan && isToday && <p className="hoy-tudia">Tu día</p>}
-          <div className={`food-diario${hayPlan && isToday ? ' con-plan' : ''}`}>
+          <div className={`food-diario${hayPlan && isToday ? ' con-plan' : ''}`} data-seccion>
             {rails(day)
               .filter((rail) => siguiente == null || rail.key !== siguiente)
               .map((rail) => (
@@ -431,7 +431,7 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           {/* Lo que no es ninguna de las cuatro comidas: un picoteo, un café.
               Era el botón flotante «Añadir comida»; ahora va al pie del día,
               porque lo normal se apunta desde su comida. */}
-          <button type="button" className="hoy-algo-mas" onClick={() => setAdding({ slot: null })}>
+          <button type="button" className="hoy-algo-mas" data-seccion onClick={() => setAdding({ slot: null })}>
             <span aria-hidden="true">+</span> Algo más, fuera de las comidas
           </button>
           {/* El día que tienes delante no es el que estás viviendo: una entrada
