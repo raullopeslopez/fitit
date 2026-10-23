@@ -10366,8 +10366,7 @@ button:active:not(:disabled) {
   animation: none;
 }
 
-/* Cambiar de pestaña, abrir una pantalla: el contenido entra con un fundido
-   de 8 px. Las pestañas son hermanas: nada empuja de lado. */
+/* Abrir una pantalla: el contenido entra con un fundido de 8 px. */
 @keyframes mov-sube {
   from {
     opacity: 0;
@@ -10383,6 +10382,33 @@ button:active:not(:disabled) {
      haría de contexto de apilamiento y metería las pantallas fijas de dentro
      (Añadir, las hojas) debajo de la barra. */
   animation: mov-sube 200ms var(--ease) backwards;
+}
+/* Cambiar de pestaña (2026-10-23): la barra es una fila y la pantalla se
+   mueve por ella. La nueva entra 32 px desde el lado de la pestaña tocada
+   (240 ms, frena); la vieja sale hacia el otro en 120 ms (App.jsx). Con
+   «reducir movimiento», fundido, como todo. */
+@keyframes mov-pestana-adelante {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+@keyframes mov-pestana-atras {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+.app-main[data-dir='adelante'] > * {
+  animation: mov-pestana-adelante 240ms var(--ease-out) 40ms backwards;
+}
+.app-main[data-dir='atras'] > * {
+  animation: mov-pestana-atras 240ms var(--ease-out) 40ms backwards;
+}
+/* Los 32 px de la que entra no abren scroll de lado. `clip` y no `hidden`:
+   no crea caja de scroll, así que lo `sticky` y lo fijo siguen igual. */
+.container {
+  overflow-x: clip;
 }
 .tab {
   transition:

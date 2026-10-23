@@ -273,6 +273,30 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Semana' })).toHaveAttribute('aria-current', 'page')
   })
 
+  // Lienzo «Movimiento → cambiar de pestaña»: la barra es una fila, así que la
+  // pantalla nueva entra por el lado de la pestaña tocada.
+  it('la pantalla entra por el lado de la pestaña que tocas', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    api.getPlan.mockResolvedValue(null)
+    api.listDishes.mockResolvedValue([])
+    const { container } = render(<App />)
+    const main = () => container.querySelector('.app-main')
+
+    await screen.findByRole('navigation', { name: 'Navegación principal' })
+    expect(main()).not.toHaveAttribute('data-dir')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Historial' }))
+    expect(main()).toHaveAttribute('data-dir', 'adelante')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Semana' }))
+    expect(main()).toHaveAttribute('data-dir', 'atras')
+
+    // Volver a tocar la pestaña en la que estás no mueve nada.
+    await userEvent.click(screen.getByRole('button', { name: 'Semana' }))
+    expect(main()).toHaveAttribute('data-dir', 'atras')
+  })
+
   // Lo que se fija una vez (objetivo, reparto, reglas, peso, preferencias de
   // Entreno) sale de Comida y de Entreno y vive aquí.
   it('Tú es la última pestaña, y la cabecera ya no lleva «Salir»', async () => {

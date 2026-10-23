@@ -869,6 +869,12 @@ lo usan **dos** pantallas; antes vive en la suya.
 - **Third exception, Ritmo (2026-10-12):** opening a muscle drops its last session in and
   fills its calendar week by week, its days popping in. Same rule: off under
   `prefers-reduced-motion`.
+- **Cambiar de pestaña (2026-10-23):** la barra es una fila (Hoy · Semana · Historial ·
+  Progreso · Tú) y la pantalla se mueve por ella: hacia una pestaña a la derecha, la vieja
+  sale 32 px a la izquierda fundiéndose (120 ms, acelera) y la nueva entra desde 32 px a la
+  derecha (240 ms, frena); hacia la izquierda, al revés. Sustituye a «las pestañas son
+  hermanas, nada empuja de lado». Tocar la pestaña en la que estás no mueve nada. Con
+  «reducir movimiento», fundido.
 - **Second exception, Series por músculo (2026-10-11):** opening its ten rows grows each
   bar from zero (400 ms `ease-out`, 30 ms between rows). The growth is the reading — which
   bars stop short of their rule — not decoration. Off under `prefers-reduced-motion`.
@@ -885,6 +891,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-23 | Cambiar de pestaña desliza según el orden de la barra | Petición del usuario: una transición entre sección y sección. De tres opciones (deslizar según orden, fundido cruzado, carrusel entero) eligió la de eje compartido: 32 px y no la pantalla entera, para que diga hacia dónde vas sin convertir cada cambio en un viaje (el carrusel chocaba con *minimal-functional*). La vieja sale en 120 ms como copia muda —React ya la ha quitado—, igual que las hojas; la nueva entra con 40 ms de retraso para que se crucen sin pisarse. El contenedor recorta en horizontal (`overflow-x: clip`) para que los 32 px no abran scroll. Entrar y salir de Entreno, abrir un día y los saltos desde botones (Entrenar, Hacer el plan, el widget) siguen como estaban. Toques: los mismos, 1 por pestaña. |
 | 2026-10-18 | Marcador: paleta, Bricolage, récord en oro y comidas sin color en toda la app | Usuario, «Ponte con la UI», y en cuatro preguntas: piel primero y navegación después, Bricolage Grotesque en vez de Space Grotesk, comidas sin color (el color es de los músculos) y récord en oro (`#FFC53D` / `#8A5A00`) para que el mandarina sea sólo la acción. Los tokens cambian en un PR; la quita de tarjetas, pantalla a pantalla. |
 | 2026-10-18 | Días cuidados: un punto en la franja de Comida y una tarjeta en Progreso → Ritmo | Épica de cuatro comidas, fase 7: la cifra norte. Un día cuenta si dijiste lo que comiste (diario o comida del plan contestada) o entrenaste (al menos una serie). En la franja de la semana de Comida, un punto de 6 px bajo el número del día cuidado, en `currentColor` (sigue la tinta del día, también el elegido); no una segunda fila de cuadros: un concepto, un dibujo. Accesible como descripción («Día cuidado»), no en el nombre del botón. En Progreso → Ritmo, arriba, la tarjeta `Días cuidados` con `47 de 56` en Mono 1,6rem y `días cuidados en 8 semanas`, y cinco barras por mes (la del mes en curso en `--text`, las demás al 25 %) con su cifra encima. Nunca racha: ni «seguidos» ni nada que se rompa. |
 | 2026-10-18 | Plan → Cambiar este plato: barra de tres tramos, ideas para esa comida y «Aquí no» | Épica de cuatro comidas, fase 6. Bajo lo propuesto, una barra de 12 px en tres tramos (proteína `--text`, hidrato `--carbs`, grasa `--text` al 35 %) por kcal, con sus gramos debajo en Mono (el del hidrato en `--carbs-ink`); sin una de las tres cifras no se dibuja. Botón secundario `Ideas para el desayuno` (artículo por comida): pide tres a la IA con la comida como dato; vuelven bajo el sello `Propuesta`, cada una con sus ingredientes, una barra fina de 6 px y `Elegir` (primario, 1 toque: cambia el plato del día) y `Aquí no` (enlace). `Aquí no` se sustituye en su sitio por `No volverá en desayunos.` con `Deshacer`. «No en desayunos» pasa a usar el mismo «Aquí no», que se recuerda para el modelo. Sin nada que proponer, la frase de siempre de las propuestas (cuota, sin despensa…). No hay etiqueta «IA»: la idea se juzga por si encaja, no por quién la hizo. |

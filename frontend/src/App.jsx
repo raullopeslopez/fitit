@@ -21,6 +21,10 @@ import { syncSteps } from './steps.js'
 import { syncFood } from './widgetSummary.js'
 
 // Donde vive la versión nueva del APK.
+// El orden de la barra, de izquierda a derecha: por él se sabe hacia qué lado
+// se va al cambiar de pestaña.
+const ORDEN = ['food', 'plan', 'days', 'progress', 'profile']
+
 const UPDATE_URL = 'https://github.com/raullopeslopez/fitit/releases/latest'
 
 export default function App() {
@@ -33,7 +37,10 @@ export default function App() {
   // seed from a previous launch would be an unknown number of sets out of date.
   const [openWorkoutSeed, setOpenWorkoutSeed] = useState(null)
   // Se abre en Hoy, la primera pestaña: lo de hoy, comer y entrenar.
-  const [view, setView] = useState('food')
+  const [view, setViewState] = useState('food')
+  // Por qué lado entra la pantalla (`adelante`: desde la derecha). Sólo lo
+  // pone cambiar de pestaña; cualquier otro camino entra como siempre.
+  const [dir, setDir] = useState(null)
   // «Empezar entreno» pulsado en el widget: Días hace lo mismo que su botón en
   // cuanto sabe si hoy ya hay entreno.
   const [startOnArrival, setStartOnArrival] = useState(false)
@@ -46,6 +53,7 @@ export default function App() {
   const boot = useColdStart({ enabled: Boolean(token) })
 
   function openWorkout(id, seed = null) {
+    if (id) setDir(null)
     setOpenWorkoutId(id)
     setOpenWorkoutSeed(seed)
   }
@@ -55,6 +63,7 @@ export default function App() {
   // hacia su franja de Hoy (320 ms, acelera) y la barra vuelve a subir. Sin
   // motor de animaciones (jsdom) o con «reducir movimiento», todo es inmediato.
   const navRef = useRef(null)
+  const mainRef = useRef(null)
   const [saliendoEntreno, setSaliendoEntreno] = useState(false)
   const [navSube, setNavSube] = useState(false)
   const animable = () =>
@@ -71,6 +80,55 @@ export default function App() {
       setNavSube(true)
       setTimeout(() => setNavSube(false), 320)
     }, 320)
+  }
+
+  function setView(target) {
+    setDir(null)
+    setViewState(target)
+  }
+
+  // Cambiar de pestaña (lienzo «Movimiento → cambiar de pestaña»): la barra es
+  // una fila, Hoy a la izquierda y Tú a la derecha, y la pantalla se mueve por
+  // ella. Ir a la derecha empuja la vieja 32 px a la izquierda mientras se
+  // funde (120 ms, acelera) y la nueva entra desde 32 px a la derecha (240 ms,
+  // frena, en CSS); a la izquierda, al revés. La vieja ya no está en el árbol
+  // cuando la nueva entra: sale una copia muda, como las hojas.
+  function cambiarDePestana(target) {
+    const desde = ORDEN.indexOf(view)
+    const hacia = ORDEN.indexOf(target)
+    if (desde === hacia) return undefined
+    if (openWorkoutId || desde < 0 || hacia < 0) return setView(target)
+    const sentido = hacia > desde ? 'adelante' : 'atras'
+    const vieja = mainRef.current?.firstElementChild
+    if (vieja && animable()) {
+      const caja = vieja.getBoundingClientRect()
+      const copia = vieja.cloneNode(true)
+      copia.setAttribute('aria-hidden', 'true')
+      copia.inert = true
+      Object.assign(copia.style, {
+        position: 'fixed',
+        top: `${caja.top}px`,
+        left: `${caja.left}px`,
+        width: `${caja.width}px`,
+        margin: '0',
+        pointerEvents: 'none',
+        animation: 'none',
+      })
+      document.body.appendChild(copia)
+      const quitar = () => copia.remove()
+      copia
+        .animate(
+          [
+            { opacity: 1, transform: 'none' },
+            { opacity: 0, transform: `translateX(${sentido === 'adelante' ? -32 : 32}px)` },
+          ],
+          { duration: 120, easing: 'cubic-bezier(0.3, 0, 1, 1)', fill: 'forwards' },
+        )
+        .finished.then(quitar, quitar)
+      setTimeout(quitar, 180)
+    }
+    setDir(sentido)
+    setViewState(target)
   }
 
   const habiaEntreno = useRef(openWorkoutId)
@@ -191,7 +249,7 @@ export default function App() {
   function go(target) {
     openWorkout(null)
     if (target === 'plan') setPlanInicial('esta')
-    setView(target)
+    cambiarDePestana(target)
   }
 
   // Estados (Marcador): la única pantalla entera en mandarina. Una versión que
@@ -266,7 +324,7 @@ export default function App() {
       <header className="app-header">
         <Wordmark />
       </header>
-      <main className="app-main">
+      <main ref={mainRef} className="app-main" data-dir={dir ?? undefined}>
         {openWorkoutId ? (
           <Workout
             workoutId={openWorkoutId}
