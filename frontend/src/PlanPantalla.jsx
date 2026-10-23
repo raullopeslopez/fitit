@@ -385,6 +385,7 @@ export default function PlanPantalla({ hoy = foodDayIso(), inicial = 'esta' }) {
             onChanged={cargar}
             onComprar={() => setListaDe(viene)}
             pauta={pauta}
+            relieve={planEsta === null}
           />
         )}
       </section>

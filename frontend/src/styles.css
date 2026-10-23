@@ -11101,6 +11101,11 @@ button:active:not(:disabled) {
   font-size: 1rem;
   font-weight: 600;
 }
+.semana-viene-generar.is-relieve,
+.semana-viene-generar.is-relieve:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--text);
+}
 .semana-pasos {
   display: flex;
   flex-direction: column;

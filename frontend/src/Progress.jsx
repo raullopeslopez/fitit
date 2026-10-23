@@ -1451,7 +1451,9 @@ export default function Progress({ initialTab = 'evolucion' }) {
           }}
         >
           <div className="field">
-            <label htmlFor="progress-exercise">Ejercicio</label>
+            <label htmlFor="progress-exercise" className="visually-hidden">
+              Ejercicio
+            </label>
             <input
               id="progress-exercise"
               ref={searchRef}

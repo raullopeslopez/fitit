@@ -207,7 +207,19 @@ const PASOS_GENERAR = (kcal) => [
  * en cuenta y un botón; generando, la espera con la cuadrícula a punto de
  * llenarse; con plan, «Tu semana, lista» y el paso siguiente, la compra.
  */
-export function QueViene({ weekStart, plan, hoy, platos, onChanged, onComprar, generar = generatePlan, pauta = null }) {
+// `relieve`: «Generar la semana» baja a relieve porque la pantalla ya tiene su
+// mandarina (el de esta semana, cuando tampoco tiene plan).
+export function QueViene({
+  weekStart,
+  plan,
+  hoy,
+  platos,
+  onChanged,
+  onComprar,
+  generar = generatePlan,
+  pauta = null,
+  relieve = false,
+}) {
   const [objetivo, setObjetivo] = useState(undefined)
   const [generando, setGenerando] = useState(false)
   const [recien, setRecien] = useState(false)
@@ -261,7 +273,11 @@ export function QueViene({ weekStart, plan, hoy, platos, onChanged, onComprar, g
           <p className="hint">Todavía no tienes objetivo de kcal: la semana no se ajustará a ninguno.</p>
         )}
         {error && <p className="alert">{error}</p>}
-        <button type="button" className="semana-viene-generar" onClick={generarSemana}>
+        <button
+          type="button"
+          className={`semana-viene-generar${relieve ? ' is-relieve' : ''}`}
+          onClick={generarSemana}
+        >
           Generar la semana
         </button>
         <p className="semana-viene-pista">Luego cambias lo que no te apetezca, plato a plato.</p>

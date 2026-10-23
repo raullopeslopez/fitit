@@ -66,6 +66,14 @@ describe('Progress', () => {
       expect(within(nav).getByRole('button', { name: 'Ejercicio' })).toHaveAttribute('aria-current', 'true')
     })
 
+    // El titular de la sección ya dice «Ejercicio»: la etiqueta del buscador
+    // queda para el lector de pantalla, no se pinta otra vez debajo.
+    it('no repite «Ejercicio» bajo su titular', async () => {
+      render(<Progress />)
+      expect(screen.getByLabelText('Ejercicio')).toBeInTheDocument()
+      expect(screen.getByText('Ejercicio', { selector: 'label' })).toHaveClass('visually-hidden')
+    })
+
     it('enseña las tres a la vez, en ese orden', async () => {
       api.listDays.mockResolvedValue(BENCH_DAYS)
       const { container } = render(<Progress />)

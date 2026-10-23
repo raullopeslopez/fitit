@@ -114,6 +114,24 @@ describe('la pantalla Plan', () => {
 
   // Reorganización del 17 oct: Tus platos es de «Mis cosas», en Perfil. La que
   // viene planifica con ellos, pero no es donde se gestionan.
+  // Un mandarina por pantalla: sin plan en ninguna de las dos, el de esta
+  // semana es la acción; el de la que viene baja a relieve.
+  it('sin plan en las dos semanas, sólo «Generar» de esta va en mandarina', async () => {
+    getPlan.mockResolvedValue(null)
+    render(<PlanPantalla hoy={HOY} />)
+    const deEsta = await within(esta()).findByRole('button', { name: 'Generar la semana' })
+    const deViene = await within(viene()).findByRole('button', { name: 'Generar la semana' })
+    expect(deEsta).not.toHaveClass('is-relieve')
+    expect(deViene).toHaveClass('is-relieve')
+  })
+
+  it('con plan esta semana, «Generar» de la que viene sigue en mandarina', async () => {
+    getPlan.mockImplementation(async (week) => (week === VIENE ? null : plan(week, 'Pollo con arroz')))
+    render(<PlanPantalla hoy={HOY} />)
+    const deViene = await within(viene()).findByRole('button', { name: 'Generar la semana' })
+    expect(deViene).not.toHaveClass('is-relieve')
+  })
+
   it('«Tus platos» ya no está en la que viene', async () => {
     getPlan.mockResolvedValue(null)
     render(<PlanPantalla hoy={HOY} inicial="viene" />)
