@@ -11,7 +11,6 @@ import {
   setRestSeconds,
   setScreenAwake,
 } from './prefs.js'
-import TusPlatos from './TusPlatos.jsx'
 import TusSitios from './TusSitios.jsx'
 import { applyTheme, getThemePref, setThemePref } from './theme.js'
 import { Chip, ListRow, Sheet } from './ui'
@@ -126,7 +125,7 @@ export default function Perfil({ onLogout }) {
   }, [])
   const [perfil, setPerfil] = useState(null)
   const [propuesta, setPropuesta] = useState(null)
-  // Qué hoja está abierta: 'objetivo', una clave de `DATOS`, 'sexo', 'platos' o 'sitios'.
+  // Qué hoja está abierta: 'objetivo', una clave de `DATOS`, 'sexo' o 'sitios'.
   const [hoja, setHoja] = useState(null)
 
   const pedirPerfil = useCallback(async () => {
@@ -241,15 +240,14 @@ export default function Perfil({ onLogout }) {
         </div>
       </section>
 
-      {/* Lo tuyo de comer, junto (reorganización del 17 oct): Tus platos
-          vivía en Plan, y Plan es para la semana. Tus sitios —donde comes
-          fuera, que se guardan solos al ponerles nombre en «Fuera»— ya estaba
-          aquí. Las reglas salieron de la vista con comida simple (2026-10-22):
-          siguen en el planificador, sin pantalla. */}
+      {/* Tus sitios: donde comes fuera, que se guardan solos al ponerles
+          nombre en «Fuera». Tus platos vive en Semana, donde se planifica con
+          ellos; aquí era una segunda puerta a la misma lista (2026-10-24). Las
+          reglas salieron de la vista con comida simple (2026-10-22): siguen en
+          el planificador, sin pantalla. */}
       <section className="perfil-seccion" data-seccion aria-labelledby="perfil-comida">
         <h2 id="perfil-comida">Tu comida</h2>
         <div className="perfil-card">
-          <ListRow label="Tus platos" value="Ver" onClick={() => setHoja('platos')} />
           <ListRow label="Tus sitios" value="Ver" onClick={() => setHoja('sitios')} />
         </div>
       </section>
@@ -292,7 +290,6 @@ export default function Perfil({ onLogout }) {
       )}
       {hoja === 'sexo' && <HojaSexo perfil={p} onClose={cerrar} onSaved={recargar} />}
 
-      {hoja === 'platos' && <TusPlatos onClose={cerrar} />}
       {hoja === 'sitios' && <TusSitios onClose={cerrar} />}
     </div>
   )

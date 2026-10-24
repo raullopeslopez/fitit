@@ -408,26 +408,17 @@ describe('Perfil', () => {
     expect(await screen.findByRole('dialog', { name: 'Tu objetivo' })).toBeInTheDocument()
   })
 
-  // Reorganización del 17 oct: lo tuyo de comer —platos, sitios y reglas— vive
-  // junto, en Perfil, en vez de repartido entre Plan, Perfil y Comida.
-  // Comida simple: las reglas salen de la vista (siguen en el planificador).
-  it('«Tu comida» junta tus platos y tus sitios, sin reglas', async () => {
+  // Reorganización del 17 oct: lo tuyo de comer vive junto. Comida simple: las
+  // reglas salen de la vista (siguen en el planificador). Y Tus platos se queda
+  // sólo en Semana, que es donde se planifica con ellos (2026-10-24): en Tú era
+  // una segunda puerta a la misma lista.
+  it('«Tu comida» tiene tus sitios, sin tus platos ni reglas', async () => {
     renderPerfil()
 
     const seccion = (await screen.findByRole('heading', { name: 'Tu comida' })).closest('section')
-    for (const nombre of ['Tus platos', 'Tus sitios']) {
-      expect(within(seccion).getByRole('button', { name: new RegExp(nombre) })).toBeInTheDocument()
-    }
+    expect(within(seccion).getByRole('button', { name: /Tus sitios/ })).toBeInTheDocument()
+    expect(within(seccion).queryByRole('button', { name: /Tus platos/ })).not.toBeInTheDocument()
     expect(within(seccion).queryByRole('button', { name: /Tus reglas/ })).not.toBeInTheDocument()
-  })
-
-  it('«Tus platos» abre tus platos', async () => {
-    api.listDishes.mockResolvedValue([])
-    renderPerfil()
-
-    await userEvent.click(await fila('Tus platos'))
-
-    expect(await screen.findByRole('dialog', { name: 'Tus platos' })).toBeInTheDocument()
   })
 
   it('«Tus sitios» abre la lista de sitios', async () => {
