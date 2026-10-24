@@ -29,7 +29,7 @@ import ObjetivoLinea from './ObjetivoLinea.jsx'
 import PesoDeHoy from './PesoDeHoy.jsx'
 import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
 import SinDecir, { notaSinDecir } from './SinDecir.jsx'
-import { fueraDelPlan } from './TiraDia.jsx'
+import { fueraDelPlan } from './Plan.jsx'
 import { Ahora, DiaCerrado, HUECOS_HOY, PuntosCuidados, SinPlan, dicha } from './HoyComida.jsx'
 import {
   MACROS,

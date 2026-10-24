@@ -1,8 +1,8 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { DishChips, NewDish, ProposeDishes } from './Dish.jsx'
-import { createDish, generateDishes, logDish, searchFoods } from './api.js'
+import { NewDish, ProposeDishes } from './Dish.jsx'
+import { createDish, generateDishes, searchFoods } from './api.js'
 
 vi.mock('./api.js')
 
@@ -19,38 +19,8 @@ const LENTEJAS = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  logDish.mockResolvedValue([{ id: 11 }])
   createDish.mockResolvedValue({ ...LENTEJAS })
   searchFoods.mockResolvedValue([{ id: 9, name: 'Lenteja cocida', kcal_100g: 116 }])
-})
-
-describe('DishChips', () => {
-  it('offers each dish with what one serving costs', () => {
-    render(<DishChips dishes={[LENTEJAS]} onLogged={() => {}} />)
-    const chip = screen.getByRole('button', { name: /Lentejas de mi madre/ })
-    expect(chip).toHaveTextContent('1 ración')
-    expect(chip).toHaveTextContent('230')
-  })
-
-  it('logs one serving into the meal it was opened from', async () => {
-    const onLogged = vi.fn()
-    render(<DishChips dishes={[LENTEJAS]} slot="comida" onLogged={onLogged} />)
-    await userEvent.click(screen.getByRole('button', { name: /Lentejas de mi madre/ }))
-    await waitFor(() => expect(logDish).toHaveBeenCalledWith(3, { servings: 1, meal_slot: 'comida' }))
-    await waitFor(() => expect(onLogged).toHaveBeenCalled())
-  })
-
-  // Un plato al que le falta un nutriente no puede decir una cifra redonda de
-  // ese nutriente: es la regla del `NULL`, en el sitio donde más tienta.
-  it('prints a dash, not a zero, for what nobody measured', () => {
-    render(<DishChips dishes={[{ ...LENTEJAS, per_serving: { ...LENTEJAS.per_serving, kcal: null } }]} onLogged={() => {}} />)
-    expect(screen.getByRole('button', { name: /Lentejas de mi madre/ })).toHaveTextContent('—')
-  })
-
-  it('says nothing at all when there are no dishes yet', () => {
-    const { container } = render(<DishChips dishes={[]} onLogged={() => {}} />)
-    expect(container).toBeEmptyDOMElement()
-  })
 })
 
 describe('NewDish', () => {

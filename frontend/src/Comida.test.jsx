@@ -119,12 +119,10 @@ describe('Comida', () => {
     api.searchFoods.mockResolvedValue([])
     api.frequentFoods.mockResolvedValue([])
     api.usualAmounts.mockResolvedValue([])
-    // Lo que la pantalla pide además del día: los platos, las reglas y su
-    // veredicto. Vacíos por defecto — lo que se mide aquí es el diario, y una
-    // sección sin nada dentro no se dibuja.
+    // Lo que la pantalla pide además del día: los platos. Vacíos por defecto —
+    // lo que se mide aquí es el diario, y una sección sin nada dentro no se
+    // dibuja.
     api.listDishes.mockResolvedValue([])
-    api.listRules.mockResolvedValue([])
-    api.dayVerdicts.mockResolvedValue({ date: '2026-08-31', verdicts: [], acceptable: true })
     api.getTargetProfile.mockResolvedValue({})
     // Sin plan para la semana: la tarjeta ofrece generarlo y no estorba al resto.
     api.getPlan.mockResolvedValue(null)
@@ -2893,8 +2891,6 @@ describe('Comida: sin cifras mientras cumples', () => {
     api.frequentFoods.mockResolvedValue([])
     api.usualAmounts.mockResolvedValue([])
     api.listDishes.mockResolvedValue([])
-    api.listRules.mockResolvedValue([])
-    api.dayVerdicts.mockResolvedValue({ date: '2026-08-31', verdicts: [], acceptable: true })
     api.getTargetProfile.mockResolvedValue({})
     api.getAdherence.mockResolvedValue(null)
     api.getTargetProposal.mockResolvedValue({ kcal: null, source: null, days: 0, missing: [] })

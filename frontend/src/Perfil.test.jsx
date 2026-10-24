@@ -37,7 +37,6 @@ describe('Perfil', () => {
     api.getTargetProfile.mockResolvedValue(PERFIL)
     api.saveTargetProfile.mockResolvedValue(PERFIL)
     api.getTargetProposal.mockResolvedValue({ kcal: 2569, source: 'formula', days: 0, missing: [] })
-    api.listRules.mockResolvedValue([])
   })
 
   it('reúne tu objetivo, tus datos, tu comida y Entreno; el peso está en Progreso', async () => {

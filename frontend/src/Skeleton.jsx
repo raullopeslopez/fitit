@@ -107,23 +107,6 @@ export function DaysSkeleton() {
   )
 }
 
-// El texto del botón depende del dato: `Empezar entreno` y `Continuar entreno`
-// no son la misma frase, y acertar cuatro de cada cinco veces es abrir la
-// quinta sesión partida en dos —justo lo que el botón existe para evitar—. Así
-// que conserva su ámbar, su altura y su sitio, y no contesta al dedo.
-export function CtaLabelSkeleton() {
-  return (
-    <span
-      className="sk"
-      style={{
-        width: 118,
-        height: 14,
-        background: 'color-mix(in srgb, var(--on-accent) 30%, transparent)',
-      }}
-    />
-  )
-}
-
 function ComposeFrame() {
   return (
     <div className="card card-compose">

@@ -29,8 +29,6 @@ const GLYPHS = new Set([
   '.editor-close',
   '.stepper-btn',
   '.link-row::after',
-  'button.idea-to-dish > span',
-  '.idea-saved-tick',
   '.plan-plato-chev',
 ])
 
@@ -73,7 +71,6 @@ describe('escala tipográfica', () => {
     '.day-count-unit',
     '.rhythm-months, .rhythm-weeks',
     '.set-ix',
-    '.idea-min small',
   ])
 
   it('Micro sólo lo llevan sellos: en mayúsculas por la hoja, o por su texto', () => {

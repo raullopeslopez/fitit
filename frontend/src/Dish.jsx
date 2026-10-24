@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { createDish, generateDishes, logDish, searchFoods } from './api.js'
-import { formatMacro } from './food.js'
+import { createDish, generateDishes, searchFoods } from './api.js'
 
 // Lo que se puede hacer con un plato. La air fryer no está en CIQUAL —es una
 // tabla francesa de alimentos, no un catálogo de electrodomésticos—, así que el
@@ -17,57 +16,6 @@ const METODOS = [
 ]
 
 /**
- * Tus platos, un toque cada uno.
- *
- * Mismo trato que los frecuentes: el chip lleva dentro lo que cuesta y tocarlo
- * registra, sin una hoja de por medio. Una ración por toque — dos raciones son
- * dos toques, que es más barato de entender que un selector que nadie usaría
- * más de una vez al mes.
- */
-export function DishChips({ dishes, slot = null, onLogged }) {
-  const [enviando, setEnviando] = useState(null)
-
-  // Sin platos no hay sección: un encabezado sobre una lista vacía es ruido
-  // que ocupa el sitio de lo que sí hay.
-  if (!dishes || dishes.length === 0) return null
-
-  async function registrar(dish) {
-    setEnviando(dish.id)
-    try {
-      await logDish(dish.id, { servings: 1, meal_slot: slot })
-      onLogged(dish)
-    } finally {
-      setEnviando(null)
-    }
-  }
-
-  return (
-    // Mismas clases que los frecuentes a propósito: es el mismo gesto —un chip
-    // que lleva dentro lo que cuesta y que al tocarlo registra—, así que no
-    // merece un vocabulario visual propio.
-    <section className="food-frequent dish-chips">
-      <p className="card-eyebrow">Tus platos</p>
-      <div className="food-frequent-chips">
-        {dishes.map((dish) => (
-          <button
-            key={dish.id}
-            type="button"
-            className="chip food-frequent-chip dish-chip"
-            disabled={enviando === dish.id}
-            onClick={() => registrar(dish)}
-          >
-            <span className="food-frequent-name">{dish.name}</span>
-            <span className="food-frequent-grams">
-              1 ración · {formatMacro(dish.per_serving?.kcal)} kcal
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-/**
  * Dar de alta un plato.
  *
  * Pide tres cosas que un alimento no necesita y un plato sí: en cuántas
@@ -80,19 +28,9 @@ export function NewDish({
   slot = null,
   onCreated,
   onCancel,
-  // Desde una idea cuya página no publica ingredientes: el nombre ya puesto,
-  // el enlace a la receta a la vista, por qué hay que teclearlos, y la idea
-  // anotada en el plato para que su fila diga «Guardado».
-  initialName = '',
-  recipeUrl = null,
-  ideaId = null,
-  notice = null,
 }) {
-  const [name, setName] = useState(initialName)
-  // Desde una idea las raciones empiezan vacías: la receta no las dijo, y un 1
-  // por defecto sería decirlas por ella —una receta para cuatro guardada como
-  // una ración da macros ×4—. Es la misma regla que el borrador de la idea.
-  const [servings, setServings] = useState(ideaId ? '' : '1')
+  const [name, setName] = useState('')
+  const [servings, setServings] = useState('1')
   const [basis, setBasis] = useState('raw')
   const [method, setMethod] = useState('')
   const [ingredients, setIngredients] = useState([])
@@ -170,7 +108,6 @@ export function NewDish({
         basis,
         method: method || null,
         ingredients: pesados,
-        ...(ideaId != null ? { idea_id: ideaId } : {}),
       })
       onCreated(dish)
     } catch (err) {
@@ -197,17 +134,6 @@ export function NewDish({
       </header>
 
       <form className="food-screen-body new-dish" onSubmit={guardar}>
-
-      {(notice || recipeUrl) && (
-        <div className="new-dish-origin">
-          {notice && <p className="new-dish-notice">{notice}</p>}
-          {recipeUrl && (
-            <a href={recipeUrl} target="_blank" rel="noopener noreferrer">
-              Ver receta original ↗
-            </a>
-          )}
-        </div>
-      )}
 
       <div className="field">
         <label htmlFor="dish-name">Nombre</label>

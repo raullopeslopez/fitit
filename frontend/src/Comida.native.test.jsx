@@ -73,8 +73,6 @@ describe('Comida dentro del APK', () => {
     api.searchFoods.mockResolvedValue([])
     api.frequentFoods.mockResolvedValue([])
     api.listDishes.mockResolvedValue([])
-    api.listRules.mockResolvedValue([])
-    api.dayVerdicts.mockResolvedValue({ date: '2026-08-31', verdicts: [], acceptable: true })
     api.getTargetProfile.mockResolvedValue({})
     api.getPlan.mockResolvedValue(null)
     api.getAdherence.mockResolvedValue(null)

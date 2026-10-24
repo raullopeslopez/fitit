@@ -515,33 +515,6 @@ export function notHere(dishId, slot, here = false) {
   return apiFetch(`/dishes/${dishId}/not-here`, { method: 'PUT', body: JSON.stringify({ slot, here }) })
 }
 
-// Ideas con un alimento: recetas de la web, guardadas por alimento. Sin `more`
-// contesta con lo guardado y sólo busca si no hay nada; con `more` («Otras
-// ideas») vuelve a buscar y suma. Siempre 200: el motivo viaja en `refusal`.
-export function dishIdeas(foodId, { more = false } = {}) {
-  return apiFetch('/dish-ideas', {
-    method: 'POST',
-    body: JSON.stringify({ food_id: foodId, more }),
-  })
-}
-
-// Una idea abierta como plato, sin guardar: las líneas de su receta y con qué
-// casan. `servings` son las raciones que dice la persona; sin ellas, las que
-// publica la página, y si tampoco, `null` — el servidor no divide entre uno.
-// Siempre 200 para una idea que existe: el motivo viaja en `refusal`.
-export function ideaDraft(ideaId, { servings = null } = {}) {
-  const query = servings != null ? `?servings=${encodeURIComponent(servings)}` : ''
-  return apiFetch(`/dish-ideas/${ideaId}/draft${query}`)
-}
-
-// Las macros de una ración, sin guardar nada. La pantalla no suma.
-export function previewDish({ servings = 1, ingredients }) {
-  return apiFetch('/dishes/preview', {
-    method: 'POST',
-    body: JSON.stringify({ servings, ingredients }),
-  })
-}
-
 // --- Objetivo derivado --------------------------------------------------------
 // Tu perfil: qué quieres que le pase a tu cuerpo y lo mínimo sobre él para
 // poder estimar el gasto mientras no haya historial con el que medirlo.
@@ -572,28 +545,6 @@ export function getReview() {
 // respuesta. **No toca el objetivo**: aceptarla es `acceptTarget`.
 export function answerReview(answer) {
   return apiFetch('/targets/review', { method: 'POST', body: JSON.stringify({ answer }) })
-}
-
-// --- Reglas -------------------------------------------------------------------
-export function listRules() {
-  return apiFetch('/rules')
-}
-
-export function createRule(rule) {
-  return apiFetch('/rules', { method: 'POST', body: JSON.stringify(rule) })
-}
-
-// Retirar, no borrar: se le pone fecha de fin, para que el pasado siga juzgado
-// como se juzgó.
-export function retireRule(ruleId, on) {
-  return apiFetch(`/rules/${ruleId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ active_to: on }),
-  })
-}
-
-export function dayVerdicts(day = null) {
-  return apiFetch(`/rules/verdicts${day ? `?day=${day}` : ''}`)
 }
 
 // --- el plan de la semana ----------------------------------------------------
@@ -713,13 +664,6 @@ export function estimateOut(description, hiddenFat) {
     method: 'POST',
     body: JSON.stringify({ description, hidden_fat: hiddenFat }),
   })
-}
-
-// Los huecos de esta semana a los que todavía se puede llevar un plato: desde
-// el día que tienes delante y sin decir. Sin plan llega `has_plan: false`, que
-// no es un fallo: es lo que la hoja tiene que contar.
-export function getPlanAhead(dayIso) {
-  return apiFetch(`/plans/entries/ahead?date=${dayIso}`)
 }
 
 // Poner otro plato en un hueco que no ha pasado. **No es `swapped`**: aquel es

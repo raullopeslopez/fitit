@@ -188,6 +188,21 @@ export function planDelDia(plan, iso) {
   return Object.fromEntries(delDia(plan, iso).map((fila) => [fila.slot, fila]))
 }
 
+// Lo apuntado hoy que no es el plan: lo que hace volver las cifras.
+//
+// Dentro del plan es lo de una comida que dijiste comida, con su plato —o una
+// comida fuera reservada y confirmada—. Todo lo demás está fuera: lo apuntado
+// aparte, lo de una comida que el plan no tiene, y lo de una que aún no has
+// dicho, porque eso no lo ha puesto el plan sino tú.
+export function fueraDelPlan(entries, planHoy) {
+  return (entries ?? []).filter((e) => {
+    const fila = planHoy?.[e.meal_slot]
+    if (!fila) return true
+    if (fila.status === 'out') return false
+    return !(fila.status === 'done' && e.dish_id === fila.dish_id)
+  })
+}
+
 // Por qué no se ha podido generar. Cada forma de no haber podido se nombra por
 // separado: una despensa vacía manda a dar de alta platos, y un hueco sin
 // candidatos manda a mirar ese hueco. «No se ha podido» no dice qué hacer.

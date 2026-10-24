@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { PlanEnComida, lunesDe, lunesSiguiente, planDelDia } from './Plan.jsx'
+import { PlanEnComida, fueraDelPlan, lunesDe, lunesSiguiente, planDelDia } from './Plan.jsx'
 
 const LUNES = '2026-09-21'
 const MARTES = '2026-09-22'
@@ -316,5 +316,25 @@ describe('las comidas planificadas de un día', () => {
     // existe —es el iterador de Array— y un `?? []` lo daría por bueno.
     expect(planDelDia([], LUNES)).toEqual({})
     expect(planDelDia(null, LUNES)).toEqual({})
+  })
+})
+
+describe('fueraDelPlan', () => {
+  const plan = {
+    desayuno: { slot: 'desayuno', dish_id: 70, status: 'done' },
+    comida: { slot: 'comida', dish_id: 70, status: null },
+  }
+
+  it('lo comido del plan, con su plato, está dentro', () => {
+    expect(fueraDelPlan([{ id: 1, meal_slot: 'desayuno', dish_id: 70 }], plan)).toEqual([])
+  })
+
+  it('lo apuntado aparte, o en una comida aún sin decir, está fuera', () => {
+    const sueltas = [
+      { id: 2, meal_slot: 'desayuno', dish_id: null },
+      { id: 3, meal_slot: 'comida', dish_id: 70 },
+      { id: 4, meal_slot: 'snack', dish_id: null },
+    ]
+    expect(fueraDelPlan(sueltas, plan).map((e) => e.id)).toEqual([2, 3, 4])
   })
 })
