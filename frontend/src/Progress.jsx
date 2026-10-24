@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import {
   deleteExercise,
+  getCaredDays,
   listDays,
   listExercises,
   mergeExercise,
@@ -16,7 +17,8 @@ import { ExerciseEditor, MusclePicker } from './ExerciseEditor.jsx'
 import { EditTrouble, NoteUndo, clashTrouble, focusEditorTrigger } from './EditTrouble.jsx'
 import { fold, formatIsoDayMonth, formatMonth, formatRange } from './format.js'
 import Rhythm from './Rhythm.jsx'
-import DiasCuidadosCard from './DiasCuidados.jsx'
+import { CuidadosEsteMes, DiasCuidados, useDiasCuidados } from './DiasCuidados.jsx'
+import { foodDayIso } from './food.js'
 import { Indice } from './ui'
 import { RhythmSkeleton, SummarySkeleton, useWaitFlag } from './Skeleton.jsx'
 import { MUSCLE_GROUPS, muscleColor, muscleFill, UNGROUPED } from './muscles.js'
@@ -1402,9 +1404,15 @@ export default function Progress({ initialTab = 'evolucion' }) {
   // entraba con Evolución sola y las otras dos caían encima al llegar el dato.
   const waiting = useWaitFlag(!daysLoaded)
 
+  // Días cuidados: un pedido para la línea de la cabecera y la tarjeta de Cuerpo.
+  const hoyCuidados = foodDayIso()
+  const cuidados = useDiasCuidados(getCaredDays, hoyCuidados)
+
   return (
     <section>
       <h1 className="prog-title">Progreso</h1>
+      {/* La cifra norte, a la vista nada más abrir: no hay que bajar a Cuerpo. */}
+      <CuidadosEsteMes dias={cuidados} hoy={hoyCuidados} />
       <Indice
         label="Progreso"
         secciones={SECCIONES}
@@ -1828,7 +1836,7 @@ export default function Progress({ initialTab = 'evolucion' }) {
           {/* El peso, y la constancia de todo: días en los que te cuidaste. */}
           <Weight />
           <PasosSieteDias />
-          <DiasCuidadosCard />
+          <DiasCuidados dias={cuidados} hoy={hoyCuidados} />
       </section>
 
       {error && (

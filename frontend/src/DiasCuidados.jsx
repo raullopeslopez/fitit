@@ -60,8 +60,23 @@ export function DiasCuidados({ dias, hoy }) {
   )
 }
 
-// La tarjeta con sus datos: los cinco últimos meses enteros, hasta hoy.
-export default function DiasCuidadosCard({ leer = getCaredDays, hoy = foodDayIso() }) {
+// La cifra norte en una línea, para la cabecera de Progreso: los días del mes en
+// curso, la misma cuenta que la última barra de la tarjeta. Mientras no hay
+// respuesta (o no llegó) no se sabe, y eso es una raya en la tinta de la cifra,
+// nunca un 0; un mes que llegó vacío sí es 0.
+export function CuidadosEsteMes({ dias, hoy }) {
+  const n = Array.isArray(dias) ? contarCuidados(dias, hoy).meses.at(-1).dias : null
+  return (
+    <p className="cuidados-linea">
+      <span className="cuidados-linea-num">{n ?? '—'}</span>{' '}
+      <span className="cuidados-pie">{n === 1 ? 'día cuidado este mes' : 'días cuidados este mes'}</span>
+    </p>
+  )
+}
+
+// Los días cuidados de los cinco últimos meses enteros, hasta hoy: `null`
+// mientras no hay respuesta. Un pedido sirve a la línea y a la tarjeta.
+export function useDiasCuidados(leer = getCaredDays, hoy = foodDayIso()) {
   const [dias, setDias] = useState(null)
   useEffect(() => {
     let vivo = true
@@ -72,5 +87,5 @@ export default function DiasCuidadosCard({ leer = getCaredDays, hoy = foodDayIso
       vivo = false
     }
   }, [leer, hoy])
-  return <DiasCuidados dias={dias} hoy={hoy} />
+  return dias
 }

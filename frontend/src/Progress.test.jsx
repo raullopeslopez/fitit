@@ -85,6 +85,20 @@ describe('Progress', () => {
       expect(ejercicio.compareDocumentPosition(series) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       expect(series.compareDocumentPosition(peso) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
+
+    // La cifra norte, bajo el titular y antes del índice: se ve al abrir, sin
+    // bajar hasta Cuerpo. Un solo pedido sirve a la línea y a la tarjeta.
+    it('dice los días cuidados de este mes bajo el titular, antes del índice', async () => {
+      const hoy = new Date()
+      const mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+      api.getCaredDays.mockResolvedValue({ days: [`${mes}-01`, `${mes}-02`] })
+      render(<Progress />)
+      const linea = await screen.findByText('días cuidados este mes')
+      await waitFor(() => expect(linea.closest('p')).toHaveTextContent(/^\s*\d+\s*días cuidados este mes$/))
+      const nav = screen.getByRole('navigation', { name: 'Progreso' })
+      expect(linea.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(api.getCaredDays).toHaveBeenCalledTimes(1)
+    })
   })
 
   // "Mejores marcas" was a leaderboard of your own lifts, and it answered a

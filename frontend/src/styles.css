@@ -8065,6 +8065,21 @@ button.set-chip:active:not(:disabled) {
   color: var(--muted);
   font-size: 0.85rem;
 }
+/* La misma cifra en la cabecera de Progreso, bajo el titular: el mes en curso
+   en Big stat mono y tinta (la raya también), el pie en --muted. */
+.cuidados-linea {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: -0.5rem 0 0.75rem;
+}
+.cuidados-linea-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+}
 .cuidados-meses {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

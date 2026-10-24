@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 
-import { DiasCuidados, contarCuidados } from './DiasCuidados.jsx'
+import { CuidadosEsteMes, DiasCuidados, contarCuidados } from './DiasCuidados.jsx'
 
 // Del 24 de ago al 18 de oct son las últimas 8 semanas con el 18 de oct (domingo) como hoy.
 const DIAS = ['2026-06-03', '2026-08-23', '2026-08-24', '2026-09-30', '2026-10-01', '2026-10-17', '2026-10-18']
@@ -38,5 +38,33 @@ describe('DiasCuidados', () => {
   it('sin datos no se dibuja', () => {
     const { container } = render(<DiasCuidados dias={null} hoy="2026-10-18" />)
     expect(container).toBeEmptyDOMElement()
+  })
+})
+
+// La línea de la cabecera de Progreso: el mes en curso, la misma cuenta.
+describe('CuidadosEsteMes', () => {
+  it('dice cuántos días cuidados lleva el mes en curso', () => {
+    const { container } = render(<CuidadosEsteMes dias={DIAS} hoy="2026-10-18" />)
+    expect(container).toHaveTextContent('3 días cuidados este mes')
+    expect(screen.getByText('3')).toHaveClass('cuidados-linea-num')
+  })
+
+  it('en singular cuando es uno', () => {
+    const { container } = render(<CuidadosEsteMes dias={['2026-10-02']} hoy="2026-10-18" />)
+    expect(container).toHaveTextContent('1 día cuidado este mes')
+  })
+
+  // Un mes sin nada apuntado es un cero de verdad: la respuesta llegó.
+  it('un mes vacío es 0', () => {
+    const { container } = render(<CuidadosEsteMes dias={[]} hoy="2026-10-18" />)
+    expect(container).toHaveTextContent('0 días cuidados este mes')
+  })
+
+  // Sin respuesta no se sabe: raya en la tinta de la cifra, nunca un 0.
+  it('sin datos pone una raya, no un cero', () => {
+    const { container } = render(<CuidadosEsteMes dias={null} hoy="2026-10-18" />)
+    expect(container).toHaveTextContent('— días cuidados este mes')
+    expect(screen.getByText('—')).toHaveClass('cuidados-linea-num')
+    expect(container).not.toHaveTextContent(/\b0\b/)
   })
 })
