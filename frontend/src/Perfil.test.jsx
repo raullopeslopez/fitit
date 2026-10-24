@@ -28,6 +28,11 @@ function renderPerfil(props = {}) {
 // Una fila, por su etiqueta: su nombre accesible es etiqueta + pista + valor.
 const fila = (label) => screen.findByRole('button', { name: new RegExp(`^${label}`) })
 
+// Salir de la hoja de un dato: no hay «Guardar», cerrarla guarda. Escape es el
+// Atrás de Android; el fondo, el toque fuera.
+const salir = () => userEvent.keyboard('{Escape}')
+const tocarFondo = () => userEvent.click(document.querySelector('.sheet-scrim'))
+
 describe('Perfil', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -187,7 +192,7 @@ describe('Perfil', () => {
       const hoja = await screen.findByRole('dialog', { name: 'Peso meta' })
       await userEvent.type(within(hoja).getByLabelText('Peso meta (kg)'), '97,5')
       const propuestas = api.getTargetProposal.mock.calls.length
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Guardar' }))
+      await salir()
 
       await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ goal_weight_kg: 97.5 }))
       await waitFor(() =>
@@ -195,13 +200,20 @@ describe('Perfil', () => {
       )
     })
 
-    it('fuera de 30–300 kg no se manda: lo dice', async () => {
+    // Salir no puede tragarse en silencio lo que tecleaste: la primera salida
+    // se queda y dice por qué; la segunda, con lo mismo escrito, cierra sin
+    // tocar lo guardado.
+    it('fuera de 30–300 kg no se manda: lo dice, y salir otra vez deja lo que había', async () => {
       renderPerfil()
       await userEvent.click(await fila('Peso meta'))
       await userEvent.type(await screen.findByLabelText('Peso meta (kg)'), '20')
-      await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+      await salir()
 
       expect(await screen.findByText('Entre 30 y 300 kg.')).toBeInTheDocument()
+      expect(screen.getByRole('dialog', { name: 'Peso meta' })).toBeInTheDocument()
+
+      await salir()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(api.saveTargetProfile).not.toHaveBeenCalled()
     })
 
@@ -234,7 +246,7 @@ describe('Perfil', () => {
 
     // Una hoja, un campo, y el PATCH lleva sólo ese campo: guardar la altura no
     // pisa lo que otro dispositivo cambió en el sexo.
-    it('tocar Altura abre su hoja y Guardar manda sólo la altura', async () => {
+    it('tocar Altura abre su hoja y cerrarla manda sólo la altura', async () => {
       renderPerfil()
 
       await userEvent.click(await fila('Altura'))
@@ -244,7 +256,7 @@ describe('Perfil', () => {
       await userEvent.clear(campo)
       await userEvent.type(campo, '185')
       api.getTargetProfile.mockResolvedValue({ ...PERFIL, height_cm: 185 })
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Guardar' }))
+      await salir()
 
       await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ height_cm: 185 }))
       // Se cierra, y se vuelve a preguntar perfil y propuesta.
@@ -253,27 +265,101 @@ describe('Perfil', () => {
       expect(await screen.findByRole('button', { name: /^Altura.*185 cm/ })).toBeInTheDocument()
     })
 
-    it('«Cancelar» cierra la hoja sin guardar', async () => {
+    // Salir es guardar (como el editor de ejercicio): ni «Guardar» ni
+    // «Cancelar», que cerrar ya decide.
+    it('la hoja de un dato no tiene «Guardar» ni «Cancelar»', async () => {
       renderPerfil()
       await userEvent.click(await fila('Altura'))
-      await userEvent.type(await screen.findByLabelText('Altura (cm)'), '1')
+      const hoja = await screen.findByRole('dialog', { name: 'Altura' })
 
-      await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+      expect(within(hoja).queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument()
+      expect(within(hoja).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    })
+
+    it('tocar el fondo también guarda', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Año de nacimiento'))
+      const hoja = await screen.findByRole('dialog', { name: 'Año de nacimiento' })
+      const campo = within(hoja).getByRole('textbox')
+      await userEvent.clear(campo)
+      await userEvent.type(campo, '1995')
+      await tocarFondo()
+
+      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ birth_year: 1995 }))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('Intro en el teclado guarda y cierra', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Altura'))
+      const campo = await screen.findByLabelText('Altura (cm)')
+      await userEvent.clear(campo)
+      await userEvent.type(campo, '186{Enter}')
+
+      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ height_cm: 186 }))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    // Abrir para mirar y salir no manda nada.
+    it('salir sin cambiar nada no manda nada', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Altura'))
+      await screen.findByRole('dialog', { name: 'Altura' })
+      await salir()
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(api.saveTargetProfile).not.toHaveBeenCalled()
     })
 
-    it('el sexo se elige con dos chips y se guarda solo', async () => {
+    // Lo ilegible no es vacío: borrarte la altura por un «1,7,5» sería
+    // convertir un error de dedo en un `NULL` que nadie pidió.
+    it('lo ilegible no borra el dato: lo dice', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Altura'))
+      const campo = await screen.findByLabelText('Altura (cm)')
+      await userEvent.clear(campo)
+      await userEvent.type(campo, '1,7,5')
+      await salir()
+
+      expect(await screen.findByText('Escribe un número.')).toBeInTheDocument()
+      expect(api.saveTargetProfile).not.toHaveBeenCalled()
+    })
+
+    it('vaciar la altura la deja sin dato: null, no cero', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Altura'))
+      await userEvent.clear(await screen.findByLabelText('Altura (cm)'))
+      await salir()
+
+      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ height_cm: null }))
+    })
+
+    // Dos opciones que se eligen: tocar una es la decisión entera, y la hoja se
+    // va con ella. Un toque menos que con «Guardar».
+    it('el sexo se elige con un toque: guarda y cierra', async () => {
       renderPerfil()
       await userEvent.click(await fila('Sexo'))
       const hoja = await screen.findByRole('dialog', { name: 'Sexo' })
       expect(within(hoja).getByRole('button', { name: 'Hombre' })).toHaveAttribute('aria-pressed', 'true')
+      expect(within(hoja).queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument()
 
       await userEvent.click(within(hoja).getByRole('button', { name: 'Mujer' }))
-      await userEvent.click(within(hoja).getByRole('button', { name: 'Guardar' }))
 
       await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ sex: 'female' }))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('tocar el sexo puesto lo quita («sin decir»), y salir sin tocar no manda nada', async () => {
+      renderPerfil()
+      await userEvent.click(await fila('Sexo'))
+      await screen.findByRole('dialog', { name: 'Sexo' })
+      await salir()
+      expect(api.saveTargetProfile).not.toHaveBeenCalled()
+
+      await userEvent.click(await fila('Sexo'))
+      const hoja = await screen.findByRole('dialog', { name: 'Sexo' })
+      await userEvent.click(within(hoja).getByRole('button', { name: 'Hombre' }))
+      await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ sex: null }))
     })
 
     describe('Meta de pasos', () => {
@@ -283,7 +369,7 @@ describe('Perfil', () => {
         const campo = await screen.findByLabelText('Pasos al día')
         await userEvent.clear(campo)
         await userEvent.type(campo, '12.500')
-        await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+        await salir()
 
         await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ steps_goal: 12500 }))
         await waitFor(() => expect(publishStepsGoal).toHaveBeenCalledWith(12500))
@@ -293,7 +379,7 @@ describe('Perfil', () => {
         renderPerfil()
         await userEvent.click(await fila('Meta de pasos'))
         await userEvent.clear(await screen.findByLabelText('Pasos al día'))
-        await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+        await salir()
 
         await waitFor(() => expect(api.saveTargetProfile).toHaveBeenCalledWith({ steps_goal: null }))
         await waitFor(() => expect(publishStepsGoal).toHaveBeenCalledWith(null))
@@ -305,7 +391,7 @@ describe('Perfil', () => {
         const campo = await screen.findByLabelText('Pasos al día')
         await userEvent.clear(campo)
         await userEvent.type(campo, '50')
-        await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+        await salir()
 
         expect(await screen.findByText('Entre 1.000 y 100.000 pasos.')).toBeInTheDocument()
         expect(api.saveTargetProfile).not.toHaveBeenCalled()

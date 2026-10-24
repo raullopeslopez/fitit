@@ -22,10 +22,11 @@ const SEXOS = [
   ['female', 'Mujer'],
 ]
 
-// Vacío o ilegible es `null`, nunca cero: sin dato no es dato.
+// Vacío es `null`, nunca cero: sin dato no es dato. Ilegible es `NaN`, que no
+// es vacío: no se guarda, y la hoja lo dice (HojaDato).
 function numero(raw) {
-  const value = Number(String(raw ?? '').replace(',', '.'))
-  return String(raw ?? '').trim() === '' || !Number.isFinite(value) ? null : value
+  if (String(raw ?? '').trim() === '') return null
+  return Number(String(raw).replace(',', '.'))
 }
 
 // Pasos: un entero, con o sin punto de miles («10.000» son diez mil, no diez).
@@ -97,7 +98,8 @@ const DATOS = {
 // que compara salen de aquí.
 //
 // Cada ajuste es una fila y se edita en su hoja (DESIGN.md → Sistema v2): nada
-// de un «Guardar» al pie de un formulario de seis campos.
+// de un «Guardar» al pie de un formulario de seis campos, ni en la hoja: cerrarla
+// guarda. La excepción es «Tu objetivo», donde aceptar la cifra es la decisión.
 // Dos letras: la inicial de cada palabra (raul.lopez → RL), o las dos primeras
 // si es una sola.
 export function iniciales(nombre) {
@@ -296,42 +298,68 @@ export default function Perfil({ onLogout }) {
   )
 }
 
-// Una hoja, un campo. Se monta al abrirse, así que el borrador arranca del
-// valor de ahora y cancelar no deja nada a medias.
+// Una hoja, un campo, y sin «Guardar» ni «Cancelar»: salir es guardar, como en
+// el editor de ejercicio. Las salidas de la hoja —el fondo, Escape (que es el
+// Atrás de Android) e Intro en el teclado— pasan todas por `salir`: si una
+// guardase y otra no, el resultado dependería de dónde aterrizó el pulgar. Se
+// monta al abrirse, así que el borrador arranca del valor de ahora.
+//
+// Qué manda cada salida:
+// - lo mismo que había (o abrir para mirar): nada;
+// - el campo vacío: `null`, «sin dato», nunca cero. Vaciar es la forma de
+//   quitar un dato, y es una decisión que se ve en el campo;
+// - algo que no se puede guardar (ilegible, o fuera de lo que el servidor
+//   acepta): nada, y la hoja se queda diciendo por qué. Callarlo sería tirar lo
+//   tecleado sin frase; borrarlo a `null`, convertir un error de dedo en un
+//   «sin dato» que nadie pidió. Salir otra vez con lo mismo escrito cierra y
+//   deja lo que había: la hoja no te encierra hasta que la cifra sea buena.
 function HojaDato({ dato, perfil, onClose, onSaved }) {
   const [texto, setTexto] = useState(dato.texto(perfil))
-  const [mal, setMal] = useState(false)
-  const [busy, setBusy] = useState(false)
+  // El texto sobre el que ya se dijo que no valía, o `null`.
+  const [avisado, setAvisado] = useState(null)
 
-  async function guardar(event) {
-    event.preventDefault()
+  const valido = (v) => v === null || (Number.isFinite(v) && (!dato.valido || dato.valido(v)))
+
+  function salir() {
     const valor = dato.parsear(texto)
-    if (dato.valido && !dato.valido(valor)) {
-      setMal(true)
+    if (!valido(valor)) {
+      if (avisado === texto) onClose()
+      else setAvisado(texto)
       return
     }
-    setMal(false)
-    setBusy(true)
+    onClose()
+    if (valor === (perfil[dato.campo] ?? null)) return
+    guardar(valor)
+  }
+
+  async function guardar(valor) {
     try {
       await saveTargetProfile({ [dato.campo]: valor })
       // El widget de Android dibuja la barra contra este número.
       if (dato.campo === 'steps_goal') publishStepsGoal(valor)
-      onClose()
-      // Y se vuelve a preguntar: la cifra depende de lo que se acaba de guardar.
-      await onSaved()
     } finally {
-      setBusy(false)
+      // Y se vuelve a preguntar: la cifra depende de lo que se acaba de
+      // guardar, y si no llegó, la fila vuelve a decir lo que hay de verdad.
+      await onSaved()
     }
   }
 
+  const mal = avisado !== null && avisado === texto
+
   return (
-    <Sheet open title={dato.titulo} onClose={onClose}>
-      <form onSubmit={guardar}>
+    <Sheet open title={dato.titulo} onClose={salir}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          salir()
+        }}
+      >
         <div className="field">
           <label htmlFor="perfil-dato">{dato.label}</label>
           <input
             id="perfil-dato"
             inputMode={dato.inputMode}
+            enterKeyHint="done"
             autoComplete="off"
             autoFocus
             value={texto}
@@ -341,30 +369,28 @@ function HojaDato({ dato, perfil, onClose, onSaved }) {
           />
           {mal && (
             <p id="perfil-dato-error" className="perfil-aviso">
-              {dato.error}
+              {dato.error ?? 'Escribe un número.'}
             </p>
           )}
         </div>
-        <Acciones busy={busy} onCancel={onClose} />
       </form>
     </Sheet>
   )
 }
 
-// El sexo son dos opciones y se eligen, no se teclean: dos chips. Tocar el que
-// está puesto lo quita, que «sin decir» es una respuesta válida.
+// El sexo son dos opciones y se eligen, no se teclean: dos chips, y tocar uno
+// es la decisión entera — guarda y cierra, sin «Guardar». Tocar el que está
+// puesto lo quita, que «sin decir» es una respuesta válida. Salir sin tocar
+// ninguno no manda nada.
 function HojaSexo({ perfil, onClose, onSaved }) {
-  const [sex, setSex] = useState(perfil.sex ?? null)
-  const [busy, setBusy] = useState(false)
+  const sex = perfil.sex ?? null
 
-  async function guardar() {
-    setBusy(true)
+  async function elegir(value) {
+    onClose()
     try {
-      await saveTargetProfile({ sex })
-      onClose()
-      await onSaved()
+      await saveTargetProfile({ sex: sex === value ? null : value })
     } finally {
-      setBusy(false)
+      await onSaved()
     }
   }
 
@@ -372,33 +398,12 @@ function HojaSexo({ perfil, onClose, onSaved }) {
     <Sheet open title="Sexo" onClose={onClose}>
       <div className="perfil-chips" role="group" aria-label="Sexo">
         {SEXOS.map(([value, label]) => (
-          <Chip key={value} selected={sex === value} onClick={() => setSex(sex === value ? null : value)}>
+          <Chip key={value} selected={sex === value} onClick={() => elegir(value)}>
             {label}
           </Chip>
         ))}
       </div>
-      <Acciones busy={busy} onCancel={onClose} onSave={guardar} />
     </Sheet>
-  )
-}
-
-// `Cancelar` / `Guardar`. Con `onSave` es un botón; sin él, envía el formulario
-// que lo contiene.
-function Acciones({ busy, onCancel, onSave }) {
-  return (
-    <div className="perfil-acciones">
-      <button type="button" className="secondary" onClick={onCancel}>
-        Cancelar
-      </button>
-      <button
-        type={onSave ? 'button' : 'submit'}
-        className="primary"
-        disabled={busy}
-        onClick={onSave}
-      >
-        Guardar
-      </button>
-    </div>
   )
 }
 

@@ -824,8 +824,12 @@ interruptor viejo/nuevo, y durante unas semanas convivirán las dos pieles.
   explica va al lado como etiqueta. «ESTIMADO CON UNA FÓRMULA» en mono gris de 11px era
   el caso tipo: la procedencia es un **chip**, no un pie de foto.
 - **Se edita en una hoja, no en un formulario.** Un ajuste es una fila (`ListRow`) con su
-  valor a la derecha; tocarla abre una hoja con ese único campo, y cerrarla con
-  «Guardar» lo guarda. Desaparecen los botones «Guardar mis datos» al pie de una tarjeta.
+  valor a la derecha; tocarla abre una hoja con ese único campo, y **cerrarla lo
+  guarda** —el fondo, Atrás o Intro—, sin «Guardar» ni «Cancelar» (2026-10-24). Si son
+  opciones (chips), tocar una guarda y cierra. Vacío guarda «sin dato» (`null`); lo
+  ilegible o fuera de rango no se guarda y la hoja lo dice, y salir otra vez deja lo que
+  había. La excepción es «Tu objetivo», donde aceptar la cifra es una decisión y sus
+  botones se quedan. Desaparecen los botones «Guardar mis datos» al pie de una tarjeta.
 - **La acción principal de la pantalla es un botón flotante extendido** (`Fab`): icono +
   verbo, abajo a la derecha, encima de la barra de pestañas. Uno por pantalla como mucho.
   Sigue la regla de siempre —la acción va abajo, donde está el pulgar— con la forma que
@@ -909,6 +913,7 @@ The current implicit system is competent but generic. To adopt this:
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-24 | Tú: las hojas de un dato guardan al cerrarse, sin «Cancelar / Guardar» | Petición del usuario, por el principio de los mínimos toques («ni Guardar cuando salir ya guarda»). Altura, Año de nacimiento, Peso meta y Meta de pasos se portan como el editor de ejercicio y la hoja «Nombre del entreno»: el fondo, Atrás e Intro guardan; salir sin cambios no manda nada. Sexo guarda y cierra al tocar el chip (de 3 toques a 2). Vacío es `null`, nunca cero, como siempre; lo ilegible deja de contar como vacío (antes un «1,7,5» borraba la altura) y, como lo fuera de rango, no se guarda: la primera salida se queda con la frase («Escribe un número.», «Entre 30 y 300 kg.», «Entre 1.000 y 100.000 pasos.») y la segunda cierra dejando lo que había. «Tu objetivo» conserva «Guardar» y «Aceptar». |
 | 2026-10-23 | Las pantallas que se abren encima suben, y el ejercicio de Entreno entra por su lado | Usuario: «mete también las pantallas que se abren encima y Entreno», sobre la propuesta del mismo día. Las pantallas encima se cierran con «Cancelar»/«Cerrar» y se portan como hojas a pantalla completa, así que entran como ellas (subiendo) y no empujando de lado, que se leería como avanzar un nivel. En Entreno la duda era moverse a mitad de serie; se queda en 16 px y 200 ms, sin rebote, y sólo al tocar la tira. La copia que sale es la misma pieza para la barra y para Entreno (`salidaMuda.js`). Toques: los mismos. |
 | 2026-10-23 | Dentro de cada pantalla se navega con scroll: secciones que entran al asomar, y Progreso y Semana sin pestañas | Petición del usuario: «hacer scroll hacia abajo y que se cambie de sección». Se definieron primero las secciones reales de cada pantalla; de cuatro formas (por páginas, cabecera fija, entrada al asomar, páginas con puntos) eligió scroll libre con entrada, y que las píldoras de Progreso y Semana pasaran a índice con Ejercicio arriba. La entrada es la de las pantallas (16 px, fundido, `backwards` para no dejar `transform`) y sólo para lo que asoma: lo que ya se ve al abrir no se repinta, y lo que la carga empuja abajo sin verlo espera como lo demás. Al montarse las dos semanas a la vez, «La que viene» pide tu objetivo al abrir Semana, no al tocar su píldora. Toques: Ejercicio, 0 (igual); Músculos, Cuerpo y La que viene, 1 o ninguno bajando. |
 | 2026-10-23 | Cambiar de pestaña desliza según el orden de la barra | Petición del usuario: una transición entre sección y sección. De tres opciones (deslizar según orden, fundido cruzado, carrusel entero) eligió la de eje compartido: 32 px y no la pantalla entera, para que diga hacia dónde vas sin convertir cada cambio en un viaje (el carrusel chocaba con *minimal-functional*). La vieja sale en 120 ms como copia muda —React ya la ha quitado—, igual que las hojas; la nueva entra con 40 ms de retraso para que se crucen sin pisarse. El contenedor recorta en horizontal (`overflow-x: clip`) para que los 32 px no abran scroll. Entrar y salir de Entreno, abrir un día y los saltos desde botones (Entrenar, Hacer el plan, el widget) siguen como estaban. Toques: los mismos, 1 por pestaña. |
