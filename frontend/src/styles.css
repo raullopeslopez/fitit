@@ -8687,6 +8687,12 @@ button.set-chip:active:not(:disabled) {
   font-size: 1rem;
   font-weight: 600;
 }
+/* Con el entreno arriba, su «Entrenar» es el mandarina; «Comido» va en Hueso. */
+.hoy-ahora-comido.is-segundo,
+.hoy-ahora-comido.is-segundo:hover:not(:disabled) {
+  background: var(--text);
+  color: var(--bg);
+}
 .hoy-ahora-otra,
 .hoy-ahora-otra:hover:not(:disabled) {
   height: 60px;

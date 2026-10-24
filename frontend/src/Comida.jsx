@@ -350,6 +350,7 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           platos={platos}
           onChanged={() => load(dayIso)}
           onOtraCosa={() => setAdding({ slot: siguiente })}
+          segundo={conEntreno && entreno.toca}
         />
       )}
 

@@ -69,7 +69,9 @@ export function dicha(entrada, rail) {
  * respuestas a la vista —«Comido» y «Otra cosa»—; las demás (me lo salté, no
  * sé, de la olla, fuera) siguen dentro de su fila, donde estaban.
  */
-export function Ahora({ entrada, hechas, platos, onChanged, onComido, onOtraCosa }) {
+// `segundo`: el entreno abre Hoy y su «Entrenar» es el mandarina de la
+// pantalla; «Comido» pasa a Hueso (DESIGN.md: un mandarina por pantalla).
+export function Ahora({ entrada, hechas, platos, onChanged, onComido, onOtraCosa, segundo = false }) {
   const [abierta, setAbierta] = useState(false)
   const gramos = planEntryAmountGrams(entrada)
   return (
@@ -93,7 +95,7 @@ export function Ahora({ entrada, hechas, platos, onChanged, onComido, onOtraCosa
       <div className="hoy-ahora-acciones">
         <PlanEnComida
           compacto
-          className="hoy-ahora-comido"
+          className={`hoy-ahora-comido${segundo ? ' is-segundo' : ''}`}
           entrada={entrada}
           platos={platos}
           onChanged={onChanged}
