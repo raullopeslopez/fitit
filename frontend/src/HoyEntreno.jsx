@@ -52,10 +52,61 @@ const lunes = () => {
 
 const conComa = (n) => String(n).replace('.', ',')
 
+// El día de hoy en el calendario del móvil, que es como se fechan los entrenos.
+function hoyLocal(now = new Date()) {
+  const p = (n) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
+}
+
+// ¿Toca entrenar hoy? Sí si a la semana le falta algún músculo por debajo de
+// su mínimo (lo mismo que la banda enseña como «Esta semana te falta»), o si
+// hoy ya hay un entreno abierto, aunque no lleve series: lo has empezado y
+// volver a él es lo que toca. Con la semana en zona y nada hoy, no.
+export function tocaEntrenar(days, owed, hoy = hoyLocal()) {
+  if (owed.length > 0) return true
+  return (days ?? []).some((d) => d.date === hoy && (d.workouts ?? []).length > 0)
+}
+
+// Lo que la banda necesita saber, leído una vez: qué le falta a la semana y si
+// toca entrenar. `owed` es `null` mientras no ha contestado nadie. Con
+// `activo` en falso no pide nada (otro día que no es hoy).
+export function useEntrenoDeHoy(activo = true) {
+  const [estado, setEstado] = useState({ owed: null, toca: true })
+
+  useEffect(() => {
+    if (!activo) return undefined
+    let vivo = true
+    let pausa
+    // Sin backend que conteste (o sin `listDays` en un doble de prueba), la
+    // banda se queda sin músculos, no tumba la pantalla.
+    Promise.resolve()
+      .then(() => listDays())
+      .then((days) => {
+        if (!vivo) return
+        const ahora = owedThisWeek(days ?? [])
+        const semana = lunes()
+        const antes = ultimaVez?.semana === semana ? ultimaVez.owed : null
+        ultimaVez = { semana, owed: ahora }
+        const filas = conLosCumplidos(antes, ahora, todosLosQueFaltan(days ?? []))
+        const toca = tocaEntrenar(days, ahora)
+        setEstado({ owed: filas, toca })
+        // El «✓» empuja (240 ms) y, medio segundo después, la píldora se va.
+        if (filas.some((m) => m.cumplido)) pausa = setTimeout(() => vivo && setEstado({ owed: ahora, toca }), 960)
+      })
+      .catch(() => vivo && setEstado({ owed: [], toca: false }))
+    return () => {
+      vivo = false
+      clearTimeout(pausa)
+    }
+  }, [activo])
+
+  return estado
+}
+
 // La banda de entreno de Hoy (Marcador): qué le falta a la semana y el botón
 // que te mete en el entreno de hoy — empezado o continuado — en un toque.
-export default function HoyEntreno({ onTrain }) {
-  const [owed, setOwed] = useState(null)
+// `compacta`: los días que no toca, una sola línea con el botón a la derecha.
+export function BandaEntreno({ owed, onTrain, compacta = false }) {
   // Es la única puerta al entreno: un segundo toque mientras abre no crea otra
   // sesión, y si no se puede abrir lo dice aquí.
   const [abriendo, setAbriendo] = useState(false)
@@ -74,33 +125,8 @@ export default function HoyEntreno({ onTrain }) {
     }
   }
 
-  useEffect(() => {
-    let vivo = true
-    let pausa
-    // Sin backend que conteste (o sin `listDays` en un doble de prueba), la
-    // banda se queda sin músculos, no tumba la pantalla.
-    Promise.resolve()
-      .then(() => listDays())
-      .then((days) => {
-        if (!vivo) return
-        const ahora = owedThisWeek(days ?? [])
-        const semana = lunes()
-        const antes = ultimaVez?.semana === semana ? ultimaVez.owed : null
-        ultimaVez = { semana, owed: ahora }
-        const filas = conLosCumplidos(antes, ahora, todosLosQueFaltan(days ?? []))
-        setOwed(filas)
-        // El «✓» empuja (240 ms) y, medio segundo después, la píldora se va.
-        if (filas.some((m) => m.cumplido)) pausa = setTimeout(() => vivo && setOwed(ahora), 960)
-      })
-      .catch(() => vivo && setOwed([]))
-    return () => {
-      vivo = false
-      clearTimeout(pausa)
-    }
-  }, [])
-
   return (
-    <section className="hoy-entreno" aria-label="Entreno" data-seccion>
+    <section className={`hoy-entreno${compacta ? ' is-compacta' : ''}`} aria-label="Entreno" data-seccion>
       {owed !== null && (
         <>
           <p className="hoy-entreno-sello">

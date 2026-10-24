@@ -190,7 +190,8 @@ describe('Comida', () => {
       expect(screen.queryByText('Tu plan')).not.toBeInTheDocument()
     })
 
-    it('lo planificado de hoy va dentro de su comida, y confirmarlo pregunta el peso', async () => {
+    // PR F: el peso salió de Hoy; confirmar una comida ya no pregunta nada.
+    it('lo planificado de hoy va dentro de su comida, y confirmarlo no pregunta el peso', async () => {
       api.getPlan.mockResolvedValue({
         id: 1,
         week_start: '2026-08-31',
@@ -216,7 +217,9 @@ describe('Comida', () => {
       expect(within(ahora).getByRole('heading', { name: 'Lentejas con chorizo' })).toBeInTheDocument()
       await userEvent.click(within(ahora).getByRole('button', { name: 'Comido' }))
       await waitFor(() => expect(api.setPlanEntry).toHaveBeenCalledWith(5, 'done', null, expect.any(String)))
-      expect(await screen.findByText('¿Te has pesado hoy?')).toBeInTheDocument()
+      await waitFor(() => expect(api.getFoodDay).toHaveBeenCalledTimes(2))
+      expect(screen.queryByText('¿Te has pesado hoy?')).not.toBeInTheDocument()
+      expect(api.listBodyWeights).not.toHaveBeenCalled()
     })
 
     // Marcador: cada comida es una fila plegada. Lo previsto va debajo del
@@ -243,13 +246,55 @@ describe('Comida', () => {
       await waitFor(() => expect(api.setPlanEntry).toHaveBeenCalledWith(5, 'done', null, expect.any(String)))
     })
 
-    it('al final de Hoy, la fila «Peso» abre «Apuntar pesada»', async () => {
+    // PR F: el peso vive en Progreso → Cuerpo. Hoy ni lo pide ni lo enseña.
+    it('Hoy ya no tiene la fila «Peso»', async () => {
       api.weightTrend.mockResolvedValue({ last_kg: 78.4, kg: 78.6, weigh_ins: 3, up_to: '2026-08-30' })
       api.listBodyWeights.mockResolvedValue([])
       render(<Comida onTrain={() => {}} />)
-      const fila = await screen.findByRole('button', { name: /^Peso 78,4 kg$/ })
-      await userEvent.click(fila)
-      expect(await screen.findByRole('dialog', { name: 'Apuntar pesada' })).toBeInTheDocument()
+      await screen.findByRole('button', { name: 'Entrenar' })
+      await waitFor(() => expect(slotNames()).toHaveLength(4))
+      expect(screen.queryByRole('button', { name: /^Peso/ })).not.toBeInTheDocument()
+      expect(api.weightTrend).not.toHaveBeenCalled()
+    })
+
+    // PR F: los días que toca entrenar, la banda de entreno abre Hoy, por
+    // encima del día de comida. Toca si a la semana le falta algún músculo
+    // por debajo de su mínimo, o si hoy ya hay un entreno empezado.
+    describe('la banda de entreno', () => {
+      const series = (group, n) => Array.from({ length: n }, () => ({ muscle_group: group, secondary_groups: [] }))
+      const dia = (date, workouts) => ({ id: date, date, workouts })
+      const banda = () => screen.findByRole('region', { name: 'Entreno' })
+      const primero = () => document.querySelector('.comida').firstElementChild
+
+      it('si a la semana le falta algo, va arriba del todo', async () => {
+        api.listDays.mockResolvedValue([
+          dia('2026-08-31', [{ id: 1, sets: series('Pecho', 2) }]),
+          dia('2026-08-10', [{ id: 2, sets: series('Pecho', 12) }]),
+        ])
+        render(<Comida onTrain={() => {}} />)
+        await screen.findByText('Esta semana te falta', {}, { timeout: 3000 })
+        expect(primero()).toBe(await banda())
+        expect(await banda()).not.toHaveClass('is-compacta')
+      })
+
+      it('con un entreno empezado hoy, arriba aunque la semana esté en zona', async () => {
+        api.listDays.mockResolvedValue([dia('2026-08-31', [{ id: 1, sets: [] }])])
+        render(<Comida onTrain={() => {}} />)
+        await screen.findByText('Esta semana, todo en zona', {}, { timeout: 3000 })
+        expect(primero()).toBe(await banda())
+      })
+
+      it('si no toca, queda debajo de los días cuidados, en una línea', async () => {
+        api.listDays.mockResolvedValue([dia('2026-08-28', [{ id: 1, sets: [] }])])
+        render(<Comida onTrain={() => {}} />)
+        await screen.findByText('Esta semana, todo en zona', {}, { timeout: 3000 })
+        const b = await banda()
+        expect(b).toHaveClass('is-compacta')
+        expect(primero()).not.toBe(b)
+        expect(document.querySelector('.food-head').compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        // Entrenar sigue a un toque.
+        expect(within(b).getByRole('button', { name: 'Entrenar' })).toBeInTheDocument()
+      })
     })
 
     it('tocar la fila la despliega: las demás respuestas al plan', async () => {
@@ -2934,11 +2979,18 @@ describe('Comida: sin cifras mientras cumples', () => {
     expect(screen.queryByTestId('food-macros')).not.toBeInTheDocument()
   })
 
-  it('sin plan, las cifras del día siguen ahí', async () => {
+  // PR F: sin plan, las cifras siguen en Hoy, pero plegadas: un toque más
+  // para verlas, a cambio de que Hoy no empiece por ellas.
+  it('sin plan, las cifras del día siguen ahí, plegadas', async () => {
     api.getFoodDay.mockResolvedValue(objetivo())
     api.getPlan.mockResolvedValue(null)
     render(<Comida abiertas />)
-    expect(await screen.findByTestId('food-macros')).toBeInTheDocument()
+    const macros = await screen.findByTestId('food-macros')
+    expect(macros).not.toBeVisible()
+    expect(document.querySelector('.food-close')).not.toBeVisible()
+    await userEvent.click(screen.getByText('Macros del día'))
+    expect(macros).toBeVisible()
+    expect(document.querySelector('.food-close')).toBeVisible()
     expect(screen.queryByRole('img', { name: /Hidrato del día/ })).not.toBeInTheDocument()
   })
 

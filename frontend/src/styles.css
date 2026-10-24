@@ -7469,40 +7469,6 @@ button.set-chip:active:not(:disabled) {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- El peso de hoy, en la tarjeta del plan ---------------------------------
-   Una pregunta dentro de la tarjeta, no una tarjeta más: aparece al confirmar
-   una comida y se va al contestarla. */
-.peso-hoy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-.peso-hoy-pregunta {
-  margin: 0;
-  font-weight: 600;
-}
-.peso-hoy-fila {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.peso-hoy-input {
-  width: 6.5rem;
-  min-height: 44px;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 1rem;
-}
-.peso-hoy-hecho {
-  margin: 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
 /* --- Lista de la compra (comida simple, fase 6; lienzo fila Premium · Compra)
    La cifra de lo que queda por comprar, pasillos como sellos y un círculo por
    artículo: lleno = ya lo tienes (se apaga en su sitio). El mandarina, sólo
@@ -8536,37 +8502,6 @@ button.set-chip:active:not(:disabled) {
   border-bottom: 1px solid var(--border);
 }
 
-/* Hoy → la fila «Peso»: rótulo a la izquierda, la última pesada a la derecha. */
-.hoy-peso,
-.hoy-peso:hover:not(:disabled) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 64px;
-  padding: 0;
-  border: 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-  color: var(--text);
-}
-.hoy-peso-label {
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: var(--muted);
-}
-.hoy-peso-cifra {
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 1.15rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.hoy-peso-unidad {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
 /* Desplegada, lo de dentro arranca en la misma columna que el nombre. */
 .hoy-fila-cuerpo .plan-en-comida,
 .hoy-fila-cuerpo .food-dish-group,
@@ -8864,6 +8799,75 @@ button.set-chip:active:not(:disabled) {
   font-size: 1rem;
   font-weight: 400;
   text-align: left;
+}
+
+/* Hoy → «Macros del día» (PR F): las cifras sin plan, plegadas y cerradas al
+   entrar. Una fila como las del diario —raya arriba; la de abajo la pone la
+   primera comida—, toda ella es el control, y el chevron gira al abrir. */
+.hoy-macros {
+  margin: 0.75rem 0 0;
+  border-top: 1px solid var(--border);
+}
+.hoy-macros-pliegue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.hoy-macros-pliegue::-webkit-details-marker {
+  display: none;
+}
+.hoy-macros-chevron {
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+.hoy-macros[open] .hoy-macros-chevron {
+  transform: rotate(180deg);
+}
+.hoy-macros[open] {
+  padding-bottom: 0.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hoy-macros-chevron {
+    transition: none;
+  }
+}
+
+/* Hoy → la banda de entreno los días que no toca (PR F): una línea a sangre
+   sobre `--surface`, el sello a la izquierda y «Entrenar» a la derecha. Sigue
+   siendo un toque; sólo deja de abrir la pantalla. */
+.hoy-entreno.is-compacta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0.75rem -1rem;
+  padding: 10px 1rem;
+  background: var(--surface);
+  color: var(--text);
+}
+.hoy-entreno.is-compacta .hoy-entreno-cta,
+.hoy-entreno.is-compacta .hoy-entreno-cta:hover:not(:disabled) {
+  flex: none;
+  width: auto;
+  height: 48px;
+  margin: 0 0 0 auto;
+  padding: 0 4px 0 18px;
+  gap: 10px;
+  border-radius: 24px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 1rem;
+}
+.hoy-entreno.is-compacta .hoy-entreno-flecha {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
 }
 
 /* ── Añadir (Marcador) ─────────────────────────────────────────────────────

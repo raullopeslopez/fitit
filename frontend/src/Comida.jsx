@@ -1,7 +1,6 @@
 import { cloneElement, useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
-import HoyEntreno from './HoyEntreno.jsx'
-import Weight from './Weight.jsx'
+import { BandaEntreno, useEntrenoDeHoy } from './HoyEntreno.jsx'
 import Rueda from './Rueda.jsx'
 
 import {
@@ -26,7 +25,6 @@ import {
   weighLeftoverBone,
 } from './api.js'
 import ObjetivoLinea from './ObjetivoLinea.jsx'
-import PesoDeHoy from './PesoDeHoy.jsx'
 import { PlanEnComida, lunesDe, planDelDia } from './Plan.jsx'
 import SinDecir, { notaSinDecir } from './SinDecir.jsx'
 import { fueraDelPlan } from './Plan.jsx'
@@ -119,8 +117,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
   const [plan, setPlan] = useState(null)
   // Los días cuidados de los últimos siete (comida simple): los siete puntos.
   const [cuidados, setCuidados] = useState([])
-  // Tras confirmar una comida del plan, la pregunta del peso de hoy (si falta).
-  const [pedirPeso, setPedirPeso] = useState(false)
   // id → nombre, para que el diario pueda titular un grupo sin pedir nada más.
   // El nombre no está congelado en la entrada a propósito: es una etiqueta de
   // agrupación, no un dato del día, así que renombrar el plato retitula bien.
@@ -207,7 +203,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
   // vive en el raíl en el que se hizo, y ese raíl ya no está en pantalla.
   useEffect(() => {
     setDeleted(null)
-    setPedirPeso(false)
   }, [dayIso])
 
   // Hoy es el último día al que se puede llegar: no se registra por adelantado.
@@ -289,6 +284,18 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
     }
   }
 
+  // PR F: los días que toca entrenar (a la semana le falta algún músculo, o
+  // hoy ya hay un entreno abierto, `tocaEntrenar`), la banda abre Hoy, por
+  // encima de la comida: se usa sobre todo para entrenar. Los demás días queda
+  // donde estaba, bajo los días cuidados, en una línea.
+  const conEntreno = Boolean(isToday && onTrain)
+  const entreno = useEntrenoDeHoy(conEntreno)
+  // Con la misma `key` en sus dos sitios, React la mueve en vez de montarla
+  // otra vez: el botón que tienes debajo del dedo sigue siendo el mismo.
+  const banda = conEntreno ? (
+    <BandaEntreno key="banda-entreno" owed={entreno.owed} onTrain={onTrain} compacta={!entreno.toca} />
+  ) : null
+
   const planHoy = planDelDia(plan, dayIso)
   // Mientras comes lo previsto, Hoy no enseña cifras (épica de cuatro comidas,
   // fase 3): la tira del día dice cómo va, y los anillos vuelven en cuanto algo
@@ -309,6 +316,8 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
 
   return (
     <div className="comida">
+      {entreno.toca && banda}
+
       {/* El día como título —«Hoy», «Ayer», o su nombre— y la fecha encima en
           sello. Que estés en hoy se dice con una palabra, no se deduce de una
           flecha apagada. */}
@@ -322,7 +331,7 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           fila: junto al título no caben siete objetivos de dedo. */}
       <PuntosCuidados hoy={foodDayIso()} dayIso={dayIso} cuidados={cuidados} onPick={setDayIso} />
 
-      {isToday && onTrain && <HoyEntreno onTrain={onTrain} />}
+      {!entreno.toca && banda}
 
       {error && <p className="alert">{error}</p>}
 
@@ -340,7 +349,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           hechas={hechas}
           platos={platos}
           onChanged={() => load(dayIso)}
-          onComido={() => setPedirPeso(true)}
           onOtraCosa={() => setAdding({ slot: siguiente })}
         />
       )}
@@ -350,27 +358,39 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
       )}
 
       {/* Sin plan, las cifras del día: no hay otra cosa con la que medirlo. Con
-          plan, lo que se sale lo dice su comida («Fuera del plan · +150 kcal»). */}
-      {day && !hayPlan && <MacroCard day={day} />}
+          plan, lo que se sale lo dice su comida («Fuera del plan · +150 kcal»).
+          PR F: plegadas, cerradas al entrar. Hoy se usa sobre todo para
+          entrenar y apuntar; las cifras se miran a ratos, y cuestan un toque. */}
+      {day && !hayPlan && (
+        <details className="hoy-macros" data-seccion>
+          <summary className="hoy-macros-pliegue">
+            Macros del día
+            <svg className="hoy-macros-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </summary>
+          <MacroCard day={day} />
+          {/* Una raya en un total se lee como "no comí nada de eso", que es lo
+              contrario de lo que dice. Así que se explica en voz alta — y se
+              toca: filtra el día a esas entradas, que es lo único que se puede
+              corregir. */}
+          {note && (
+            <button
+              type="button"
+              className={`chip food-unknown-chip${onlyIncomplete ? ' is-active' : ''}`}
+              aria-pressed={onlyIncomplete}
+              onClick={() => setOnlyIncomplete((v) => !v)}
+            >
+              {note}
+            </button>
+          )}
+          <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />
+        </details>
+      )}
 
       {/* Un día pasado con comidas del plan sin decir: lo apuntado es un dato,
           pero no es el día entero, y el total no puede pasar por serlo. */}
       {notaPasado && <p className="food-sin-decir">{notaPasado}</p>}
-
-      {/* Una raya en un total se lee como "no comí nada de eso", que es lo
-          contrario de lo que dice. Así que se explica en voz alta — y ahora se
-          toca: filtra el día a esas entradas, que es lo único que se puede
-          corregir. */}
-      {note && !hayPlan && (
-        <button
-          type="button"
-          className={`chip food-unknown-chip${onlyIncomplete ? ' is-active' : ''}`}
-          aria-pressed={onlyIncomplete}
-          onClick={() => setOnlyIncomplete((v) => !v)}
-        >
-          {note}
-        </button>
-      )}
 
       {day && (
         <>
@@ -406,7 +426,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
                       hoy={foodDayIso()}
                       platos={platos}
                       onChanged={() => load(dayIso)}
-                      onComido={() => setPedirPeso(true)}
                     />
                   ) : null
                 }
@@ -421,7 +440,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
                       hoy={foodDayIso()}
                       platos={platos}
                       onChanged={() => load(dayIso)}
-                      onComido={() => setPedirPeso(true)}
                     />
                   ) : null
                 }
@@ -434,10 +452,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           <button type="button" className="hoy-algo-mas" data-seccion onClick={() => setAdding({ slot: null })}>
             <span aria-hidden="true">+</span> Algo más, fuera de las comidas
           </button>
-          {/* El día que tienes delante no es el que estás viviendo: una entrada
-              del diario se fecha por el instante en que la escribes. */}
-          {pedirPeso && isToday && <PesoDeHoy />}
-          {!hayPlan && <ClosingLine day={day} onSummary={() => setSummaryOpen(true)} />}
         </>
       )}
 
@@ -446,9 +460,6 @@ export default function Comida({ onTrain, onPlan = null, abiertas = false }) {
           arriba obligaba a bajar las tarjetas de otros días para llegar al
           desayuno de hoy. Bajar no es un toque más; plegarlo lo habría sido. */}
       {isToday && <SinDecir hoy={dayIso} platos={platos} />}
-
-      {/* El peso, la última fila de Hoy: tocarla es pesarte. */}
-      {isToday && onTrain && <Weight fila />}
 
       {/* Añadir ocupa la pantalla entera, no una hoja.
           Es una tarea con lista larga —el catálogo devuelve hasta treinta

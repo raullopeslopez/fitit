@@ -1,6 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react'
 
-import HoyEntreno, { conLosCumplidos, owedThisWeek } from './HoyEntreno.jsx'
+import { BandaEntreno, conLosCumplidos, owedThisWeek, tocaEntrenar, useEntrenoDeHoy } from './HoyEntreno.jsx'
 import { listDays } from './api.js'
 import { foodDayIso } from './food.js'
 
@@ -54,17 +54,38 @@ describe('conLosCumplidos', () => {
   })
 })
 
+// Lo que Hoy hace con la banda: leer la semana y pintarla.
+function HoyEntreno({ onTrain = () => {} }) {
+  const { owed } = useEntrenoDeHoy()
+  return <BandaEntreno owed={owed} onTrain={onTrain} />
+}
+
+// PR F: si toca entrenar, la banda abre Hoy.
+describe('tocaEntrenar', () => {
+  const hoy = '2026-08-31'
+  it('toca si a la semana le falta algún músculo', () => {
+    expect(tocaEntrenar([], [{ group: 'Pecho', gap: 4 }], hoy)).toBe(true)
+  })
+  it('toca si hoy hay un entreno abierto, aunque sin series', () => {
+    expect(tocaEntrenar([dia(hoy, [])], [], hoy)).toBe(true)
+  })
+  it('con la semana en zona y nada hoy, no toca', () => {
+    expect(tocaEntrenar([dia('2026-08-30', series('Pecho', 10))], [], hoy)).toBe(false)
+    expect(tocaEntrenar([{ id: 1, date: hoy, workouts: [] }], [], hoy)).toBe(false)
+  })
+})
+
 describe('HoyEntreno al volver de entrenar', () => {
   it('«−N» pasa a «✓» y la píldora se va', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     const semana = [dia(foodDayIso(), [...series('Espalda', 9)]), dia(haceDias(14), series('Espalda', 10))]
     listDays.mockResolvedValueOnce(semana)
-    const primera = render(<HoyEntreno onTrain={() => {}} />)
+    const primera = render(<HoyEntreno />)
     await screen.findByText(/−/)
     primera.unmount()
 
     listDays.mockResolvedValueOnce([dia(foodDayIso(), series('Espalda', 14)), dia(haceDias(14), series('Espalda', 10))])
-    render(<HoyEntreno onTrain={() => {}} />)
+    render(<HoyEntreno />)
     const pildora = (await screen.findByText('✓')).closest('li')
     expect(pildora).toHaveClass('is-cumplido')
     expect(within(pildora).getByText(/Espalda/)).toBeInTheDocument()

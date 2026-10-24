@@ -65,9 +65,7 @@ function Curva({ pesadas }) {
   )
 }
 
-// `fila`: la fila «Peso» del final de Hoy (Marcador). La cifra a la derecha, y
-// tocarla abre la misma hoja de apuntar pesada; sin curva ni botón flotante.
-export default function Weight({ today = new Date(), onSaved, fila = false }) {
+export default function Weight({ today = new Date(), onSaved }) {
   const [trend, setTrend] = useState(null)
   const [pesadas, setPesadas] = useState([])
   const [abierta, setAbierta] = useState(false)
@@ -162,21 +160,6 @@ export default function Weight({ today = new Date(), onSaved, fila = false }) {
       </form>
     </Sheet>
   )
-
-  if (fila) {
-    return (
-      <>
-        <button type="button" className="hoy-peso" onClick={() => setAbierta(true)}>
-          <span className="hoy-peso-label">Peso</span>
-          <span className="hoy-peso-cifra">
-            {ultima == null ? '—' : conComa(ultima)}
-            {ultima != null && <span className="hoy-peso-unidad"> kg</span>}
-          </span>
-        </button>
-        {hoja}
-      </>
-    )
-  }
 
   return (
     <>
