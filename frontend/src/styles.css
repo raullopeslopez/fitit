@@ -5981,6 +5981,35 @@ button.set-chip:active:not(:disabled) {
 .sin-decir-titulo {
   margin: 1.5rem 0 0;
 }
+/* El sello es el pliegue: la misma letra, a todo el ancho, con el chevrón a la
+   derecha. La cuenta va en la tinta del sello: es una etiqueta, no una cifra
+   del día. */
+.sin-decir-pliegue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.sin-decir-chevron {
+  transition: transform 160ms ease;
+}
+.sin-decir-pliegue[aria-expanded='true'] .sin-decir-chevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sin-decir-chevron {
+    transition: none;
+  }
+}
 .sin-decir .plan-en-comida {
   margin: 0;
 }

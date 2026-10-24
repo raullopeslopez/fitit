@@ -131,6 +131,10 @@ export default function SinDecir({
   setEntry = setPlanEntry,
 }) {
   const [lista, setLista] = useState([])
+  // Plegado al entrar (2026-10-24): con dos días de cuatro comidas eran ocho
+  // «Comido» encima de cada visita a Hoy. Se dice cuántas quedan; abrirlas es
+  // un toque, y cerrarlas sigue costando uno por fila.
+  const [abierta, setAbierta] = useState(false)
 
   const cargar = useCallback(async () => {
     const semanas = [...new Set(diasPendientes(hoy).map(lunesDe))]
@@ -152,8 +156,20 @@ export default function SinDecir({
     <section className="sin-decir" aria-label="Sin decir">
       {/* Debajo de hoy (17 oct) hace falta decir dónde acaba hoy: sin el sello,
           «Ayer · Desayuno» se leía como otra tarjeta del snack. */}
-      <h2 className="card-eyebrow sin-decir-titulo">Sin decir</h2>
-      {lista.map((entrada) => (
+      <h2 className="card-eyebrow sin-decir-titulo">
+        <button
+          type="button"
+          className="sin-decir-pliegue"
+          aria-expanded={abierta}
+          onClick={() => setAbierta((v) => !v)}
+        >
+          Sin decir · {lista.length}
+          <span className="sin-decir-chevron" aria-hidden="true">
+            ⌄
+          </span>
+        </button>
+      </h2>
+      {abierta && lista.map((entrada) => (
         <FilaSinDecir
           key={entrada.id}
           entrada={entrada}

@@ -65,7 +65,8 @@ describe('la franja de lo que quedó sin decir', () => {
     const setEntry = vi.fn().mockResolvedValue({})
     const leerPlan = vi.fn().mockResolvedValue(PLAN)
     render(<SinDecir hoy={HOY} leerPlan={leerPlan} setEntry={setEntry} />)
-    expect(await screen.findByText('Cena de ayer')).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: /Sin decir/ }))
+    expect(screen.getByText('Cena de ayer')).toBeInTheDocument()
     expect(screen.getByText('Desayuno de anteayer')).toBeInTheDocument()
     expect(screen.queryByText('Pizza')).not.toBeInTheDocument()
     expect(leerPlan).toHaveBeenCalledWith('2026-09-21')
@@ -88,5 +89,17 @@ describe('la franja de lo que quedó sin decir', () => {
 // Debajo de las comidas de hoy, el bloque dice que empieza otra cosa.
 it('el bloque lleva su sello', async () => {
   render(<SinDecir hoy={HOY} leerPlan={async () => PLAN} />)
-  expect(await screen.findByRole('heading', { name: 'Sin decir' })).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: /Sin decir/ })).toBeInTheDocument()
+})
+
+// Plegado al entrar (2026-10-24): ocho «Comido» de días pasados cada vez que
+// abres Hoy eran ruido. Una línea con cuántas quedan; un toque las despliega.
+it('entra plegado, con cuántas quedan, y un toque lo despliega', async () => {
+  render(<SinDecir hoy={HOY} leerPlan={async () => PLAN} />)
+  const pliegue = await screen.findByRole('button', { name: 'Sin decir · 2' })
+  expect(pliegue).toHaveAttribute('aria-expanded', 'false')
+  expect(screen.queryByText('Cena de ayer')).not.toBeInTheDocument()
+  await userEvent.click(pliegue)
+  expect(pliegue).toHaveAttribute('aria-expanded', 'true')
+  expect(screen.getByText('Cena de ayer')).toBeInTheDocument()
 })
