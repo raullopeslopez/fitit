@@ -73,3 +73,23 @@ describe('HoyEntreno al volver de entrenar', () => {
     vi.useRealTimers()
   })
 })
+
+// «Entrenar» es la única puerta al entreno, así que lo que antes contestaba
+// Historial lo contesta la banda: un segundo toque mientras se abre no crea
+// otra sesión, y un fallo se dice aquí, no en otra pantalla.
+describe('HoyEntreno · «Entrenar»', () => {
+  it('mientras abre no acepta un segundo toque, y si falla lo dice', async () => {
+    listDays.mockResolvedValue([])
+    let fallar
+    const onTrain = vi.fn(() => new Promise((_, rej) => { fallar = rej }))
+    render(<HoyEntreno onTrain={onTrain} />)
+    const boton = screen.getByRole('button', { name: /^Entrenar$/ })
+    await act(async () => boton.click())
+    await act(async () => boton.click())
+    expect(onTrain).toHaveBeenCalledTimes(1)
+    expect(boton).toBeDisabled()
+    await act(async () => fallar(new Error('red')))
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo empezar el entreno.')
+    expect(boton).not.toBeDisabled()
+  })
+})

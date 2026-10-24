@@ -103,8 +103,7 @@ describe('Days', () => {
     }
   })
 
-  // Días is the log: the days you trained, in order, with `Empezar entreno`
-  // pinned under them. Sets per muscle is a reading, not a thing you touch
+  // Días is the log: the days you trained, in order. Sets per muscle is a reading, not a thing you touch
   // mid-session, and it has a screen of its own — DESIGN.md, "Días carries only
   // what you touch mid-session". Opening the app on nine rows of analysis put
   // the day list, which is what this tab is for, below the fold.
@@ -364,18 +363,6 @@ describe('Days', () => {
     expect(onOpen).toHaveBeenCalledWith(4, { ...workout, date: '2026-07-15' })
   })
 
-  it('starts today’s workout with one tap', async () => {
-    const onOpen = vi.fn()
-    api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-19', name: null, sets: [] })
-    // «Entrenar» en Hoy (o el widget) llega aquí con `startOnArrival`.
-    render(<Days onOpenWorkout={onOpen} startOnArrival />)
-
-    await waitFor(() => expect(api.createWorkout).toHaveBeenCalled())
-    expect(api.createWorkout).toHaveBeenCalledWith(expect.objectContaining({ name: null }))
-    // Ni antes ni al abrir: el nombre se pone solo con sus músculos.
-    expect(onOpen).toHaveBeenCalledWith(3, expect.objectContaining({ id: 3 }))
-  })
-
   // Marcador: cada día entrenado de esta semana dice también lo que comiste.
   it('un día de esta semana dice sus kcal, y una sin medir es «—»', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
@@ -435,62 +422,17 @@ describe('Days', () => {
     expect(await screen.findByText('Cuádriceps', { selector: '.day-session-name' })).toBeInTheDocument()
   })
 
-  // Starting a second workout on a day you already trained is how you end up
-  // with your session split across two entries — so once today exists, the
-  // button walks back into it instead of creating another one.
-  it('continues today’s workout instead of starting a second one', async () => {
-    const onOpen = vi.fn()
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date('2026-07-16T12:00:00'))
-    try {
-      api.listDays.mockResolvedValue([
-        { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
-      ])
-      render(<Days onOpenWorkout={onOpen} startOnArrival />)
+  // Historial es para mirar: empezar el entreno vive en Hoy (?Entrenar?).
+  // Aqu? no hay bot?n que lo empiece, y abrir la pantalla no crea nada.
+  it('no empieza ning?n entreno: ni bot?n ni sesi?n creada al llegar', async () => {
+    api.listDays.mockResolvedValue([
+      { id: 2, date: '2026-07-14', workouts: [{ id: 5, name: 'Push', sets: [] }] },
+    ])
+    render(<Days onOpenWorkout={vi.fn()} />)
 
-      await waitFor(() => expect(onOpen).toHaveBeenCalled())
-      expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
-      expect(api.createWorkout).not.toHaveBeenCalled()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  // El día de entreno corta a las 04:00 locales, como el de comida: una sesión
-  // a la 01:30 es la del día que llevas despierto. Antes «hoy» salía en UTC, y
-  // entre las 00:00 y las 02:00 en Madrid ni se encontraba la sesión de hoy ni
-  // se fechaba bien la nueva — con la hora local a secas, la de las 23:50 y la
-  // de las 00:10 serían dos días.
-  it('a las 03:00, «hoy» sigue siendo el día anterior: continúa esa sesión', async () => {
-    const onOpen = vi.fn()
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 6, 17, 3, 0))
-    try {
-      api.listDays.mockResolvedValue([
-        { id: 2, date: '2026-07-16', workouts: [{ id: 5, name: 'Push', sets: [] }] },
-      ])
-      render(<Days onOpenWorkout={onOpen} startOnArrival />)
-
-      await waitFor(() => expect(onOpen).toHaveBeenCalled())
-      expect(onOpen).toHaveBeenCalledWith(5, expect.objectContaining({ id: 5 }))
-      expect(api.createWorkout).not.toHaveBeenCalled()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('a las 04:00 empieza el día nuevo, en la fecha local', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 6, 17, 4, 0))
-    try {
-      api.listDays.mockResolvedValue([])
-      api.createWorkout.mockResolvedValue({ id: 3, date: '2026-07-17', name: null, sets: [] })
-      render(<Days onOpenWorkout={vi.fn()} startOnArrival />)
-
-      await waitFor(() => expect(api.createWorkout).toHaveBeenCalledWith({ date: '2026-07-17', name: null }))
-    } finally {
-      vi.useRealTimers()
-    }
+    expect(await screen.findByText('Push')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /entrenar|empezar|continuar/i })).toBeNull()
+    expect(api.createWorkout).not.toHaveBeenCalled()
   })
 
   it('backfills a workout for a chosen date and opens it', async () => {

@@ -15,8 +15,8 @@ import { foodDayIso } from './food.js'
 
 // El día de entreno corta a las 04:00 locales, el mismo que el de comida: una
 // sesión a la 01:30 es la del día que llevas despierto. Antes salía en UTC, y
-// entre las 00:00 y las 02:00 en Madrid «Empezar entreno» no encontraba la
-// sesión de hoy y fechaba la nueva en ayer.
+// entre las 00:00 y las 02:00 en Madrid no se encontraba la sesión de hoy y la
+// nueva se fechaba en ayer.
 const conPunto = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
 function todayISO() {
@@ -95,7 +95,7 @@ function restBetween(newerIso, olderIso) {
   return `${stamp.split(' ')[0]} · DESCANSO`
 }
 
-export default function Days({ onOpenWorkout, startOnArrival = false, onStarted = () => {} }) {
+export default function Days({ onOpenWorkout }) {
   const [days, setDays] = useState(null)
   const [date, setDate] = useState(todayISO())
   const [name, setName] = useState('')
@@ -213,39 +213,8 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     setBackfill(false)
   }
 
-  // Today's session, if there is one. Its existence is what the primary button
-  // reads: a second workout on a day you already trained is how a session ends
-  // up split across two entries.
-  const todayDay = days?.find((d) => d.date === todayISO())
-  const todaySession = todayDay?.workouts?.[0]
-    ? { ...todayDay.workouts[0], date: todayDay.date }
-    : null
-
-  // Starting today's session is one intent: one button, no form.
-  async function startToday() {
-    setError('')
-    setCreating(true)
-    try {
-      const workout = await createWorkout({ date: todayISO(), name: null })
-      onOpenWorkout(workout.id, workout)
-    } catch {
-      setError('No se pudo empezar el entreno.')
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  // «Empezar entreno» desde el widget del APK: lo mismo que el botón de aquí
-  // arriba, en cuanto se sabe si hoy ya hay entreno. Una sola vez por orden.
-  useEffect(() => {
-    if (!startOnArrival || days === null) return
-    onStarted()
-    if (todaySession) onOpenWorkout(todaySession.id, todaySession)
-    else startToday()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startOnArrival, days])
-
-  // The date+name form is only for backfilling a past session.
+  // Historial es para mirar: empezar el entreno de hoy vive en Hoy
+  // («Entrenar», entrenoDeHoy.js), la única puerta. The date+name form is only for backfilling a past session.
   async function handleCreate(event) {
     event.preventDefault()
     setError('')
@@ -299,9 +268,6 @@ export default function Days({ onOpenWorkout, startOnArrival = false, onStarted 
     setDays((list) => list.filter((d) => d.id !== id))
   }
 
-  // No session name on the button. The row already says which session is open —
-  // that is what `EN CURSO` is for — and carrying it here meant a label that had
-  // to ellipsise the moment a session was called something descriptive.
   // El esqueleto de la lista, con su umbral: por debajo de un cuarto de
   // segundo no se dibuja nada, porque un bloque gris que parpadea se lee como
   // un fallo de pintado y no como una espera.

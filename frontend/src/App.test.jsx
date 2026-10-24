@@ -335,6 +335,24 @@ describe('App', () => {
     expect(api.createWorkout).toHaveBeenCalledTimes(1)
   })
 
+  // Una sola puerta al entreno: «Entrenar» no pasa por Historial, que es sólo
+  // para mirar. Al salir del entreno vuelves a Hoy, de donde viniste.
+  it('al salir del entreno empezado desde Hoy, vuelves a Hoy y no a Historial', async () => {
+    setToken('tok')
+    api.listDays.mockResolvedValue([])
+    api.listExercises.mockResolvedValue([])
+    api.createWorkout.mockResolvedValue({ id: 12, date: foodDayIso(), name: null, sets: [] })
+    api.getWorkout.mockResolvedValue({ id: 12, date: foodDayIso(), name: null, sets: [] })
+    render(<App />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Entrenar$/ }))
+    expect(await screen.findByLabelText('Ejercicio')).toBeInTheDocument()
+    await userEvent.click(screen.getAllByRole('button', { name: 'Volver' })[0])
+
+    expect(await screen.findByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('heading', { name: 'Historial' })).not.toBeInTheDocument()
+  })
+
   // Reopening the app between sets used to land on Días — a tap and a fetch
   // away from the set you were about to log. The open workout is the state you
   // were in, so it survives the relaunch.

@@ -13,6 +13,7 @@ import Wordmark from './Wordmark.jsx'
 import { clearToken, getToken, setToken, setUnauthorizedHandler, setUpdateRequiredHandler } from './auth.js'
 import { CLIENT_VERSION } from './platform/http.js'
 import { useColdStart } from './coldstart.js'
+import { entrenoDeHoy } from './entrenoDeHoy.js'
 import { startNativeQueue, stopNativeQueue } from './offline.js'
 import { session } from './platform/session.js'
 import { getOpenWorkout, setOpenWorkout } from './prefs.js'
@@ -42,9 +43,6 @@ export default function App() {
   // Por qué lado entra la pantalla (`adelante`: desde la derecha). Sólo lo
   // pone cambiar de pestaña; cualquier otro camino entra como siempre.
   const [dir, setDir] = useState(null)
-  // «Empezar entreno» pulsado en el widget: Días hace lo mismo que su botón en
-  // cuanto sabe si hoy ya hay entreno.
-  const [startOnArrival, setStartOnArrival] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
   // Con qué semana se abre Plan. El aviso de la revisión la abre en la que
   // viene; entrar por la pestaña, en la que estás viviendo.
@@ -160,8 +158,8 @@ export default function App() {
   }, [token])
 
   // Abierta desde el widget o la notificación (docs/widgets-entreno.md, fase 3):
-  // «abre este entreno», o «empieza el de hoy» con la regla de siempre, que es
-  // la del botón de Días y no se repite aquí. Sólo con sesión: sin ella la orden
+  // «abre este entreno», o «empieza el de hoy» con la regla de siempre, la de
+  // «Entrenar» en Hoy (entrenoDeHoy.js). Sólo con sesión: sin ella la orden
   // espera en el nativo a que entres. En la web no llega nunca.
   useEffect(() => {
     if (!token) return undefined
@@ -169,9 +167,11 @@ export default function App() {
       if (action === 'open' && workoutId) {
         openWorkout(workoutId)
       } else if (action === 'start') {
+        // Al salir del entreno se vuelve a Hoy, como si se hubiera entrado por
+        // «Entrenar». Si no se puede abrir, te quedas en Hoy con su botón.
         openWorkout(null)
-        setView('days')
-        setStartOnArrival(true)
+        setView('food')
+        train().catch(() => {})
       } else if (action === 'review') {
         // El aviso de la revisión semanal: la revisión es el primer paso de
         // planificar la semana que viene, y eso vive en Plan.
@@ -206,11 +206,13 @@ export default function App() {
     setView('food')
   }
 
-  // «Entrenar» desde Hoy: lo mismo que «Empezar entreno» del widget.
-  function train() {
-    openWorkout(null)
-    setView('days')
-    setStartOnArrival(true)
+  // «Entrenar» desde Hoy, y «Empezar entreno» del widget: la única puerta al
+  // entreno. No pasa por Historial, que es sólo para mirar; la pestaña sigue
+  // siendo la de antes, así que al salir del entreno vuelves a ella. Si falla,
+  // lo dice quien llamó (la banda de Hoy).
+  async function train() {
+    const workout = await entrenoDeHoy()
+    openWorkout(workout.id, workout)
   }
 
   // «Hacer el plan» desde Hoy sin plan: Semana, en la que viene, que es donde
@@ -317,11 +319,7 @@ export default function App() {
           // preferencias de Entreno. «Salir» vive al final, no en la cabecera.
           <Perfil onLogout={handleLogout} />
         ) : (
-          <Days
-            onOpenWorkout={openWorkout}
-            startOnArrival={startOnArrival}
-            onStarted={() => setStartOnArrival(false)}
-          />
+          <Days onOpenWorkout={openWorkout} />
         )}
       </main>
       {/* Barra flotante, al alcance del pulgar: la pestaña activa es una píldora

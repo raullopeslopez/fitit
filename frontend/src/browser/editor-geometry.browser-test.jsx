@@ -235,11 +235,14 @@ describe('Ningún botón hereda un relleno que no pidió', () => {
   for (const theme of ['dark', 'light']) {
     it(`Días · tema ${theme}`, async () => {
       await mountApp()
-      // El CTA aparece antes que la lista, así que esperar sólo por él deja la
-      // pantalla en cinco botones y el audit sin `.link-row` ni `.day-repeat`
-      // que mirar — justo los dos que estrenaron esta lista de excepciones.
-      await screen.findByRole('button', { name: /Empezar entreno|Continuar/ }, { timeout: 5000 })
-      await waitFor(() => expect(document.querySelectorAll('button.link-row').length).toBeGreaterThan(2))
+      // La app abre en Hoy, e Historial ya no tiene botón de empezar: se entra
+      // por su pestaña y se espera a la lista, que es lo que el audit mira
+      // (`.link-row` y `.day-repeat`, los que estrenaron estas excepciones).
+      const tab = await screen.findByRole('button', { name: 'Historial' }, { timeout: 5000 })
+      tab.click()
+      await screen.findByRole('heading', { name: 'Historial' }, { timeout: 5000 })
+      // La semana en curso se dibuja entera; las anteriores, plegadas a una fila.
+      await waitFor(() => expect(document.querySelectorAll('button.link-row').length).toBeGreaterThan(0))
       await settle()
       forceTheme(theme)
       const undo = freezeTransitions()

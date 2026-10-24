@@ -56,6 +56,23 @@ const conComa = (n) => String(n).replace('.', ',')
 // que te mete en el entreno de hoy — empezado o continuado — en un toque.
 export default function HoyEntreno({ onTrain }) {
   const [owed, setOwed] = useState(null)
+  // Es la única puerta al entreno: un segundo toque mientras abre no crea otra
+  // sesión, y si no se puede abrir lo dice aquí.
+  const [abriendo, setAbriendo] = useState(false)
+  const [error, setError] = useState('')
+
+  async function entrar() {
+    if (abriendo) return
+    setError('')
+    setAbriendo(true)
+    try {
+      await onTrain()
+    } catch {
+      setError('No se pudo empezar el entreno.')
+    } finally {
+      setAbriendo(false)
+    }
+  }
 
   useEffect(() => {
     let vivo = true
@@ -106,7 +123,12 @@ export default function HoyEntreno({ onTrain }) {
           )}
         </>
       )}
-      <button type="button" className="hoy-entreno-cta" onClick={onTrain}>
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+      <button type="button" className="hoy-entreno-cta" onClick={entrar} disabled={abriendo}>
         Entrenar
         <span className="hoy-entreno-flecha" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
