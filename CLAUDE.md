@@ -188,8 +188,6 @@ For every visible change, name:
 State the exact copy for anything with words in it — button labels, dialog text, empty
 states. Copy is a product decision, and I can't approve what I haven't been shown.
 
-If a change touches the frontend and yet nothing looks different, say that explicitly.
-Silence there is indistinguishable from having forgotten to mention it.
 
 ## Verify UI changes in the browser
 Claude in Chrome is connected and works against this project. Use it. A green vitest run
