@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **APK 0.47.0: Entreno primero.** (#366–#373) Hoy abre con la banda de entreno los días que toca,
+  con «Entrenar» como única acción mandarina («Comido» pasa a Hueso); sin plan, las macros van
+  plegadas en «Macros del día»; el peso sale de Hoy y vive en Progreso → Cuerpo; «Sin decir» entra
+  plegado con cuántas quedan. «Entrenar» abre el entreno sin pasar por Historial y al salir vuelves
+  a Hoy. Progreso abre con «N días cuidados este mes». En Tú, las hojas de un dato guardan al
+  cerrarse y «Tus platos» vive sólo en Semana. Fuera 3.000 líneas de código que ninguna pantalla
+  montaba (Ideas, Reglas, la tira del día).
 - **APK 0.46.0: Navegar por secciones.** (#365) Cambiar de pestaña desliza según el orden de la
   barra; Progreso (Ejercicio · Músculos · Cuerpo) y Semana (Esta semana · La que viene) son
   secciones seguidas con las píldoras como índice; lo que asoma al bajar entra subiendo; las
