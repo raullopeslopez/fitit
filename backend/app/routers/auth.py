@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings
 from ..auth import create_access_token, get_current_user, hash_password, verify_password
 from ..db import get_session
 from ..nutrition import atwater_kcal
@@ -16,7 +17,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterIn, session: AsyncSession = Depends(get_session)) -> TokenOut:
-    """Create an account and log straight in — one form, immediately in."""
+    """Create an account and log straight in — one form, immediately in.
+
+    Closed in production. The form asks for no email, so there is nothing to
+    hold against `ALLOWED_EMAILS`, and an open form on a public URL is a
+    stranger spending the model keys. Existing accounts still log in.
+    """
+    if settings.is_production:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="registration closed")
     existing = await session.scalar(
         select(User).where(func.lower(User.username) == payload.username.lower())
     )
@@ -75,6 +83,9 @@ async def google_sign_in(
     identity is worth: Google's immutable `sub` first, then the email, which is
     how an account that predates all this gets adopted rather than shadowed by
     an empty twin.
+
+    Only the last step — opening a new account — is gated, by
+    `settings.may_sign_up`: an account that already exists always gets in.
     """
     try:
         identity = verify_id_token(payload.credential)
@@ -92,6 +103,10 @@ async def google_sign_in(
             # Known account, first time through Google: bind the `sub` so a
             # later Gmail address change still lands here.
             user.google_sub = identity.subject
+        elif not settings.may_sign_up(identity.email):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="google account not allowed"
+            )
         else:
             user = User(
                 username=await _free_username(session, identity.email),

@@ -92,6 +92,11 @@ export async function apiFetch(path, options = {}) {
     // 426: el servidor dice que esta versión ya no le entiende. La app entera
     // cambia a «hay que actualizar» (App escucha el aviso), no cada pantalla.
     if (res.status === 426) notifyUpdateRequired()
+    // 429 del límite diario de llamadas al modelo (`backend/app/llm_quota.py`):
+    // trae la misma forma que la cuota del día de Gemini, y se devuelve como
+    // ella, en `refusal`. Cada pantalla ya sabe decir «hasta mañana» a su
+    // manera, y «vuelve mañana» no es «algo se ha roto».
+    if (res.status === 429 && detail?.refusal === 'quota') return detail
     throw Object.assign(new Error(`request failed: ${res.status}`), {
       status: res.status,
       detail,

@@ -23,6 +23,7 @@ from ..db import get_session
 from ..despensa import desde_cuando
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, read_ticket
+from ..llm_quota import spend_llm_call
 from ..models import Food, PantryItem, visible_foods
 from ..nutrition import food_log_date
 from ..schemas import (
@@ -59,7 +60,7 @@ async def get_ticket_reader():
     return reader
 
 
-@router.post("/ticket", response_model=TicketOut)
+@router.post("/ticket", response_model=TicketOut, dependencies=[Depends(spend_llm_call)])
 async def read_ticket_pdf(
     document: UploadFile = File(...),
     reader=Depends(get_ticket_reader),

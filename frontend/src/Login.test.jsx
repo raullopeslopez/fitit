@@ -41,4 +41,21 @@ describe('Login', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/incorrectos/i)
   })
+
+  it('offers to create an account outside a production build', () => {
+    render(<Login onAuthenticated={() => {}} onSwitchToRegister={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeInTheDocument()
+  })
+
+  // En producción el registro está cerrado: un formulario que acaba en un
+  // rechazo son toques tirados.
+  it('does not offer to create an account in a production build', () => {
+    vi.stubEnv('PROD', true)
+    try {
+      render(<Login onAuthenticated={() => {}} onSwitchToRegister={() => {}} />)
+      expect(screen.queryByRole('button', { name: 'Crear cuenta' })).toBeNull()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
 })

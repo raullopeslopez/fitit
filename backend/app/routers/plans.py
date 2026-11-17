@@ -61,6 +61,7 @@ from .ideas import ideas_available
 from ..config import settings
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, estimate_meal
+from ..llm_quota import spend_llm_call
 from ..naming import fold_exercise_name
 from ..rules import desde_fila
 from ..schemas import (
@@ -869,7 +870,7 @@ async def get_meal_estimator():
     return estimator
 
 
-@router.post("/out/estimate", response_model=OutEstimateOut)
+@router.post("/out/estimate", response_model=OutEstimateOut, dependencies=[Depends(spend_llm_call)])
 async def estimate_out(
     payload: OutEstimateIn,
     estimator=Depends(get_meal_estimator),

@@ -60,9 +60,13 @@ export default function Login({ onAuthenticated, onSwitchToRegister }) {
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
-        <button type="button" className="link-btn" onClick={onSwitchToRegister}>
-          Crear cuenta
-        </button>
+        {/* En producción el registro está cerrado (backend/app/routers/auth.py):
+            el enlace llevaría a un formulario que acaba en un rechazo. */}
+        {!import.meta.env.PROD && (
+          <button type="button" className="link-btn" onClick={onSwitchToRegister}>
+            Crear cuenta
+          </button>
+        )}
       </div>
     </div>
   )

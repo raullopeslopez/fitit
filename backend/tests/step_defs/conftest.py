@@ -8,7 +8,7 @@ lo mismo con las mismas palabras.
 from datetime import date, timedelta
 
 import pytest
-from pytest_bdd import given, then, when
+from pytest_bdd import given, parsers, then, when
 
 from app.main import app
 from app.taski import get_taski
@@ -78,3 +78,17 @@ def then_closed(client):
 @then("that week is not waiting for any ticket")
 def then_nothing(client):
     assert _compra(client) is None
+
+
+@given("the app runs in production")
+def given_production(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "env", "production")
+
+
+@given(parsers.parse('the allowed emails are "{emails}"'))
+def given_allowed_emails(monkeypatch, emails):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "allowed_emails", emails)

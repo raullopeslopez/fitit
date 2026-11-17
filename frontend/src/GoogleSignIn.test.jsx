@@ -88,4 +88,17 @@ describe('GoogleSignIn', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo entrar con google/i)
   })
+
+  // Producción sólo abre cuentas nuevas a los emails de ALLOWED_EMAILS. Decir
+  // «inténtalo otra vez» ahí te tiene repitiendo algo que no va a funcionar.
+  it('says the account has no access when the backend will not open it one', async () => {
+    const calls = fakeGis()
+    api.googleLogin.mockRejectedValue(Object.assign(new Error('rejected'), { status: 403 }))
+    render(<GoogleSignIn onAuthenticated={() => {}} />)
+
+    await waitFor(() => expect(calls.initialize).not.toBeNull())
+    calls.initialize.callback({ credential: 'id-token-from-google' })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esta cuenta de Google no tiene acceso a Fitit.')
+  })
 })

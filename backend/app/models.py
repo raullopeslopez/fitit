@@ -871,3 +871,20 @@ class WeeklyReview(Base):
     proposed_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
     accepted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class LlmUsage(Base):
+    """Cuántas llamadas al modelo ha hecho una cuenta en un día UTC.
+
+    Lo escribe y lo lee `app/llm_quota.py`, y nada más. Un día sin llamadas no
+    tiene fila. Se cuenta el intento, no el éxito: una llamada que el modelo
+    rechaza también ha gastado clave.
+    """
+
+    __tablename__ = "llm_usage"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    calls: Mapped[int] = mapped_column(Integer)

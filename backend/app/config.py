@@ -1,7 +1,10 @@
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+DEFAULT_JWT_SECRET = "dev-secret-change-me"
 
 
 class Settings(BaseSettings):
@@ -16,7 +19,9 @@ class Settings(BaseSettings):
     env: str = "local"
     database_url: str = "postgresql+asyncpg://fitit:fitit@localhost:5432/fitit"
 
-    jwt_secret: str = "dev-secret-change-me"
+    # El valor por defecto sólo vale en local: está en el repo, y con él
+    # cualquiera que lo lea firma tokens. En producción no arranca (ver abajo).
+    jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days — it's a personal app
     # Only read once, by the add_users_table migration, to seed the first
@@ -72,6 +77,41 @@ class Settings(BaseSettings):
     # es una versión, pasa: la web cacheada, un curl o el health check no se
     # rompen por esto.
     min_client_version: str = ""
+    # Quién puede **crear** una cuenta, por email y separados por comas. Lo
+    # que entra por Google lo trae verificado; el registro con usuario y
+    # contraseña no pide email, así que en producción está cerrado (ver
+    # `routers/auth.py`). Una cuenta que ya existe entra siempre: esto sólo
+    # decide las nuevas. Vacía fuera de producción no restringe nada (los
+    # tests y el dev server registran libremente); vacía en producción
+    # significa que no entra nadie nuevo.
+    allowed_emails: str = ""
+    # Llamadas al modelo (Gemini, Groq) por cuenta y día UTC, todas contra el
+    # mismo contador (`app/llm_quota.py`). Las claves son del servidor: sin
+    # esto, cualquiera con un token puede vaciarlas.
+    llm_daily_limit: int = 60
+
+    @property
+    def is_production(self) -> bool:
+        return self.env == "production"
+
+    @property
+    def allowed_email_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.allowed_emails.split(",") if e.strip()}
+
+    def may_sign_up(self, email: str) -> bool:
+        """Si un email que no tiene cuenta puede abrir una."""
+        allowed = self.allowed_email_set
+        if allowed:
+            return email.strip().lower() in allowed
+        return not self.is_production
+
+    @model_validator(mode="after")
+    def _refuse_the_sample_secret_in_production(self) -> "Settings":
+        if self.is_production and self.jwt_secret == DEFAULT_JWT_SECRET:
+            raise ValueError(
+                "JWT_SECRET is the sample value from the repo; set a real one before running in production"
+            )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -27,6 +27,7 @@ from ..config import settings
 from ..db import get_session
 from ..dish_draft import build_draft_lines, dish_method, dump_recipe, load_recipe
 from ..gemini import ModelUnavailable, find_ideas
+from ..llm_quota import spend_llm_call
 from ..ideas import IdeasRefused, read_ideas
 from ..models import Dish, DishIdea, Food, visible_foods
 from ..recipe_page import PageUnreachable, fetch_page, read_recipe
@@ -137,7 +138,7 @@ async def _out(
     )
 
 
-@router.post("", response_model=DishIdeasOut)
+@router.post("", response_model=DishIdeasOut, dependencies=[Depends(spend_llm_call)])
 async def dish_ideas(
     payload: DishIdeasIn,
     user_id: int = Depends(get_current_user),

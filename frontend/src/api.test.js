@@ -37,6 +37,25 @@ describe('apiFetch', () => {
     expect(options.headers['X-Client-Version']).toBe(CLIENT_VERSION)
   })
 
+  // El límite diario de llamadas al modelo (429) dice lo mismo que la cuota del
+  // día de Gemini: cada pantalla ya sabe enseñarlo, así que llega igual.
+  it('turns the daily model limit into the day-quota refusal the screens already show', async () => {
+    const detail = {
+      refusal: 'quota',
+      quota_scope: 'day',
+      message: 'Has llegado al límite de consultas de hoy. Vuelve mañana.',
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({ detail }) }))
+
+    await expect(apiFetch('/food-log/text', { method: 'POST' })).resolves.toEqual(detail)
+  })
+
+  it('still throws a 429 that is not the model limit', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({ detail: 'slow down' }) }))
+
+    await expect(apiFetch('/workouts')).rejects.toMatchObject({ status: 429 })
+  })
+
   it('parses and returns JSON on success', async () => {
     setToken('tok')
     vi.stubGlobal(

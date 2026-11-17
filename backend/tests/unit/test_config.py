@@ -56,3 +56,25 @@ def test_no_key_means_the_feature_is_off():
     pasa en otro, y además arrastraría la clave a la salida al fallar.
     """
     assert Settings.model_fields["gemini_api_key"].default.get_secret_value() == ""
+
+
+def test_production_refuses_the_default_jwt_secret():
+    """Con el secreto de ejemplo cualquiera que lea el repo firma tokens."""
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="JWT_SECRET"):
+        Settings(env="production", jwt_secret="dev-secret-change-me")
+
+
+def test_production_starts_with_a_real_jwt_secret():
+    assert Settings(env="production", jwt_secret="x" * 40).env == "production"
+
+
+def test_local_keeps_the_default_jwt_secret():
+    assert Settings(env="local", jwt_secret="dev-secret-change-me").env == "local"
+
+
+def test_allowed_emails_are_folded_and_trimmed():
+    s = Settings(allowed_emails=" Raul@Gmail.com ,otra@gmail.com,, ")
+    assert s.allowed_email_set == {"raul@gmail.com", "otra@gmail.com"}

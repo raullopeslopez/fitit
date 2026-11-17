@@ -48,6 +48,7 @@ from ..routers.targets import frozen_target
 from ..serialization import to_entry_out
 from ..dish_draft import candidate_foods
 from ..gemini import LabelUnreadable, VoiceUnavailable, read_voice, read_voice_text
+from ..llm_quota import spend_llm_call
 from ..groq import transcribe
 from ..schemas import DraftFoodOut, VoiceBatchIn, VoiceLineOut, VoiceOut, VoiceTextIn
 from ..voice import Habit, parse_heard, voice_lines
@@ -189,7 +190,7 @@ async def get_text_reader():
     return reader
 
 
-@router.post("/text", response_model=VoiceOut)
+@router.post("/text", response_model=VoiceOut, dependencies=[Depends(spend_llm_call)])
 async def read_text(
     payload: VoiceTextIn,
     reader=Depends(get_text_reader),
@@ -226,7 +227,7 @@ async def read_text(
     return await _voice_out(session, user_id, crudo, note)
 
 
-@router.post("/voice", response_model=VoiceOut)
+@router.post("/voice", response_model=VoiceOut, dependencies=[Depends(spend_llm_call)])
 async def hear(
     audio: UploadFile = File(...),
     reader=Depends(get_voice_reader),
