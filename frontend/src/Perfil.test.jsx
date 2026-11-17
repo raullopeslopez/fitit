@@ -541,6 +541,27 @@ describe('Perfil', () => {
     })
   })
 
+  // La ODbL de Open Food Facts y la Licence Ouverte de Ciqual piden citar la
+  // fuente donde se ve la obra. Al final, encima de «Salir»: no está en ningún
+  // camino, no cuesta ningún toque.
+  it('cita las fuentes de los alimentos, con su licencia, encima de «Salir»', async () => {
+    renderPerfil()
+    const credito = await screen.findByText(/^Alimentos:/)
+    expect(credito).toHaveTextContent(
+      'Alimentos: tabla Ciqual de ANSES (Licence Ouverte 2.0) y Open Food Facts (ODbL).',
+    )
+    expect(within(credito).getByRole('link', { name: 'Ciqual' })).toHaveAttribute(
+      'href',
+      'https://ciqual.anses.fr',
+    )
+    expect(within(credito).getByRole('link', { name: 'Open Food Facts' })).toHaveAttribute(
+      'href',
+      'https://world.openfoodfacts.org',
+    )
+    const salirBtn = screen.getByRole('button', { name: /^salir$/i })
+    expect(credito.compareDocumentPosition(salirBtn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('«Salir» cierra la sesión', async () => {
     const onLogout = vi.fn()
     renderPerfil({ onLogout })
