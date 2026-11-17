@@ -182,3 +182,9 @@ Steps:
 Notes: Render's free tier spins down when idle (first open is a slow cold start). Neon's
 free tier keeps the database around and pauses idle compute automatically — no 90-day
 expiry to worry about. Upgrade either plan for always-on.
+
+## License
+
+The code is released under the [MIT License](LICENSE). The food data in `backend/data/`
+carries its own licenses (Ciqual under Licence Ouverte 2.0, the Open Food Facts extract
+under ODbL 1.0): see [DATA_LICENSES.md](DATA_LICENSES.md).

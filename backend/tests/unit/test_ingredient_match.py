@@ -193,7 +193,7 @@ def test_real_made_up_food_is_missing():
 @pytest.mark.parametrize(
     ("line_name", "status", "food"),
     [
-        # El resto de la receta de okdiario, tal como la parte `parse_line`.
+        # El resto de la receta de las acelgas, tal como la parte `parse_line`.
         (
             "crema de leche",
             "chosen",
@@ -207,7 +207,7 @@ def test_real_made_up_food_is_missing():
         ("Sal y pimienta", "ambiguous", None),
     ],
 )
-def test_real_okdiario_lines(line_name, status, food):
+def test_lines_of_a_real_recipe(line_name, status, food):
     foods = _ciqual()
     match = match_ingredient(line_name, foods)
     assert match.status == status

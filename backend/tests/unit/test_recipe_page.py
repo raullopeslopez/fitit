@@ -1,7 +1,8 @@
 """Leer una receta de su página: el JSON-LD schema.org, y nada más.
 
-Las páginas de `tests/fixtures/recipes/` son reales y están recortadas a sus
-`<script>` JSON-LD, tal cual se publicaron. Ningún test aquí toca la red.
+Las páginas de `tests/fixtures/recipes/` están escritas a mano: copian la
+**forma** de páginas reales (dónde va el nodo Recipe, qué señuelos lo rodean,
+cómo escapan el JSON) y no su texto. Ningún test aquí toca la red.
 """
 
 import json
@@ -29,11 +30,11 @@ def _page(*blocks, raw: str | None = None) -> str:
     return f"<html><head>{scripts}{raw or ''}</head><body></body></html>"
 
 
-# --- Páginas reales -----------------------------------------------------------
+# --- Páginas con forma real ----------------------------------------------
 
 
-def test_okdiario_publishes_its_ingredients_and_no_yield():
-    html = (FIXTURES / "okdiario-acelgas-crema-huevo.html").read_text(encoding="utf-8")
+def test_a_top_level_list_publishes_its_ingredients_and_no_yield():
+    html = (FIXTURES / "recipe-top-level-list-no-yield.html").read_text(encoding="utf-8")
     recipe = read_recipe(html)
     assert recipe.ingredients == [
         "500 gr de acelgas",
@@ -46,13 +47,13 @@ def test_okdiario_publishes_its_ingredients_and_no_yield():
         "Queso parmesano",
         "Sal y pimienta Aceite de oliva virgen",
     ]
-    # okdiario no publica `recipeYield`: las raciones son desconocidas, no 1.
+    # La página no publica `recipeYield`: las raciones son desconocidas, no 1.
     assert recipe.servings is None
     assert recipe.name == "Receta de Acelgas a la crema con huevo al horno"
 
 
 def test_a_yoast_graph_page_finds_the_recipe_node():
-    html = (FIXTURES / "recipetineats-chicken-chasseur-graph.html").read_text(encoding="utf-8")
+    html = (FIXTURES / "recipe-yoast-graph.html").read_text(encoding="utf-8")
     recipe = read_recipe(html)
     assert recipe.servings == 4
     assert len(recipe.ingredients) == 19

@@ -266,6 +266,21 @@ export default function Perfil({ onLogout }) {
         </div>
       </section>
 
+      {/* La ODbL de Open Food Facts y la Licence Ouverte de Ciqual piden citar
+          la fuente donde se ve la obra (DATA_LICENSES.md). Al final, fuera de
+          todo camino: no cuesta ningún toque. */}
+      <p className="hint perfil-credito">
+        Alimentos: tabla{' '}
+        <a href="https://ciqual.anses.fr" target="_blank" rel="noreferrer">
+          Ciqual
+        </a>{' '}
+        de ANSES (Licence Ouverte 2.0) y{' '}
+        <a href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer">
+          Open Food Facts
+        </a>{' '}
+        (ODbL).
+      </p>
+
       {/* Lo más raro que se hace, al final. */}
       <p className="perfil-salir">
         <button type="button" className="link-btn" onClick={onLogout}>

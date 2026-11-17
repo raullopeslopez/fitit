@@ -74,7 +74,7 @@ Feature: Turning an idea into a dish
     When I save the draft
     Then "Acelgas a la crema con huevo al horno" has the kcal of 200 g of "Acelga, cruda" per serving
 
-  # okdiario no publica recipeYield. Dividir entre 1 sería decir que la receta
+  # Hay webs que no publican recipeYield. Dividir entre 1 sería decir que la receta
   # entera es una ración, y eso no lo ha dicho nadie: se pregunta.
   Scenario: A recipe that does not say its servings asks for them
     Given its page publishes no servings with "500 gr de acelgas"

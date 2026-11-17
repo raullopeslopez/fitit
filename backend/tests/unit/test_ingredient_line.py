@@ -12,7 +12,7 @@ from app.ingredient_line import ParsedLine, parse_line
 @pytest.mark.parametrize(
     ("line", "quantity", "unit", "grams", "name"),
     [
-        # Las nueve líneas que publica okdiario para las acelgas a la crema.
+        # Las nueve líneas que publica una web de recetas para las acelgas a la crema.
         ("500 gr de acelgas", 500, "g", 500, "acelgas"),
         ("200 ml de crema de leche", 200, "ml", 200, "crema de leche"),
         ("2 huevos", 2, None, None, "huevos"),

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<!-- Escrita a mano. Imita la forma de una web de recetas en español: un array
+     JSON-LD en el nivel superior con la Recipe entre otros nodos, sin
+     recipeYield; un <script> que no es JSON-LD y menciona "Recipe" (señuelo), y
+     un segundo bloque JSON-LD sólo de navegación. -->
+<html lang="es"><head><meta charset="utf-8">
+<title>Receta de Acelgas a la crema con huevo al horno</title>
+<script>window.dataLayer = window.dataLayer || []; dataLayer.push({"@type": "Recipe"});</script>
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"NewsMediaOrganization","@id":"https://recetas.example/#publisher","name":"Recetas de ejemplo","url":"https://recetas.example"},{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"item":{"@id":"https://recetas.example/recetas/","name":"Recetas"}}]},{"@context":"http://schema.org","@type":"Recipe","name":"Receta de Acelgas a la crema con huevo al horno","author":{"@type":"Person","name":"Autor de ejemplo"},"datePublished":"2020-01-01T12:00:00+01:00","description":"Texto de ejemplo.\r\n","recipeIngredient":["500 gr de acelgas","200 ml de crema de leche","2 huevos","½ cebolla","70 gr de piñones tostados","2 cucharadas de harina","80 gr de atún al natural (opcional)","Queso parmesano","Sal y pimienta Aceite de oliva virgen"],"recipeInstructions":[{"@type":"HowToStep","text":"Paso uno."},{"@type":"HowToStep","text":"Paso dos."}]}]</script>
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SiteNavigationElement","name":"Recetas","url":"https://recetas.example/recetas/"},{"@context":"https://schema.org","@type":"SiteNavigationElement","name":"Verduras","url":"https://recetas.example/recetas/verduras/"}]</script>
+</head><body><p>…</p></body></html>

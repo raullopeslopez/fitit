@@ -7213,6 +7213,17 @@ button.set-chip:active:not(:disabled) {
   border-bottom: 0;
   padding-bottom: 0.3rem;
 }
+/* El crédito de los datos: Meta/small en `--muted` (es `.hint`), centrado
+   como «Salir». Los enlaces se distinguen por el subrayado, no por un color. */
+.perfil-credito {
+  text-align: center;
+  margin: 1.5rem 1rem 0;
+}
+.perfil-credito a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .perfil-salir {
   display: flex;
   justify-content: center;
