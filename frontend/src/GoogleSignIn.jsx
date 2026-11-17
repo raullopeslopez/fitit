@@ -31,8 +31,14 @@ export default function GoogleSignIn({ onAuthenticated }) {
           // `null` es el selector nativo diciendo que no pudo: mismo aviso.
           if (!credential) throw new Error('no credential')
           onAuthenticated(await googleLogin(credential))
-        } catch {
-          setError('No se pudo entrar con Google. Inténtalo otra vez.')
+        } catch (err) {
+          // 403: el servidor no abre cuentas nuevas a este email (producción,
+          // ALLOWED_EMAILS). Reintentar no lo arregla, y decirlo es lo honesto.
+          setError(
+            err?.status === 403
+              ? 'Esta cuenta de Google no tiene acceso a Fitit.'
+              : 'No se pudo entrar con Google. Inténtalo otra vez.',
+          )
         }
       },
     })

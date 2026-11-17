@@ -28,6 +28,7 @@ from ..config import settings
 from ..db import get_session
 from ..dish_draft import build_draft_lines
 from ..gemini import LabelUnreadable, read_plan
+from ..llm_quota import spend_llm_call
 from ..models import Dish, DishIngredient, Pauta, PautaEntry
 from ..naming import fold_exercise_name
 from ..plan_import import read_plan_payload
@@ -71,7 +72,7 @@ async def get_plan_reader():
     return reader
 
 
-@router.post("/import", response_model=PlanImportOut)
+@router.post("/import", response_model=PlanImportOut, dependencies=[Depends(spend_llm_call)])
 async def import_plan(
     document: UploadFile = File(...),
     reader=Depends(get_plan_reader),

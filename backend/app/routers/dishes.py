@@ -25,6 +25,7 @@ from ..config import settings
 from ..db import get_session
 from ..despensa import alimentos_en_casa
 from ..gemini import ModelUnavailable, suggest_dishes
+from ..llm_quota import spend_llm_call
 from ..models import Batch, Dish, DishIdea, DishIngredient, Food, LogEntry, User, visible_foods
 from ..naming import fold_exercise_name as fold
 from ..nutrition import calcular_nutrientes, dump_nutrients, food_log_date, macros_de_plato
@@ -662,7 +663,7 @@ def _poca_proteina(propuesta, objetivo: float | None, foods: dict[int, Food]) ->
     return DishDiscardedOut(name=propuesta.name, protein=proteina, floor=minimo)
 
 
-@router.post("/generate", response_model=DishGenerateOut)
+@router.post("/generate", response_model=DishGenerateOut, dependencies=[Depends(spend_llm_call)])
 async def generate_dishes(
     payload: DishGenerateIn,
     user_id: int = Depends(get_current_user),

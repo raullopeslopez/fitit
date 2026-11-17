@@ -22,6 +22,7 @@ from ..config import settings
 from ..db import get_session
 from ..food_groups import FAMILIAS
 from ..gemini import LabelUnreadable, read_label
+from ..llm_quota import spend_llm_call
 from ..label import ColumnRefused, read_from_payload
 from ..openfoodfacts import (
     NotFound,
@@ -491,7 +492,7 @@ async def scan_barcode(
     )
 
 
-@router.post("/label", response_model=LabelReadOut)
+@router.post("/label", response_model=LabelReadOut, dependencies=[Depends(spend_llm_call)])
 async def read_a_label(
     photo: UploadFile = File(...),
     reader=Depends(get_label_reader),
